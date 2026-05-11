@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "109314154382",
+    "project_id": "temple-directory-india",
+    "storage_bucket": "temple-directory-india.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:109314154382:android:d2e607c7a242743c4ccedf",
+        "android_client_info": {
+          "package_name": "com.example.temple_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAqohirMdWgc4kSpR8ccJamu5UtevSj5z8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
