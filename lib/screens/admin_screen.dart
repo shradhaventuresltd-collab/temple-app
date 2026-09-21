@@ -4,11 +4,16 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/utils/image_picker_helper.dart';
+import 'package:temple_app/widgets/admin_auth_gate.dart';
 import 'package:temple_app/widgets/seed_temples_control.dart';
 
 class AdminScreen extends StatefulWidget {
-  const AdminScreen({super.key});
+  const AdminScreen({super.key, this.adminAuth});
+
+  /// Injected in tests. Defaults to [AdminAuth.instance].
+  final AdminAuth? adminAuth;
 
   @override
   State<AdminScreen> createState() => _AdminScreenState();
@@ -17,67 +22,103 @@ class AdminScreen extends StatefulWidget {
 class _AdminScreenState extends State<AdminScreen> {
   static const Color _saffron = Color(0xFFFF8F00);
 
+  late final AdminAuth _auth = widget.adminAuth ?? AdminAuth.instance;
+  late final Stream<AdminSession> _session = _auth.session;
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFFFBF2),
-      appBar: AppBar(
-        backgroundColor: _saffron,
-        elevation: 0,
-        centerTitle: true,
-        title: Text(
-          'Admin Panel',
-          style: GoogleFonts.lora(
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          if (kDebugMode)
-            const SeedTemplesControl(compact: true, light: true),
-        ],
-      ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('temples')
-            .orderBy('name')
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: _saffron),
-            );
-          }
+    return StreamBuilder<AdminSession>(
+      stream: _session,
+      initialData: AdminSession.signedOut,
+      builder: (context, snapshot) {
+        final session = snapshot.data ?? AdminSession.signedOut;
 
-          if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                'Error loading temples.',
-                style: GoogleFonts.poppins(color: Colors.brown.shade700),
+        return Scaffold(
+          backgroundColor: const Color(0xFFFFFBF2),
+          appBar: AppBar(
+            backgroundColor: _saffron,
+            elevation: 0,
+            centerTitle: true,
+            title: Text(
+              'Admin Panel',
+              style: GoogleFonts.lora(
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
               ),
-            );
-          }
+            ),
+            iconTheme: const IconThemeData(color: Colors.white),
+            actions: [
+              if (kDebugMode && session.isAdmin)
+                const SeedTemplesControl(compact: true, light: true),
+              if (session.isSignedIn)
+                IconButton(
+                  key: const Key('admin-appbar-sign-out'),
+                  tooltip: 'Sign out',
+                  icon: const Icon(Icons.logout_rounded),
+                  onPressed: () => _auth.signOut(),
+                ),
+            ],
+          ),
+          body: !session.isSignedIn
+                  ? AdminSignInPanel(auth: _auth)
+                  : !session.isAdmin
+                      ? AdminNotAuthorizedPanel(
+                          auth: _auth,
+                          session: session,
+                        )
+                      : const _AdminTemplesBody(),
+        );
+      },
+    );
+  }
+}
 
-          final docs = snapshot.data?.docs ?? [];
+class _AdminTemplesBody extends StatelessWidget {
+  const _AdminTemplesBody();
 
-          if (docs.isEmpty) {
-            return const Center(child: SeedTemplesControl());
-          }
+  static const Color _saffron = Color(0xFFFF8F00);
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(14),
-            itemCount: docs.length,
-            itemBuilder: (context, index) {
-              final doc = docs[index];
-              return _AdminTempleCard(
-                docId: doc.id,
-                data: doc.data()! as Map<String, dynamic>,
-              );
-            },
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('temples')
+          .orderBy('name')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(color: _saffron),
           );
-        },
-      ),
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Error loading temples.',
+              style: GoogleFonts.poppins(color: Colors.brown.shade700),
+            ),
+          );
+        }
+
+        final docs = snapshot.data?.docs ?? [];
+
+        if (docs.isEmpty) {
+          return const Center(child: SeedTemplesControl());
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(14),
+          itemCount: docs.length,
+          itemBuilder: (context, index) {
+            final doc = docs[index];
+            return _AdminTempleCard(
+              docId: doc.id,
+              data: doc.data()! as Map<String, dynamic>,
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -104,6 +145,21 @@ class _AdminTempleCardState extends State<_AdminTempleCard> {
 
   Future<void> _pickAndUpload() async {
     final messenger = ScaffoldMessenger.of(context);
+
+    final isAdmin = await AdminAuth.instance.isCurrentUserAdmin();
+    if (!isAdmin) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Uploads require a signed-in admin (custom claim admin: true).',
+            style: GoogleFonts.poppins(),
+          ),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
 
     final files = await pickImageFiles();
     if (files.isEmpty) return;
