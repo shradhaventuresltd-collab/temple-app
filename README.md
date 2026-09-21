@@ -77,7 +77,9 @@ lib/
     ├── image_picker_stub.dart         # Stub for non-web platforms
     └── picked_file_data.dart          # Cross-platform picked file model
 docs/
-└── tamil-nadu-sample-research.md      # TN sample sources, caveats, Commons photo candidates
+├── tamil-nadu-sample-research.md      # TN sample sources, caveats, Commons photo candidates
+├── kerala-sample-research.md          # Kerala sample sources, caveats, Commons photo candidates
+└── karnataka-sample-research.md       # Karnataka sample sources, caveats, Commons photo candidates
 ```
 
 ## Prerequisites
@@ -164,7 +166,7 @@ Release and profile builds hide Seed/Admin; `seedTempleData` and Admin CMS write
 
 The home screen **falls back** to the 30 bundled sample temples if Firestore is empty or unreachable, so browse can look populated while the cloud `temples` collection is still empty. Admin reads Firestore only — it stays empty until an admin seeds or creates a temple.
 
-The 10 Tamil Nadu sample temples carry research-enriched story, timings (with source caveats), specialities, address, and map pins. Cover `imageUrl` values stay the existing picsum placeholders. Sources and Commons photo candidates for later Storage upload live in [`docs/tamil-nadu-sample-research.md`](docs/tamil-nadu-sample-research.md) — they are not Firestore fields. Re-seeding from a debug admin client refreshes those text fields on the existing slug IDs; this repo does not ship a live Firebase seed from CI.
+The 10 Tamil Nadu, 10 Kerala, and 10 Karnataka sample temples carry research-enriched story, timings (with source caveats), specialities, address, and map pins. Cover `imageUrl` values stay the existing picsum placeholders. Sources and Commons photo candidates for later Storage upload live in [`docs/tamil-nadu-sample-research.md`](docs/tamil-nadu-sample-research.md), [`docs/kerala-sample-research.md`](docs/kerala-sample-research.md), and [`docs/karnataka-sample-research.md`](docs/karnataka-sample-research.md) — they are not Firestore fields. Re-seeding from a debug admin client refreshes those text fields on the existing slug IDs; this repo does not ship a live Firebase seed from CI.
 
 ### Admin CMS vs Seed
 
