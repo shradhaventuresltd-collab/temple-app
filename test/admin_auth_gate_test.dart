@@ -25,6 +25,9 @@ void main() {
     expect(find.text('Seed'), findsNothing);
     expect(find.text('Seed sample temples'), findsNothing);
     expect(find.text('Upload'), findsNothing);
+    expect(find.text('Create a temple'), findsNothing);
+    expect(find.text('Edit'), findsNothing);
+    expect(find.text('Delete'), findsNothing);
   });
 
   testWidgets('AdminScreen sign-in error is shown and does not open writes',
@@ -78,6 +81,9 @@ void main() {
     expect(find.byKey(const Key('admin-refresh-claims-button')), findsOneWidget);
     expect(find.text('Seed'), findsNothing);
     expect(find.text('Seed sample temples'), findsNothing);
+    expect(find.text('Create a temple'), findsNothing);
+    expect(find.text('Edit'), findsNothing);
+    expect(find.text('Delete'), findsNothing);
 
     await tester.tap(find.byKey(const Key('admin-refresh-claims-button')));
     await tester.pump();
