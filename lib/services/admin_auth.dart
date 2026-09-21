@@ -128,9 +128,8 @@ String adminSignInErrorMessage(Object error) {
     }
   }
   var text = error.toString().trim();
-  const prefix = 'Exception: ';
-  if (text.startsWith(prefix)) {
-    text = text.substring(prefix.length);
+  if (text.startsWith('Exception:')) {
+    text = text.substring('Exception:'.length).trim();
   }
   if (text.isEmpty) return 'Sign-in failed.';
   if (text.length > 180) text = '${text.substring(0, 177)}…';

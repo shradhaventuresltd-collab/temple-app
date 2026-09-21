@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/services/seed_service.dart';
@@ -12,7 +13,19 @@ void main() {
     expect(hasAdminClaim({'admin': true}), isTrue);
   });
 
-  test('adminSignInErrorMessage maps common Firebase codes', () {
+  test('adminSignInErrorMessage maps FirebaseAuthException codes', () {
+    expect(
+      adminSignInErrorMessage(
+        FirebaseAuthException(code: 'invalid-credential'),
+      ),
+      'Email or password is incorrect.',
+    );
+    expect(
+      adminSignInErrorMessage(
+        FirebaseAuthException(code: 'operation-not-allowed'),
+      ),
+      'Email/password sign-in is not enabled in Firebase Auth.',
+    );
     expect(
       adminSignInErrorMessage(Exception('permission-denied')),
       'permission-denied',
