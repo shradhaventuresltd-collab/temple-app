@@ -1,9 +1,43 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Admin = Firebase Auth ID token custom claim `admin: true`.
-    // Grant with the Admin SDK (see scripts/grant_admin.js). Clients cannot
-    // set this claim themselves.
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: temples
+    // Document ID: slug derived from temple name (e.g., "meenakshi-amman-temple")
+    // Fields:
+    //   - id: string (required) - document slug ID
+    //   - name: string (required, max 200) - temple name
+    //   - state: string (required, max 100) - Indian state
+    //   - city: string (required, max 100) - city name
+    //   - deity: string (required, max 100) - primary deity
+    //   - imageUrl: string (required, max 2000) - primary image URL
+    //   - description: string (required, max 10000) - temple description
+    //   - story: string (required, max 20000) - temple story/legend
+    //   - address: string (required, max 500) - physical address
+    //   - timings: string (required, max 500) - opening hours
+    //   - specialities: list of strings (max 20 items, each max 200 chars)
+    //   - images: list of strings (max 50 items, each max 2000 chars, URLs)
+    //   - latitude: number (required, -90 to 90)
+    //   - longitude: number (required, -180 to 180)
+    //   - createdAt: timestamp (optional, immutable after creation)
+    //
+    // Access: Public read (this is a public temple directory).
+    //         Admin-only create/update/delete via custom claim `admin: true`.
+    //
+    // Queries used by the app:
+    //   - collection('temples').get()
+    //   - collection('temples').orderBy('name').snapshots()
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
     function isSignedIn() {
       return request.auth != null;
     }
@@ -12,14 +46,92 @@ service cloud.firestore {
       return isSignedIn() && request.auth.token.admin == true;
     }
 
-    // Public directory: anyone may read temple documents.
-    // Create / update / delete require a signed-in admin.
-    match /temples/{templeId} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
     }
 
-    // Deny all other collections by default.
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function validStringLength(field, minLen, maxLen) {
+      return request.resource.data[field] is string &&
+        request.resource.data[field].size() >= minLen &&
+        request.resource.data[field].size() <= maxLen;
+    }
+
+    function isValidList(list, maxSize) {
+      return list is list && list.size() <= maxSize;
+    }
+
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    // ===============================================================
+    // Domain Validator: Temple
+    // ===============================================================
+
+    function isValidTemple(data) {
+      let requiredFields = [
+        'id', 'name', 'state', 'city', 'deity', 'imageUrl',
+        'description', 'story', 'address', 'timings',
+        'specialities', 'images', 'latitude', 'longitude'
+      ];
+      let allowedFields = [
+        'id', 'name', 'state', 'city', 'deity', 'imageUrl',
+        'description', 'story', 'address', 'location', 'timings',
+        'specialities', 'images', 'latitude', 'longitude', 'createdAt'
+      ];
+
+      return hasRequiredFields(requiredFields) &&
+        hasOnlyAllowedFields(allowedFields) &&
+        // String field type and length validation
+        validStringLength('id', 1, 200) &&
+        validStringLength('name', 1, 200) &&
+        validStringLength('state', 1, 100) &&
+        validStringLength('city', 1, 100) &&
+        validStringLength('deity', 1, 100) &&
+        data.imageUrl is string && data.imageUrl.size() <= 2000 &&
+        validStringLength('description', 1, 10000) &&
+        validStringLength('story', 1, 20000) &&
+        validStringLength('address', 1, 500) &&
+        validStringLength('timings', 1, 500) &&
+        // List validation
+        isValidList(data.specialities, 20) &&
+        isValidList(data.images, 50) &&
+        // Number validation (lat/lng range)
+        data.latitude is number &&
+        data.latitude >= -90 && data.latitude <= 90 &&
+        data.longitude is number &&
+        data.longitude >= -180 && data.longitude <= 180;
+    }
+
+    // ===============================================================
+    // Rules: temples collection
+    // ===============================================================
+
+    match /temples/{templeId} {
+      // Public directory: anyone may read temple documents (no auth required).
+      allow read: if true;
+
+      // Only admins may create temples, with full data validation.
+      allow create: if isAdmin() && isValidTemple(request.resource.data);
+
+      // Only admins may update temples, with full data validation.
+      // createdAt is immutable once set.
+      allow update: if isAdmin() &&
+        isValidTemple(request.resource.data) &&
+        areImmutableFieldsUnchanged(['createdAt']);
+
+      // Only admins may delete temples.
+      allow delete: if isAdmin();
+    }
+
+    // ===============================================================
+    // Default deny: all other collections
+    // ===============================================================
+
     match /{document=**} {
       allow read, write: if false;
     }
