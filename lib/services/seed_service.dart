@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:temple_app/data/sample_data.dart';
+import 'package:temple_app/services/admin_auth.dart';
 
 /// Stable Firestore document ID for a temple name.
 ///
@@ -54,11 +55,22 @@ class SeedResult {
 /// from sample data.
 ///
 /// Debug-only: calling this from a release/profile build throws.
+/// Also requires a signed-in Firebase user with custom claim `admin: true`
+/// (rules reject the write otherwise). Pass [isAdmin] in tests.
 Future<SeedResult> seedTempleData({
   FirebaseFirestore? firestore,
+  Future<bool> Function()? isAdmin,
 }) async {
   if (!kDebugMode) {
     throw StateError('Temple seeding is only available in debug builds.');
+  }
+
+  final allowed =
+      await (isAdmin ?? AdminAuth.instance.isCurrentUserAdmin)();
+  if (!allowed) {
+    throw StateError(
+      'Seeding requires a signed-in admin (custom claim admin: true).',
+    );
   }
 
   final db = firestore ?? FirebaseFirestore.instance;

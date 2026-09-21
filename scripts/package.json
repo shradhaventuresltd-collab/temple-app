@@ -4,7 +4,8 @@
   "description": "Script to fetch and upload temple images to Firebase",
   "type": "module",
   "scripts": {
-    "upload": "node upload_temple_images.js"
+    "upload": "node upload_temple_images.js",
+    "grant-admin": "node grant_admin.js"
   },
   "dependencies": {
     "axios": "^1.7.0",

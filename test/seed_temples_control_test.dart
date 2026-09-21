@@ -96,4 +96,75 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('blocked compact Seed does not write and shows a clear message',
+      (tester) async {
+    var seedCalls = 0;
+    var unauthorizedCalls = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          appBar: AppBar(
+            actions: [
+              SeedTemplesControl(
+                compact: true,
+                canWrite: false,
+                seed: () async {
+                  seedCalls++;
+                  return const SeedResult(
+                    writtenCount: 0,
+                    createdCount: 0,
+                    updatedCount: 0,
+                  );
+                },
+                onUnauthorized: () => unauthorizedCalls++,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Seed'));
+    await tester.pump();
+
+    expect(seedCalls, 0);
+    expect(unauthorizedCalls, 1);
+    expect(
+      find.text(
+        'Sign in as an admin (custom claim admin: true) to seed Firestore.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('blocked panel Seed shows lock state and does not write',
+      (tester) async {
+    var seedCalls = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SeedTemplesControl(
+              canWrite: false,
+              seed: () async {
+                seedCalls++;
+                return const SeedResult(
+                  writtenCount: 0,
+                  createdCount: 0,
+                  updatedCount: 0,
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Admin sign-in required to seed'), findsOneWidget);
+    expect(find.text('Seed sample temples'), findsNothing);
+    expect(seedCalls, 0);
+  });
 }

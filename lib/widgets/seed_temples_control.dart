@@ -17,6 +17,10 @@ class SeedTemplesControl extends StatefulWidget {
     this.light = false,
     this.onSuccess,
     this.seed = seedTempleData,
+    this.canWrite = true,
+    this.unauthorizedMessage =
+        'Sign in as an admin (custom claim admin: true) to seed Firestore.',
+    this.onUnauthorized,
   });
 
   /// App-bar sized button (short label). Otherwise a full empty-state panel.
@@ -27,6 +31,12 @@ class SeedTemplesControl extends StatefulWidget {
 
   final VoidCallback? onSuccess;
   final SeedTemplesFn seed;
+
+  /// When false, tapping Seed does not write; shows [unauthorizedMessage].
+  final bool canWrite;
+
+  final String unauthorizedMessage;
+  final VoidCallback? onUnauthorized;
 
   @override
   State<SeedTemplesControl> createState() => _SeedTemplesControlState();
@@ -41,6 +51,18 @@ class _SeedTemplesControlState extends State<SeedTemplesControl> {
 
   Future<void> _runSeed() async {
     if (_phase == SeedPhase.running) return;
+    if (!widget.canWrite) {
+      widget.onUnauthorized?.call();
+      if (widget.compact) {
+        _showSnackBar(widget.unauthorizedMessage, isError: true);
+      } else {
+        setState(() {
+          _phase = SeedPhase.failure;
+          _message = widget.unauthorizedMessage;
+        });
+      }
+      return;
+    }
 
     setState(() {
       _phase = SeedPhase.running;
@@ -105,9 +127,12 @@ class _SeedTemplesControlState extends State<SeedTemplesControl> {
   Widget _buildCompact() {
     final fg = widget.light ? Colors.white : _deepSaffron;
     final running = _phase == SeedPhase.running;
+    final blocked = !widget.canWrite;
 
     return Tooltip(
-      message: 'Seed bundled sample temples into Firestore',
+      message: blocked
+          ? widget.unauthorizedMessage
+          : 'Seed bundled sample temples into Firestore',
       child: TextButton.icon(
         onPressed: running ? null : _runSeed,
         icon: running
@@ -159,6 +184,38 @@ class _SeedTemplesControlState extends State<SeedTemplesControl> {
   }
 
   Widget _buildPanel() {
+    if (!widget.canWrite) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.lock_rounded, size: 52, color: _saffron),
+            const SizedBox(height: 14),
+            Text(
+              'Admin sign-in required to seed',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.lora(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: _deepSaffron,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              widget.unauthorizedMessage,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                fontSize: 13.5,
+                height: 1.5,
+                color: Colors.brown.shade600,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     final running = _phase == SeedPhase.running;
     final failed = _phase == SeedPhase.failure;
     final succeeded = _phase == SeedPhase.success;

@@ -5,16 +5,20 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/data/heritage_content.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/admin_screen.dart';
+import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/services/temple_service.dart';
 import 'package:temple_app/widgets/app_drawer.dart';
-import 'package:temple_app/widgets/seed_temples_control.dart';
+import 'package:temple_app/widgets/debug_home_admin_actions.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  HOME SCREEN
 // ─────────────────────────────────────────────────────────────────────────────
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.adminAuth});
+
+  /// Injected in tests. Defaults to [AdminAuth.instance].
+  final AdminAuth? adminAuth;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -37,6 +41,17 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _templesFuture = _templeService.getTemples());
   }
 
+  AdminAuth get _auth => widget.adminAuth ?? AdminAuth.instance;
+
+  void _openAdmin() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AdminScreen(adminAuth: widget.adminAuth),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -55,21 +70,12 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          if (kDebugMode) ...[
-            SeedTemplesControl(
-              compact: true,
-              light: true,
-              onSuccess: _reloadTemples,
+          if (kDebugMode)
+            DebugHomeAdminActions(
+              auth: _auth,
+              onOpenAdmin: _openAdmin,
+              onSeedSuccess: _reloadTemples,
             ),
-            IconButton(
-              icon: const Icon(Icons.admin_panel_settings_rounded),
-              tooltip: 'Admin Panel',
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AdminScreen()),
-              ),
-            ),
-          ],
         ],
       ),
       body: FutureBuilder<List<Temple>>(
