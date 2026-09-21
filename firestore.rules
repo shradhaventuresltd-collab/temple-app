@@ -18,7 +18,7 @@ service cloud.firestore {
     //   - description: string (required, max 10000) - temple description
     //   - story: string (required, max 20000) - temple story/legend
     //   - address: string (required, max 500) - physical address
-    //   - timings: string (required, max 500) - opening hours
+    //   - timings: string (required, max 1000) - opening hours
     //   - specialities: list of strings (max 20 items, each max 200 chars)
     //   - images: list of strings (max 50 items, each max 2000 chars, URLs)
     //   - latitude: number (required, -90 to 90)
@@ -31,6 +31,12 @@ service cloud.firestore {
     // Queries used by the app:
     //   - collection('temples').get()
     //   - collection('temples').orderBy('name').snapshots()
+    //
+    // Note: The seed service uses set() with merge:true for idempotent
+    // upserts, which triggers update rules for existing docs. Merge writes
+    // may not include every field (e.g. images are omitted to preserve
+    // admin uploads), so update validation only checks fields present in
+    // the request.
     //
     // ===============================================================
 
@@ -60,8 +66,21 @@ service cloud.firestore {
         request.resource.data[field].size() <= maxLen;
     }
 
+    function optionalStringLength(field, minLen, maxLen) {
+      return !(field in request.resource.data) ||
+        (request.resource.data[field] is string &&
+         request.resource.data[field].size() >= minLen &&
+         request.resource.data[field].size() <= maxLen);
+    }
+
     function isValidList(list, maxSize) {
       return list is list && list.size() <= maxSize;
+    }
+
+    function optionalValidList(field, maxSize) {
+      return !(field in request.resource.data) ||
+        (request.resource.data[field] is list &&
+         request.resource.data[field].size() <= maxSize);
     }
 
     function areImmutableFieldsUnchanged(fields) {
@@ -69,10 +88,11 @@ service cloud.firestore {
     }
 
     // ===============================================================
-    // Domain Validator: Temple
+    // Domain Validators
     // ===============================================================
 
-    function isValidTemple(data) {
+    // Strict validator for new documents — all required fields must exist.
+    function isValidTempleCreate(data) {
       let requiredFields = [
         'id', 'name', 'state', 'city', 'deity', 'imageUrl',
         'description', 'story', 'address', 'timings',
@@ -86,7 +106,6 @@ service cloud.firestore {
 
       return hasRequiredFields(requiredFields) &&
         hasOnlyAllowedFields(allowedFields) &&
-        // String field type and length validation
         validStringLength('id', 1, 200) &&
         validStringLength('name', 1, 200) &&
         validStringLength('state', 1, 100) &&
@@ -96,15 +115,40 @@ service cloud.firestore {
         validStringLength('description', 1, 10000) &&
         validStringLength('story', 1, 20000) &&
         validStringLength('address', 1, 500) &&
-        validStringLength('timings', 1, 500) &&
-        // List validation
+        validStringLength('timings', 1, 1000) &&
         isValidList(data.specialities, 20) &&
         isValidList(data.images, 50) &&
-        // Number validation (lat/lng range)
         data.latitude is number &&
         data.latitude >= -90 && data.latitude <= 90 &&
         data.longitude is number &&
         data.longitude >= -180 && data.longitude <= 180;
+    }
+
+    // Relaxed validator for updates (including set-with-merge).
+    // Does not require all fields — only validates fields that are present.
+    // Prevents schema pollution via hasOnlyAllowedFields.
+    function isValidTempleUpdate(data) {
+      let allowedFields = [
+        'id', 'name', 'state', 'city', 'deity', 'imageUrl',
+        'description', 'story', 'address', 'location', 'timings',
+        'specialities', 'images', 'latitude', 'longitude', 'createdAt'
+      ];
+
+      return hasOnlyAllowedFields(allowedFields) &&
+        optionalStringLength('id', 1, 200) &&
+        optionalStringLength('name', 1, 200) &&
+        optionalStringLength('state', 1, 100) &&
+        optionalStringLength('city', 1, 100) &&
+        optionalStringLength('deity', 1, 100) &&
+        optionalStringLength('imageUrl', 0, 2000) &&
+        optionalStringLength('description', 1, 10000) &&
+        optionalStringLength('story', 1, 20000) &&
+        optionalStringLength('address', 1, 500) &&
+        optionalStringLength('timings', 1, 1000) &&
+        optionalValidList('specialities', 20) &&
+        optionalValidList('images', 50) &&
+        (!('latitude' in data) || (data.latitude is number && data.latitude >= -90 && data.latitude <= 90)) &&
+        (!('longitude' in data) || (data.longitude is number && data.longitude >= -180 && data.longitude <= 180));
     }
 
     // ===============================================================
@@ -115,13 +159,13 @@ service cloud.firestore {
       // Public directory: anyone may read temple documents (no auth required).
       allow read: if true;
 
-      // Only admins may create temples, with full data validation.
-      allow create: if isAdmin() && isValidTemple(request.resource.data);
+      // Only admins may create temples, with strict data validation.
+      allow create: if isAdmin() && isValidTempleCreate(request.resource.data);
 
-      // Only admins may update temples, with full data validation.
+      // Only admins may update temples, with relaxed validation for merge writes.
       // createdAt is immutable once set.
       allow update: if isAdmin() &&
-        isValidTemple(request.resource.data) &&
+        isValidTempleUpdate(request.resource.data) &&
         areImmutableFieldsUnchanged(['createdAt']);
 
       // Only admins may delete temples.
