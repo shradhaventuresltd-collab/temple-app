@@ -95,21 +95,10 @@ Future<SeedResult> seedTempleData({
       updated++;
     }
 
-    final data = <String, dynamic>{
-      'id': docId,
-      'name': temple.name,
-      'state': temple.state,
-      'city': temple.city,
-      'deity': temple.deity,
-      'description': temple.description,
-      'story': temple.story,
-      'imageUrl': temple.imageUrl,
-      'address': temple.location,
-      'latitude': temple.latitude,
-      'longitude': temple.longitude,
-      'timings': temple.timings,
-      'specialities': temple.specialities,
-    };
+    final data = temple.toFirestoreData(
+      documentId: docId,
+      includeImages: false,
+    );
 
     if (isNew) {
       data['createdAt'] = FieldValue.serverTimestamp();

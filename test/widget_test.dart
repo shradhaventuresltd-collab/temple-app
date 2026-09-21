@@ -5,15 +5,13 @@
 // gestures. You can also use WidgetTester to find child widgets in the widget
 // tree, read text, and verify that the values of widget properties are correct.
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:temple_app/main.dart';
 
 void main() {
   // Leftover Flutter counter template; the app is TempleDirectoryApp and
-  // needs Firebase. Auth/seed behavior is covered by dedicated tests.
+  // needs Firebase. Auth/seed/CMS behavior is covered by dedicated tests.
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
     await tester.pumpWidget(const TempleDirectoryApp());
-  }, skip: 'Template counter test does not match this app');
+  }, skip: true);
 }

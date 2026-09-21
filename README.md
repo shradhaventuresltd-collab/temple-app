@@ -11,7 +11,7 @@ India's temple heritage is one of the richest in the world — thousands of sacr
 - **Preserve and share heritage** — Detailed write-ups on temple history, mythology, and architectural significance so this knowledge reaches a wider audience.
 - **Help pilgrims and tourists** — One-tap Google Maps directions, opening timings, and photo galleries so visitors can plan their trips with ease.
 - **Celebrate Dravidian and South Indian architecture** — Showcasing the gopurams, vimanas, and mandapams that make these temples world-class cultural monuments.
-- **Build a living directory** — An admin panel allows content managers to add temples, upload images, and keep information current via Firebase.
+- **Build a living directory** — An admin panel (debug builds, admin Auth) lets content managers add, edit, and remove temples, upload images, and keep information current via Firebase.
 
 ## Features
 
@@ -23,8 +23,8 @@ India's temple heritage is one of the richest in the world — thousands of sacr
 - **Navigation Drawer** — Shared across all screens with state/deity filters, temple counts, and quick navigation.
 
 ### For Admins (Debug Mode + Auth)
-- **Admin Panel** — Debug builds only. Sign in with a Firebase Auth admin account to manage temple images in Cloud Firestore / Storage.
-- **Image Upload** — After admin sign-in, pick and upload multiple images per temple to Firebase Storage with progress tracking.
+- **Admin CMS** — Debug builds only. After admin sign-in, create, edit, and delete temple documents in Firestore using the same fields the app already reads.
+- **Image Upload** — Pick and upload multiple images per temple to Firebase Storage with progress tracking. The file picker is **web-oriented** (native `<input type="file">`); field CRUD still works in mobile debug.
 - **Seed Data** — Debug-only **Seed** control (Home + Admin) writes the 30 bundled sample temples. It is shown only for a signed-in admin. Re-running is idempotent (stable document IDs). Hidden in release/profile builds.
 
 ### Technical
@@ -55,12 +55,15 @@ lib/
 │   ├── temple_service.dart            # Firestore temple reads with fallback
 │   ├── seed_service.dart              # Debug seed to Firestore (admin Auth required)
 │   ├── admin_auth.dart                # Firebase Auth session + admin custom claim
+│   ├── admin_temple_service.dart      # Debug Admin CMS create/update/delete
+│   ├── temple_form_validation.dart    # Admin form field validation
 │   ├── ad_helper.dart                 # AdMob unit IDs (test vs release, per platform)
 │   └── interstitial_ad_manager.dart   # Interstitial ad lifecycle management
 ├── screens/
 │   ├── home_screen.dart               # Mosaic collage + heritage write-up
 │   ├── temple_detail_screen.dart      # Full temple detail with gallery
-│   └── admin_screen.dart              # Debug admin panel (sign-in + uploads)
+│   ├── admin_screen.dart              # Debug admin panel (sign-in + CMS + uploads)
+│   └── admin_temple_form_screen.dart  # Create/edit temple form
 ├── widgets/
 │   ├── app_drawer.dart                # Navigation drawer + TempleListScreen + grid cards
 │   ├── banner_ad_widget.dart          # Self-contained banner ad widget
@@ -149,15 +152,27 @@ Production / release browsing does **not** require signing in. Seed and Admin wr
 4. Run a **debug** build (`flutter run` or `flutter run -d chrome`).
 5. Tap **Admin sign-in** (Home app bar) or the Admin Panel icon. Sign in with that email/password.
    - If you granted the claim while already signed in, tap **Refresh admin status** (or sign out and back in) so the ID token picks it up.
-   - Signed-in without the claim shows **Signed in, but not an admin** — Seed/Upload stay hidden.
-6. After you are recognized as admin, tap **Seed** on Home or **Seed sample temples** on Admin’s empty state. Watch idle → Seeding → success or a short error (not a silent no-op).
-7. Admin uses a live Firestore snapshot, so the temple list appears as soon as the write succeeds — no hot restart. Home reloads after a successful seed from that screen.
+   - Signed-in without the claim shows **Signed in, but not an admin** — Seed, CMS, and Upload stay hidden.
+6. After you are recognized as admin, tap **Seed** on Home or **Seed sample temples** on Admin’s empty state. Watch idle → Seeding → success or a short error (not a silent no-op). Or tap **Create a temple** to add one document without seeding.
+7. Admin uses a live Firestore snapshot, so the temple list appears as soon as a seed/create/edit/delete succeeds — no hot restart. Home reloads when you leave Admin (and after a successful seed from Home).
 
-**Idempotency:** each temple is stored under a slug of its name (e.g. `meenakshi-amman-temple`). Re-running Seed merges into those same documents instead of creating duplicates. Existing admin-uploaded `images` and original `createdAt` values are preserved.
+**Idempotency:** each seeded temple is stored under a slug of its name (e.g. `meenakshi-amman-temple`). Re-running Seed merges into those same documents instead of creating duplicates. Existing admin-uploaded `images` and original `createdAt` values are preserved. CMS **Create** uses the same slug rule and refuses a name that would collide.
 
-Release and profile builds hide Seed/Admin; `seedTempleData` also refuses to run outside debug, and rules reject non-admin writes even if a client tried.
+Release and profile builds hide Seed/Admin; `seedTempleData` and Admin CMS writes also refuse to run outside debug, and rules reject non-admin writes even if a client tried.
 
-The home screen **falls back** to the 30 bundled sample temples if Firestore is empty or unreachable, so browse can look populated while the cloud `temples` collection is still empty. Admin reads Firestore only — it stays empty until an admin seeds.
+The home screen **falls back** to the 30 bundled sample temples if Firestore is empty or unreachable, so browse can look populated while the cloud `temples` collection is still empty. Admin reads Firestore only — it stays empty until an admin seeds or creates a temple.
+
+### Admin CMS vs Seed
+
+**Seed** is a one-shot debug action: it writes the 30 bundled sample temples with stable slug IDs. Use it to populate Firestore quickly. It does not provide a per-field editor.
+
+**Admin CMS** is the Admin panel form + list: a signed-in admin can create, edit, and delete individual `temples/{id}` documents. Fields match what the app already stores and reads — `name`, `state`, `city`, `deity`, `description`, `story`, `imageUrl`, `address` (the model’s location), `timings`, `specialities`, `images`, `latitude`, `longitude`. There is no separate admin schema.
+
+**Delete** removes the Firestore document. Uploaded files under `temples/{docId}/` in Storage are deleted first; if that cleanup fails, the document is left in place so you can retry. Seeded cover photos that live on external hosts (for example picsum URLs) are not Storage objects and are left as-is.
+
+Image **file** picking is implemented for **web** only (`lib/utils/image_picker_web.dart`). On iOS/Android/desktop debug, you can still create/edit/delete temple fields and paste image URLs; choosing local image files is not implemented.
+
+This CMS is not public user accounts, search, AdMob configuration, or store listing hygiene.
 
 ### 5. AdMob Configuration
 

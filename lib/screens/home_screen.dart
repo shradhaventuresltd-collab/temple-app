@@ -43,13 +43,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   AdminAuth get _auth => widget.adminAuth ?? AdminAuth.instance;
 
-  void _openAdmin() {
-    Navigator.push(
+  Future<void> _openAdmin() async {
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => AdminScreen(adminAuth: widget.adminAuth),
       ),
     );
+    if (mounted) _reloadTemples();
   }
 
   @override
