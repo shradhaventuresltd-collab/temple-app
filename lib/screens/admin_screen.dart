@@ -1,11 +1,11 @@
-import 'dart:typed_data';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/utils/image_picker_helper.dart';
+import 'package:temple_app/widgets/seed_temples_control.dart';
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
@@ -33,6 +33,10 @@ class _AdminScreenState extends State<AdminScreen> {
           ),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          if (kDebugMode)
+            const SeedTemplesControl(compact: true, light: true),
+        ],
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
@@ -58,13 +62,7 @@ class _AdminScreenState extends State<AdminScreen> {
           final docs = snapshot.data?.docs ?? [];
 
           if (docs.isEmpty) {
-            return Center(
-              child: Text(
-                'No temples in Firestore.\nSeed data from the home screen first.',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.poppins(color: Colors.brown.shade600),
-              ),
-            );
+            return const Center(child: SeedTemplesControl());
           }
 
           return ListView.builder(

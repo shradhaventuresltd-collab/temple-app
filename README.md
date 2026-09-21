@@ -25,7 +25,7 @@ India's temple heritage is one of the richest in the world — thousands of sacr
 ### For Admins (Debug Mode)
 - **Admin Panel** — Accessible in debug builds to manage temple data stored in Cloud Firestore.
 - **Image Upload** — Pick and upload multiple images per temple directly to Firebase Storage with progress tracking.
-- **Seed Data** — One-click seeding of 30 sample temples to Firestore for initial setup.
+- **Seed Data** — In **debug** builds, a **Seed** button on Home (and Admin) writes the 30 bundled sample temples to Firestore. Re-running is idempotent (stable document IDs). Hidden in release/profile builds.
 
 ### Technical
 - **Firebase Backend** — Cloud Firestore for temple data, Firebase Storage for images.
@@ -62,6 +62,7 @@ lib/
 ├── widgets/
 │   ├── app_drawer.dart                # Navigation drawer + TempleListScreen + grid cards
 │   ├── banner_ad_widget.dart          # Self-contained banner ad widget
+│   ├── seed_temples_control.dart      # Debug-only Seed control (idle/running/success/failure)
 │   └── temple_image_placeholder.dart  # Placeholder for missing images
 └── utils/
     ├── image_picker_helper.dart       # Platform-aware image picker
@@ -124,7 +125,18 @@ The app comes pre-configured with our Firebase project. If you want to use your 
 
 ### 4. Seed Temple Data (First Run)
 
-On the first run in debug mode, open the Admin Panel (gear icon in the app bar) to manage temples. The app automatically falls back to the bundled sample data of 30 temples if Firestore is empty.
+The home screen **falls back** to the 30 bundled sample temples if Firestore is empty or unreachable, so the UI can look populated while the cloud `temples` collection is still empty. Admin reads Firestore only — it will stay empty until you seed.
+
+To write the bundled sample data into Firestore (**debug builds only**):
+
+1. Run a debug build (`flutter run` or `flutter run -d chrome`).
+2. Tap **Seed** in the Home app bar, **or** open **Admin Panel** (admin-shield icon, debug only) and tap **Seed sample temples** on the empty state.
+3. Watch the in-UI status: idle → Seeding → success or a short error. This is not a silent no-op.
+4. Admin uses a live Firestore snapshot, so the temple list appears as soon as the write succeeds — no hot restart is required. Home reloads its temple list after a successful seed from that screen.
+
+**Idempotency:** each temple is stored under a slug of its name (e.g. `meenakshi-amman-temple`). Re-running Seed merges into those same documents instead of creating duplicates. Existing admin-uploaded `images` and original `createdAt` values are preserved.
+
+Release and profile builds hide the Seed controls; `seedTempleData` also refuses to run outside debug.
 
 ### 5. AdMob Configuration
 
