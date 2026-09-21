@@ -29,8 +29,11 @@ class FakeAdminTempleService implements AdminTempleApi {
   int createCalls = 0;
   int updateCalls = 0;
   int deleteCalls = 0;
+  int appendImagesCalls = 0;
   Temple? lastCreated;
   Temple? lastUpdated;
+  Temple? lastAppendedTemple;
+  List<String>? lastAppendedUrls;
   String? lastDeletedId;
 
   List<Temple> get temples => List.unmodifiable(_temples);
@@ -68,6 +71,29 @@ class FakeAdminTempleService implements AdminTempleApi {
       _temples = next;
     }
     _controller.add(List.unmodifiable(_temples));
+  }
+
+  @override
+  Future<Temple> appendTempleImages(
+    Temple temple,
+    List<String> imageUrls,
+  ) async {
+    appendImagesCalls++;
+    lastAppendedTemple = temple;
+    lastAppendedUrls = List.of(imageUrls);
+    if (writeError != null) throw writeError!;
+    final updated = templeWithAppendedImages(temple, imageUrls);
+    lastUpdated = updated;
+    final index = _temples.indexWhere((t) => t.id == updated.id);
+    if (index == -1) {
+      _temples = [..._temples, updated];
+    } else {
+      final next = List<Temple>.from(_temples);
+      next[index] = updated;
+      _temples = next;
+    }
+    _controller.add(List.unmodifiable(_temples));
+    return updated;
   }
 
   @override

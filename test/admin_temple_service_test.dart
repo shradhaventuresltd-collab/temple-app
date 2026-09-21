@@ -222,12 +222,12 @@ void main() {
   });
 
   test('adminWriteErrorMessage maps permission and network failures', () {
-    expect(
-      adminWriteErrorMessage(
-        FirebaseException(plugin: 'firestore', code: 'permission-denied'),
-      ),
-      contains('Permission denied'),
+    final denied = adminWriteErrorMessage(
+      FirebaseException(plugin: 'firestore', code: 'permission-denied'),
     );
+    expect(denied, contains('Permission denied'));
+    expect(denied, contains('custom claim admin: true'));
+    expect(denied, contains('required fields'));
     expect(
       adminWriteErrorMessage(
         FirebaseException(plugin: 'firestore', code: 'unavailable'),
@@ -237,6 +237,265 @@ void main() {
     expect(
       adminWriteErrorMessage(StateError('Name is required.')),
       'Name is required.',
+    );
+  });
+
+  test('appendTempleImages writes a full payload, not images-only', () async {
+    final store = MemoryTempleWriteStore(
+      docs: {
+        'new-shore-temple': {
+          'name': 'Old name',
+          'createdAt': 'kept',
+          'images': ['https://example.com/shore.jpg'],
+        },
+      },
+    );
+    final service = AdminTempleService(
+      store: store,
+      isAdmin: () async => true,
+      isDebug: true,
+    );
+
+    final updated = await service.appendTempleImages(
+      _temple(id: 'new-shore-temple'),
+      ['https://example.com/new.jpg'],
+    );
+
+    final doc = store.docs['new-shore-temple']!;
+    expect(doc['id'], 'new-shore-temple');
+    expect(doc['name'], 'New Shore Temple');
+    expect(doc['state'], 'Tamil Nadu');
+    expect(doc['city'], 'Mahabalipuram');
+    expect(doc['deity'], 'Shiva');
+    expect(doc['address'], 'Mahabalipuram');
+    expect(doc['description'], 'Pallava sea-shore shrine');
+    expect(doc['story'], 'Built by Rajasimha');
+    expect(doc['timings'], '6:00 AM – 6:00 PM');
+    expect(doc['specialities'], ['UNESCO']);
+    expect(doc['imageUrl'], 'https://example.com/shore.jpg');
+    expect(doc['latitude'], 12.616);
+    expect(doc['longitude'], 80.199);
+    expect(doc['images'], [
+      'https://example.com/shore.jpg',
+      'https://example.com/new.jpg',
+    ]);
+    expect(doc['createdAt'], 'kept');
+    expect(doc.containsKey('location'), isFalse);
+    expect(doc.keys.toSet(), isNot(equals({'images'})));
+    expect(updated.images.length, 2);
+  });
+
+  test('appendTempleImages fills sparse docs from the current Temple model',
+      () async {
+    final store = MemoryTempleWriteStore(
+      docs: {
+        'brihadeeswarar-temple': {
+          'images': ['https://picsum.photos/seed/brihadeeswarar/800/600'],
+        },
+      },
+    );
+    final service = AdminTempleService(
+      store: store,
+      isAdmin: () async => true,
+      isDebug: true,
+    );
+
+    await service.appendTempleImages(
+      _temple(
+        id: 'brihadeeswarar-temple',
+        name: 'Brihadeeswarar Temple',
+        location: 'Thanjavur',
+      ),
+      ['https://storage.googleapis.com/bucket/temples/brihadeeswarar-temple/1.jpg'],
+    );
+
+    final doc = store.docs['brihadeeswarar-temple']!;
+    expect(doc['id'], 'brihadeeswarar-temple');
+    expect(doc['name'], 'Brihadeeswarar Temple');
+    expect(doc['address'], 'Thanjavur');
+    expect(doc['images'], [
+      'https://picsum.photos/seed/brihadeeswarar/800/600',
+      'https://storage.googleapis.com/bucket/temples/brihadeeswarar-temple/1.jpg',
+    ]);
+  });
+
+  test('appendTempleImages skips duplicate URLs and sets cover if empty',
+      () async {
+    final store = MemoryTempleWriteStore(
+      docs: {
+        'new-shore-temple': {
+          'images': ['https://example.com/shore.jpg'],
+        },
+      },
+    );
+    final service = AdminTempleService(
+      store: store,
+      isAdmin: () async => true,
+      isDebug: true,
+    );
+
+    final updated = await service.appendTempleImages(
+      _temple(id: 'new-shore-temple').copyWith(imageUrl: ''),
+      [
+        'https://example.com/shore.jpg',
+        'https://example.com/added.jpg',
+      ],
+    );
+
+    expect(updated.images, [
+      'https://example.com/shore.jpg',
+      'https://example.com/added.jpg',
+    ]);
+    expect(updated.imageUrl, 'https://example.com/shore.jpg');
+  });
+
+  test('appendTempleImages refuses extra Firestore keys with a clear error',
+      () async {
+    final store = MemoryTempleWriteStore(
+      docs: {
+        'new-shore-temple': {
+          'name': 'New Shore Temple',
+          'hacked': true,
+        },
+      },
+    );
+    final service = AdminTempleService(
+      store: store,
+      isAdmin: () async => true,
+      isDebug: true,
+    );
+
+    expect(
+      () => service.appendTempleImages(
+        _temple(id: 'new-shore-temple'),
+        ['https://example.com/new.jpg'],
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (e) => e.message,
+          'message',
+          contains('extra fields (hacked)'),
+        ),
+      ),
+    );
+  });
+
+  test('appendTempleImages client-validates empty required fields', () async {
+    final store = MemoryTempleWriteStore(
+      docs: {
+        'x': {'images': <String>[]},
+      },
+    );
+    final service = AdminTempleService(
+      store: store,
+      isAdmin: () async => true,
+      isDebug: true,
+    );
+
+    expect(
+      () => service.appendTempleImages(
+        _temple(id: 'x', name: '   ', location: ''),
+        ['https://example.com/new.jpg'],
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (e) => e.message,
+          'message',
+          contains('empty'),
+        ),
+      ),
+    );
+    expect(store.docs['x']!['images'], isEmpty);
+  });
+
+  test('appendTempleImages wraps Firestore permission-denied after Storage',
+      () async {
+    final store = MemoryTempleWriteStore(
+      docs: {
+        'new-shore-temple': {'name': 'New Shore Temple'},
+      },
+    )..setError = FirebaseException(
+        plugin: 'cloud_firestore',
+        code: 'permission-denied',
+      );
+    final service = AdminTempleService(
+      store: store,
+      isAdmin: () async => true,
+      isDebug: true,
+    );
+
+    expect(
+      () => service.appendTempleImages(
+        _temple(id: 'new-shore-temple'),
+        ['https://example.com/new.jpg'],
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (e) => e.message,
+          'message',
+          allOf(
+            contains('Storage upload succeeded'),
+            contains('Permission denied'),
+            contains('custom claim admin: true'),
+            contains('required fields'),
+          ),
+        ),
+      ),
+    );
+  });
+
+  test('appendTempleImages is refused without admin claim', () async {
+    final store = MemoryTempleWriteStore(
+      docs: {
+        'new-shore-temple': {'name': 'New Shore Temple'},
+      },
+    );
+    final service = AdminTempleService(
+      store: store,
+      isAdmin: () async => false,
+      isDebug: true,
+    );
+
+    expect(
+      () => service.appendTempleImages(
+        _temple(id: 'new-shore-temple'),
+        ['https://example.com/new.jpg'],
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (e) => e.message,
+          'message',
+          contains('signed-in admin'),
+        ),
+      ),
+    );
+    expect(store.docs['new-shore-temple']!['images'], isNull);
+  });
+
+  test('appendTempleImages is refused outside debug', () async {
+    final store = MemoryTempleWriteStore(
+      docs: {
+        'new-shore-temple': {'name': 'New Shore Temple'},
+      },
+    );
+    final service = AdminTempleService(
+      store: store,
+      isAdmin: () async => true,
+      isDebug: false,
+    );
+
+    expect(
+      () => service.appendTempleImages(
+        _temple(id: 'new-shore-temple'),
+        ['https://example.com/new.jpg'],
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (e) => e.message,
+          'message',
+          contains('debug builds'),
+        ),
+      ),
     );
   });
 }

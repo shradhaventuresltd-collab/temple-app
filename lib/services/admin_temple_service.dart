@@ -10,6 +10,9 @@ import 'package:temple_app/services/seed_service.dart';
 abstract class TempleWriteStore {
   Future<bool> exists(String id);
 
+  /// Current `temples/{id}` map, or `null` if the document is missing.
+  Future<Map<String, dynamic>?> get(String id);
+
   Future<void> set(
     String id,
     Map<String, dynamic> data, {
@@ -41,6 +44,13 @@ class FirebaseTempleWriteStore implements TempleWriteStore {
   Future<bool> exists(String id) async {
     final snap = await _col.doc(id).get();
     return snap.exists;
+  }
+
+  @override
+  Future<Map<String, dynamic>?> get(String id) async {
+    final snap = await _col.doc(id).get();
+    if (!snap.exists) return null;
+    return snap.data();
   }
 
   @override
@@ -102,6 +112,13 @@ class MemoryTempleWriteStore implements TempleWriteStore {
   Future<bool> exists(String id) async => docs.containsKey(id);
 
   @override
+  Future<Map<String, dynamic>?> get(String id) async {
+    final data = docs[id];
+    if (data == null) return null;
+    return Map<String, dynamic>.from(data);
+  }
+
+  @override
   Future<void> set(
     String id,
     Map<String, dynamic> data, {
@@ -157,6 +174,14 @@ abstract class AdminTempleApi {
   Future<void> updateTemple(Temple temple);
 
   Future<AdminDeleteResult> deleteTemple(String id);
+
+  /// After Storage upload: merge [imageUrls] into `images` and write a
+  /// **full** temple payload (not an images-only `update` / `arrayUnion`).
+  ///
+  /// Firestore rules validate `request.resource.data` on every update, so a
+  /// partial images write is denied when the existing doc is missing required
+  /// fields. Returns the temple as persisted.
+  Future<Temple> appendTempleImages(Temple temple, List<String> imageUrls);
 }
 
 /// Admin CMS writes. Requires debug + Auth custom claim `admin: true`.
@@ -254,6 +279,53 @@ class AdminTempleService implements AdminTempleApi {
     await _store.set(id, _payload(temple, id), isNew: false);
   }
 
+  /// Storage has already succeeded. Merge URLs, then `set(merge: true)` the
+  /// complete temple map rules expect — never `arrayUnion` on `images` alone.
+  @override
+  Future<Temple> appendTempleImages(
+    Temple temple,
+    List<String> imageUrls,
+  ) async {
+    await _assertCanWrite();
+
+    final id = temple.id.trim();
+    if (id.isEmpty) {
+      throw StateError('Temple id is missing.');
+    }
+
+    final urls = imageUrls
+        .map((u) => u.trim())
+        .where((u) => u.isNotEmpty)
+        .toList();
+    if (urls.isEmpty) {
+      throw StateError('No image URLs to save.');
+    }
+
+    final stored = await _store.get(id);
+    if (stored == null) {
+      throw StateError(
+        'Temple was not found. It may have already been deleted.',
+      );
+    }
+
+    _assertNoDisallowedFirestoreKeys(stored);
+
+    final current = coalesceTemple(Temple.fromMap(id, stored), temple);
+    final updated = templeWithAppendedImages(current, urls);
+    final payload = _payload(updated, id);
+    assertTemplePayloadValidForRules(payload);
+
+    try {
+      await _store.set(id, payload, isNew: false);
+    } catch (e) {
+      throw StateError(
+        'Storage upload succeeded, but Firestore could not save the image '
+        'list. ${adminWriteErrorMessage(e)}',
+      );
+    }
+    return updated;
+  }
+
   /// Deletes the Firestore document after removing known Storage objects
   /// under `temples/{id}/`.
   ///
@@ -311,6 +383,167 @@ class AdminTempleService implements AdminTempleApi {
   }
 }
 
+/// Keys allowed on `temples/{id}` by `firestore.rules` (`hasOnlyAllowedFields`).
+const kTempleFirestoreAllowedFields = {
+  'id',
+  'name',
+  'state',
+  'city',
+  'deity',
+  'imageUrl',
+  'description',
+  'story',
+  'address',
+  'location',
+  'timings',
+  'specialities',
+  'images',
+  'latitude',
+  'longitude',
+  'createdAt',
+};
+
+void _assertNoDisallowedFirestoreKeys(Map<String, dynamic> stored) {
+  final extra = stored.keys
+      .where((k) => !kTempleFirestoreAllowedFields.contains(k))
+      .toList()
+    ..sort();
+  if (extra.isEmpty) return;
+  throw StateError(
+    'This temple document has extra fields (${extra.join(', ')}) that '
+    'Firestore rules reject on update. Open Edit and save to rewrite a '
+    'valid document, then retry Upload.',
+  );
+}
+
+/// Builds the temple that will be written after an image upload.
+///
+/// Model fields come from [current] (the Admin list item). Gallery URLs come
+/// from [stored] when present so a stale list snapshot cannot drop images.
+Temple coalesceTemple(Temple stored, Temple current) {
+  String pick(String preferred, String backup) =>
+      preferred.trim().isNotEmpty ? preferred : backup;
+  return current.copyWith(
+    imageUrl: pick(current.imageUrl, stored.imageUrl),
+    images: stored.images.isNotEmpty ? stored.images : current.images,
+    latitude: current.latitude != 0 ? current.latitude : stored.latitude,
+    longitude: current.longitude != 0 ? current.longitude : stored.longitude,
+  );
+}
+
+/// Appends [newUrls] onto [temple.images] without duplicates, keeping order.
+/// If [Temple.imageUrl] is empty, uses the first gallery URL as the cover.
+Temple templeWithAppendedImages(Temple temple, Iterable<String> newUrls) {
+  final merged = <String>[];
+  final seen = <String>{};
+
+  void add(String raw) {
+    final url = raw.trim();
+    if (url.isEmpty || !seen.add(url)) return;
+    merged.add(url);
+  }
+
+  for (final url in temple.images) {
+    add(url);
+  }
+  for (final url in newUrls) {
+    add(url);
+  }
+
+  final cover = temple.imageUrl.trim();
+  return temple.copyWith(
+    images: merged,
+    imageUrl: cover.isNotEmpty
+        ? temple.imageUrl
+        : (merged.isNotEmpty ? merged.first : ''),
+  );
+}
+
+/// Client-side check matching `isValidTempleUpdate` when a full payload is
+/// written, so Admin gets a field-level error instead of permission-denied.
+void assertTemplePayloadValidForRules(Map<String, dynamic> data) {
+  final extra = data.keys
+      .where((k) => !kTempleFirestoreAllowedFields.contains(k))
+      .toList()
+    ..sort();
+  if (extra.isNotEmpty) {
+    throw StateError(
+      'Temple payload has fields Firestore rules do not allow: '
+      '${extra.join(', ')}.',
+    );
+  }
+
+  void requireString(String field, {int min = 1, required int max}) {
+    final value = data[field];
+    if (value is! String) {
+      throw StateError(
+        'Temple "$field" is required for Firestore rules and was missing.',
+      );
+    }
+    if (value.length < min) {
+      throw StateError(
+        'Temple "$field" is empty; Firestore rules require a non-empty string.',
+      );
+    }
+    if (value.length > max) {
+      throw StateError(
+        'Temple "$field" is ${value.length} characters; '
+        'Firestore rules allow at most $max.',
+      );
+    }
+  }
+
+  requireString('id', max: 200);
+  requireString('name', max: 200);
+  requireString('state', max: 100);
+  requireString('city', max: 100);
+  requireString('deity', max: 100);
+  requireString('description', max: 10000);
+  requireString('story', max: 20000);
+  requireString('address', max: 500);
+  requireString('timings', max: 1000);
+
+  final imageUrl = data['imageUrl'];
+  if (imageUrl is! String) {
+    throw StateError('Temple "imageUrl" must be a string.');
+  }
+  if (imageUrl.length > 2000) {
+    throw StateError(
+      'Temple "imageUrl" is ${imageUrl.length} characters; '
+      'Firestore rules allow at most 2000.',
+    );
+  }
+
+  void requireList(String field, int maxItems) {
+    final value = data[field];
+    if (value is! List) {
+      throw StateError('Temple "$field" must be a list.');
+    }
+    if (value.length > maxItems) {
+      throw StateError(
+        'Temple "$field" has ${value.length} items; '
+        'Firestore rules allow at most $maxItems.',
+      );
+    }
+  }
+
+  requireList('specialities', 20);
+  requireList('images', 50);
+
+  final lat = data['latitude'];
+  final lng = data['longitude'];
+  if (lat is! num || lat < -90 || lat > 90) {
+    throw StateError(
+      'Temple "latitude" must be a number between -90 and 90.',
+    );
+  }
+  if (lng is! num || lng < -180 || lng > 180) {
+    throw StateError(
+      'Temple "longitude" must be a number between -180 and 180.',
+    );
+  }
+}
+
 /// Maps Firestore / Storage / CMS write failures to a short UI string.
 String adminWriteErrorMessage(Object error) {
   if (error is StateError) {
@@ -320,8 +553,16 @@ String adminWriteErrorMessage(Object error) {
   if (error is FirebaseException) {
     switch (error.code) {
       case 'permission-denied':
-        return 'Permission denied. Sign in as an admin '
-            '(custom claim admin: true) and retry.';
+        final plugin = error.plugin.toLowerCase();
+        if (plugin.contains('storage')) {
+          return 'Permission denied. Sign in as an admin '
+              '(custom claim admin: true) and retry.';
+        }
+        return 'Permission denied. If you are not signed in as an admin '
+            '(custom claim admin: true), grant that claim and retry. '
+            'If you already are an admin, Firestore rejected the temple '
+            'document — required fields may be missing or empty, values '
+            'may exceed size limits, or the document may have extra keys.';
       case 'unavailable':
       case 'network-request-failed':
         return 'Network error. Check your connection and retry.';
