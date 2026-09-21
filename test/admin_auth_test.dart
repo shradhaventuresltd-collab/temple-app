@@ -30,7 +30,14 @@ void main() {
       adminSignInErrorMessage(Exception('permission-denied')),
       'permission-denied',
     );
+    expect(
+      adminSignInErrorMessage(
+        FirebaseAuthException(code: 'unknown', message: 'Error'),
+      ),
+      contains('Sign-in failed (unknown)'),
+    );
     expect(adminSignInErrorMessage(Exception('')), 'Sign-in failed.');
+    expect(adminSignInErrorMessage(Exception('Error')), 'Sign-in failed.');
   });
 
   test('seedTempleData throws when isAdmin is false', () async {

@@ -122,16 +122,19 @@ String adminSignInErrorMessage(Object error) {
       case 'operation-not-allowed':
         return 'Email/password sign-in is not enabled in Firebase Auth.';
       default:
-        return error.message?.trim().isNotEmpty == true
-            ? error.message!.trim()
-            : 'Sign-in failed (${error.code}).';
+        final message = error.message?.trim() ?? '';
+        if (message.isEmpty || message.toLowerCase() == 'error') {
+          return 'Sign-in failed (${error.code}). Check email/password '
+              'and that Email/Password is enabled in Firebase Auth.';
+        }
+        return message;
     }
   }
   var text = error.toString().trim();
   if (text.startsWith('Exception:')) {
     text = text.substring('Exception:'.length).trim();
   }
-  if (text.isEmpty) return 'Sign-in failed.';
+  if (text.isEmpty || text.toLowerCase() == 'error') return 'Sign-in failed.';
   if (text.length > 180) text = '${text.substring(0, 177)}…';
   return text;
 }
