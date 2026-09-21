@@ -4,6 +4,11 @@ const List<Temple> sampleTemples = [
   // ═══════════════════════════════════════════════════════════════════════════
   //  TAMIL NADU
   // ═══════════════════════════════════════════════════════════════════════════
+  // Research-enriched visitor copy for the existing 10 Tamil Nadu temples
+  // (matched by name/slug — no new documents). Cover imageUrl values remain
+  // the bundled picsum placeholders; do not treat Commons candidates as Storage
+  // paths. Sources and photo_candidates: docs/tamil-nadu-sample-research.md.
+
   Temple(
     name: 'Meenakshi Amman Temple',
     state: 'Tamil Nadu',
@@ -11,18 +16,31 @@ const List<Temple> sampleTemples = [
     deity: 'Devi',
     imageUrl: 'https://picsum.photos/seed/meenakshi/800/600',
     description:
-        'A historic Hindu temple dedicated to Goddess Meenakshi (Parvati) and Lord Sundareswarar (Shiva), renowned for its stunning Dravidian gopurams adorned with thousands of colorful sculptures.',
+        'Historic Madurai temple dedicated to Goddess Meenakshi (Parvati) and Lord Sundareswarar '
+        '(Shiva), famed for its towering Dravidian gopurams crowded with painted stucco '
+        'sculptures and for the annual Meenakshi–Sundareswarar wedding festival.',
     story:
-        'Legend holds that Meenakshi was born with three breasts and a prophecy said the third would vanish when she met her future husband. When she encountered Lord Shiva at Mount Kailash, the prophecy came true, and their divine wedding is celebrated annually as Meenakshi Thirukalyanam.',
+        'Meenakshi Amman Temple (Arulmigu Meenakshi Sundaraswarar Temple) stands at the ritual and civic heart of Madurai on the Vaigai. Literary references to the deities reach back to early medieval Tamil Shaiva tradition; the sprawling stone complex visitors see today was largely rebuilt and expanded under the Madurai Nayaks in the 16th–17th centuries, with continuous royal and mercantile patronage before and after.\n\n'
+        'Temple legend identifies Meenakshi as a Pandyan princess born with three breasts; a prophecy said the third would vanish when she met her destined husband. When she encountered Shiva at Mount Kailash, the prophecy was fulfilled, and their divine wedding — Meenakshi Thirukalyanam — remains the emotional climax of the multi-day Chithirai festival that still draws vast crowds each Tamil month of Chithirai (April–May).\n\n'
+        'Architecturally the precinct is ringed by fourteen gopurams; the southern tower rises about 51.9 m and is among the most photographed skylines in South India. Inside lie the Golden Lotus Tank (Potramarai Kulam), dual sanctums for Meenakshi and Sundareswarar, and the famed Thousand Pillar Hall with elaborately carved and musical pillars.\n\n'
+        'Daily worship follows a classical six-pooja rhythm (abhisheka, alankaram, naivedyam, deepa aradanai) for both deities. Pilgrims customarily visit Meenakshi’s shrine before Sundareswarar’s, reflecting the goddess’s primacy in this complex. Fridays in Aadi and Thai, Navaratri, and Avani Moola (celebrating Shiva’s sacred sports) are especially busy; festival calendars can override ordinary closing hours.',
     location: 'Madurai Main, Madurai, Tamil Nadu 625001',
-    timings: '5:00 AM – 12:30 PM, 4:00 PM – 10:00 PM',
+    timings:
+        'Daily darshan (TN HR&CE): 5:00 AM–12:30 PM and 4:00 PM–10:00 PM; closed ~12:30–4:00 PM. '
+        'Named poojas (official HR&CE list): Thiruvanandal / Mahasodashi 5:30–5:45 AM; Vilaa / '
+        'Paalai 6:30–7:15 AM; Kalasandhi / Gauri 10:30–11:20 AM; Maalai / Panchadasi 4:30–5:15 '
+        'PM; Ardhajama / Matangi 7:30–8:15 PM; Palliyarai / Sodashi 9:30–10:00 PM. Festival days '
+        '(esp. Chithirai) often change pooja and closing times — confirm on '
+        'maduraimeenakshi.hrce.tn.gov.in before travel.',
     latitude: 9.9195,
     longitude: 78.1193,
     specialities: [
-      '14 magnificent gopurams',
-      'Golden lotus tank (Potramarai Kulam)',
-      'Thousand Pillar Hall with musical pillars',
-      'Meenakshi Thirukalyanam festival',
+      '14 gopurams; south tower ~51.9 m',
+      'Potramarai Kulam (Golden Lotus Tank)',
+      'Thousand Pillar Hall with carved/musical pillars',
+      'Meenakshi Thirukalyanam / Chithirai festival',
+      'Dual sanctums — Meenakshi visited before Sundareswarar',
+      'Six daily poojas for both deities',
     ],
   ),
   Temple(
@@ -32,18 +50,30 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     imageUrl: 'https://picsum.photos/seed/brihadeeswarar/800/600',
     description:
-        'A UNESCO World Heritage Site built by Raja Raja Chola I in 1010 AD, this temple is a masterpiece of Chola architecture with a towering 66-metre vimana crowned by an 80-ton monolithic granite cupola.',
+        'UNESCO World Heritage Chola masterpiece (Great Living Chola Temples), built by Raja Raja '
+        'Chola I around 1003–1010 CE, crowned by a soaring granite vimana and a monumental '
+        'monolithic Nandi.',
     story:
-        'It is said the massive shadow of the vimana never falls on the ground at noon. The 80-ton capstone was moved to the top using an inclined plane stretching several kilometres — an engineering marvel of the 11th century.',
+        'Brihadisvara / Brihadeeswarar Temple (Peruvudaiyar Kovil, historically Rajarajeswaram or Dakshina Meru) was inaugurated under Raja Raja Chola I, with construction traditionally dated from about his 19th regal year (c. 1003–04 CE) and consecration in his 25th year (c. 1009–10 CE). It anchors UNESCO’s Great Living Chola Temples serial property (inscribed 1987; extended 2004 with Gangaikonda Cholapuram and Darasuram).\n\n'
+        'The temple’s vimana rises roughly 60 m over a high base and multi-storeyed elevation, capped by a massive granite sikhara/cupola whose emplacement remains an icon of Chola engineering. A huge colonnaded prakara with dikpala shrines and the Rajarajantiruvasal gateway frame the court; the sanctum houses an exceptionally large Shiva linga with ambulatory passages.\n\n'
+        'Walls and upper tiers carry mural paintings and sculptural programmes, including dozens of Bharatanatyam karana poses among the classical 108. The freestanding Nandi pavilion holds one of India’s great monolithic bulls — often cited around 13 ft high and carved from a single rock.\n\n'
+        'Popular lore claims the vimana’s noon shadow never falls on the ground; treat this as folklore rather than surveyed fact. As a living temple under ASI heritage oversight and local religious administration, it still hosts daily poojas and major Shaiva festivals such as Maha Shivaratri and Brahmotsavam seasons.',
     location: 'Membalam Rd, Balaganapathy Nagar, Thanjavur, Tamil Nadu 613007',
-    timings: '6:00 AM – 12:30 PM, 4:00 PM – 8:30 PM',
+    timings:
+        'Commonly listed visitor/darshan windows: 6:00 AM–12:30 PM and 4:00 PM–8:30 PM '
+        '(Incredible India / visitor guides). Reported daily pooja markers include Kaala Sandhi '
+        '~6:30 AM, Uchikalam ~12:00 PM, Sayarakshai ~5:30 PM, Arthajamam ~8:00 PM — confirm on '
+        'site; festival days extend hours. Entry is generally free; photography rules vary by '
+        'precinct. Midday closure for rituals is standard.',
     latitude: 10.7828,
     longitude: 79.1318,
     specialities: [
-      'UNESCO World Heritage Site',
-      'Monolithic Nandi (25 tons)',
-      'Shadow-less vimana at noon',
-      'Chola bronze gallery',
+      'UNESCO Great Living Chola Temples (1987/2004)',
+      'Vimana ~59–60 m with massive granite cupola',
+      'Monolithic Nandi pavilion',
+      'Chola murals and karana dance sculptures',
+      'Consecrated c. 1010 CE by Raja Raja Chola I',
+      'Living temple — not a museum-only monument',
     ],
   ),
   Temple(
@@ -53,18 +83,29 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     imageUrl: 'https://picsum.photos/seed/kapaleeshwarar/800/600',
     description:
-        'A 7th-century Dravidian temple dedicated to Lord Shiva as Kapaleeshwarar, located in the cultural heart of Mylapore, Chennai, with a 37-metre-high gopuram.',
+        'Beloved Mylapore Shiva temple for Kapaleeshwarar and Karpagambal, known for its '
+        'colourful rajagopuram, sacred tank, and the Panguni Peruvizha climaxed by the Arubathu '
+        'Moovar procession of the 63 Nayanmars.',
     story:
-        'Goddess Parvati is said to have worshipped Shiva here in the form of a peahen (Myil in Tamil), giving the neighbourhood its name Mylapore. The temple was rebuilt in the 16th century by the Vijayanagara kings.',
+        'Kapaleeshwarar Temple sits in historic Mylapore, long a cultural and mercantile quarter of the Coromandel coast. Shaiva tradition places early worship here in the Pallava centuries; the present Dravidian complex is largely a later rebuild after the original seaside shrine was lost — commonly linked to Portuguese-period destruction — with Vijayanagara and subsequent patronage shaping the towers and precincts visitors see today.\n\n'
+        'The name Kapaleeshwarar evokes Shiva associated with the kapala (skull), while Karpagambal — ‘goddess of the wish-yielding tree’ — is Parvati. Local legend holds that Parvati worshipped Shiva here in the form of a peahen (mayil), giving Mylapore its name (‘town of the peacock’); a related narrative tells of her penance under a sacred punnai tree after a moment of distraction during Shiva’s teaching.\n\n'
+        'The east-facing rajagopuram rises tens of metres above Kapaleeswarar Sannadhi Street and frames the temple tank processions that define festival season. Inside, dual shrines, mandapas, and continuous nadaswaram–tavil accompaniment mark a classic Tamil urban Shaiva rhythm.\n\n'
+        'The ten-day Panguni Peruvizha (March–April) is Mylapore’s grandest public festival: flag-hoisting, vahana processions, the towering ther (chariot), and — on the eighth day — Arubathu Moovar, when bronze images of the sixty-three Nayanmar saints are carried through packed streets. Maha Shivaratri alone sees the temple remain open round the clock per HR&CE notice.',
     location: 'Kapaleeshwarar Sannadhi St, Mylapore, Chennai, Tamil Nadu 600004',
-    timings: '5:30 AM – 12:00 PM, 4:00 PM – 9:30 PM',
+    timings:
+        'TN HR&CE daily: 5:30 AM–12:30 PM and 4:00 PM–9:30 PM. Maha Shivaratri: open 24 hours '
+        '(5:00 AM to next-day 5:00 AM). Named poojas (HR&CE): Ko Pooja 5:30–6:00 AM; Vaikarai '
+        '6:00–7:00 AM; Kalasandhi 8:00–9:30 AM; Uchikkala 11:00 AM–12:30 PM; Sayaraksha 4:00–6:30 '
+        'PM; Ushakala 6:30–7:00 PM; Ardhajama 9:00–9:30 PM. Rahu kala abhishekams are scheduled '
+        'separately — check mylaikapaleeswarar.hrce.tn.gov.in.',
     latitude: 13.0339,
     longitude: 80.2695,
     specialities: [
-      'Arubathu Moovar festival',
-      'Panguni Peruvizha (10-day event)',
-      'Sacred peacock mythology',
-      'Mylapore cultural hub setting',
+      'Arubathu Moovar (63 Nayanmars) Panguni procession',
+      'Panguni Peruvizha Brahmotsavam & chariot',
+      'Peacock / Mylapore origin legend',
+      'Colourful rajagopuram and temple tank',
+      '24-hour opening on Maha Shivaratri',
     ],
   ),
   Temple(
@@ -74,18 +115,29 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     imageUrl: 'https://picsum.photos/seed/ramanathaswamy/800/600',
     description:
-        'One of the Char Dham pilgrimage sites and home to the longest corridor of any Hindu temple in India, this Jyotirlinga shrine on Pamban island is where Lord Rama worshipped Shiva before crossing to Lanka.',
+        'Jyotirlinga and Char Dham pilgrimage temple on Pamban Island, celebrated for its vast '
+        'pillared corridors, twenty-two sacred theerthams, and the legend of Rama’s worship of '
+        'Shiva before and after the Lanka war.',
     story:
-        'After defeating Ravana, Rama wished to atone for killing a Brahmin (Ravana) and asked Hanuman to bring a Shiva lingam from Kailash. When Hanuman was delayed, Sita fashioned a lingam from sand, which is worshipped to this day.',
+        'Ramanathaswamy Temple on Rameswaram island is one of the twelve Jyotirlinga sites and one of Hinduism’s Char Dham destinations, drawing Shaiva, Vaishnava, and Smarta pilgrims alike. It is also counted among the Paadal Petra Sthalams glorified by the Tamil Nayanars.\n\n'
+        'Epic tradition holds that Rama installed and worshipped a Shiva linga here in connection with the campaign against Ravana — accounts vary on whether this was before crossing Rama Setu or as atonement afterward. When Hanuman’s journey to fetch a linga from Kailash was delayed, Sita is said to have fashioned a sand linga (Ramalingam) that remains the principal object of worship; a second linga brought by Hanuman (Viswalingam) is also venerated, with custom often giving first honour to Viswalingam.\n\n'
+        'Architecturally the temple is famous for the longest corridor complex of any Hindu temple in India — outer colonnades commonly measured around 3,850 feet in total length with over a thousand pillars — largely associated with Sethupathi patronage (notably Muthuramalinga Sethupathy) atop earlier Pandya and later expansions, including renovations linked to Jaffna kingdom rulers.\n\n'
+        'Pilgrims traditionally bathe at Agni Theertham on the seashore and then in the twenty-two temple wells/theerthams said to represent Rama’s twenty-two arrows, before sanctum darshan. The complex thus unites stala, murti, and theertham in a single pilgrimage circuit unique on the island.',
     location: 'Rameswaram, Ramanathapuram, Tamil Nadu 623526',
-    timings: '5:00 AM – 1:00 PM, 3:00 PM – 9:00 PM',
+    timings:
+        'TN HR&CE: temple opens 4:00 AM; devotees admitted from 5:00 AM. Spatika linga pooja '
+        '5:00–6:00 AM; main sanctum darshan from ~6:10 AM until 1:00 PM. Reopens 3:00 PM; darshan '
+        '~3:15 PM–8:00 PM. 22 theerthams for bathing: 5:30 AM–12:30 PM and 3:00 PM–7:00 PM. '
+        'Evening close is earlier than some older tourist listings (which said 9:00 PM) — prefer '
+        'HR&CE.',
     latitude: 9.2882,
     longitude: 79.3174,
     specialities: [
-      'Longest temple corridor in India (1220m)',
-      '22 sacred theerthams (wells)',
-      'Char Dham & Jyotirlinga site',
-      'Pamban Bridge approach',
+      'Southernmost Jyotirlinga & Char Dham site',
+      'Longest temple corridor complex in India',
+      '22 sacred theerthams + Agni Theertham sea bath',
+      'Ramalingam (sand) and Viswalingam tradition',
+      'Paadal Petra Sthalam',
     ],
   ),
   Temple(
@@ -95,18 +147,29 @@ const List<Temple> sampleTemples = [
     deity: 'Murugan',
     imageUrl: 'https://picsum.photos/seed/thirupparankundram/800/600',
     description:
-        'One of the Arupadai Veedu (six abodes of Lord Murugan), this rock-cut cave temple carved into a hillside is believed to be where Murugan married Devasena after slaying the demon Surapadman.',
+        'First of Murugan’s six Arupadai Veedu, a Pandya-era rock-cut cave temple in a Madurai '
+        'hillside where tradition places Murugan’s marriage to Devasena after the defeat of '
+        'Surapadman.',
     story:
-        'After his victory over Surapadman, Lord Murugan married Devasena at this very hill. The divine wedding is re-enacted annually during the Panguni Uthiram festival drawing lakhs of devotees.',
+        'Arulmigu Subramaniyaswamy Temple at Thirupparankundram (Tirupparankunram) is counted as the first of the Arupadai Veedu — the six foremost battle-abodes of Murugan in Tamil tradition. The shrine is carved into a rocky hillock on Madurai’s southwestern fringe and is administered by the Tamil Nadu HR&CE department.\n\n'
+        'Early rock-cut work is attributed to the Pandyas from about the 6th century CE, with later structural additions including a tall rajagopuram and outer mandapas. Unusually, the cave complex also houses facing shrines that bring Shiva, Vishnu, Vinayaka, and Durga into the same sacred topography as Murugan, underscoring a syncretic local cult.\n\n'
+        'Legend places Murugan’s victory over the asura Surapadman and his subsequent wedding to Devasena (Deivayanai), daughter of Indra, at this hill. The divine marriage is re-enacted in festival time; Skanda Shashti (Aipasi) dramatises the Surasamharam, while Panguni Brahmotsavam links processional images with Madurai’s Meenakshi wedding cycle.\n\n'
+        'Karthigai Deepam sees a lamp lit atop the hill; Vaikasi Visakam marks Murugan’s birth star; a float festival in Thai and Vaikunta Ekadashi (owing to the Vishnu presence) broaden the calendar. Jain beds and carvings on parts of the hill speak to a longer multi-religious use of the rock.',
     location: 'Thirupparankundram, Madurai, Tamil Nadu 625005',
-    timings: '5:30 AM – 1:00 PM, 4:00 PM – 9:30 PM',
-    latitude: 9.8833,
-    longitude: 78.0694,
+    timings:
+        'TN HR&CE: 5:30 AM–1:00 PM and 4:00 PM–9:00 PM (closed ~1:00–4:00 PM). Named poojas '
+        '(HR&CE list): Thiruvanandal 5:30–6:00 AM; Vilaa ~7:00–7:30 AM; Kalasandhi ~8:00–8:30 AM; '
+        'Thirukalasanthi ~10:30–11:00 AM; Uchikkala ~12:30–1:00 PM; Sayaraksha ~5:30–6:00 PM; '
+        'Ardhajama ~8:30–9:00 PM; Palliyarai ~9:00–9:15 PM. Festival schedules may differ.',
+    latitude: 9.8798,
+    longitude: 78.0711,
     specialities: [
-      'Arupadai Veedu (first abode)',
-      'Rock-cut cave architecture',
-      'Panguni Uthiram wedding festival',
-      'Jain carvings on hilltop',
+      'Arupadai Veedu — first abode of Murugan',
+      'Pandya rock-cut cave architecture',
+      'Murugan–Devasena wedding legend',
+      'Skanda Shashti Surasamharam',
+      'Multi-deity cave (Shiva, Vishnu, Vinayaka, Durga)',
+      'Hilltop Karthigai Deepam',
     ],
   ),
   Temple(
@@ -116,18 +179,30 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     imageUrl: 'https://picsum.photos/seed/shoretemple/800/600',
     description:
-        'A UNESCO World Heritage structural temple built by Pallava king Narasimhavarman II in the 8th century, overlooking the Bay of Bengal with twin shrines to Shiva and one to Vishnu.',
+        'UNESCO World Heritage Pallava structural temple (c. 725 CE) on the Bay of Bengal at '
+        'Mahabalipuram, with twin Shiva shrines and a reclining Vishnu shrine — among the '
+        'earliest major stone-built temples of South India.',
     story:
-        'Local legend speaks of Seven Pagodas — a series of grand temples along the coast, six of which were swallowed by the sea. The 2004 tsunami briefly receded to reveal submerged ruins offshore, lending credence to the myth.',
+        'The Shore Temple complex was raised in granite under Pallava king Narasimhavarman II (Rajasimha), around the early 8th century CE (commonly c. 700–728), at the then-busy port of Mamallapuram. It forms part of the Group of Monuments at Mahabalipuram, inscribed on the UNESCO World Heritage List in 1984, and is protected by the Archaeological Survey of India.\n\n'
+        'Unlike the site’s famous rock-cut caves and monolithic rathas, the Shore Temple is a structural temple of quarried granite blocks. Three shrines share one platform: a larger east-facing Shiva shrine, a smaller Shiva shrine behind, and a rectangular shrine to reclining Vishnu (Anantashayi) between them — inscriptions preserve Pallava royal titles for these houses of worship.\n\n'
+        'European travellers knew the coast as the ‘Seven Pagodas’; local memory held that sister temples had been swallowed by the sea. The December 2004 Indian Ocean tsunami briefly exposed offshore structural remains and rock sculptures, renewing scholarly and public interest in the submerged-pagoda tradition, though the Shore Temple itself largely withstood the waves thanks to its granite foundation and protective groynes.\n\n'
+        'Today the monument is primarily an ASI heritage site rather than a conventional living temple with dense daily pooja schedules; visitors come for architecture, sea light, and the Mamallapuram Dance Festival backdrop. Conservation includes breakwaters, chemical treatment against salt spray, and landscaped gardens maintained by ASI.',
     location: 'Mahabalipuram, Chengalpattu, Tamil Nadu 603104',
-    timings: '6:00 AM – 6:00 PM (ASI monument)',
-    latitude: 12.6169,
-    longitude: 80.1991,
+    timings:
+        'ASI monument hours commonly 6:00 AM–6:00 PM daily (Incredible India / visitor listings '
+        'also cite 6:00 AM–6:00 PM; ticket counters may close slightly earlier). This is a '
+        'ticketed World Heritage monument, not a typical HR&CE darshan temple — no named daily '
+        'pooja slots for public worship in the same sense as living kovils. Confirm current ASI '
+        'ticket rates and any temporary closures before visit.',
+    latitude: 12.6164,
+    longitude: 80.1986,
     specialities: [
-      'UNESCO World Heritage Site',
-      'Pallava stone architecture',
-      'Seaside granite setting',
-      'Seven Pagodas legend',
+      'UNESCO Group of Monuments at Mahabalipuram (1984)',
+      'Early Pallava structural granite temple',
+      'Twin Shiva shrines + reclining Vishnu',
+      'Seven Pagodas / submerged temples legend',
+      'ASI conservation & seaside setting',
+      'Mamallapuram Dance Festival backdrop',
     ],
   ),
   Temple(
@@ -137,18 +212,31 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     imageUrl: 'https://picsum.photos/seed/nataraja/800/600',
     description:
-        'The only temple where Lord Shiva is worshipped in his Nataraja (cosmic dancer) form. The sanctum houses the Chidambara Rahasyam — a curtain symbolising the formless nature of the divine.',
+        'Thillai Nataraja Temple where Shiva is worshipped as the cosmic dancer; home of the '
+        'Chidambara Rahasyam and the Akasha (space) linga among the Pancha Bootha Sthalams.',
     story:
-        'The temple enshrines the Akasha Lingam, representing the element of space (Akasha). Behind the golden curtain in the sanctum lies empty space decorated with golden bilva leaves — the Chidambara Rahasyam, the secret of consciousness.',
+        'Chidambaram’s Thillai Nataraja Temple is unique among major Shaiva centres for enshrining Shiva primarily as Nataraja — lord of the cosmic dance — in the golden Sabha, rather than solely as a stone linga. It is the Pancha Bootha Sthalam of Akasha (space/ether), completing the elemental set with earth (Kanchipuram), water (Tiruvanaikkaval), fire (Tiruvannamalai), and air (Srikalahasti).\n\n'
+        'The Chidambara Rahasyam (‘secret of Chidambaram’) is revealed when priests draw aside a curtain in the sanctum to show empty space adorned with golden bilva leaves — a ritual pointer to the formless Absolute beyond icon and linga. A spatika (crystal) linga and other processional images also receive elaborate abhishekams through the day.\n\n'
+        'Medieval Chola and later dynasties expanded the vast precinct with four towering gopurams whose tiers display the 108 karanas of Bharatanatyam — making the temple a living textbook of dance. The Dikshitar priestly tradition and continuous Agamic worship give Chidambaram a distinctive liturgical identity.\n\n'
+        'Natyanjali, held around Maha Shivaratri, invites classical dancers to offer performance as worship on the temple premises, reinforcing the bond between Nataraja theology and South Indian performing arts.',
     location: 'Car Street, Chidambaram, Cuddalore, Tamil Nadu 608001',
-    timings: '6:00 AM – 12:00 PM, 4:30 PM – 10:00 PM',
+    timings:
+        'Official temple site (chidambaramnataraja.org): darshan 6:00 AM–12:00 noon and 5:00 '
+        'PM–10:00 PM. Daily pooja markers from the same site: Paal Nivedhyam ~6:30 AM; Maha '
+        'Aarthi ~7:00 AM; Kalasandhi 7:45–9:00 AM (includes spatika linga abhishekam); Irandaam '
+        'Kaalam 10:00–11:00 AM; Uchikaalam 11:30 AM–12:00 noon (temple then closes); Sayarakshai '
+        '5:15–6:00 PM; evening Irandaam Kaalam 7:00–8:00 PM (includes Chidambara Rahasya pooja); '
+        'Ardhajaamam 9:00–10:00 PM. Note: some tourist listings open evenings at 4:30 PM — prefer '
+        'the temple’s own 5:00 PM evening opening.',
     latitude: 11.3994,
     longitude: 79.6937,
     specialities: [
-      'Chidambara Rahasyam (cosmic secret)',
-      'Pancha Bootha Sthalam (Space)',
-      'Natyanjali dance festival',
-      'Four gopurams with 108 Bharatanatyam poses',
+      'Nataraja — cosmic dancer form',
+      'Chidambara Rahasyam (formless space)',
+      'Pancha Bootha Sthalam — Akasha/Space',
+      'Gopurams with 108 Bharatanatyam karanas',
+      'Natyanjali dance festival at Shivaratri',
+      'Spatika linga & Rathnasabhapathi abhishekams',
     ],
   ),
   Temple(
@@ -158,18 +246,31 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     imageUrl: 'https://picsum.photos/seed/ekambaranathar/800/600',
     description:
-        'One of the Pancha Bootha Sthalams representing Earth, this massive temple complex in Kanchipuram spans 25 acres and features a 59-metre rajagopuram and a 3500-year-old mango tree.',
+        'Vast Kanchipuram Shaiva complex and Pancha Bootha Sthalam of Earth (Prithvi), famed for '
+        'its ~59 m rajagopuram, thousand-pillared hall, and the sacred mango tree tied to '
+        'Parvati’s penance legend.',
     story:
-        'Parvati is said to have worshipped a lingam made of sand under a mango tree here. Shiva tested her devotion by sending fire and floods, but she held the lingam close, and Shiva appeared, granting her wish. The ancient mango tree with four branches representing four Vedas still stands.',
+        'Ekambareswarar / Ekambaranathar Temple is Kanchipuram’s great Earth-element shrine among the Pancha Bootha Sthalams: Shiva as Prithvi Lingam, ‘Lord of the Mango Tree’ (Ekambaranathar). It is a Paadal Petra Sthalam praised in the Tevaram of the Nayanars and one of the city’s largest sacred precincts (on the order of 23–25 acres).\n\n'
+        'Legend tells that Parvati performed penance under a mango tree by the Vegavati, fashioning a linga of sand. When floodwaters threatened the fragile linga, she embraced it; Shiva, moved, appeared and accepted her — hence titles such as Tazhuvakuzhainthaar (‘he who melted in her embrace’). The sthala vriksha — a venerable mango tree whose four branches are traditionally said to yield different fruit and to symbolise the four Vedas — still stands behind the sanctum in temple lore (ages of ‘3,500 years’ are traditional claims, not dendrochronology).\n\n'
+        'Pallava origins and Chola rebuilding underlie a fabric later expanded by Vijayanagara rulers; the eleven-storey southern rajagopuram associated with Krishnadevaraya rises roughly 57–59 m. Inside are Vijayanagara halls including the Aayiram Kaal Mandapam, multiple prakaras, and — unusually — a Vishnu shrine (Nilathingal Thundam Perumal) counted among the 108 Divya Desams within the Shaiva complex.\n\n'
+        'Because the linga is of sand, abhishekam is performed to the pedestal rather than directly on the fragile form. Panguni Uthiram / Panguni Brahmotsavam, culminating in Kalyanotsavam, is the town’s most prominent temple festival.',
     location: 'Ekambaranathar Koil St, Kanchipuram, Tamil Nadu 631502',
-    timings: '6:00 AM – 12:30 PM, 4:00 PM – 8:30 PM',
-    latitude: 12.8489,
-    longitude: 79.7005,
+    timings:
+        'Widely listed HR&CE/visitor windows: 6:00 AM–12:30 PM and 4:00 PM–8:30 PM (confirm on '
+        'HR&CE tid=1816). Classical six-kala rhythm reported in secondary sources includes '
+        'Ushathkalam ~5:30 AM through Ardha Jamam late evening — exact public access windows can '
+        'differ from priestly ritual clocks. Festival days (esp. Panguni) extend processions into '
+        'city streets.',
+    latitude: 12.8475,
+    longitude: 79.7,
     specialities: [
-      'Pancha Bootha Sthalam (Earth)',
-      '3500-year-old mango tree',
-      '59-metre tall rajagopuram',
-      'Pallava & Chola architectural heritage',
+      'Pancha Bootha Sthalam — Earth/Prithvi',
+      'Rajagopuram ~57–59 m (Vijayanagara)',
+      'Sacred mango tree (sthala vriksha) legend',
+      'Sand (Prithvi) linga — abhishekam to pedestal',
+      'Thousand-pillared hall',
+      'Nilathingal Thundam Perumal Divya Desam inside complex',
+      'Panguni Brahmotsavam / Kalyanotsavam',
     ],
   ),
   Temple(
@@ -179,18 +280,32 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     imageUrl: 'https://picsum.photos/seed/arunachaleswarar/800/600',
     description:
-        'One of the Pancha Bootha Sthalams representing Fire, this ancient temple at the foot of Arunachala hill is where the Karthigai Deepam — a massive flame lit on the hilltop — is visible for miles.',
+        'Monumental Pancha Bootha Sthalam of Fire at the foot of Arunachala hill, centre of '
+        'Girivalam circumambulation and the Karthigai Deepam beacon lit atop the mountain.',
     story:
-        'Shiva manifested as an infinite column of fire (Jyotirlinga) to settle a dispute between Brahma and Vishnu about who was supreme. Neither could find its beginning or end, proving Shiva\'s supremacy. The Karthigai Deepam flame re-enacts this cosmic pillar of fire.',
+        'Arunachaleswarar / Annamalaiyar Temple at Tiruvannamalai is the Agni (fire) shrine among the Pancha Bootha Sthalams. Shiva is worshipped as Annamalaiyar — identified with the sacred Arunachala hill itself — and Parvati as Unnamulai Amman. The complex, among India’s largest temple campuses, grew from Chola-period masonry with major Vijayanagara and Nayaka expansions; the eastern Rajagopuram rises about 66 m across eleven storeys.\n\n'
+        'Puranic legend recounts the dispute between Brahma and Vishnu over supremacy. Shiva appeared as an endless column of fire (jyotirlinga). Vishnu as Varaha failed to find its base; Brahma as a swan falsely claimed to have found its summit and was cursed. The hill and temple re-present that pillar of light; Karthigai Deepam’s hilltop flame ritually renews the theophany each year.\n\n'
+        'A related myth tells of Parvati’s penance at Tiruvannamalai after an episode that darkened the world, her victory over Mahishasura in Durga form, and Shiva’s acceptance of her on Karthigai pournami — themes woven into Deepam liturgy.\n\n'
+        'Every full moon, lakhs of pilgrims walk Girivalam / Giripradakshina — roughly 14 km barefoot around Arunachala — considered a powerful act of atonement and wish-fulfilment. Modern spiritual history also links the hill to Ramana Maharshi, whose ashram and pathala lingam associations draw seekers alongside traditional Shaiva devotees. Tevaram, Tiruvempavai, and Tiruppugazh place the shrine firmly in classical Tamil sacred literature.',
     location: 'Tiruvannamalai, Tamil Nadu 606601',
-    timings: '5:30 AM – 12:30 PM, 3:30 PM – 9:30 PM',
-    latitude: 12.2310,
-    longitude: 79.0677,
+    timings:
+        'Living temple with six daily ritual cycles commonly spanning roughly 5:30 AM to ~10:00 '
+        'PM (Wikipedia summary of temple practice). Public darshan windows reported on '
+        'tourism/HR&CE-facing pages vary (sample app used 5:30 AM–12:30 PM & 3:30–9:30 PM; some '
+        'HR&CE-facing notes mention longer midday continuity and earlier weekend/pournami '
+        'cutoffs). VERIFY on official portal https://annamalaiyar.hrce.tn.gov.in/ before '
+        'publishing push notifications — crowd and pournami days change access. Karthigai Deepam: '
+        'Bharani Deepam in temple pre-dawn and Maha Deepam on the hill at evening — dates shift '
+        'yearly with the Tamil calendar.',
+    latitude: 12.2316,
+    longitude: 79.0672,
     specialities: [
-      'Pancha Bootha Sthalam (Fire)',
-      'Karthigai Deepam hilltop flame',
-      'Girivalam (14 km hill circumambulation)',
-      'Ramana Maharshi ashram nearby',
+      'Pancha Bootha Sthalam — Fire/Agni',
+      'Karthigai Deepam hilltop beacon',
+      'Girivalam (~14 km) full-moon circumambulation',
+      'Rajagopuram ~66 m / vast 25-acre campus',
+      'Paadal Petra Sthalam',
+      'Ramana Maharshi spiritual associations nearby',
     ],
   ),
   Temple(
@@ -200,18 +315,32 @@ const List<Temple> sampleTemples = [
     deity: 'Vishnu',
     imageUrl: 'https://picsum.photos/seed/sarangapani/800/600',
     description:
-        'The largest Vishnu temple in Kumbakonam and one of the 108 Divya Desams, featuring a chariot-shaped 11-tier gopuram and exquisite Chola-Nayak era sculptures.',
+        'Largest Vishnu temple in Kumbakonam and a Divya Desam / Pancharanga Kshetram, with an '
+        '11-tier ~173 ft rajagopuram and a chariot-shaped sanctum recalling Vishnu’s descent from '
+        'Vaikuntha.',
     story:
-        'When a great deluge threatened creation, Vishnu placed the Vedas safely in a pot (Kumbha) and sent it floating. It landed here, giving the town its name Kumbakonam. Sarangapani is Vishnu as the bearer of the bow Saranga.',
+        'Sarangapani Temple is Kumbakonam’s premier Vishnu shrine — one of the 108 Divya Desams sung by the Alvars and one of the Pancharanga Kshetrams along the Kaveri. ‘Sarangapani’ means the lord who holds the bow Saranga. Medieval Chola, Vijayanagara, and Madurai Nayaka layers shape the granite-walled complex.\n\n'
+        'Temple legend says sage Hema Rishi performed penance on the banks of the Potramarai tank seeking Lakshmi as his daughter. Lakshmi emerged from the tank among lotuses as Komalavalli; Vishnu descended from Vaikuntha as Aravamudhan in a chariot drawn by horses and elephants, wooed her, and the divine marriage followed. The central shrine’s chariot form — with sculpted wheels and openings on either side — architecturally stages that descent.\n\n'
+        'The eleven-tier rajagopuram rises about 173 ft (53 m), the tallest in town; five lesser gopurams and the Potramarai tank opposite the western entrance complete the skyline. Twin wooden temple chariots, among the heaviest in Tamil Nadu (often cited near 300 tonnes each), dominate the Chittirai Brahmotsavam.\n\n'
+        'Worship follows Pancharatra Agama in the Vadakalai tradition, with six daily ritual services. Kumbakonam’s wider sacred geography — including the Mahamaham tank’s twelve-year festival — places Sarangapani within a dense Vaishnava–Shaiva pilgrimage mesh.',
     location: 'Sarangapani East Sannadhi St, Kumbakonam, Tamil Nadu 612001',
-    timings: '6:00 AM – 12:00 PM, 4:00 PM – 9:00 PM',
+    timings:
+        'Official temple history/pooja pages list six daily rituals: Tiruvanandal 8:00 AM; Kala '
+        'Santhi 9:00 AM; Uchikalam 12:30 PM; Nithyanusandhanam 6:00 PM; Irandamkalam 7:30 PM; '
+        'Ardha Jamam 9:00 PM (also mirrored at sarangapanitemple.org / related temple sites). '
+        'Public visiting hours are commonly quoted around morning opening near 6:00–7:00 AM to '
+        '~12:00/12:30 PM and evening ~4:00/4:30–9:00 PM — confirm locally; ritual clock and gate '
+        'hours are not always identical. Festival chariot days override ordinary schedules.',
     latitude: 10.9617,
     longitude: 79.3881,
     specialities: [
-      '108 Divya Desam site',
-      'Chariot-shaped gopuram',
-      'Mahamaham tank (holy dip every 12 years)',
-      'Chola-Nayak sculptural art',
+      '108 Divya Desam',
+      'Pancharanga Kshetram on the Kaveri',
+      '11-tier rajagopuram ~173 ft',
+      'Chariot-shaped sanctum (Vishnu’s descent)',
+      'Twin ~300-tonne temple chariots',
+      'Chittirai Brahmotsavam',
+      'Potramarai temple tank legend',
     ],
   ),
 
