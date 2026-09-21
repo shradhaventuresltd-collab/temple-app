@@ -91,7 +91,8 @@ const List<Temple> sampleTemples = [
         'The name Kapaleeshwarar evokes Shiva associated with the kapala (skull), while Karpagambal — ‘goddess of the wish-yielding tree’ — is Parvati. Local legend holds that Parvati worshipped Shiva here in the form of a peahen (mayil), giving Mylapore its name (‘town of the peacock’); a related narrative tells of her penance under a sacred punnai tree after a moment of distraction during Shiva’s teaching.\n\n'
         'The east-facing rajagopuram rises tens of metres above Kapaleeswarar Sannadhi Street and frames the temple tank processions that define festival season. Inside, dual shrines, mandapas, and continuous nadaswaram–tavil accompaniment mark a classic Tamil urban Shaiva rhythm.\n\n'
         'The ten-day Panguni Peruvizha (March–April) is Mylapore’s grandest public festival: flag-hoisting, vahana processions, the towering ther (chariot), and — on the eighth day — Arubathu Moovar, when bronze images of the sixty-three Nayanmar saints are carried through packed streets. Maha Shivaratri alone sees the temple remain open round the clock per HR&CE notice.',
-    location: 'Kapaleeshwarar Sannadhi St, Mylapore, Chennai, Tamil Nadu 600004',
+    location:
+        'Kapaleeshwarar Sannadhi St, Mylapore, Chennai, Tamil Nadu 600004',
     timings:
         'TN HR&CE daily: 5:30 AM–12:30 PM and 4:00 PM–9:30 PM. Maha Shivaratri: open 24 hours '
         '(5:00 AM to next-day 5:00 AM). Named poojas (HR&CE): Ko Pooja 5:30–6:00 AM; Vaikarai '
@@ -946,7 +947,8 @@ const List<Temple> sampleTemples = [
         'windows are interrupted for Mahapooja and Nithyabali. Shatharudra Abhisheka is a notable '
         'morning seva. Always reconfirm hours on shridharmasthala.org before travel, especially '
         'on crowded festival days.',
-    location: 'Dharmasthala, Belthangady Taluk, Dakshina Kannada, Karnataka 574216',
+    location:
+        'Dharmasthala, Belthangady Taluk, Dakshina Kannada, Karnataka 574216',
     timings:
         'Official Shri Kshetra Dharmasthala temple routine (shridharmasthala.org/temple-routine; '
         'festival overrides apply): gates open ~4:00 AM for rituals; public darshan roughly '
@@ -992,7 +994,8 @@ const List<Temple> sampleTemples = [
         'Champa Shashti (Subrahmanya Shashti) is the foremost annual festival. Dress norms on the '
         'HRCE portal ask men to remove shirts/banians before darshan. Confirm same-day hours and '
         'seva counters on itms.kar.nic.in before travel.',
-    location: 'Kukke Subramanya, Sullia Taluk, Dakshina Kannada, Karnataka 574238',
+    location:
+        'Kukke Subramanya, Sullia Taluk, Dakshina Kannada, Karnataka 574238',
     timings:
         'Karnataka HRCE ITMS official (tid=21): temple open 6:30 AM–1:30 PM and 3:30 PM–9:00 PM; '
         'nadai closing window listed 9:00–9:30 PM. Sample app “6:30 AM – 1:30 PM, 4:00 PM – 8:30 '
@@ -1326,7 +1329,8 @@ const List<Temple> sampleTemples = [
         'order-of-magnitude, not a frozen statistic.\n\n'
         'Note there is a second major ISKCON centre on Kanakapura Road; this sample entry is the '
         'Rajajinagar hill temple. Photography is restricted inside; modest dress is requested.',
-    location: 'Hare Krishna Hill, Chord Rd, Rajajinagar, Bengaluru, Karnataka 560010',
+    location:
+        'Hare Krishna Hill, Chord Rd, Rajajinagar, Bengaluru, Karnataka 560010',
     timings:
         'Official ISKCON Bangalore FAQ / temple schedule (iskconbangalore.org): Darshan morning '
         '4:15–5:15 AM and 7:15 AM–1:15 PM; evening 4:15–8:20 PM (FAQ) / programme runs through '
