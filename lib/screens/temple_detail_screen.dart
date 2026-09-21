@@ -4,7 +4,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/widgets/app_drawer.dart';
 import 'package:temple_app/widgets/temple_image_placeholder.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class TempleDetailScreen extends StatefulWidget {
   const TempleDetailScreen({super.key, required this.temple});
@@ -17,10 +19,13 @@ class TempleDetailScreen extends StatefulWidget {
 
 class _TempleDetailScreenState extends State<TempleDetailScreen> {
   static const Color _saffron = Color(0xFFFF8F00);
+  static const Color _deepSaffron = Color(0xFFE65100);
   static const Color _gold = Color(0xFFFFD54F);
   static const _autoAdvanceInterval = Duration(seconds: 5);
+  static const double _imageHeight = 450;
 
   int _currentPage = 0;
+  late final PageController _pageController;
   Timer? _autoTimer;
 
   Temple get temple => widget.temple;
@@ -29,12 +34,14 @@ class _TempleDetailScreenState extends State<TempleDetailScreen> {
   @override
   void initState() {
     super.initState();
+    _pageController = PageController();
     _startAutoAdvance();
   }
 
   @override
   void dispose() {
     _autoTimer?.cancel();
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -43,75 +50,139 @@ class _TempleDetailScreenState extends State<TempleDetailScreen> {
     _autoTimer?.cancel();
     _autoTimer = Timer.periodic(_autoAdvanceInterval, (_) {
       if (!mounted) return;
-      setState(() {
-        _currentPage = (_currentPage + 1) % gallery.length;
-      });
+      final nextPage = (_currentPage + 1) % gallery.length;
+      _pageController.animateToPage(
+        nextPage,
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeInOut,
+      );
     });
   }
 
   void _goToPage(int page) {
-    setState(() => _currentPage = page);
+    _pageController.animateToPage(
+      page,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeInOut,
+    );
     _startAutoAdvance();
+  }
+
+  Future<void> _openGoogleMaps() async {
+    final url = Uri.parse(
+      'https://www.google.com/maps/search/?api=1&query=${temple.latitude},${temple.longitude}',
+    );
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final hasMultiple = gallery.length > 1;
     final topPadding = MediaQuery.of(context).padding.top;
-    final screenWidth = MediaQuery.of(context).size.width;
-    // Use a 4:3 aspect ratio so the full image is always visible
-    final imageHeight = screenWidth * 3 / 4;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFFBF2),
+      drawer: const AppDrawer(),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Image gallery section ──
+            // ── Image gallery with PageView ──
             Stack(
               children: [
                 Container(
                   width: double.infinity,
-                  height: imageHeight + topPadding,
+                  height: _imageHeight + topPadding,
                   color: Colors.black,
                   padding: EdgeInsets.only(top: topPadding),
                   child: gallery.isEmpty
                       ? const TempleImagePlaceholder(expand: true)
-                      : AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 800),
-                          switchInCurve: Curves.easeIn,
-                          switchOutCurve: Curves.easeOut,
-                          child: CachedNetworkImage(
-                            key: ValueKey(gallery[_currentPage]),
-                            imageUrl: gallery[_currentPage],
-                            fit: BoxFit.contain,
-                            width: double.infinity,
-                            height: imageHeight,
-                            fadeInDuration:
-                                const Duration(milliseconds: 400),
-                            placeholder: (_, _) => const Center(
-                              child: CircularProgressIndicator(
-                                  color: _saffron),
-                            ),
-                            errorWidget: (_, _, _) =>
-                                const TempleImagePlaceholder(
-                                    expand: true),
-                          ),
+                      : PageView.builder(
+                          controller: _pageController,
+                          itemCount: gallery.length,
+                          onPageChanged: (i) =>
+                              setState(() => _currentPage = i),
+                          itemBuilder: (context, index) {
+                            return InteractiveViewer(
+                              minScale: 1.0,
+                              maxScale: 4.0,
+                              child: CachedNetworkImage(
+                                imageUrl: gallery[index],
+                                fit: BoxFit.contain,
+                                width: double.infinity,
+                                height: _imageHeight,
+                                fadeInDuration:
+                                    const Duration(milliseconds: 400),
+                                fadeOutDuration:
+                                    const Duration(milliseconds: 200),
+                                placeholder: (_, _) => Container(
+                                  color: Colors.brown.shade200,
+                                  child: const Center(
+                                    child: CircularProgressIndicator(
+                                        color: _saffron),
+                                  ),
+                                ),
+                                errorWidget: (_, _, _) =>
+                                    const TempleImagePlaceholder(
+                                        expand: true),
+                              ),
+                            );
+                          },
                         ),
                 ),
 
-                // Back button
+                // Gradient overlay at bottom for visual polish
                 Positioned(
-                  top: topPadding + 8,
-                  left: 8,
-                  child: _CircleIconButton(
-                    icon: Icons.arrow_back_rounded,
-                    onTap: () => Navigator.pop(context),
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: 80,
+                  child: const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, Colors.black45],
+                      ),
+                    ),
                   ),
                 ),
 
-                // Counter pill
+                // Back + menu buttons
+                Positioned(
+                  top: topPadding + 8,
+                  left: 8,
+                  child: Row(
+                    children: [
+                      _CircleIconButton(
+                        icon: Icons.arrow_back_rounded,
+                        onTap: () => Navigator.pop(context),
+                      ),
+                      const SizedBox(width: 8),
+                      Builder(
+                        builder: (ctx) => _CircleIconButton(
+                          icon: Icons.menu_rounded,
+                          onTap: () => Scaffold.of(ctx).openDrawer(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Home button — top right
+                Positioned(
+                  top: topPadding + 8,
+                  right: hasMultiple ? 100 : 16,
+                  child: _CircleIconButton(
+                    icon: Icons.home_rounded,
+                    onTap: () => Navigator.popUntil(
+                        context, (route) => route.isFirst),
+                  ),
+                ),
+
+                // Counter pill — top right
                 if (hasMultiple)
                   Positioned(
                     top: topPadding + 8,
@@ -143,8 +214,8 @@ class _TempleDetailScreenState extends State<TempleDetailScreen> {
                     child: Center(
                       child: _CircleIconButton(
                         icon: Icons.chevron_left_rounded,
-                        size: 42,
-                        iconSize: 30,
+                        size: 44,
+                        iconSize: 32,
                         onTap: () => _goToPage(
                             (_currentPage - 1 + gallery.length) %
                                 gallery.length),
@@ -161,20 +232,20 @@ class _TempleDetailScreenState extends State<TempleDetailScreen> {
                     child: Center(
                       child: _CircleIconButton(
                         icon: Icons.chevron_right_rounded,
-                        size: 42,
-                        iconSize: 30,
+                        size: 44,
+                        iconSize: 32,
                         onTap: () => _goToPage(
                             (_currentPage + 1) % gallery.length),
                       ),
                     ),
                   ),
 
-                // Dot indicators at bottom of image
+                // Dot indicators — bottom of image
                 if (hasMultiple)
                   Positioned(
                     left: 0,
                     right: 0,
-                    bottom: 12,
+                    bottom: 14,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(gallery.length, (i) {
@@ -201,12 +272,8 @@ class _TempleDetailScreenState extends State<TempleDetailScreen> {
             ),
 
             // ── Temple name header ──
-            Container(
-              width: double.infinity,
+            Padding(
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
-              decoration: const BoxDecoration(
-                color: Color(0xFFFFFBF2),
-              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -224,12 +291,14 @@ class _TempleDetailScreenState extends State<TempleDetailScreen> {
                       Icon(Icons.place_rounded,
                           size: 18, color: Colors.brown.shade500),
                       const SizedBox(width: 4),
-                      Text(
-                        '${temple.city}, ${temple.state}',
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          color: Colors.brown.shade600,
-                          fontWeight: FontWeight.w500,
+                      Expanded(
+                        child: Text(
+                          '${temple.city}, ${temple.state}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            color: Colors.brown.shade600,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ],
@@ -262,6 +331,77 @@ class _TempleDetailScreenState extends State<TempleDetailScreen> {
                     content:
                         '${temple.latitude.toStringAsFixed(4)}° N, ${temple.longitude.toStringAsFixed(4)}° E',
                   ),
+
+                  // ── How to Reach ──
+                  const SizedBox(height: 24),
+                  Text(
+                    'How to Reach',
+                    style: GoogleFonts.lora(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: _saffron,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF3D8),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: _gold),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.location_city_rounded,
+                                color: _saffron, size: 22),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                temple.location,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  color: Colors.brown.shade800,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _openGoogleMaps,
+                            icon: const Icon(Icons.directions_rounded,
+                                color: Colors.white),
+                            label: Text(
+                              'Get Directions',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _deepSaffron,
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // ── About ──
                   const SizedBox(height: 24),
                   Text(
                     'About',
@@ -280,6 +420,8 @@ class _TempleDetailScreenState extends State<TempleDetailScreen> {
                       color: Colors.brown.shade800,
                     ),
                   ),
+
+                  // ── Temple Story ──
                   const SizedBox(height: 24),
                   Text(
                     'Temple Story',
@@ -298,6 +440,8 @@ class _TempleDetailScreenState extends State<TempleDetailScreen> {
                       color: Colors.brown.shade800,
                     ),
                   ),
+
+                  // ── Specialities ──
                   const SizedBox(height: 24),
                   Text(
                     'Specialities',

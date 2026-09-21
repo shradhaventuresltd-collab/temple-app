@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/firebase_options.dart';
 import 'package:temple_app/screens/home_screen.dart';
+import 'package:temple_app/services/ad_helper.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  await AdHelper.initializeAds();
   runApp(const TempleDirectoryApp());
 }
 
