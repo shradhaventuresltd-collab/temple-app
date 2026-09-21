@@ -49,7 +49,7 @@ lib/
 ├── models/
 │   └── temple.dart                    # Temple data model
 ├── data/
-│   ├── sample_data.dart               # 30 bundled sample temples (offline fallback)
+│   ├── sample_data.dart               # 30 bundled sample temples (offline fallback; TN copy research-enriched)
 │   └── heritage_content.dart          # Heritage write-up content sections
 ├── services/
 │   ├── temple_service.dart            # Firestore temple reads with fallback
@@ -76,6 +76,8 @@ lib/
     ├── image_picker_web.dart          # Web image picker implementation
     ├── image_picker_stub.dart         # Stub for non-web platforms
     └── picked_file_data.dart          # Cross-platform picked file model
+docs/
+└── tamil-nadu-sample-research.md      # TN sample sources, caveats, Commons photo candidates
 ```
 
 ## Prerequisites
@@ -161,6 +163,8 @@ Production / release browsing does **not** require signing in. Seed and Admin wr
 Release and profile builds hide Seed/Admin; `seedTempleData` and Admin CMS writes also refuse to run outside debug, and rules reject non-admin writes even if a client tried.
 
 The home screen **falls back** to the 30 bundled sample temples if Firestore is empty or unreachable, so browse can look populated while the cloud `temples` collection is still empty. Admin reads Firestore only — it stays empty until an admin seeds or creates a temple.
+
+The 10 Tamil Nadu sample temples carry research-enriched story, timings (with source caveats), specialities, address, and map pins. Cover `imageUrl` values stay the existing picsum placeholders. Sources and Commons photo candidates for later Storage upload live in [`docs/tamil-nadu-sample-research.md`](docs/tamil-nadu-sample-research.md) — they are not Firestore fields. Re-seeding from a debug admin client refreshes those text fields on the existing slug IDs; this repo does not ship a live Firebase seed from CI.
 
 ### Admin CMS vs Seed
 
