@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -287,7 +286,6 @@ class _AdminTempleCardState extends State<_AdminTempleCard> {
     });
 
     final storage = FirebaseStorage.instance;
-    final firestore = FirebaseFirestore.instance;
     final newUrls = <String>[];
 
     try {
@@ -319,9 +317,9 @@ class _AdminTempleCardState extends State<_AdminTempleCard> {
         }
       }
 
-      await firestore.collection('temples').doc(temple.id).update({
-        'images': FieldValue.arrayUnion(newUrls),
-      });
+      // Full temple payload — not images-only update/arrayUnion — so
+      // Firestore rules that validate request.resource.data can succeed.
+      await widget.adminTemples.appendTempleImages(temple, newUrls);
 
       if (!mounted) return;
       setState(() => _uploading = false);

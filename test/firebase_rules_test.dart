@@ -15,9 +15,15 @@ void main() {
     expect(firestoreRules, contains("rules_version = '2'"));
     expect(firestoreRules, contains('match /temples/{templeId}'));
     expect(firestoreRules, contains('allow read: if true'));
-    expect(firestoreRules, contains('allow create, update, delete: if isAdmin()'));
+    expect(firestoreRules, contains('function isAdmin()'));
+    expect(firestoreRules, contains('isValidTempleCreate(request.resource.data)'));
+    expect(firestoreRules, contains('isValidTempleUpdate(request.resource.data)'));
     expect(firestoreRules, contains('request.auth.token.admin == true'));
     expect(firestoreRules, isNot(contains('allow write: if true')));
+    expect(
+      firestoreRules,
+      isNot(contains('allow create, update, delete: if isAdmin()')),
+    );
   });
 
   test('Storage rules allow public temple reads and admin-only writes', () {
