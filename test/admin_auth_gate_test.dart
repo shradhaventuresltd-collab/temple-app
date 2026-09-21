@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:temple_app/screens/admin_screen.dart';
@@ -145,4 +147,47 @@ void main() {
     await tester.pump();
     expect(seeded, 1);
   });
+
+  testWidgets(
+      'AdminScreen shows sign-in even if the auth stream has not emitted',
+      (tester) async {
+    final hanging = StreamController<AdminSession>.broadcast();
+    addTearDown(hanging.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AdminScreen(
+          adminAuth: _HangingAdminAuth(hanging.stream),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.text('Admin sign-in required'), findsOneWidget);
+    expect(find.byKey(const Key('admin-sign-in-button')), findsOneWidget);
+    expect(find.text('Seed'), findsNothing);
+  });
+}
+
+class _HangingAdminAuth implements AdminAuth {
+  _HangingAdminAuth(this.session);
+
+  @override
+  final Stream<AdminSession> session;
+
+  @override
+  Future<bool> isCurrentUserAdmin() async => false;
+
+  @override
+  Future<void> signInWithEmail({
+    required String email,
+    required String password,
+  }) async {}
+
+  @override
+  Future<void> signOut() async {}
+
+  @override
+  Future<void> refreshClaims() async {}
 }

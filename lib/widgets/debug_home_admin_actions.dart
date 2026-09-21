@@ -24,6 +24,7 @@ class DebugHomeAdminActions extends StatelessWidget {
   Widget build(BuildContext context) {
     return StreamBuilder<AdminSession>(
       stream: auth.session,
+      initialData: AdminSession.signedOut,
       builder: (context, snapshot) {
         final session = snapshot.data ?? AdminSession.signedOut;
         return Row(

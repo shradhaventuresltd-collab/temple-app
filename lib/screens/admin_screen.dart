@@ -29,10 +29,9 @@ class _AdminScreenState extends State<AdminScreen> {
   Widget build(BuildContext context) {
     return StreamBuilder<AdminSession>(
       stream: _session,
+      initialData: AdminSession.signedOut,
       builder: (context, snapshot) {
         final session = snapshot.data ?? AdminSession.signedOut;
-        final loading = !snapshot.hasData &&
-            snapshot.connectionState == ConnectionState.waiting;
 
         return Scaffold(
           backgroundColor: const Color(0xFFFFFBF2),
@@ -60,11 +59,7 @@ class _AdminScreenState extends State<AdminScreen> {
                 ),
             ],
           ),
-          body: loading
-              ? const Center(
-                  child: CircularProgressIndicator(color: _saffron),
-                )
-              : !session.isSignedIn
+          body: !session.isSignedIn
                   ? AdminSignInPanel(auth: _auth)
                   : !session.isAdmin
                       ? AdminNotAuthorizedPanel(
