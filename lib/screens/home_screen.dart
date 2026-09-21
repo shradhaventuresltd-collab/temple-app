@@ -7,6 +7,7 @@ import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/admin_screen.dart';
 import 'package:temple_app/services/temple_service.dart';
 import 'package:temple_app/widgets/app_drawer.dart';
+import 'package:temple_app/widgets/seed_temples_control.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  HOME SCREEN
@@ -32,6 +33,10 @@ class _HomeScreenState extends State<HomeScreen> {
     _templesFuture = _templeService.getTemples();
   }
 
+  void _reloadTemples() {
+    setState(() => _templesFuture = _templeService.getTemples());
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -50,7 +55,12 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          if (kDebugMode)
+          if (kDebugMode) ...[
+            SeedTemplesControl(
+              compact: true,
+              light: true,
+              onSuccess: _reloadTemples,
+            ),
             IconButton(
               icon: const Icon(Icons.admin_panel_settings_rounded),
               tooltip: 'Admin Panel',
@@ -59,6 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 MaterialPageRoute(builder: (_) => const AdminScreen()),
               ),
             ),
+          ],
         ],
       ),
       body: FutureBuilder<List<Temple>>(
@@ -81,8 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           GoogleFonts.poppins(color: Colors.brown.shade700)),
                   const SizedBox(height: 8),
                   TextButton(
-                    onPressed: () => setState(
-                        () => _templesFuture = _templeService.getTemples()),
+                    onPressed: _reloadTemples,
                     child: const Text('Retry'),
                   ),
                 ],
