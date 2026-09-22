@@ -15,10 +15,13 @@ import 'package:temple_app/widgets/home_mosaic_collage.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, this.adminAuth});
+  const HomeScreen({super.key, this.adminAuth, this.templesLoader});
 
   /// Injected in tests. Defaults to [AdminAuth.instance].
   final AdminAuth? adminAuth;
+
+  /// Injected in tests. Defaults to [TempleService.getTemples].
+  final Future<List<Temple>> Function()? templesLoader;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -31,14 +34,20 @@ class _HomeScreenState extends State<HomeScreen> {
   final TempleService _templeService = TempleService();
   late Future<List<Temple>> _templesFuture;
 
+  Future<List<Temple>> _loadTemples() {
+    final loader = widget.templesLoader;
+    if (loader != null) return loader();
+    return _templeService.getTemples();
+  }
+
   @override
   void initState() {
     super.initState();
-    _templesFuture = _templeService.getTemples();
+    _templesFuture = _loadTemples();
   }
 
   void _reloadTemples() {
-    setState(() => _templesFuture = _templeService.getTemples());
+    setState(() => _templesFuture = _loadTemples());
   }
 
   AdminAuth get _auth => widget.adminAuth ?? AdminAuth.instance;
@@ -83,48 +92,30 @@ class _HomeScreenState extends State<HomeScreen> {
         future: _templesFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const CircularProgressIndicator(color: _saffron),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Loading temples',
-                    style: GoogleFonts.poppins(
-                      color: Colors.brown.shade700,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            );
+            return const _HomeLoadingBody();
           }
           if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.error_outline_rounded,
-                      size: 56, color: Colors.brown.shade300),
-                  const SizedBox(height: 12),
-                  Text('Something went wrong.',
-                      style:
-                          GoogleFonts.poppins(color: Colors.brown.shade700)),
-                  const SizedBox(height: 8),
-                  TextButton(
-                    onPressed: _reloadTemples,
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            );
+            return _HomeErrorBody(onRetry: _reloadTemples);
           }
 
           final allTemples = snapshot.data ?? [];
+          if (allTemples.isEmpty) {
+            return _HomeEmptyBody(onRetry: _reloadTemples);
+          }
 
           return _HomeBody(
             allTemples: allTemples,
+            onBrowseTemples: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => TempleListScreen(
+                    temples: allTemples,
+                    title: 'All Temples',
+                  ),
+                ),
+              );
+            },
           );
         },
       ),
@@ -134,16 +125,152 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+/// Cream loading state so users see Home chrome instead of solid orange splash.
+class _HomeLoadingBody extends StatelessWidget {
+  const _HomeLoadingBody();
+
+  static const Color _saffron = Color(0xFFFF8F00);
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.temple_hindu_rounded, size: 48, color: _saffron),
+            const SizedBox(height: 20),
+            const CircularProgressIndicator(color: _saffron),
+            const SizedBox(height: 16),
+            Text(
+              'Loading temples…',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                color: Colors.brown.shade700,
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Preparing the directory. This usually takes a moment.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                color: Colors.brown.shade500,
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeErrorBody extends StatelessWidget {
+  const _HomeErrorBody({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline_rounded,
+                size: 56, color: Colors.brown.shade300),
+            const SizedBox(height: 12),
+            Text(
+              'Could not load temples.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                color: Colors.brown.shade700,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Check your connection and try again.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                color: Colors.brown.shade500,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: onRetry,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeEmptyBody extends StatelessWidget {
+  const _HomeEmptyBody({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.temple_hindu_outlined,
+                size: 56, color: Colors.brown.shade300),
+            const SizedBox(height: 12),
+            Text(
+              'No temples available yet.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                color: Colors.brown.shade700,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'The directory came back empty. Tap Retry, or try again later.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                color: Colors.brown.shade500,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: onRetry,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-//  HOME BODY (mosaic collage + heritage write-up + temple grid)
+//  HOME BODY (mosaic collage + heritage write-up + browse entry)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _HomeBody extends StatelessWidget {
   const _HomeBody({
     required this.allTemples,
+    required this.onBrowseTemples,
   });
 
   final List<Temple> allTemples;
+  final VoidCallback onBrowseTemples;
 
   @override
   Widget build(BuildContext context) {
@@ -154,12 +281,87 @@ class _HomeBody extends StatelessWidget {
           child: HomeMosaicCollage(temples: allTemples),
         ),
 
+        // ── Browse directory (temple cards live here / in the drawer) ──
+        SliverToBoxAdapter(
+          child: _BrowseTemplesCta(
+            templeCount: allTemples.length,
+            onPressed: onBrowseTemples,
+          ),
+        ),
+
         // ── Heritage write-up ──
         SliverToBoxAdapter(child: _HeritageWriteUp()),
 
         // Bottom spacing
         const SliverToBoxAdapter(child: SizedBox(height: 32)),
       ],
+    );
+  }
+}
+
+class _BrowseTemplesCta extends StatelessWidget {
+  const _BrowseTemplesCta({
+    required this.templeCount,
+    required this.onPressed,
+  });
+
+  final int templeCount;
+  final VoidCallback onPressed;
+
+  static const Color _saffron = Color(0xFFFF8F00);
+  static const Color _deepSaffron = Color(0xFFE65100);
+
+  @override
+  Widget build(BuildContext context) {
+    final label = templeCount == 0
+        ? 'Browse temples'
+        : 'Browse $templeCount Temple${templeCount == 1 ? '' : 's'}';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 20, 14, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Open the directory for temple cards, search, and filters. '
+            'You can also use the menu (☰).',
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              height: 1.45,
+              color: Colors.brown.shade700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton.icon(
+            key: const Key('home-browse-temples'),
+            onPressed: onPressed,
+            icon: const Icon(Icons.temple_hindu_rounded),
+            label: Text(label),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _saffron,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              textStyle: GoogleFonts.poppins(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Heritage reading continues below',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              color: _deepSaffron.withAlpha(180),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

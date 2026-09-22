@@ -11,8 +11,15 @@ class AdHelper {
   static Future<void> initializeAds() async {
     if (kIsWeb) return;
     if (defaultTargetPlatform != TargetPlatform.android &&
-        defaultTargetPlatform != TargetPlatform.iOS) return;
-    await MobileAds.instance.initialize();
+        defaultTargetPlatform != TargetPlatform.iOS) {
+      return;
+    }
+    try {
+      await MobileAds.instance.initialize();
+    } catch (e, st) {
+      // Ads must never delay the first Home frame (KAN-75).
+      debugPrint('MobileAds.initialize failed: $e\n$st');
+    }
   }
 
   static String get bannerAdUnitId {
