@@ -199,7 +199,9 @@ void main() {
     expect(find.text('Living temple'), findsNothing);
     expect(find.text(shore.story), findsNothing);
     expect(find.text(shore.timings), findsNothing);
-    expect(find.text('Photo pending'), findsOneWidget);
+    // KAN-77: Commons cover — no Photo pending on Shore.
+    expect(find.text('Photo pending'), findsNothing);
+    expect(find.byType(CachedNetworkImage), findsOneWidget);
 
     final dilwara = _named('Dilwara Temples');
     await pumpCard(tester, dilwara);
@@ -208,6 +210,7 @@ void main() {
     expect(find.text('Living temple'), findsNothing);
     expect(find.text('Heritage visit'), findsNothing);
     expect(find.text(dilwara.story), findsNothing);
+    expect(find.text('Photo pending'), findsNothing);
 
     final meenakshi = _named('Meenakshi Amman Temple');
     await pumpCard(tester, meenakshi);
@@ -215,6 +218,13 @@ void main() {
     expect(find.text('Living temple'), findsNothing);
     expect(find.text('Heritage visit'), findsNothing);
     expect(find.text(meenakshi.story), findsNothing);
+    expect(find.text('Photo pending'), findsNothing);
+
+    // Still-picsum heritage outlier keeps Photo pending.
+    final konark = _named('Konark Sun Temple');
+    await pumpCard(tester, konark);
+    expect(find.text('Heritage visit'), findsOneWidget);
+    expect(find.text('Photo pending'), findsOneWidget);
   });
 
   testWidgets('verified covers decode at the card size', (tester) async {

@@ -68,7 +68,16 @@ void main() {
   });
 
   test('picsum covers and empty galleries are photo pending', () {
+    // KAN-77: these sample temples carry verified Commons thumbs (not picsum).
+    const verifiedPhotoNames = {
+      'Mahabodhi Temple',
+      'Dilwara Temples',
+      'Martand Sun Temple',
+      'Shore Temple',
+      'Meenakshi Amman Temple',
+    };
     for (final temple in sampleTemples) {
+      if (verifiedPhotoNames.contains(temple.name)) continue;
       expect(
         DetailHonesty.of(temple).photoPending,
         isTrue,
@@ -110,6 +119,44 @@ void main() {
     expect(verifiedMosaicUrls(temples), [
       'https://firebasestorage.googleapis.com/v0/b/app/o/a.jpg?alt=media',
     ]);
+  });
+
+  test('KAN-77 verified Commons packs clear Photo pending and keep framing', () {
+    final mahabodhi = DetailHonesty.of(_named('Mahabodhi Temple'));
+    expect(_named('Mahabodhi Temple').imageUrl.contains('picsum'), isFalse);
+    expect(mahabodhi.photoPending, isFalse);
+    expect(mahabodhi.verifiedImages, hasLength(7));
+    expect(mahabodhi.tradition, SiteTradition.buddhist);
+
+    final dilwara = DetailHonesty.of(_named('Dilwara Temples'));
+    expect(_named('Dilwara Temples').imageUrl.contains('picsum'), isFalse);
+    expect(dilwara.photoPending, isFalse);
+    expect(dilwara.verifiedImages, hasLength(6));
+    expect(dilwara.tradition, SiteTradition.jain);
+    expect(dilwara.framing, SiteFraming.livingTemple);
+
+    final martand = DetailHonesty.of(_named('Martand Sun Temple'));
+    expect(_named('Martand Sun Temple').imageUrl.contains('picsum'), isFalse);
+    expect(martand.photoPending, isFalse);
+    expect(martand.verifiedImages, hasLength(6));
+    expect(martand.framing, SiteFraming.monumentVisit);
+    expect(martand.framingLabel, 'Heritage visit');
+
+    final shore = DetailHonesty.of(_named('Shore Temple'));
+    expect(_named('Shore Temple').imageUrl.contains('picsum'), isFalse);
+    expect(shore.photoPending, isFalse);
+    expect(shore.verifiedImages, hasLength(6));
+    expect(shore.framing, SiteFraming.monumentVisit);
+
+    final meenakshi = DetailHonesty.of(_named('Meenakshi Amman Temple'));
+    expect(
+      _named('Meenakshi Amman Temple').imageUrl.contains('picsum'),
+      isFalse,
+    );
+    expect(meenakshi.photoPending, isFalse);
+    expect(meenakshi.verifiedImages, hasLength(6));
+    expect(meenakshi.framing, SiteFraming.livingTemple);
+    expect(meenakshi.tradition, SiteTradition.unspecified);
   });
 
   test(
@@ -211,7 +258,7 @@ void main() {
     );
   });
 
-  testWidgets('detail honesty UI shows photo pending, caveat, and directions', (
+  testWidgets('detail honesty UI shows Jain framing without Photo pending', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -223,8 +270,9 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('Photo pending'), findsOneWidget);
-    expect(find.text('No verified photograph is on file.'), findsOneWidget);
+    // KAN-77: Commons gallery clears Photo pending.
+    expect(find.text('Photo pending'), findsNothing);
+    expect(find.text('No verified photograph is on file.'), findsNothing);
     expect(find.byKey(const Key('detail-tradition-chip')), findsOneWidget);
     expect(find.text('Jain'), findsWidgets);
     expect(find.text('Living temple'), findsNothing);
@@ -250,7 +298,8 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('Photo pending'), findsOneWidget);
+    // KAN-77: Commons gallery clears Photo pending; heritage framing remains.
+    expect(find.text('Photo pending'), findsNothing);
     expect(find.text('Heritage visit'), findsOneWidget);
     expect(find.text('Visiting hours'), findsOneWidget);
     expect(find.text('Site history'), findsOneWidget);
@@ -283,7 +332,7 @@ void main() {
     expect(find.byKey(const Key('get-directions-button')), findsOneWidget);
   });
 
-  testWidgets('phone width lays out photo pending and timings caveat', (
+  testWidgets('phone width lays out living-temple caveat without Photo pending', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(390, 844);
@@ -300,7 +349,7 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('Photo pending'), findsOneWidget);
+    expect(find.text('Photo pending'), findsNothing);
     expect(find.text('Living temple'), findsOneWidget);
     expect(find.byKey(const Key('timings-caveat')), findsOneWidget);
     expect(tester.takeException(), isNull);

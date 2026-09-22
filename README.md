@@ -183,6 +183,17 @@ Production / release browsing does **not** require signing in. Seed and Admin wr
    ```
 
    To remove it later: `node grant_admin.js --email you@example.com --revoke`.
+
+   **Research photo packs (KAN-77+):** verified Commons jpgs live under `tools/photo-packs/{slug}/` with `manifest.json` + `ATTRIBUTION.md`. Upload to Storage (no Places scraper):
+
+   ```bash
+   cd scripts
+   npm install
+   node upload_research_pack.js --all-packs --dry-run
+   node upload_research_pack.js --all-packs --patch-firestore
+   ```
+
+   Sample/Seed may already use Commons `downloaded_url` thumbs so honesty clears before Storage; after upload, replace `imageUrl` / `images` with the printed Storage URLs (or let `--patch-firestore` write live docs). Do not invent Storage URLs.
 4. Run a **debug** build (`flutter run` or `flutter run -d chrome`).
 5. Tap **Admin sign-in** (Home app bar) or the Admin Panel icon. Sign in with that email/password.
    - If you granted the claim while already signed in, tap **Refresh admin status** (or sign out and back in) so the ID token picks it up.

@@ -96,9 +96,7 @@ void main() {
       seedHonestyImageFields(
         bundledImageUrl:
             'https://firebasestorage.googleapis.com/v0/b/app/o/new.jpg?alt=media',
-        existingImages: const [
-          'https://picsum.photos/seed/stale/800/600',
-        ],
+        existingImages: const ['https://picsum.photos/seed/stale/800/600'],
       ),
       {
         'imageUrl':
@@ -113,9 +111,62 @@ void main() {
   test('templeSeedImagesFromFirestore trims and skips blanks', () {
     expect(templeSeedImagesFromFirestore(null), isEmpty);
     expect(templeSeedImagesFromFirestore('not-a-list'), isEmpty);
-    expect(
-      templeSeedImagesFromFirestore([' a ', '', 'b', 3]),
-      ['a', 'b', '3'],
+    expect(templeSeedImagesFromFirestore([' a ', '', 'b', 3]), ['a', 'b', '3']);
+  });
+
+  test('seedImageFieldsWithPack writes Commons and preserves Storage uploads', () {
+    final mahabodhi = sampleTemples.firstWhere(
+      (t) => t.name == 'Mahabodhi Temple',
     );
+    final fresh = seedImageFieldsWithPack(
+      bundledImageUrl: mahabodhi.imageUrl,
+      bundledImages: mahabodhi.images,
+    );
+    expect(fresh['imageUrl'], mahabodhi.imageUrl);
+    expect(fresh['images'], mahabodhi.images);
+    expect((fresh['imageUrl'] as String).contains('picsum'), isFalse);
+    for (final url in fresh['images'] as List<String>) {
+      expect(url.contains('picsum'), isFalse);
+    }
+
+    final picsumCover = sampleTemples.firstWhere(
+      (t) => t.name == 'Brihadeeswarar Temple',
+    );
+    expect(
+      seedImageFieldsWithPack(
+        bundledImageUrl: picsumCover.imageUrl,
+        bundledImages: picsumCover.images,
+      ),
+      {'imageUrl': '', 'images': <String>[]},
+    );
+
+    const storage = [
+      'https://storage.googleapis.com/temple-directory-india.firebasestorage.app/temples/mahabodhi-temple/01.jpg',
+    ];
+    // #18 keeps the verified gallery. Bundled Commons cover is verified, so
+    // imageUrl follows seedHonestyImageFields (bundled cover), not the pack list.
+    final kept = seedImageFieldsWithPack(
+      bundledImageUrl: mahabodhi.imageUrl,
+      bundledImages: mahabodhi.images,
+      existingImageUrl: storage.single,
+      existingImages: storage,
+    );
+    expect(kept['images'], storage);
+    expect(kept['imageUrl'], mahabodhi.imageUrl);
+    expect((kept['images'] as List).contains(storage.single), isTrue);
+
+    final picsumBesideStorage = seedImageFieldsWithPack(
+      bundledImageUrl: picsumCover.imageUrl,
+      bundledImages: picsumCover.images,
+      existingImageUrl: 'https://picsum.photos/seed/old/800/600',
+      existingImages: const [
+        'https://picsum.photos/seed/gallery/800/600',
+        'https://firebasestorage.googleapis.com/v0/b/app/o/real.jpg?alt=media',
+      ],
+    );
+    expect(picsumBesideStorage['imageUrl'], '');
+    expect(picsumBesideStorage['images'], [
+      'https://firebasestorage.googleapis.com/v0/b/app/o/real.jpg?alt=media',
+    ]);
   });
 }

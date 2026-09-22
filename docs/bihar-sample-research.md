@@ -124,7 +124,16 @@ Sources:
 
 Photo candidates (Commons file pages):
 
-- https://commons.wikimedia.org/wiki/File:Mahabodhi_temple_complex,_Bodhgaya_23.jpg — CC BY-SA 4.0, Rohit Sharma. Mahabodhi Temple complex exterior; verified Commons file page
+- Pack committed under [`tools/photo-packs/mahabodhi-temple/`](../tools/photo-packs/mahabodhi-temple/) (KAN-77). Sample `imageUrl` / `images` use Commons 1280px thumbs from `manifest.json` until Storage upload.
+- https://commons.wikimedia.org/wiki/File:Mahabodhi_temple_at_Bodhgaya_in_Bihar_03.jpg — CC BY 4.0, Amitabha Gupta
+- https://commons.wikimedia.org/wiki/File:Mahabodhi_Temple_%2C_Bodh_Gaya.jpg — CC BY 2.0, Franx'
+- https://commons.wikimedia.org/wiki/File:Mahabodhi_Temple_Complex_-_Bodh_Gaya_%281%29.jpg — CC BY-SA 4.0, Sumitsurai
+- https://commons.wikimedia.org/wiki/File:Mahabodhi_Temple_-_Bodh_Gaya_%281%29.jpg — CC BY-SA 4.0, Sumitsurai
+- https://commons.wikimedia.org/wiki/File:Mahabodhi_temple_complex%2C_Bodhgaya_23.jpg — CC BY-SA 4.0, Rohit Sharma
+- https://commons.wikimedia.org/wiki/File:Mahabodhi_Temple_Shikhara_-_Bodh_Gaya_%281%29.jpg — CC BY-SA 4.0, Sumitsurai
+- https://commons.wikimedia.org/wiki/File:Votive_Stupas_-_Mahabodhi_Temple_Complex_-_Bodh_Gaya_%281%29.jpg — CC BY-SA 4.0, Sumitsurai
+
+See pack `ATTRIBUTION.md` for download URLs.
 
 Ritual overflow (not a Firestore field): Buddhist tradition: this is a living Buddhist Mahavihara / pilgrimage complex, not a Hindu temple. Ritual language should use chanting, meditation, circumambulation, offerings, and Buddha Purnima rather than Hindu pooja terminology. Follow BTMC security rules.
 

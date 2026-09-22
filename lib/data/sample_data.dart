@@ -9,12 +9,22 @@ const List<Temple> sampleTemples = [
   // the bundled picsum placeholders; do not treat Commons candidates as Storage
   // paths. Sources and photo_candidates: docs/tamil-nadu-sample-research.md.
 
+  // KAN-77: verified Commons thumbs — tools/photo-packs/meenakshi-amman-temple/
   Temple(
     name: 'Meenakshi Amman Temple',
     state: 'Tamil Nadu',
     city: 'Madurai',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/meenakshi/800/600',
+    imageUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Meenakshi_Amman_Temple_-_Gateway_Tower%2C_Madurai.jpg/1280px-Meenakshi_Amman_Temple_-_Gateway_Tower%2C_Madurai.jpg',
+    images: const [
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Meenakshi_Amman_Temple_-_Gateway_Tower%2C_Madurai.jpg/1280px-Meenakshi_Amman_Temple_-_Gateway_Tower%2C_Madurai.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/03_sunrise_view_of_Meenakshi_temple_gopuram.jpg/1280px-03_sunrise_view_of_Meenakshi_temple_gopuram.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Madurai_Meenakshi_temple_gopuram.jpg/1280px-Madurai_Meenakshi_temple_gopuram.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Madurai_Meenakshi_temple_1.jpg/1280px-Madurai_Meenakshi_temple_1.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/Madurai_Meenakshi_Amman_Gopuram.jpg/1280px-Madurai_Meenakshi_Amman_Gopuram.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/MDU_Meenakshi_Amman_Temple.jpg/1280px-MDU_Meenakshi_Amman_Temple.jpg',
+    ],
     description:
         'Historic Madurai temple dedicated to Goddess Meenakshi (Parvati) and Lord Sundareswarar '
         '(Shiva), famed for its towering Dravidian gopurams crowded with painted stucco '
@@ -173,12 +183,22 @@ const List<Temple> sampleTemples = [
       'Hilltop Karthigai Deepam',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/shore-temple/
   Temple(
     name: 'Shore Temple',
     state: 'Tamil Nadu',
     city: 'Mahabalipuram',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/shoretemple/800/600',
+    imageUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/8/86/Shore_Temple_view_2_-_Mahabalipuram.jpg/1280px-Shore_Temple_view_2_-_Mahabalipuram.jpg',
+    images: const [
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/8/86/Shore_Temple_view_2_-_Mahabalipuram.jpg/1280px-Shore_Temple_view_2_-_Mahabalipuram.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Shore_Temple_Mahabalipuram_Tamil-Nadu_India.jpg/1280px-Shore_Temple_Mahabalipuram_Tamil-Nadu_India.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/The_Shore_Temple_Mahabalipuram.jpg/1280px-The_Shore_Temple_Mahabalipuram.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Inside_Shore_Temple_facing_West.jpg/1280px-Inside_Shore_Temple_facing_West.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Beautiful_Shore_Temple%2C_Mamallapuram%2C_Tamil_Nadu.jpg/1280px-Beautiful_Shore_Temple%2C_Mamallapuram%2C_Tamil_Nadu.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Front_View_of_Shore_Temple.jpg/1280px-Front_View_of_Shore_Temple.jpg',
+    ],
     description:
         'UNESCO World Heritage Pallava structural temple (c. 725 CE) on the Bay of Bengal at '
         'Mahabalipuram, with twin Shiva shrines and a reclining Vishnu shrine — among the '
@@ -5937,7 +5957,17 @@ const List<Temple> sampleTemples = [
     state: 'Jammu and Kashmir',
     city: 'Mattan / Anantnag',
     deity: 'Surya',
-    imageUrl: 'https://picsum.photos/seed/martand-sun-temple/800/600',
+    // KAN-77: verified Commons thumbs — tools/photo-packs/martand-sun-temple/
+    imageUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Martand_Sun_Temple%2C_J%26K_01.jpg/1280px-Martand_Sun_Temple%2C_J%26K_01.jpg',
+    images: const [
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Martand_Sun_Temple%2C_J%26K_01.jpg/1280px-Martand_Sun_Temple%2C_J%26K_01.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/1_Sun_Temple_Martand_Jammu_Kashmir_India_ancient_Hindu_temple_in_ruins.jpg/1280px-1_Sun_Temple_Martand_Jammu_Kashmir_India_ancient_Hindu_temple_in_ruins.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Martand_Sun_Temple.JPG/1280px-Martand_Sun_Temple.JPG',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Sun_Temple_Martand.JPG/1280px-Sun_Temple_Martand.JPG',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/Sun_temple_martand_indogreek.jpg/1280px-Sun_temple_martand_indogreek.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Martand_Sun_Temple%2C_J%26K_02.jpg/1280px-Martand_Sun_Temple%2C_J%26K_02.jpg',
+    ],
     description:
         'Eighth-century Surya temple ruins on the Mattan plateau — ASI centrally '
         'protected monument of national importance. Empty archaeological site: '
@@ -6969,7 +6999,17 @@ const List<Temple> sampleTemples = [
     state: 'Rajasthan',
     city: 'Mount Abu',
     deity: 'Jain Tirthankaras',
-    imageUrl: 'https://picsum.photos/seed/dilwara-temples/800/600',
+    // KAN-77: verified Commons thumbs — tools/photo-packs/dilwara-temples/
+    imageUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Dilwara_temple_in_mount_abu.jpg/1280px-Dilwara_temple_in_mount_abu.jpg',
+    images: const [
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Dilwara_temple_in_mount_abu.jpg/1280px-Dilwara_temple_in_mount_abu.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/DILWADA_TEMPLE.JPG/1280px-DILWADA_TEMPLE.JPG',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/Dilwara_Temple%2C_Mount_Abu%2C_Rajasthan.jpg/1280px-Dilwara_Temple%2C_Mount_Abu%2C_Rajasthan.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Marble_Carved_Ceilings_Showing_Jain_Mythology_in_Dilwara_Temple%2C_Mt._Abu.jpg/1280px-Marble_Carved_Ceilings_Showing_Jain_Mythology_in_Dilwara_Temple%2C_Mt._Abu.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/The_Jain_temples_on_mount_Abu%2C_Rajasthan.jpg/1280px-The_Jain_temples_on_mount_Abu%2C_Rajasthan.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Aisle_in_a_Jain_temple%2C_mount_Abu%2C_Rajasthan.jpg/1280px-Aisle_in_a_Jain_temple%2C_mount_Abu%2C_Rajasthan.jpg',
+    ],
     description:
         'Cluster of five marble Jain temples at Mount Abu (11th–16th '
         'centuries), celebrated for unmatched marble carving — Vimal '
@@ -8317,12 +8357,26 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-77: Research-verified Wikimedia Commons thumbs (CC BY / BY-SA).
+  // Attribution: tools/photo-packs/mahabodhi-temple/ATTRIBUTION.md
+  // Replace with Firebase Storage URLs after:
+  //   node scripts/upload_research_pack.js --pack tools/photo-packs/mahabodhi-temple --patch-firestore
   Temple(
     name: 'Mahabodhi Temple',
     state: 'Bihar',
     city: 'Bodh Gaya',
     deity: 'Buddha',
-    imageUrl: 'https://picsum.photos/seed/mahabodhi-temple/800/600',
+    imageUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Mahabodhi_temple_at_Bodhgaya_in_Bihar_03.jpg/1280px-Mahabodhi_temple_at_Bodhgaya_in_Bihar_03.jpg',
+    images: const [
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Mahabodhi_temple_at_Bodhgaya_in_Bihar_03.jpg/1280px-Mahabodhi_temple_at_Bodhgaya_in_Bihar_03.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Mahabodhi_Temple_%2C_Bodh_Gaya.jpg/1280px-Mahabodhi_Temple_%2C_Bodh_Gaya.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mahabodhi_Temple_Complex_-_Bodh_Gaya_%281%29.jpg/1280px-Mahabodhi_Temple_Complex_-_Bodh_Gaya_%281%29.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Mahabodhi_Temple_-_Bodh_Gaya_%281%29.jpg/1280px-Mahabodhi_Temple_-_Bodh_Gaya_%281%29.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Mahabodhi_temple_complex%2C_Bodhgaya_23.jpg/1280px-Mahabodhi_temple_complex%2C_Bodhgaya_23.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Mahabodhi_Temple_Shikhara_-_Bodh_Gaya_%281%29.jpg/1280px-Mahabodhi_Temple_Shikhara_-_Bodh_Gaya_%281%29.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Votive_Stupas_-_Mahabodhi_Temple_Complex_-_Bodh_Gaya_%281%29.jpg/1280px-Votive_Stupas_-_Mahabodhi_Temple_Complex_-_Bodh_Gaya_%281%29.jpg',
+    ],
     description:
         'UNESCO World Heritage Buddhist temple complex at the place '
         'associated with Gautama Buddha’s Enlightenment, centred on the '

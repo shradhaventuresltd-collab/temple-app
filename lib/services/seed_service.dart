@@ -60,6 +60,42 @@ List<String> templeSeedImagesFromFirestore(Object? value) {
   ];
 }
 
+/// KAN-77 layer on top of [seedHonestyImageFields] (PR #18).
+///
+/// [seedHonestyImageFields] is unchanged: it never writes picsum, keeps a
+/// verified existing gallery, and keeps a verified existing cover when the
+/// bundled cover is a placeholder. This adds the Research pack gallery when
+/// that live gallery is empty or only placeholders, so Commons `images` are
+/// not collapsed to a single cover. A non-empty verified existing gallery is
+/// returned as #18 computed it (uploads are not replaced by the pack).
+Map<String, Object> seedImageFieldsWithPack({
+  required String bundledImageUrl,
+  List<String> bundledImages = const [],
+  String? existingImageUrl,
+  List<String> existingImages = const [],
+}) {
+  final honesty = seedHonestyImageFields(
+    bundledImageUrl: bundledImageUrl,
+    existingImageUrl: existingImageUrl,
+    existingImages: existingImages,
+  );
+
+  final verifiedExisting = [
+    for (final raw in existingImages)
+      if (!isPlaceholderImageUrl(raw)) raw.trim(),
+  ];
+  if (verifiedExisting.isNotEmpty) return honesty;
+
+  final pack = [
+    for (final raw in bundledImages)
+      if (!isPlaceholderImageUrl(raw)) raw.trim(),
+  ];
+  if (pack.isEmpty) return honesty;
+
+  final cover = honesty['imageUrl'] as String;
+  return {'imageUrl': cover.isNotEmpty ? cover : pack.first, 'images': pack};
+}
+
 /// Outcome of [seedTempleData].
 class SeedResult {
   const SeedResult({
@@ -94,11 +130,12 @@ class SeedResult {
 ///
 /// **Idempotency:** each document ID is a slug of the temple name
 /// ([templeDocumentId]), so re-running overwrites/merges the same docs
-/// instead of inserting duplicates. Existing verified `images` arrays and
-/// `createdAt` timestamps are preserved so admin photo uploads are not
-/// wiped; placeholder hosts (picsum, etc.) are stripped from cover/gallery
-/// on every run. Other bundled fields (name, story, timings, …) are
-/// refreshed from sample data.
+/// instead of inserting duplicates. Image fields go through
+/// [seedHonestyImageFields] (PR #18): picsum is never written, and a verified
+/// existing gallery is kept so admin / Storage uploads are not wiped.
+/// [seedImageFieldsWithPack] then fills an empty gallery from verified sample
+/// `images` (Commons packs). `createdAt` is preserved. Other bundled fields
+/// (name, story, timings, …) are refreshed from sample data.
 ///
 /// Debug-only: calling this from a release/profile build throws.
 /// Also requires a signed-in Firebase user with custom claim `admin: true`
@@ -111,8 +148,7 @@ Future<SeedResult> seedTempleData({
     throw StateError('Temple seeding is only available in debug builds.');
   }
 
-  final allowed =
-      await (isAdmin ?? AdminAuth.instance.isCurrentUserAdmin)();
+  final allowed = await (isAdmin ?? AdminAuth.instance.isCurrentUserAdmin)();
   if (!allowed) {
     throw StateError(
       'Seeding requires a signed-in admin (custom claim admin: true).',
@@ -122,9 +158,7 @@ Future<SeedResult> seedTempleData({
   final db = firestore ?? FirebaseFirestore.instance;
   final collection = db.collection('temples');
   final existingSnap = await collection.get();
-  final existing = {
-    for (final doc in existingSnap.docs) doc.id: doc.data(),
-  };
+  final existing = {for (final doc in existingSnap.docs) doc.id: doc.data()};
 
   final batch = db.batch();
   var created = 0;
@@ -150,14 +184,14 @@ Future<SeedResult> seedTempleData({
       data['createdAt'] = FieldValue.serverTimestamp();
     }
 
-    final honesty = seedHonestyImageFields(
+    final existingImages = already == null
+        ? const <String>[]
+        : templeSeedImagesFromFirestore(already['images']);
+    final honesty = seedImageFieldsWithPack(
       bundledImageUrl: temple.imageUrl,
-      existingImageUrl: already == null
-          ? null
-          : already['imageUrl'] as String?,
-      existingImages: already == null
-          ? const <String>[]
-          : templeSeedImagesFromFirestore(already['images']),
+      bundledImages: temple.images,
+      existingImageUrl: already == null ? null : already['imageUrl'] as String?,
+      existingImages: existingImages,
     );
     data['imageUrl'] = honesty['imageUrl'];
     data['images'] = honesty['images'];

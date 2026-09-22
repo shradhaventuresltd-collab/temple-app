@@ -1,0 +1,126 @@
+{
+  "temple_slug": "meenakshi-amman-temple",
+  "temple_name": "Meenakshi Amman Temple",
+  "doc_id_hint": "meenakshi-amman-temple",
+  "city": "Madurai",
+  "state": "Tamil Nadu",
+  "tradition_note": "Dravidian gopuram temple complex",
+  "photos": [
+    {
+      "filename": "01_Meenakshi_Amman_Temple_-_Gateway_Tower_Madurai.jpg",
+      "commons_title": "File:Meenakshi Amman Temple - Gateway Tower, Madurai.jpg",
+      "author": "Viswa2625",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMeenakshi_Amman_Temple_-_Gateway_Tower%2C_Madurai.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Meenakshi_Amman_Temple_-_Gateway_Tower%2C_Madurai.jpg/1280px-Meenakshi_Amman_Temple_-_Gateway_Tower%2C_Madurai.jpg",
+      "bytes": 778116,
+      "width": 1280,
+      "height": 1920,
+      "notes": "Gateway tower gopuram"
+    },
+    {
+      "filename": "02_03_sunrise_view_of_Meenakshi_temple_gopuram.jpg",
+      "commons_title": "File:03 sunrise view of Meenakshi temple gopuram.jpg",
+      "author": "Vinoth Chandar",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3A03_sunrise_view_of_Meenakshi_temple_gopuram.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/03_sunrise_view_of_Meenakshi_temple_gopuram.jpg/1280px-03_sunrise_view_of_Meenakshi_temple_gopuram.jpg",
+      "bytes": 121644,
+      "width": 1280,
+      "height": 1811,
+      "notes": "Sunrise gopuram"
+    },
+    {
+      "filename": "03_Madurai_Meenakshi_temple_gopuram.jpg",
+      "commons_title": "File:Madurai Meenakshi temple gopuram.jpg",
+      "author": "mckaysavage",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMadurai_Meenakshi_temple_gopuram.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Madurai_Meenakshi_temple_gopuram.jpg/1280px-Madurai_Meenakshi_temple_gopuram.jpg",
+      "bytes": 689019,
+      "width": 1280,
+      "height": 1707,
+      "notes": "Gopuram exterior"
+    },
+    {
+      "filename": "04_Madurai_Meenakshi_temple_1.jpg",
+      "commons_title": "File:Madurai Meenakshi temple 1.jpg",
+      "author": "Kumar Appaiah",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMadurai_Meenakshi_temple_1.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Madurai_Meenakshi_temple_1.jpg/1280px-Madurai_Meenakshi_temple_1.jpg",
+      "bytes": 353860,
+      "width": 1280,
+      "height": 960,
+      "notes": "Gopuram of Meenakshi Temple"
+    },
+    {
+      "filename": "05_Madurai_Meenakshi_Amman_Gopuram.jpg",
+      "commons_title": "File:Madurai Meenakshi Amman Gopuram.jpg",
+      "author": "Sundaram Perumal",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMadurai_Meenakshi_Amman_Gopuram.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/Madurai_Meenakshi_Amman_Gopuram.jpg/1280px-Madurai_Meenakshi_Amman_Gopuram.jpg",
+      "bytes": 502268,
+      "width": 1280,
+      "height": 1257,
+      "notes": "Gopuram detail"
+    },
+    {
+      "filename": "06_MDU_Meenakshi_Amman_Temple.jpg",
+      "commons_title": "File:MDU Meenakshi Amman Temple.jpg",
+      "author": "Drdippu",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMDU_Meenakshi_Amman_Temple.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/MDU_Meenakshi_Amman_Temple.jpg/1280px-MDU_Meenakshi_Amman_Temple.jpg",
+      "bytes": 514354,
+      "width": 1280,
+      "height": 1707,
+      "notes": "Temple complex night/glow"
+    }
+  ],
+  "photo_candidates": [
+    {
+      "url": "https://commons.wikimedia.org/wiki/File%3AMeenakshi_Amman_Temple_-_Gateway_Tower%2C_Madurai.jpg",
+      "license": "CC BY-SA 3.0",
+      "attribution": "Viswa2625",
+      "notes": "local_file=01_Meenakshi_Amman_Temple_-_Gateway_Tower_Madurai.jpg"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/File%3A03_sunrise_view_of_Meenakshi_temple_gopuram.jpg",
+      "license": "CC BY 2.0",
+      "attribution": "Vinoth Chandar",
+      "notes": "local_file=02_03_sunrise_view_of_Meenakshi_temple_gopuram.jpg"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/File%3AMadurai_Meenakshi_temple_gopuram.jpg",
+      "license": "CC BY 2.0",
+      "attribution": "mckaysavage",
+      "notes": "local_file=03_Madurai_Meenakshi_temple_gopuram.jpg"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/File%3AMadurai_Meenakshi_temple_1.jpg",
+      "license": "CC BY-SA 3.0",
+      "attribution": "Kumar Appaiah",
+      "notes": "local_file=04_Madurai_Meenakshi_temple_1.jpg"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/File%3AMadurai_Meenakshi_Amman_Gopuram.jpg",
+      "license": "CC BY-SA 4.0",
+      "attribution": "Sundaram Perumal",
+      "notes": "local_file=05_Madurai_Meenakshi_Amman_Gopuram.jpg"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/File%3AMDU_Meenakshi_Amman_Temple.jpg",
+      "license": "CC BY-SA 4.0",
+      "attribution": "Drdippu",
+      "notes": "local_file=06_MDU_Meenakshi_Amman_Temple.jpg"
+    }
+  ]
+}

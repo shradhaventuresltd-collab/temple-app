@@ -69,15 +69,22 @@ void main() {
       expect(temple.specialities, isNotEmpty);
       expect(temple.latitude, inInclusiveRange(8.0, 14.0));
       expect(temple.longitude, inInclusiveRange(76.0, 81.0));
-      expect(temple.images, isEmpty);
       final slug = templeDocumentId(temple.name);
-      if (originalExpected.containsKey(slug)) {
+      if (slug == 'meenakshi-amman-temple' || slug == 'shore-temple') {
+        // KAN-77: verified Commons thumbs until Storage upload.
+        expect(temple.imageUrl.contains('picsum'), isFalse);
+        expect(temple.imageUrl, contains('upload.wikimedia.org'));
+        expect(temple.images, hasLength(6));
+        expect(temple.imageUrl, temple.images.first);
+      } else if (originalExpected.containsKey(slug)) {
+        expect(temple.images, isEmpty);
         expect(
           temple.imageUrl,
           startsWith('https://picsum.photos/seed/'),
         );
       } else {
         // KAN-74 Hybrid C: expansion temples keep empty covers.
+        expect(temple.images, isEmpty);
         expect(temple.imageUrl, isEmpty);
       }
     }
