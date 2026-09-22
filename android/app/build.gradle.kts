@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // START: FlutterFire Configuration
@@ -8,8 +10,37 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Play upload key. android/key.properties is gitignored and is not required
+// for debug or for a local release assemble. When it is absent, release stays
+// on the debug keystore so development still builds; that artifact is not a
+// Play upload. See docs/android-play-internal-test.md.
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+val hasReleaseKeystore = keystorePropertiesFile.exists()
+val releaseStoreFilePath: String?
+val releaseStorePassword: String?
+val releaseKeyAlias: String?
+val releaseKeyPassword: String?
+if (hasReleaseKeystore) {
+    keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
+    val missingKeys = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
+        .filter { keystoreProperties.getProperty(it).isNullOrBlank() }
+    require(missingKeys.isEmpty()) {
+        "android/key.properties must define ${missingKeys.joinToString(", ")}."
+    }
+    releaseStoreFilePath = keystoreProperties.getProperty("storeFile")
+    releaseStorePassword = keystoreProperties.getProperty("storePassword")
+    releaseKeyAlias = keystoreProperties.getProperty("keyAlias")
+    releaseKeyPassword = keystoreProperties.getProperty("keyPassword")
+} else {
+    releaseStoreFilePath = null
+    releaseStorePassword = null
+    releaseKeyAlias = null
+    releaseKeyPassword = null
+}
+
 android {
-    namespace = "com.example.temple_app"
+    namespace = "com.shradhaventures.temple"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -22,11 +53,20 @@ android {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
+    signingConfigs {
+        if (hasReleaseKeystore) {
+            create("release") {
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+                // Resolved from android/app, so ../upload-keystore.jks is android/upload-keystore.jks.
+                storeFile = file(releaseStoreFilePath!!)
+                storePassword = releaseStorePassword
+            }
+        }
+    }
+
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.temple_app"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        applicationId = "com.shradhaventures.temple"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -35,9 +75,11 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (hasReleaseKeystore) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }

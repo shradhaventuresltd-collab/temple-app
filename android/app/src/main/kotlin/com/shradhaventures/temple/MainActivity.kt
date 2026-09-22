@@ -1,4 +1,4 @@
-package com.example.temple_app
+package com.shradhaventures.temple
 
 import io.flutter.embedding.android.FlutterActivity
 

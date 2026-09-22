@@ -50,5 +50,10 @@ service-account.json
 scripts/service-account.json
 scripts/node_modules/
 
+# Android Play upload key. Also ignored under android/.gitignore.
+android/key.properties
+*.jks
+*.keystore
+
 # Session summaries (AI context refresher)
 summary/
