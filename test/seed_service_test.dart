@@ -50,4 +50,72 @@ void main() {
       'Seeded 30 temples (5 new, 25 updated).',
     );
   });
+
+  test('seedHonestyImageFields drops picsum and keeps verified uploads', () {
+    expect(
+      seedHonestyImageFields(
+        bundledImageUrl: 'https://picsum.photos/seed/arunachaleswarar/800/600',
+      ),
+      {'imageUrl': '', 'images': <String>[]},
+    );
+
+    expect(
+      seedHonestyImageFields(
+        bundledImageUrl: 'https://picsum.photos/seed/cover/800/600',
+        existingImageUrl: 'https://picsum.photos/seed/old/800/600',
+        existingImages: const [
+          'https://picsum.photos/seed/gallery/800/600',
+          'https://firebasestorage.googleapis.com/v0/b/app/o/real.jpg?alt=media',
+        ],
+      ),
+      {
+        'imageUrl': '',
+        'images': [
+          'https://firebasestorage.googleapis.com/v0/b/app/o/real.jpg?alt=media',
+        ],
+      },
+    );
+
+    expect(
+      seedHonestyImageFields(
+        bundledImageUrl: 'https://picsum.photos/seed/cover/800/600',
+        existingImageUrl:
+            'https://firebasestorage.googleapis.com/v0/b/app/o/cover.jpg?alt=media',
+        existingImages: const [],
+      ),
+      {
+        'imageUrl':
+            'https://firebasestorage.googleapis.com/v0/b/app/o/cover.jpg?alt=media',
+        'images': [
+          'https://firebasestorage.googleapis.com/v0/b/app/o/cover.jpg?alt=media',
+        ],
+      },
+    );
+
+    expect(
+      seedHonestyImageFields(
+        bundledImageUrl:
+            'https://firebasestorage.googleapis.com/v0/b/app/o/new.jpg?alt=media',
+        existingImages: const [
+          'https://picsum.photos/seed/stale/800/600',
+        ],
+      ),
+      {
+        'imageUrl':
+            'https://firebasestorage.googleapis.com/v0/b/app/o/new.jpg?alt=media',
+        'images': [
+          'https://firebasestorage.googleapis.com/v0/b/app/o/new.jpg?alt=media',
+        ],
+      },
+    );
+  });
+
+  test('templeSeedImagesFromFirestore trims and skips blanks', () {
+    expect(templeSeedImagesFromFirestore(null), isEmpty);
+    expect(templeSeedImagesFromFirestore('not-a-list'), isEmpty);
+    expect(
+      templeSeedImagesFromFirestore([' a ', '', 'b', 3]),
+      ['a', 'b', '3'],
+    );
+  });
 }

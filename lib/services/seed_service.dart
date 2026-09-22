@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:temple_app/data/sample_data.dart';
 import 'package:temple_app/services/admin_auth.dart';
+import 'package:temple_app/utils/detail_honesty.dart';
 
 /// Stable Firestore document ID for a temple name.
 ///
@@ -13,6 +14,50 @@ String templeDocumentId(String name) {
       .toLowerCase()
       .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
       .replaceAll(RegExp(r'^-|-$'), '');
+}
+
+/// Cover + gallery fields for Seed writes.
+///
+/// Drops picsum / placeholder hosts so Seed never stores stock URLs as
+/// photographs. Verified admin uploads in [existingImages] are kept; a
+/// verified [existingImageUrl] is kept when the bundled cover is a placeholder.
+Map<String, Object> seedHonestyImageFields({
+  required String bundledImageUrl,
+  String? existingImageUrl,
+  List<String> existingImages = const [],
+}) {
+  final bundled = bundledImageUrl.trim();
+  final existingCover = (existingImageUrl ?? '').trim();
+
+  final verifiedImages = [
+    for (final raw in existingImages)
+      if (!isPlaceholderImageUrl(raw)) raw.trim(),
+  ];
+
+  final String imageUrl;
+  if (!isPlaceholderImageUrl(bundled)) {
+    imageUrl = bundled;
+  } else if (!isPlaceholderImageUrl(existingCover)) {
+    imageUrl = existingCover;
+  } else {
+    imageUrl = '';
+  }
+
+  final images = verifiedImages.isNotEmpty
+      ? verifiedImages
+      : (imageUrl.isNotEmpty ? <String>[imageUrl] : <String>[]);
+
+  return {'imageUrl': imageUrl, 'images': images};
+}
+
+/// Parses a Firestore `images` field into trimmed URL strings.
+List<String> templeSeedImagesFromFirestore(Object? value) {
+  if (value is! Iterable) return const [];
+  return [
+    for (final item in value)
+      if (item != null && item.toString().trim().isNotEmpty)
+        item.toString().trim(),
+  ];
 }
 
 /// Outcome of [seedTempleData].
@@ -49,10 +94,11 @@ class SeedResult {
 ///
 /// **Idempotency:** each document ID is a slug of the temple name
 /// ([templeDocumentId]), so re-running overwrites/merges the same docs
-/// instead of inserting duplicates. Existing `images` arrays and
+/// instead of inserting duplicates. Existing verified `images` arrays and
 /// `createdAt` timestamps are preserved so admin photo uploads are not
-/// wiped. Other bundled fields (name, story, timings, …) are refreshed
-/// from sample data.
+/// wiped; placeholder hosts (picsum, etc.) are stripped from cover/gallery
+/// on every run. Other bundled fields (name, story, timings, …) are
+/// refreshed from sample data.
 ///
 /// Debug-only: calling this from a release/profile build throws.
 /// Also requires a signed-in Firebase user with custom claim `admin: true`
@@ -102,13 +148,19 @@ Future<SeedResult> seedTempleData({
 
     if (isNew) {
       data['createdAt'] = FieldValue.serverTimestamp();
-      data['images'] = [temple.imageUrl];
-    } else {
-      final existingImages = already['images'];
-      if (existingImages is! List || existingImages.isEmpty) {
-        data['images'] = [temple.imageUrl];
-      }
     }
+
+    final honesty = seedHonestyImageFields(
+      bundledImageUrl: temple.imageUrl,
+      existingImageUrl: already == null
+          ? null
+          : already['imageUrl'] as String?,
+      existingImages: already == null
+          ? const <String>[]
+          : templeSeedImagesFromFirestore(already['images']),
+    );
+    data['imageUrl'] = honesty['imageUrl'];
+    data['images'] = honesty['images'];
 
     batch.set(docRef, data, SetOptions(merge: true));
   }

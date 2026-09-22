@@ -131,6 +131,24 @@ List<String> verifiedGalleryUrls(Temple temple) {
   ];
 }
 
+/// First verified photograph for list cards, mosaic tiles, and other covers.
+///
+/// Null means the UI must show Photo pending — never a picsum/stock URL.
+String? verifiedCoverUrl(Temple temple) {
+  final urls = verifiedGalleryUrls(temple);
+  if (urls.isEmpty) return null;
+  return urls.first;
+}
+
+/// Verified photograph URLs across temples for collage surfaces such as Home.
+///
+/// Placeholder hosts are dropped so mosaic tiles never bind stock art.
+List<String> verifiedMosaicUrls(Iterable<Temple> temples) {
+  return [
+    for (final temple in temples) ...verifiedGalleryUrls(temple),
+  ];
+}
+
 /// True for empty values and known stock/placeholder image URLs.
 bool isPlaceholderImageUrl(String raw) {
   final url = raw.trim();

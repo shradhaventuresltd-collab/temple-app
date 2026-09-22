@@ -84,6 +84,61 @@ void main() {
     },
   );
 
+  testWidgets(
+    'KAN-78: Tamil Nadu picsum sample temples never bind stock as cover',
+    (tester) async {
+      const names = [
+        'Arunachaleswarar Temple',
+        'Brihadeeswarar Temple',
+        'Ekambaranathar Temple',
+        'Kapaleeshwarar Temple',
+      ];
+
+      for (final name in names) {
+        final sample = _named(name);
+        expect(
+          sample.imageUrl,
+          contains('picsum.photos'),
+          reason: '$name fixture still uses picsum in sample_data',
+        );
+        await pumpCard(tester, sample);
+        expect(
+          find.byType(TempleImagePlaceholder),
+          findsOneWidget,
+          reason: '$name must show Photo pending',
+        );
+        expect(
+          find.text('Photo pending'),
+          findsOneWidget,
+          reason: '$name must show Photo pending',
+        );
+        expect(
+          find.byType(CachedNetworkImage),
+          findsNothing,
+          reason: '$name must not load picsum/stock',
+        );
+      }
+    },
+  );
+
+  testWidgets(
+    'KAN-78: images[] picsum with empty cover still shows Photo pending',
+    (tester) async {
+      await pumpCard(
+        tester,
+        temple(
+          imageUrl: '',
+          images: const [
+            'https://picsum.photos/seed/desk/800/600',
+            'https://fastly.picsum.photos/id/1015/800/600',
+          ],
+        ),
+      );
+      expect(find.byType(CachedNetworkImage), findsNothing);
+      expect(find.text('Photo pending'), findsOneWidget);
+    },
+  );
+
   testWidgets('a real cover is requested and an empty deity hides the chip', (
     tester,
   ) async {
