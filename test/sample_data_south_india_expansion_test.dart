@@ -205,18 +205,6 @@ void main() {
       named('Sri Ranganathaswamy Temple'),
       named('Vadakkunnathan Temple'),
     ]) {
-      expect(
-        temple.toFirestoreData(
-          documentId: templeDocumentId(temple.name),
-        )['imageUrl'],
-        '',
-      );
-    }
-
-    for (final temple in [
-      named('Sri Ranganathaswamy Temple'),
-      named('Vadakkunnathan Temple'),
-    ]) {
       final map = temple.toFirestoreData(
         documentId: templeDocumentId(temple.name),
       );

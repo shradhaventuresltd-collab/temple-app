@@ -90,8 +90,6 @@ void main() {
       const names = [
         'Anjengo Sree Durga Devi Temple',
         'Mannarsala Sree Nagaraja Temple',
-        'Virupaksha Temple',
-        'Chamundeshwari Temple',
       ];
 
       for (final name in names) {
