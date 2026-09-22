@@ -330,7 +330,7 @@ class _AppDrawerState extends State<AppDrawer> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: Text(
-                  'Explore 150 famous temples across Tamil Nadu, Kerala, Karnataka, '
+                  'Explore 180 famous temples across Tamil Nadu, Kerala, Karnataka, '
                   'Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, '
                   'Jammu and Kashmir, Maharashtra, Rajasthan, West Bengal, '
                   'Madhya Pradesh, Bihar, and Himachal Pradesh. '

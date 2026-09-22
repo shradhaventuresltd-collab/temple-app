@@ -8,7 +8,7 @@ App name and Android package already match the release identity:
 | --- | --- |
 | App name | Temple Directory India |
 | Package name | `com.shradhaventures.temple` |
-| Bundled directory | 150 temples, 15 states |
+| Bundled directory | 180 temples, 15 states |
 
 Confirm the live `version` in `pubspec.yaml` before upload. Do not commit keystores or `android/key.properties`.
 
@@ -22,10 +22,10 @@ Directory of famous temples across India, with history, timings, and directions.
 
 ## Full description
 
-Paste the block below. It describes the current app: public browse of the 150 bundled temples (or newer Firestore records when the cloud has them), on-device search, and AdMob on Android.
+Paste the block below. It describes the current app: public browse of the 180 bundled temples (or newer Firestore records when the cloud has them), on-device search, and AdMob on Android.
 
 ```
-Temple Directory India is a guide to famous temples across India. Browse 150 temples in 15 states, read their history and legends, check opening timings, view photos, and open directions in Google Maps.
+Temple Directory India is a guide to famous temples across India. Browse 180 temples in 15 states, read their history and legends, check opening timings, view photos, and open directions in Google Maps.
 
 Find a temple by name, city, state, deity, or address. Filter the list by state and deity, then open a page with the story, specialities, timings, and a photo gallery.
 

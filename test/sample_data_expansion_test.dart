@@ -5,9 +5,9 @@ import 'package:temple_app/services/seed_service.dart';
 
 void main() {
   test(
-    'sample directory covers fifteen states and one hundred fifty temples',
+    'sample directory covers fifteen states and one hundred eighty temples',
     () {
-      expect(sampleTemples.length, 150);
+      expect(sampleTemples.length, 180);
       expect(sampleTemples.map((t) => t.state).toSet(), {
         'Tamil Nadu',
         'Kerala',

@@ -6,7 +6,7 @@ import 'package:temple_app/services/seed_service.dart';
 void main() {
   final karnataka = sampleTemples.where((t) => t.state == 'Karnataka').toList();
 
-  const expected = <String, String>{
+  const originalExpected = <String, String>{
     'sri-krishna-matha-udupi': 'Sri Krishna Matha (Udupi)',
     'sri-manjunatha-temple-dharmasthala': 'Sri Manjunatha Temple, Dharmasthala',
     'kukke-subramanya-temple': 'Kukke Subramanya Temple',
@@ -19,7 +19,7 @@ void main() {
     'iskcon-temple-bangalore': 'ISKCON Temple, Bangalore',
   };
 
-  const expectedMeta = <String, ({String city, String deity})>{
+  const originalMeta = <String, ({String city, String deity})>{
     'sri-krishna-matha-udupi': (city: 'Udupi', deity: 'Vishnu'),
     'sri-manjunatha-temple-dharmasthala': (
       city: 'Dharmasthala',
@@ -35,19 +35,24 @@ void main() {
     'iskcon-temple-bangalore': (city: 'Bengaluru', deity: 'Vishnu'),
   };
 
-  test('Karnataka sample remains ten distinct seeded temples', () {
-    expect(sampleTemples.length, 150);
-    expect(karnataka.length, 10);
+  test('Karnataka sample keeps original ten and totals twenty', () {
+    expect(sampleTemples.length, 180);
+    expect(karnataka.length, 20);
 
     final slugs = karnataka.map((t) => templeDocumentId(t.name)).toList();
-    expect(slugs.toSet(), expected.keys.toSet());
     expect(slugs.toSet().length, slugs.length);
+    expect(
+      slugs.toSet().intersection(originalExpected.keys.toSet()),
+      originalExpected.keys.toSet(),
+    );
 
-    for (final temple in karnataka) {
+    for (final temple in karnataka.where(
+      (t) => originalExpected.containsKey(templeDocumentId(t.name)),
+    )) {
       final slug = templeDocumentId(temple.name);
-      expect(temple.name, expected[slug]);
-      expect(temple.city, expectedMeta[slug]!.city);
-      expect(temple.deity, expectedMeta[slug]!.deity);
+      expect(temple.name, originalExpected[slug]);
+      expect(temple.city, originalMeta[slug]!.city);
+      expect(temple.deity, originalMeta[slug]!.deity);
     }
   });
 
@@ -68,8 +73,13 @@ void main() {
         }
         expect(temple.latitude, inInclusiveRange(11.5, 16.0));
         expect(temple.longitude, inInclusiveRange(74.0, 78.0));
-        expect(temple.imageUrl, startsWith('https://picsum.photos/seed/'));
         expect(temple.images, isEmpty);
+        final slug = templeDocumentId(temple.name);
+        if (originalExpected.containsKey(slug)) {
+          expect(temple.imageUrl, startsWith('https://picsum.photos/seed/'));
+        } else {
+          expect(temple.imageUrl, isEmpty);
+        }
       }
     },
   );

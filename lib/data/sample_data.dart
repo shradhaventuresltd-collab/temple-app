@@ -345,6 +345,555 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+
+  // ── KAN-64 / KAN-74 expansion batch 16 — +10 additional Tamil Nadu temples
+  // Core Temple fields only (Hybrid C): trip_planning stripped / not seeded.
+  // imageUrl/images left empty (photo-pending honesty); Commons candidates in
+  // docs/tamil-nadu-sample-research.md.
+  Temple(
+    name: 'Sri Ranganathaswamy Temple',
+    state: 'Tamil Nadu',
+    city: 'Srirangam',
+    deity: 'Vishnu',
+    imageUrl: '',
+    description:
+        'Foremost among the 108 Divya Desams — a vast island temple town '
+        'dedicated to reclining Vishnu as Ranganatha, with concentric '
+        'prakarams, many gopurams including the ~73 m Rajagopuram, and living '
+        'Thenkalai Sri Vaishnava worship.',
+    story:
+        'Sri Ranganathaswamy Temple stands on the island of Srirangam between '
+        'the Kaveri and Kollidam rivers north of Tiruchirappalli. It is counted '
+        'as the first of the 108 Divya Desams and is praised across the '
+        'Naalayira Divya Prabandham; tradition and UNESCO’s tentative-list '
+        'description treat it as one of the world’s largest functioning Hindu '
+        'temple complexes still in continuous active worship.\n\n'
+        'Temple legend links the south-facing reclining Ranganatha (on '
+        'Adishesha) to Vibhishana’s gift of the Sriranga vimana after Rama’s '
+        'victory; historically the site grew under Chola, Pandya, Hoysala, '
+        'Vijayanagara and Nayaka patronage, was devastated in '
+        'early-14th-century invasions, and was restored from the late 14th '
+        'century. Ramanuja’s long association made Srirangam a hub of Sri '
+        'Vaishnava theology (Thenkalai practice continues).\n\n'
+        'Architecturally the complex uses a sapta-prakaram plan with dozens of '
+        'shrines, mandapas (including the thousand-pillar hall), tanks, and 21 '
+        'gopurams. The outer Rajagopuram — base from the Vijayanagara era, '
+        'completed in 1987 with Ahobila Matha support — rises about 73 m and '
+        'dominates the skyline. Dual foci are Ranganatha’s gold-plated vimana '
+        'sanctum and Goddess Ranganayaki’s shrine; Serthi Sevai on Panguni '
+        'Uthiram is the rare annual joint darshan.\n\n'
+        'Daily worship follows classic Sri Vaishnava seva rhythm with '
+        'Viswaroopa and multiple ritual closures for Thirumanjanam / Naivedyam '
+        '/ Sayaratchai. Vaikunta Ekadasi (Margazhi Pagal Pathu / Ra Pathu) '
+        'draws enormous crowds when the Paramapada Vasal opens. Modest dress '
+        'and queue discipline are enforced; festival calendars override '
+        'ordinary hours — confirm on the official HR&CE portal before travel.',
+    location: 'Srirangam, Tiruchirappalli, Tamil Nadu 620006',
+    timings:
+        'OFFICIAL HR&CE (srirangamranganathar.hrce.tn.gov.in): nadai open '
+        'broadly 06:00 AM–12:00 PM and 12:00 PM–09:00 PM, with daily closures '
+        '07:15–09:00 AM, 12:30–02:15 PM, and 05:30–07:00 PM for rituals (no '
+        'general darshan in those windows). Arrive ≥1 hour before session end. '
+        'Viswaroopa / early morning seva is typically in the first open window '
+        '(secondary guides cite ~06:15–07:15 AM; no Viswaroopa in Margazhi / '
+        'some festival days). Festival calendars (esp. Vaikunta Ekadasi, '
+        'Brahmotsavam) change times — confirm same day on the portal. Visitor '
+        'tip: Dress code for inner prakarams is traditionally strict '
+        '(dhoti/saree norms commonly enforced). Free and paid/VIP darshan '
+        'options appear on the HR&CE ticketing flow — prefer official portal '
+        'over street agents. Annadhanam schemes operate under HR&CE; confirm '
+        'current counters on site.',
+    latitude: 10.8625,
+    longitude: 78.68972,
+    specialities: [
+      'Foremost of 108 Divya Desams; Thenkalai Sri Vaishnava living temple',
+      'Seven concentric prakarams; ~73 m Rajagopuram (completed 1987)',
+      'Reclining Ranganatha on Adishesha; Ranganayaki shrine',
+      'Vaikunta Ekadasi / Paramapada Vasal; Panguni Uthiram Serthi Sevai',
+      'UNESCO Tentative List; 2017 UNESCO Asia-Pacific conservation award',
+      'Nearest airport: Tiruchirappalli (TRZ) — ~15 km',
+      'Veg food: dense pure-veg / sattvic options in Srirangam temple streets',
+    ],
+  ),
+  Temple(
+    name: 'Dhandayuthapani Swamy Temple',
+    state: 'Tamil Nadu',
+    city: 'Palani',
+    deity: 'Murugan',
+    imageUrl: '',
+    description:
+        'One of the Six Abodes of Murugan (Arupadai Veedu) — the hill shrine of '
+        'Dhandayuthapani atop Sivagiri at Palani, famed for the standing '
+        'Murugan with staff and for massive Thaipusam / Panguni Uthiram pilgrim '
+        'crowds.',
+    story:
+        'Arulmigu Dhandayuthapani Swamy Temple crowns Sivagiri hill in Palani, '
+        'Dindigul district — one of Murugan’s six primary abodes. Legend holds '
+        'that after the contest for the celestial fruit, Murugan withdrew here '
+        'as a renunciant youth holding a staff (dandam), and sage Bhogar is '
+        'traditionally credited with fashioning the navapashana idol still '
+        'worshipped in the sanctum.\n\n'
+        'The hill complex combines Pandya- and later-period stone work with a '
+        'gold-plated vimana; lower shrines and the long stepped climb (plus '
+        'winch / ropeway options when operating) structure the pilgrim path. '
+        'Tonsure halls, kavadi processions, and panchamirutham offerings '
+        'dominate the lived ritual culture.\n\n'
+        'Daily worship follows HR&CE nadai windows from early morning through '
+        'evening, with Viswaroopa and other named sevas on the official board. '
+        'Major surge days — Thaipusam, Panguni Uthiram, Kandhar Sashti, monthly '
+        'Karthigai, Margazhi, Deepavali — open earlier (often 04:00 AM) and may '
+        'close late depending on footfall.\n\n'
+        'Palani is a classic Murugan pilgrimage town: combine hill darshan with '
+        'foothill shrines if time allows, and expect stairs, queues, and modest '
+        'dress enforcement. Confirm winch/ropeway status and special-entry '
+        'tickets on palanimurugan.hrce.tn.gov.in before climbing.',
+    location: 'Sivagiri Hill, Palani, Dindigul District, Tamil Nadu 624601',
+    timings:
+        'OFFICIAL HR&CE (palanimurugan.hrce.tn.gov.in, tid=32203): ordinary '
+        'days nadai 05:45 AM–01:00 PM and 01:00 PM–08:00 PM. Festival / special '
+        'days (Thaipusam 10 days, Panguni Uthiram 10 days, Kandhar Sashti 10 '
+        'days, monthly Karthigai, Maha Deepa Karthigai, Thai Pongal, Tamil & '
+        'English New Year, all Margazhi days, Deepavali) open ~04:00 AM and may '
+        'remain open past 09:00 PM depending on devotee inflow. Confirm '
+        'same-day board and online tickets on the portal. Visitor tip: Hill '
+        'climb involves many steps; elders and differently abled pilgrims '
+        'should check winch/ropeway and special queues. Hair-tonsure facilities '
+        'are common — follow hygiene and waste rules posted on site.',
+    latitude: 10.438805,
+    longitude: 77.520261,
+    specialities: [
+      'Arupadai Veedu — Sivagiri hill shrine of Dhandayuthapani',
+      'Navapashana idol tradition associated with sage Bhogar',
+      'Thaipusam, Panguni Uthiram, Kandhar Sashti pilgrim peaks',
+      'Steps / winch / ropeway access options (confirm operating status)',
+      'Tonsure and panchamirutham offering culture',
+      'Nearest airport: Coimbatore (CJB) — roughly 100+ km by road',
+      'Veg food: dense pure-veg pilgrim messes around Adivaram / town',
+    ],
+  ),
+  Temple(
+    name: 'Subramanya Swamy Temple',
+    state: 'Tamil Nadu',
+    city: 'Thiruchendur',
+    deity: 'Murugan',
+    imageUrl: '',
+    description:
+        'Seaside Arupadai Veedu of Murugan at Tiruchendur on the Bay of Bengal '
+        '— the only one of the six abodes on the shore, celebrated for '
+        'Surasamharam and continuous Kumara Thanthiram worship.',
+    story:
+        'Arulmigu Subramania Swamy Temple at Tiruchendur (Thiruchendur) stands '
+        'on the Bay of Bengal shore in Thoothukudi district — unique among the '
+        'Six Abodes of Murugan for its coastal setting. Tradition identifies '
+        'this as the place where Murugan camped before defeating Surapadman; '
+        'the annual Surasamharam reenactment draws huge crowds.\n\n'
+        'The complex features a tall multi-tiered rajagopuram facing the sea, '
+        'rock-cut and later Dravidian fabric, and a sanctum tradition that sits '
+        'notably close to the shoreline. The temple is administered by TN HR&CE '
+        'and has public online ticketing for selected sevas and pilgrim rooms.\n\n'
+        'Worship follows the Kumara Thanthiram Murai with a dense daily pooja '
+        'board published by the Devasthanam (Subrapadam through Palliarai). '
+        'Ordinary days run roughly sunrise-to-night; Margazhi, Vaikasi Visakam, '
+        'Masi/Avani festival peaks, Kandhar Sashti, Thai Poosam and Panguni '
+        'Uthiram shift opening as early as 01:00–04:00 AM per the HR&CE '
+        'festival note.\n\n'
+        'Combine darshan with the seashore walk, but respect restricted zones '
+        'and weather advisories. Confirm current nadai and abhisheka tickets on '
+        'tiruchendurmurugan.hrce.tn.gov.in.',
+    location: 'Tiruchendur, Thoothukudi District, Tamil Nadu 628215',
+    timings:
+        'OFFICIAL HR&CE (tiruchendurmurugan.hrce.tn.gov.in, tid=38271): '
+        'ordinary listed spans include 04:00 AM–12:00 PM and 12:00 PM–09:00 PM '
+        '(Devasthanam / tourism boards commonly summarise as ~05:00 AM–09:00 PM '
+        'with nine daily pooja kalams). Named Devasthanam poojas '
+        '(tiruchendur.org): Subrapadam ~05:10 AM through Palliarai ~08:45 PM / '
+        'nadai close ~09:00 PM. Festival overrides: Margazhi often 03:00 '
+        'AM–08:00 PM; Vaikasi Visakam, Thai Poosam, selected Masi/Avani/Kandhar '
+        'Sashti days may open ~01:00 AM — confirm Tamil notes on HR&CE pooja '
+        'page same day. Visitor tip: Seashore location — monsoon swell and '
+        'crowd control can affect access paths. Follow Devasthanam notices for '
+        'Naazhi Kinaru / special abhishekam queues.',
+    latitude: 8.49583,
+    longitude: 78.12917,
+    specialities: [
+      'Arupadai Veedu — only seaside Murugan abode among the six',
+      'Surasamharam / Kandhar Sashti victory festival',
+      'Kumara Thanthiram Murai — dense daily pooja board',
+      'Tall shore-facing rajagopuram and beachfront setting',
+      'HR&CE online seva and pilgrim-room ticketing',
+      'Nearest airport: Tuticorin (TCR) — closer than Madurai for many itineraries',
+      'Veg food: pure-veg pilgrim eateries in temple town',
+    ],
+  ),
+  Temple(
+    name: 'Swamimalai Murugan Temple',
+    state: 'Tamil Nadu',
+    city: 'Swamimalai',
+    deity: 'Murugan',
+    imageUrl: '',
+    description:
+        'Arupadai Veedu where Murugan as Swaminatha taught the Pranava mantra '
+        'to Shiva — a hillock shrine near Kumbakonam with sixty steps named for '
+        'the Tamil years.',
+    story:
+        'Swaminatha Swamy Temple at Swamimalai, near Kumbakonam on a Kaveri '
+        'tributary, is one of Murugan’s Six Abodes. Core legend: Murugan '
+        'instructs his father Shiva in the meaning of Om (Pranava), earning the '
+        'name Swaminatha — “teacher of the Lord.” The Murugan sanctum sits atop '
+        'the hillock while Shiva–Parvati shrines stand at the base, encoding '
+        'the student–teacher hierarchy in plan.\n\n'
+        'Sixty steps — each named for a year of the Tamil calendar — climb the '
+        '~60 ft hillock through three precincts and multiple gopurams. '
+        'Iconography here notably pairs Murugan with an elephant mount (shared '
+        'only with Tiruttani among major Murugan sites). The temple is sung in '
+        'Tirumurukāṟṟuppaṭai and later Tiruppugazh traditions.\n\n'
+        'HR&CE lists ordinary nadai roughly 06:00 AM–01:00 PM and 04:00 '
+        'PM–09:00 PM with a midday close; monthly Krithigai and major festivals '
+        'often keep the sanctum open through the day to Ardhajama. Six-kala '
+        'pooja rhythm is traditional; Thursdays feature diamond Vel alankaram '
+        'in local practice.\n\n'
+        'Pair with a Kumbakonam temple circuit if time allows. Confirm festival '
+        'continuity and special-entry tickets on '
+        'swamimalaiswaminathar.hrce.tn.gov.in.',
+    location: 'Swamimalai, near Kumbakonam, Thanjavur District, Tamil Nadu 612302',
+    timings:
+        'OFFICIAL HR&CE (swamimalaiswaminathar.hrce.tn.gov.in, tid=18002): '
+        '06:00 AM–01:00 PM and 04:00 PM–09:00 PM; closed 01:00–04:00 PM on '
+        'ordinary days. Monthly Krithigai and other major festival days: '
+        'sanctum often remains open from morning through night Ardhajama pooja '
+        '(no midday close) — confirm Tamil note on portal. Secondary guides '
+        'list six-kala markers '
+        '(Usha/Kalasandhi/Uchi/Sayaratchai/Irandam/Ardhajama); treat named '
+        'minutes as provisional vs official open/close. Visitor tip: Carry '
+        'water for the climb; footwear rules apply on the hill. Thursday '
+        'diamond-Vel darshan is a popular local highlight — expect slightly '
+        'longer queues.',
+    latitude: 10.956844,
+    longitude: 79.325776,
+    specialities: [
+      'Arupadai Veedu — Murugan as Swaminatha (teacher of Pranava to Shiva)',
+      'Sixty steps named for Tamil calendar years',
+      'Elephant mount iconography (with Tiruttani)',
+      'Base Shiva–Meenakshi shrines + hilltop Murugan sanctum',
+      'Vaikasi Visakam and monthly Krithigai peaks',
+      'Nearest airport: Tiruchirappalli (TRZ) — ~90 km class road transfer',
+      'Veg food: easy pure-veg options via Kumbakonam / Swamimalai pilgrim belt',
+    ],
+  ),
+  Temple(
+    name: 'Jambukeswarar Temple',
+    state: 'Tamil Nadu',
+    city: 'Thiruvanaikaval',
+    deity: 'Shiva',
+    imageUrl: '',
+    description:
+        'Pancha Bhoota Stalam for water (Appu Lingam) at Thiruvanaikaval on '
+        'Srirangam island — Shiva as Jambukeswarar with Goddess Akilandeswari, '
+        'famed for the underground stream in the sanctum.',
+    story:
+        'Jambukeswarar Temple at Thiruvanaikaval (also Thiruvanaikoil) sits on '
+        'the same Kaveri island as Srirangam, a short distance from the '
+        'Ranganathaswamy complex. It is the water element (Appu Lingam) among '
+        'Tamil Nadu’s five Pancha Bhoota Shiva temples; an underground stream '
+        'is traditionally said to feed the sanctum even in dry seasons.\n\n'
+        'Legend centres on Goddess Parvati as Akilandeswari worshipping Shiva '
+        'under a jambu (rose-apple) tree, and on the Chola king Kochengat '
+        'Cholan’s early stone temple patronage. The living complex pairs '
+        'Jambukeswarar’s watery lingam with a powerful Amman shrine; a '
+        'distinctive noon ritual tradition has a priest in goddess attire '
+        'performing worship — often cited by visitors as a unique local '
+        'practice.\n\n'
+        'HR&CE publishes weekday split hours (06:00–13:00 and 15:00–21:00 '
+        'Mon–Thu) and continuous 06:00–21:00 Fri–Sun, plus a five-pooja board '
+        '(Ushakkala through Ardhajama). Pairing Srirangam Vaishnava and '
+        'Thiruvanaikaval Shaiva darshan in one island day is a classic Trichy '
+        'pilgrimage pattern.\n\n'
+        'Confirm festival overrides and special abhishekams on '
+        'thiruvanaikavaljambukeswarar.hrce.tn.gov.in.',
+    location: 'Thiruvanaikaval (Thiruvanaikoil), Tiruchirappalli, Tamil Nadu 620005',
+    timings:
+        'OFFICIAL HR&CE (thiruvanaikavaljambukeswarar.hrce.tn.gov.in / '
+        'tid=25706): Mon–Thu 06:00 AM–01:00 PM and 03:00 PM–09:00 PM (midday '
+        'close 01:00–03:00 PM); Fri–Sun continuous 06:00 AM–09:00 PM. Named '
+        'poojas: Ushakkala 06:30–07:30 AM; Kalasandhi 08:00–09:00 AM; Uchikala '
+        '11:00 AM–12:00 PM; Sayaraksha 05:00–06:00 PM; Ardhajama 08:30–09:00 '
+        'PM. Festival days may change — confirm portal. Visitor tip: '
+        'Photographing inside sanctum areas is often restricted — follow posted '
+        'rules. Midday close Mon–Thu is easy to miss if relying on outdated '
+        'aggregator clocks that still say 5:30–8:30.',
+    latitude: 10.85333,
+    longitude: 78.70556,
+    specialities: [
+      'Pancha Bhoota Stalam — water / Appu Lingam',
+      'Underground stream tradition in the sanctum',
+      'Akilandeswari shrine; noon goddess-attire priest ritual tradition',
+      'Paadal Petra Sthalam / early Chola associations',
+      'Same island as Srirangam — easy dual-darshan circuit',
+      'Nearest airport: Tiruchirappalli (TRZ)',
+      'Veg food: shared Srirangam / Trichy pure-veg corridor',
+    ],
+  ),
+  Temple(
+    name: 'Thyagaraja Temple',
+    state: 'Tamil Nadu',
+    city: 'Tiruvarur',
+    deity: 'Shiva',
+    imageUrl: '',
+    description:
+        'Paadal Petra Shiva temple of Thyagarajaswami and Neelotpalambika at '
+        'Tiruvarur — Chola-era complex famed for the massive temple car, '
+        'Kamalalayam tank, and deep links to Carnatic music heritage.',
+    story:
+        'Thyagaraja Temple (Arulmigu Thiyagaraswamy Temple) at Tiruvarur is a '
+        'major Chola-period Shaiva complex where Shiva is worshipped as '
+        'Thyagarajaswami (Putridankondar) and Parvati as Neelotpalambika, with '
+        'a significant separate Kamalambika shrine important to Shakta–Tantra '
+        'traditions. It is a Paadal Petra Sthalam sung by the Nayanars.\n\n'
+        'The town and temple are inseparable from South Indian music history: '
+        'Tyagaraja of the Carnatic trinity took his name association from this '
+        'deity tradition, and Tiruvarur remains a pilgrimage and festival '
+        'centre for musicians and Shaiva devotees alike. Architecturally the '
+        'precinct is vast, with multiple gopurams, numerous sub-shrines, a huge '
+        'temple car, and the broad Kamalalayam tank.\n\n'
+        'Distinctive ritual lore includes rare public display of Thyagaraja’s '
+        'feet on selected festival days and the unusual standing Nandi facing '
+        'the sanctum. Navagraha shrines aligned in a straight line are another '
+        'oft-cited feature.\n\n'
+        'HR&CE lists ordinary open windows around 06:00 AM–12:00 PM and 04:00 '
+        'PM–09:00 PM; festival car processions and major utsavams override — '
+        'confirm tid=14254 pooja page before travel.',
+    location: 'Tiruvarur, Tiruvarur District, Tamil Nadu 610003',
+    timings:
+        'OFFICIAL HR&CE (tid=14254): commonly listed ordinary nadai ~06:00 '
+        'AM–12:00 PM and 04:00 PM–09:00 PM (confirm live board — some secondary '
+        'guides cite 05:30 AM opens). Named daily pooja minutes are thinner on '
+        'English portal extracts — treat detailed kala times as provisional and '
+        'verify on site or Tamil HR&CE pages. Major car-festival and '
+        'Brahmotsavam days change everything. Visitor tip: Car-festival days '
+        'bring extreme crowds and road closures — arrive early and follow '
+        'police/temple routing. Feet-darshan days are limited; do not assume '
+        'daily access.',
+    latitude: 10.7761,
+    longitude: 79.6335,
+    specialities: [
+      'Paadal Petra Sthalam — Thyagarajaswami / Neelotpalambika',
+      'Kamalambika shrine (Shakta importance) and Kamalalayam tank',
+      'Among India’s largest temple cars; famous car festival',
+      'Carnatic music / Tyagaraja heritage associations',
+      'Standing Nandi; rare feet-darshan festival days',
+      'Nearest airport: Tiruchirappalli (TRZ)',
+      'Veg food: temple-town pure-veg messes',
+    ],
+  ),
+  Temple(
+    name: 'Nellaiappar Temple',
+    state: 'Tamil Nadu',
+    city: 'Tirunelveli',
+    deity: 'Shiva',
+    imageUrl: '',
+    description:
+        'Twin Shaiva complex of Nellaiappar and Kanthimathi Amman in '
+        'Tirunelveli — a Paadal Petra Sthalam on the Tamiraparani with musical '
+        'pillars, Chain Mandapam, and a rich dual-sanctum pooja board.',
+    story:
+        'Nellaiappar Temple (Arulmigu Nellaiyappar Arultharum Kanthimathi '
+        'Amman) is the civic-religious heart of Tirunelveli on the northern '
+        'banks of the Tamiraparani. Shiva as Nellaiappar (Venuvananathar) and '
+        'Goddess Kanthimathi form a twin-temple complex historically linked by '
+        'the Chain Mandapam; Vishnu is also associated with the divine wedding '
+        'lore, giving the site abhimana importance for some Vaishnava pilgrims.\n\n'
+        'Classified among the Paadal Petra Sthalams of the Tevaram saints, the '
+        'fabric shows early Pandya and later Chola–Nayaka layers. Visitor '
+        'highlights include the Mani Mandapam musical pillars, flower garden '
+        'with pillared Vasantha Mandapam, and large festival cars including a '
+        'golden car used on select utsavam days.\n\n'
+        'HR&CE publishes a clear ordinary clock — 05:30 AM–12:30 PM and 04:00 '
+        'PM–09:05 PM — with a detailed named pooja sequence from Thiruvananthal '
+        'through Palliyarai. Dual sanctums mean Amman and Swami boards can '
+        'differ by minutes; follow on-site notices.\n\n'
+        'Tirunelveli is a natural base for southern TN temple circuits '
+        '(including Tiruchendur). Confirm festival calendars on '
+        'tvlnellaiapparkanthimathiamman.hrce.tn.gov.in.',
+    location: 'Tirunelveli Town, Tirunelveli District, Tamil Nadu 627006',
+    timings:
+        'OFFICIAL HR&CE (tid=37881 / '
+        'tvlnellaiapparkanthimathiamman.hrce.tn.gov.in): 05:30 AM–12:30 PM and '
+        '04:00 PM–09:05 PM. Named poojas (portal): Thiruvananthal 06:00–06:30 '
+        'AM; Vila 07:00–07:30 AM; Sirukala Sandhi 08:00–08:30 AM; Kalasandhi '
+        '(special alankaram) 09:00–09:30 AM; Uchikala 12:00–12:30 PM; '
+        'Sayaratchai (special alankaram) 05:30–06:00 PM; Ardhajama 08:15–08:30 '
+        'PM; Palliyarai 09:00 PM. Dual Amman/Swami boards may differ slightly — '
+        'confirm on site. Festivals override. Visitor tip: Plan time for both '
+        'sanctums; paid special-entry queues may be available. Musical pillars '
+        'are a heritage highlight — follow staff guidance on touching.',
+    latitude: 8.728444,
+    longitude: 77.688722,
+    specialities: [
+      'Paadal Petra Sthalam — Nellaiappar & Kanthimathi twin complex',
+      'Chain Mandapam linking the two sanctums',
+      'Musical pillars in Mani Mandapam',
+      'Tamiraparani riverside temple-town setting',
+      'Major Brahmotsavam / Tirukalyanam / car festivals',
+      'Nearest airport: Tuticorin (TCR) or Madurai (IXM)',
+      'Veg food: Tirunelveli town pure-veg messes (halwa is famous but check eggless/veg status)',
+    ],
+  ),
+  Temple(
+    name: 'Kanyakumari Bhagavathi Amman Temple',
+    state: 'Tamil Nadu',
+    city: 'Kanyakumari',
+    deity: 'Devi',
+    imageUrl: '',
+    description:
+        'Coastal Devi temple of Kumari Amman (Bhagavathi) at India’s southern '
+        'tip — a living HR&CE shrine where the virgin goddess faces the '
+        'confluence of three seas.',
+    story:
+        'Arulmigu Bagavathi Amman Temple at Kanyakumari is dedicated to the '
+        'virgin goddess Kumari (an aspect of Devi/Parvati), standing near the '
+        'famous confluence of the Bay of Bengal, Arabian Sea and Indian Ocean. '
+        'Pilgrimage tradition intertwines the temple with the wider Cape '
+        'Comorin sacred geography of sunrise/sunset viewpoints and coastal '
+        'shrines.\n\n'
+        'Legend narrates the goddess’s penance and interrupted wedding with '
+        'Shiva, leaving her as the eternal kanya (virgin) protector of the '
+        'southern shore. The temple remains an active Devi worship centre under '
+        'TN HR&CE administration, distinct from the modern Vivekananda Rock / '
+        'statue tourism layer around it.\n\n'
+        'Daily rhythm emphasises early abhishekam and deeparadhana cycles with '
+        'an evening Sayaratchai and closing Yeganda / Sribali sequence. Tourist '
+        'footfall is high year-round; temple queues intensify around sunrise, '
+        'Navaratri, and full-moon evenings.\n\n'
+        'Combine respectful darshan with the cape’s natural spectacle, but '
+        'treat dress code and camera rules inside the temple as stricter than '
+        'the surrounding tourist zone. Confirm hours on HR&CE tid=38360 pages.',
+    location: 'Kanyakumari, Kanyakumari District, Tamil Nadu 629702',
+    timings:
+        'HR&CE (tid=38360) / widely cited official-aligned board: ordinary '
+        'darshan ~04:30 AM–12:30 PM and 04:00 PM–08:30 PM. Commonly listed '
+        'ritual markers: Abhishekam ~05:00 AM & ~10:00 AM; Deeparadhana ~06:00 '
+        'AM & ~11:30 AM; Sayaratchai Deeparadhana ~06:30 PM; Sribali ~08:15 PM; '
+        'Yeganda Deeparadhana ~08:25 PM; close ~08:30 PM. Named minutes partly '
+        'from secondary compilations of the HR&CE board — confirm live notice. '
+        'Festivals/Navaratri may extend or shift. Visitor tip: Inner temple '
+        'photography is typically restricted. Tourist crowds around the cape do '
+        'not equal temple entry rules — follow HR&CE dress and queue notices.',
+    latitude: 8.0883,
+    longitude: 77.5385,
+    specialities: [
+      'Devi as Kumari Amman at India’s southern tip',
+      'Sea-confluence pilgrimage geography',
+      'Living HR&CE Devi temple amid cape tourism',
+      'Sunrise / full-moon evening pilgrim peaks',
+      'Navaratri and Tamil calendar festivals',
+      'Nearest airport: Trivandrum (TRV) — common gateway',
+      'Veg food: mixed tourist town — seek labelled pure-veg near temple',
+    ],
+  ),
+  Temple(
+    name: 'Vaitheeswaran Koil',
+    state: 'Tamil Nadu',
+    city: 'Vaitheeswaran Koil',
+    deity: 'Shiva',
+    imageUrl: '',
+    description:
+        'Shaiva healing shrine of Vaidyanathaswamy (Vaitheeswaran) with '
+        'Thaiyalnayaki — a Navagraha (Angaraka/Mars) associated Paadal Petra '
+        'temple also known for Siddhamirtham tank and nadi astrology traditions '
+        'in the town.',
+    story:
+        'Vaitheeswaran Koil (Pullirukkuvelur) in Mayiladuthurai district is '
+        'dedicated to Shiva as Vaidyanatha — the divine physician — with '
+        'Goddess Thaiyalnayaki. Devotees traditionally seek relief from illness '
+        'here; the Siddhamirtham temple tank and neem (sthala vriksha) are part '
+        'of the healing lore, alongside shrines to Dhanvantari and Angaraka '
+        '(Mars).\n\n'
+        'The site is counted among the Navagraha temples of the Tamil belt for '
+        'Angaraka worship and is a Paadal Petra Sthalam in Tevaram tradition. '
+        'Selvamuthukumarasamy (Murugan) and other parivara shrines enrich the '
+        'precinct. The surrounding town is also widely known for nadi '
+        '(palm-leaf) astrology centres — a cultural adjunct distinct from the '
+        'temple’s own ritual board.\n\n'
+        'Architecture follows classic Tamil Dravidian prakaram planning with '
+        'multiple gopurams and a large tank. Tuesdays draw heavier '
+        'Angaraka-related footfall in local practice.\n\n'
+        'THIN OFFICIAL ENGLISH CLOCK: a dedicated stable public HR&CE English '
+        'timetable was not firmly extracted in this research pass; ordinary '
+        'listings commonly cite ~06:00 AM–01:00 PM and 04:00 PM–09:00 PM '
+        '(sometimes later on Sundays). Treat as provisional — confirm on-site '
+        'board or HR&CE Tamil pages before travel.',
+    location: 'Vaitheeswarankoil, Mayiladuthurai District, Tamil Nadu 609117',
+    timings:
+        'PROVISIONAL / THIN OFFICIAL ENGLISH SOURCE — confirm on-site or HR&CE '
+        'Tamil board before travel. Widely repeated ordinary pattern: ~06:00 '
+        'AM–01:00 PM and 04:00 PM–09:00 PM (some secondary guides extend Sunday '
+        'evenings ~09:30 PM). Named niti minutes not verified from a stable '
+        'official English page in this pass. Tuesdays and festival days are '
+        'busier and may shift closures. Visitor tip: THIN SOURCES on full '
+        'official English pooja clock — do not treat aggregator times as '
+        'definitive. Oil offerings and Angaraka-related practices follow local '
+        'priest guidance; keep expectations modest on queue times Tuesdays.',
+    latitude: 11.195,
+    longitude: 79.71417,
+    specialities: [
+      'Vaidyanathaswamy — Shiva as divine physician',
+      'Navagraha association — Angaraka (Mars)',
+      'Siddhamirtham tank and healing pilgrimage lore',
+      'Paadal Petra Sthalam; Thaiyalnayaki shrine',
+      'Town known for nadi astrology centres (adjacent culture)',
+      'Nearest airport: Tiruchirappalli (TRZ) or Pondicherry (PNY) as region options',
+      'Veg food: pilgrim-town pure-veg messes',
+    ],
+  ),
+  Temple(
+    name: 'Tiruttani Murugan Temple',
+    state: 'Tamil Nadu',
+    city: 'Tiruttani',
+    deity: 'Murugan',
+    imageUrl: '',
+    description:
+        'Northernmost of Murugan’s Six Abodes — the hill shrine of '
+        'Subramanyaswamy at Tiruttani, associated with peace after Surasamharam '
+        'and with elephant-mount iconography shared with Swamimalai.',
+    story:
+        'Arulmigu Subramanyaswamy Temple at Tiruttani (Thanigai Malai) in '
+        'Tiruvallur district is the northern Arupadai Veedu. Tradition holds '
+        'that Murugan rested and regained calm here after the Surasamharam war; '
+        'the hill remains a major Murugan pilgrimage for northern Tamil Nadu '
+        'and neighbouring Andhra devotees.\n\n'
+        'The hill temple is reached by a long flight of steps (and road access '
+        'to higher points when open). Like Swamimalai, Tiruttani preserves '
+        'elephant-mount associations in Murugan iconography. The complex is '
+        'administered by TN HR&CE with online ticketing for selected services.\n\n'
+        'Official pooja board markers include Viswaroopa in the early morning '
+        'and a sequence through Palliyarai in the evening, with ordinary access '
+        'running from morning into late evening. Festival days (Krithigai, Thai '
+        'Poosam, Panguni Uthiram) intensify queues on the steps.\n\n'
+        'Accessible as a day trip from Chennai for many pilgrims. Confirm '
+        'current nadai and special darshan on tiruttanimurugan.hrce.tn.gov.in.',
+    location: 'Malaikoil, Tiruttani, Tiruvallur District, Tamil Nadu 631209',
+    timings:
+        'OFFICIAL HR&CE (tiruttanimurugan.hrce.tn.gov.in / tid=1506): ordinary '
+        'access commonly summarised ~06:00 AM–08:45 PM with Viswaroopa ~05:45 '
+        'AM and Palliyarai ~08:45 PM; other named markers on portal include '
+        'Kalasandhi ~08:00 AM, Uchikkala ~12:00 PM, Sayaraksha ~05:00 PM, '
+        'Ardhajama ~06:00 PM (confirm live board — festival days override). '
+        'Prefer portal over third-party apps. Visitor tip: Step climb is '
+        'significant in heat — carry water and start early. Road/jeep access '
+        'patterns to higher points can change; follow on-site instructions.',
+    latitude: 13.1758,
+    longitude: 79.6106,
+    specialities: [
+      'Arupadai Veedu — northernmost Murugan abode',
+      'Hill shrine (Thanigai Malai) with long stepped approach',
+      'Peace-after-war Murugan lore; elephant-mount link with Swamimalai',
+      'Popular Chennai / northern TN day-trip pilgrimage',
+      'HR&CE online ticketing for selected sevas',
+      'Nearest airport: Chennai (MAA)',
+      'Veg food: pilgrim messes at foothill and town',
+    ],
+  ),
+
   // ═══════════════════════════════════════════════════════════════════════════
   //  KERALA
   // ═══════════════════════════════════════════════════════════════════════════
@@ -858,6 +1407,555 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+
+  // ── KAN-64 / KAN-74 expansion batch 17 — +10 additional Kerala temples
+  // Core Temple fields only (Hybrid C): trip_planning stripped / not seeded.
+  // imageUrl/images left empty (photo-pending honesty); Commons candidates in
+  // docs/kerala-sample-research.md.
+  Temple(
+    name: 'Vadakkunnathan Temple',
+    state: 'Kerala',
+    city: 'Thrissur',
+    deity: 'Shiva',
+    imageUrl: '',
+    description:
+        'Ancient circular-plan Shiva temple at the heart of Thrissur’s '
+        'Thekkinkadu Maidan, celebrated for Kerala murals, multi-shrine layout, '
+        'and as the sacred centrepiece of the world-famous Thrissur Pooram.',
+    story:
+        'Vadakkunnathan (Vadakkumnathan) Temple sits inside the Thekkinkadu '
+        'Maidan in the civic and ritual centre of Thrissur. Temple tradition '
+        'links its founding to Parasurama; historically it is among Kerala’s '
+        'oldest living Shaiva complexes and an Archaeological Survey of '
+        'India–protected monument. The sprawling wood-and-laterite Kerala '
+        'precinct is known for circular vimanas, multi-storeyed gopurams, and '
+        'celebrated murals depicting Mahabharata and Shaiva themes.\n\n'
+        'The main west-facing shrine houses Shiva as Vadakkunnathan; the '
+        'complex also includes important shrines traditionally associated with '
+        'Rama and Harihara/Sankaranarayana, plus Ganapathi and Devi shrines. A '
+        'distinctive local custom is an anti-clockwise (apradakshina) circuit '
+        'for some devotee paths — unusual among Hindu temples and widely noted '
+        'by visitors.\n\n'
+        'Daily worship centres on abhishekam with ghee (neyyattam) that has, '
+        'over centuries, built a mound over the linga; scrapings of this ghee '
+        'prasadam are prized by devotees. Named markers on the temple’s own '
+        'daily-pooja page include morning Neyyatam/Usha/Ucha and evening '
+        'Deeparadhana, Athazha Pooja, and Trippuka before close.\n\n'
+        'Thrissur Pooram (Medam / April–May) — often called the mother of '
+        'Kerala Poorams — unfolds around the maidan with rival gopuram '
+        'processions, percussion (panchavadyam/pandimelam), and firework '
+        'displays, though the deity itself does not leave the sanctum in the '
+        'same way as many festival temples. Maha Shivaratri is the other major '
+        'draw. Entry is typically restricted to Hindus; traditional Kerala '
+        'dress is enforced.',
+    location: 'Thekkinkadu Maidan, Thrissur, Kerala 680001',
+    timings:
+        'Official-aligned board (sreewadakkunathantemple.org/daily_pooja; '
+        'confirm before travel): morning open 4:00 AM; Neyyatam ~4:15 AM; Usha '
+        'Pooja 6:00–6:30 AM; Ucha Pooja 10:00–10:45 AM; morning close 11:00 AM '
+        'weekdays / ~11:30 AM Sat–Sun & holidays. Evening open 5:00 PM; '
+        'Deeparadhana ~6:15 PM; Athazha Pooja 7:00–7:45 PM; Trippuka 8:00–8:20 '
+        'PM; close 8:30 PM. Secondary tourism pages sometimes list 4:00–10:00 '
+        'AM morning envelopes — prefer the temple pooja page. Festival days '
+        '(esp. Thrissur Pooram, Shivaratri) override. Visitor tip: Hindu-only '
+        'entry commonly enforced; men typically mundu with bare upper body '
+        'inside, women saree/churidar with dupatta — confirm live board. '
+        'Children under one often restricted per secondary notices.',
+    latitude: 10.5245,
+    longitude: 76.2144,
+    specialities: [
+      'Thrissur Pooram centrepiece on Thekkinkadu Maidan',
+      'Circular Kerala vimanas; ASI-protected complex',
+      'Historic murals; multi-shrine Shaiva–Vaishnava layout',
+      'Ghee abhishekam (neyyattam) prasadam tradition',
+      'Unusual anti-clockwise devotee circuit noted locally',
+      'Nearest airport: COK (Cochin International); Thrissur Junction railhead',
+      'Veg/pilgrim food plentiful in Thrissur temple-town belt',
+    ],
+  ),
+  Temple(
+    name: 'Sree Poornathrayeesa Temple',
+    state: 'Kerala',
+    city: 'Tripunithura',
+    deity: 'Vishnu',
+    imageUrl: '',
+    description:
+        'Royal Cochin Vishnu temple at Tripunithura where Poornathrayeesa is '
+        'worshipped as Santhanagopala Murthy — famed for elephant-rich '
+        'Vrischikotsavam and blessings sought by childless couples.',
+    story:
+        'Sree Poornathrayeesa Temple in Thrippunithura (Tripunithura), about 10 '
+        'km southeast of Ernakulam, was the foremost of the eight royal temples '
+        'of the former Kingdom of Cochin and the family deity of the Cochin '
+        'dynasty. Vishnu is worshipped here as Poornathrayeesa / Santhanagopala '
+        'Murthy — traditionally the ‘saviour of infants’ — seated under the '
+        'five hoods of Ananta, a posture uncommon among Kerala Vishnu shrines '
+        'that more often show reclining Ananthashayana forms.\n\n'
+        'Temple legend holds that Vishnu gave the idol to Arjuna, who installed '
+        'it after recovering a Brahmin’s children; Ganapathi’s south-facing '
+        'placement beside the sanctum is explained in the same narrative. A '
+        'major fire in 1920 destroyed much of the wooden sanctum; the rebuilt '
+        'concrete-faced srikovil (often cited as among Kerala’s first concrete '
+        'temple structures) was designed with copper, wood, and granite '
+        'detailing still visible today.\n\n'
+        'The eight-day Vrischikotsavam (Vrischikam / November–December) opens '
+        'Kerala’s festival season for many locals and is known for large '
+        'elephant processions, melam, Kathakali, and music. Other observances '
+        'include Ambalam Kathi Utsavam (Thulam), Mooshari Utsavam, and '
+        'Uthram-related celebrations. Cochin Devaswom Board administers the '
+        'temple; photography inside is typically prohibited.',
+    location: 'Thrippunithura, Ernakulam, Kerala 682301',
+    timings:
+        'Commonly listed public envelope (secondary compilations + '
+        'temple-associated pages; confirm on sreepoornathrayeesatemple.org / '
+        'Cochin Devaswom board before travel): morning ~4:00 AM–11:15 AM; '
+        'evening ~4:00 PM–8:15 PM. Named markers often cited: Palliunarthal '
+        '~3:45 AM; Usha Pooja ~5:00 AM; Kalabha Abhishekam ~6:00–6:30 AM; '
+        'Pantheeradi ~7:30 AM; Ucha Pooja ~11:00 AM; evening Deeparadhana '
+        '~6:00–6:30 PM; Athazha Pooja ~7:30 PM; Athazha Seeveli ~8:00 PM. '
+        'Festival days (Vrischikotsavam) extend and crowd-control override — '
+        'treat minute slots as approximate. Visitor tip: Traditional Kerala '
+        'dress expected; photography usually banned inside. Elephant-festival '
+        'crowd and safety rules have been under Kerala High Court scrutiny — '
+        'follow current Devaswom advisories.',
+    latitude: 9.945,
+    longitude: 76.3422,
+    specialities: [
+      'Santhanagopala Murthy — child-blessing Vaishnava focus',
+      'Former royal temple of Cochin kingdom',
+      'Vrischikotsavam elephant processions (Nov–Dec)',
+      'Unique seated Vishnu under Ananta’s hoods',
+      'Ambalam Kathi and Mooshari festival traditions',
+      'Nearest airport: COK; Ernakulam / Tripunithura rail access',
+      'Veg hotels common around Tripunithura temple street',
+    ],
+  ),
+  Temple(
+    name: 'Ambalappuzha Sri Krishna Temple',
+    state: 'Kerala',
+    city: 'Ambalappuzha',
+    deity: 'Vishnu',
+    imageUrl: '',
+    description:
+        'Historic Alappuzha Krishna (Parthasarathy) temple renowned statewide '
+        'for its daily Palpayasam milk-payasam offering and classical Kerala '
+        'architecture beside a temple tank.',
+    story:
+        'Ambalappuzha Sree Krishna Swamy Temple in Alappuzha district is one of '
+        'Travancore’s great Vaishnava shrines, dedicated to Krishna in '
+        'Parthasarathy form. Tradition and local histories place major building '
+        'phases between the 15th and 17th centuries under Chembakassery rulers, '
+        'atop an older sacred site. The Kerala-style complex includes murals, '
+        'Dasavatara themes, and a tank-side setting familiar from pilgrim '
+        'photographs.\n\n'
+        'The temple’s fame rests on Ambalappuzha Palpayasam — a sweet '
+        'rice-and-milk payasam offered daily as naivedyam. Legend recounts '
+        'Krishna, disguised as a sage, defeating a local king at chess and '
+        'securing an unending debt repaid as this perpetual offering; devotees '
+        'also hold that Guruvayurappan partakes of the payasam. During Tipu-era '
+        'turmoil, the Guruvayur idol was traditionally sheltered here for a '
+        'period — a memory that still links the two temples in popular '
+        'devotion.\n\n'
+        'Poet Kunchan Nambiar is associated with the birth of Ottamthullal '
+        'performance traditions in this cultural landscape. Daily schedule '
+        'centres on early Nirmalya through Ucha Pooja, with evening '
+        'Deeparadhana and Athazha Pooja. Palpayasam is typically collected near '
+        'midday at the prasadam counter; as of recent pilgrim notices there is '
+        'no reliable public online booking — queue on site.',
+    location: 'Ambalappuzha, Alappuzha, Kerala 688561',
+    timings:
+        'Widely listed public envelope (secondary pilgrim guides; thin single '
+        'official English clock — confirm locally / Travancore Devaswom '
+        'channels): morning ~3:00 AM–12:00/12:30 PM; evening ~5:00 PM–8:00 PM '
+        '(some lists close ~7:45 PM). Named markers commonly cited: Nirmalya '
+        '~3:00–3:30 AM; Usha Pooja ~7:00–7:30 AM; Ucha Pooja ~11:30 AM–12:00 '
+        'PM; Deeparadhana ~6:30–7:00 PM; Athazha Pooja ~7:30–8:00 PM. '
+        'Palpayasam distribution often ~12:00–1:00 PM at prasadam counter — '
+        'arrive earlier on weekends. Festival days override. Visitor tip: '
+        'Traditional dress expected. Palpayasam: offline counter only per 2026 '
+        'pilgrim notices — no invented online booking claims. Thin official '
+        'English timetable — re-check Devaswom/local board.',
+    latitude: 9.383,
+    longitude: 76.37,
+    specialities: [
+      'Famous daily Ambalappuzha Palpayasam prasadam',
+      'Parthasarathy Krishna; Dasavatara mural traditions',
+      'Historic link with Guruvayur idol refuge lore',
+      'Ottamthullal cultural association (Kunchan Nambiar)',
+      'Tank-side Kerala temple architecture',
+      'Nearest airport: COK; Ambalappuzha / Alappuzha rail access',
+      'Plan midday if collecting Palpayasam (queue)',
+    ],
+  ),
+  Temple(
+    name: 'Ettumanoor Mahadeva Temple',
+    state: 'Kerala',
+    city: 'Ettumanoor',
+    deity: 'Shiva',
+    imageUrl: '',
+    description:
+        'Major Travancore Devaswom Shiva temple in Kottayam district, famed for '
+        'its Pradosha Nritham mural, golden Ezharaponnana elephants, and '
+        'ten-day Kumbham arattu festival.',
+    story:
+        'Ettumanoor Mahadeva Temple is one of central Kerala’s foremost Shaiva '
+        'pilgrimages, administered by the Travancore Devaswom Board. The '
+        'east-facing Kerala complex is celebrated for mural painting — '
+        'especially the dynamic Pradosha Nritham (Nataraja) composition at the '
+        'entrance/gopuram zone — and for rich woodwork and metalwork '
+        'traditions.\n\n'
+        'Legend associates worship here with the Pandavas and sage Vyasa. The '
+        'annual ten-day festival in Kumbham (February–March) culminates in '
+        'arattu on Thiruvathira; its iconic midnight Ezharaponnana Darshanam on '
+        'the eighth night displays seven-and-a-half golden elephant figures '
+        '(jackfruit-wood cores clad in gold plate, traditionally linked to '
+        'offerings by Travancore’s Marthanda Varma). Caparisoned live elephants '
+        'and panchari melam accompany processions.\n\n'
+        'The temple’s own puja page lists a full morning-to-evening rhythm from '
+        'Nirmalyam through Athazha Sreebali. Thulabharam and other vazhipadu '
+        'remain popular. Dress and entry follow typical Kerala Devaswom norms.',
+    location: 'Ettumanoor PO, Kottayam, Kerala 686631',
+    timings:
+        'Temple-associated puja board (ettumanoormahadevatemple.com/puja; '
+        'confirm before travel): Morning — Nirmalyam 4:00 AM; Abhishekam ~4:20 '
+        'AM; Madhava Pallipooja ~5:45 AM; Ethirthu Pooja ~6:15 AM; Sreebali '
+        '~6:45 AM; Dhaara/Kalasham ~10:30 AM; Uchapooja ~11:15 AM; Ucha '
+        'Sreebali ~11:45 AM. Evening — open 5:00 PM; Deeparadhana ~6:20 PM; '
+        'Athazha Pooja ~7:15 PM; Athazha Sreebali ~7:45 PM. Public visitor '
+        'envelopes of 4:00 AM–12:00 PM and 5:00–8:30 PM appear in secondary '
+        'listings and roughly match. Festival nights (Ezharaponnana) run to '
+        'midnight+. Visitor tip: Contact on temple site includes '
+        'ettumanoordevaswom@gmail.com — useful for festival-night crowd '
+        'planning. Confirm Ezharaponnana midnight opening annually.',
+    latitude: 9.67,
+    longitude: 76.56,
+    specialities: [
+      'Ezharaponnana — seven-and-a-half golden elephants (Kumbham festival)',
+      'Acclaimed Pradosha Nritham / Nataraja mural',
+      'Travancore Devaswom Board major Shiva shrine',
+      'Ten-day arattu festival ending on Thiruvathira',
+      'Thulabharam and classical Kerala vazhipadu',
+      'Nearest airport: COK; Ettumanoor / Kottayam rail',
+      'Veg pilgrim eateries around Ettumanoor junction',
+    ],
+  ),
+  Temple(
+    name: 'Chettikulangara Devi Temple',
+    state: 'Kerala',
+    city: 'Chettikulangara',
+    deity: 'Devi',
+    imageUrl: '',
+    description:
+        'Prominent Bhadrakali temple near Mavelikkara, famous across central '
+        'Travancore for Kumbha Bharani’s towering Kettukazhcha effigies and '
+        'Kuthiyottam ritual offerings.',
+    story:
+        'Chettikulangara Sree Bhagavathy Temple near Mavelikkara (Alappuzha '
+        'district) enshrines Bhadrakali with strong local identity as '
+        'Chettikulangara Amma. Origin lore ties the shrine to devotees who '
+        'sought Kodungallur Bhagavathi’s grace after a slight at another temple '
+        'and established worship when the goddess was believed to arrive in the '
+        'village.\n\n'
+        'The temple’s defining public culture is Kumbha Bharani (Kumbham / '
+        'February–March), sometimes called the Kumbhamela of the South. '
+        'Kuthiyottam — a ritual dance offering traditionally performed by boys '
+        'after days of preparation — and Kettukazhcha — towering decorated '
+        'wooden horse (kuthira) and chariot (theru) effigies hauled into the '
+        'eastern fields — draw lakhs of visitors. Devi is carried in night '
+        'procession to the lined-up effigies.\n\n'
+        'Daily worship follows a classic Devi schedule (Nirmalyam through '
+        'Athazha). Secondary sources note form-varied emphasis across the day '
+        '(Saraswati/Lakshmi/Durga–Kali moods in popular telling). Official '
+        'festival narrative is well documented on chettikulangara.org; '
+        'ordinary-day English clocks remain thinner and should be re-checked on '
+        'the live board.',
+    location: 'Chettikulangara, Mavelikkara, Alappuzha, Kerala 690106',
+    timings:
+        'Provisional public envelope (secondary compilations / apps; thin '
+        'single official English clock — confirm chettikulangara.org or on-site '
+        'board): ~5:00 AM–12:00/12:30 PM and ~5:00 PM–8:00 PM. Named markers '
+        'often listed: Nirmalyam ~5:00 AM; Ganapathy Homam ~6:00 AM; Usha Pooja '
+        '~6:30 AM; Ucha Pooja ~12:00 PM; Deeparadhana ~6:30 PM; Bhagavathy Seva '
+        '~7:00 PM; Athazha ~7:30 PM. Kumbha Bharani festival days fully '
+        'override — expect all-day crowds and night Kettukazhcha. Visitor tip: '
+        'THIN OFFICIAL CLOCK for ordinary days — timings labelled provisional. '
+        'Photo coverage on Commons is festival-kuthira heavy rather than main '
+        'gopuram exteriors.',
+    latitude: 9.227,
+    longitude: 76.515,
+    specialities: [
+      'Kumbha Bharani Kettukazhcha giant horse/chariot effigies',
+      'Kuthiyottam ritual dance offering',
+      'Bhadrakali / Chettikulangara Amma pilgrimage',
+      'Central Travancore Devi circuit landmark',
+      'Official festival pages on chettikulangara.org',
+      'Nearest airport: COK; Kayamkulam / Mavelikkara rail',
+      'Book lodging early for Bharani week',
+    ],
+  ),
+  Temple(
+    name: 'Kodungallur Bhagavathy Temple',
+    state: 'Kerala',
+    city: 'Kodungallur',
+    deity: 'Devi',
+    imageUrl: '',
+    description:
+        'Ancient Sree Kurumba Bhagavathy (Bhadrakali) temple of the Chera '
+        'Mahodayapuram landscape, renowned for the intense Kodungallur Bharani '
+        'festival and Kannagi–Bhadrakali cultural memory.',
+    story:
+        'Kodungallur Sree Kurumba Bhagavathy Temple (Bhagavathy Kavu) is among '
+        'Kerala’s most powerful Devi pilgrimages, rooted in the historic Chera '
+        'capital region of Mahodayapuram / Kodungallur. The principal deity is '
+        'Bhadrakali (Kurumba), with a complex layered through centuries of '
+        'rebuilding atop early medieval foundations; scholarship also notes '
+        'Saptamatrika / Chamunda associations in the wider sacred landscape.\n\n'
+        'Popular and literary memory links the goddess to Kannagi of the Tamil '
+        'epic Silappatikaram, whose righteous wrath is mapped onto Bhadrakali’s '
+        'fierce grace. The annual Kodungallur Bharani (Meenam / March–April) — '
+        'including Kaavutheendal and related rites — is among Kerala’s most '
+        'intense festival cycles, drawing huge crowds and distinctive '
+        'vernacular ritual expression that visitors should approach with '
+        'cultural respect rather than spectacle-seeking.\n\n'
+        'Ordinary-day worship follows morning and evening Kerala Devi rhythms. '
+        'Tourism and secondary pages commonly list ~4:00 AM–12:00 PM and '
+        '~4:00–8:00/8:30 PM envelopes, with Sunday/Tuesday/Friday morning '
+        'extensions in some compilations — treat as provisional pending the '
+        'live board.',
+    location: 'Kodungallur, Thrissur, Kerala 680664',
+    timings:
+        'Provisional public envelope (Kerala Tourism event pages + secondary '
+        'guides; thin single official English daily clock — confirm on site): '
+        'morning ~4:00 AM–12:00 PM (some lists to 12:30 PM on Sun/Tue/Fri); '
+        'evening ~4:00 PM–8:00/8:30 PM. Bharani festival period massively '
+        'overrides ordinary hours and access patterns — follow police/Devaswom '
+        'crowd control. Named pooja minutes are not stably published in English '
+        '— do not invent. Visitor tip: THIN official English ordinary-day '
+        'clock. Bharani is culturally intense — follow local advisories; not a '
+        'casual photo-tourism event. Photo candidate is verified Commons temple '
+        'exterior (Ms Sarah Welch CC0).',
+    latitude: 10.227,
+    longitude: 76.199,
+    specialities: [
+      'Sree Kurumba Bhadrakali of historic Kodungallur',
+      'Kodungallur Bharani / Kaavutheendal festival cycle',
+      'Chera Mahodayapuram sacred landscape',
+      'Kannagi–Bhadrakali cultural association',
+      'Major central-Kerala Devi pilgrimage',
+      'Nearest airport: COK; Irinjalakuda / Chalakudy rail options',
+      'Respectful conduct essential during Bharani',
+    ],
+  ),
+  Temple(
+    name: 'Parassinikadavu Muthappan Temple',
+    state: 'Kerala',
+    city: 'Parassinikadavu',
+    deity: 'Muthappan',
+    imageUrl: '',
+    description:
+        'North Malabar riverside madappura where Sree Muthappan is worshipped '
+        'through daily Theyyam enactments (Thiruvappana and Vellattam), with '
+        'distinctive non-sattvic offerings and open social devotion.',
+    story:
+        'Parassinikadavu Sree Muthappan Temple (Parassini Madappura) stands on '
+        'the banks of the Valapattanam river near Kannur. The lived deity is '
+        'Sree Muthappan — popularly understood as a unified or paired '
+        'manifestation associated with Vishnu (Thiruvappana / Valiya Muthappan) '
+        'and Shiva (Vellattam / Cheriya Muthappan) — encountered not primarily '
+        'as a silent sanctum murti but through Theyyam ritual performance.\n\n'
+        'Daily morning Thiruvappana and Vellattam (commonly ~5:45–8:00 AM) and '
+        'evening Vellattam (~6:30 PM) form the heart of worship. Offerings '
+        'historically include toddy and fish alongside vegetarian items — a '
+        'deliberate contrast with sattvic Brahminical temple norms elsewhere in '
+        'Kerala — and the shrine is widely noted for welcoming devotees across '
+        'community lines. Free meals are part of the madappura’s social ethos '
+        'in many visitor accounts.\n\n'
+        'Ritual calendar notes: Theyyam performances are generally paused from '
+        'Thulam 1 to Vrischikam 15 (mid-October to mid-November); Puthari '
+        'Thiruvappana around Vrischikam 16 reopens the cycle; Muthappan '
+        'Thiruvoppana Mahotsavam falls in Kumbham. Treat performance clocks as '
+        'living tradition subject to local announcement.',
+    location: 'Parassinikadavu, Kannur, Kerala 670563',
+    timings:
+        'Widely reported ritual windows (pilgrim guides / compilations; confirm '
+        'locally — no single stable English Trust clock found): morning '
+        'Thiruvappana & Vellattam ~5:45 AM–8:00 AM; evening Vellattam ~6:30 PM. '
+        'General madappura access often described from early morning into '
+        'evening (~5:00 AM–8:00 PM in secondary lists). IMPORTANT seasonal '
+        'pause: Theyyam typically not performed Thulam 1–Vrischikam 15 (approx. '
+        'mid-Oct to mid-Nov). Festival days in Kumbham override. Visitor tip: '
+        'Accurate deity label is Muthappan (not simply Shiva or Vishnu alone). '
+        'Theyyam pause mid-Oct–mid-Nov is critical trip planning. Photography '
+        'rules during performance vary — ask locally.',
+    latitude: 11.982,
+    longitude: 75.395,
+    specialities: [
+      'Daily Muthappan Theyyam — Thiruvappana & Vellattam',
+      'Deity string: Muthappan (Shiva–Vishnu Theyyam identity)',
+      'Non-sattvic offering tradition (toddy/fish lore) with broad social access',
+      'Valapattanam riverbank madappura setting',
+      'Puthari Thiruvappana & Kumbham Mahotsavam cycle',
+      'Nearest airport: CNN (Kannur International)',
+      'Arrive before 5:45 AM for morning Theyyam',
+    ],
+  ),
+  Temple(
+    name: 'Thiruvalla Sreevallabha Temple',
+    state: 'Kerala',
+    city: 'Thiruvalla',
+    deity: 'Vishnu',
+    imageUrl: '',
+    description:
+        'One of the 108 Divya Desams — Sreevallabha (Kolapira Perumal) at '
+        'Thiruvalla — noted for a towering granite Garuda pillar, '
+        'Kathakali-linked worship traditions, and a vast historic prakara.',
+    story:
+        'Sreevallabha Temple in Thiruvalla (Pathanamthitta) is a celebrated Sri '
+        'Vaishnava Divya Desam where Vishnu is worshipped as Sreevallabha / '
+        'Kolapira Perumal. The fortified complex preserves layers of Ay, Chera, '
+        'and Travancore-period patronage; inscriptions speak to an earlier '
+        'landscape that included Vedic learning and performance sponsorship.\n\n'
+        'Architecturally the site is striking for high prakara walls, four '
+        'gopuram gateways, and a granite Garuda-madam often cited around 50+ '
+        'feet — among the tallest of its kind in the region. Subsidiary shrines '
+        'and a classical daily pancharatra-influenced rhythm structure worship. '
+        'A distinctive living tradition links Kathakali performance with temple '
+        'ritual calendar — unique among many Kerala Vishnu temples.\n\n'
+        'Pilgrim guides commonly list morning and evening darshan envelopes '
+        'with five principal poojas from Palli Unarthal/Nirmalyam through '
+        'Athazha. As a Divya Desam it draws Tamil and Malayalam Srivaishnava '
+        'circuits alongside local devotees.',
+    location: 'Thiruvalla, Pathanamthitta, Kerala 689101',
+    timings:
+        'Commonly listed public envelope (secondary Divya Desam / pilgrim '
+        'guides; confirm Travancore Devaswom / local board): ~4:30 AM–11:30 AM '
+        'and ~5:00 PM–8:00 PM. Named markers often cited: Palli Unarthal ~4:00 '
+        'AM; Nirmalyam ~4:30 AM; Usha Pooja ~6:00–7:00 AM; Pantheeradi '
+        '~8:00–9:00 AM; Ucha Pooja ~10:30–11:00 AM; Athazha ~7:30–8:00 PM. '
+        'Festival days and Kathakali-puja nights may extend — treat minutes as '
+        'approximate. Visitor tip: Dress code typical of Kerala Vishnu temples; '
+        'ask before photographing inside. Kathakali–puja calendar is seasonal — '
+        'check local notice boards.',
+    latitude: 9.3735,
+    longitude: 76.5626,
+    specialities: [
+      '108 Divya Desam — Sreevallabha / Kolapira Perumal',
+      'Towering granite Garuda-madam',
+      'Kathakali associated with temple worship tradition',
+      'High prakara walls and classical Kerala–Dravida mix',
+      'Pancharatra-linked daily ritual rhythm',
+      'Nearest airport: COK; Thiruvalla railway station',
+      'Veg hotels plentiful in Thiruvalla town',
+    ],
+  ),
+  Temple(
+    name: 'Chengannur Mahadeva Temple',
+    state: 'Kerala',
+    city: 'Chengannur',
+    deity: 'Shiva',
+    imageUrl: '',
+    description:
+        'Ancient Pamba-side Shiva–Bhagavathy complex with a circular Kerala '
+        'vimana, dual sanctums, and the rare Thriputharattu fertility rite when '
+        'the goddess’s menstrual sign is observed.',
+    story:
+        'Chengannur Mahadeva Temple near the Pamba river is one of Kerala’s '
+        'important Shiva–Devi complexes and a traditional gateway node for '
+        'Sabarimala pilgrims. Shiva (Mahadeva) and Bhagavathy '
+        '(Parvati/Bhadrakali traditions in local telling) are worshipped with '
+        'paired importance — Shiva facing east and the goddess shrine arranged '
+        'in the classic dual layout; the linga tradition includes '
+        'Ardhanarishwara associations in popular description.\n\n'
+        'Architecturally the copper-clad circular-plan vimana, gopuram, and '
+        'nalambalam exemplify mature Kerala temple form. Tantric worship '
+        'traditions are associated with the Thazhamon family lineage in temple '
+        'histories.\n\n'
+        'The temple is uniquely known for Thriputharattu (Thripputhu): when '
+        'menstrual signs are observed on the goddess’s vesture, the sanctum '
+        'observes seclusion for three days and reopens after purification '
+        'rites, with related processional bath traditions toward the Pamba. In '
+        'modern practice the event is irregular (often cited every few months '
+        'rather than monthly). Annual utsavam spans Dhanu–Makaram cycles with '
+        'lengthy festival programming. Approach Thriputharattu as living sacred '
+        'practice, not spectacle.',
+    location: 'Chengannur, Alappuzha, Kerala 689121',
+    timings:
+        'Commonly listed public envelope (secondary guides; confirm Travancore '
+        'Devaswom / local board): roughly 4:00/4:30 AM–11:30 AM and 5:00 '
+        'PM–8:00 PM (some lists note opening near 3:50 AM). Five daily pujas '
+        'for the dual shrines are described in temple histories — exact English '
+        'minute boards are thin. CRITICAL: during Thriputharattu seclusion the '
+        'relevant shrine remains closed ~3 days — do not plan fixed dates; '
+        'watch local announcements. Annual festival (Dhanu–Makaram) overrides '
+        'ordinary hours. Visitor tip: THIN official English named-pooja clock. '
+        'Thriputharattu closures are irregular — always verify same-week '
+        'status. Treat fertility rite with cultural respect.',
+    latitude: 9.3243,
+    longitude: 76.6114,
+    specialities: [
+      'Thriputharattu — rare goddess menstruation rite & Pamba arattu',
+      'Circular copper-clad Kerala vimana',
+      'Dual Shiva–Bhagavathy sanctum importance',
+      'Sabarimala pilgrim gateway town association',
+      'Lengthy Dhanu–Makaram annual festival cycle',
+      'Nearest airport: COK; Chengannur railway station',
+      'Confirm Thriputharattu status before travel',
+    ],
+  ),
+  Temple(
+    name: 'Kaviyoor Mahadeva Temple',
+    state: 'Kerala',
+    city: 'Kaviyoor',
+    deity: 'Shiva',
+    imageUrl: '',
+    description:
+        'Tenth-century circular-plan Mahadeva temple near Thiruvalla, noted for '
+        'early inscriptions (c. 950–951 CE), exquisite wood carvings, and a '
+        'highly popular Hanuman shrine within the complex.',
+    story:
+        'Kaviyoor Mahadeva Temple (Thrikkaviyoor / Thrikkaviyoorappan) crowns a '
+        'hillock near Thiruvalla in Pathanamthitta district. It is a Travancore '
+        'Devaswom Board Special Grade temple whose granite adhisthana carries '
+        'two early inscriptions dated Kali 4051–4052 (about 950–951 CE), '
+        'placing the living shrine among Kerala’s securely early structural '
+        'temples. The circular vimana with square sanctum, double pradakshina '
+        'path, and later wooden superstructure restored in the 19th century '
+        'make it an architectural study site as well as a living pilgrimage.\n\n'
+        'Though Shiva with Parvati is the principal focus, the Hanuman shrine '
+        'inside the complex often draws equal or greater popular devotion — '
+        'local tradition links Hanuman’s presence to the Rama–Setu return '
+        'narrative in which an earthen linga consecrated by Rama could not be '
+        'displaced for Hanuman’s Himalayan linga. A separate Keezhthrikkovil '
+        'Vishnu temple sits below the main complex.\n\n'
+        'Distinguish this living Mahadeva temple from the nearby Kaviyoor / '
+        'Thrikkakkudi rock-cut cave shrine (often listed separately). Festivals '
+        'include Dhanu utsavam, Hanumath Jayanthi, Shivaratri lighting of '
+        'thousands of lamps, Sahasrakalasam, and Panthrantu Kalabham for '
+        'Hanuman. Wood-carved Ramayana and Puranic panels adorn mandapas.',
+    location: 'Kaviyoor, Thiruvalla, Pathanamthitta, Kerala 689582',
+    timings:
+        'Provisional (secondary compilations conflict — Oneindia-style named '
+        'poojas vs trip sites listing 5:00–11:00 AM & 5:00–7:30 PM). Prefer '
+        'on-site / Devaswom board. Named markers often cited: Nirmalyam ~4:00 '
+        'AM; Usha Pooja ~6:00 AM; Ucha Pooja ~12:00 PM; Athazha Pooja ~7:30 PM. '
+        'Festival days (Dhanu utsavam, Shivaratri, Hanumath Jayanthi) override. '
+        'Do not confuse hours with the separate rock-cut cave temple nearby. '
+        'Visitor tip: THIN/conflicting official English clocks. Keep rock-cut '
+        'cave temple as a separate optional heritage stop — not this doc’s '
+        'primary sanctum.',
+    latitude: 9.3964,
+    longitude: 76.6106,
+    specialities: [
+      'Early 10th-c. inscriptions (c. 950–951 CE) on granite base',
+      'Circular vimana; double pradakshina; fine wood carvings',
+      'Popular Hanuman shrine within Shiva complex',
+      'Distinct from nearby Kaviyoor rock-cut cave temple',
+      'Dhanu utsavam, Shivaratri lamp festival, Sahasrakalasam',
+      'Nearest airport: COK; Thiruvalla rail + short road',
+      'THIN / conflicting published clocks — confirm locally',
+    ],
+  ),
+
   // ═══════════════════════════════════════════════════════════════════════════
   //  KARNATAKA
   // ═══════════════════════════════════════════════════════════════════════════
@@ -1350,6 +2448,520 @@ const List<Temple> sampleTemples = [
       'Janmashtami and major Vaishnava festival scale in Bengaluru',
       'Yatri Nivas guest house and free lunch prasadam windows',
       'Second ISKCON campus exists on Kanakapura Road — this entry is Rajajinagar',
+    ],
+  ),
+
+
+  // ── KAN-64 / KAN-74 expansion batch 18 — +10 additional Karnataka temples
+  // Core Temple fields only (Hybrid C): trip_planning stripped / not seeded.
+  // imageUrl/images left empty (photo-pending honesty); Commons candidates in
+  // docs/karnataka-sample-research.md.
+  Temple(
+    name: 'Cheluvanarayana Swamy Temple',
+    state: 'Karnataka',
+    city: 'Melukote',
+    deity: 'Vishnu',
+    imageUrl: '',
+    description:
+        'Sri Vaishnava Vishnu temple of Cheluva Narayana at Melukote '
+        '(Thirunarayanapura), linked to Ramanujacharya’s stay and famed for the '
+        'Vairamudi crown festival, with Yoga Narasimha on the hill above.',
+    story:
+        'Melukote sits on the rocky Yadugiri ridge in Mandya district, looking '
+        'over the Cauvery country. Cheluvanarayana Swamy Temple is the town’s '
+        'principal Vishnu shrine; the Yoga Narasimha temple crowns the hill, '
+        'and the two form a paired pilgrimage.\n\n'
+        'Sri Vaishnava tradition credits Sri Ramanujacharya’s '
+        'early-12th-century residence here with restoring worship under Hoysala '
+        'patronage. The metallic processional image and the Vairamudi (diamond '
+        'crown) used at the annual Vairamudi Brahmotsavam are Melukote’s '
+        'best-known ritual treasures; later Mysore Wodeyar endowments expanded '
+        'the complex.\n\n'
+        'The precinct combines earlier fabric with royal-period halls and a '
+        'strong festival processional culture. Melukote also hosts a long '
+        'Sanskrit scholarly tradition.\n\n'
+        'Daily worship follows Sri Vaishnava nitya-puja patterns with a midday '
+        'rest. Vairamudi and other utsavas override ordinary hours and draw '
+        'very large crowds—confirm the live notice board before travel.',
+    location:
+        'Melukote (Thirunarayanapura), Pandavapura Taluk, Mandya District, '
+        'Karnataka 571431',
+    timings:
+        'PROVISIONAL (secondary compilations; no stable English Devasthanam '
+        'live board confirmed in this pass): weekday darshan often listed ~7:30 '
+        'AM–1:00 PM & ~4:00–8:00 PM (some lists split evening ~4:00–6:00 & '
+        '~7:00–8:00 PM); weekends/holidays often ~7:30 AM–1:30 PM, ~3:30–6:00 '
+        'PM & ~7:00–8:00 PM. Vairamudi / Brahmotsavam commonly extends late. '
+        'Re-check Melukote temple board—festival and seasonal change risk is '
+        'high. Visitor tip: Modest dress; footwear outside. Vairamudi week '
+        'needs early arrival. Yoga Narasimha involves a hill climb/drive. '
+        'Timings labelled provisional.',
+    latitude: 12.6594,
+    longitude: 76.6483,
+    specialities: [
+      'Sri Vaishnava Melukote / Thirunarayanapura — Ramanujacharya association',
+      'Vairamudi Brahmotsavam (diamond crown procession)',
+      'Paired hill pilgrimage with Yoga Narasimha',
+      'Historic Wodeyar endowments',
+      'Nearest airport: Mysuru (MYQ) or Bengaluru (BLR)',
+      'Veg / pilgrim food: Melukote town vegetarian eateries (generic)',
+    ],
+  ),
+  Temple(
+    name: 'Murudeshwar Temple',
+    state: 'Karnataka',
+    city: 'Murudeshwar',
+    deity: 'Shiva',
+    imageUrl: '',
+    description:
+        'Coastal Shiva temple on Kanduka Hill at Murudeshwar, known for its '
+        'towering Raja Gopura, ~123 ft Shiva statue, Arabian Sea setting, and '
+        'the Atmalinga legend shared with Gokarna.',
+    story:
+        'Murudeshwar stands where the Arabian Sea wraps Kanduka Hill in Uttara '
+        'Kannada. The living Murudeshwara (Shiva) shrine is paired with a '
+        'modern monumental skyline: a multi-storey Raja Gopura with lift '
+        'viewpoint and one of the world’s tallest Shiva statues.\n\n'
+        'Tradition ties the site to the Ravana–Atmalinga narrative also told at '
+        'Gokarna—after the linga was fixed at Gokarna, coverings or fragments '
+        'associated with it are said to have fallen at coastal sacred spots '
+        'including Murudeshwar. State tourism notes it is popularly revered but '
+        'is not one of the twelve canonical Jyotirlingas.\n\n'
+        'Pilgrims combine darshan with beach walks and dusk views of the '
+        'illuminated statue and gopuram. Dress code is enforced for sanctum '
+        'entry; outer complex photography is freer.\n\n'
+        'Karnataka Tourism publishes a split darshan day with a midday break. '
+        'Maha Shivaratri and weekends are peak—confirm same-day boards.',
+    location:
+        'Kanduka Hill, Murudeshwar, Bhatkal Taluk, Uttara Kannada, Karnataka '
+        '581350',
+    timings:
+        'Karnataka Tourism visitor table (confirm locally; festival change '
+        'risk): morning darshan 6:00 AM–1:00 PM; evening darshan 3:00 PM–8:30 '
+        'PM; abhisheka commonly from ~6:30 AM; midday break ~1:00–3:00 PM. '
+        'Named minute-level pooja slots on secondary sites are PROVISIONAL '
+        'unless confirmed on the temple board. Raja Gopuram lift ticketed '
+        'separately (tourism lists a small fee). Visitor tip: Modest dress for '
+        'sanctum (tourism: dhoti/formal trousers for men; saree/chudidar with '
+        'dupatta for women). Footwear outside. Heavy queues on Mondays, '
+        'Pradosham, Shivaratri.',
+    latitude: 14.0943,
+    longitude: 74.4844,
+    specialities: [
+      '~123 ft coastal Shiva statue and multi-storey Raja Gopura',
+      'Atmalinga-legend link with Gokarna (not a canonical Jyotirlinga)',
+      'Arabian Sea setting on Kanduka Hill',
+      'Nearest airport: Mangaluru (IXE)',
+      'Veg food: temple-town vegetarian hotels (generic)',
+      'Afternoon anna prasada subject to availability (tourism-listed)',
+    ],
+  ),
+  Temple(
+    name: 'Annapoorneshwari Temple, Horanadu',
+    state: 'Karnataka',
+    city: 'Horanadu',
+    deity: 'Devi',
+    imageUrl: '',
+    description:
+        'Western Ghats shrine of Adishakti Annapoorneshwari at Horanadu (Sri '
+        'Kshetra Horanadu), known for continuous annadana and a gold-clad '
+        'goddess image in a forested Bhadra-country setting.',
+    story:
+        'Horanadu (Hornadu) lies in the forested hills of Chikkamagaluru on the '
+        'Bhadra country, reached through winding Ghats roads. Sri Kshetra '
+        'Horanadu’s official site identifies the deity as Adishakthyathmaka Sri '
+        'Annapoorneshwari and credits Agastya with the ancient pratishta.\n\n'
+        'Hereditary Dharmakartharu administration is described as '
+        'multi-century; the temple grew from a small forest shrine into a major '
+        'Malnad Devi pilgrimage. Annadana (free meals) and shelter for visitors '
+        'are emphasised as living continuity of the Annapoorna ideal.\n\n'
+        'The present complex includes a gold-finished goddess image in a green '
+        'valley setting. Dress rules are published on the official site.\n\n'
+        'Official darshan span is stated as 6:00 AM–9:00 PM; secondary sites '
+        'disagree on midday breaks and named aarti minutes—prefer the official '
+        'board/site and treat detailed pooja clocks as provisional unless '
+        'confirmed on arrival.',
+    location:
+        'Sri Kshetra Horanadu, Kalasa Taluk, Chikkamagaluru District, Karnataka '
+        '577181',
+    timings:
+        'OFFICIAL (srikshetrahoranadu.com Darshana Rules): darshan 6:00 AM to '
+        '9:00 PM. Named mahamangalarati / split-session clocks on secondary '
+        'travel sites CONFLICT and are PROVISIONAL—confirm on-site board. '
+        'Annadana / prasada meal windows are published variously; verify same '
+        'day. Festival days may alter queues. Visitor tip: Official dress code '
+        'enforced. Photography rules are strict inside—follow staff. Mountain '
+        'roads can be slow in monsoon.',
+    latitude: 13.2767,
+    longitude: 75.3438,
+    specialities: [
+      'Adishakti Annapoorneshwari — Agastya pratishta tradition',
+      'Continuous annadana / pilgrim feeding culture',
+      'Western Ghats / Malnad forest setting near Kalasa',
+      'Official dress code for darshan',
+      'Nearest airport: Mangaluru (IXE) or Bengaluru (BLR) via Chikkamagaluru roads',
+      'Temple guest rooms / pilgrim stays (enquire via official channels)',
+      'Veg food: pilgrim-area vegetarian eateries (generic)',
+    ],
+  ),
+  Temple(
+    name: 'Kateel Durga Parameshwari Temple',
+    state: 'Karnataka',
+    city: 'Kateel',
+    deity: 'Devi',
+    imageUrl: '',
+    description:
+        'River-island Devi temple of Durga Parameshwari at Kateel on the '
+        'Nandini, a major Tulunadu Shakti pilgrimage known for Yakshagana '
+        'patronage and dense coastal ritual life.',
+    story:
+        'Kateel (Kateelu) sits on the Nandini river about 20–25 km from '
+        'Mangaluru. The name is popularly explained from ‘kati’ (waist/middle) '
+        'and ‘ila’ (earth)—the shrine as mid-earth—matching its position amid '
+        'the river course.\n\n'
+        'Temple lore narrates Adishakti’s victory over the demon Arunasura '
+        'through a swarm of bees after he could not be slain by ordinary two- '
+        'or four-legged beings; the goddess then manifested in the river, '
+        'around which the temple grew. The complex remains a living Tulunadu '
+        'Shakti centre with strong annadana and Yakshagana patronage.\n\n'
+        'Official kateeldevi.in publishes devotee rules (bath before entry, no '
+        'footwear, no phones/photography inside, menstrual and late-pregnancy '
+        'restrictions, etc.) more clearly than a fixed English clock.\n\n'
+        'Published darshan spans on tourism/secondary pages commonly run '
+        'roughly early morning to late evening with Friday late close, but '
+        'midday-break claims conflict—treat detailed clocks as provisional and '
+        'confirm the temple board.',
+    location: 'Kateel (Kateelu), Mangaluru Taluk, Dakshina Kannada, Karnataka 574148',
+    timings:
+        'PROVISIONAL / secondary tourism compilations (official English full '
+        'clock thin): often listed ~5:30 AM–9:30 PM daily, Fridays ~5:30 '
+        'AM–10:30 PM; some apps instead list split 5:00 AM–1:00 PM & 3:00 '
+        'PM–9:00 PM. Early abhisheka sequences from ~3:00 AM and mahapooja '
+        '~noon appear on secondary ritual tables. Confirm kateeldevi.in / '
+        'notice board before travel—festival and Friday patterns change queues '
+        'and close. Visitor tip: Follow kateeldevi.in do’s/don’ts: bath before '
+        'entry; no footwear, phones, or photography inside; observe published '
+        'gender/health restrictions. Queues spike Fridays and '
+        'Brahmakalashotsava.',
+    latitude: 13.0438,
+    longitude: 74.8701,
+    specialities: [
+      'Nandini river-island Shakti shrine (Tulunadu)',
+      'Arunasura / bee-swarm Devi legend',
+      'Yakshagana cultural patronage',
+      'Temple-managed pilgrim guest houses (enquire officially)',
+      'Nearest airport: Mangaluru (IXE)',
+      'Veg / annadana: temple meals subject to crowd-day variation',
+    ],
+  ),
+  Temple(
+    name: 'Ghati Subramanya Temple',
+    state: 'Karnataka',
+    city: 'Doddaballapur',
+    deity: 'Murugan',
+    imageUrl: '',
+    description:
+        'Unique Subrahmanya–Narasimha swayambhu shrine near Doddaballapur (~60 '
+        'km from Bengaluru), a major regional Subrahmanya kshetra known for '
+        'Ashlesha Bali and other naga-related rites.',
+    story:
+        'Ghati Subramanya lies near Doddaballapur in Bengaluru Rural district, '
+        'about 60 km from Bengaluru. The sanctum is distinctive: Subrahmanya '
+        '(Kartikeya) faces east with a seven-hooded serpent form on the front '
+        'of a swayambhu stone, while Narasimha is on the reverse and viewed via '
+        'a mirror.\n\n'
+        'Local tradition credits Ghorpade rulers of Sandur with building the '
+        'garbhagriha after a dream-led discovery of the idols; folklore treats '
+        'the sacred site as older. Purāṇic tellings speak of Subrahmanya’s '
+        'penance and protection of naga beings, with Narasimha as '
+        'guardian—hence the dual presence.\n\n'
+        'The temple is an important centre for Ashlesha Bali and related naga '
+        'rites, drawing devotees seeking relief from naga dosha and childless '
+        'couples. Brahmarathotsava on Pushya Shuddha Shashti and Narasimha '
+        'Jayanti are major festivals.\n\n'
+        'Published hours disagree: some sources say continuous ~6:00 '
+        'AM–8:30/9:00 PM; others insert a midday break ~12:00–4:00 PM. '
+        'Abhishekam ~8:30 AM and mahamangalarati ~10:30 AM & ~8:30 PM recur '
+        'across secondary lists—confirm by phone/board before travel.',
+    location:
+        'Sri Ghati Subramanya, S.S. Ghati Post, Doddaballapur Taluk, Bengaluru '
+        'Rural District, Karnataka 561203',
+    timings:
+        'PROVISIONAL (no strong official English live board found): commonly '
+        '6:00 AM–8:30/9:00 PM; CONFLICTING midday-break claims (none vs '
+        '~12:00–4:00 PM). Secondary ritual markers: abhishekam ~8:30 AM; '
+        'mahamangalarati ~10:30 AM & ~8:30 PM. Shashti / festival days alter '
+        'queues. Re-confirm with temple office numbers on visitor guides before '
+        'same-day travel. Visitor tip: Vehicle fee may apply on the ghat '
+        'approach. Midday-break conflict means do not assume continuous darshan '
+        'without checking. Naga sevas need advance counter planning on busy '
+        'days.',
+    latitude: 13.4086,
+    longitude: 77.5286,
+    specialities: [
+      'Swayambhu Subrahmanya + Narasimha on one stone (mirror darshan)',
+      'Ashlesha Bali / naga-related sevas',
+      'Pushya Shuddha Shashti Brahmarathotsava',
+      'Day-trip distance from Bengaluru via Doddaballapur',
+      'Nearest airport: Kempegowda International (BLR)',
+      'Veg food: temple annadana hall / pilgrim eateries (generic)',
+    ],
+  ),
+  Temple(
+    name: 'Banashankari Temple, Bengaluru',
+    state: 'Karnataka',
+    city: 'Bengaluru',
+    deity: 'Devi',
+    imageUrl: '',
+    description:
+        'Popular early-20th-century Banashankari Amma (Shakambari) temple on S. '
+        'Kariyappa / Kanakapura Road that gives South Bengaluru’s Banashankari '
+        'locality its name; HRCE-managed urban Devi shrine known for Rahukala '
+        'worship.',
+    story:
+        'Banashankari Temple on S. Kariyappa Road is the urban Devi shrine '
+        'after which much of South Bengaluru’s Banashankari locality is named. '
+        'HRCE / ITMS materials describe a roughly century-old manusha-pratishta '
+        'of Banashankari Amma (also Shakambari / Banadamma), with an associated '
+        'Anjaneya image regarded as swayambhu on rock.\n\n'
+        'Government takeover and later renovation turned a neighbourhood shrine '
+        'into one of Bengaluru’s busiest Devi temples. A temple well whose '
+        'water is used for daily abhisheka is part of local lore.\n\n'
+        'Devotees especially visit during Rahukala on Tuesdays, Fridays, and '
+        'Sundays. This entry is Banashankari, Bengaluru—not the historic '
+        'Banashankari temple at Badami / Cholachagudd.\n\n'
+        'HRCE ITMS lists opening windows; named pooja minutes remain thinner '
+        'than the open/close board—confirm on-site.',
+    location:
+        'S. Kariyappa Road (Kanakapura Road side), Banashankari, Bengaluru '
+        'South, Karnataka 560071',
+    timings:
+        'HRCE / ITMS temple page opening windows (confirm board): 6:30 AM–1:00 '
+        'PM and 4:30 PM–8:30 PM (IST). Secondary city guides sometimes extend '
+        'Friday/Sunday evenings or shift Tuesday afternoon open—treat those as '
+        'PROVISIONAL vs the ITMS board. Rahukala days (esp. Tue/Fri/Sun) are '
+        'crowded; Navaratri extends hours. Visitor tip: Urban temple—expect '
+        'traffic on Kanakapura Road. Prefer ITMS/HRCE board over blog clocks. '
+        'Distinct from Banashankari Badami.',
+    latitude: 12.9252,
+    longitude: 77.5465,
+    specialities: [
+      'Banashankari Amma / Shakambari — namesake of Banashankari locality',
+      'HRCE-managed Bengaluru South urban temple',
+      'Popular Rahukala worship (Tue/Fri/Sun peaks)',
+      'Associated swayambhu Anjaneya tradition',
+      'Nearest airport: Kempegowda International (BLR)',
+      'Veg food: Banashankari / South Bengaluru vegetarian restaurants (generic area)',
+    ],
+  ),
+  Temple(
+    name: 'Chennakeshava Temple, Belur',
+    state: 'Karnataka',
+    city: 'Belur',
+    deity: 'Vishnu',
+    imageUrl: '',
+    description:
+        'Living 12th-century Hoysala Vishnu temple of Chennakeshava at Belur '
+        '(commissioned 1117 CE), combining continuous worship with '
+        'ASI-protected fabric inside the UNESCO Sacred Ensembles of the '
+        'Hoysalas.',
+    story:
+        'Chennakeshava (Vijayanarayana) Temple at Belur on the Yagachi was '
+        'commissioned by Hoysala king Vishnuvardhana in 1117 CE and built over '
+        'generations. Soft soapstone carries the signature Hoysala stellate '
+        'plan, bracket figures, and narrative friezes that make Belur a '
+        'landmark of South Indian temple art.\n\n'
+        'UNESCO’s 2023 inscription of the Sacred Ensembles of the Hoysalas '
+        'explicitly treats Belur’s Channakeshava as a living temple with '
+        'continuity of worship, rituals, and festivals since inception, while '
+        'the monument fabric is nationally protected. The main shikhara was '
+        'lost in the 19th century and not rebuilt, yet living cult practice '
+        'continues.\n\n'
+        'Pilgrims come for Kesava darshan; heritage visitors come for sculpture '
+        'walks in the courtyard and outer walls. Hassan district pages and '
+        'secondary guides publish split darshan-style hours—confirm locally '
+        'because living-temple ritual closes and ASI visitor rules can both '
+        'apply.\n\n'
+        'Dress and photography rules may differ between sanctum and outer '
+        'monument zones—follow on-site ASI/temple staff.',
+    location: 'Belur, Hassan District, Karnataka 573115',
+    timings:
+        'PROVISIONAL living-temple / visitor compilations (confirm board): '
+        'commonly cited ~7:00 AM–1:00 PM & ~2:00/3:00 PM–8:00 PM style splits, '
+        'with some continuous-day lists. Festival days and ASI conservation '
+        'work can alter access. Prefer Belur temple / Hassan district / ASI '
+        'on-site notice over blogs. UNESCO context: living worship continues at '
+        'Belur (unlike Halebidu’s symbolic-only rule). Visitor tip: Living '
+        'garbha cult — expect puja pauses. Outer sculpture circuit is '
+        'heritage-focused. Do not confuse Belur’s living status with Halebidu’s '
+        'ASI symbolic-worship rule.',
+    latitude: 13.1629,
+    longitude: 75.8606,
+    specialities: [
+      'Hoysala masterpiece — Vishnuvardhana 1117 CE commission',
+      'UNESCO Sacred Ensembles of the Hoysalas (2023) — living temple component',
+      'ASI-protected fabric + continuous Vaishnava worship',
+      'Soapstone bracket figures and stellate plan',
+      'Nearest airport: Bengaluru (BLR) / Mangaluru (IXE)',
+      'Pair with Halebidu (~15–20 km) as heritage circuit',
+      'Veg food: pilgrim-area vegetarian eateries (generic)',
+    ],
+  ),
+  Temple(
+    name: 'Hoysaleswara Temple, Halebidu',
+    state: 'Karnataka',
+    city: 'Halebidu',
+    deity: 'Shiva',
+    imageUrl: '',
+    description:
+        '12th-century Hoysala twin-Shiva masterpiece at Halebidu (Hoysalesvara '
+        '& Shantalesvara), an ASI-protected monument in the UNESCO Sacred '
+        'Ensembles—heritage visit with only symbolic worship permitted, not a '
+        'full living festival temple.',
+    story:
+        'Hoysaleswara Temple at Halebidu (medieval Dorasamudra), the former '
+        'Hoysala capital, is a dvikuta (twin-shrine) Shiva temple begun in the '
+        'early 12th century under Vishnuvardhana’s era patronage and completed '
+        'mid-century. Twin lingas Hoysalesvara and Shantalesvara face large '
+        'Nandis across a richly carved jagati and multi-tier friezes of epics '
+        'and deities.\n\n'
+        'The monument is nationally protected by ASI and forms part of UNESCO’s '
+        '2023 Sacred Ensembles of the Hoysalas. UNESCO decision text states '
+        'that at Halebidu worship has long been discontinued and only symbolic '
+        'worship is allowed—no rituals or festivals—contrasting with living '
+        'Belur.\n\n'
+        'Visitors should therefore plan a heritage monument visit: '
+        'sunrise–sunset style ASI hours, ticketed entry as applicable, '
+        'sculpture study, and respectful quiet—not a full nitya-puja pilgrimage '
+        'like neighbouring Belur.\n\n'
+        'Secondary sites that list daily aarti schedules conflict with '
+        'UNESCO/ASI living-status framing; prefer monument visitor rules '
+        'on-site.',
+    location: 'Halebidu (Dorasamudra), Hassan District, Karnataka 573121',
+    timings:
+        'ASI / monument visitor framing (confirm on-site ticket counter): '
+        'commonly sunrise–sunset / ~6:00 AM–6:00 PM style visitor hours in '
+        'secondary guides. NOT a living full-ritual schedule. UNESCO (45 COM '
+        '8B.38): only symbolic worship allowed; no rituals or festivals. Do not '
+        'publish invented aarti clocks. Pair timing expectations with Belur’s '
+        'living temple if combining the circuit. Visitor tip: Honesty framing: '
+        'primarily an ASI/UNESCO monument experience. Any symbolic worship is '
+        'limited; do not expect Belur-style daily utsavas. Follow ASI '
+        'photography and circulation rules.',
+    latitude: 13.2132,
+    longitude: 75.995,
+    specialities: [
+      'Hoysala dvikuta Shiva temple — Hoysalesvara & Shantalesvara',
+      'UNESCO Sacred Ensembles of the Hoysalas (2023) — Halebidu component',
+      'ASI nationally protected monument',
+      'Living status: symbolic worship only (UNESCO) — not full festival cult',
+      'Epic frieze galleries and twin Nandi pavilions',
+      'Circuit with living Belur Chennakeshava (~15–20 km)',
+      'Nearest airport: Kempegowda International, Bengaluru / Mangaluru (BLR)',
+      'Veg food: pilgrim-area vegetarian eateries (generic)',
+    ],
+  ),
+  Temple(
+    name: 'Anegudde Vinayaka Temple',
+    state: 'Karnataka',
+    city: 'Kumbhashi',
+    deity: 'Ganesha',
+    imageUrl: '',
+    description:
+        'Hillock Ganesha temple at Anegudde (Kumbhashi) on the Udupi–Kundapura '
+        'NH66 belt, one of coastal Karnataka’s foremost Vinayaka kshetras, with '
+        'an official daily pooja board and annadana.',
+    story:
+        'Anegudde (‘elephant hillock’) rises beside Kumbhashi on NH66 between '
+        'Udupi and Kundapura. The Vinayaka temple on the knoll is among coastal '
+        'Karnataka’s best-known Ganesha shrines; the official site publishes '
+        'geo coordinates, opening hours, and a named daily pooja sequence.\n\n'
+        'Local legend links the place to sage Agastya’s yajna disrupted by the '
+        'demon Kumbhasura, with Ganesha’s grace aiding Bhima to slay the '
+        'demon—hence Kumbhashi—and a swayambhu elephant-form Vinayaka. The '
+        'imposing standing four-armed image is central to devotee experience.\n\n'
+        'Official schema and FAQ list darshan roughly 6:00 AM–8:30 PM with '
+        'Ushakala, Kalashabhisheka, Mahapooja & Annadana, Rangapooja, and night '
+        'pooja markers. Special sevas (Ganahoma, Mooduganapathi, Tulabhara, '
+        'Aksharabhyasa) have their own windows; Ekadashi reschedules some '
+        'sevas.\n\n'
+        'Pilgrim rooms are mentioned on temple information channels—confirm '
+        'current booking practice on the official site.',
+    location:
+        'Anegudde, Kumbhashi (Kumbashi), Kundapura Taluk, Udupi District, '
+        'Karnataka 576257',
+    timings:
+        'OFFICIAL (aneguddetemple.in): temple open daily 6:00 AM–8:30 PM. Daily '
+        'pooja markers: Ushakala ~6:00 AM; Panchamrutha Kalashabhisheka ~11:00 '
+        'AM; Mahapooja & Annadana ~1:00 PM; Rangapooja ~6:00 PM; Night pooja '
+        '~8:30 PM. Special sevas (Ganahoma, Mooduganapathi slots, etc.) per '
+        'official FAQ; Ganahoma-type sevas not held on Ekadashi (shift to '
+        'Dwadashi). Festival days may alter queues—confirm site/board. Visitor '
+        'tip: Follow official seva counters for Ganahoma / Mooduganapathi. '
+        'Ekadashi changes apply. Modest coastal temple dress norms.',
+    latitude: 13.5485,
+    longitude: 74.7072,
+    specialities: [
+      'Coastal Karnataka Vinayaka kshetra on elephant hillock (Anegudde)',
+      'Swayambhu Ganesha / Kumbhasura–Agastya legend',
+      'Official named daily pooja + annadana board',
+      'NH66 location between Udupi and Kundapura',
+      'Nearest airport: Mangaluru (IXE)',
+      'Temple pilgrim rooms (confirm official booking)',
+      'Veg food: pilgrim-area vegetarian eateries (generic)',
+    ],
+  ),
+  Temple(
+    name: 'Talakaveri Temple',
+    state: 'Karnataka',
+    city: 'Bhagamandala',
+    deity: 'Devi',
+    imageUrl: '',
+    description:
+        'Sacred source shrine of the Kaveri on Brahmagiri at Talakaveri, '
+        'centred on the Brahma Kundike spring and Kaveramma worship, with '
+        'Agastheeshwara and Vinayaka shrines—pilgrimage and landscape '
+        'sacredness more than a single-deity urban temple.',
+    story:
+        'Talakaveri (Talacauvery) on the Brahmagiri hills near Bhagamandala is '
+        'traditionally held as the source of the river Kaveri, at about 1,276 m '
+        'elevation near the Kerala border. Karnataka Tourism describes the holy '
+        'Kundike (tank) and shrines of Goddess Kaveramma, Lord Agastheeshwara, '
+        'and Lord Vinayaka.\n\n'
+        'The sacred spring is called Brahma Kundike—linked in tradition to '
+        'Brahma’s worship and the river’s birth—not a primary free-standing '
+        'Brahma temple like Pushkar. Living devotion centres on Kaveramma '
+        '(Devi) and the tirtha; Shiva (Agastheeshwara) and Ganesha shrines '
+        'complete the cluster. Permanent surface flow from the kundike to the '
+        'main rivercourse is not always visible except in monsoon, as '
+        'geographic notes acknowledge.\n\n'
+        'Tula Sankramana (usually mid-October) is the peak ritual moment when '
+        'the spring is believed to gush, drawing huge Kodagu–Kaveri pilgrim '
+        'crowds. Ordinary days are quieter landscape pilgrimage.\n\n'
+        'Karnataka Tourism lists temple hours roughly 6:00 AM–6:00 PM and warns '
+        'that Madikeri–Talacauvery roads can be difficult in heavy monsoon. '
+        'Dress modestly at the Kundike.',
+    location:
+        'Talakaveri (Talacauvery), Brahmagiri Hills near Bhagamandala, Kodagu '
+        '(Coorg) District, Karnataka 571247',
+    timings:
+        'Karnataka Tourism (confirm locally; seasonal/monsoon risk): temple '
+        'usually open ~6:00 AM–6:00 PM. Some secondary apps list an afternoon '
+        'break (~1:30–4:00 PM)—PROVISIONAL vs tourism’s continuous span. Tula '
+        'Sankramana day overrides ordinary patterns with mass crowds. Re-check '
+        'district/tourism advisories for road closures in heavy rain. Visitor '
+        'tip: Primary living focus is Kaveramma / tirtha; Brahma Kundike is the '
+        'Brahma-linked sacred spring. Monsoon road risk is real—tourism advises '
+        'avoiding heavy-rain travel. Modest dress at the Kundike.',
+    latitude: 12.3855,
+    longitude: 75.4914,
+    specialities: [
+      'Traditional source of River Kaveri on Brahmagiri',
+      'Brahma Kundike sacred spring (Brahma-linked tirtha, not Pushkar-style Brahma temple)',
+      'Kaveramma + Agastheeshwara + Vinayaka shrine cluster',
+      'Tula Sankramana peak pilgrimage (usually mid-October)',
+      'Nearest airport: Mangaluru (IXE) / Bengaluru (BLR) via Madikeri',
+      'Veg / pilgrim food: Bhagamandala–Madikeri vegetarian options (generic)',
     ],
   ),
 

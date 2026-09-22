@@ -8,7 +8,7 @@ void main() {
       .where((t) => t.state == 'Tamil Nadu')
       .toList();
 
-  const expected = <String, String>{
+  const originalExpected = <String, String>{
     'meenakshi-amman-temple': 'Meenakshi Amman Temple',
     'brihadeeswarar-temple': 'Brihadeeswarar Temple',
     'kapaleeshwarar-temple': 'Kapaleeshwarar Temple',
@@ -22,7 +22,7 @@ void main() {
     'sarangapani-temple': 'Sarangapani Temple',
   };
 
-  const expectedMeta = <String, ({String city, String deity})>{
+  const originalMeta = <String, ({String city, String deity})>{
     'meenakshi-amman-temple': (city: 'Madurai', deity: 'Devi'),
     'brihadeeswarar-temple': (city: 'Thanjavur', deity: 'Shiva'),
     'kapaleeshwarar-temple': (city: 'Chennai', deity: 'Shiva'),
@@ -38,19 +38,24 @@ void main() {
     'sarangapani-temple': (city: 'Kumbakonam', deity: 'Vishnu'),
   };
 
-  test('Tamil Nadu sample remains ten distinct seeded temples', () {
-    expect(sampleTemples.length, 150);
-    expect(tamilNadu.length, 10);
+  test('Tamil Nadu sample keeps original ten and totals twenty', () {
+    expect(sampleTemples.length, 180);
+    expect(tamilNadu.length, 20);
 
     final slugs = tamilNadu.map((t) => templeDocumentId(t.name)).toList();
-    expect(slugs.toSet(), expected.keys.toSet());
     expect(slugs.toSet().length, slugs.length);
+    expect(
+      slugs.toSet().intersection(originalExpected.keys.toSet()),
+      originalExpected.keys.toSet(),
+    );
 
-    for (final temple in tamilNadu) {
+    for (final temple in tamilNadu.where(
+      (t) => originalExpected.containsKey(templeDocumentId(t.name)),
+    )) {
       final slug = templeDocumentId(temple.name);
-      expect(temple.name, expected[slug]);
-      expect(temple.city, expectedMeta[slug]!.city);
-      expect(temple.deity, expectedMeta[slug]!.deity);
+      expect(temple.name, originalExpected[slug]);
+      expect(temple.city, originalMeta[slug]!.city);
+      expect(temple.deity, originalMeta[slug]!.deity);
     }
   });
 
@@ -64,11 +69,17 @@ void main() {
       expect(temple.specialities, isNotEmpty);
       expect(temple.latitude, inInclusiveRange(8.0, 14.0));
       expect(temple.longitude, inInclusiveRange(76.0, 81.0));
-      expect(
-        temple.imageUrl,
-        startsWith('https://picsum.photos/seed/'),
-      );
       expect(temple.images, isEmpty);
+      final slug = templeDocumentId(temple.name);
+      if (originalExpected.containsKey(slug)) {
+        expect(
+          temple.imageUrl,
+          startsWith('https://picsum.photos/seed/'),
+        );
+      } else {
+        // KAN-74 Hybrid C: expansion temples keep empty covers.
+        expect(temple.imageUrl, isEmpty);
+      }
     }
   });
 

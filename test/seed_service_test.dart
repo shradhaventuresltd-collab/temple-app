@@ -21,7 +21,7 @@ void main() {
   test('sample temple slugs are unique (seed will not collide)', () {
     final slugs = sampleTemples.map((t) => templeDocumentId(t.name)).toList();
     expect(slugs.toSet().length, slugs.length);
-    expect(slugs.length, 150);
+    expect(slugs.length, 180);
   });
 
   test('SeedResult.successMessage covers create and update cases', () {
