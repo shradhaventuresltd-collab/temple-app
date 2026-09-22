@@ -199,7 +199,7 @@ class _AdminTempleFormScreenState extends State<AdminTempleFormScreen> {
                 controller: _state,
                 label: 'State',
                 hint:
-                    'Tamil Nadu, Kerala, Karnataka, Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, Jammu and Kashmir',
+                    'Tamil Nadu, Kerala, Karnataka, Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, Jammu and Kashmir, Maharashtra, Rajasthan, West Bengal, Madhya Pradesh, Bihar, Himachal Pradesh',
                 fieldKey: 'state',
                 textInputAction: TextInputAction.next,
               ),

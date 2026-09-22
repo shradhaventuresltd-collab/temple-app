@@ -39,7 +39,7 @@ void main() {
   };
 
   test('Tamil Nadu sample remains ten distinct seeded temples', () {
-    expect(sampleTemples.length, 90);
+    expect(sampleTemples.length, 150);
     expect(tamilNadu.length, 10);
 
     final slugs = tamilNadu.map((t) => templeDocumentId(t.name)).toList();

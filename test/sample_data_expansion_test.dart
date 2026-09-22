@@ -4,22 +4,31 @@ import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/services/seed_service.dart';
 
 void main() {
-  test('sample directory covers nine states and ninety temples', () {
-    expect(sampleTemples.length, 90);
-    expect(sampleTemples.map((t) => t.state).toSet(), {
-      'Tamil Nadu',
-      'Kerala',
-      'Karnataka',
-      'Andhra Pradesh',
-      'Telangana',
-      'Gujarat',
-      'Odisha',
-      'Uttar Pradesh',
-      'Jammu and Kashmir',
-    });
-    final slugs = sampleTemples.map((t) => templeDocumentId(t.name)).toList();
-    expect(slugs.toSet().length, slugs.length);
-  });
+  test(
+    'sample directory covers fifteen states and one hundred fifty temples',
+    () {
+      expect(sampleTemples.length, 150);
+      expect(sampleTemples.map((t) => t.state).toSet(), {
+        'Tamil Nadu',
+        'Kerala',
+        'Karnataka',
+        'Andhra Pradesh',
+        'Telangana',
+        'Gujarat',
+        'Odisha',
+        'Uttar Pradesh',
+        'Jammu and Kashmir',
+        'Maharashtra',
+        'Rajasthan',
+        'West Bengal',
+        'Madhya Pradesh',
+        'Bihar',
+        'Himachal Pradesh',
+      });
+      final slugs = sampleTemples.map((t) => templeDocumentId(t.name)).toList();
+      expect(slugs.toSet().length, slugs.length);
+    },
+  );
 
   test('Andhra Pradesh expansion is ten new seeded temples', () {
     final rows = sampleTemples

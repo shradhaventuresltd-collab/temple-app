@@ -39,7 +39,7 @@ void main() {
   };
 
   test('Kerala sample remains ten distinct seeded temples', () {
-    expect(sampleTemples.length, 90);
+    expect(sampleTemples.length, 150);
     expect(kerala.length, 10);
 
     final slugs = kerala.map((t) => templeDocumentId(t.name)).toList();
