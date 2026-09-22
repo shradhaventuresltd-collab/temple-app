@@ -4465,4 +4465,3138 @@ const List<Temple> sampleTemples = [
       'Paired geographically with Mantalai (Shiva–Parvati vivah legend)',
     ],
   ),
+
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  MAHARASHTRA
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Expansion batch 10 — new temples, not enrichments of existing rows.
+  // Cover imageUrl values are picsum placeholders. Commons candidates
+  // stay in docs/maharashtra-sample-research.md, not Storage paths.
+  Temple(
+    name: 'Shree Saibaba Samadhi Mandir',
+    state: 'Maharashtra',
+    city: 'Shirdi',
+    deity: 'Sai Baba',
+    imageUrl: 'https://picsum.photos/seed/shree-saibaba-samadhi-mandir/800/600',
+    description:
+        'Samadhi shrine of Sai Baba of Shirdi in Ahmednagar district, '
+        'administered by Shree Saibaba Sansthan Trust; among India’s most '
+        'visited living pilgrimage centres, with Dwarkamai, Chavadi, and '
+        'Gurusthan in the same sacred campus.',
+    story:
+        'Shree Saibaba Samadhi Mandir in Shirdi marks the resting place of '
+        'Sai Baba of Shirdi (d. 1918), the saint whose teaching “Sabka '
+        'Malik Ek” (One God governs all) draws Hindu, Muslim, and other '
+        'devotees together. The marble samadhi and seated idol stand in '
+        'the main mandir; the wider Sansthan precinct includes Dwarkamai '
+        '(the mosque-like hall where Baba kept the eternal dhuni fire), '
+        'Chavadi, Gurusthan, Lendi Baug, and related memorials.\n\nDaily '
+        'worship under Shree Saibaba Sansthan Trust (SSST) follows a dense '
+        'aarti rhythm published on sai.org.in: temple open before dawn, '
+        'Bhupali, Kakad (morning) Aarti, Mangal Snaan, the “Shirdi Majhe '
+        'Pandharpur” aarti, then general darshan; Mid-day (Madhyan) Aarti '
+        'at noon; Dhoop Aarti at sunset; evening bhajans; and Shej Aarti '
+        'at night. Online darshan and aarti passes are issued only through '
+        'the Trust portal (online.sai.org.in); SSST publicly warns that it '
+        'does not authorise agents.\n\nMajor observances include Baba’s '
+        'Punyatithi / Maha Samadhi day, Ram Navami processions between '
+        'Dwarkamai and Chavadi, Guru Purnima, and Vijayadashami. Security '
+        'screening is airport-style on peak days; carry government ID '
+        'matching any booked pass and follow on-site locker and phone '
+        'rules.\n\nVisitor notes should stick to Sansthan-published '
+        'clocks, booking procedure, and campus geography — re-check '
+        'sai.org.in / online.sai.org.in before travel, especially on '
+        'festival weeks.',
+    location:
+        'Shree Saibaba Sansthan Trust, Shirdi, Ahmednagar district, '
+        'Maharashtra 423109',
+    timings:
+        'Official SSST daily programme (sai.org.in / daily-programme): '
+        'Temple Open 4:45 AM; Bhupali 5:00 AM; Kakad Aarti (morning) 5:15 '
+        'AM; Mangal Snaan in Samadhi Mandir 5:50 AM; Aarti “Shirdi Majhe '
+        'Pandharpur” 6:20 AM; Darshan begins in Samadhi Mandir 6:25 AM; '
+        'Dhuni pooja with rice and ghee in Dwarkamai 11:30 AM; Mid-day '
+        'Aarti 12:00 PM; Pothi (devotional reading) in Samadhi Mandir 4:00 '
+        'PM; Dhoop Aarti at sunset; Devotional songs / cultural programmes '
+        '~8:30–10:00 PM; Shej Aarti 10:00 PM. Festival days and '
+        'online-pass rules can override — confirm on sai.org.in and book '
+        'only at online.sai.org.in.',
+    latitude: 19.7667,
+    longitude: 74.4772,
+    specialities: [
+      'Samadhi shrine of Sai Baba of Shirdi (d. 1918)',
+      'Dwarkamai dhuni, Chavadi, Gurusthan in same Sansthan campus',
+      'Four named daily aartis: Kakad, Madhyan, Dhoop (sunset), Shej',
+      'Official online darshan & aarti booking (online.sai.org.in only)',
+      'Teaching motto “Sabka Malik Ek” — multi-faith pilgrimage draw',
+      'Ram Navami Dwarkamai–Chavadi procession tradition',
+    ],
+  ),
+
+  Temple(
+    name: 'Siddhivinayak Temple',
+    state: 'Maharashtra',
+    city: 'Mumbai',
+    deity: 'Ganesha',
+    imageUrl: 'https://picsum.photos/seed/siddhivinayak-temple/800/600',
+    description:
+        'Famous Siddhi Vinayak (wish-granting Ganesha) temple in '
+        'Prabhadevi, Mumbai, founded in 1801 and managed by Shree '
+        'Siddhivinayak Ganapati Mandir Trust; among the city’s most '
+        'visited living shrines.',
+    story:
+        'Shree Siddhivinayak Ganapati Mandir in Prabhadevi is dedicated to '
+        'Siddhi Vinayak — Ganesha as the granter of siddhi '
+        '(accomplishment). The living temple was consecrated on 19 '
+        'November 1801 by Laxman Vithu Patil and Deubai Patil. The '
+        'black-stone idol is traditionally described with a right-turned '
+        'trunk (a form many devotees treat as especially potent), and the '
+        'wooden sanctum doors carry carvings of the Ashtavinayaka — '
+        'Maharashtra’s eight sacred Ganesha forms.\n\nDaily worship under '
+        'the Shree Siddhivinayak Ganapati Mandir Trust follows published '
+        'Kakad, Naivedhya, evening Dhup/Aarti, and Shejaarti windows that '
+        'differ on ordinary weekdays versus Tuesdays (Ganesha’s weekly '
+        'high day) and on Vinayaki / Sankashti / Maghi Jayanti / Bhadrapad '
+        'Chaturthi. Ordinary darshan is free; paid sevas and abhishek are '
+        'bookable through the Trust. The dome and exterior lighting make '
+        'the shrine a recognisable Mumbai landmark after dark.\n\nGanesh '
+        'Chaturthi, Sankashti Chaturthi, and Tuesdays draw the heaviest '
+        'queues. Security screening and locker rules apply; follow Trust '
+        'boards on phones and offerings. Confirm the live day-type board '
+        'on siddhivinayak.org before travel — festival and Tuesday clocks '
+        'override the Wednesday–Monday default.',
+    location:
+        'SK Bole Marg, Prabhadevi, Mumbai, Maharashtra 400028',
+    timings:
+        'Official Trust board (siddhivinayak.org/temple-schedule). '
+        'Wednesday–Monday: Kakad Aarti 5:30–6:00 AM; Shree Darshan 6:00 '
+        'AM–12:00 PM; Naivedhya 12:05–12:30 PM; Darshan 12:30–7:00 PM; '
+        'Evening Dhup Aarti 7:00–7:10 PM; brief darshan 7:10–7:20 PM; '
+        'Evening Aarti 7:30–8:00 PM; Darshan 8:00–9:50 PM; Shejaarti 9:50 '
+        'PM (gabhara closes after Shejaarti). Tuesdays: early darshan '
+        '3:15–4:45 AM; Kakad 5:00–5:30 AM; then extended day with night '
+        'pooja/aarti ~9:00–10:10 PM, late darshan to ~11:30 PM, Shejaarti '
+        '~11:45 PM (main doors close ~11:30 PM for devotees). Vinayaki / '
+        'Sankashti / Maghi Jayanti / Bhadrapad Chaturthi have separate '
+        'published boards — confirm on siddhivinayak.org.',
+    latitude: 19.0169,
+    longitude: 72.8304,
+    specialities: [
+      'Siddhi Vinayak — right-trunk Ganesha idol',
+      'Consecrated 19 November 1801 (Laxman Vithu & Deubai Patil)',
+      'Ashtavinayaka carvings on sanctum doors',
+      'Distinct Tuesday & Chaturthi day boards (Trust)',
+      'Among Mumbai’s highest-footfall living temples',
+      'Official Trust portal for sevas / live darshan',
+    ],
+  ),
+
+  Temple(
+    name: 'Trimbakeshwar Temple',
+    state: 'Maharashtra',
+    city: 'Trimbak',
+    deity: 'Shiva',
+    imageUrl: 'https://picsum.photos/seed/trimbakeshwar-temple/800/600',
+    description:
+        'One of the twelve Jyotirlinga shrines of Shiva at Trimbak near '
+        'Nashik, at the source region of the Godavari; the linga is '
+        'traditionally described as three-faced (Brahma–Vishnu–Shiva).',
+    story:
+        'Trimbakeshwar (Tryambakeshwar) is one of the twelve Jyotirlinga '
+        'sites of Shiva, set in the Trimbak hills of Nashik district near '
+        'the traditional source of the Godavari. The extraordinary feature '
+        'devotees note is a three-faced linga embodying the Tridev — '
+        'Brahma, Vishnu, and Shiva — rather than a single plain linga '
+        'form.\n\nThe present black-basalt temple was rebuilt in the '
+        'mid-18th century by Peshwa Balaji Bajirao (Nanasaheb) on an older '
+        'sacred site. Four directional mahadwars (east, west, south, '
+        'north) organise pilgrim entry. Kushavarta kund and Brahmagiri / '
+        'Godavari-source geography make Trimbak a key stop on Godavari and '
+        'Nashik–Kumbh pilgrimage circuits; the town hosts major Simhastha '
+        'Kumbh-related activity when the Nashik–Trimbak cycle '
+        'falls.\n\nDaily worship under Shri Trimbakeshwar Devasthan Trust '
+        'follows three named puja windows — morning Brahma puja, mid-day '
+        'Mahadev puja, and evening Vishnu puja — with general darshan '
+        'published as 05:30 AM–09:00 PM. Rudrabhishek and donation/VIP '
+        'darshan passes are handled through Trust counters / online VIP '
+        'booking on the Trust site. Maha Shivaratri and Shravan Mondays '
+        'are among the year’s densest days.\n\nConfirm live clocks and '
+        'pass rules on trimbakeshwartrust.com before travel; festival '
+        'boards override ordinary hours.',
+    location:
+        'Trimbakeshwar, Nashik district, Maharashtra 422212',
+    timings:
+        'Official Trust home board: temple open for darshan 05:30 AM–09:00 '
+        'PM. Daily programme (Trust): Morning Puja — Puja of Brahma Deva '
+        '~7:00–8:30 AM; Mid-Day Puja — Puja of Mahadev ~10:45 AM–12:30 PM; '
+        'Evening Puja — Vishnu Puja ~7:00–8:30 PM (festival days may '
+        'change). Donation/VIP darshan and Rudrabhishek via Trust counters '
+        '/ online VIP page — confirm fees and QR-pass rules on '
+        'trimbakeshwartrust.com before travel.',
+    latitude: 19.9322,
+    longitude: 73.5308,
+    specialities: [
+      'One of the twelve Jyotirlinga shrines',
+      'Three-faced linga (Brahma–Vishnu–Shiva / Tridev)',
+      'At Godavari source region (Brahmagiri / Kushavarta)',
+      'Peshwa Balaji Bajirao (Nanasaheb) mid-18th-c. rebuild',
+      'Three daily named pujas (Brahma / Mahadev / Vishnu)',
+      'Nashik–Trimbak Simhastha Kumbh circuit stop',
+    ],
+  ),
+
+  Temple(
+    name: 'Bhimashankar Temple',
+    state: 'Maharashtra',
+    city: 'Bhimashankar',
+    deity: 'Shiva',
+    imageUrl: 'https://picsum.photos/seed/bhimashankar-temple/800/600',
+    description:
+        'Jyotirlinga shrine of Shiva deep in the Sahyadri (Western Ghats) '
+        'of Pune district, inside the Bhimashankar Wildlife Sanctuary '
+        'landscape; traditional Dakini–Shakini Bhimashankar of the Dvadasa '
+        'Jyotirlinga stotra.',
+    story:
+        'Bhimashankar is one of the twelve Jyotirlinga shrines, set high '
+        'in the Sahyadris of Pune district amid the Bhimashankar Wildlife '
+        'Sanctuary. Shaiva tradition links the site to Shiva’s destruction '
+        'of the demon Tripurasura and to the origin of the Bhima river '
+        'from divine sweat; the Dvadasa Jyotirlinga verse names “Dakinyam '
+        'Bhimashankaram.” Kamalaja Mata (Parvati) has a related shrine in '
+        'the same sacred landscape.\n\nThe stone temple fabric mixes '
+        'Hemadpanti / Nagara elements; the garbha griha sits a few steps '
+        'below courtyard level around a swayambhu linga. Maratha patronage '
+        '(including traditions associating Chhatrapati Shivaji and later '
+        'Peshwa grants) sustained worship; modern Devasthan administration '
+        'publishes a full daily pooja/darshan board on '
+        'shreebhimashankar.com.\n\nAbhishek and darshan rhythms typically '
+        'include early worship, morning–afternoon abhishek windows, midday '
+        'naivedya pause, afternoon worship pause, evening worship, and '
+        'close by late evening. Construction / development notices on the '
+        'official site have at times restricted public darshan to a '
+        'morning-only window — always read the live banner. Kartik Purnima '
+        '(Tripurari tradition), Maha Shivaratri, and Shravan Mondays are '
+        'peak.\n\nCombine spiritual visit with monsoon-road and sanctuary '
+        'advisories; fog and winding ghat roads affect timing.',
+    location:
+        'Bhimashankar, Khed taluka, Pune district, Maharashtra 410509',
+    timings:
+        'Official Devasthan daily board (shreebhimashankar.com/en): Temple '
+        'opens 5:00 AM; Worship 5:00–5:30 AM; Darshan & Abhishekam 5:30 '
+        'AM–12:00 noon; Naivedyam puja 12:00–12:20 PM; Darshan & '
+        'Abhishekam 12:20–2:45 PM; Worship 2:45–3:20 PM; Dev Darshan '
+        '3:20–7:30 PM; Worship 7:30–8:00 PM; Dev Darshan 8:00–9:30 PM; '
+        'Temple closes 9:30 PM. IMPORTANT: the same official site has '
+        'posted construction notices restricting darshan to 7:00–11:00 AM '
+        'when Sabhamandap/stair works run — and district notices have also '
+        'restored full-day windows (e.g. Shravan). Always re-check the '
+        'live banner on shreebhimashankar.com before travel.',
+    latitude: 19.072,
+    longitude: 73.535,
+    specialities: [
+      'One of the twelve Jyotirlinga shrines (Dakini–Shakini Bhimashankar)',
+      'Sahyadri / Bhimashankar Wildlife Sanctuary setting',
+      'Bhima river origin lore; Kamalaja Mata shrine nearby',
+      'Hemadpanti–Nagara stone fabric; below-grade garbha griha',
+      'Kartik Purnima Tripurasura-victory tradition',
+      'Official full day board — subject to construction notices',
+    ],
+  ),
+
+  Temple(
+    name: 'Grishneshwar Temple',
+    state: 'Maharashtra',
+    city: 'Verul',
+    deity: 'Shiva',
+    imageUrl: 'https://picsum.photos/seed/grishneshwar-temple/800/600',
+    description:
+        'Twelfth Jyotirlinga shrine of Shiva at Verul near the Ellora '
+        'Caves; compact red-stone temple closely paired with UNESCO Ellora '
+        'on the same pilgrimage day-trip from Chhatrapati Sambhajinagar.',
+    story:
+        'Grishneshwar (also Ghushmeshwar / Grushneswar / Kusumeshwar) is '
+        'counted as the twelfth and final Jyotirlinga in many listings of '
+        'the Dvadasa Jyotirlinga. The living temple stands at Verul '
+        'village, a short distance from the Ellora Caves (UNESCO), in '
+        'Chhatrapati Sambhajinagar district (formerly '
+        'Aurangabad).\n\nPuranic lore associated with the site centres on '
+        'the devotee Ghushma / Kusuma and a restored child at the '
+        'Shivalaya tank; historically the shrine was rebuilt and restored '
+        'under Maratha patrons — commonly linked to Maloji Bhosale and '
+        'later Ahilyabai Holkar. The compact south–north blend stone '
+        'temple is among the smaller Jyotirlinga complexes, which '
+        'intensifies queues on Shravan Mondays and Maha '
+        'Shivaratri.\n\nIncredible India publishes opening 05:30 AM, '
+        'closing 09:30 PM, with aarti markers at 5:30 AM, 12:00 PM, 7:00 '
+        'PM, and 9:30 PM. Men are customarily asked to enter the garbha '
+        'griha bare-chested; devotees may be allowed to touch the linga — '
+        'follow on-site priest/security instructions. A midday break is '
+        'claimed by some visitor guides and denied by others — treat '
+        'continuous vs split afternoon hours as provisional and confirm '
+        'locally.\n\nCombine with Ellora (closed Tuesdays) in one day when '
+        'queues allow; Ellora ticket and Grishneshwar free-darshan rules '
+        'differ.',
+    location:
+        'Verul (Ellora), Chhatrapati Sambhajinagar district, Maharashtra '
+        '431102',
+    timings:
+        'Incredible India visitor board: Opening 05:30 AM, Closing 09:30 '
+        'PM; Aarti markers listed at 5:30 AM, 12:00 PM, 7:00 PM, and 9:30 '
+        'PM. Secondary guides often split darshan ~5:30 AM–12:00 PM and '
+        '~4:00–9:30 PM (midday break) while others claim continuous hours '
+        '— provisional / confirm on-site; no strong single official '
+        'Devasthan English clock page found. Shravan and Maha Shivaratri '
+        'commonly extend hours. Free general darshan; abhishek typically '
+        'counter-booked locally. Thin official English pooja clock.',
+    latitude: 20.0248,
+    longitude: 75.1699,
+    specialities: [
+      'Twelfth Jyotirlinga (Grishneshwar / Ghushmeshwar)',
+      'Adjacent to UNESCO Ellora Caves (Verul)',
+      'Ahilyabai Holkar / Maratha rebuild associations',
+      'Compact red-stone shrine; touchable linga custom often noted',
+      'Shivalaya Tirtha tank lore',
+      'Incredible India published open/close + aarti markers',
+    ],
+  ),
+
+  Temple(
+    name: 'Vitthal Rukmini Temple',
+    state: 'Maharashtra',
+    city: 'Pandharpur',
+    deity: 'Vitthal',
+    imageUrl: 'https://picsum.photos/seed/vitthal-rukmini-temple/800/600',
+    description:
+        'Principal Varkari pilgrimage temple of Vitthal (Vithoba) and '
+        'Rukmini on the Chandrabhaga (Bhima) at Pandharpur; emotional '
+        'heart of Maharashtra’s Wari tradition.',
+    story:
+        'Shri Vitthal Rukmini Mandir in Pandharpur is the spiritual centre '
+        'of the Varkari sampradaya. Vitthal (Vithoba / Panduranga) — a '
+        'standing form of Vishnu/Krishna with hands on hips — and Rukmini '
+        '(Rakhumai) are the presiding deities. The Chandrabhaga (Bhima) '
+        'river and the Namdev Payari (steps associated with the saint '
+        'Namdev) structure pilgrim approach to the sanctum.\n\nDaily '
+        'worship published by Shri Vitthal Rukmini Mandir Samiti opens '
+        'with Namdev Payari door at 4:00 AM, Kakad Aarti and nitya pooja, '
+        'then long darshan windows interrupted for Maha Naivedya, Poshakh '
+        '(dressing), Dhoop Arati, and late-night Shej Arati. Ashadhi '
+        'Ekadashi and Kartiki Ekadashi Waris bring hundreds of thousands '
+        'of palkhi pilgrims from across Maharashtra; on those yatra peaks '
+        'the temple often runs near-continuous access under Samiti crowd '
+        'plans.\n\nArchitecture mixes Hemadpanti stone fabric with later '
+        'additions; the black-stone Vitthal image and the adjacent Rukmini '
+        'shrine define the darshan circuit. Dress and conduct follow '
+        'Samiti boards; leather and improper attire are '
+        'discouraged.\n\nConfirm daily_schedule.php and any temporary '
+        'closure notices on vitthalrukminimandir.org before travel — yatra '
+        'weeks and special sevas override ordinary clocks.',
+    location:
+        'Shri Vitthal Rukmini Mandir Samiti, Pandharpur, Solapur district, '
+        'Maharashtra 413304',
+    timings:
+        'Official Mandir Samiti daily schedule '
+        '(vitthalrukminimandir.org/daily_schedule.php): 4:00 AM — Opening '
+        'of Shri’s Namdev Payari Door; 4:00–5:30 AM — Kakad Aarti and '
+        'Nitya Pooja. Darshan: 6:00–11:00 AM (closed 10:45–11:00 AM for '
+        'Maha Naivedya); 11:15 AM–4:30 PM (closed ~4:40–5:00 PM for Shri’s '
+        'Poshakh); 5:00–11:15 PM. Evening: Dhoop Arati 6:45–7:00 PM; Shej '
+        'Arati 12:00–1:00 AM. Namdev Payari Door remains closed 1:00–4:00 '
+        'AM. Ashadhi / Kartiki yatra weeks and announced special closures '
+        'override — confirm on vitthalrukminimandir.org.',
+    latitude: 17.6746,
+    longitude: 75.3237,
+    specialities: [
+      'Presiding deities Vitthal (Vithoba) & Rukmini (Rakhumai)',
+      'Heart of the Varkari / Wari pilgrimage (Ashadhi & Kartiki Ekadashi)',
+      'Namdev Payari approach steps',
+      'On the Chandrabhaga (Bhima) at Pandharpur',
+      'Official Samiti kakad / naivedya / poshakh / dhoop / shej board',
+      'Standing Vitthal iconography (hands on hips)',
+    ],
+  ),
+
+  Temple(
+    name: 'Mumba Devi Temple',
+    state: 'Maharashtra',
+    city: 'Mumbai',
+    deity: 'Devi',
+    imageUrl: 'https://picsum.photos/seed/mumba-devi-temple/800/600',
+    description:
+        'Ancient city-goddess temple of Mumba Devi (Mumbaai) in '
+        'Bhuleshwar–Zaveri Bazar; Mumbai’s name is traditionally derived '
+        'from this Devi, patron of the Koli fishing community and the '
+        'metropolis.',
+    story:
+        'Mumba Devi Temple (Mumbadevi Mandir) honours Goddess Mumba — a '
+        'form of Shakti / Devi regarded as the gramadevata and patron of '
+        'Mumbai. The city’s modern name is widely explained as an eponym '
+        'of Mumba + Aai (“mother”). Koli fishermen, among Mumbai’s early '
+        'inhabitants, especially revere her as guardian.\n\nThe present '
+        'shrine in the dense Bhuleshwar / Zaveri Bazar cloth-and-jewellery '
+        'quarter is commonly dated to an 18th-century rebuild on an older '
+        'sacred site (earlier waterfront locations are remembered in local '
+        'tradition as the island city grew). The colourful sikhara and '
+        'compact sanctum sit amid bazaar lanes; subsidiary shrines '
+        '(including Hanuman and other Devi forms noted on the Trust site) '
+        'share the campus.\n\nShree Mumbadevi Mandir Charities publishes a '
+        'clear named aarti board — Mangal, Main, Naivaidya, Dhoop, evening '
+        'Main, and Shayan — and offers live darshan streaming on the '
+        'official site. Magh, Chaitra, Ashadh (Gupt), and Ashvin Navratri '
+        'periods, plus monthly Purnima observances, are among the busiest '
+        'calendars.\n\nContinuous open/close span is less explicitly '
+        'tabulated than the aarti list on the public English home page — '
+        'treat full darshan-window edges as confirm-on-site while relying '
+        'on the Trust aarti times.',
+    location:
+        'Mumbadevi Road, Zaveri Bazar / Bhuleshwar, Mumbai, Maharashtra '
+        '400002',
+    timings:
+        'Official Trust aarti board (mumbadevi.org.in): Mangal Aarti 06:30 '
+        'AM; Main Aarti 09:30 AM; Naivaidya Aarti 12:15 PM; Dhoop Aarti '
+        '06:30 PM; Main Aarti 08:00 PM; Shayan Aarti 08:50 PM. Continuous '
+        'darshan commonly runs with these aartis from morning open through '
+        'Shayan / ~9:00 PM close (full open–close span thinner on public '
+        'English pages — confirm on-site or Trust office). Navratri and '
+        'festival days extend or shift boards — re-check mumbadevi.org.in.',
+    latitude: 18.95,
+    longitude: 72.83,
+    specialities: [
+      'Patron / city goddess of Mumbai (name-etymology tradition)',
+      'Especially revered by the Koli community',
+      'Bhuleshwar–Zaveri Bazar historic bazaar setting',
+      'Official named six-aarti daily board',
+      'Multiple Navratri observances (Magh / Chaitra / Ashadh / Ashvin)',
+      'Official live-darshan streaming on Trust site',
+    ],
+  ),
+
+  Temple(
+    name: 'Mahalakshmi Temple',
+    state: 'Maharashtra',
+    city: 'Mumbai',
+    deity: 'Devi',
+    imageUrl: 'https://picsum.photos/seed/mahalakshmi-temple/800/600',
+    description:
+        'Prominent seaside Devi temple on Bhulabhai Desai Road at '
+        'Mahalaxmi, Mumbai, housing Mahalakshmi with Mahakali and '
+        'Mahasaraswati; major Navratri pilgrimage site for the city.',
+    story:
+        'Shri Mahalakshmi Temple on Bhulabhai Desai Road is one of '
+        'Mumbai’s principal Shakti temples. The sanctum traditionally '
+        'houses three goddesses — Mahalakshmi, Mahakali, and Mahasaraswati '
+        '— worshipped as complementary forms of Devi. The temple faces the '
+        'Arabian Sea near the historic Breach Candy / Mahalaxmi shoreline '
+        'and gives its name to the surrounding neighbourhood and railway '
+        'station.\n\nMaratha-period and later rebuilds shape the living '
+        'complex pilgrims enter today; the site is woven into Bombay '
+        'island lore of the Mahalaxmi vellard and reclaimed foreshore. '
+        'Daily worship under Shri Mahalaxmi Temple Trust follows published '
+        'darshan hours with mandatory closures during Morning Aarti, '
+        'midday Naivedya, Evening Dhoop Aarti, and Evening '
+        'Aarti.\n\nSharad Navratri is the year’s climax — Trust notices '
+        'commonly extend closing toward midnight and queues stretch for '
+        'hours. Fridays and Tuesdays also run busier than mid-week '
+        'mornings. Photography inside the sanctum is prohibited; entry is '
+        'free with optional booked special poojas.\n\nConfirm festival '
+        'boards on mahalakshmi-temple.com before Navratri or Diwali travel.',
+    location:
+        'Bhulabhai Desai Road, Mahalaxmi, Mumbai, Maharashtra 400026',
+    timings:
+        'Official Trust board (mahalakshmi-temple.com/darshan): Darshan '
+        'hours 6:00 AM–10:00 PM daily, but temple remains closed for '
+        'darshan during: Morning Aarti 6:45–7:30 AM; Naivedya 11:45 '
+        'AM–12:20 PM; Evening Dhoop Aarti 6:15–6:40 PM; Evening Aarti '
+        '7:20–7:45 PM. Sharad Navratri often extends toward midnight — '
+        'confirm festival notice on the Trust site. Free entry; special '
+        'poojas bookable via Trust channels.',
+    latitude: 18.9777,
+    longitude: 72.8068,
+    specialities: [
+      'Triad: Mahalakshmi, Mahakali, Mahasaraswati',
+      'Seaside Bhulabhai Desai Road / Breach Candy setting',
+      'Major Mumbai Sharad Navratri destination',
+      'Official Trust aarti + naivedya closure board',
+      'Free darshan; neighbourhood namesake (Mahalaxmi)',
+      'Photography prohibited in sanctum',
+    ],
+  ),
+
+  Temple(
+    name: 'Jejuri Khandoba Temple',
+    state: 'Maharashtra',
+    city: 'Jejuri',
+    deity: 'Khandoba',
+    imageUrl: 'https://picsum.photos/seed/jejuri-khandoba-temple/800/600',
+    description:
+        'Hilltop Martand / Khandoba temple at Jejuri (Sonyachi Jejuri), '
+        'the premier shrine of Khandoba — Maharashtra’s widely worshipped '
+        'guardian deity often identified with a fierce form of Shiva / '
+        'Martanda Bhairava.',
+    story:
+        'Jejuri’s Khandoba Temple (Shri Martand Mandir) crowns a fortified '
+        'hill in Purandar taluka, Pune district. Khandoba (Malhari Martand '
+        '/ Malhar) is among Maharashtra’s most popular folk-deities — a '
+        'warrior-guardian figure commonly identified with Martanda '
+        'Bhairava, a fierce aspect of Shiva, worshipped with turmeric '
+        '(bhandara), sword lore, and dog companions. The turmeric-dusted '
+        'steps and deepmalas give Jejuri its popular name Sonyachi Jejuri '
+        '(“Golden Jejuri”).\n\nPilgrims climb a long stair flight through '
+        'gateways to the stone temple and courtyard. Champa Shashti and '
+        'other Khandoba yatras / jatras draw massive throngs; Somvati '
+        'Amavasya and weekly patterns also swell footfall. Shri Martand '
+        'Dev Sansthan publishes online darshan-pass booking with defined '
+        'morning and afternoon windows and fixed donation-pass fees, and '
+        'states it has no authorised booking agents.\n\nExpect turmeric '
+        'play (bhandara) in festival seasons — clothing will stain. '
+        'Footwear rules and prohibited-item boards are strict in the '
+        'gadkot (fort-temple) enclosure. Combine with Ashtavinayak Morgaon '
+        '(nearby) only with realistic travel time between hill '
+        'queues.\n\nConfirm pass windows and yatra overrides on '
+        'khandoba.com before travel.',
+    location:
+        'Shri Martand Dev Sansthan, Jejuri, Purandar taluka, Pune '
+        'district, Maharashtra 412303',
+    timings:
+        'Official Shri Martand Dev Sansthan online-darshan rules '
+        '(khandoba.com): Darshan time 7:00 AM–12:00 noon and 1:00 PM–7:00 '
+        'PM; darshan-pass donation fees published as ₹100 / ₹200 per '
+        'person; Aadhaar + mobile + email required for booking; Trust '
+        'states no authorised agents. Yatra / jatra / Saturday–Sunday / '
+        'holiday crowd plans can alter pass availability. Hill approach '
+        'may open earlier for stairs — inner sanctum pass windows above '
+        'are the Trust-published ones; confirm on khandoba.com.',
+    latitude: 18.2722,
+    longitude: 74.1603,
+    specialities: [
+      'Premier Khandoba (Malhari Martand) shrine — Sonyachi Jejuri',
+      'Turmeric (bhandara) pilgrimage culture',
+      'Hilltop gadkot stone temple with long stair ascent',
+      'Champa Shashti and major Khandoba yatras',
+      'Official online darshan-pass booking (Trust)',
+      'Often paired with nearby Ashtavinayak Morgaon day trips',
+    ],
+  ),
+
+  Temple(
+    name: 'Morgaon Mayureshwar Temple',
+    state: 'Maharashtra',
+    city: 'Morgaon',
+    deity: 'Ganesha',
+    imageUrl: 'https://picsum.photos/seed/morgaon-mayureshwar-temple/800/600',
+    description:
+        'Shri Mayureshwar (Moreshwar) Ganpati temple at Morgaon — first '
+        'and last stop of the Ashtavinayak circuit and a historic centre '
+        'of the Ganapatya tradition.',
+    story:
+        'Shri Mayureshwar Temple at Morgaon (also Moreshwar) is the first '
+        'and concluding shrine of Maharashtra’s Ashtavinayak yatra — the '
+        'eight sacred Ganesha temples. The deity is Mayureshwar / '
+        'Mayuresvara, Ganesha as the peacock-mounted slayer of the demon '
+        'Sindhu (Siṁdhu) in local Purana-linked lore; the village name is '
+        'popularly tied to mora (peacock).\n\nThe black-stone temple is '
+        'often described with a distinctive plan (commonly called '
+        'star-like / mandala-influenced in tourism literature) and an '
+        'unusual Nandi in a Ganesha precinct, underscoring '
+        'Shaiva–Ganapatya links. The swayambhu idol faces east, flanked by '
+        'Riddhi and Siddhi in popular description. Administration falls '
+        'under Chinchwad Devasthan Trust, which publishes named daily '
+        'aarti and puja markers for Morgaon.\n\nGanesh Chaturthi '
+        '(Bhadrapada), Maghi Ganesh Jayanti, palanquin processions on '
+        'Shashti of Bhadrapada and Magha, and monthly Sankashti Chaturthi '
+        'are major observances. Devotees often begin and end the full '
+        'Ashtavinayak circuit here, treating Morgaon as the spiritual '
+        'headquarters of the eightfold Ganesha pilgrimage.\n\nContinuous '
+        'open/close darshan spans are clearer in secondary yatra guides '
+        'than on the Trust’s English ritual list — pack Trust aarti times '
+        'as authoritative and label long visiting windows as provisional.',
+    location:
+        'Chinchwad Deosthan Trust Office, Morgaon, Baramati taluka, Pune '
+        'district, Maharashtra 412304',
+    timings:
+        'Official Chinchwad Devasthan Trust ritual markers '
+        '(morgaon.chinchwaddeosthan.org): 5:00 AM Kakad Aarti; 5:30 AM '
+        'Prakshal Puja; 7:00 AM Panchaopachar Puja, Naivedya & Dhuparati; '
+        '12:00 PM Mahapuja & Mahanaivedya; 3:00 PM Prakshal Puja & '
+        'Poshakh; 8:00 PM Dhuparati & Aarti to Avaran deities; 8:30 PM '
+        'Maha Aarti & Mantrapushpa; 10:30 PM Shejarati. Secondary '
+        'Ashtavinayak guides commonly cite visiting/darshan ~5:00 AM–12:00 '
+        'PM and ~3:00–10:00 PM (provisional continuous windows — confirm '
+        'locally / Trust office). Festival days (esp. Bhadrapada '
+        'Chaturthi) override.',
+    latitude: 18.276,
+    longitude: 74.321,
+    specialities: [
+      'First and last temple of the Ashtavinayak circuit',
+      'Mayureshwar / Moreshwar — peacock-mounted Ganesha lore',
+      'Historic Ganapatya centre (Chinchwad Devasthan Trust)',
+      'Unusual Nandi presence in a Ganesha temple precinct',
+      'Bhadrapada & Magha Chaturthi / Shashti processions',
+      'Trust-published kakad through shejarati ritual board',
+    ],
+  ),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  RAJASTHAN
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Expansion batch 11 — new temples, not enrichments of existing rows.
+  // Dilwara is a Jain tirtha, not a Hindu temple. Cover imageUrl
+  // values are picsum placeholders. Commons candidates stay in
+  // docs/rajasthan-sample-research.md, not Storage paths.
+  Temple(
+    name: 'Brahma Temple',
+    state: 'Rajasthan',
+    city: 'Pushkar',
+    deity: 'Brahma',
+    imageUrl: 'https://picsum.photos/seed/brahma-temple/800/600',
+    description:
+        'Rare living temple to the creator-god Brahma beside sacred '
+        'Pushkar Lake, with a distinctive red shikhara and marble sanctum; '
+        'Kartik Purnima bath-and-darshan is the year’s peak.',
+    story:
+        'Jagatpita Brahma Mandir at Pushkar is among the very few '
+        'prominent temples in India dedicated to Brahma. Puranic tradition '
+        'ties the shrine to a lotus petal that fell here when Brahma slew '
+        'the demon Vajranabha, creating Pushkar Lake; a yajna legend '
+        'explains why Brahma’s earthly worship concentrates at this tirtha '
+        'after Savitri’s curse.\n\nThe present marble-and-stone fabric is '
+        'commonly dated to the 14th century with later rebuilding. A red '
+        'shikhara and hamsa (swan) motif mark the approach; the garbha '
+        'griha houses a four-faced chaumurti of Brahma with Gayatri, and '
+        'silver-coin floors and a silver turtle in the mandapa are '
+        'familiar pilgrim offerings. Only sanyasi priests traditionally '
+        'enter the innermost sanctum — householder devotees offer from the '
+        'outer hall.\n\nDaily worship includes Mangala, Sandhya, and Ratri '
+        'Shayan aartis keyed to sunrise and sunset. Special rites mark '
+        'every Purnima and Amavasya. Kartik Purnima coincides with the '
+        'famous Pushkar Camel Fair: lakhs bathe in the lake and queue for '
+        'Brahma darshan.\n\nA visit traditionally continues to Gayatri and '
+        'Savitri hill shrines across the lake. Photography inside the '
+        'sanctum is generally barred; follow Devasthan / on-site boards.',
+    location:
+        'Brahma Temple Road, near Pushkar Lake, Pushkar, Ajmer district, '
+        'Rajasthan 305022',
+    timings:
+        'Rajasthan Devasthan profile / widely cited board: Summer ~06:00 '
+        'AM–09:00 PM; Winter ~06:30 AM–08:30 PM, with afternoon closure '
+        'commonly ~01:30–03:00 PM. Named aartis (secondary compilations + '
+        'Wikipedia summary of temple board): Mangala ~2 hours before '
+        'sunrise; Sandhya ~40 minutes after sunset; Ratri Shayan ~5 hours '
+        'after sunset. Kartik Purnima / Pushkar Fair extends hours and '
+        'queues — confirm locally or via Rajasthan Tourism / Devasthan '
+        'notices before travel. Entry free.',
+    latitude: 26.4872,
+    longitude: 74.5542,
+    specialities: [
+      'One of India’s few major Brahma temples',
+      'Linked to sacred Pushkar Lake bath pilgrimage',
+      'Red shikhara and hamsa motif; four-faced Brahma murti with Gayatri',
+      'Kartik Purnima fair + Pushkar Camel Fair peak',
+      'Sanyasi priesthood for inner-sanctum service',
+      'Companion Savitri and Gayatri hill temples',
+    ],
+  ),
+
+  Temple(
+    name: 'Eklingji Temple',
+    state: 'Rajasthan',
+    city: 'Kailashpuri (near Udaipur)',
+    deity: 'Shiva',
+    imageUrl: 'https://picsum.photos/seed/eklingji-temple/800/600',
+    description:
+        'Historic Shaiva complex about 22 km north of Udaipur; Eklingji (a '
+        'four-faced Shiva lingam) is the kuldevata of Mewar, traditionally '
+        'served by the Maharana as diwan.',
+    story:
+        'Eklingji (Shri Ekling Ji) at Kailashpuri is the tutelary deity of '
+        'the Mewar (Sisodia) house. Tradition credits Bappa Rawal with an '
+        'early 8th-century foundation; the complex was rebuilt after '
+        'medieval destructions, notably under Rana Hamir, Rana Kumbha, and '
+        'Rana Raimal, who installed the present black-stone, four-faced '
+        'lingam in the main sanctum.\n\nThe walled campus holds dozens of '
+        'shrines — often cited as ~108 — including Vishnu and other '
+        'subsidiary temples beside the main Shiva shrine. Devasthan '
+        'Department and Mewar religious administration oversee worship. '
+        'Maha Shivaratri and the temple’s Patotsav draw large local '
+        'crowds; Saturdays and Sundays are busy weekly days.\n\nDarshan is '
+        'typically offered in morning, midday, and evening windows rather '
+        'than continuous open hours, with multiple aarti markers through '
+        'the day. Exact clocks on secondary tourism sites conflict '
+        'slightly — treat visitor guides as provisional and confirm on '
+        'site or via Devasthan Udaipur contacts before travel.\n\nLeather '
+        'items and photography rules follow posted boards; modest dress is '
+        'expected.',
+    location:
+        'Shri Eklingji Temple, Kailashpuri / Eklingnagar, Girwa tehsil, '
+        'Udaipur district, Rajasthan 313202',
+    timings:
+        'Provisional visitor listings (tourism compilations; no single '
+        'firm public English continuous clock found): common darshan '
+        'windows ~04:30–07:00 AM, ~10:30 AM–01:30 PM, and '
+        '~05:00/05:30–07:30/08:00 PM. Named aarti markers often cited: '
+        'morning ~05:30, 08:15, 09:15, 11:30 AM; afternoon ~03:30 & 04:30 '
+        'PM; evening ~05:00 & 06:30 PM. Maha Shivaratri and festival days '
+        'override — confirm locally / Devasthan Udaipur before travel. '
+        'Entry free. Thin official English clock.',
+    latitude: 24.746,
+    longitude: 73.7222,
+    specialities: [
+      'Kuldevata of Mewar; Maharana traditionally diwan of Eklingji',
+      'Four-faced black-stone Shiva lingam in main sanctum',
+      'Large walled complex with many subsidiary shrines',
+      'Rebuilt under Hamir, Kumbha, and Raimal after medieval damage',
+      'Maha Shivaratri and Patotsav peak days',
+      '~22 km from Udaipur on the Nathdwara road corridor',
+    ],
+  ),
+
+  Temple(
+    name: 'Shrinathji Temple',
+    state: 'Rajasthan',
+    city: 'Nathdwara',
+    deity: 'Vishnu',
+    imageUrl: 'https://picsum.photos/seed/shrinathji-temple/800/600',
+    description:
+        'Principal Pushtimarg haveli of Shrinathji — the seven-year-old '
+        'Krishna lifting Govardhan — at Nathdwara; darshan is through '
+        'short, named jhankis rather than continuous open hours.',
+    story:
+        'Shrinathji at Nathdwara is the black stone svarupa of Krishna as '
+        'the divine child who lifted Govardhan Hill. Vallabhacharya’s '
+        'Pushtimarg (Shuddhadvaita) tradition treats the shrine as '
+        'Thakurji’s house: priests wake, dress, feed, rest, and put the '
+        'Lord to sleep through the day.\n\nThe murti was brought from Braj '
+        'to Mewar in the 17th century to protect it during Aurangzeb’s '
+        'campaigns and was installed at Nathdwara (then Sinhad). The town '
+        'grew around the haveli; pichwai paintings, mithai, and pilgrimage '
+        'commerce remain hallmarks.\n\nDevotees take darshan during eight '
+        'classical jhankis — Mangala, Shringar, Gwal, Rajbhog, Uthapan, '
+        'Bhog, Aarti/Sandhya, and Shayan — each open only briefly. Exact '
+        'clocks change daily with the lunar calendar and season; the '
+        'temple trust publishes the day’s board on nathdwaratemple.org. '
+        'Janmashtami, Annakut, and other Pushtimarg festivals swell '
+        'crowds.\n\nMobiles and cameras are typically barred inside; '
+        'follow trust security. Book cottages/dharamshalas via the '
+        'official portal when needed.',
+    location:
+        'Shrinathji Temple (Thakurji ki Haveli), Nathdwara, Rajsamand '
+        'district, Rajasthan 313301',
+    timings:
+        'Official trust home board example (nathdwaratemple.org — times '
+        'change daily; re-check date picker): Mangala ~05:45–06:30 AM; '
+        'Shringar ~07:30–08:00 AM; Rajbhog ~11:15 AM–12:30 PM; Uthapan '
+        '~03:45–04:00 PM; Bhog-Aarti ~04:30–05:55 PM; Shayan ~07:15–08:00 '
+        'PM (Gwal and other jhankis also scheduled). Historic Devasthan '
+        'summer/winter columns differ slightly. Miss a window and wait for '
+        'the next — doors close between jhankis. Confirm same-day board '
+        'before travel.',
+    latitude: 24.929,
+    longitude: 73.8151,
+    specialities: [
+      'Pushtimarg svarupa of Shrinathji (Krishna–Govardhan)',
+      'Eight named daily jhankis (not continuous darshan)',
+      '17th-century relocation from Braj to Mewar',
+      'Official date-wise darshan board (nathdwaratemple.org)',
+      'Pichwai painting and Annakut traditions',
+      'Managed as Thakurji ki Haveli',
+    ],
+  ),
+
+  Temple(
+    name: 'Karni Mata Temple',
+    state: 'Rajasthan',
+    city: 'Deshnok',
+    deity: 'Devi',
+    imageUrl: 'https://picsum.photos/seed/karni-mata-temple/800/600',
+    description:
+        'Famous Charan-community shrine of Karni Mata (revered as a form '
+        'of Durga) at Deshnok, known worldwide for thousands of sacred '
+        'rats (kabbas) that share the marble courtyard with devotees.',
+    story:
+        'Karni Mata Temple at Deshnok honours Karni Mata, a 14th-century '
+        'Charan mystic and warrior-sage widely regarded as an incarnation '
+        'of Durga. Local tradition holds she laid foundation stones for '
+        'the Mehrangarh and Bikaner forts at the request of Rathore '
+        'rulers. The living temple fabric is associated with '
+        'late-16th-century patronage (often linked to Rao Jaitasi / later '
+        'marble work under Maharaja Ganga Singh).\n\nThe shrine is unique '
+        'for its kabbas — sacred rats believed to be reincarnated devotees '
+        'of Karni Mata’s clan. White rats are considered especially '
+        'auspicious. Devotees walk barefoot, offer sweets and milk, and '
+        'take care not to harm any animal; killing a rat traditionally '
+        'requires replacing it with a silver votive.\n\nDepawat Charan '
+        'priests serve in rotation. Bi-annual Navratri fairs (Chaitra and '
+        'Ashwin) draw thousands. Rajasthan Tourism lists continuous '
+        'opening from early morning to late night with free '
+        'entry.\n\nVisitor etiquette: remove shoes, watch your step, and '
+        'follow photo rules posted at the gate.',
+    location:
+        'Karni Mata Temple, Deshnok (Deshnoke), ~30 km from Bikaner, '
+        'Bikaner district, Rajasthan 334801',
+    timings:
+        'Rajasthan Tourism / Devasthan visitor board: generally open '
+        '~04:00/05:00 AM–10:00 PM daily; continuous darshan without a long '
+        'midday break is widely reported. Named aarti markers (secondary '
+        'listings): Mangala ~04:00–05:00 AM; Bhog ~08:00 AM; Shringar '
+        '~03:45 PM; Sandhya ~07:00 PM. Navratri fairs override ordinary '
+        'flow — confirm locally. Entry free.',
+    latitude: 27.7906,
+    longitude: 73.3408,
+    specialities: [
+      'Sacred rats (kabbas) share the temple with devotees',
+      'Karni Mata of the Charan community — form of Durga',
+      'White rat sighting considered highly auspicious',
+      'Bi-annual Navratri fairs (Chaitra & Ashwin)',
+      'Marble temple with silver doors; ~30 km from Bikaner',
+      'Linked to Rathore fort-foundation lore',
+    ],
+  ),
+
+  Temple(
+    name: 'Govind Dev Ji Temple',
+    state: 'Rajasthan',
+    city: 'Jaipur',
+    deity: 'Vishnu',
+    imageUrl: 'https://picsum.photos/seed/govind-dev-ji-temple/800/600',
+    description:
+        'Jaipur’s aradhya Krishna temple of Radha–Govind Dev Ji inside the '
+        'City Palace precinct; seven named daily jhankis structure darshan '
+        'for the city’s royal and popular devotion.',
+    story:
+        'Govind Dev Ji (Radha–Govind) is the aradhya deity of Jaipur. The '
+        'murti tradition links to the famed Govind Dev temple of '
+        'Vrindavan; Sawai Jai Singh II brought the worship to his new '
+        'capital, and the present temple stands in the City Palace / Jaleb '
+        'Chowk area as a living centre of Gaudiya–Jaipur Krishna '
+        'seva.\n\nDaily life follows seven jhankis — Mangla, Dhoop, '
+        'Shringar, Rajbhog, Gwal, Sandhya, and Shayan — when the couple '
+        'form of Radha–Govind is revealed. Between windows the sanctum '
+        'closes for seva. The temple publishes live darshan and advance '
+        'timetables on govinddevji.net; summer and winter spans '
+        'differ.\n\nJanmashtami, Holi, Diwali, and special shringar days '
+        'pack the courtyard. The temple remains free for general darshan; '
+        'apps and UPI donation channels are promoted by the '
+        'management.\n\nSecurity screening is routine at palace-precinct '
+        'gates — travel light and follow dress norms.',
+    location:
+        'Shri Govind Dev Ji Temple, Jaleb Chowk / City Palace complex, '
+        'Jaipur, Rajasthan 302002',
+    timings:
+        'Typical seasonal visitor board (compilations aligned with '
+        'govinddevji.net jhanki names): Summer morning darshan often '
+        '~04:30 AM–12:00 PM and evening ~05:45–09:30 PM; Winter often '
+        '~05:00 AM–12:15 PM and ~05:00–08:45 PM, with long midday seva '
+        'closure. Named aarti/jhanki markers commonly listed: Mangla '
+        '~05:00–05:15 AM; Dhoop ~07:45–09:00 AM; Shringar ~09:30–10:15 AM; '
+        'Rajbhog ~10:45–11:15/11:45 AM; Gwal ~05:00–05:15 PM; Sandhya '
+        '~05:45–06:45 PM; Shayan ~08:00–08:15 PM. Advance day board on '
+        'govinddevji.net/JHAKIA.HTM overrides — confirm before travel.',
+    latitude: 26.926,
+    longitude: 75.8236,
+    specialities: [
+      'Aradhya Krishna of Jaipur (Radha–Govind)',
+      'Seven named daily jhankis',
+      'Located in City Palace / Jaleb Chowk precinct',
+      'Linked to Vrindavan Govind Dev tradition via Sawai Jai Singh II',
+      'Live darshan and timetable on govinddevji.net',
+      'Major Janmashtami and Holi celebrations',
+    ],
+  ),
+
+  Temple(
+    name: 'Birla Mandir (Lakshmi Narayan Temple)',
+    state: 'Rajasthan',
+    city: 'Jaipur',
+    deity: 'Vishnu',
+    imageUrl: 'https://picsum.photos/seed/birla-mandir-lakshmi-narayan-temple/800/600',
+    description:
+        'Modern white-marble Lakshmi–Narayan temple built by the Birla '
+        'family below Moti Dungri, with stained-glass panels, subsidiary '
+        'shrines, and panoramic city views — a popular Jaipur evening stop.',
+    story:
+        'Birla Mandir Jaipur (Shri Lakshmi Narayan) was built by the Birla '
+        'family and consecrated in the late 1980s on land near Moti Dungri '
+        'Fort. White marble halls enshrine Vishnu as Narayan with Lakshmi; '
+        'walls and windows carry carved and stained-glass scenes from '
+        'Hindu epics, and secondary shrines honour many deities and '
+        'spiritual figures — reflecting the Birla temples’ inclusive '
+        'iconographic style.\n\nUnlike medieval Rajasthan tirthas, this is '
+        'a contemporary pilgrimage-and-tourist temple: open plazas, '
+        'evening illumination, and easy road access make it a standard '
+        'Jaipur circuit stop with City Palace and Albert Hall.\n\nDaily '
+        'worship includes morning and evening aartis; general darshan runs '
+        'in morning and evening sessions with an afternoon break on most '
+        'visitor listings. Janmashtami and Diwali light displays draw '
+        'crowds.\n\nEntry is free; photography of exteriors is common, but '
+        'follow any inner-sanctum restrictions posted on site.',
+    location:
+        'Birla Mandir (Shri Lakshmi Narayan Temple), near Moti Dungri '
+        'Fort, Tilak Marg, Jaipur, Rajasthan 302004',
+    timings:
+        'Provisional tourism listings (no single dense official English '
+        'aarti PDF found): commonly ~08:00 AM–12:00 PM and ~04:00–09:00 PM '
+        '(some guides cite opening from ~06:00 AM and evening aarti ~07:00 '
+        'PM; Incredible India-style listings sometimes differ). Festival '
+        'evenings may extend. Confirm on-site board the day of visit. '
+        'Entry free. Thin official English clock.',
+    latitude: 26.8922,
+    longitude: 75.8155,
+    specialities: [
+      'Birla-built white marble Lakshmi–Narayan temple',
+      'Stained-glass and carved epic panels',
+      'Set below Moti Dungri Fort with city views',
+      'Inclusive subsidiary shrines typical of Birla mandirs',
+      'Popular evening illuminated facade',
+      'Late-1980s consecration — modern Jaipur landmark',
+    ],
+  ),
+
+  Temple(
+    name: 'Dilwara Temples',
+    state: 'Rajasthan',
+    city: 'Mount Abu',
+    deity: 'Jain Tirthankaras',
+    imageUrl: 'https://picsum.photos/seed/dilwara-temples/800/600',
+    description:
+        'Cluster of five marble Jain temples at Mount Abu (11th–16th '
+        'centuries), celebrated for unmatched marble carving — Vimal '
+        'Vasahi (Adinath), Luna Vasahi (Neminath), and later Parshvanath, '
+        'Mahavir, and Pittalhar shrines.',
+    story:
+        'The Dilwara (Delwara) temples on Mount Abu are among Jainism’s '
+        'supreme architectural achievements. Built chiefly between the '
+        '11th and 13th centuries under Solanki / Vaghela patronage — Vimal '
+        'Shah’s Vimal Vasahi for Adinath and the Tejpal brothers’ Luna '
+        'Vasahi for Neminath are the artistic peaks — later Parshvanath, '
+        'Mahavir Swami, and Pittalhar temples completed the five-temple '
+        'ensemble.\n\nFrom outside the complex looks modest; inside, '
+        'ceilings, pillars, and lotus domes are carved from white marble '
+        'with extraordinary fineness. The site remains an active Jain '
+        'tirtha: early mornings are reserved for Jain devotees’ puja, '
+        'while general tourists are admitted in the afternoon under strict '
+        'conduct rules.\n\nNo Hindu garbha cult operates here; inclusion '
+        'in this directory is for Rajasthan’s iconic sacred architecture '
+        'and living Jain pilgrimage. Leather, phones, and cameras are '
+        'prohibited; modest dress covering shoulders and knees is '
+        'required.\n\nIncredible India and Mount Abu tourism list free '
+        'entry with devotee morning / tourist afternoon splits.',
+    location:
+        'Dilwara Jain Temples, near Mount Abu, Sirohi district, Rajasthan '
+        '307501',
+    timings:
+        'Incredible India / Mount Abu visitor guidance: Jain devotees '
+        'generally 06:00 AM–12:00 noon for worship; general tourists '
+        'typically ~12:00 noon–05:00/06:00 PM. Overall campus often cited '
+        '06:00 AM–06:00 PM. Entry free. Photography, mobile phones, and '
+        'leather items prohibited. Confirm locally — tourist cut-off times '
+        'vary slightly by source.',
+    latitude: 24.6093,
+    longitude: 72.7231,
+    specialities: [
+      'Five marble Jain temples (Adinath, Neminath, Parshvanath, Mahavir, Pittalhar)',
+      'Vimal Vasahi (11th c.) and Luna Vasahi (13th c.) masterpiece ceilings',
+      'Active Jain tirtha — morning puja for devotees',
+      'Tourist afternoon entry with strict no-phone/no-leather rules',
+      'Mount Abu hill-station setting',
+      'Iconic Rajasthan sacred architecture (Jain, not Hindu)',
+    ],
+  ),
+
+  Temple(
+    name: 'Salasar Balaji',
+    state: 'Rajasthan',
+    city: 'Salasar',
+    deity: 'Hanuman',
+    imageUrl: 'https://picsum.photos/seed/salasar-balaji/800/600',
+    description:
+        'Major Hanuman (Balaji) siddhpeeth at Salasar on the '
+        'Jaipur–Bikaner highway, famed for a unique bearded murti and huge '
+        'Chaitra / Ashwin Purnima fairs.',
+    story:
+        'Salasar Balaji (Salasar Dham) is among Rajasthan’s most visited '
+        'Hanuman temples. Local legend recounts that a plough struck a '
+        'buried murti of Balaji near Asota; dreams directed its '
+        'installation at Salasar under the care of Mohandas Ji and others. '
+        'The self-manifest idol is distinctive for beard and moustache — a '
+        'feature devotees and temple publicity often highlight.\n\nDaily '
+        'seva includes Mangala, Rajbhog, Dhoop/Mohandas aartis, Sandhya, '
+        'Bal Bhog, and Shayan. Tuesday Rajbhog is especially popular. Two '
+        'large fairs at Chaitra Purnima (Hanuman Janmotsav) and Ashwin / '
+        'Sharad Purnima pack the town; dozens of dharamshalas serve '
+        'pilgrims.\n\nMultiple websites claim official status and publish '
+        'slightly different clocks (darshan spans and aarti minutes). '
+        'Treat published times as provisional and confirm on site or via '
+        'the managing seva samiti boards when you arrive.\n\nOfferings of '
+        'churma and laddu are traditional; keep queues orderly on fair '
+        'days.',
+    location:
+        'Shree Salasar Balaji Mandir, Salasar, near Sujangarh, Churu '
+        'district, Rajasthan 331502',
+    timings:
+        'Provisional — conflicting official-claiming sites: (A) '
+        'shreesalasarbalajimandir.com lists darshan ~06:00 AM–09:00 PM '
+        'with seasonal Mangla/Mohandas/Rajbhog/Dhoop/Sandhya/Bal '
+        'Bhog/Shayan aartis (Tue extra Rajbhog); (B) '
+        'salasarbalaji.org-style boards cite Pat Khaulana ~04:30 AM, '
+        'Mangal Aarti ~05:00 AM, Rajbhog ~10:30 AM, evening aartis '
+        '~06:00–10:00 PM; (C) another mandir site cites darshan ~06:00 '
+        'AM–08:45 PM with Mangala ~05:30 AM, Sandhya ~07:10 PM, Shayan '
+        '~10:00 PM. Use on-site board; Chaitra & Ashwin Purnima fairs '
+        'override. Entry free. Thin official English clocks conflict '
+        'across sites.',
+    latitude: 27.7258,
+    longitude: 74.7243,
+    specialities: [
+      'Bearded Hanuman (Balaji) murti — widely noted as unique',
+      'Chaitra Purnima and Ashwin/Sharad Purnima mega fairs',
+      'Tuesday Rajbhog especially popular',
+      'On Jaipur–Bikaner highway near Sujangarh (Churu)',
+      'Large dharamshala infrastructure for pilgrims',
+      'Churma offering tradition from foundation lore',
+    ],
+  ),
+
+  Temple(
+    name: 'Khatushyam Temple',
+    state: 'Rajasthan',
+    city: 'Khatu',
+    deity: 'Vishnu',
+    imageUrl: 'https://picsum.photos/seed/khatushyam-temple/800/600',
+    description:
+        'Major pilgrimage to Khatushyam Ji — Barbarika of the Mahabharata, '
+        'worshipped as a Krishna/Vishnu form (Shyam) — at Khatu in Sikar; '
+        'Phalguna Mela is the year’s largest gathering.',
+    story:
+        'Khatushyam Ji is identified with Barbarika (Belarsen), the '
+        'grandson of Bhima who offered his head to Krishna before '
+        'Kurukshetra and was blessed to be worshipped as Shyam in '
+        'Kaliyuga. Devotees call him Hare ka Sahara — refuge of the '
+        'defeated — and flock to Khatu for mannat fulfilment.\n\nThe '
+        'present temple in Khatu (Sikar) houses the Shyam shila / murti '
+        'tradition with vibrant shringar; bhajans and the call “Jai Shri '
+        'Shyam” fill the lanes. Committee sites (e.g. shrishyammandir.com) '
+        'publish darshan photos and notices; seasonal summer/winter aarti '
+        'tables circulate widely (Mangala, Shringar, Bhog, Sandhya, '
+        'Shayan).\n\nPhalguna Mela (around Holi) and Ekadashi days see the '
+        'heaviest crowds; some guides note near-24-hour access on major '
+        'Ekadashis. Ordinary days usually follow morning and evening '
+        'darshan spans with a midday bhog closure.\n\nConfirm the live '
+        'committee board before travel — published English clocks are '
+        'thinner than the Hindi notice culture on site.',
+    location:
+        'Shri Khatu Shyam Ji Temple, Khatu, Sikar district, Rajasthan '
+        '332602',
+    timings:
+        'Provisional seasonal boards (khatu.in / visitor compilations; '
+        'confirm shrishyammandir.com / on-site): Summer (approx Apr–Sep) '
+        'Mangala ~04:30 AM, Shringar ~07:00 AM, Bhog ~12:30 PM, Sandhya '
+        '~07:30 PM, Shayan ~10:00 PM; Winter (approx Oct–Mar) Mangala '
+        '~05:30 AM, Shringar ~08:00 AM, Bhog ~12:30 PM, Sandhya ~06:30 PM, '
+        'Shayan ~09:00 PM. Darshan often cited ~04:30/05:30 AM–12:30 PM '
+        'and ~04:00–09:00/10:00 PM. Ekadashi and Phalguna Mela may run '
+        'extended or near-continuous access — verify. Entry free.',
+    latitude: 27.3644,
+    longitude: 75.4036,
+    specialities: [
+      'Barbarika worshipped as Shyam (Krishna/Vishnu form)',
+      'Title Hare ka Sahara — refuge of the defeated',
+      'Phalguna Mela peak pilgrimage',
+      'Five named daily aartis (Mangala to Shayan)',
+      'Sikar district tirtha on Jaipur–Sikar corridor',
+      'Strong bhajan and shringar culture',
+    ],
+  ),
+
+  Temple(
+    name: 'Mehandipur Balaji Temple',
+    state: 'Rajasthan',
+    city: 'Mehandipur (Dausa)',
+    deity: 'Hanuman',
+    imageUrl: 'https://picsum.photos/seed/mehandipur-balaji-temple/800/600',
+    description:
+        'Hugely popular Balaji (child-form Hanuman) siddhpeeth on the '
+        'Jaipur–Agra highway in Dausa, visited for relief from '
+        'afflictions; official FAQ publishes firm darshan and aarti '
+        'windows.',
+    story:
+        'Mehandipur (Mehandipur) Balaji in Dausa district is a major '
+        'Hanuman pilgrimage of northern India. Tradition holds that Balaji '
+        'manifested here in bal (child) form centuries ago; the complex '
+        'also venerates Pret Raj and Bhairav in associated shrines. '
+        'Devotees come seeking relief from mental and spiritual distress, '
+        'always under temple discipline that emphasises faith and darshan '
+        'rather than priest-led healing claims.\n\nThe official trust site '
+        '(shribalajimehandipur.org) states the temple opens about 06:00 '
+        'AM–09:00 PM, lists morning and evening aartis, and notes that on '
+        'Monday, Wednesday, and Friday darshan closes ~04:00–06:00 PM for '
+        'special chola/shringar. Sawamani (large-scale cooked prasad, '
+        'including Rajbhog and Chhappan Bhog) can be booked at the office '
+        'or online and is offered around midday.\n\nPhotography and mobile '
+        'use inside are prohibited. No entry fee or VIP darshan ticket '
+        'exists per the FAQ. Hanuman Jayanti, Holi, and Dussehra bring '
+        'special shringar and crowds.\n\nStay in nearby '
+        'dharamshalas/hotels — the temple itself does not run lodging.',
+    location:
+        'Shri Mehandipur Balaji Temple, Ghata Mehandipur, Sikrai tehsil, '
+        'Dausa district, Rajasthan 321610',
+    timings:
+        'Official FAQ (shribalajimehandipur.org): temple ~06:00 AM–09:00 '
+        'PM. Morning aarti ~06:00–06:40 AM; morning darshan ~07:00–11:00 '
+        'AM; afternoon darshan ~12:00–06:50 PM; evening aarti ~06:50–07:30 '
+        'PM; evening darshan ~06:50–09:00 PM. On Monday, Wednesday & '
+        'Friday darshan closed ~04:00–06:00 PM for special Balaji '
+        'chola/shringar. Aarti times: darshan paused — stand in place. '
+        'Sawamani typically offered ~12:30 PM when booked. Confirm '
+        'FAQ/board before travel.',
+    latitude: 26.9483,
+    longitude: 76.794,
+    specialities: [
+      'Bal (child) form Hanuman siddhpeeth',
+      'Official FAQ with firm darshan & aarti windows',
+      'Mon/Wed/Fri afternoon chola-shringar closure',
+      'Sawamani prasad booking (Rajbhog / Chhappan Bhog etc.)',
+      'Associated Pret Raj and Bhairav worship in the complex',
+      'On Jaipur–Agra NH-21 corridor (Dausa)',
+    ],
+  ),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  WEST BENGAL
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Expansion batch 12 — new temples, not enrichments of existing rows.
+  // Belur Math stays in the Ramakrishna–Vedanta tradition; Mayapur
+  // stays Gaudiya Vaishnava. Cover imageUrl values are picsum
+  // placeholders. Commons candidates: docs/west-bengal-sample-research.md.
+  Temple(
+    name: 'Kalighat Kali Temple',
+    state: 'West Bengal',
+    city: 'Kolkata',
+    deity: 'Devi (Kali)',
+    imageUrl: 'https://picsum.photos/seed/kalighat-kali-temple/800/600',
+    description:
+        'Historic Kali shrine in south Kolkata and one of the best-known '
+        'Shakti Peethas, centred on an ath-chala Bengal temple beside the '
+        'old Adi Ganga pilgrimage landscape.',
+    story:
+        'Kalighat is one of eastern India\'s defining Shakta pilgrimage '
+        'centres. In the temple\'s Shakti Peetha tradition, the toes of '
+        'Sati\'s right foot fell here; the presiding Kali is worshipped '
+        'with a golden tongue and distinctive iconography, while '
+        'Nakuleshwar Bhairava is associated with the sacred site. The name '
+        'joins Kali with ghat, recalling the riverbank setting on the old '
+        'course of the Bhagirathi–Adi Ganga.\n\nAlthough literary '
+        'references to Kalighat reach back several centuries, the present '
+        'temple was completed in 1809 under patronage associated with the '
+        'Sabarna Roy Chowdhury family. Its ath-chala form belongs to '
+        'Bengal\'s regional temple architecture. The complex includes the '
+        'Natmandir, Jor Bangla viewing platform, Kundupukur sacred tank, '
+        'Shyamrai Radha-Krishna shrine, and nearby Nakuleshwar '
+        'Mahadev.\n\nDaily darshan is divided into morning and evening '
+        'sessions around an afternoon closure. Kali Puja, Poila Baisakh, '
+        'Durga Puja, Snan Yatra, and amavasya days draw particularly heavy '
+        'queues. Incredible India supplies the firm public clock used '
+        'here; named aarti minutes reported by guide sites are not treated '
+        'as authoritative.',
+    location:
+        'Anami Sangha, Kalighat, Kolkata, West Bengal 700026',
+    timings:
+        'Incredible India: 5:00 AM–2:00 PM and 5:00–10:30 PM daily, with '
+        'the temple closed 2:00–5:00 PM. Kali Puja, Poila Baisakh, '
+        'amavasya and other festival arrangements can extend or alter '
+        'access; confirm at the temple before travel.',
+    latitude: 22.52,
+    longitude: 88.34194,
+    specialities: [
+      'Major Shakti Peetha associated with Sati\'s right toes',
+      'Distinctive Kali image with golden tongue',
+      'Present ath-chala Bengal temple completed in 1809',
+      'Natmandir, Jor Bangla and Kundupukur sacred tank',
+      'Kali Puja, Poila Baisakh and amavasya pilgrimages',
+      'Historic Adi Ganga / Kalighat sacred landscape',
+    ],
+  ),
+
+  Temple(
+    name: 'Dakshineswar Kali Temple',
+    state: 'West Bengal',
+    city: 'Kolkata',
+    deity: 'Devi (Bhavatarini Kali)',
+    imageUrl: 'https://picsum.photos/seed/dakshineswar-kali-temple/800/600',
+    description:
+        'Rani Rashmoni\'s nine-spired riverfront temple of Bhavatarini '
+        'Kali, consecrated in 1855 and inseparably associated with Sri '
+        'Ramakrishna, Sarada Devi, and the Ramakrishna movement.',
+    story:
+        'Rani Rashmoni founded Dakshineswar on the eastern bank of the '
+        'Hooghly after acquiring the estate in 1847; the deities were '
+        'installed on Snan Yatra, 31 May 1855. The presiding black-stone '
+        'image is Sri Sri Jagadiswari Bhavatarini Kalimata Thakurani—Kali '
+        'as the Mother who carries devotees across worldly '
+        'existence—standing upon reclining Shiva.\n\nThe sacred complex '
+        'unites Shakta, Shaiva and Vaishnava worship: the navaratna Kali '
+        'temple faces a Natmandir, twelve aat-chala Shiva shrines line the '
+        'riverfront, and the Radhakanta temple houses Radha and Krishna. '
+        'Sri Ramakrishna served here and undertook profound spiritual '
+        'disciplines at Panchavati and Beltala; his room and Sarada '
+        'Devi\'s Nahabat are preserved.\n\nThe Trust publishes both '
+        'darshan sessions and named daily rites. Mangal Aarti precedes '
+        'public opening, annabhog closes the sanctum at midday, and '
+        'Sandhya Aarti anchors the evening. Dipanwita, Phalaharini and '
+        'Ratanti Kali Pujas, Snan Yatra and Kalpataru Utsav are major '
+        'observances.',
+    location:
+        'Dakshineswar, Kolkata, West Bengal 700035',
+    timings:
+        'Official Trust board: public darshan 6:30 AM–12:30 PM and '
+        '3:30–7:30 PM. Daily rites: Mangal Aarti 4:00 AM; morning '
+        'puja/darshan 6:30 AM; annabhog 12:30 PM followed by midday '
+        'closure; reopening 3:30 PM; Sandhya Aarti 6:30 PM; Shital Bhog '
+        'and Shayan 8:00 PM. The Board of Trustees may change timings.',
+    latitude: 22.655,
+    longitude: 88.35778,
+    specialities: [
+      'Bhavatarini Kali in a nine-spired navaratna shrine',
+      'Founded by Rani Rashmoni; consecrated 31 May 1855',
+      'Sri Ramakrishna\'s principal sadhana and teaching centre',
+      'Twelve Shiva temples and Radhakanta shrine',
+      'Panchavati, Beltala, Nahabat and Sri Ramakrishna\'s room',
+      'Hooghly riverfront pilgrimage linked by ferry to Belur Math',
+    ],
+  ),
+
+  Temple(
+    name: 'Belur Math',
+    state: 'West Bengal',
+    city: 'Howrah',
+    deity: 'Sri Ramakrishna (Ramakrishna–Vedanta tradition)',
+    imageUrl: 'https://picsum.photos/seed/belur-math/800/600',
+    description:
+        'World headquarters of the Ramakrishna Math and Ramakrishna '
+        'Mission on the Hooghly, centred on Sri Ramakrishna Temple and the '
+        'Vedantic ideal of harmony among religions.',
+    story:
+        'Swami Vivekananda established Belur Math as the headquarters of '
+        'the Ramakrishna Math and Ramakrishna Mission in the 1890s, '
+        'placing Sri Ramakrishna\'s sacred relics at the Belur grounds in '
+        '1898. It is a monastery, pilgrimage centre, and base for a global '
+        'tradition of Vedanta, worship, education, relief, and '
+        'service.\n\nSri Ramakrishna Temple, consecrated in 1938, was '
+        'designed by Swami Vijnanananda according to Vivekananda\'s '
+        'vision. Its forms combine Hindu, Buddhist, Islamic and Christian '
+        'architectural references to embody harmony of religions. The '
+        'campus also holds temples and memorials of Holy Mother Sri Sarada '
+        'Devi, Swami Vivekananda and Swami Brahmananda, plus the '
+        'Ramakrishna Sangraha Mandir museum.\n\nDaily worship culminates '
+        'in evening aratrikam in Sri Ramakrishna Temple. Durga Puja, '
+        'Kumari Puja, and the birthdays of Sri Ramakrishna, Sarada Devi '
+        'and Swami Vivekananda are important observances. The institution '
+        'should be categorised as Ramakrishna–Vedanta rather than forced '
+        'into a single conventional deity label.',
+    location:
+        'PO Belur Math, Howrah district, West Bengal 711202',
+    timings:
+        'Official Belur Math campus hours: morning 6:30–11:30 AM; evening '
+        'April–September 4:00–9:00 PM and October–March 3:30–8:30 PM. '
+        'Temples close at 11:30 AM. After the evening aratrikam bell, '
+        'visitors may remain only inside Sri Ramakrishna Temple. Arati '
+        'times shift seasonally; confirm the official website\'s live '
+        'arati notice. Museum: 8:30–11:30 AM and 4:00–6:00 PM (Apr–Sep) / '
+        '3:30–5:30 PM (Oct–Mar), closed Monday and listed holidays.',
+    latitude: 22.6325,
+    longitude: 88.35639,
+    specialities: [
+      'Headquarters of Ramakrishna Math and Ramakrishna Mission',
+      'Sri Ramakrishna Temple symbolises harmony of religions',
+      'Established by Swami Vivekananda on the Hooghly',
+      'Temples of Sarada Devi, Vivekananda and Brahmananda',
+      'Ramakrishna Sangraha Mandir museum',
+      'Durga Puja and Kumari Puja tradition',
+    ],
+  ),
+
+  Temple(
+    name: 'Tarapith Temple',
+    state: 'West Bengal',
+    city: 'Tarapith',
+    deity: 'Devi (Tara)',
+    imageUrl: 'https://picsum.photos/seed/tarapith-temple/800/600',
+    description:
+        'Tantric pilgrimage shrine of Maa Tara in Birbhum, paired with the '
+        'nearby mahashmashan cremation ground and closely associated with '
+        'the saint Bamakhepa.',
+    story:
+        'Tarapith is one of Bengal\'s foremost centres for worship of '
+        'Tara, the compassionate yet fierce Mahavidya. Peetha traditions '
+        'connect the place with Sati\'s eye, while the living cult focuses '
+        'on Maa Tara\'s image and the union of maternal devotion with '
+        'Tantric practice. Claims differ over its exact status in '
+        'canonical Shakti Peetha lists, so it is safest to describe it as '
+        'a revered Tara pitha and major Shakta pilgrimage.\n\nThe temple '
+        'town is closely linked to the adjoining mahashmashan, where '
+        'Tantric sadhana continues, and to the 19th-century saint '
+        'Bamakhepa, whose devotion to Tara shaped the site\'s modern '
+        'renown. His ashram and memorial are near the temple and Dwarka '
+        'River.\n\nA committee schedule reported in 2026 fixes public '
+        'entry around bhog and evening aarti closures. Kaushiki Amavasya, '
+        'Kali Puja and other new-moon observances produce exceptional '
+        'crowds. A priority-darshan mobile booking system began rolling '
+        'out in September 2026, but physical coupons were temporarily '
+        'retained during transition, so only same-day committee '
+        'instructions should be trusted.',
+    location:
+        'Tarapith, Rampurhat subdivision, Birbhum district, West Bengal '
+        '731233',
+    timings:
+        'Current committee schedule reported in July 2026: doors open 5:30 '
+        'AM; sanctum closed for bhog 12:30–1:30 PM; evening aarti begins '
+        '6:00 PM with visitor entry paused; public entry resumes 7:00 PM; '
+        'temple closes 10:00 PM. A December 2024 committee order reported '
+        'an additional evening closure beginning 5:00 PM. Festival '
+        'schedules can override; verify locally on arrival.',
+    latitude: 24.1167,
+    longitude: 87.7903,
+    specialities: [
+      'Worship of Tara, one of the ten Mahavidyas',
+      'Major Bengali Shakta and Tantric pilgrimage centre',
+      'Adjacent mahashmashan cremation-ground sadhana landscape',
+      'Association with Tantric saint Bamakhepa',
+      'Kaushiki Amavasya and Kali Puja crowds',
+      'Distinct free and priority darshan queues',
+    ],
+  ),
+
+  Temple(
+    name: 'Hangseshwari Temple',
+    state: 'West Bengal',
+    city: 'Bansberia',
+    deity: 'Devi (Hangseshwari Kali)',
+    imageUrl: 'https://picsum.photos/seed/hangseshwari-temple/800/600',
+    description:
+        'Early-19th-century Devi temple in Bansberia famed for thirteen '
+        'lotus-bud ratnas and an interior conceived through Tantric '
+        'imagery of the subtle human body.',
+    story:
+        'Hangseshwari—also spelled Hanseswari or Hangseswari—is worshipped '
+        'as a form of Adi Parashakti and Dakshina Kali. Raja Nrisinhadeb '
+        'Roy laid the temple\'s foundation in 1799; after his death, Rani '
+        'Sankari completed it in 1814.\n\nThe five-storey structure is '
+        'unlike the more familiar brick chala temples of Bengal. Thirteen '
+        'tapering towers resemble lotus buds, while the inner arrangement '
+        'is interpreted through Tantrik Satchakrabhed and the body\'s '
+        'subtle channels, including ida, pingala and sushumna. This gives '
+        'the architecture itself a ritual and contemplative '
+        'meaning.\n\nThe same complex includes the older Ananta Basudeba '
+        'Temple, admired for terracotta decoration, and a nearby Swanbhaba '
+        'Kali shrine. Kali Puja is the major annual festival. The Hooghly '
+        'district page is strong for heritage facts but publishes no '
+        'worship clock; current split hours remain provisional.',
+    location:
+        'Bansberia, Hooghly district, West Bengal 712502',
+    timings:
+        'Provisional visitor hours commonly reported: about 6:00 AM–11:00 '
+        'AM and 4:00–7:00 PM daily. Other current listings extend the '
+        'morning to noon, so verify locally before a dedicated trip. '
+        'Festival and conservation access can change without an online '
+        'notice. Thin official clock.',
+    latitude: 22.96432,
+    longitude: 88.39981,
+    specialities: [
+      'Thirteen lotus-bud ratnas / towers',
+      'Five-storey Tantric human-body symbolism',
+      'Hangseshwari as a form of Adi Parashakti and Kali',
+      'Begun by Raja Nrisinhadeb Roy; completed by Rani Sankari in 1814',
+      'Ananta Basudeba terracotta temple in the same complex',
+      'Protected historic temple architecture in Bansberia',
+    ],
+  ),
+
+  Temple(
+    name: 'Sri Mayapur Chandrodaya Mandir (ISKCON Mayapur)',
+    state: 'West Bengal',
+    city: 'Mayapur',
+    deity: 'Radha-Madhava / Pancha-tattva (Gaudiya Vaishnavism)',
+    imageUrl: 'https://picsum.photos/seed/sri-mayapur-chandrodaya-mandir-iskcon-mayapur/800/600',
+    description:
+        'ISKCON\'s international Gaudiya Vaishnava headquarters at '
+        'Mayapur, with daily Radha-Madhava, Pancha-tattva, Jagannath and '
+        'Narasimha worship, kirtan, classes and pilgrimage services.',
+    story:
+        'Mayapur stands in the Nabadwip sacred landscape at the confluence '
+        'region of the Bhagirathi and Jalangi. Gaudiya Vaishnavas revere '
+        'the area as Chaitanya Mahaprabhu\'s appearance place, and '
+        'ISKCON\'s Mayapur campus has become an international centre for '
+        'bhakti, scripture, kirtan and pilgrimage.\n\nSri Mayapur '
+        'Chandrodaya Mandir\'s established altars include Sri Sri '
+        'Radha-Madhava, the Pancha-tattva, Jagannath-Baladeva-Subhadra and '
+        'Lord Narasimha. The campus also holds Srila Prabhupada\'s samadhi '
+        'and sits beside the developing Temple of the Vedic Planetarium '
+        'complex. Its deity label therefore reflects Gaudiya Vaishnava '
+        'tradition rather than simply “Vishnu.”\n\nThe official temple day '
+        'begins before dawn with Mangala-arati and runs through Narasimha '
+        'worship, Tulasi arati, darshan arati, guru-puja, scripture '
+        'classes, bhoga and evening worship. Gaura Purnima and the '
+        'multi-day Nabadwip Mandal Parikrama are the principal '
+        'international pilgrim season.',
+    location:
+        'ISKCON Mayapur campus, Mayapur, Nadia district, West Bengal 741313',
+    timings:
+        'Official ISKCON Mayapur main-temple board: Mangala-arati 4:30 AM; '
+        'Narasimhadeva Arati 5:00 AM; altar closed 5:10–7:00 AM; Tulasi '
+        'Arati 5:10 AM; Darshan Arati 7:00 AM; Srila Prabhupada Guru-puja '
+        '7:30 AM; Bhagavatam class 8:00–9:00 AM; Pushpa Arati 8:30 AM; '
+        'Bhoga Arati noon; temple closes 1:00 PM and reopens 4:00 PM; '
+        'Dhupa Arati 6:30 PM in summer; Bhagavad-gita class 7:30–8:25 PM; '
+        'Shayana Arati 8:15 PM; closes 8:30 PM. Festival clocks may differ.',
+    latitude: 23.43828,
+    longitude: 88.39287,
+    specialities: [
+      'International centre of ISKCON and Gaudiya Vaishnavism',
+      'Radha-Madhava and Pancha-tattva worship',
+      'Jagannath-Baladeva-Subhadra and Narasimha altars',
+      'Srila Prabhupada samadhi',
+      'Daily kirtan, guru-puja and scripture classes',
+      'Gaura Purnima and Nabadwip Mandal Parikrama',
+    ],
+  ),
+
+  Temple(
+    name: 'Taraknath Temple',
+    state: 'West Bengal',
+    city: 'Tarakeswar',
+    deity: 'Shiva (Taraknath)',
+    imageUrl: 'https://picsum.photos/seed/taraknath-temple/800/600',
+    description:
+        'Major Bengal Shiva pilgrimage shrine at Tarakeswar, centred on '
+        'the swayambhu Taraknath linga, an atchala temple, natmandir and '
+        'the Dudhpukur sacred tank.',
+    story:
+        'Taraknath is Shiva worshipped at Tarakeswar as the saving Lord. '
+        'Local tradition tells of a cow pouring milk over a forest stone '
+        'that was revealed as a self-manifested linga; Raja Bharamalla Rao '
+        'then established worship at the spot.\n\nThe Hooghly district '
+        'administration dates the shrine to 1729. Historical accounts '
+        'distinguish an early foundation from the present atchala '
+        'structure, later rebuilt and renovated under regional patrons. A '
+        'natmandir fronts the Shiva temple; shrines of Kali and '
+        'Lakshmi-Narayan and the Dudhpukur tank complete the ritual '
+        'landscape.\n\nMondays, Maha Shivaratri, the five-day Gajan ending '
+        'near Chaitra Sankranti, and the Shravan kanwar pilgrimage bring '
+        'the largest crowds. Public clocks vary substantially with season '
+        'and mela arrangements, so the provisional split schedule below '
+        'should not be treated as a permanent official board.',
+    location:
+        'Tarakeswar, Hooghly district, West Bengal 712410',
+    timings:
+        'Provisional ordinary-day schedule from current temple guides: '
+        'morning darshan approximately 6:00 AM–1:30 PM, followed by an '
+        'afternoon break, with evening access commonly reported around '
+        '4:00–8:30/9:30 PM. Named rites often reported are Mangal Aarti '
+        'about 6:00 AM, Bhog Aarti about 1:00 PM and Shayan Aarti about '
+        '8:00 PM. Shravan 2026 press schedules differ (including 4:00 AM '
+        'Mangal Aarti and multiple darshan windows); confirm locally, '
+        'especially Mondays, Shravan, Shivaratri and Gajan. Thin official '
+        'clock outside festival boards.',
+    latitude: 22.8854,
+    longitude: 88.0176,
+    specialities: [
+      'Swayambhu Taraknath Shiva linga tradition',
+      'Bengal atchala temple with natmandir',
+      'Dudhpukur sacred tank',
+      'Major Shravan kanwar-yatra destination',
+      'Maha Shivaratri and five-day Gajan',
+      'Kali and Lakshmi-Narayan shrines in the precinct',
+    ],
+  ),
+
+  Temple(
+    name: 'Birla Mandir',
+    state: 'West Bengal',
+    city: 'Kolkata',
+    deity: 'Vishnu (Radha-Krishna / Lakshminarayan)',
+    imageUrl: 'https://picsum.photos/seed/birla-mandir/800/600',
+    description:
+        'White-marble Birla family temple in Ballygunge, principally '
+        'dedicated to Radha-Krishna and Lakshminarayan, with subsidiary '
+        'Shiva and Durga shrines.',
+    story:
+        'Kolkata\'s Birla Mandir is a modern Vaishnava landmark built by '
+        'the Birla family on Ashutosh Choudhury Avenue. Construction began '
+        'in 1970, took twenty-six years, and culminated in pran pratishtha '
+        'and inauguration on 21 February 1996.\n\nThe central shrine '
+        'houses Radha and Krishna and the temple is also known as '
+        'Lakshminarayan Mandir. Side shrines honour Shiva in meditation '
+        'and Durga. White marble, tall shikharas, Rajasthani craft '
+        'traditions and stone-carved scenes from the Bhagavad Gita define '
+        'the visitor experience.\n\nJanmashtami is the great annual '
+        'congregation, while evening aarti and illumination are popular '
+        'daily moments. No strong official public timetable page surfaced '
+        'in this research pass; the split clock repeated across reference '
+        'and city-tourism sources is used provisionally.',
+    location:
+        '29 Ashutosh Choudhury Avenue, Ballygunge, Kolkata, West Bengal '
+        '700019',
+    timings:
+        'Commonly published daily hours: 5:30–11:00 AM and 4:30–9:00 PM, '
+        'closed 11:00 AM–4:30 PM. Evening aarti is commonly reported '
+        'around 6:30 PM, but confirm on the local notice board. '
+        'Janmashtami arrangements may extend or restrict ordinary access. '
+        'Thin official English aarti clock.',
+    latitude: 22.53056,
+    longitude: 88.365,
+    specialities: [
+      'Radha-Krishna / Lakshminarayan principal shrine',
+      'Modern white-marble temple completed in 1996',
+      'Durga and meditating Shiva side shrines',
+      'Bhagavad Gita scenes carved in stone',
+      'Rajasthani-inspired shikharas and craftsmanship',
+      'Major Janmashtami celebration in Kolkata',
+    ],
+  ),
+
+  Temple(
+    name: 'Kiriteswari Temple',
+    state: 'West Bengal',
+    city: 'Murshidabad',
+    deity: 'Devi (Kiriteswari / Mahishamardini)',
+    imageUrl: 'https://picsum.photos/seed/kiriteswari-temple/800/600',
+    description:
+        'Rural Shakti Peetha at Kiritkona in Murshidabad, where Sati\'s '
+        'crown is traditionally believed to have fallen and the goddess is '
+        'worshipped as Kiriteswari or Mahishamardini.',
+    story:
+        'Kiriteswari takes its name from kirit, the crown. In local Shakti '
+        'Peetha tradition, Sati\'s crown fell at Kiritkona; the goddess is '
+        'called Kiriteswari, Mukuteshwari, Vimala or Mahishamardini, with '
+        'Samvarta/Sanvarteshwar as Bhairava. The main object of worship is '
+        'not presented like a conventional anthropomorphic image.\n\nThe '
+        'sacred site\'s history is said to exceed a millennium, although '
+        'the older temple was destroyed and the present principal shrine '
+        'was reconstructed under Raja Darpanarayan of Lalgola in the 19th '
+        'century. The compact char-chala form and remains of the old '
+        'temple preserve a distinctly rural Murshidabad pilgrimage '
+        'setting.\n\nNo authoritative online daily timetable was found. '
+        'The longest current listings say the precinct opens from early '
+        'morning to late evening, sometimes with an afternoon closure; '
+        'noon anna-bhog is part of local practice. Kiriteswari village '
+        'received India\'s Best Tourism Village recognition in 2023, '
+        'increasing visitor attention but not resolving the thin '
+        'worship-clock record.',
+    location:
+        'Kiritkona (Kiriteswari) village, Nabagram block, Murshidabad '
+        'district, West Bengal 742104',
+    timings:
+        'Provisional only: sources variously report 6:00 AM–10:00 PM '
+        'continuously or split access around 5:00 AM–1:00 PM and '
+        '4:00–10:00 PM, with noon anna-bhog. No official daily clock was '
+        'located; call/check locally before travel, particularly during '
+        'Durga Puja, Kali Puja and village festival days.',
+    latitude: 24.2,
+    longitude: 88.21861,
+    specialities: [
+      'Shakti Peetha associated with Sati\'s crown (kirit)',
+      'Devi worshipped as Kiriteswari, Mukuteshwari or Mahishamardini',
+      'Bhairava tradition of Samvarta / Sanvarteshwar',
+      'Old temple remains and 19th-century reconstruction',
+      'Rural char-chala Bengal shrine architecture',
+      'Kiriteswari named Best Tourism Village of India 2023',
+    ],
+  ),
+
+  Temple(
+    name: 'Kapil Muni Temple',
+    state: 'West Bengal',
+    city: 'Gangasagar',
+    deity: 'Kapil Muni',
+    imageUrl: 'https://picsum.photos/seed/kapil-muni-temple/800/600',
+    description:
+        'Pilgrimage temple and ashram of sage Kapila near the Gangasagar '
+        'confluence on Sagar Island, visited after the Makar Sankranti '
+        'sea-and-river snan.',
+    story:
+        'Kapil Muni Temple stands near the Gangasagar shore where the '
+        'Ganga meets the Bay of Bengal. The pilgrimage recalls the '
+        'Bhagavata and Ramayana cycle of King Sagara\'s sons, sage Kapila, '
+        'Bhagiratha\'s penance, and the descent of Ganga to liberate the '
+        'ancestors. Pilgrims traditionally bathe at the confluence and '
+        'then seek darshan of Kapil Muni.\n\nThe exposed delta coast has '
+        'repeatedly reshaped the shrine. Older structures were lost to '
+        'erosion and storms; a brick temple was built in 1961 and the '
+        'present structure dates to 1974. The temple remains vulnerable to '
+        'high tides and cyclones, making the shifting shoreline part of '
+        'both its history and practical visitor planning.\n\nGangasagar '
+        'Mela around Makar Sankranti is the defining observance, drawing '
+        'vast numbers of pilgrims and a temporary service city. '
+        'Ordinary-day worship information is thin and published hours '
+        'conflict. Ferry, road, tide and weather conditions are at least '
+        'as important as the temple clock for any visit.',
+    location:
+        'Gangasagar, Sagar Island, South 24 Parganas district, West Bengal '
+        '743606',
+    timings:
+        'Thin-source provisional hours: several current pilgrimage '
+        'listings give darshan about 9:00 AM–6:00 PM and morning aarti '
+        'around 7:00 AM, while others claim broader 4:00 AM–8:00 PM '
+        'access. Confirm locally. During Gangasagar Mela / Makar '
+        'Sankranti, bathing and darshan run under special district '
+        'schedules, barricades, tide windows and crowd controls rather '
+        'than ordinary hours.',
+    latitude: 21.63654,
+    longitude: 88.07334,
+    specialities: [
+      'Kapil Muni ashram-temple at Gangasagar',
+      'Ganga–Bay of Bengal confluence pilgrimage',
+      'Bhagiratha and King Sagara sacred narrative',
+      'Holy snan followed by temple darshan',
+      'Gangasagar Mela at Makar Sankranti',
+      'Present temple structure completed in 1974',
+    ],
+  ),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  MADHYA PRADESH
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Expansion batch 13 — new temples, not enrichments of existing rows.
+  // Kandariya Mahadeva and Lakshmana are ASI/UNESCO monuments, not
+  // living pooja listings. Cover imageUrl values are picsum
+  // placeholders. Commons candidates: docs/madhya-pradesh-sample-research.md.
+  Temple(
+    name: 'Mahakaleshwar Temple',
+    state: 'Madhya Pradesh',
+    city: 'Ujjain',
+    deity: 'Shiva',
+    imageUrl: 'https://picsum.photos/seed/mahakaleshwar-temple/800/600',
+    description:
+        'One of the twelve Jyotirlingas of Shiva, on the Rudra Sagar side '
+        'of Ujjain; Mahakala is worshipped as the lord of time, with a '
+        'south-facing, self-manifested linga and the celebrated pre-dawn '
+        'Bhasma Aarti.',
+    story:
+        'Mahakaleshwar is one of the twelve Jyotirlinga shrines and the '
+        'ritual heart of Ujjain. The presiding linga is revered as '
+        'swayambhu and dakshinamukhi (south-facing), an orientation '
+        'associated with Shiva as Mahakala, master of time and death. The '
+        'five-level complex includes an underground sanctum; the '
+        'Nagchandreshwar shrine on the upper level opens to devotees only '
+        'on Nag Panchami.\n\nThe temple day is structured around five '
+        'official aartis. Bhasma Aarti begins at 4:00 AM and requires '
+        'advance booking through the temple’s official portal; ordinary '
+        'darshan is listed from 4:00 AM to 11:00 PM. Dadyodak/Bal Bhog, '
+        'Bhog, Sandhya and Shayan Aartis follow, with two seasonal clocks '
+        'published by the Temple Management Committee.\n\nMahashivaratri, '
+        'Shravan Mondays and the Shravan–Bhadrapada Mahakal Sawari '
+        'processions produce exceptional crowds and may bring special '
+        'hours. Use only the official website for Bhasma Aarti, '
+        'Sandhya/Shayan Aarti, sheeghra darshan and pujan bookings, and '
+        'follow the reporting time and identification instructions on the '
+        'confirmation.',
+    location:
+        'Jaisinghpura, Ujjain, Madhya Pradesh 456006',
+    timings:
+        'Official seasonal aarti board: Bhasma Aarti 4:00–6:00 AM '
+        'year-round. Chaitra Krishna Pratipada–Ashwin Purnima: '
+        'Dadyodak/Bal Bhog 7:00–7:45 AM; Bhog 10:00–10:45 AM; Sandhya '
+        '7:00–7:45 PM; Shayan 10:30–11:00 PM. Kartik Krishna '
+        'Pratipada–Phalgun Purnima: Dadyodak 7:30–8:15 AM; Bhog '
+        '10:30–11:15 AM; Sandhya 6:30–7:15 PM; Shayan 10:30–11:00 PM. '
+        'Incredible India lists general darshan 4:00 AM–11:00 PM. '
+        'Festival/Shravan notices can override; check the official timing '
+        'page.',
+    latitude: 23.18278,
+    longitude: 75.76833,
+    specialities: [
+      'One of the twelve Jyotirlingas',
+      'South-facing (dakshinamukhi) swayambhu linga',
+      'Daily pre-dawn Bhasma Aarti',
+      'Five-level complex with underground sanctum',
+      'Nagchandreshwar opens only on Nag Panchami',
+      'Mahakal Lok and Shravan–Bhadrapada sawari tradition',
+    ],
+  ),
+
+  Temple(
+    name: 'Omkareshwar Temple',
+    state: 'Madhya Pradesh',
+    city: 'Omkareshwar',
+    deity: 'Shiva',
+    imageUrl: 'https://picsum.photos/seed/omkareshwar-temple/800/600',
+    description:
+        'One of the twelve Jyotirlingas, standing on Mandhata island in '
+        'the Narmada; the sacred landscape also includes Mamleshwar on the '
+        'mainland and the island parikrama route.',
+    story:
+        'Omkareshwar is one of the twelve Jyotirlinga shrines of Shiva, '
+        'set on Mandhata island in the Narmada River. The island is '
+        'traditionally said to resemble the sacred syllable Om. '
+        'Omkareshwar on the island and Mamleshwar (Amaleshwar) on the '
+        'south bank are treated as a paired sacred landscape by many '
+        'pilgrims.\n\nThe Trust publishes an unusually precise daily '
+        'programme: Mangal Aarti and bhog before public darshan, morning '
+        'and midday darshan sessions separated by Madhyanha Bhog, evening '
+        'Shringar Darshan, and Shayan Aarti followed by a final short '
+        'darshan. Adi Shankara is traditionally believed to have met his '
+        'guru Govinda Bhagavatpada in a cave below the temple.\n\nThe '
+        'approach includes bridge or boat access, steep lanes and steps. '
+        'Maha Shivaratri, Kartik Purnima and Shravan bring heavy queues. '
+        'Normal darshan is free; optional Shighra Darshan is sold by the '
+        'official Trust for fixed time slots.',
+    location:
+        'Mandhata Island, Omkareshwar, Khandwa district, Madhya Pradesh '
+        '450554',
+    timings:
+        'Official Trust schedule: Mangal Aarti and Naivedya Bhog 4:30–5:00 '
+        'AM; Mangal Darshan 5:00 AM–12:20 PM; Madhyanha Bhog 12:20–1:15 '
+        'PM; Madhyanha Darshan 1:15–4:00 PM; Sayamkalin Shringar 4:00–4:30 '
+        'PM; Shringar Darshan 4:30–9:30 PM; Shayan Aarti 9:30–10:00 PM; '
+        'Shayan Darshan 10:00–10:30 PM. Darshan closes during aarti, bhog '
+        'and shringar; festival clocks may vary.',
+    latitude: 22.245583,
+    longitude: 76.151056,
+    specialities: [
+      'One of the twelve Jyotirlingas',
+      'Mandhata island in the Narmada',
+      'Om-shaped-island tradition',
+      'Paired pilgrimage with mainland Mamleshwar',
+      'Adi Shankara–Govinda Bhagavatpada cave tradition',
+      'Trust-published full daily ritual board',
+    ],
+  ),
+
+  Temple(
+    name: 'Kandariya Mahadeva Temple',
+    state: 'Madhya Pradesh',
+    city: 'Khajuraho',
+    deity: 'Shiva',
+    imageUrl: 'https://picsum.photos/seed/kandariya-mahadeva-temple/800/600',
+    description:
+        'The largest and grandest temple at Khajuraho, an '
+        'early-11th-century Shiva monument in the ASI-managed Western '
+        'Group and UNESCO World Heritage property.',
+    story:
+        'Kandariya Mahadeva is the largest and most elaborate temple at '
+        'Khajuraho. ASI attributes it to Chandella king Ganda in the '
+        'period c. 1017–1029. Its soaring Nagara shikhara, ringed by '
+        'clustered miniature spires, evokes a mountain mass above the '
+        'sandstone platform.\n\nThe axial sequence moves from entrance '
+        'porch through halls and vestibule to the Shiva sanctum. Dense '
+        'exterior sculpture integrates deities, guardians, surasundaris, '
+        'musicians, couples and scenes of secular life into the '
+        'architecture. UNESCO cites Kandariya’s profusion of sculpture '
+        'among the masterpieces of Indian art.\n\nThis entry is an '
+        'ASI/UNESCO monument visit, not a dependable living-temple pooja '
+        'listing. Use the Western Group ticket and observe ASI '
+        'conservation barriers, photography notices and sunrise-to-sunset '
+        'hours; do not represent monument hours as a ritual schedule.',
+    location:
+        'Western Group of Temples, Sevagram, Khajuraho, Chhatarpur '
+        'district, Madhya Pradesh 471606',
+    timings:
+        'ASI opening hours for the Khajuraho Group: sunrise to sunset. The '
+        'Western Group is ticketed; ASI’s page lists ₹40 for Indian '
+        'visitors and ₹600 for other foreign visitors, with free entry for '
+        'children below 15 (fees can change). No regular living-pooja '
+        'timetable is published for Kandariya Mahadeva; confirm current '
+        'ticketing and last entry on ASI systems.',
+    latitude: 24.853,
+    longitude: 79.9197,
+    specialities: [
+      'Largest and grandest Khajuraho temple',
+      'Early-11th-century Chandella monument',
+      'Shiva temple with mountain-like Nagara shikhara',
+      'ASI-protected Western Group monument',
+      'Part of UNESCO Khajuraho Group (inscribed 1986)',
+      'Visitor monument — no regular living pooja schedule claimed',
+    ],
+  ),
+
+  Temple(
+    name: 'Lakshmana Temple',
+    state: 'Madhya Pradesh',
+    city: 'Khajuraho',
+    deity: 'Vishnu',
+    imageUrl: 'https://picsum.photos/seed/lakshmana-temple/800/600',
+    description:
+        'A remarkably complete 10th-century Chandella temple dedicated to '
+        'Vaikuntha Vishnu, within Khajuraho’s ASI-managed Western Group '
+        'and UNESCO property.',
+    story:
+        'Lakshmana Temple was built by Chandella ruler Yashovarman in the '
+        'mid-10th century and is dedicated to Vaikuntha Vishnu. It is '
+        'among the earliest major and most complete temples in Khajuraho’s '
+        'Western Group.\n\nThe sandstone temple rises on a high jagati in '
+        'a panchayatana scheme, with four subsidiary corner shrines. Its '
+        'axial porch, mandapas, vestibule, circumambulatory sanctum and '
+        'clustered shikhara illustrate the mature Nagara system. The '
+        'doorway presents Vishnu’s avatars, while the exterior carries '
+        'bands of divine figures, attendants, couples and everyday '
+        'activity.\n\nLakshmana is managed as an ASI monument. The visit '
+        'uses the Western Group admission and sunrise-to-sunset monument '
+        'hours; no recurring public aarti or darshan ritual board should '
+        'be inferred from its Vishnu dedication.',
+    location:
+        'Western Group of Temples, Sevagram, Khajuraho, Chhatarpur '
+        'district, Madhya Pradesh 471606',
+    timings:
+        'ASI opening hours for the Khajuraho Group: sunrise to sunset. '
+        'Western Group admission is ticketed; ASI lists ₹40 for Indian '
+        'visitors and ₹600 for other foreign visitors, with free entry '
+        'below age 15 (subject to revision). This is a protected monument '
+        'visit, not a published living-pooja schedule.',
+    latitude: 24.852139,
+    longitude: 79.921694,
+    specialities: [
+      'Dedicated to Vaikuntha Vishnu',
+      'Built by Chandella ruler Yashovarman, c. mid-10th century',
+      'Panchayatana plan on a high jagati',
+      'Among Khajuraho’s best-preserved complete temples',
+      'ASI-protected Western Group monument',
+      'Part of UNESCO Khajuraho Group (1986)',
+    ],
+  ),
+
+  Temple(
+    name: 'Matangeshwar Temple',
+    state: 'Madhya Pradesh',
+    city: 'Khajuraho',
+    deity: 'Shiva',
+    imageUrl: 'https://picsum.photos/seed/matangeshwar-temple/800/600',
+    description:
+        'An early-10th-century Shiva temple and the principal actively '
+        'worshipped historic temple at Khajuraho, known for its '
+        'exceptionally large linga.',
+    story:
+        'Matangeshwar (Matangeshvara) stands beside the Western Group and '
+        'is the actively worshipped exception among Khajuraho’s '
+        'Chandella-era temples. ASI dates its comparatively plain design '
+        'to about 900–925 CE.\n\nThe temple has a high platform, square '
+        'sanctum and a monumental Shiva linga roughly 2.5 metres high and '
+        'about one metre in diameter. Its restrained outer walls contrast '
+        'with the profuse sculptural programmes of later Khajuraho '
+        'monuments. Devotees continue daily worship, and Maha Shivaratri '
+        'is marked by a major ceremony in which the linga is bathed and '
+        'adorned.\n\nUnlike Kandariya and Lakshmana, this is a living '
+        'shrine. However, a reliable official English daily clock is thin: '
+        'commonly published visiting hours are around 6:00 AM–6:00 PM. '
+        'Confirm at the temple, especially for evening closing and Maha '
+        'Shivaratri arrangements.',
+    location:
+        'Near Western Group entrance, Sevagram, Khajuraho, Chhatarpur '
+        'district, Madhya Pradesh 471606',
+    timings:
+        'Living-temple hours are commonly published as approximately 6:00 '
+        'AM–6:00 PM daily, but no strong official English day board was '
+        'found; confirm locally. Maha Shivaratri ceremonies and crowd '
+        'control alter access. The adjacent ticketed Western Group has '
+        'separate ASI sunrise-to-sunset monument hours.',
+    latitude: 24.852092,
+    longitude: 79.922244,
+    specialities: [
+      'Actively worshipped historic temple at Khajuraho',
+      'Early Chandella period, ASI dated c. 900–925 CE',
+      'Exceptionally large Shiva linga',
+      'Plain early design contrasting with later sculptural temples',
+      'Maha Shivaratri bathing and adornment ceremonies',
+      'Part of the UNESCO-listed Khajuraho ensemble',
+    ],
+  ),
+
+  Temple(
+    name: 'Harsiddhi Temple',
+    state: 'Madhya Pradesh',
+    city: 'Ujjain',
+    deity: 'Devi',
+    imageUrl: 'https://picsum.photos/seed/harsiddhi-temple/800/600',
+    description:
+        'Ancient Devi shrine near Mahakaleshwar, renowned for twin '
+        'multi-tiered deepstambhas that are illuminated during evening '
+        'worship and especially Navaratri.',
+    story:
+        'Harsiddhi Temple is one of Ujjain’s principal Devi shrines, '
+        'located near Rudra Sagar and Mahakaleshwar. Local Shakta '
+        'tradition identifies it as a Shakti Peetha and associates the '
+        'goddess with Ujjain’s legendary king Vikramaditya; these are '
+        'devotional traditions rather than archaeological dating '
+        'claims.\n\nThe courtyard’s signature features are two tall '
+        'Maratha-period deepstambhas, tiered lamp pillars that become the '
+        'visual focus when lit for evening worship. The sanctum centres on '
+        'Harsiddhi Devi, a form of Durga. Chaitra and Sharad Navaratri, '
+        'Ashtami and Navami bring dense queues and elaborate lamp '
+        'rituals.\n\nPublished ordinary-day hours conflict, ranging from '
+        'roughly 5:00 AM–7:00 PM to 5:00 AM–9:00/10:00 PM. Use a '
+        'conservative provisional listing and verify the current closing '
+        'and lamp-lighting time locally; evening aarti shifts with sunset '
+        'and festival arrangements.',
+    location:
+        'Harsiddhi Marg, near Rudra Sagar, Ujjain, Madhya Pradesh 456006',
+    timings:
+        'Provisional ordinary-day visiting span: about 5:00 AM–9:00 PM; '
+        'local listings disagree, with some citing 7:00 PM or 10:00 PM '
+        'closing. Morning aarti is commonly placed around 7:00 AM and '
+        'evening aarti/deepstambha lighting around sunset (often 6:30–7:30 '
+        'PM). Confirm on arrival; Navaratri schedules override. Thin '
+        'official clock.',
+    latitude: 23.184478,
+    longitude: 75.764581,
+    specialities: [
+      'Major Harsiddhi Devi shrine of Ujjain',
+      'Revered in local tradition as a Shakti Peetha',
+      'Twin tiered deepstambhas',
+      'Evening lamp-lighting tradition',
+      'Close to Mahakaleshwar and Rudra Sagar',
+      'Major Chaitra and Sharad Navaratri crowds',
+    ],
+  ),
+
+  Temple(
+    name: 'Chintaman Ganesh Temple',
+    state: 'Madhya Pradesh',
+    city: 'Ujjain',
+    deity: 'Ganesha',
+    imageUrl: 'https://picsum.photos/seed/chintaman-ganesh-temple/800/600',
+    description:
+        'Ujjain’s large ancient Ganesha shrine, where Chintaman is '
+        'worshipped with Riddhi and Siddhi as the remover of anxieties and '
+        'obstacles.',
+    story:
+        'Chintaman Ganesh stands southwest of central Ujjain near the '
+        'Kshipra and the Fatehabad route. The deity is revered as '
+        'swayambhu, with Riddhi and Siddhi beside Ganesha. “Chintaman” is '
+        'understood devotionally as the remover of chinta—worry or '
+        'anxiety.\n\nThe existing stone fabric and carved pillars are '
+        'commonly associated with the Paramara period, while local '
+        'tradition places the shrine much earlier and links its '
+        'establishment to Sita; the latter is best presented as legend. '
+        'The temple is a living pilgrimage site rather than an '
+        'archaeological monument.\n\nWednesdays, Ganesh Chaturthi and '
+        'monthly Chaturthi observances draw the largest queues. Published '
+        'schedules commonly place opening around 5:00 or 6:00 AM and '
+        'closing around 10:00 PM, with morning decoration/aarti and '
+        'evening/shayan observances, but a strong official detailed clock '
+        'is not readily available.',
+    location:
+        'Chintaman Road, Fatehabad, Ujjain, Madhya Pradesh 456006',
+    timings:
+        'Provisional daily span: approximately 5:00/6:00 AM–10:00 PM. '
+        'Secondary schedules commonly list morning Chola Aarti around '
+        '7:00–7:30 AM, midday bhog around noon, evening aarti around '
+        '7:00–7:30 PM and Shayan Aarti around 9:30 PM. Treat named minutes '
+        'as provisional and confirm locally, especially Wednesday and '
+        'Ganesh Chaturthi. Thin official ritual clock.',
+    latitude: 23.1467,
+    longitude: 75.7391,
+    specialities: [
+      'Swayambhu Chintaman Ganesha tradition',
+      'Riddhi and Siddhi flank the deity',
+      'Name signifies remover of worries',
+      'Carved pillars associated with Paramara-era fabric',
+      'One of Ujjain’s foremost Ganesha shrines',
+      'Heavy Wednesday and Ganesh Chaturthi attendance',
+    ],
+  ),
+
+  Temple(
+    name: 'Pashupatinath Temple',
+    state: 'Madhya Pradesh',
+    city: 'Mandsaur',
+    deity: 'Shiva',
+    imageUrl: 'https://picsum.photos/seed/pashupatinath-temple/800/600',
+    description:
+        'Major Mandsaur Shiva shrine on the Shivna River, centred on a '
+        'rare monumental eight-faced linga generally dated to the 5th–6th '
+        'century.',
+    story:
+        'Pashupatinath Temple stands on the Shivna River in Mandsaur, '
+        'ancient Dashapura. Its defining sacred image is an approximately '
+        '4.5-metre-high, eight-faced linga: four faces above and four '
+        'below, representing eight aspects of Shiva including Bhava, '
+        'Pashupati, Mahadeva and Ishana. Art-historical study generally '
+        'dates the image to the 5th or early 6th century.\n\nThe linga was '
+        'recovered from the river bed and reconsecrated in the present '
+        'temple. The wider complex includes subsidiary shrines, a '
+        'deepstambha, ghats and pilgrim spaces. Maha Shivaratri and '
+        'Shravan Mondays are major crowd periods.\n\nGovernment listings '
+        'disagree on the ordinary closing: the Ministry of Tourism '
+        'Utsav/live-darshan page shows 6:00 AM–10:00 PM, while MP tourism '
+        'and local listings commonly say 6:00 AM–8:00 PM or '
+        'sunrise–sunset. Publish the conflict rather than selecting an '
+        'unsupported single closing time.',
+    location:
+        'Pashupatinath Mandir Road, Shivna River bank, Mandsaur, Madhya '
+        'Pradesh 458001',
+    timings:
+        'Opening is consistently listed at 6:00 AM. Ministry of Tourism’s '
+        'Utsav/live-darshan page lists 6:00 AM–10:00 PM; MP tourism/local '
+        'listings cite 6:00 AM–8:00 PM or sunrise–sunset. Closing time '
+        'conflict (20:00 versus 22:00): confirm locally before an evening '
+        'visit. Maha Shivaratri and Shravan may have special arrangements.',
+    latitude: 24.05472,
+    longitude: 75.072917,
+    specialities: [
+      'Rare monumental Ashtamukha (eight-faced) Shiva linga',
+      'Linga generally dated to 5th–6th century',
+      'Sacred setting on the Shivna River',
+      'Associated with ancient Dashapura/Mandsaur',
+      'Subsidiary shrines, ghats and deepstambha',
+      'Major Maha Shivaratri and Shravan pilgrimage',
+    ],
+  ),
+
+  Temple(
+    name: 'Sharda Devi Temple Maihar',
+    state: 'Madhya Pradesh',
+    city: 'Maihar',
+    deity: 'Devi',
+    imageUrl: 'https://picsum.photos/seed/sharda-devi-temple-maihar/800/600',
+    description:
+        'Hilltop shrine of Maa Sharda above Maihar, reached by a long '
+        'stair ascent or ropeway and especially crowded during Chaitra and '
+        'Sharad Navaratri.',
+    story:
+        'Maa Sharda Temple crowns Trikuta Hill above Maihar. The district '
+        'administration describes the shrine as roughly 600 feet above '
+        'ground and reached by 1,001 steps; many travel accounts give a '
+        'slightly different step count, so the official district figure is '
+        'preferred here. A ropeway offers an alternative to the '
+        'climb.\n\nSharda is worshipped as the goddess of learning, music '
+        'and wisdom. Local tradition connects the shrine with the '
+        'legendary warriors Alha and Udal, and devotees regard the hill as '
+        'a Shakti Peetha; these should be presented as living religious '
+        'traditions. Families commonly seek blessings for children and '
+        'education.\n\nChaitra and Sharad Navaratri produce very long '
+        'queues and special access controls. The Ministry of Tourism '
+        'live-darshan listing gives 5:30 AM–7:00 PM; wider secondary '
+        'schedules extend to 9:00 PM. Ropeway operation is separate, '
+        'weather-dependent and normally ends before or around temple '
+        'closing.',
+    location:
+        'Trikuta Hill, Maihar, Maihar district, Madhya Pradesh 485771',
+    timings:
+        'Ministry of Tourism live-darshan listing: 5:30 AM–7:00 PM. Other '
+        'guides often claim 5:00 AM–9:00 PM, so treat later hours as '
+        'unverified and confirm with temple/district notices. Ropeway is '
+        'commonly about 6:30 AM–7:30 PM but is weather/daylight dependent '
+        'and can be suspended; Navaratri schedules differ. Thin official '
+        'aarti board.',
+    latitude: 24.26123,
+    longitude: 80.72307,
+    specialities: [
+      'Hilltop Maa Sharda shrine on Trikuta Hill',
+      'Official district page describes 1,001-step ascent',
+      'Ropeway alternative to the stair climb',
+      'Goddess of learning, music and wisdom',
+      'Alha–Udal devotional tradition',
+      'Major Chaitra and Sharad Navaratri pilgrimage',
+    ],
+  ),
+
+  Temple(
+    name: 'Ram Raja Temple',
+    state: 'Madhya Pradesh',
+    city: 'Orchha',
+    deity: 'Vishnu/Rama',
+    imageUrl: 'https://picsum.photos/seed/ram-raja-temple/800/600',
+    description:
+        'Orchha’s living palace-temple where Rama is worshipped as a king, '
+        'with a daily guard of honour and a distinctive Hindu-calendar '
+        'seasonal court ritual.',
+    story:
+        'Ram Raja Temple occupies the former queen’s palace in Orchha. '
+        'According to the central temple legend, Queen Ganesh Kunwari '
+        'brought a child-form image of Rama from Ayodhya. Because Rama had '
+        'stipulated that the first place where he was seated would become '
+        'his permanent abode, the image remained in the palace rather than '
+        'moving to the newly built Chaturbhuj Temple.\n\nRama is '
+        'worshipped here as Orchha’s sovereign Raja Ram. A formal guard of '
+        'honour and royal-style bhog distinguish the daily courtly ritual. '
+        'The main image is accompanied by Sita, Lakshmana and attendant '
+        'figures. Ram Navami, Vivaha Panchami/Ram Vivah, Kartik Purnima '
+        'and other festivals bring major crowds.\n\nThe official routine '
+        'changes by Hindu-calendar season. Darshan begins with morning '
+        'aarti, pauses after Rajbhog, resumes at Sandhya Aarti, and ends '
+        'after Biyari Aarti. The seasonal board is more reliable than '
+        'generic “sunrise to sunset” tourism wording.',
+    location:
+        'Ram Raja Temple, Orchha, Niwari district, Madhya Pradesh 472246',
+    timings:
+        'Official seasonal routine. Phagun–Kwar/Kartik (approximately '
+        'February–October): morning Aarti 8:00 AM; Rajbhog Chik 12:00 PM; '
+        'Rajbhog Aarti 12:30 PM; Shyam Aarti 8:00 PM; Biyari Chik 10:00 '
+        'PM; Biyari Aarti 10:30 PM. Kartik–Magh/Phagun (approximately '
+        'October–February): morning Aarti 9:00 AM; Rajbhog Chik 12:30 PM; '
+        'Rajbhog Aarti 1:00 PM; Shyam Aarti 7:00 PM; Biyari Chik 9:00 PM; '
+        'Biyari Aarti 9:30 PM. Morning darshan runs from morning Aarti '
+        'through about five minutes after Rajbhog Aarti; evening darshan '
+        'runs from Shyam Aarti through about five minutes after Biyari '
+        'Aarti. Each aarti is roughly 20 minutes.',
+    latitude: 25.350875,
+    longitude: 78.639274,
+    specialities: [
+      'Rama worshipped as the sovereign king of Orchha',
+      'Temple housed in the former queen’s palace',
+      'Daily ceremonial guard of honour',
+      'Official seasonal aarti and Rajbhog/Biyari routine',
+      'Legend links palace shrine with nearby Chaturbhuj Temple',
+      'Major Ram Navami and Ram Vivah/Vivaha Panchami celebrations',
+    ],
+  ),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  BIHAR
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Expansion batch 14 — new temples, not enrichments of existing rows.
+  // Mahabodhi is a living Buddhist UNESCO site, not a Hindu temple.
+  // Cover imageUrl values are picsum placeholders. Commons candidates:
+  // docs/bihar-sample-research.md.
+  Temple(
+    name: 'Mahavir Mandir',
+    state: 'Bihar',
+    city: 'Patna',
+    deity: 'Hanuman',
+    imageUrl: 'https://picsum.photos/seed/mahavir-mandir/800/600',
+    description:
+        'Major Hanuman temple directly opposite Patna Junction, known for '
+        'its two Hanuman images, Naivedyam laddoo prasad, and the '
+        'charitable institutions supported by Shri Mahavir Sthan Nyas '
+        'Samiti.',
+    story:
+        'Mahavir Mandir is Patna’s best-known Hanuman shrine, standing '
+        'beside the main railway junction and serving both local '
+        'worshippers and pilgrims arriving in the Bihar capital. The '
+        'sanctum is unusual for its two Hanuman images: temple tradition '
+        'associates one with the fulfilment of devotees’ wishes and the '
+        'other with relief from suffering, reinforcing the popular Sankat '
+        'Mochan character of the shrine.\n\nThe present multi-storey '
+        'temple took shape through a major 1980s reconstruction, although '
+        'worship at the site is older. Shri Mahavir Sthan Nyas Samiti '
+        'administers the temple and channels donations and the proceeds of '
+        'its Naivedyam prasad operation into hospitals and other '
+        'public-service institutions. Tuesdays, Saturdays, Ram Navami, and '
+        'New Year produce exceptionally long queues.\n\nThe official daily '
+        'rhythm begins with the opening and morning aarti at 5:00 AM, '
+        'followed by bhog aarti at 11:00 AM, an afternoon aarti at 4:00 '
+        'PM, a seasonally adjusted evening aarti, and shayan aarti at '
+        '10:30 PM. Use only the official Mahavir Mandir sites for donation '
+        'information; the Trust warns about unauthorised sites using its '
+        'name.',
+    location:
+        'Near Patna Junction railway station, Patna, Bihar 800001',
+    timings:
+        'Official Mahavir Mandir board: doors open and morning aarti at '
+        '5:00 AM daily; bhog aarti 11:00 AM; afternoon aarti 4:00 PM; '
+        'evening aarti 7:30 PM from Ashwin Purnima through Phalgun Purnima '
+        'and 8:00 PM from Phalgun Purnima through Ashwin Purnima; shayan '
+        'aarti 10:30 PM. The public page does not separately tabulate '
+        'every darshan pause or a final exit time, so treat the ritual '
+        'board as authoritative and confirm crowd controls on Tuesdays, '
+        'Saturdays, Ram Navami, and New Year.',
+    latitude: 25.60389,
+    longitude: 85.13639,
+    specialities: [
+      'Two Hanuman images with wish-fulfilment and suffering-removal traditions',
+      'Sankat Mochan shrine immediately beside Patna Junction',
+      'Official five-aarti daily rhythm with seasonal evening shift',
+      'Naivedyam laddoo prasad',
+      'Trust-supported hospitals and charitable institutions',
+      'Peak pilgrimage on Tuesdays, Saturdays, and Ram Navami',
+    ],
+  ),
+
+  Temple(
+    name: 'Mundeshwari Devi Temple',
+    state: 'Bihar',
+    city: 'Bhabua',
+    deity: 'Devi',
+    imageUrl: 'https://picsum.photos/seed/mundeshwari-devi-temple/800/600',
+    description:
+        'Ancient octagonal stone temple on Mundeshwari Hill in Kaimur, '
+        'dedicated to Shakti and Shiva and widely described as one of '
+        'India’s oldest continuously functioning temples.',
+    story:
+        'Mundeshwari Devi Temple crowns the roughly 600-foot Piwara or '
+        'Mundeshwari hill near Bhagwanpur in Kaimur district. Bihar '
+        'Tourism describes it as an exceptionally ancient functioning '
+        'temple because worship is believed to have continued without '
+        'interruption; the careful phrasing “often called” or “considered '
+        'among the oldest” is preferable to an absolute worldwide '
+        'claim.\n\nThe compact octagonal stone shrine is protected by the '
+        'Archaeological Survey of India. The principal image is '
+        'Mundeshwari Devi, locally identified with a form of Shakti or '
+        'Varahi, while a distinctive panchamukhi Shiva linga occupies the '
+        'central space. Ganesha, Surya, Vishnu, Nandi, Gupta-period '
+        'carving, and an early inscription contribute to the site’s '
+        'layered religious and archaeological importance.\n\nA celebrated '
+        'local practice is the so-called bloodless goat offering: the '
+        'animal is ritually presented but not slaughtered, and is '
+        'released. Ram Navami, Maha Shivaratri, and Navratri draw major '
+        'crowds. The hill approach and steps require extra time, '
+        'particularly for older visitors and during hot weather.',
+    location:
+        'Mundeshwari Hill, Bhagwanpur, Kaimur district, Bihar 821110',
+    timings:
+        'Bihar Tourism and the district page do not publish a stable '
+        'all-season daily clock. Common visitor listings give '
+        'approximately 6:00 AM–7:00 PM. A 2026 Trust-secretary / '
+        'chief-priest seasonal report gives summer doors and cleaning at '
+        '6:00 AM, morning aarti and bhog at 6:30 AM, midday aarti and bhog '
+        'at 11:30 AM, and evening maha-aarti at 6:30 PM. Treat these as '
+        'seasonal markers, not a permanent annual board; confirm locally '
+        'or through Maa Mundeshwari Trust before climbing. Thin official '
+        'continuous clock.',
+    latitude: 24.9834,
+    longitude: 83.5647,
+    specialities: [
+      'Often called one of India’s oldest continuously functioning temples',
+      'Octagonal protected stone temple on Mundeshwari Hill',
+      'Mundeshwari Devi / Shakti with central panchamukhi Shiva linga',
+      'Gupta-period carving and early inscription',
+      'Bloodless goat-offering tradition',
+      'Ram Navami, Maha Shivaratri, and Navratri pilgrimage',
+    ],
+  ),
+
+  Temple(
+    name: 'Vishnupad Temple',
+    state: 'Bihar',
+    city: 'Gaya',
+    deity: 'Vishnu',
+    imageUrl: 'https://picsum.photos/seed/vishnupad-temple/800/600',
+    description:
+        'Principal Vishnu shrine of Gaya, centred on a footprint revered '
+        'as Vishnu’s and closely linked to pind daan and shraddha rites '
+        'for ancestors on the Phalgu River.',
+    story:
+        'Vishnupad Temple is the ritual heart of Gaya’s Hindu pilgrimage '
+        'landscape. Its name means “Vishnu’s foot”: a footprint-like '
+        'impression in basalt, enclosed in a silver-plated setting, is '
+        'revered as the mark left when Vishnu subdued Gayasura. The legend '
+        'links the sacred geography of Gaya with liberation and offerings '
+        'made for departed ancestors.\n\nThe present dark-stone, octagonal '
+        'shrine was rebuilt in 1787 under Queen Ahilyabai Holkar of '
+        'Indore. It stands by the Phalgu River near Akshayavat and the '
+        'network of vedis used in the Gaya shraddha circuit. Gayawal '
+        'pandas are the traditional pilgrimage priests, and families '
+        'arrive throughout the year for pind daan; Pitrapaksha Mela '
+        'creates the heaviest annual concentration.\n\nBihar Tourism '
+        'prohibits mobile phones, cameras, and other electronic gadgets in '
+        'the temple. Pilgrims arranging ancestor rites should agree '
+        'clearly on services and costs before beginning, follow district '
+        'mela guidance during Pitrapaksha, and reserve enough time for '
+        'riverbank and vedi rituals beyond the main sanctum visit.',
+    location:
+        'Vishnupad Road, on the Phalgu River, Gaya, Bihar 823001',
+    timings:
+        'Bihar Tourism currently presents daily visiting roughly 5:00 '
+        'AM–9:00 PM, while some official ready-reckoner material has shown '
+        'only a 5:00 AM–12:00 PM morning span. Named aarti and '
+        'afternoon-break tables online are inconsistent and mostly '
+        'secondary. Plan early-morning darshan and confirm the same-day '
+        'afternoon/evening board locally, especially during Pitrapaksha '
+        'when access and ritual flows change. Thin official '
+        'afternoon/evening clock.',
+    latitude: 24.77736,
+    longitude: 85.00934,
+    specialities: [
+      'Sacred footprint revered as Vishnu’s Vishnupad',
+      'Gayasura-subduing legend',
+      'Major pind daan and shraddha centre',
+      '1787 rebuild by Ahilyabai Holkar',
+      'Phalgu River and Akshayavat pilgrimage landscape',
+      'Pitrapaksha Mela focus',
+    ],
+  ),
+
+  Temple(
+    name: 'Mahabodhi Temple',
+    state: 'Bihar',
+    city: 'Bodh Gaya',
+    deity: 'Buddha',
+    imageUrl: 'https://picsum.photos/seed/mahabodhi-temple/800/600',
+    description:
+        'UNESCO World Heritage Buddhist temple complex at the place '
+        'associated with Gautama Buddha’s Enlightenment, centred on the '
+        'Mahabodhi Mahavihara and the Bodhi Tree.',
+    story:
+        'The Mahabodhi Temple Complex marks the place where Siddhartha '
+        'Gautama is believed to have attained Enlightenment and become the '
+        'Buddha. It is one of Buddhism’s four foremost pilgrimage '
+        'destinations and an iconic Bihar sacred site, included here as a '
+        'Buddhist pilgrimage entry rather than a Hindu temple. A '
+        'descendant of the Bodhi Tree stands beside the main shrine and '
+        'anchors meditation, circumambulation, and offerings.\n\nThe '
+        'soaring brick Mahabodhi Mahavihara reflects a long history of '
+        'building, restoration, and international devotion; UNESCO '
+        'describes it as one of the earliest surviving brick Buddhist '
+        'temples in India, with the standing fabric substantially '
+        'associated with the 5th–6th centuries CE. The property was '
+        'inscribed on the World Heritage List in 2002 and is managed by '
+        'the Bodhgaya Temple Management Committee under Bihar law, with '
+        'conservation guidance from the Archaeological Survey of '
+        'India.\n\nDaily observance is explicitly Buddhist: sutta '
+        'chanting, meditation, a kheer offering, circumambulation, '
+        'flowers, lamps, and prayer by monastic and lay communities from '
+        'many traditions. Buddha Purnima and large international prayer '
+        'gatherings change crowd and security arrangements. Visitors '
+        'should maintain silence around meditation areas and follow the '
+        'current BTMC security and prohibited-item rules.',
+    location:
+        'Mahabodhi Temple Complex, Bodh Gaya, Gaya district, Bihar 824231',
+    timings:
+        'Official Bodhgaya Temple Management Committee daily programme: '
+        'Mahabodhi Mahavihara opens 5:00 AM; sutta chanting and meditation '
+        '5:30–6:00 AM; kheer offering 10:00 AM; Mahayana sutta chanting '
+        '6:00–6:30 PM; Pali sutta chanting 6:30–7:00 PM; closes 9:00 PM. '
+        'Major ceremonies and Buddha Purnima can modify movement and '
+        'access — check bodhgayatemple.com.',
+    latitude: 24.696,
+    longitude: 84.9913,
+    specialities: [
+      'Site associated with Gautama Buddha’s Enlightenment',
+      'Bodhi Tree and Vajrasana sacred focus',
+      'UNESCO World Heritage Site since 2002',
+      'Early surviving monumental brick Buddhist architecture',
+      'Daily sutta chanting and meditation',
+      'Global Buddhist pilgrimage destination',
+    ],
+  ),
+
+  Temple(
+    name: 'Patan Devi Temple',
+    state: 'Bihar',
+    city: 'Patna',
+    deity: 'Devi',
+    imageUrl: 'https://picsum.photos/seed/patan-devi-temple/800/600',
+    description:
+        'Historic Badi Patan Devi shrine in Patna City, revered as a '
+        'Shakti Peetha and as one of the guardian-goddess temples '
+        'associated with the city’s old name, Pataliputra.',
+    story:
+        'Patan Devi refers to Patna’s old goddess tradition, represented '
+        'principally by Badi Patan Devi at Sadikpur and Chhoti Patan Devi '
+        'elsewhere in Patna City. This entry is specifically for Badi '
+        'Patan Devi. The shrine is revered in Shakta tradition as a Shakti '
+        'Peetha connected with the Sati legend, though lists and details '
+        'of body-part associations vary across traditions.\n\nThe sanctum '
+        'worships a group of goddess forms commonly identified as '
+        'Mahakali, Mahalakshmi, and Mahasaraswati. Local tradition links '
+        'the city’s name and protection to Patan Devi, making the temple '
+        'both a neighbourhood shrine and a larger identity marker for '
+        'historic Patna. Navratri and Durga Puja are the principal crowd '
+        'peaks, with Tuesdays and Saturdays also busy.\n\nPublic timing '
+        'sources disagree: Bihar Tourism’s Patna overview gives a broad '
+        '5:00 AM–10:00 PM span, while Incredible India lists 6:00 AM–8:00 '
+        'PM and some visitor sources show a midday break. Treat the '
+        'official tourism windows as planning boundaries, but confirm the '
+        'actual day’s opening and ritual closures locally.',
+    location:
+        'Badi Patan Devi, Sadikpur, Patna City, Patna, Bihar 800007',
+    timings:
+        'Conflicting government tourism listings: Bihar Tourism’s Patna '
+        'overview gives 5:00 AM–10:00 PM; Incredible India gives opening '
+        '6:00 AM and closing 8:00 PM. The dedicated Bihar Tourism temple '
+        'page does not publish a detailed ritual board, and secondary '
+        'sources often show split sessions. Therefore use provisional '
+        'visiting hours only and confirm locally; Navratri / Durga Puja '
+        'crowd plans override ordinary access.',
+    latitude: 25.60531,
+    longitude: 85.20629,
+    specialities: [
+      'Badi Patan Devi shrine in historic Patna City',
+      'Revered as a Shakti Peetha',
+      'Mahakali–Mahalakshmi–Mahasaraswati goddess triad',
+      'Guardian-goddess tradition linked with Patna / Pataliputra',
+      'Major Navratri and Durga Puja pilgrimage',
+      'Distinct from Chhoti Patan Devi',
+    ],
+  ),
+
+  Temple(
+    name: 'Mangala Gauri Temple',
+    state: 'Bihar',
+    city: 'Gaya',
+    deity: 'Devi',
+    imageUrl: 'https://picsum.photos/seed/mangala-gauri-temple/800/600',
+    description:
+        'Hilltop Shakti shrine in Gaya, revered as Mangala Gauri and '
+        'counted in tradition among the eighteen Maha Shakti Peethas; '
+        'especially visited during the Shravan Mangala Gauri Tuesday '
+        'observances.',
+    story:
+        'Mangala Gauri Temple stands on a hill in Gaya’s sacred landscape '
+        'and is dedicated to the auspicious mother goddess. It is '
+        'traditionally counted among the eighteen Maha Shakti Peethas and '
+        'associated with the breast of Sati, a symbolism tied to '
+        'nourishment and maternal power. The compact shrine is reached by '
+        'steps and shares the hill precinct with smaller Shiva, Durga, and '
+        'Dakshina Kali shrines.\n\nThe temple has a special place in '
+        'household and marital devotion. Newly married couples seek '
+        'blessings, while women observe Mangala Gauri vrata on Tuesdays in '
+        'the month of Shravan for family welfare and auspicious married '
+        'life. Navratri also brings heavy attendance, and the narrow '
+        'approach becomes congested.\n\nBihar Tourism’s broad guidance is '
+        'sunrise to sunset rather than a detailed pooja schedule. Multiple '
+        'commercial listings publish incompatible split clocks and aarti '
+        'minutes, so they should not be treated as authoritative. An early '
+        'morning visit is best for the climb and quieter darshan.',
+    location:
+        'Mangala Gauri Hill, Gaya, Bihar 823001',
+    timings:
+        'Bihar Tourism gives a broad sunrise-to-sunset visiting span '
+        'rather than fixed all-season minutes. Secondary sources variously '
+        'cite 6:00 AM–8:00 PM or split morning/evening sessions, so exact '
+        'aarti and closure times are thin / provisional. Confirm locally, '
+        'especially on Shravan Tuesdays and during Navratri.',
+    latitude: 24.77514,
+    longitude: 85.00231,
+    specialities: [
+      'Traditional Maha Shakti Peetha of Mangala Gauri',
+      'Sati-breast / maternal nourishment symbolism',
+      'Hilltop stair approach in Gaya',
+      'Shravan Tuesday Mangala Gauri vrata',
+      'Newlywed and family-welfare pilgrimage',
+      'Navratri observances',
+    ],
+  ),
+
+  Temple(
+    name: 'Ajgaibinath Temple',
+    state: 'Bihar',
+    city: 'Sultanganj',
+    deity: 'Shiva',
+    imageUrl: 'https://picsum.photos/seed/ajgaibinath-temple/800/600',
+    description:
+        'Ancient Shiva temple on a rocky Ganges outcrop at Sultanganj, '
+        'where Kanwar pilgrims collect river water before beginning the '
+        'long Shravan journey toward Baidyanath Dham.',
+    story:
+        'Ajgaibinath Temple, also written Ajgaivinath, rises from a rocky '
+        'hill beside the Ganges at Sultanganj. The shrine is dedicated to '
+        'Shiva and is known for its dramatic river setting, stone '
+        'carvings, and inscriptions. Access conditions can change with the '
+        'Ganges level and the state of the connecting '
+        'approach.\n\nSultanganj is a principal starting point of the '
+        'Shravani Kanwar Yatra. Pilgrims take Ganga water here and carry '
+        'it in kanwars on the route toward Baidyanath Dham at Deoghar, '
+        'traditionally without setting the vessel on the ground. The '
+        'orange-clad pilgrimage transforms the town throughout Shravan, '
+        'producing continuous flows, traffic diversions, temporary camps, '
+        'and special worship arrangements.\n\nBihar Tourism lists the site '
+        'as open 24/7, which is best understood as broad precinct access '
+        'rather than a guarantee that every inner-sanctum ritual or priest '
+        'service operates continuously. For ordinary visits, daylight is '
+        'safer for the river approach; during Shravan, follow district '
+        'crowd and river-safety instructions.',
+    location:
+        'Ajgaibinath Dham, Ganga riverfront, Sultanganj, Bhagalpur '
+        'district, Bihar 813213',
+    timings:
+        'Bihar Tourism lists Ajgaibinath Mandir as open 24/7. Treat that '
+        'as broad site / precinct access: inner-sanctum service, river '
+        'approach, and ritual handling can still vary with water level, '
+        'season, and the Shravan Kanwar crowd plan. Daylight visits are '
+        'preferable outside organised yatra conditions.',
+    latitude: 25.25239,
+    longitude: 86.73431,
+    specialities: [
+      'Shiva shrine on a rocky Ganges outcrop',
+      'Sultanganj starting point for Shravani Kanwar Yatra',
+      'Ganga-water collection for Baidyanath Dham',
+      'Stone carvings and inscriptions',
+      'Dramatic river-island / riverbank setting',
+      'Major Shravan Mela pilgrimage logistics',
+    ],
+  ),
+
+  Temple(
+    name: 'Deo Sun Temple',
+    state: 'Bihar',
+    city: 'Deo',
+    deity: 'Surya',
+    imageUrl: 'https://picsum.photos/seed/deo-sun-temple/800/600',
+    description:
+        'Historic Surya temple at Deo in Aurangabad district, one of '
+        'Bihar’s foremost Chhath pilgrimage centres, with worship focused '
+        'on sunrise, sunset, and the nearby Brahma Kund.',
+    story:
+        'Deo Sun Temple is the principal Surya shrine of Aurangabad '
+        'district and one of Bihar’s emblematic Chhath destinations. The '
+        'tall stone temple, about 100 feet according to the district '
+        'administration, has an umbrella-like crown and is linked by local '
+        'history to a Chandravanshi ruler of Umga. Dating claims vary, so '
+        'the district’s broad “15th century old” description should not be '
+        'converted into a precise foundation year without inscriptional '
+        'support.\n\nWorship is centred on Surya and on arghya at sunrise '
+        'and sunset. Pilgrims also bathe at Brahma Kund, a custom the '
+        'district page associates with old royal tradition. During Chaiti '
+        'Chhath and Kartik Chhath, thousands gather in Deo and the '
+        'ordinary visitor clock is replaced by festival crowd-control and '
+        'extended ritual access.\n\nBihar Tourism currently gives a broad '
+        '6:00 AM–6:00 PM visitor span, while other tourism material and '
+        'guides publish longer days. Use the Bihar Tourism span for '
+        'ordinary planning and verify locally before dawn worship or any '
+        'evening visit.',
+    location:
+        'Deo, Aurangabad district, Bihar 824202',
+    timings:
+        'Bihar Tourism currently lists approximately 6:00 AM–6:00 PM for '
+        'ordinary visits, with worship focused around sunrise and sunset. '
+        'Other ready-reckoner / visitor sources have published longer '
+        'spans, so the edges are provisional. Kartik and Chaiti Chhath '
+        'operate under special, often extended schedules and district '
+        'crowd plans — confirm before travel. Thin official ordinary-day '
+        'edges.',
+    latitude: 24.65879,
+    longitude: 84.43703,
+    specialities: [
+      'Major Surya temple and Bihar Chhath pilgrimage centre',
+      'Sunrise and sunset arghya worship',
+      'Brahma Kund ritual bathing',
+      'Roughly 100-foot stone tower with umbrella-like crown',
+      'Kartik and Chaiti Chhath congregations',
+      'Historic association with the Umga royal line',
+    ],
+  ),
+
+  Temple(
+    name: 'Ugratara Temple',
+    state: 'Bihar',
+    city: 'Mahishi',
+    deity: 'Devi',
+    imageUrl: 'https://picsum.photos/seed/ugratara-temple/800/600',
+    description:
+        'Ancient Bhagwati Tara shrine at Mahishi near Saharsa, where '
+        'Ugratara is worshipped with the companion goddess forms Ekjata '
+        'and Nil Saraswati.',
+    story:
+        'Shri Ugratara Sthan lies in Mahishi village, about 17 kilometres '
+        'west of Saharsa station. The ancient temple centres on Bhagwati '
+        'Tara in her fierce Ugratara form and draws devotees across the '
+        'Kosi region. The Saharsa district page records two smaller female '
+        'deities beside the principal image, worshipped as Ekjata and Nil '
+        'Saraswati.\n\nThe shrine belongs to the living Shakta and Tara '
+        'tradition and is often described locally as a siddha or Shakti '
+        'site. Associations with the scholar Mandana Mishra and the '
+        'intellectual landscape of Mahishi are part of regional memory, '
+        'but claims about exact antiquity and formal Shakti Peetha rank '
+        'differ across sources and should be presented as tradition rather '
+        'than settled history.\n\nSharadiya Navratri and Dussehra are the '
+        'major annual peaks. No strong temple-run public timetable was '
+        'found: online directories disagree on the midday closure, though '
+        'they broadly place worship from early morning into the evening. '
+        'The district page is strong for identity and access, not for '
+        'ritual minutes.',
+    location:
+        'Shri Ugratara Sthan, Mahishi, Saharsa district, Bihar 852216',
+    timings:
+        'Thin official clock. The Saharsa district and Bihar Tourism pages '
+        'identify the shrine but do not publish a daily timetable. '
+        'Secondary listings commonly give 5:00 AM–2:30 PM and 3:30–9:00 '
+        'PM; another gives 5:00 AM–12:00 PM and 4:00–9:00 PM. Use only as '
+        'a planning range and confirm locally; Navratri / Dussehra '
+        'schedules override.',
+    latitude: 25.8483,
+    longitude: 86.4728,
+    specialities: [
+      'Bhagwati Tara in fierce Ugratara form',
+      'Companion images of Ekjata and Nil Saraswati',
+      'Important Kosi-region Shakta pilgrimage',
+      'Mahishi sacred and scholarly landscape',
+      'Sharadiya Navratri and Dussehra crowds',
+      'Ancient image noted by Saharsa district administration',
+    ],
+  ),
+
+  Temple(
+    name: 'Janaki Temple Sitamarhi',
+    state: 'Bihar',
+    city: 'Sitamarhi',
+    deity: 'Sita (Devi)',
+    imageUrl: 'https://picsum.photos/seed/janaki-temple-sitamarhi/800/600',
+    description:
+        'Janaki temple complex at Punaura Dham near Sitamarhi, revered in '
+        'local and Ramayana tradition as Sita’s birthplace and centred on '
+        'Janaki Mandir and Sita Kund.',
+    story:
+        'This Sitamarhi Janaki entry uses Punaura Dham, about five '
+        'kilometres west of Sitamarhi, rather than a similarly named urban '
+        'temple. The pilgrimage complex is revered as Janaki Janmabhoomi: '
+        'tradition holds that King Janaka found the infant Sita while '
+        'ploughing the ritual field during a drought. Sita Kund or Janaki '
+        'Kund preserves the landscape connection to that birth '
+        'narrative.\n\nThe complex includes Janaki Mandir and spaces for '
+        'Rama, Sita, and Ramayana-centred devotion. It forms a key Bihar '
+        'stop on the Ramayan Circuit and maintains cultural links with '
+        'Janakpur in Nepal. Ram Navami, Vivah Panchami, and especially '
+        'Sita Navami / Janaki Navami bring larger congregations and '
+        'devotional programmes.\n\nBihar Tourism gives a straightforward '
+        '6:00 AM–6:00 PM visitor span. Temple-trust and local festival '
+        'programmes may create midday ritual pauses or extend access, so '
+        'visitors should re-check on festival dates. The birthplace '
+        'identification is a revered local tradition and should be phrased '
+        'as such, not as an archaeological certainty.',
+    location:
+        'Punaura Dham, Punaura, Sitamarhi district, Bihar 843302',
+    timings:
+        'Bihar Tourism lists Punaura Dham visiting hours as 6:00 AM–6:00 '
+        'PM. Some local / directory listings show longer split sessions, '
+        'but no detailed trust-run daily ritual board was verified. Use '
+        'the tourism span for ordinary planning and confirm Sita Navami, '
+        'Ram Navami, and Vivah Panchami programmes locally.',
+    latitude: 26.58645,
+    longitude: 85.46676,
+    specialities: [
+      'Punaura Dham Janaki Janmabhoomi tradition',
+      'Janaki Mandir and Sita / Janaki Kund',
+      'King Janaka ploughing-field birth narrative',
+      'Bihar Ramayan Circuit pilgrimage stop',
+      'Sita Navami and Vivah Panchami observances',
+      'Cultural links with Janakpur in Nepal',
+    ],
+  ),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  HIMACHAL PRADESH
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Expansion batch 15 — new temples, not enrichments of existing rows.
+  // Jwalamukhi keeps two conflicting official Kangra portal clocks.
+  // Baijnath (Kangra) is not the canonical Vaidyanath Jyotirlinga.
+  // Cover imageUrl values are picsum placeholders. Commons candidates:
+  // docs/himachal-pradesh-sample-research.md.
+  Temple(
+    name: 'Jwalamukhi Temple',
+    state: 'Himachal Pradesh',
+    city: 'Jwalamukhi',
+    deity: 'Devi',
+    imageUrl: 'https://picsum.photos/seed/jwalamukhi-temple/800/600',
+    description:
+        'Major Kangra Shakti Peetha where Jwala Devi is worshipped as '
+        'natural flames emerging from rock fissures rather than as a '
+        'conventional idol; the shrine anchors the town of Jwalamukhi.',
+    story:
+        'Jwalamukhi (Jwala Ji) is one of Himachal Pradesh’s best-known '
+        'Shakti shrines. Shakta tradition identifies it with the place '
+        'where Sati’s tongue fell, and the goddess is encountered in the '
+        'sanctum as sacred flames rising through fissures in the rock. The '
+        'official Kangra Temples portal describes nine flames associated '
+        'with forms including Mahakali, Annapurna, Chandi, Hinglaj, '
+        'Mahalakshmi, Saraswati, and Ambika.\n\nThe flame sanctuary, '
+        'without a conventional central idol, gives the temple its '
+        'distinctive ritual character. Historical traditions connect the '
+        'shrine with regional rulers, Mughal-era visitors, Maharaja Ranjit '
+        'Singh, and later rebuilding; the present complex combines wood, '
+        'marble, metalwork, domed forms, and subsidiary '
+        'shrines.\n\nMorning and evening aarti frame daily worship, with '
+        'darshan paused during aarti and the midday bhog interval. Chaitra '
+        'and Sharad Navratri are the largest pilgrimage periods; the Trust '
+        'also runs langar. Two pages on the official Kangra Temples portal '
+        'currently publish materially different opening clocks, so '
+        'visitors should verify the live board before travel rather than '
+        'treating either table as permanent.\n\nThe approach is by hill '
+        'roads in Kangra district. Monsoon rain, fog, road works, and '
+        'Navratri traffic can lengthen travel and queues even though the '
+        'temple remains a year-round pilgrimage site.',
+    location:
+        'Jwala Ji Temple Road, Jawalamukhi, Kangra district, Himachal '
+        'Pradesh 176031',
+    timings:
+        'OFFICIAL-PAGE CONFLICT — confirm same day. The detailed Shri '
+        'Jawala Mata Mandir profile on kangratemples.hp.gov.in lists '
+        'winter darshan 5:00 AM–11:30 AM and 12:30–9:00 PM, summer 4:30 '
+        'AM–11:30 AM and 12:30–10:00 PM; bhog closure 11:30 AM–12:30 PM. '
+        'It lists winter aarti 5:30–6:00 AM, 6:00–7:00 PM and Shayan '
+        '8:00–8:40 PM; summer aarti 5:00–5:30 AM, 7:00–8:00 PM and Shayan '
+        '9:00–9:40 PM. A separate official e-puja page instead states '
+        'winter 7:00–11:00 AM & 12:30–9:30 PM and summer 6:00–11:30 AM & '
+        '12:30–10:00 PM, with aarti at 7:00 AM/7:00 PM winter and 6:00 '
+        'AM/8:00 PM summer. Darshan pauses during aarti/bhog; Navratri can '
+        'extend access.',
+    latitude: 31.8752,
+    longitude: 76.3243,
+    specialities: [
+      'Shakti Peetha associated with Sati’s tongue',
+      'Natural sacred flames worshipped instead of a conventional idol',
+      'Nine-flame / nine-goddess tradition',
+      'Morning, evening, and Shayan aarti rhythm',
+      'Major Chaitra and Sharad Navratri pilgrimage',
+      'Temple Trust langar for pilgrims',
+    ],
+  ),
+
+  Temple(
+    name: 'Naina Devi Temple',
+    state: 'Himachal Pradesh',
+    city: 'Naina Devi',
+    deity: 'Devi',
+    imageUrl: 'https://picsum.photos/seed/naina-devi-temple/800/600',
+    description:
+        'Hilltop Shakti Peetha in Bilaspur district, traditionally '
+        'associated with Sati’s eyes and commanding broad views toward the '
+        'Sutlej–Bhakra landscape.',
+    story:
+        'Shri Naina Devi Ji stands on a Bilaspur hill above the plains and '
+        'Bhakra region. Shakta tradition identifies the site with Sati’s '
+        'eyes (naina), making the goddess one of the most prominent Shakti '
+        'Peetha forms in northern India. The official Temple Trust site '
+        'places the shrine at roughly 1,200 metres elevation.\n\nLocal '
+        'foundation traditions connect the sanctuary with Raja Bir Chand '
+        'and with a Gujjar boy named Naina who discovered or worshipped '
+        'the sacred presence. The present marble-clad complex contains the '
+        'main Devi shrine and subsidiary deities, reached by road, steps, '
+        'and a ropeway when operating.\n\nOrdinary darshan runs from '
+        'before dawn into the night; during Navratri the official Trust '
+        'expands access from 2:00 AM to midnight. Chaitra and Sharad '
+        'Navratri, Shravan fairs, weekends, and public holidays bring the '
+        'heaviest queues.\n\nBecause this is an exposed hilltop '
+        'pilgrimage, fog, thunderstorms, high winds, or maintenance may '
+        'affect ropeway service. Road users should also allow for monsoon '
+        'disruption and festival traffic, and should follow Trust and '
+        'district instructions on the day.',
+    location:
+        'Shri Naina Devi Ji Temple, Naina Devi, Bilaspur district, '
+        'Himachal Pradesh 174310',
+    timings:
+        'Official Shri Naina Devi Ji Temple Trust board: normal days 4:00 '
+        'AM–10:00 PM; Navratri 2:00 AM–12:00 midnight. Incredible India '
+        'separately displays 5:00 AM–9:00 PM, so prefer the Temple Trust’s '
+        'live board and confirm festival-day changes. Individual '
+        'aarti/ritual minutes are not firmly published on the official '
+        'home page; do not rely on secondary 5:00 AM/7:00 PM claims '
+        'without same-day confirmation.',
+    latitude: 31.30603,
+    longitude: 76.53639,
+    specialities: [
+      'Shakti Peetha associated with Sati’s eyes (naina)',
+      'Hilltop shrine at roughly 1,200 metres',
+      'Extended 2:00 AM–midnight Navratri darshan',
+      'Views toward the Bhakra–Sutlej hill landscape',
+      'Road, stair, and ropeway approaches',
+      'Major Bilaspur Devi pilgrimage centre',
+    ],
+  ),
+
+  Temple(
+    name: 'Chintpurni Temple',
+    state: 'Himachal Pradesh',
+    city: 'Chintpurni',
+    deity: 'Devi',
+    imageUrl: 'https://picsum.photos/seed/chintpurni-temple/800/600',
+    description:
+        'Una district Shakta pilgrimage shrine of Mata Chintpurni, also '
+        'revered as Chhinnamastika, where devotees seek freedom from worry '
+        'and worship a sacred pindi.',
+    story:
+        'Mata Chintpurni Devi is worshipped as the mother who removes '
+        'chinta (worry) and as Chhinnamastika, a Shakta form associated '
+        'with self-sacrifice and transformative power. The shrine stands '
+        'in the lower Shivalik hills of Una district and is widely '
+        'included in Himachal’s Devi pilgrimage circuit.\n\nTradition '
+        'credits Pandit Mai Das with establishing worship after a divine '
+        'revelation; the central presence is a pindi rather than a large '
+        'anthropomorphic image. Pilgrims circumambulate the compact bhavan '
+        'and may hear continuous bhajan or kirtan during busy seasons. '
+        'Historic genealogy registers have also been maintained by '
+        'pilgrimage priests at Chintpurni.\n\nThe official temple site '
+        'publishes a clear ritual rhythm: morning bathing and aarti, a '
+        'noon bhog pause when darshan stops, evening bathing and aarti, '
+        'and night sayan. Chaitra, Shravan, and Ashwin Navratri melas are '
+        'major peaks, when darshan-parchi and crowd controls are '
+        'especially important.\n\nThe hill approach remains comparatively '
+        'accessible year-round, but monsoon rain, fog, and mela traffic '
+        'can delay buses and cars. Follow the Temple Trust’s queue and '
+        'parchi instructions rather than agents or back-door offers.',
+    location:
+        'Mata Shri Chintpurni Devi Ji, Chintpurni, Amb tehsil, Una '
+        'district, Himachal Pradesh 177110',
+    timings:
+        'Official religious-activity board: Goddess snan and morning aarti '
+        '6:30 AM; bhog 12:00–12:30 PM (darshan stopped); evening snan and '
+        'aarti 6:30–8:00 PM; Goddess sayan 10:00 PM. General open/close is '
+        'thinner on the official page; secondary seasonal boards commonly '
+        'list summer (Apr–Oct) 4:30 AM–10:00 PM and winter (Nov–Mar) 5:30 '
+        'AM–9:30 PM — PROVISIONAL, confirm with the Temple Trust. '
+        'Navratri/mela days may open earlier or extend access.',
+    latitude: 31.80862,
+    longitude: 76.10287,
+    specialities: [
+      'Mata Chintpurni / Chhinnamastika Shakta shrine',
+      'Sacred pindi worship attributed to Pandit Mai Das',
+      'Official snan, aarti, bhog, and sayan ritual board',
+      'Three major Navratri mela periods',
+      'Hindu pilgrimage genealogy-register tradition',
+      'Darshan-parchi crowd-management system',
+    ],
+  ),
+
+  Temple(
+    name: 'Chamunda Devi Temple',
+    state: 'Himachal Pradesh',
+    city: 'Dharamshala',
+    deity: 'Devi',
+    imageUrl: 'https://picsum.photos/seed/chamunda-devi-temple/800/600',
+    description:
+        'Major Kangra Devi shrine on the Baner River near Dharamshala and '
+        'Palampur, jointly sacred to fierce Chamunda and Shiva as '
+        'Nandikeshwar.',
+    story:
+        'Shri Chamunda Nandikeshwar Dham stands beside the Baner River in '
+        'the Dharamshala–Palampur area. It honours Chamunda, the fierce '
+        'Durga form associated with the defeat of Chanda and Munda, '
+        'together with Nandikeshwar Shiva; the paired identity gives the '
+        'site an important Shakti–Shaiva character.\n\nRegional tradition '
+        'says the older Aadi Himani Chamunda shrine lay high on the '
+        'mountain and was difficult to reach. A ruler and priest, guided '
+        'in a dream, established the more accessible valley shrine several '
+        'centuries ago. The riverside complex now serves as one of '
+        'Kangra’s busiest living Devi temples, with bathing ghats and '
+        'subsidiary sacred spaces.\n\nThe official Kangra Temples portal '
+        'publishes separate summer and winter opening spans, a one-hour '
+        'noon bhog closure, and fixed morning/evening aarti windows. '
+        'Navratri and other Devi observances bring dense queues and may '
+        'alter access controls.\n\nDo not confuse this shrine with '
+        'Chamundeshwari Temple in Mysuru or Chamunda temples in Chamba. '
+        'Monsoon-swollen water, rain, fog, and Kangra road conditions '
+        'require ordinary hill-travel caution.',
+    location:
+        'Shri Chamunda Nandikeshwar Dham, Padar (Dadh), Kangra district, '
+        'Himachal Pradesh 176052',
+    timings:
+        'Official Kangra Temples board. Winter: 6:00 AM–12:00 PM and '
+        '1:00–9:00 PM; summer: 5:00 AM–12:00 PM and 1:00–10:00 PM. Closed '
+        '12:00–1:00 PM for bhog in both seasons. Morning aarti 8:00–8:45 '
+        'AM; evening aarti 7:10–7:50 PM. Festival-day arrangements can '
+        'override — confirm on kangratemples.hp.gov.in.',
+    latitude: 32.14833,
+    longitude: 76.41917,
+    specialities: [
+      'Chamunda Devi with Shiva as Nandikeshwar',
+      'Baner River setting near Dharamshala–Palampur',
+      'Accessible valley shrine linked to Aadi Himani Chamunda',
+      'Official seasonal darshan and aarti board',
+      'One of Kangra’s five major Devi pilgrimage stops',
+      'Peak Navratri worship and queues',
+    ],
+  ),
+
+  Temple(
+    name: 'Baijnath Temple',
+    state: 'Himachal Pradesh',
+    city: 'Baijnath',
+    deity: 'Shiva',
+    imageUrl: 'https://picsum.photos/seed/baijnath-temple/800/600',
+    description:
+        'ASI-protected Nagara-style Shiva temple at Baijnath, built in '
+        '1204 and dedicated to Vaidyanath, Shiva as the Lord of Physicians.',
+    story:
+        'Baijnath Temple is dedicated to Shiva as Vaidyanath, the Lord of '
+        'Physicians. Two long inscriptions record construction of the '
+        'present stone temple in 1204 by local merchants Ahuka and Manyuka '
+        'on a site where Shiva worship already existed. The town, '
+        'historically Kiragrama, came to be known by the deity’s '
+        'name.\n\nThe compact Nagara temple has a curving shikhara, '
+        'pillared mandapa, Nandi, a linga in the sanctum, and exterior '
+        'images including Ganesha, Harihara, Kalyanasundara, and Shiva’s '
+        'defeat of Andhaka. It is protected and conserved by the '
+        'Archaeological Survey of India; repairs are associated with '
+        'Kangra ruler Sansar Chand, and the complex survived the '
+        'destructive 1905 earthquake with limited damage.\n\nLocal Ravana '
+        'lore says the Shiva linga became fixed here while the Lanka king '
+        'carried it south. In respect for Ravana’s devotion, Baijnath is '
+        'noted for not celebrating Dussehra in the usual effigy-burning '
+        'manner. Maha Shivaratri is the temple’s largest annual '
+        'observance.\n\nIncredible India publishes all-day visiting from '
+        '6:00 AM to 9:00 PM. Festival crowds, worship in the compact '
+        'sanctum, and Dhauladhar weather can change the practical darshan '
+        'pace; verify the local board before a special puja.\n\nThis '
+        'Kangra shrine is an ASI-protected living temple of Shiva as '
+        'Vaidyanath. It is not the canonical Vaidyanath Jyotirlinga, and '
+        'it is distinct from the Baijnath temple in Uttarakhand.',
+    location:
+        'Baijnath Shiv Temple, Baijnath, Kangra district, Himachal Pradesh '
+        '176125',
+    timings:
+        'Incredible India visitor board: open daily 6:00 AM–9:00 PM. Named '
+        'morning/evening aarti minutes found on third-party guides are not '
+        'firmly confirmed by the government page, so confirm locally. Maha '
+        'Shivaratri, Shravan Mondays, maintenance, or ASI/temple controls '
+        'may alter access. The temple is in the Dhauladhar foothills; '
+        'winter fog/ice and monsoon road delays can affect arrival even '
+        'when the shrine is open.',
+    latitude: 32.05095,
+    longitude: 76.64553,
+    specialities: [
+      'Shiva as Vaidyanath — Lord of Physicians',
+      'Dated by inscriptions to 1204; patrons Ahuka and Manyuka',
+      'ASI-protected Nagara stone architecture',
+      'Sanskrit Sharada and local Takri inscription heritage',
+      'Ravana lore and distinctive local Dussehra custom',
+      'Major Maha Shivaratri pilgrimage',
+    ],
+  ),
+
+  Temple(
+    name: 'Bhimakali Temple',
+    state: 'Himachal Pradesh',
+    city: 'Sarahan',
+    deity: 'Devi',
+    imageUrl: 'https://picsum.photos/seed/bhimakali-temple/800/600',
+    description:
+        'Towering kath-kuni Devi complex at Sarahan, the historic kuldevi '
+        'shrine of the Bushahr rulers and one of Himachal’s most '
+        'distinctive wood-and-stone temples.',
+    story:
+        'Bhimakali Temple at Sarahan is the historic goddess shrine of the '
+        'former Bushahr kingdom. Bhimakali is revered as the rulers’ '
+        'kuldevi, and regional tradition treats Sarahan as a Shakta sacred '
+        'site associated in one account with Sati’s ear. Navratri and '
+        'Dussehra are the largest observances.\n\nThe complex is '
+        'celebrated for kath-kuni construction: alternating deodar timber '
+        'and stone courses that create resilient Himalayan tower '
+        'architecture. Twin towers, layered courtyards, richly worked wood '
+        'and silver, gilded gateways, and subsidiary Narsingha and '
+        'Raghunath shrines combine Hindu and trans-Himalayan visual '
+        'traditions.\n\nThe older fabric has undergone rebuilding and '
+        'conservation, including work under Raja Padam Singh in the 1920s. '
+        'Because this is a living royal-temple complex, entry, clothing, '
+        'leather-item, and photography rules may be stricter near the '
+        'upper sanctum than in the courtyards.\n\nPublished daily clocks '
+        'are inconsistent and no strong current Temple Trust timetable was '
+        'found. Treat the commonly reported split windows as planning '
+        'guidance only, and call or confirm locally. Sarahan’s mountain '
+        'road can be affected by monsoon landslides, winter snow/ice, fog, '
+        'and works on the Hindustan–Tibet road approach.',
+    location:
+        'Shri Bhimakali Temple, Sarahan, Rampur tehsil, Shimla district, '
+        'Himachal Pradesh 172102',
+    timings:
+        'THIN OFFICIAL CLOCK — provisional. Recent visitor sources '
+        'commonly report 6:00 AM–12:00/1:00 PM and 2:00/4:00–7:00/7:15 PM; '
+        'some extend evening access later in peak season. Morning aarti is '
+        'often reported around 6:00 AM in summer and later in winter, but '
+        'no stable current Temple Trust web board was found. Confirm '
+        'locally (Temple Trust contact commonly listed: 01782-233002) '
+        'before travel. Navratri/Dussehra and seasonal daylight can alter '
+        'access.',
+    latitude: 31.44943,
+    longitude: 77.63087,
+    specialities: [
+      'Kuldevi shrine of the former Bushahr rulers',
+      'Kath-kuni wood-and-stone tower architecture',
+      'Twin towers, courtyards, carved wood, and silverwork',
+      'Narsingha and Raghunath subsidiary shrines',
+      'Major Navratri and Dussehra observances',
+      'High Himalayan Sarahan pilgrimage setting',
+    ],
+  ),
+
+  Temple(
+    name: 'Hadimba Devi Temple',
+    state: 'Himachal Pradesh',
+    city: 'Manali',
+    deity: 'Devi',
+    imageUrl: 'https://picsum.photos/seed/hadimba-devi-temple/800/600',
+    description:
+        'Four-tiered wooden pagoda temple in Manali’s cedar forest, '
+        'dedicated to Hidimbi (Hadimba), Bhima’s wife and a powerful local '
+        'goddess of the Kullu valley.',
+    story:
+        'Hadimba Devi Temple, also called Hidimba or Dhungri Temple, '
+        'stands in a deodar grove above central Manali. It is dedicated to '
+        'Hidimbi from the Mahabharata, who married Bhima after he defeated '
+        'her brother Hidimb and became the mother of the warrior '
+        'Ghatotkacha. In local tradition she is not merely an epic figure '
+        'but a sovereign protective goddess of the valley.\n\nMaharaja '
+        'Bahadur Singh is traditionally credited with building the present '
+        'temple in 1553. Its 24-metre wooden tower rises through three '
+        'square timber-tiled roofs to a brass finial; carved doors show '
+        'deities, dancers, animals, foliage, and epic imagery. The sanctum '
+        'encloses a sacred rock/cave form, while a Ghatotkacha shrine '
+        'stands nearby.\n\nThe Dhungri/Hadimba fair in spring and Manali’s '
+        'Navratri traditions highlight the goddess’s civic importance. '
+        'Worship is usually simple darshan rather than a heavily '
+        'advertised online-seva programme; no dependable official '
+        'minute-by-minute aarti board was found.\n\nThe grove is '
+        'accessible in most seasons, but snow, black ice, monsoon rain, '
+        'tourist traffic, and parking controls can slow the last approach. '
+        'Walk carefully on wet or icy stone and timber surfaces.',
+    location:
+        'Hadimba Temple Road, Dhungri, Manali, Kullu district, Himachal '
+        'Pradesh 175131',
+    timings:
+        'Incredible India lists daily opening 8:00 AM–6:00 PM. No strong '
+        'official fixed aarti schedule was found; confirm any special '
+        'ritual locally. The practical closing can be '
+        'daylight/weather-sensitive in winter, while fairs, Navratri, and '
+        'peak tourist days create queues. Snow, ice, heavy rain, or local '
+        'traffic restrictions may affect access even if the temple itself '
+        'remains open.',
+    latitude: 32.24228,
+    longitude: 77.18737,
+    specialities: [
+      'Hidimbi/Hadimba — Mahabharata figure and Kullu valley goddess',
+      '1553 wooden pagoda attributed to Maharaja Bahadur Singh',
+      'Three timber roofs, brass finial, and carved wooden doors',
+      'Sacred rock/cave-form sanctum in a deodar grove',
+      'Nearby Ghatotkacha shrine',
+      'Dhungri (Hadimba Devi) spring fair',
+    ],
+  ),
+
+  Temple(
+    name: 'Lakshmi Narayan Temple',
+    state: 'Himachal Pradesh',
+    city: 'Chamba',
+    deity: 'Vishnu',
+    imageUrl: 'https://picsum.photos/seed/lakshmi-narayan-temple/800/600',
+    description:
+        'Chamba’s principal historic temple group: six early Nagara '
+        'shrines aligned north–south, led by Lakshmi Narayan and divided '
+        'between Vishnu and Shiva dedications.',
+    story:
+        'The Lakshmi Narayan group is Chamba’s principal temple complex '
+        'and is traditionally attributed to Raja Sahil Varman in the 10th '
+        'century. The northernmost shrine is dedicated to Lakshmi Narayan, '
+        'and the group takes its name from this Vishnu form.\n\nSix major '
+        'stone temples stand in a north–south row: three associated with '
+        'Vishnu and three with Shiva. Their curving Nagara shikharas, '
+        'mandapas, carved doorways, river-goddess figures, and narrative '
+        'sculpture preserve some of the oldest monumental architecture in '
+        'Chamba. Later rulers added shrines, metal pinnacles, and '
+        'protective wooden chhatris suited to snow and mountain '
+        'weather.\n\nThe complex remains a living place of worship as well '
+        'as a heritage ensemble. Janmashtami, Ram Navami, and major '
+        'Vaishnava observances are important, while the Shiva shrines '
+        'maintain their own ritual identities. Visitors should avoid '
+        'treating every building as a single Lakshmi Narayan '
+        'sanctum.\n\nOfficial district and national tourism pages describe '
+        'the history but do not publish a firm daily clock. Commonly '
+        'circulated split hours should therefore be treated as provisional '
+        'and checked at the entrance, especially in winter, festivals, or '
+        'restoration periods.',
+    location:
+        'Lakshmi Narayan Temple Complex, Chowgan Mohalla, Chamba, Himachal '
+        'Pradesh 176310',
+    timings:
+        'THIN OFFICIAL CLOCK — provisional. Visitor guides commonly list '
+        '6:00 AM–12:30 PM and 2:30–8:30 PM daily, but the Chamba district '
+        'and Incredible India pages do not publish a firm schedule. '
+        'Confirm at the temple entrance or District Tourism office before '
+        'relying on these windows. Winter daylight, festival rituals, '
+        'conservation work, or severe hill weather can shorten access.',
+    latitude: 32.55781,
+    longitude: 76.1247,
+    specialities: [
+      'Chamba’s principal 10th-century temple complex',
+      'Six major shrines: three Vishnu and three Shiva',
+      'Nagara shikharas with Himalayan protective chhatris',
+      'Attributed to Raja Sahil Varman',
+      'Historic sculpture, inscriptions, and copper-plate patronage',
+      'Living worship within a heritage ensemble',
+    ],
+  ),
+
+  Temple(
+    name: 'Panchvaktra Temple',
+    state: 'Himachal Pradesh',
+    city: 'Mandi',
+    deity: 'Shiva',
+    imageUrl: 'https://picsum.photos/seed/panchvaktra-temple/800/600',
+    description:
+        'ASI-protected Shikhara-style Shiva temple at the Beas–Suketi '
+        'confluence in Mandi, centred on a five-faced Panchvaktra image.',
+    story:
+        'Panchvaktra Mahadev stands where the Suketi meets the Beas in '
+        'Mandi, the historic ‘Varanasi of the Hills.’ Its principal image '
+        'presents Shiva with five faces, a form interpreted through the '
+        'deity’s multiple cosmic aspects and giving the temple its '
+        'name.\n\nThe stone shrine is built in a North Indian shikhara '
+        'idiom with a carved porch and compact sanctum. Its original date '
+        'remains uncertain; regional histories associate restoration with '
+        'Raja Sidh Sen after flood damage in the late 17th or early 18th '
+        'century. The Archaeological Survey of India protects it as '
+        'monument N-HP-36.\n\nDaily worship continues within the protected '
+        'structure, and Maha Shivaratri is especially important in Mandi’s '
+        'wider deity processions and fair. The riverside setting is '
+        'integral to the experience, but it also means that flood controls '
+        'and conservation barriers must be respected.\n\nNo dependable '
+        'official daily timetable was found. Published hours vary '
+        'substantially, so use the provisional daytime window only for '
+        'planning and verify locally, particularly during monsoon, '
+        'Shivaratri, or restoration work.',
+    location:
+        'Panchvaktra Mahadev Temple, near Victoria Bridge at the '
+        'Beas–Suketi confluence, Mandi, Himachal Pradesh 175001',
+    timings:
+        'THIN OFFICIAL CLOCK — provisional. Published visitor listings '
+        'vary between roughly 6:00 AM–6:00 PM, 7:00 AM–8:00 PM, and split '
+        '6:00 AM–12:30 PM & 4:00–9:00 PM. No authoritative current '
+        'temple/ASI clock was found; plan a daylight visit, preferably '
+        'morning, and confirm locally. Maha Shivaratri, worship pauses, '
+        'ASI work, or high-river/monsoon controls may change access.',
+    latitude: 31.71131,
+    longitude: 76.93563,
+    specialities: [
+      'Five-faced Panchvaktra form of Shiva',
+      'Beas–Suketi river-confluence setting',
+      'ASI-protected monument N-HP-36',
+      'North Indian shikhara architecture and carved porch',
+      'Restoration associated with Raja Sidh Sen',
+      'Part of Mandi’s Maha Shivaratri sacred landscape',
+    ],
+  ),
+
+  Temple(
+    name: 'Manikaran Shiva Temple',
+    state: 'Himachal Pradesh',
+    city: 'Manikaran',
+    deity: 'Shiva',
+    imageUrl: 'https://picsum.photos/seed/manikaran-shiva-temple/800/600',
+    description:
+        'Shiva–Parvati pilgrimage precinct in Manikaran’s Parvati Valley, '
+        'inseparable from geothermal hot springs, nearby Raghunath Temple, '
+        'and the shared Hindu–Sikh sacred townscape.',
+    story:
+        'Manikaran is a pilgrimage town on the Parvati River, known for '
+        'Shiva–Parvati worship and geothermal springs hot enough to cook '
+        'food. Hindu legend says Parvati lost a jewel (mani); when Shiva '
+        'demanded its return, Sheshnag’s hissing sent boiling water and '
+        'jewels upward, giving Manikaran its sacred name and hot-spring '
+        'mythology.\n\nThe Shiva–Parvati temple stands within a dense '
+        'sacred precinct that also includes the Raghunath/Ram temple and '
+        'Gurudwara Manikaran Sahib. Tradition links the Raghunath shrine '
+        'with Kullu ruler Raja Jagat Singh. Hindu and Sikh pilgrims share '
+        'the hot-water landscape while following the distinct etiquette of '
+        'temple, bathing, and gurdwara spaces.\n\nThe 1905 Kangra '
+        'earthquake damaged structures and is said to have altered the '
+        'springs; the Shiva temple is often noted for a slight tilt. '
+        'Bathing and food preparation around the springs are living '
+        'practices, but water temperatures can be dangerously high and '
+        'only designated areas should be used.\n\nNo single authoritative '
+        'daily web timetable was found for the Shiva and Raghunath '
+        'shrines. Hours published online conflict, so a conservative '
+        'daytime visit with local confirmation is appropriate. Parvati '
+        'Valley access is vulnerable to landslides, flash floods, '
+        'snow/ice, road works, and severe traffic; district advisories are '
+        'essential.',
+    location:
+        'Shiv–Parvati Temple and hot-spring pilgrimage precinct, '
+        'Manikaran, Parvati Valley, Kullu district, Himachal Pradesh 175105',
+    timings:
+        'THIN OFFICIAL CLOCK — confirm locally. The Kullu district page '
+        'documents Manikaran but gives no temple schedule; secondary '
+        'listings conflict (Shiva temple often ~6:00 AM–8:00 PM or split '
+        'morning/evening; Raghunath often ~8:00 AM–7:00 PM). Do not treat '
+        '24-hour claims as reliable temple access. Visit in daylight and '
+        'check each shrine’s board. Festivals, winter conditions, '
+        'landslides, flash-flood alerts, and road closures can override '
+        'normal access.',
+    latitude: 32.02761,
+    longitude: 77.34585,
+    specialities: [
+      'Shiva–Parvati jewel legend (mani) and Sheshnag hot springs',
+      'Geothermal pools used for bathing and cooking',
+      'Nearby Raghunath/Ram temple tradition',
+      'Shared Hindu–Sikh pilgrimage town with Manikaran Sahib',
+      'Parvati River gorge setting',
+      'Temple structures affected by the 1905 Kangra earthquake',
+    ],
+  ),
 ];

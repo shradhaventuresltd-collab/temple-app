@@ -36,6 +36,12 @@ class _AppDrawerState extends State<AppDrawer> {
     'Odisha',
     'Uttar Pradesh',
     'Jammu and Kashmir',
+    'Maharashtra',
+    'Rajasthan',
+    'West Bengal',
+    'Madhya Pradesh',
+    'Bihar',
+    'Himachal Pradesh',
   ];
   static const _deities = [
     'Shiva',
@@ -47,6 +53,24 @@ class _AppDrawerState extends State<AppDrawer> {
     'Hanuman',
     'Swaminarayan',
     'Gorakhnath',
+    'Sai Baba',
+    'Vitthal',
+    'Khandoba',
+    'Brahma',
+    'Jain Tirthankaras',
+    'Devi (Kali)',
+    'Devi (Bhavatarini Kali)',
+    'Sri Ramakrishna (Ramakrishna–Vedanta tradition)',
+    'Devi (Tara)',
+    'Devi (Hangseshwari Kali)',
+    'Radha-Madhava / Pancha-tattva (Gaudiya Vaishnavism)',
+    'Shiva (Taraknath)',
+    'Vishnu (Radha-Krishna / Lakshminarayan)',
+    'Devi (Kiriteswari / Mahishamardini)',
+    'Kapil Muni',
+    'Vishnu/Rama',
+    'Buddha',
+    'Sita (Devi)',
   ];
 
   static const _deityIcons = {
@@ -59,6 +83,26 @@ class _AppDrawerState extends State<AppDrawer> {
     'Hanuman': Icons.back_hand_rounded,
     'Swaminarayan': Icons.account_balance_rounded,
     'Gorakhnath': Icons.self_improvement_rounded,
+    'Sai Baba': Icons.person_rounded,
+    'Vitthal': Icons.favorite_rounded,
+    'Khandoba': Icons.shield_rounded,
+    'Brahma': Icons.filter_vintage_rounded,
+    'Jain Tirthankaras': Icons.account_balance_rounded,
+    'Devi (Kali)': Icons.auto_awesome_rounded,
+    'Devi (Bhavatarini Kali)': Icons.auto_awesome_rounded,
+    'Sri Ramakrishna (Ramakrishna–Vedanta tradition)':
+        Icons.self_improvement_rounded,
+    'Devi (Tara)': Icons.auto_awesome_rounded,
+    'Devi (Hangseshwari Kali)': Icons.auto_awesome_rounded,
+    'Radha-Madhava / Pancha-tattva (Gaudiya Vaishnavism)':
+        Icons.favorite_rounded,
+    'Shiva (Taraknath)': Icons.brightness_3_rounded,
+    'Vishnu (Radha-Krishna / Lakshminarayan)': Icons.water_drop_rounded,
+    'Devi (Kiriteswari / Mahishamardini)': Icons.auto_awesome_rounded,
+    'Kapil Muni': Icons.self_improvement_rounded,
+    'Vishnu/Rama': Icons.water_drop_rounded,
+    'Buddha': Icons.spa_rounded,
+    'Sita (Devi)': Icons.auto_awesome_rounded,
   };
 
   String? _selectedState;
@@ -411,9 +455,10 @@ class _AppDrawerState extends State<AppDrawer> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: Text(
-                  'Explore 90 famous temples across Tamil Nadu, Kerala, Karnataka, '
-                  'Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, and '
-                  'Jammu and Kashmir. '
+                  'Explore 150 famous temples across Tamil Nadu, Kerala, Karnataka, '
+                  'Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, '
+                  'Jammu and Kashmir, Maharashtra, Rajasthan, West Bengal, '
+                  'Madhya Pradesh, Bihar, and Himachal Pradesh. '
                   'Discover histories, legends, timings and specialities — '
                   'all in one curated directory.',
                   style: GoogleFonts.poppins(
