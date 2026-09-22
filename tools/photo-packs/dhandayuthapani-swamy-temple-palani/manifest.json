@@ -1,0 +1,89 @@
+{
+  "temple_slug": "dhandayuthapani-swamy-temple-palani",
+  "temple_name": "Dhandayuthapani Swamy Temple",
+  "doc_id_hint": "dhandayuthapani-swamy-temple-palani",
+  "city": "Palani",
+  "state": "Tamil Nadu",
+  "tradition_note": "Murugan temple",
+  "photos": [
+    {
+      "filename": "01_Arulmigu_Dhandayuthapani_Swamy_Temple_in_Palany_hill.jpg",
+      "commons_title": "File:Arulmigu Dhandayuthapani Swamy Temple in Palany hill.jpg",
+      "author": "Challiyan",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AArulmigu_Dhandayuthapani_Swamy_Temple_in_Palany_hill.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c4/Arulmigu_Dhandayuthapani_Swamy_Temple_in_Palany_hill.jpg/1280px-Arulmigu_Dhandayuthapani_Swamy_Temple_in_Palany_hill.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 217269,
+      "width": 1280,
+      "height": 851,
+      "notes": "The image shows the Arulmigu Dhandayuthapani Swamy Temple, a Hindu temple dedicated to Lord Murugan, located in Palani, "
+    },
+    {
+      "filename": "02_Palani_Temple-WUS05301.jpg",
+      "commons_title": "File:Palani Temple-WUS05301.jpg",
+      "author": "Rainer Halama",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3APalani_Temple-WUS05301.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/43/Palani_Temple-WUS05301.jpg/1280px-Palani_Temple-WUS05301.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 322949,
+      "width": 1280,
+      "height": 853,
+      "notes": "Dhandayuthapani Swamy Temple"
+    },
+    {
+      "filename": "03_Palani_Temple-WUS05302.jpg",
+      "commons_title": "File:Palani Temple-WUS05302.jpg",
+      "author": "Rainer Halama",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3APalani_Temple-WUS05302.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/48/Palani_Temple-WUS05302.jpg/1280px-Palani_Temple-WUS05302.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 336101,
+      "width": 1280,
+      "height": 853,
+      "notes": "Dhandayuthapani Swamy Temple"
+    },
+    {
+      "filename": "04_Palani_Temple-WUS05303.jpg",
+      "commons_title": "File:Palani Temple-WUS05303.jpg",
+      "author": "Rainer Halama",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3APalani_Temple-WUS05303.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7c/Palani_Temple-WUS05303.jpg/1280px-Palani_Temple-WUS05303.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 266537,
+      "width": 1280,
+      "height": 853,
+      "notes": "Dhandayuthapani Swamy Temple - View of Rope Way"
+    },
+    {
+      "filename": "05_Palani_Murugan_Hill_Temple.jpg",
+      "commons_title": "File:Palani Murugan Hill Temple.jpg",
+      "author": "Spsarvana",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3APalani_Murugan_Hill_Temple.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b4/Palani_Murugan_Hill_Temple.jpg/1280px-Palani_Murugan_Hill_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 223784,
+      "width": 1280,
+      "height": 721,
+      "notes": "Hill temple dedicated to Lord Muruga"
+    },
+    {
+      "filename": "06_Gopuram_in_the_way_to_palani_temple.jpg",
+      "commons_title": "File:Gopuram in the way to palani temple.jpg",
+      "author": "Rejeesh Irinave",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AGopuram_in_the_way_to_palani_temple.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Gopuram_in_the_way_to_palani_temple.jpg/1280px-Gopuram_in_the_way_to_palani_temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 333311,
+      "width": 1280,
+      "height": 960,
+      "notes": "Gopuram in the way to palani temple"
+    }
+  ],
+  "seed_document_id": "dhandayuthapani-swamy-temple"
+}

@@ -68,43 +68,34 @@ void main() {
   });
 
   test('picsum covers and empty galleries are photo pending', () {
-    // KAN-77: these sample temples carry verified Commons thumbs (not picsum).
-    const verifiedPhotoNames = {
-      'Mahabodhi Temple',
-      'Dilwara Temples',
-      'Martand Sun Temple',
-      'Shore Temple',
-      'Meenakshi Amman Temple',
-      'Anegudde Vinayaka Temple',
-      'Annapoorneshwari Temple, Horanadu',
-      'Banashankari Temple, Bengaluru',
-      'Chamundeshwari Temple',
-      'Cheluvanarayana Swamy Temple',
-      'Chennakeshava Temple, Belur',
-      'Ghati Subramanya Temple',
-      'Hoysaleswara Temple, Halebidu',
-      'ISKCON Temple, Bangalore',
-      'Kateel Durga Parameshwari Temple',
-      'Kollur Mookambika Temple',
-      'Kukke Subramanya Temple',
-      'Mahabaleshwar Temple, Gokarna',
-      'Murudeshwar Temple',
-      'Sri Krishna Matha (Udupi)',
-      'Sri Manjunatha Temple, Dharmasthala',
-      'Srikanteshwara Temple, Nanjangud',
-      'Sringeri Sharada Peetham',
-      'Talakaveri Temple',
-      'Virupaksha Temple',
-    };
+    // KAN-77: #19 packs, Wave B Karnataka, and Wave A TN/KL Commons thumbs,
+    // including Thiruchendur.
+    var verifiedCount = 0;
     for (final temple in sampleTemples) {
-      if (verifiedPhotoNames.contains(temple.name)) continue;
-      expect(
-        DetailHonesty.of(temple).photoPending,
-        isTrue,
-        reason: temple.name,
-      );
-      expect(verifiedCoverUrl(temple), isNull, reason: temple.name);
+      final urls = verifiedGalleryUrls(temple);
+      if (urls.isEmpty) {
+        expect(
+          DetailHonesty.of(temple).photoPending,
+          isTrue,
+          reason: temple.name,
+        );
+        expect(verifiedCoverUrl(temple), isNull, reason: temple.name);
+      } else {
+        verifiedCount++;
+        expect(
+          DetailHonesty.of(temple).photoPending,
+          isFalse,
+          reason: temple.name,
+        );
+        expect(temple.imageUrl.contains('picsum'), isFalse, reason: temple.name);
+        expect(
+          temple.imageUrl.contains('firebasestorage'),
+          isFalse,
+          reason: temple.name,
+        );
+      }
     }
+    expect(verifiedCount, 60);
 
     final mixed = _draft(
       imageUrl: 'https://picsum.photos/seed/cover/800/600',
@@ -170,17 +161,52 @@ void main() {
       expect(shore.verifiedImages, hasLength(6));
       expect(shore.framing, SiteFraming.monumentVisit);
 
-      final meenakshi = DetailHonesty.of(_named('Meenakshi Amman Temple'));
-      expect(
-        _named('Meenakshi Amman Temple').imageUrl.contains('picsum'),
-        isFalse,
-      );
-      expect(meenakshi.photoPending, isFalse);
-      expect(meenakshi.verifiedImages, hasLength(6));
-      expect(meenakshi.framing, SiteFraming.livingTemple);
-      expect(meenakshi.tradition, SiteTradition.unspecified);
-    },
-  );
+    final meenakshi = DetailHonesty.of(_named('Meenakshi Amman Temple'));
+    expect(
+      _named('Meenakshi Amman Temple').imageUrl.contains('picsum'),
+      isFalse,
+    );
+    expect(meenakshi.photoPending, isFalse);
+    expect(meenakshi.verifiedImages, hasLength(6));
+    expect(meenakshi.framing, SiteFraming.livingTemple);
+    expect(meenakshi.tradition, SiteTradition.unspecified);
+
+    final sabarimala = DetailHonesty.of(_named('Sabarimala Ayyappan Temple'));
+    expect(_named('Sabarimala Ayyappan Temple').imageUrl.contains('picsum'), isFalse);
+    expect(sabarimala.photoPending, isFalse);
+    expect(sabarimala.verifiedImages, hasLength(5));
+    expect(sabarimala.framing, SiteFraming.livingTemple);
+    expect(sabarimala.framingLabel, 'Living temple');
+    expect(sabarimala.tradition, SiteTradition.unspecified);
+    expect(sabarimala.timingsCaveat, TimingsCaveatKind.seasonal);
+
+    final padmanabha = DetailHonesty.of(_named('Sree Padmanabhaswamy Temple'));
+    expect(
+      _named('Sree Padmanabhaswamy Temple').imageUrl.contains('picsum'),
+      isFalse,
+    );
+    expect(padmanabha.photoPending, isFalse);
+    expect(padmanabha.verifiedImages, hasLength(6));
+    // Existing copy stays neutral: "not audited" sits beside "Daily worship",
+    // so the living-temple chip does not appear. Heritage visit does not either.
+    expect(padmanabha.framing, SiteFraming.neutral);
+    expect(padmanabha.framingLabel, isNull);
+
+    final brihad = DetailHonesty.of(_named('Brihadeeswarar Temple'));
+    expect(brihad.photoPending, isFalse);
+    expect(brihad.verifiedImages, hasLength(6));
+    expect(brihad.framing, SiteFraming.livingTemple);
+    expect(brihad.framingLabel, 'Living temple');
+
+    final thiruchendur = DetailHonesty.of(_named('Subramanya Swamy Temple'));
+    expect(thiruchendur.photoPending, isFalse);
+    expect(
+      _named('Subramanya Swamy Temple').imageUrl,
+      contains('wikimedia.org'),
+    );
+    expect(thiruchendur.verifiedImages, hasLength(8));
+    expect(thiruchendur.framing, SiteFraming.livingTemple);
+  });
 
   test(
     'timings stay free text and flag thin, seasonal, or multi-window notes',

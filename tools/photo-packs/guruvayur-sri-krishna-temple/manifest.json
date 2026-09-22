@@ -1,0 +1,82 @@
+{
+  "temple_slug": "guruvayur-sri-krishna-temple",
+  "temple_name": "Guruvayur Sri Krishna Temple",
+  "doc_id_hint": "guruvayur-sri-krishna-temple",
+  "city": "Guruvayur",
+  "state": "Kerala",
+  "tradition_note": "Vishnu temple",
+  "photos": [
+    {
+      "filename": "01_Garuda_statue_at_Guruvayur_Sri_Krishna_Temple.jpg",
+      "commons_title": "File:Garuda statue at Guruvayur Sri Krishna Temple.jpg",
+      "author": "Vinayaraj",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AGaruda_statue_at_Guruvayur_Sri_Krishna_Temple.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d2/Garuda_statue_at_Guruvayur_Sri_Krishna_Temple.jpg/1280px-Garuda_statue_at_Guruvayur_Sri_Krishna_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 441501,
+      "width": 1280,
+      "height": 920,
+      "notes": "Garuda statue at Guruvayur Sri Krishna Temple"
+    },
+    {
+      "filename": "02_Guruvayur_Sree_Krishna_Temple.jpg",
+      "commons_title": "File:Guruvayur Sree Krishna Temple.jpg",
+      "author": "Pyngodan",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AGuruvayur_Sree_Krishna_Temple.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/e/eb/Guruvayur_Sree_Krishna_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "bytes": 309934,
+      "width": 1024,
+      "height": 599,
+      "notes": "Guruvayur Sree Krishna Temple"
+    },
+    {
+      "filename": "03_009392022_Guruvayur_temple_Kerala_024.jpg",
+      "commons_title": "File:009392022 Guruvayur temple, Kerala 024.jpg",
+      "author": "Ms Sarah Welch",
+      "license": "CC0",
+      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3A009392022_Guruvayur_temple%2C_Kerala_024.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/62/009392022_Guruvayur_temple%2C_Kerala_024.jpg/1280px-009392022_Guruvayur_temple%2C_Kerala_024.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 377224,
+      "width": 1280,
+      "height": 1012,
+      "notes": "The Guruvayur temple is a major historic Krishna temple in Kerala. The site is a pre-10th century tirtha mentioned in Sa"
+    },
+    {
+      "filename": "04_Sabarimala_pilgrims_at_Guruvayur_Temple.jpg",
+      "commons_title": "File:Sabarimala pilgrims at Guruvayur Temple.JPG",
+      "author": "Ilya Mauter",
+      "license": "CC BY-SA 2.5",
+      "license_url": "https://creativecommons.org/licenses/by-sa/2.5",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ASabarimala_pilgrims_at_Guruvayur_Temple.JPG",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/43/Sabarimala_pilgrims_at_Guruvayur_Temple.JPG/1280px-Sabarimala_pilgrims_at_Guruvayur_Temple.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 487100,
+      "width": 1280,
+      "height": 1707,
+      "notes": "Sri Krishna Guruvayur Temple in Guruvayur, Kerala Group of Hindu pilgrims in front of Sri Krishna Guruvayur Temple in Gu"
+    },
+    {
+      "filename": "05_Sadhu_at_Guruvayur_Temple.jpg",
+      "commons_title": "File:Sadhu at Guruvayur Temple.JPG",
+      "author": "Ilya Mauter",
+      "license": "CC BY-SA 2.5",
+      "license_url": "https://creativecommons.org/licenses/by-sa/2.5",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ASadhu_at_Guruvayur_Temple.JPG",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2a/Sadhu_at_Guruvayur_Temple.JPG/1280px-Sadhu_at_Guruvayur_Temple.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 324405,
+      "width": 1280,
+      "height": 960,
+      "notes": "Sri Krishna Guruvayur Temple in Guruvayur, Kerala Sadhu at the entrance of Sri Krishna Guruvayur Temple in Guruvayur, Ke"
+    }
+  ],
+  "dropped_wrong_site": [
+    {
+      "filename": "06_Sree_krishna_Mural_Painting_by_Sujith_Nair_Pattoor.jpg",
+      "commons_title": "File:Sree krishna Mural Painting by Sujith Nair Pattoor.jpg",
+      "reason": "Mural painting dedicated to Ulanadu Sree Krishna Temple and categorized under several other Krishna temples (Ambalappuzha, Thodupuzha, Kotayilkovilakam, Singapore), not a photograph of Guruvayur Temple."
+    }
+  ]
+}

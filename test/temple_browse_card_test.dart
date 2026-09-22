@@ -85,13 +85,11 @@ void main() {
   );
 
   testWidgets(
-    'KAN-78: Tamil Nadu picsum sample temples never bind stock as cover',
+    'KAN-78: remaining picsum sample temples never bind stock as cover',
     (tester) async {
       const names = [
-        'Arunachaleswarar Temple',
-        'Brihadeeswarar Temple',
-        'Ekambaranathar Temple',
-        'Kapaleeshwarar Temple',
+        'Anjengo Sree Durga Devi Temple',
+        'Mannarsala Sree Nagaraja Temple',
       ];
 
       for (final name in names) {
@@ -117,6 +115,27 @@ void main() {
           findsNothing,
           reason: '$name must not load picsum/stock',
         );
+      }
+    },
+  );
+
+  testWidgets(
+    'KAN-77 Wave A: living TN and Kerala covers are Commons, not Photo pending',
+    (tester) async {
+      for (final name in [
+        'Brihadeeswarar Temple',
+        'Sabarimala Ayyappan Temple',
+        'Sree Padmanabhaswamy Temple',
+        'Subramanya Swamy Temple',
+      ]) {
+        final sample = _named(name);
+        expect(sample.imageUrl, contains('wikimedia.org'), reason: name);
+        expect(templeBrowseHonestyLabels(sample), isEmpty, reason: name);
+        await pumpCard(tester, sample);
+        expect(find.text('Photo pending'), findsNothing, reason: name);
+        expect(find.text('Heritage visit'), findsNothing, reason: name);
+        expect(find.text('Living temple'), findsNothing, reason: name);
+        expect(find.byType(CachedNetworkImage), findsOneWidget, reason: name);
       }
     },
   );

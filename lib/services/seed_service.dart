@@ -136,7 +136,7 @@ class SeedResult {
 /// [seedImageFieldsWithPack] then fills an empty gallery from verified sample
 /// `images` (Commons packs) only when live has no verified URLs. `createdAt`
 /// is preserved. Other bundled fields (name, story, timings, …) are
-/// refreshed from sample data.
+/// refreshed from sample data. Admin and Storage galleries are not replaced.
 ///
 /// Debug-only: calling this from a release/profile build throws.
 /// Also requires a signed-in Firebase user with custom claim `admin: true`

@@ -31,10 +31,56 @@ const WAVE_B_KARNATAKA_PACKS = [
   "virupaksha-temple",
 ];
 
-// Pack folder / temple_slug → Seed templeDocumentId when they differ.
-// Sample name "Cheluvanarayana Swamy Temple" slugs without the city.
+// KAN-77 Wave A (Tamil Nadu + Kerala). --all-packs uploads every manifest
+// under tools/photo-packs, and fails if any of these folders are missing.
+const WAVE_A_TN_KL_PACKS = [
+  "ambalappuzha-sri-krishna-temple",
+  "arunachaleswarar-temple",
+  "attukal-bhagavathy-temple",
+  "brihadeeswarar-temple",
+  "chengannur-mahadeva-temple",
+  "chettikulangara-devi-temple",
+  "chottanikkara-bhagavathy-temple",
+  "dhandayuthapani-swamy-temple-palani",
+  "ekambaranathar-temple",
+  "ernakulathappan-temple",
+  "ettumanoor-mahadeva-temple",
+  "guruvayur-sri-krishna-temple",
+  "jambukeswarar-temple-thiruvanaikaval",
+  "kapaleeshwarar-temple",
+  "kaviyoor-mahadeva-temple",
+  "kodungallur-bhagavathy-temple",
+  "murugan-temple-thirupparankundram",
+  "nataraja-temple",
+  "nellaiappar-temple-tirunelveli",
+  "parassinikadavu-muthappan-temple",
+  "ramanathaswamy-temple",
+  "sabarimala-ayyappan-temple",
+  "sarangapani-temple",
+  "sree-padmanabhaswamy-temple",
+  "sree-poornathrayeesa-temple",
+  "sri-ranganathaswamy-temple-srirangam",
+  "subramanya-swamy-temple-thiruchendur",
+  "swamimalai-murugan-temple",
+  "thirunelli-maha-vishnu-temple",
+  "thiruvalla-sreevallabha-temple",
+  "thyagaraja-temple-tiruvarur",
+  "tiruttani-murugan-temple",
+  "vadakkunnathan-temple",
+  "vaikom-mahadeva-temple",
+  "vaitheeswaran-koil",
+];
+
+// Pack folder / temple_slug → Seed templeDocumentId when the sample name
+// omits the city.
 const SEED_DOCUMENT_ID_BY_PACK_SLUG = {
   "cheluvanarayana-swamy-temple-melukote": "cheluvanarayana-swamy-temple",
+  "sri-ranganathaswamy-temple-srirangam": "sri-ranganathaswamy-temple",
+  "dhandayuthapani-swamy-temple-palani": "dhandayuthapani-swamy-temple",
+  "subramanya-swamy-temple-thiruchendur": "subramanya-swamy-temple",
+  "jambukeswarar-temple-thiruvanaikaval": "jambukeswarar-temple",
+  "thyagaraja-temple-tiruvarur": "thyagaraja-temple",
+  "nellaiappar-temple-tirunelveli": "nellaiappar-temple",
 };
 
 function resolveSeedDocId(packDir, manifest, docIdOverride) {
@@ -61,7 +107,8 @@ Options:
   --pack <path>          One pack folder (repeatable)
   --packs-dir <path>     Directory of pack folders (each with manifest.json)
   --all-packs            Upload every pack under tools/photo-packs/
-                         (includes Karnataka Wave B; fails if one is missing)
+                         (includes Karnataka Wave B and TN+Kerala Wave A;
+                         fails if one is missing)
   --doc-id <id>          Override Storage/Firestore id (single --pack only)
   --bucket <name>        Storage bucket (default: temple-directory-india.firebasestorage.app)
   --patch-firestore      Also set temples/{docId}.imageUrl + images in Firestore
@@ -189,11 +236,15 @@ function publicUrl(bucketName, storagePath) {
   return `https://storage.googleapis.com/${bucketName}/${storagePath}`;
 }
 
-async function uploadFile(bucket, localPath, storagePath) {
+function contentTypeFor(filename) {
+  return filename.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
+}
+
+async function uploadFile(bucket, localPath, storagePath, filename) {
   await bucket.upload(localPath, {
     destination: storagePath,
     metadata: {
-      contentType: "image/jpeg",
+      contentType: contentTypeFor(filename),
       cacheControl: "public, max-age=86400",
     },
   });
@@ -272,7 +323,12 @@ async function processPack({
       `[${i + 1}/${photos.length}] Uploading ${photo.filename} … `
     );
     try {
-      const url = await uploadFile(bucket, photo.localPath, storagePath);
+      const url = await uploadFile(
+        bucket,
+        photo.localPath,
+        storagePath,
+        photo.filename
+      );
       uploadedUrls.push(url);
       console.log("ok");
       console.log(`    ${url}`);
@@ -344,12 +400,23 @@ async function main() {
 
   if (opts.allPacks) {
     const present = new Set(packDirs.map((dir) => basename(dir)));
-    const missing = WAVE_B_KARNATAKA_PACKS.filter((slug) => !present.has(slug));
-    if (missing.length > 0) {
-      console.error(
-        "✖  --all-packs is missing Karnataka Wave B packs:\n   " +
-          missing.join("\n   ")
-      );
+    const missingWaveB = WAVE_B_KARNATAKA_PACKS.filter(
+      (slug) => !present.has(slug)
+    );
+    const missingWaveA = WAVE_A_TN_KL_PACKS.filter((slug) => !present.has(slug));
+    if (missingWaveB.length > 0 || missingWaveA.length > 0) {
+      if (missingWaveB.length > 0) {
+        console.error(
+          "✖  --all-packs is missing Karnataka Wave B packs:\n   " +
+            missingWaveB.join("\n   ")
+        );
+      }
+      if (missingWaveA.length > 0) {
+        console.error(
+          "✖  --all-packs is missing Tamil Nadu + Kerala Wave A packs:\n   " +
+            missingWaveA.join("\n   ")
+        );
+      }
       process.exit(1);
     }
   }

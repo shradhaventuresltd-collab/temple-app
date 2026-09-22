@@ -29,11 +29,18 @@ Nagaraja).
 
 ## Images
 
-Bundled covers remain `https://picsum.photos/seed/…` placeholders. Commons
-`photo_candidates` below are file **pages** for later manual download,
-attribution, upload to `temples/{docId}/…`, then CMS `images` / `imageUrl`.
-Do **not** paste these Commons URLs into sample data as if they were Storage
-paths.
+KAN-77 Wave A stores Commons 1280px `downloaded_url` thumbs in sample
+`imageUrl` / `images` for the temples that have a pack under
+`tools/photo-packs/`. Those are not Storage URLs. Anjengo and Mannarsala
+have no READY pack (shortfall) and keep their picsum covers; Seed still
+drops picsum. One Guruvayur frame (a mural also filed under Ulanadu and
+other Krishna temples) was not downloaded. Sabarimala stays a living
+temple (seasonal timings). Its cover is the temple-complex frame already in
+the pack (`Sabarimala 5`); the forest frame stays in the gallery.
+Thiruvalla’s cover is the temple gopuram already in the pack; the Kathakali
+frame stays in the gallery. Padmanabhaswamy stays neutral: no living-temple
+chip and no heritage-visit chip. Earlier notes below that say picsum or an
+empty cover describe the pre-pack research pass. Do **not** invent Storage URLs.
 
 Anjengo candidates are **Fort context** shots only — no license-safe photo of
 the Durga shrine itself was verified in this pass.
@@ -249,8 +256,8 @@ batch 1–3 Kerala temples.
   data, or Seed writes.
 - `sources`, `photo_candidates`, and `rituals_notes` stay out of Firestore; useful
   ritual tips were folded into `timings` / `story` / `specialities` free text where room.
-- Cover **`imageUrl` is empty** and `images` is `[]` (photo-pending honesty). Do **not**
-  invent picsum or Storage URLs for this wave.
+- KAN-74 left cover **`imageUrl` empty**. KAN-77 Wave A fills Commons thumbs
+  for all ten batch-17 temples. Do **not** invent Storage URLs.
 
 ## Verify before CMS / publish
 

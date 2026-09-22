@@ -76,12 +76,42 @@ void main() {
         }
         expect(temple.latitude, inInclusiveRange(8.0, 12.5));
         expect(temple.longitude, inInclusiveRange(74.5, 78.0));
-        expect(temple.images, isEmpty);
         final slug = templeDocumentId(temple.name);
-        if (originalExpected.containsKey(slug)) {
-          expect(temple.imageUrl, startsWith('https://picsum.photos/seed/'));
+        const stillPicsum = {
+          // KAN-77 shortfalls: no READY pack. Picsum stays; Seed still drops it.
+          'anjengo-sree-durga-devi-temple',
+          'mannarsala-sree-nagaraja-temple',
+        };
+        if (stillPicsum.contains(slug)) {
+          expect(temple.images, isEmpty, reason: slug);
+          expect(
+            temple.imageUrl,
+            startsWith('https://picsum.photos/seed/'),
+            reason: slug,
+          );
         } else {
-          expect(temple.imageUrl, isEmpty);
+          // KAN-77 Wave A: Commons downloaded_url thumbs until Storage upload.
+          expect(temple.imageUrl.contains('picsum'), isFalse, reason: slug);
+          expect(
+            temple.imageUrl.contains('firebasestorage'),
+            isFalse,
+            reason: slug,
+          );
+          expect(temple.imageUrl, contains('wikimedia.org'), reason: slug);
+          expect(temple.images.length, greaterThanOrEqualTo(5), reason: slug);
+          expect(temple.imageUrl, temple.images.first, reason: slug);
+          if (slug == 'sabarimala-ayyappan-temple') {
+            expect(temple.imageUrl, contains('Sabarimala_5.jpg'));
+            expect(temple.imageUrl, isNot(contains('/Sabarimala.jpg/')));
+          }
+          if (slug == 'thiruvalla-sreevallabha-temple') {
+            expect(temple.imageUrl, contains('Sreevallabha_temple'));
+            expect(temple.imageUrl, isNot(contains('Kadhakali')));
+          }
+          for (final url in temple.images) {
+            expect(url, contains('wikimedia.org'), reason: slug);
+            expect(url.contains('picsum'), isFalse, reason: slug);
+          }
         }
       }
     },

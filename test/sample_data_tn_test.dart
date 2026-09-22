@@ -70,22 +70,35 @@ void main() {
       expect(temple.latitude, inInclusiveRange(8.0, 14.0));
       expect(temple.longitude, inInclusiveRange(76.0, 81.0));
       final slug = templeDocumentId(temple.name);
-      if (slug == 'meenakshi-amman-temple' || slug == 'shore-temple') {
-        // KAN-77: verified Commons thumbs until Storage upload.
-        expect(temple.imageUrl.contains('picsum'), isFalse);
-        expect(temple.imageUrl, contains('upload.wikimedia.org'));
-        expect(temple.images, hasLength(6));
-        expect(temple.imageUrl, temple.images.first);
-      } else if (originalExpected.containsKey(slug)) {
-        expect(temple.images, isEmpty);
-        expect(
-          temple.imageUrl,
-          startsWith('https://picsum.photos/seed/'),
-        );
+      const heldOrShortfall = {
+        // KAN-77 shortfall: no READY pack.
+        'kanyakumari-bhagavathi-amman-temple',
+      };
+      if (heldOrShortfall.contains(slug)) {
+        expect(temple.images, isEmpty, reason: slug);
+        expect(temple.imageUrl, isEmpty, reason: slug);
       } else {
-        // KAN-74 Hybrid C: expansion temples keep empty covers.
-        expect(temple.images, isEmpty);
-        expect(temple.imageUrl, isEmpty);
+        // KAN-77: Commons downloaded_url thumbs until Storage upload.
+        expect(temple.imageUrl.contains('picsum'), isFalse, reason: slug);
+        expect(temple.imageUrl.contains('firebasestorage'), isFalse, reason: slug);
+        expect(temple.imageUrl, contains('wikimedia.org'), reason: slug);
+        expect(temple.images.length, greaterThanOrEqualTo(5), reason: slug);
+        expect(temple.imageUrl, temple.images.first, reason: slug);
+        if (slug == 'subramanya-swamy-temple') {
+          expect(temple.images, hasLength(8));
+          expect(temple.imageUrl, contains('Raja_Gopuram_at_Thiruchendur'));
+        }
+        if (slug == 'tiruttani-murugan-temple') {
+          expect(temple.images, hasLength(5));
+          expect(
+            temple.images.any((url) => url.contains('parking_lot')),
+            isFalse,
+          );
+        }
+        for (final url in temple.images) {
+          expect(url, contains('wikimedia.org'), reason: slug);
+          expect(url.contains('picsum'), isFalse, reason: slug);
+        }
       }
     }
   });

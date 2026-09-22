@@ -1,0 +1,82 @@
+{
+  "temple_slug": "tiruttani-murugan-temple",
+  "temple_name": "Tiruttani Murugan Temple",
+  "doc_id_hint": "tiruttani-murugan-temple",
+  "city": "Tiruttani",
+  "state": "Tamil Nadu",
+  "tradition_note": "Murugan temple",
+  "photos": [
+    {
+      "filename": "01_Tiruttani_Murugan_temple.jpg",
+      "commons_title": "File:Tiruttani Murugan temple.jpg",
+      "author": "Rsmn",
+      "license": "CC0",
+      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ATiruttani_Murugan_temple.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cb/Tiruttani_Murugan_temple.jpg/1280px-Tiruttani_Murugan_temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 269983,
+      "width": 1280,
+      "height": 960,
+      "notes": "View of Tiruttani hillock and the Murugan temple on top"
+    },
+    {
+      "filename": "02_Arulmigu_Subramaniya_Swami_Temple_Tiruttani_2.jpg",
+      "commons_title": "File:Arulmigu Subramaniya Swami Temple, Tiruttani 2.jpg",
+      "author": "Muralikrishna m",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AArulmigu_Subramaniya_Swami_Temple%2C_Tiruttani_2.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/35/Arulmigu_Subramaniya_Swami_Temple%2C_Tiruttani_2.jpg/1280px-Arulmigu_Subramaniya_Swami_Temple%2C_Tiruttani_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 737164,
+      "width": 1280,
+      "height": 1707,
+      "notes": "అరుల్మిగు సుబ్రమణ్య స్వామి ఆలయం, తిరుత్తణి"
+    },
+    {
+      "filename": "03_Arulmigu_Subramaniya_Swami_Temple_Tiruttani.jpg",
+      "commons_title": "File:Arulmigu Subramaniya Swami Temple, Tiruttani.jpg",
+      "author": "Muralikrishna m",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AArulmigu_Subramaniya_Swami_Temple%2C_Tiruttani.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/Arulmigu_Subramaniya_Swami_Temple%2C_Tiruttani.jpg/1280px-Arulmigu_Subramaniya_Swami_Temple%2C_Tiruttani.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 581908,
+      "width": 1280,
+      "height": 1707,
+      "notes": "అరుల్మిగు సుబ్రమణ్య స్వామి ఆలయం, తిరుత్తణి"
+    },
+    {
+      "filename": "04_Subramaniya_Swamy_Temple_Tiruttani.jpg",
+      "commons_title": "File:Subramaniya Swamy Temple, Tiruttani.jpg",
+      "author": "Sivanantham govindan",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ASubramaniya_Swamy_Temple%2C_Tiruttani.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e2/Subramaniya_Swamy_Temple%2C_Tiruttani.jpg/1280px-Subramaniya_Swamy_Temple%2C_Tiruttani.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 642909,
+      "width": 1280,
+      "height": 1707,
+      "notes": "The Arulmigu Subramaniya Swamy Temple is a Hindu temple, on the hill of Thiruttani, Tiruvallur district, Tamil Nadu, Ind"
+    },
+    {
+      "filename": "06_Thiruthani_Murugan_Temple.jpg",
+      "commons_title": "File:Thiruthani Murugan Temple .jpg",
+      "author": "Jayashree Subramanian",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AThiruthani_Murugan_Temple_.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/75/Thiruthani_Murugan_Temple_.jpg/1280px-Thiruthani_Murugan_Temple_.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 419441,
+      "width": 1280,
+      "height": 960,
+      "notes": "Thiruthani Murugan Temple Steps"
+    }
+  ],
+  "dropped_frames": [
+    {
+      "filename": "05_Tiruthani_Murugan_Temple_parking_lot.jpg",
+      "commons_title": "File:Tiruthani Murugan Temple parking lot.jpg",
+      "reason": "Parking-lot frame of the Tiruttani temple. Dropped from the gallery. photo_candidates had no unused replacement, so the pack stays at five temple frames."
+    }
+  ]
+}
