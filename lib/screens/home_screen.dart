@@ -83,8 +83,22 @@ class _HomeScreenState extends State<HomeScreen> {
         future: _templesFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-                child: CircularProgressIndicator(color: _saffron));
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(color: _saffron),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Loading temples',
+                    style: GoogleFonts.poppins(
+                      color: Colors.brown.shade700,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            );
           }
           if (snapshot.hasError) {
             return Center(

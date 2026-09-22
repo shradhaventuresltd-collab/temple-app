@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
@@ -9,6 +8,7 @@ import 'package:temple_app/services/interstitial_ad_manager.dart';
 import 'package:temple_app/services/temple_service.dart';
 import 'package:temple_app/utils/temple_search.dart';
 import 'package:temple_app/widgets/banner_ad_widget.dart';
+import 'package:temple_app/widgets/temple_browse_card.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  APP DRAWER — shared across all screens, supports search + state/deity filters
@@ -264,7 +264,12 @@ class _AppDrawerState extends State<AppDrawer> {
                 label: 'All Temples',
                 icon: Icons.temple_hindu_rounded,
                 count: all.length,
-                onTap: () => _navigateToList(context, all, 'All Temples'),
+                onTap: () => _navigateToList(
+                  context,
+                  all,
+                  'All Temples',
+                  directory: snapshot,
+                ),
               ),
 
               const Divider(height: 20, indent: 18, endIndent: 18),
@@ -283,7 +288,7 @@ class _AppDrawerState extends State<AppDrawer> {
                         _selectedDeity == null) {
                       return;
                     }
-                    _openBrowse(context, all);
+                    _openBrowse(context, all, directory: snapshot);
                   },
                   onClear: _clearSearch,
                   showClear: _showClear,
@@ -295,7 +300,8 @@ class _AppDrawerState extends State<AppDrawer> {
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: TextButton.icon(
-                      onPressed: () => _openBrowse(context, all),
+                      onPressed: () =>
+                          _openBrowse(context, all, directory: snapshot),
                       icon: const Icon(Icons.search_rounded, size: 18),
                       label: Text(
                         _matchButtonLabel(filtered.length),
@@ -412,7 +418,8 @@ class _AppDrawerState extends State<AppDrawer> {
                       ),
                       const SizedBox(height: 10),
                       ElevatedButton.icon(
-                        onPressed: () => _openBrowse(context, all),
+                        onPressed: () =>
+                            _openBrowse(context, all, directory: snapshot),
                         icon: const Icon(Icons.search_rounded),
                         label: Text(
                           'Browse ${filtered.length} Temple${filtered.length == 1 ? '' : 's'}',
@@ -516,7 +523,11 @@ class _AppDrawerState extends State<AppDrawer> {
     return 'View $count match${count == 1 ? '' : 'es'}';
   }
 
-  void _openBrowse(BuildContext context, List<Temple> all) {
+  void _openBrowse(
+    BuildContext context,
+    List<Temple> all, {
+    required AsyncSnapshot<List<Temple>> directory,
+  }) {
     _searchDebounce?.cancel();
     final query = _searchController.text;
     _appliedQuery = query;
@@ -527,7 +538,13 @@ class _AppDrawerState extends State<AppDrawer> {
       state: _selectedState,
       deity: _selectedDeity,
     );
-    _navigateToList(context, base, _browseTitle(), initialQuery: query);
+    _navigateToList(
+      context,
+      base,
+      _browseTitle(),
+      initialQuery: query,
+      directory: directory,
+    );
   }
 
   void _navigateToList(
@@ -535,15 +552,22 @@ class _AppDrawerState extends State<AppDrawer> {
     List<Temple> temples,
     String title, {
     String initialQuery = '',
+    required AsyncSnapshot<List<Temple>> directory,
   }) {
+    final waiting = directory.connectionState == ConnectionState.waiting;
+    final failed = directory.hasError;
     Navigator.pop(context);
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => TempleListScreen(
-          temples: temples,
+          temples: waiting || failed ? const [] : temples,
           title: title,
           initialQuery: initialQuery,
+          templesFuture: waiting ? _templesFuture : null,
+          stateFilter: waiting ? _selectedState : null,
+          deityFilter: waiting ? _selectedDeity : null,
+          loadFailed: failed,
         ),
       ),
     );
@@ -560,6 +584,10 @@ class TempleListScreen extends StatefulWidget {
     required this.temples,
     required this.title,
     this.initialQuery = '',
+    this.templesFuture,
+    this.stateFilter,
+    this.deityFilter,
+    this.loadFailed = false,
   });
 
   final List<Temple> temples;
@@ -567,6 +595,17 @@ class TempleListScreen extends StatefulWidget {
 
   /// Query already chosen in the drawer. The list applies it on top of [temples].
   final String initialQuery;
+
+  /// Set while the drawer directory is still loading so the list can finish
+  /// that same fetch instead of showing an empty directory.
+  final Future<List<Temple>>? templesFuture;
+
+  /// Applied only when [templesFuture] resolves. Already-loaded lists arrive
+  /// pre-filtered.
+  final String? stateFilter;
+  final String? deityFilter;
+
+  final bool loadFailed;
 
   @override
   State<TempleListScreen> createState() => _TempleListScreenState();
@@ -629,12 +668,61 @@ class _TempleListScreenState extends State<TempleListScreen> {
         ],
       ),
       drawer: const AppDrawer(),
-      body: TempleBrowseList(
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (widget.loadFailed) {
+      return TempleBrowseList(
+        temples: const [],
+        initialQuery: widget.initialQuery,
+        loadFailed: true,
+        onTempleTap: _onTempleTap,
+      );
+    }
+
+    final pending = widget.templesFuture;
+    if (pending == null) {
+      return TempleBrowseList(
         temples: widget.temples,
         initialQuery: widget.initialQuery,
         onTempleTap: _onTempleTap,
         footer: const BannerAdWidget(),
-      ),
+      );
+    }
+
+    return FutureBuilder<List<Temple>>(
+      future: pending,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return TempleBrowseList(
+            temples: const [],
+            initialQuery: widget.initialQuery,
+            isLoading: true,
+            onTempleTap: _onTempleTap,
+          );
+        }
+        if (snapshot.hasError) {
+          return TempleBrowseList(
+            temples: const [],
+            initialQuery: widget.initialQuery,
+            loadFailed: true,
+            onTempleTap: _onTempleTap,
+          );
+        }
+        final base = filterTemples(
+          snapshot.data ?? const [],
+          state: widget.stateFilter,
+          deity: widget.deityFilter,
+        );
+        return TempleBrowseList(
+          temples: base,
+          initialQuery: widget.initialQuery,
+          onTempleTap: _onTempleTap,
+          footer: const BannerAdWidget(),
+        );
+      },
     );
   }
 }
@@ -650,6 +738,8 @@ class TempleBrowseList extends StatefulWidget {
     this.initialQuery = '',
     this.onTempleTap,
     this.footer,
+    this.isLoading = false,
+    this.loadFailed = false,
   });
 
   /// Temples already limited by state/deity (or the full directory).
@@ -657,8 +747,13 @@ class TempleBrowseList extends StatefulWidget {
   final String initialQuery;
   final ValueChanged<Temple>? onTempleTap;
 
-  /// Shown under the grid when at least one temple is visible.
+  /// Banner slot under the cards when at least one temple is visible.
+  ///
+  /// Kept outside the scroll view so a loaded ad does not cover a card.
   final Widget? footer;
+
+  final bool isLoading;
+  final bool loadFailed;
 
   @override
   State<TempleBrowseList> createState() => _TempleBrowseListState();
@@ -725,62 +820,88 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
     final visible = filterTemples(widget.temples, query: _appliedQuery);
     final query = _appliedQuery.trim();
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
-          child: _DirectorySearchField(
-            key: const Key('temple-list-search-field'),
-            controller: _searchController,
-            onChanged: _onSearchChanged,
-            onSubmitted: _submitSearch,
-            onClear: _clearSearch,
-            showClear: _showClear,
-          ),
-        ),
-        if (query.isNotEmpty && visible.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '${visible.length} temple${visible.length == 1 ? '' : 's'}',
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  color: Colors.brown.shade500,
-                  fontWeight: FontWeight.w500,
-                ),
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
+              child: _DirectorySearchField(
+                key: const Key('temple-list-search-field'),
+                controller: _searchController,
+                onChanged: _onSearchChanged,
+                onSubmitted: _submitSearch,
+                onClear: _clearSearch,
+                showClear: _showClear,
               ),
             ),
-          ),
-        Expanded(
-          child: visible.isEmpty
-              ? _SearchEmptyState(
-                  query: query,
-                  onClear: query.isEmpty ? null : _clearSearch,
-                )
-              : GridView.builder(
-                  padding: const EdgeInsets.all(14),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 0.72,
+            if (query.isNotEmpty && visible.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    '${visible.length} temple${visible.length == 1 ? '' : 's'}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: Colors.brown.shade500,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                  itemCount: visible.length,
-                  itemBuilder: (context, index) {
-                    final temple = visible[index];
-                    return TempleGridCard(
-                      temple: temple,
-                      onTap: widget.onTempleTap == null
-                          ? null
-                          : () => widget.onTempleTap!(temple),
-                    );
-                  },
                 ),
+              ),
+            Expanded(child: _browseBody(visible, query)),
+            if (visible.isNotEmpty &&
+                !widget.isLoading &&
+                !widget.loadFailed &&
+                widget.footer != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 4, bottom: 4),
+                child: Center(child: widget.footer),
+              ),
+          ],
         ),
-        if (visible.isNotEmpty && widget.footer != null) widget.footer!,
-      ],
+      ),
+    );
+  }
+
+  Widget _browseBody(List<Temple> visible, String query) {
+    if (widget.isLoading) {
+      return const _BrowseMessage(
+        progress: true,
+        title: 'Loading temples',
+        message: 'Fetching the directory.',
+      );
+    }
+    if (widget.loadFailed) {
+      return const _BrowseMessage(
+        icon: Icons.cloud_off_rounded,
+        title: 'Could not load temples',
+        message: 'The directory did not load. Go back and try again.',
+      );
+    }
+    if (visible.isEmpty) {
+      return _SearchEmptyState(
+        query: query,
+        onClear: query.isEmpty ? null : _clearSearch,
+      );
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      itemCount: visible.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final temple = visible[index];
+        return TempleBrowseCard(
+          temple: temple,
+          onTap: widget.onTempleTap == null
+              ? null
+              : () => widget.onTempleTap!(temple),
+        );
+      },
     );
   }
 }
@@ -865,23 +986,25 @@ class _SearchEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              searching ? 'No temples match "$query".' : 'No temples found.',
+              searching ? 'No temples match "$query".' : 'No temples to browse',
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 color: Colors.brown.shade700,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            if (searching) ...[
-              const SizedBox(height: 6),
-              Text(
-                'Try a name, city, state, deity, or address.',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  color: Colors.brown.shade400,
-                ),
+            const SizedBox(height: 6),
+            Text(
+              searching
+                  ? 'Try a name, city, state, deity, or address.'
+                  : 'Nothing is listed in this view yet.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: Colors.brown.shade400,
               ),
+            ),
+            if (searching) ...[
               const SizedBox(height: 12),
               TextButton(onPressed: onClear, child: const Text('Clear search')),
             ],
@@ -892,127 +1015,47 @@ class _SearchEmptyState extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  TEMPLE GRID CARD
-// ─────────────────────────────────────────────────────────────────────────────
+class _BrowseMessage extends StatelessWidget {
+  const _BrowseMessage({
+    required this.title,
+    required this.message,
+    this.icon = Icons.temple_hindu_rounded,
+    this.progress = false,
+  });
 
-class TempleGridCard extends StatelessWidget {
-  const TempleGridCard({super.key, required this.temple, this.onTap});
-
-  final Temple temple;
-  final VoidCallback? onTap;
+  final String title;
+  final String message;
+  final IconData icon;
+  final bool progress;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap:
-          onTap ??
-          () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => TempleDetailScreen(temple: temple),
-            ),
-          ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFFFD54F), width: 1),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.brown.withAlpha(20),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(28),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              flex: 3,
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(15),
-                ),
-                child: temple.hasNetworkImage
-                    ? CachedNetworkImage(
-                        imageUrl: temple.imageUrl,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        alignment: Alignment.center,
-                        fadeInDuration: const Duration(milliseconds: 400),
-                        placeholder: (context, url) => Container(
-                          color: Colors.brown.shade50,
-                          child: const Center(
-                            child: CircularProgressIndicator(
-                              color: Color(0xFFFF8F00),
-                              strokeWidth: 2,
-                            ),
-                          ),
-                        ),
-                        errorWidget: (context, url, error) => Container(
-                          color: Colors.brown.shade200,
-                          child: const Icon(
-                            Icons.temple_hindu,
-                            color: Colors.white54,
-                            size: 28,
-                          ),
-                        ),
-                      )
-                    : Container(
-                        color: Colors.brown.shade200,
-                        child: const Icon(
-                          Icons.temple_hindu,
-                          color: Colors.white54,
-                          size: 28,
-                        ),
-                      ),
+            if (progress)
+              const CircularProgressIndicator(color: Color(0xFFFF8F00))
+            else
+              Icon(icon, size: 56, color: Colors.brown.shade300),
+            const SizedBox(height: 14),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                color: Colors.brown.shade700,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      temple.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.lora(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFFFF8F00),
-                        height: 1.2,
-                      ),
-                    ),
-                    const Spacer(),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.place_rounded,
-                          size: 14,
-                          color: Color(0xFFB45309),
-                        ),
-                        const SizedBox(width: 3),
-                        Expanded(
-                          child: Text(
-                            '${temple.city}, ${temple.state}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.poppins(
-                              fontSize: 11.5,
-                              color: Colors.brown.shade600,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+            const SizedBox(height: 6),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: Colors.brown.shade400,
               ),
             ),
           ],
