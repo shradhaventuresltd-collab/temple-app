@@ -246,7 +246,7 @@ flutter build ios --release
 flutter build web --release
 ```
 
-Application id is `com.shradhaventures.temple` and the Android launcher label is **Temple Directory India**. Release signing and the Play upload key are documented in [`docs/android-play-internal-test.md`](docs/android-play-internal-test.md). `android/key.properties`, `*.jks`, and `*.keystore` stay out of git. Without `android/key.properties`, release signing falls back to the debug keystore so a missing upload key does not block local development; do not upload that artifact. Android builds stay blocked until the Firebase config below matches the new application id.
+Application id is `com.shradhaventures.temple` and the Android launcher label is **Temple Directory India**. Release signing and the Play upload key are documented in [`docs/android-play-internal-test.md`](docs/android-play-internal-test.md). `android/key.properties`, `*.jks`, and `*.keystore` stay out of git. Debug builds do not need that file. A release build with missing or incomplete signing properties fails with an actionable error and is not signed with the debug keystore. After signing is configured, Android builds stay blocked until the Firebase config below matches the new application id.
 
 **Sanu — Firebase follow-up before an Android build or Play upload:** the checked-in Firebase Android config still names `com.example.temple_app`. Register a new Firebase Android app with package name `com.shradhaventures.temple`, then replace `android/app/google-services.json` and the generated Android section of `lib/firebase_options.dart`. Do not invent API keys or app ids. The Google Services plugin rejects the Android build until `package_name` matches the new application id.
 

@@ -61,11 +61,13 @@ storeFile=<path-to-upload-keystore>
 - Absolute path: `/home/<user>/keys/upload-keystore.jks`
 - Relative path: `../upload-keystore.jks` when the file is `android/upload-keystore.jks`
 
-All four keys are required when the file exists. If any are blank, Gradle configuration fails.
+All four keys are required for a release build, and `storeFile` must point at a real keystore. Debug builds do not read this file.
 
-When `android/key.properties` is missing, release signing falls back to the debug keystore. A missing upload key does not, by itself, stop a local assemble. Play Console rejects a debug-signed app bundle, so create the properties file before `flutter build appbundle --release` for an internal-test upload.
+If `android/key.properties` is missing, any of those keys is blank, or `storeFile` does not exist, `flutter build apk --release` and `flutter build appbundle --release` fail before signing. The error names what is missing and points at this document. The release build is not signed with the debug keystore.
 
-That assemble is still blocked until the Firebase follow-up above is done. The Google Services plugin fails the Android build while `google-services.json` names `com.example.temple_app`.
+Debug builds (`flutter run`, `flutter build apk --debug`) do not need the upload key.
+
+After signing is configured, Android assemble is still blocked until the Firebase follow-up above is done. The Google Services plugin fails while `google-services.json` names `com.example.temple_app`. A release build reports the signing error first when the upload key is absent, so that message appears before the Firebase package error.
 
 ```bash
 flutter build appbundle --release

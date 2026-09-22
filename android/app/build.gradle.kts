@@ -10,14 +10,12 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-// Play upload key. android/key.properties is gitignored and is not required
-// for debug or for a local release assemble. When it is absent, release stays
-// on the debug keystore so development still builds; that artifact is not a
-// Play upload. See docs/android-play-internal-test.md.
+// Play upload key. android/key.properties is gitignored. Debug builds do not
+// read it. A release build fails when it is missing or incomplete instead of
+// signing with the debug keystore. See docs/android-play-internal-test.md.
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
-val hasReleaseKeystore = keystorePropertiesFile.exists()
-if (hasReleaseKeystore) {
+if (keystorePropertiesFile.exists()) {
     keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
 }
 
@@ -28,16 +26,28 @@ val releaseStoreFilePath = keystoreProperty("storeFile")
 val releaseStorePassword = keystoreProperty("storePassword")
 val releaseKeyAlias = keystoreProperty("keyAlias")
 val releaseKeyPassword = keystoreProperty("keyPassword")
-if (hasReleaseKeystore) {
-    val missingKeys = listOf(
-        "storeFile" to releaseStoreFilePath,
-        "storePassword" to releaseStorePassword,
-        "keyAlias" to releaseKeyAlias,
-        "keyPassword" to releaseKeyPassword,
-    ).filter { it.second.isNullOrBlank() }.map { it.first }
-    require(missingKeys.isEmpty()) {
-        "android/key.properties must define ${missingKeys.joinToString(", ")}."
+val missingSigningKeys = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
+    .filter { keystoreProperty(it) == null }
+val releaseStoreFile = releaseStoreFilePath?.let { file(it) }
+val hasReleaseKeystore = keystorePropertiesFile.isFile &&
+    missingSigningKeys.isEmpty() &&
+    releaseStoreFile?.isFile == true
+
+fun releaseSigningError(): String {
+    val problem = when {
+        !keystorePropertiesFile.exists() ->
+            "android/key.properties is missing."
+        missingSigningKeys.isNotEmpty() ->
+            "android/key.properties must define ${missingSigningKeys.joinToString(", ")}."
+        else ->
+            "storeFile does not exist: $releaseStoreFilePath (resolved from the android/app module)."
     }
+    return """
+        Release signing is not configured. $problem
+        Create gitignored android/key.properties with storeFile, storePassword, keyAlias, and keyPassword.
+        See docs/android-play-internal-test.md.
+        Debug builds do not need this file. Refusing to sign a release build with the debug keystore.
+        """.trimIndent()
 }
 
 android {
@@ -76,12 +86,19 @@ android {
 
     buildTypes {
         release {
-            signingConfig = if (hasReleaseKeystore) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
+            if (hasReleaseKeystore) {
+                signingConfig = signingConfigs.getByName("release")
             }
         }
+    }
+}
+
+gradle.taskGraph.whenReady {
+    val releaseRequested = allTasks.any { task ->
+        task.project == project && task.name.endsWith("Release")
+    }
+    if (releaseRequested && !hasReleaseKeystore) {
+        throw GradleException(releaseSigningError())
     }
 }
 
