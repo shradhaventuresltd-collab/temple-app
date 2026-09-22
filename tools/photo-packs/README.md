@@ -87,3 +87,4 @@ from this branch.
 | `banashankari-temple-bengaluru` | Badami / Cholachagudda frames | 6 Bengaluru / Kanakapura Road photos. `site_verified`. |
 | `talakaveri-temple` | Brihadeeswara and Srirangam | 5 Talakaveri / Kodagu photos. `site_verified`. |
 | `mahabaleshwar-temple-gokarna` | Kathmandu Gokarneshwor | 6 Gokarna, Karnataka photos. `site_verified`. |
+| `sri-krishna-matha-udupi` | Parashurama temple, theatre, railway station, generic city frame | 8 Matha-only photos. `site_verified`. |

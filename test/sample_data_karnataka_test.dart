@@ -117,6 +117,15 @@ void main() {
     for (final banned in ['Kathmandu', 'Gokarneshwor']) {
       expect(gokarnaUrls.contains(banned), isFalse, reason: banned);
     }
+
+    final udupi = named('Sri Krishna Matha (Udupi)');
+    final udupiUrls = udupi.images.join(' ');
+    expect(udupi.images, hasLength(8));
+    expect(udupi.imageUrl, udupi.images.first);
+    expect(udupiUrls, contains('Krishna_Math'));
+    for (final banned in ['Parashurama', 'Theatre', 'railway', 'Ashirvad']) {
+      expect(udupiUrls.contains(banned), isFalse, reason: banned);
+    }
   });
 
   test('uncertain Karnataka timings keep source caveats', () {

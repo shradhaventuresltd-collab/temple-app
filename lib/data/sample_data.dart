@@ -1988,16 +1988,18 @@ const List<Temple> sampleTemples = [
     state: 'Karnataka',
     city: 'Udupi',
     deity: 'Vishnu',
-    // KAN-77 Wave B: Commons downloaded_url thumbs —
+    // KAN-77: Research site_verified Matha-only Commons downloaded_url thumbs —
     // tools/photo-packs/sri-krishna-matha-udupi/ (not Storage).
-    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/Udupi_Parashurama_Temple_View_from_the_top_March_2025.jpg/1280px-Udupi_Parashurama_Temple_View_from_the_top_March_2025.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/Udupi_Sri_Krishna_Matha_Temple.jpg/1280px-Udupi_Sri_Krishna_Matha_Temple.jpg',
     images: [
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/Udupi_Parashurama_Temple_View_from_the_top_March_2025.jpg/1280px-Udupi_Parashurama_Temple_View_from_the_top_March_2025.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8d/Udupi_Krishna_Temple_gopuram_and_Kankana_kindi.jpg/1280px-Udupi_Krishna_Temple_gopuram_and_Kankana_kindi.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/Udupi_Krishna_Temple_gopuram_from_the_west.jpg/1280px-Udupi_Krishna_Temple_gopuram_from_the_west.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f6/Ashirvad_Theatre%2C_Udupi.jpg/1280px-Ashirvad_Theatre%2C_Udupi.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/da/Udupi_railway_station_02.jpg/1280px-Udupi_railway_station_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f2/Udupi.jpg/1280px-Udupi.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/Udupi_Sri_Krishna_Matha_Temple.jpg/1280px-Udupi_Sri_Krishna_Matha_Temple.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Udupi_Sri_krishna_matha_Temple_pond.jpg/1280px-Udupi_Sri_krishna_matha_Temple_pond.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Krishna_Math_Gopura_Udupi.JPG/1280px-Krishna_Math_Gopura_Udupi.JPG',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Madhvacharya_Krishna_Matha_Udupi_Karnataka.jpg/1280px-Madhvacharya_Krishna_Matha_Udupi_Karnataka.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Sri_Krishna_Math_Udupi.JPG/1280px-Sri_Krishna_Math_Udupi.JPG',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Sri_Krishna_Matha_%28Monastery%29_and_temple%2C_Udupi_Karnataka.jpg/1280px-Sri_Krishna_Matha_%28Monastery%29_and_temple%2C_Udupi_Karnataka.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Udupi_Krishna_Temple_gopuram_and_Kankana_kindi.jpg/1280px-Udupi_Krishna_Temple_gopuram_and_Kankana_kindi.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/Udupi_Krishna_Temple_gopuram_from_the_west.jpg/1280px-Udupi_Krishna_Temple_gopuram_from_the_west.jpg',
     ],
     description:
         'Thirteenth-century Dvaita seat founded by Sri Madhvacharya, where Bala Krishna is viewed '

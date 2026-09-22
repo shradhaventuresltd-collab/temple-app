@@ -1,0 +1,14 @@
+READY — KAN-76 Sri Krishna Matha (Udupi) photo pack
+Count: 8 site-verified Matha-only Commons photos
+Licenses: CC BY / CC BY-SA; 1280px thumbs; no live imageUrl.
+Excluded: theatre, railway station, Parashurama temple, beach, generic-city frames.
+
+Files:
+- 01_Udupi_Sri_Krishna_Matha_Temple.jpg
+- 02_Udupi_Sri_krishna_matha_Temple_pond.jpg
+- 03_Krishna_Math_Gopura_Udupi.JPG
+- 04_Madhvacharya_Krishna_Matha_Udupi_Karnataka.jpg
+- 05_Sri_Krishna_Math_Udupi.JPG
+- 06_Sri_Krishna_Matha_Monastery_and_temple_Udupi_Karnataka.jpg
+- 07_Udupi_Krishna_Temple_gopuram_and_Kankana_kindi.jpg
+- 08_Udupi_Krishna_Temple_gopuram_from_the_west.jpg
