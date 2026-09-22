@@ -55,11 +55,7 @@ void main() {
       latRange: (8.0, 14.0),
       lngRange: (76.0, 81.0),
       commonsSlugs: expected.keys
-          .where(
-            (id) =>
-                id != 'kanyakumari-bhagavathi-amman-temple' &&
-                id != 'subramanya-swamy-temple',
-          )
+          .where((id) => id != 'kanyakumari-bhagavathi-amman-temple')
           .toSet(),
     );
   });

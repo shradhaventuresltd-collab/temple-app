@@ -7,6 +7,19 @@
   "tradition_note": "Sabarimala Ayyappa pilgrimage temple",
   "photos": [
     {
+      "filename": "05_Sabarimala_5.jpg",
+      "commons_title": "File:Sabarimala_5.jpg",
+      "author": "Dhinakar01",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ASabarimala_5.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Sabarimala_5.jpg/1280px-Sabarimala_5.jpg",
+      "bytes": 445051,
+      "width": 1280,
+      "height": 960,
+      "notes": "Sabarimala Ayyappa pilgrimage temple Manifest downloaded_url was the placeholder '(1280px Commons thumb)'; replaced with the Commons 1280px thumb. Cover: Sabarimala temple complex. Forest/tree frame kept in the gallery, not as cover."
+    },
+    {
       "filename": "01_Sabarimala.jpg",
       "commons_title": "File:Sabarimala.jpg",
       "author": "Tmppn",
@@ -57,19 +70,6 @@
       "width": 1280,
       "height": 960,
       "notes": "Sabarimala Ayyappa pilgrimage temple"
-    },
-    {
-      "filename": "05_Sabarimala_5.jpg",
-      "commons_title": "File:Sabarimala_5.jpg",
-      "author": "Dhinakar01",
-      "license": "CC BY-SA 4.0",
-      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
-      "source_url": "https://commons.wikimedia.org/wiki/File%3ASabarimala_5.jpg",
-      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Sabarimala_5.jpg/1280px-Sabarimala_5.jpg",
-      "bytes": 445051,
-      "width": 1280,
-      "height": 960,
-      "notes": "Sabarimala Ayyappa pilgrimage temple Manifest downloaded_url was the placeholder '(1280px Commons thumb)'; replaced with the Commons 1280px thumb."
     }
   ]
 }

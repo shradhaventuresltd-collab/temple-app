@@ -5,6 +5,8 @@ Source: Wikimedia Commons
 User-Agent: TempleAppResearch/1.0 (KAN-76 sweep)
 Thumbs: 1280px Commons only.
 
+Dropped from the gallery: `05_Tiruthani_Murugan_Temple_parking_lot.jpg` (File:Tiruthani Murugan Temple parking lot.jpg, CC BY-SA 4.0, రవిచంద్ర). It is the Tiruttani temple grounds, but it is a parking frame. `photo_candidates.json` had no unused replacement, so the pack keeps the other five frames.
+
 ## 01_Tiruttani_Murugan_temple.jpg
 - **Commons File:** File:Tiruttani Murugan temple.jpg
 - **Author:** Rsmn
@@ -44,16 +46,6 @@ Thumbs: 1280px Commons only.
 - **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e2/Subramaniya_Swamy_Temple%2C_Tiruttani.jpg/1280px-Subramaniya_Swamy_Temple%2C_Tiruttani.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
 - **Retrieved date (IST):** 2026-09-22
 - **Dimensions:** 1280×1707
-
-## 05_Tiruthani_Murugan_Temple_parking_lot.jpg
-- **Commons File:** File:Tiruthani Murugan Temple parking lot.jpg
-- **Author:** రవిచంద్ర
-- **License:** CC BY-SA 4.0
-- **License URL:** https://creativecommons.org/licenses/by-sa/4.0
-- **Source page URL:** https://commons.wikimedia.org/wiki/File%3ATiruthani_Murugan_Temple_parking_lot.jpg
-- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/5/58/Tiruthani_Murugan_Temple_parking_lot.jpg/1280px-Tiruthani_Murugan_Temple_parking_lot.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
-- **Retrieved date (IST):** 2026-09-22
-- **Dimensions:** 1280×587
 
 ## 06_Thiruthani_Murugan_Temple.jpg
 - **Commons File:** File:Thiruthani Murugan Temple .jpg

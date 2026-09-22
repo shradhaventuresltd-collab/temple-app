@@ -118,17 +118,17 @@ Pack folders keep the research tar names. Storage and Firestore ids are Seed
 | `nellaiappar-temple-tirunelveli` | `nellaiappar-temple` | 6 | Nellaiappar Temple |
 | `parassinikadavu-muthappan-temple` | same | 6 | Parassinikadavu Muthappan Temple |
 | `ramanathaswamy-temple` | same | 6 | Ramanathaswamy Temple |
-| `sabarimala-ayyappan-temple` | same | 5 | Sabarimala Ayyappan Temple (living temple) |
+| `sabarimala-ayyappan-temple` | same | 5 | Sabarimala Ayyappan Temple (living temple; cover is the temple complex) |
 | `sarangapani-temple` | same | 6 | Sarangapani Temple |
 | `sree-padmanabhaswamy-temple` | same | 6 | Sree Padmanabhaswamy Temple (neutral chip) |
 | `sree-poornathrayeesa-temple` | same | 6 | Sree Poornathrayeesa Temple |
 | `sri-ranganathaswamy-temple-srirangam` | `sri-ranganathaswamy-temple` | 6 | Sri Ranganathaswamy Temple |
-| `subramanya-swamy-temple-thiruchendur` | `subramanya-swamy-temple` | 0 | Subramanya Swamy Temple (held) |
+| `subramanya-swamy-temple-thiruchendur` | `subramanya-swamy-temple` | 8 | Subramanya Swamy Temple (site_verified Tiruchendur) |
 | `swamimalai-murugan-temple` | same | 6 | Swamimalai Murugan Temple |
 | `thirunelli-maha-vishnu-temple` | same | 6 | Thirunelli Maha Vishnu Temple |
-| `thiruvalla-sreevallabha-temple` | same | 6 | Thiruvalla Sreevallabha Temple |
+| `thiruvalla-sreevallabha-temple` | same | 6 | Thiruvalla Sreevallabha Temple (cover is the gopuram) |
 | `thyagaraja-temple-tiruvarur` | `thyagaraja-temple` | 6 | Thyagaraja Temple |
-| `tiruttani-murugan-temple` | same | 6 | Tiruttani Murugan Temple |
+| `tiruttani-murugan-temple` | same | 5 | Tiruttani Murugan Temple (parking frame dropped) |
 | `vadakkunnathan-temple` | same | 6 | Vadakkunnathan Temple |
 | `vaikom-mahadeva-temple` | same | 6 | Vaikom Mahadeva Temple |
 | `vaitheeswaran-koil` | same | 6 | Vaitheeswaran Koil |
@@ -143,10 +143,13 @@ Anjengo Sree Durga Devi Temple, Mannarsala Sree Nagaraja Temple.
 
 | Pack | Dropped | Why |
 | --- | --- | --- |
-| `subramanya-swamy-temple-thiruchendur` | all 6 | Every file is Elamkunnapuzha Subramanya Swamy Temple, Kerala, not Thiruchendur. Pack is held empty. Sample cover stays empty (Photo pending). |
+| `subramanya-swamy-temple-thiruchendur` | first research set (6) | Those files were Elamkunnapuzha Subramanya Swamy Temple, Kerala. They were not downloaded. The pack is now the site-verified Tiruchendur set (8). |
 | `guruvayur-sri-krishna-temple` | `06_Sree_krishna_Mural_Painting_by_Sujith_Nair_Pattoor.jpg` | Mural dedicated to Ulanadu Sree Krishna Temple and categorized under several other Krishna temples. Five Guruvayur photographs remain. |
+| `tiruttani-murugan-temple` | `05_Tiruthani_Murugan_Temple_parking_lot.jpg` | Parking lot at the Tiruttani temple. No unused replacement was in `photo_candidates.json`, so the gallery is the other five frames. |
 
 `sabarimala-ayyappan-temple` / `05_Sabarimala_5.jpg` had a placeholder
 `downloaded_url` in the research manifest (`(1280px Commons thumb)`). It was
 replaced with the Commons 1280px thumb for `File:Sabarimala 5.jpg` (Sabarimala
-temple complex).
+temple complex). That temple-complex frame is the cover. The forest frame
+stays in the gallery. Thiruvalla’s cover is the gopuram already in
+`photo_candidates.json`; the Kathakali frame stays in the gallery.

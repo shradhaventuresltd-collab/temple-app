@@ -1,42 +1,119 @@
 {
   "temple_slug": "subramanya-swamy-temple-thiruchendur",
-  "temple_name": "Subramanya Swamy Temple",
+  "temple_name": "Subramaniya Swamy Temple, Tiruchendur",
   "doc_id_hint": "subramanya-swamy-temple-thiruchendur",
   "city": "Thiruchendur",
+  "district": "Thoothukudi",
   "state": "Tamil Nadu",
   "tradition_note": "Murugan temple",
-  "photos": [],
-  "seed_document_id": "subramanya-swamy-temple",
-  "dropped_wrong_site": [
+  "site_verified": true,
+  "site": "Subramaniya Swamy Temple, Tiruchendur (Thoothukudi), Tamil Nadu — NOT Elamkunnapuzha Kerala",
+  "source_category_url": "https://commons.wikimedia.org/wiki/Category:Subramaniya_Swamy_Temple,_Tiruchendur",
+  "photos": [
     {
-      "filename": "01_009222022_Elamkunnapuzha_Subramanya_Swamy_Temple_Kerala_011.jpg",
-      "commons_title": "File:009222022 Elamkunnapuzha Subramanya Swamy Temple Kerala 011.jpg",
-      "reason": "All six frames are Elamkunnapuzha Subramanya Swamy Temple, Kerala (Category:Elamkunnapuzha Subramanya Swamy Temple, Kerala), not Subramanya Swamy Temple, Thiruchendur."
+      "filename": "01_The_Raja_Gopuram_at_Thiruchendur_Murugan_Temple.JPG",
+      "commons_title": "File: The Raja Gopuram at Thiruchendur Murugan Temple.JPG",
+      "author": "Aravind Sivaraj",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AThe%20Raja%20Gopuram%20at%20Thiruchendur%20Murugan%20Temple.JPG",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fd/The_Raja_Gopuram_at_Thiruchendur_Murugan_Temple.JPG/1280px-The_Raja_Gopuram_at_Thiruchendur_Murugan_Temple.JPG",
+      "bytes": 440884,
+      "width": 1280,
+      "height": 1707,
+      "notes": "Verified view of Subramaniya Swamy Temple, Tiruchendur, Thoothukudi, Tamil Nadu; excluded Kerala temples and non-temple-only imagery."
     },
     {
-      "filename": "02_009222022_Elamkunnapuzha_Subramanya_Swamy_Temple_Kerala_025.jpg",
-      "commons_title": "File:009222022 Elamkunnapuzha Subramanya Swamy Temple Kerala 025.jpg",
-      "reason": "All six frames are Elamkunnapuzha Subramanya Swamy Temple, Kerala (Category:Elamkunnapuzha Subramanya Swamy Temple, Kerala), not Subramanya Swamy Temple, Thiruchendur."
+      "filename": "02_Arulmigu_Subramaniya_Swamy_Temple_Tiruchendur.jpg",
+      "commons_title": "File: Arulmigu Subramaniya Swamy Temple, Tiruchendur.jpg",
+      "author": "Gayathri Dakshinamoorthy",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AArulmigu%20Subramaniya%20Swamy%20Temple%2C%20Tiruchendur.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bf/Arulmigu_Subramaniya_Swamy_Temple%2C_Tiruchendur.jpg/1280px-Arulmigu_Subramaniya_Swamy_Temple%2C_Tiruchendur.jpg",
+      "bytes": 207848,
+      "width": 1280,
+      "height": 720,
+      "notes": "Verified view of Subramaniya Swamy Temple, Tiruchendur, Thoothukudi, Tamil Nadu; excluded Kerala temples and non-temple-only imagery."
     },
     {
-      "filename": "03_009222022_Elamkunnapuzha_Subramanya_Swamy_Temple_Kerala_034.jpg",
-      "commons_title": "File:009222022 Elamkunnapuzha Subramanya Swamy Temple Kerala 034.jpg",
-      "reason": "All six frames are Elamkunnapuzha Subramanya Swamy Temple, Kerala (Category:Elamkunnapuzha Subramanya Swamy Temple, Kerala), not Subramanya Swamy Temple, Thiruchendur."
+      "filename": "03_Murugan_temple_at_Thiruchendur.jpg",
+      "commons_title": "File: Murugan temple at Thiruchendur.jpg",
+      "author": "MuthuLakshmi Vijaya",
+      "license": "CC0",
+      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMurugan%20temple%20at%20Thiruchendur.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/38/Murugan_temple_at_Thiruchendur.jpg/1280px-Murugan_temple_at_Thiruchendur.jpg",
+      "bytes": 760423,
+      "width": 1280,
+      "height": 1707,
+      "notes": "Verified view of Subramaniya Swamy Temple, Tiruchendur, Thoothukudi, Tamil Nadu; excluded Kerala temples and non-temple-only imagery."
     },
     {
-      "filename": "04_009222022_Elamkunnapuzha_Subramanya_Swamy_Temple_Kerala_040.jpg",
-      "commons_title": "File:009222022 Elamkunnapuzha Subramanya Swamy Temple Kerala 040.jpg",
-      "reason": "All six frames are Elamkunnapuzha Subramanya Swamy Temple, Kerala (Category:Elamkunnapuzha Subramanya Swamy Temple, Kerala), not Subramanya Swamy Temple, Thiruchendur."
+      "filename": "04_Thiruchendur_Temple_Rajagopuram.JPG",
+      "commons_title": "File: Thiruchendur Temple Rajagopuram.JPG",
+      "author": "Vickyavw",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AThiruchendur%20Temple%20Rajagopuram.JPG",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5e/Thiruchendur_Temple_Rajagopuram.JPG/1280px-Thiruchendur_Temple_Rajagopuram.JPG",
+      "bytes": 447665,
+      "width": 1280,
+      "height": 1395,
+      "notes": "Verified view of Subramaniya Swamy Temple, Tiruchendur, Thoothukudi, Tamil Nadu; excluded Kerala temples and non-temple-only imagery."
     },
     {
-      "filename": "05_009222022_Elamkunnapuzha_Subramanya_Swamy_Temple_Kerala_046.jpg",
-      "commons_title": "File:009222022 Elamkunnapuzha Subramanya Swamy Temple Kerala 046.jpg",
-      "reason": "All six frames are Elamkunnapuzha Subramanya Swamy Temple, Kerala (Category:Elamkunnapuzha Subramanya Swamy Temple, Kerala), not Subramanya Swamy Temple, Thiruchendur."
+      "filename": "05_Thiruchendur_Murugan_Temple_Thiruchendur_Tamil_Nadu.jpg",
+      "commons_title": "File: Thiruchendur Murugan Temple Thiruchendur Tamil Nadu.jpg",
+      "author": "Nomanwoman",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AThiruchendur%20Murugan%20Temple%20Thiruchendur%20Tamil%20Nadu.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/92/Thiruchendur_Murugan_Temple_Thiruchendur_Tamil_Nadu.jpg/1280px-Thiruchendur_Murugan_Temple_Thiruchendur_Tamil_Nadu.jpg",
+      "bytes": 366402,
+      "width": 1280,
+      "height": 1707,
+      "notes": "Verified view of Subramaniya Swamy Temple, Tiruchendur, Thoothukudi, Tamil Nadu; excluded Kerala temples and non-temple-only imagery."
     },
     {
-      "filename": "06_009222022_Elamkunnapuzha_Subramanya_Swamy_Temple_Kerala_058.jpg",
-      "commons_title": "File:009222022 Elamkunnapuzha Subramanya Swamy Temple Kerala 058.jpg",
-      "reason": "All six frames are Elamkunnapuzha Subramanya Swamy Temple, Kerala (Category:Elamkunnapuzha Subramanya Swamy Temple, Kerala), not Subramanya Swamy Temple, Thiruchendur."
+      "filename": "06_Thiruchendur_Temple_from_seashore.jpg",
+      "commons_title": "File: Thiruchendur Temple from seashore.jpg",
+      "author": "Sathish DJ @ SatZ DJ from Tuticorin",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AThiruchendur%20Temple%20from%20seashore.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0d/Thiruchendur_Temple_from_seashore.jpg/1280px-Thiruchendur_Temple_from_seashore.jpg",
+      "bytes": 173086,
+      "width": 1280,
+      "height": 960,
+      "notes": "Verified view of Subramaniya Swamy Temple, Tiruchendur, Thoothukudi, Tamil Nadu; excluded Kerala temples and non-temple-only imagery."
+    },
+    {
+      "filename": "07_Naazhikinaru_entrance_at_the_Thiruchendur_Murugan_Temple.JPG",
+      "commons_title": "File: Naazhikinaru entrance at the Thiruchendur Murugan Temple.JPG",
+      "author": "Aravind Sivaraj",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ANaazhikinaru%20entrance%20at%20the%20Thiruchendur%20Murugan%20Temple.JPG",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e2/Naazhikinaru_entrance_at_the_Thiruchendur_Murugan_Temple.JPG/1280px-Naazhikinaru_entrance_at_the_Thiruchendur_Murugan_Temple.JPG",
+      "bytes": 494116,
+      "width": 1280,
+      "height": 1707,
+      "notes": "Verified view of Subramaniya Swamy Temple, Tiruchendur, Thoothukudi, Tamil Nadu; excluded Kerala temples and non-temple-only imagery."
+    },
+    {
+      "filename": "08_Thiruchendur_Sri_Subramaniya_Swamy_Temple_2014_8.jpg",
+      "commons_title": "File: Thiruchendur Sri Subramaniya Swamy Temple 2014 (8).jpg",
+      "author": "Vinayaraj",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AThiruchendur%20Sri%20Subramaniya%20Swamy%20Temple%202014%20%288%29.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/51/Thiruchendur_Sri_Subramaniya_Swamy_Temple_2014_%288%29.jpg/1280px-Thiruchendur_Sri_Subramaniya_Swamy_Temple_2014_%288%29.jpg",
+      "bytes": 392700,
+      "width": 1280,
+      "height": 1707,
+      "notes": "Verified view of Subramaniya Swamy Temple, Tiruchendur, Thoothukudi, Tamil Nadu; excluded Kerala temples and non-temple-only imagery."
     }
-  ]
+  ],
+  "seed_document_id": "subramanya-swamy-temple"
 }

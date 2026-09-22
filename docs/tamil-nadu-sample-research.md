@@ -30,10 +30,12 @@ KAN-77 Wave A stores Commons 1280px `downloaded_url` thumbs in sample
 `imageUrl` / `images` for the temples that have a pack under
 `tools/photo-packs/`. Those are not Storage URLs. Kanyakumari has no READY
 pack (shortfall) and stays an empty cover. Subramanya Swamy Temple,
-Thiruchendur stays empty: the research frames were Elamkunnapuzha Subramanya
-Swamy Temple in Kerala and were not downloaded. Meenakshi and Shore were
-already packed on main. Earlier notes below that say picsum or an empty
-cover describe the pre-pack research pass.
+Thiruchendur uses eight site-verified Tiruchendur / Thoothukudi Murugan
+Commons frames (`site_verified=true`). The earlier Elamkunnapuzha, Kerala
+frames were not used. Meenakshi and Shore were already packed on main.
+Earlier notes below that say picsum or an empty cover describe the
+pre-pack research pass. Tiruttani’s parking-lot frame was dropped; five
+temple frames remain.
 
 ## Verify before CMS / publish
 
@@ -205,8 +207,8 @@ batch 1–3 Tamil Nadu temples.
 - `sources`, `photo_candidates`, and `rituals_notes` stay out of Firestore; useful
   ritual tips were folded into `timings` / `story` / `specialities` free text where room.
 - KAN-74 left cover **`imageUrl` empty**. KAN-77 Wave A fills Commons thumbs
-  for every batch-16 temple except Kanyakumari (shortfall) and Thiruchendur
-  (wrong-site hold). Do **not** invent Storage URLs.
+  for every batch-16 temple except Kanyakumari (shortfall). Thiruchendur is
+  filled from the site-verified Tiruchendur pack. Do **not** invent Storage URLs.
 
 ## Verify before CMS / publish
 

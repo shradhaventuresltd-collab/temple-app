@@ -128,6 +128,7 @@ void main() {
         'Brihadeeswarar Temple',
         'Sabarimala Ayyappan Temple',
         'Sree Padmanabhaswamy Temple',
+        'Subramanya Swamy Temple',
       ]) {
         final sample = _named(name);
         expect(sample.imageUrl, contains('wikimedia.org'), reason: name);
@@ -138,12 +139,6 @@ void main() {
         expect(find.text('Living temple'), findsNothing, reason: name);
         expect(find.byType(CachedNetworkImage), findsOneWidget, reason: name);
       }
-
-      final held = _named('Subramanya Swamy Temple');
-      expect(held.imageUrl, isEmpty);
-      await pumpCard(tester, held);
-      expect(find.text('Photo pending'), findsOneWidget);
-      expect(find.byType(CachedNetworkImage), findsNothing);
     },
   );
 

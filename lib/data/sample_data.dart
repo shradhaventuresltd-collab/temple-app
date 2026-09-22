@@ -448,8 +448,8 @@ const List<Temple> sampleTemples = [
   // ── KAN-64 / KAN-74 expansion batch 16 — +10 additional Tamil Nadu temples
   // Core Temple fields only (Hybrid C): trip_planning stripped / not seeded.
   // KAN-77 Wave A fills Commons thumbs where a pack is on file. Kanyakumari
-  // stays empty (shortfall). Thiruchendur stays empty: the research frames
-  // were Elamkunnapuzha, Kerala, and were not used.
+  // stays empty (shortfall). Thiruchendur uses the site-verified Tiruchendur
+  // pack (the earlier Elamkunnapuzha frames were not used).
   // KAN-77: verified Commons thumbs — tools/photo-packs/sri-ranganathaswamy-temple-srirangam/
   Temple(
     name: 'Sri Ranganathaswamy Temple',
@@ -591,13 +591,24 @@ const List<Temple> sampleTemples = [
       'Veg food: dense pure-veg pilgrim messes around Adivaram / town',
     ],
   ),
-  // KAN-77: pack held — Elamkunnapuzha (Kerala) frames dropped; cover stays empty (Photo pending).
+  // KAN-77: verified Commons thumbs — tools/photo-packs/subramanya-swamy-temple-thiruchendur/
   Temple(
     name: 'Subramanya Swamy Temple',
     state: 'Tamil Nadu',
     city: 'Thiruchendur',
     deity: 'Murugan',
-    imageUrl: '',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fd/The_Raja_Gopuram_at_Thiruchendur_Murugan_Temple.JPG/1280px-The_Raja_Gopuram_at_Thiruchendur_Murugan_Temple.JPG',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fd/The_Raja_Gopuram_at_Thiruchendur_Murugan_Temple.JPG/1280px-The_Raja_Gopuram_at_Thiruchendur_Murugan_Temple.JPG',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bf/Arulmigu_Subramaniya_Swamy_Temple%2C_Tiruchendur.jpg/1280px-Arulmigu_Subramaniya_Swamy_Temple%2C_Tiruchendur.jpg',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/38/Murugan_temple_at_Thiruchendur.jpg/1280px-Murugan_temple_at_Thiruchendur.jpg',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5e/Thiruchendur_Temple_Rajagopuram.JPG/1280px-Thiruchendur_Temple_Rajagopuram.JPG',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/92/Thiruchendur_Murugan_Temple_Thiruchendur_Tamil_Nadu.jpg/1280px-Thiruchendur_Murugan_Temple_Thiruchendur_Tamil_Nadu.jpg',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0d/Thiruchendur_Temple_from_seashore.jpg/1280px-Thiruchendur_Temple_from_seashore.jpg',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e2/Naazhikinaru_entrance_at_the_Thiruchendur_Murugan_Temple.JPG/1280px-Naazhikinaru_entrance_at_the_Thiruchendur_Murugan_Temple.JPG',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/51/Thiruchendur_Sri_Subramaniya_Swamy_Temple_2014_%288%29.jpg/1280px-Thiruchendur_Sri_Subramaniya_Swamy_Temple_2014_%288%29.jpg',
+    ],
     description:
         'Seaside Arupadai Veedu of Murugan at Tiruchendur on the Bay of Bengal '
         '— the only one of the six abodes on the shore, celebrated for '
@@ -1031,7 +1042,6 @@ const List<Temple> sampleTemples = [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/35/Arulmigu_Subramaniya_Swami_Temple%2C_Tiruttani_2.jpg/1280px-Arulmigu_Subramaniya_Swami_Temple%2C_Tiruttani_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/Arulmigu_Subramaniya_Swami_Temple%2C_Tiruttani.jpg/1280px-Arulmigu_Subramaniya_Swami_Temple%2C_Tiruttani.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e2/Subramaniya_Swamy_Temple%2C_Tiruttani.jpg/1280px-Subramaniya_Swamy_Temple%2C_Tiruttani.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/58/Tiruthani_Murugan_Temple_parking_lot.jpg/1280px-Tiruthani_Murugan_Temple_parking_lot.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/75/Thiruthani_Murugan_Temple_.jpg/1280px-Thiruthani_Murugan_Temple_.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     ],
     description:
@@ -1214,13 +1224,13 @@ const List<Temple> sampleTemples = [
     city: 'Pathanamthitta',
     deity: 'Vishnu',
     imageUrl:
-        'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/05/Sabarimala.jpg/1280px-Sabarimala.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Sabarimala_5.jpg/1280px-Sabarimala_5.jpg',
     images: const [
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Sabarimala_5.jpg/1280px-Sabarimala_5.jpg',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/05/Sabarimala.jpg/1280px-Sabarimala.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/Sabarimala_Garbhagudi.jpg/1280px-Sabarimala_Garbhagudi.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5e/Sabarimala_3.jpg/1280px-Sabarimala_3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Sabarimala_4.jpg/1280px-Sabarimala_4.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-      'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Sabarimala_5.jpg/1280px-Sabarimala_5.jpg',
     ],
     description:
         'Hill shrine of Lord Ayyappa (Dharmasastha / Hariharaputra) in the Periyar forests of '
@@ -2135,13 +2145,13 @@ const List<Temple> sampleTemples = [
     city: 'Thiruvalla',
     deity: 'Vishnu',
     imageUrl:
-        'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/33/Kadhakali_-_Sreevallabha_Temple%2C_Thiruvalla.jpg/1280px-Kadhakali_-_Sreevallabha_Temple%2C_Thiruvalla.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1d/Sreevallabha_temple%2C_thiruvalla.JPG/1280px-Sreevallabha_temple%2C_thiruvalla.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1d/Sreevallabha_temple%2C_thiruvalla.JPG/1280px-Sreevallabha_temple%2C_thiruvalla.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/33/Kadhakali_-_Sreevallabha_Temple%2C_Thiruvalla.jpg/1280px-Kadhakali_-_Sreevallabha_Temple%2C_Thiruvalla.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2f/Lakshmi_vilakku_sreevallabha_temple%2C_thiruvalla.JPG/1280px-Lakshmi_vilakku_sreevallabha_temple%2C_thiruvalla.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/33/Nammalvar_phalakam_at_sreevallabha_temple%2C_thiruvalla.JPG/1280px-Nammalvar_phalakam_at_sreevallabha_temple%2C_thiruvalla.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7b/Shangh_sreevallabha_temple%2C_thiruvalla.JPG/1280px-Shangh_sreevallabha_temple%2C_thiruvalla.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1d/Sreevallabha_temple%2C_thiruvalla.JPG/1280px-Sreevallabha_temple%2C_thiruvalla.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/45/009242022_Shri_Vallabha_temple%2C_Thiruvalla_Kerala_004.jpg/1280px-009242022_Shri_Vallabha_temple%2C_Thiruvalla_Kerala_004.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     ],
     description:

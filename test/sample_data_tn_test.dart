@@ -71,8 +71,6 @@ void main() {
       expect(temple.longitude, inInclusiveRange(76.0, 81.0));
       final slug = templeDocumentId(temple.name);
       const heldOrShortfall = {
-        // Research frames were Elamkunnapuzha, Kerala — not downloaded.
-        'subramanya-swamy-temple',
         // KAN-77 shortfall: no READY pack.
         'kanyakumari-bhagavathi-amman-temple',
       };
@@ -86,6 +84,17 @@ void main() {
         expect(temple.imageUrl, contains('wikimedia.org'), reason: slug);
         expect(temple.images.length, greaterThanOrEqualTo(5), reason: slug);
         expect(temple.imageUrl, temple.images.first, reason: slug);
+        if (slug == 'subramanya-swamy-temple') {
+          expect(temple.images, hasLength(8));
+          expect(temple.imageUrl, contains('Raja_Gopuram_at_Thiruchendur'));
+        }
+        if (slug == 'tiruttani-murugan-temple') {
+          expect(temple.images, hasLength(5));
+          expect(
+            temple.images.any((url) => url.contains('parking_lot')),
+            isFalse,
+          );
+        }
         for (final url in temple.images) {
           expect(url, contains('wikimedia.org'), reason: slug);
           expect(url.contains('picsum'), isFalse, reason: slug);

@@ -100,6 +100,14 @@ void main() {
           expect(temple.imageUrl, contains('wikimedia.org'), reason: slug);
           expect(temple.images.length, greaterThanOrEqualTo(5), reason: slug);
           expect(temple.imageUrl, temple.images.first, reason: slug);
+          if (slug == 'sabarimala-ayyappan-temple') {
+            expect(temple.imageUrl, contains('Sabarimala_5.jpg'));
+            expect(temple.imageUrl, isNot(contains('/Sabarimala.jpg/')));
+          }
+          if (slug == 'thiruvalla-sreevallabha-temple') {
+            expect(temple.imageUrl, contains('Sreevallabha_temple'));
+            expect(temple.imageUrl, isNot(contains('Kadhakali')));
+          }
           for (final url in temple.images) {
             expect(url, contains('wikimedia.org'), reason: slug);
             expect(url.contains('picsum'), isFalse, reason: slug);

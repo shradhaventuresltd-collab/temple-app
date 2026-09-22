@@ -68,9 +68,8 @@ void main() {
   });
 
   test('picsum covers and empty galleries are photo pending', () {
-    // KAN-77: #19 packs plus Wave A TN/KL Commons thumbs. Thiruchendur is held.
-    // Wave B Karnataka Commons thumbs are in the same count (20, none of them
-    // in the earlier 39).
+    // KAN-77: #19 packs, Wave B Karnataka, and Wave A TN/KL Commons thumbs,
+    // including Thiruchendur.
     var verifiedCount = 0;
     for (final temple in sampleTemples) {
       final urls = verifiedGalleryUrls(temple);
@@ -96,7 +95,7 @@ void main() {
         );
       }
     }
-    expect(verifiedCount, 59);
+    expect(verifiedCount, 60);
 
     final mixed = _draft(
       imageUrl: 'https://picsum.photos/seed/cover/800/600',
@@ -200,8 +199,12 @@ void main() {
     expect(brihad.framingLabel, 'Living temple');
 
     final thiruchendur = DetailHonesty.of(_named('Subramanya Swamy Temple'));
-    expect(thiruchendur.photoPending, isTrue);
-    expect(_named('Subramanya Swamy Temple').imageUrl, isEmpty);
+    expect(thiruchendur.photoPending, isFalse);
+    expect(
+      _named('Subramanya Swamy Temple').imageUrl,
+      contains('wikimedia.org'),
+    );
+    expect(thiruchendur.verifiedImages, hasLength(8));
     expect(thiruchendur.framing, SiteFraming.livingTemple);
   });
 

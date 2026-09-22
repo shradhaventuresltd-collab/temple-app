@@ -5,6 +5,8 @@ Source: Wikimedia Commons
 User-Agent: TempleAppResearch/1.0 (KAN-76 sweep)
 Thumbs: 1280px Commons only.
 
+Cover is `05_Sreevallabha_temple_thiruvalla.jpg` (temple gopuram). The Kathakali frame stays in the gallery and is not the cover.
+
 ## 01_Kadhakali_-_Sreevallabha_Temple_Thiruvalla.jpg
 - **Commons File:** File:Kadhakali - Sreevallabha Temple, Thiruvalla.jpg
 - **Author:** VJ Views

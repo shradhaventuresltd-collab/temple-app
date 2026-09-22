@@ -1,5 +1,11 @@
 [
   {
+    "url": "https://commons.wikimedia.org/wiki/File%3ASabarimala_5.jpg",
+    "license": "CC BY-SA 4.0",
+    "attribution": "Dhinakar01",
+    "notes": "local_file=05_Sabarimala_5.jpg"
+  },
+  {
     "url": "https://commons.wikimedia.org/wiki/File%3ASabarimala.jpg",
     "license": "CC BY-SA 4.0",
     "attribution": "Tmppn",
@@ -22,11 +28,5 @@
     "license": "CC BY-SA 4.0",
     "attribution": "Dhinakar01",
     "notes": "local_file=04_Sabarimala_4.jpg"
-  },
-  {
-    "url": "https://commons.wikimedia.org/wiki/File%3ASabarimala_5.jpg",
-    "license": "CC BY-SA 4.0",
-    "attribution": "Dhinakar01",
-    "notes": "local_file=05_Sabarimala_5.jpg"
   }
 ]

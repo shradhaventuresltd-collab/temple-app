@@ -5,6 +5,8 @@ Source: Wikimedia Commons
 User-Agent: TempleAppResearch/1.0 (KAN-76 sweep)
 Thumbs: 1280px Commons only.
 
+Cover is `05_Sabarimala_5.jpg` (Sabarimala temple complex). The forest/tree frame stays in the gallery and is not the cover.
+
 ## 01_Sabarimala.jpg
 - **Commons File:** File:Sabarimala.jpg
 - **Author:** Tmppn

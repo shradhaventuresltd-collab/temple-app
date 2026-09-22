@@ -35,7 +35,10 @@ KAN-77 Wave A stores Commons 1280px `downloaded_url` thumbs in sample
 have no READY pack (shortfall) and keep their picsum covers; Seed still
 drops picsum. One Guruvayur frame (a mural also filed under Ulanadu and
 other Krishna temples) was not downloaded. Sabarimala stays a living
-temple (seasonal timings). Padmanabhaswamy stays neutral: no living-temple
+temple (seasonal timings). Its cover is the temple-complex frame already in
+the pack (`Sabarimala 5`); the forest frame stays in the gallery.
+Thiruvalla’s cover is the temple gopuram already in the pack; the Kathakali
+frame stays in the gallery. Padmanabhaswamy stays neutral: no living-temple
 chip and no heritage-visit chip. Earlier notes below that say picsum or an
 empty cover describe the pre-pack research pass. Do **not** invent Storage URLs.
 

@@ -1,1 +1,3 @@
-Held: 0 photos. Wrong site (Elamkunnapuzha, Kerala), not Thiruchendur.
+Ready: 8 photos
+Site: Subramaniya Swamy Temple, Tiruchendur (Thoothukudi), Tamil Nadu
+site_verified=true
