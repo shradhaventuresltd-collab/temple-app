@@ -28,7 +28,9 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
   void initState() {
     super.initState();
     _firebaseReady = AppBootstrap.initializeFirebase();
-    // Ads after first frame — never block splash dismissal on AdMob.
+    // UMP, then MobileAds.initialize, after the first frame. Consent must
+    // not run before runApp — that brought back the saffron splash hang
+    // (KAN-75). A slow form overlays Home; it does not block startup.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(AppBootstrap.initializeAdsSafely());
     });

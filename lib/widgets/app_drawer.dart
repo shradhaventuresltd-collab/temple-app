@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/temple_detail_screen.dart';
+import 'package:temple_app/services/ad_consent.dart';
+import 'package:temple_app/services/ad_helper.dart';
 import 'package:temple_app/services/interstitial_ad_manager.dart';
 import 'package:temple_app/services/temple_service.dart';
 import 'package:temple_app/utils/directory_filters.dart';
@@ -340,6 +342,7 @@ class _AppDrawerState extends State<AppDrawer> {
                 ),
               ),
               const SizedBox(height: 8),
+              const AdPrivacyChoicesTile(),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: Text(
@@ -1020,6 +1023,44 @@ class _BrowseMessage extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 //  Private helper widgets
 // ─────────────────────────────────────────────────────────────────────────────
+
+/// Shown only after UMP says a privacy-options entry point is required.
+class AdPrivacyChoicesTile extends StatelessWidget {
+  const AdPrivacyChoicesTile({
+    super.key,
+    this.consent,
+    this.onShowPrivacyOptions,
+  });
+
+  final AdConsentController? consent;
+  final Future<void> Function()? onShowPrivacyOptions;
+
+  @override
+  Widget build(BuildContext context) {
+    final gate = consent ?? AdConsentController.instance;
+    return ListenableBuilder(
+      listenable: gate,
+      builder: (context, _) {
+        if (!gate.isReady || !gate.privacyOptionsRequired) {
+          return const SizedBox.shrink();
+        }
+        return _DrawerNavTile(
+          label: 'Ad privacy choices',
+          icon: Icons.privacy_tip_outlined,
+          onTap: () {
+            final navigator = Navigator.maybeOf(context);
+            if (navigator != null && navigator.canPop()) {
+              navigator.pop();
+            }
+            final show =
+                onShowPrivacyOptions ?? AdHelper.presentPrivacyOptions;
+            unawaited(show());
+          },
+        );
+      },
+    );
+  }
+}
 
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({required this.label});

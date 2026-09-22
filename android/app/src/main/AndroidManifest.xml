@@ -1,4 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Release ads and UMP need a network. Debug/profile manifests also
+         declare INTERNET for the Flutter tool. AD_ID is required when
+         consent allows personalized ads (Play advertising-ID policy). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>
     <application
         android:label="Temple Directory India"
         android:name="${applicationName}"
@@ -33,6 +39,11 @@
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-7782159535499045~4640625144" />
+        <!-- Do not start ad measurement before MobileAds.initialize, which
+             runs only after the UMP consent pass (KAN-69). -->
+        <meta-data
+            android:name="com.google.android.gms.ads.DELAY_APP_MEASUREMENT_INIT"
+            android:value="true"/>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

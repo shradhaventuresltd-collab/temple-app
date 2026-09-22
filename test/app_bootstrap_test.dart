@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:temple_app/services/ad_consent.dart';
 import 'package:temple_app/services/app_bootstrap.dart';
 
 void main() {
@@ -31,16 +34,42 @@ void main() {
   });
 
   group('AppBootstrap.initializeAdsSafely', () {
-    test('completes when initialize throws', () async {
-      await AppBootstrap.initializeAdsSafely(
-        initialize: () async => throw Exception('ads unavailable'),
+    tearDown(AdConsentController.instance.resetForTest);
+
+    test('startup cap outlasts the consent form cap', () {
+      expect(
+        AppBootstrap.adsStartupTimeout,
+        greaterThan(
+          AppBootstrap.consentFormTimeout + AppBootstrap.mobileAdsTimeout,
+        ),
       );
     });
 
-    test('completes when initialize times out', () async {
+    test('completes when initialize throws and unblocks ads as NPA', () async {
       await AppBootstrap.initializeAdsSafely(
-        initialize: () => Future<void>.delayed(const Duration(days: 1)),
+        initialize: () async => throw Exception('ads unavailable'),
+      );
+      expect(AdConsentController.instance.isReady, isTrue);
+      expect(
+        AdConsentController.instance.mode,
+        AdConsentMode.nonPersonalized,
+      );
+      expect(
+        adRequestForMode(AdConsentController.instance.mode).nonPersonalizedAds,
+        isTrue,
+      );
+    });
+
+    test('completes when initialize times out and unblocks ads as NPA', () async {
+      final hung = Completer<void>();
+      await AppBootstrap.initializeAdsSafely(
+        initialize: () => hung.future,
         timeout: const Duration(milliseconds: 40),
+      );
+      expect(AdConsentController.instance.isReady, isTrue);
+      expect(
+        AdConsentController.instance.mode,
+        AdConsentMode.nonPersonalized,
       );
     });
 
