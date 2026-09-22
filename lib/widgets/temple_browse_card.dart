@@ -15,11 +15,29 @@ String templeBrowsePlaceLabel(Temple temple) {
   return '$city, $state';
 }
 
+/// Labels that keep a browse card from reading as living Hindu darshan.
+///
+/// Hindu-first cards stay name, place, and deity. Jain, Buddhist, and Sikh
+/// sites add [DetailHonesty.traditionLabel]. Monument / ASI sites add
+/// [DetailHonesty.framingLabel] only when that label is a heritage visit.
+/// "Living temple" is not repeated on the card.
+List<String> templeBrowseHonestyLabels(Temple temple) {
+  final honesty = DetailHonesty.of(temple);
+  return [
+    if (honesty.traditionLabel != null) honesty.traditionLabel!,
+    if (honesty.framing == SiteFraming.monumentVisit &&
+        honesty.framingLabel != null)
+      honesty.framingLabel!,
+  ];
+}
+
 /// Browse card: cover, name, place, and deity chip.
 ///
 /// Placeholder hosts (picsum, placehold, and the rest of
 /// [isPlaceholderImageUrl]) render as [TempleImagePlaceholder] so stock
-/// images are not presented as photographs.
+/// images are not presented as photographs. Outlier sites also show the
+/// honesty chip from [templeBrowseHonestyLabels]. Story, gallery, and
+/// timings stay off the card.
 class TempleBrowseCard extends StatelessWidget {
   const TempleBrowseCard({super.key, required this.temple, this.onTap});
 
@@ -34,6 +52,7 @@ class TempleBrowseCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final place = templeBrowsePlaceLabel(temple);
     final deity = temple.deity.trim();
+    final honestyLabels = templeBrowseHonestyLabels(temple);
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -109,9 +128,39 @@ class TempleBrowseCard extends StatelessWidget {
                         ],
                       ),
                     ],
-                    if (deity.isNotEmpty) ...[
+                    if (deity.isNotEmpty || honestyLabels.isNotEmpty) ...[
                       const SizedBox(height: 10),
-                      _DeityChip(label: deity),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          Widget chip(String label, {Color? background}) {
+                            return ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth: constraints.maxWidth,
+                              ),
+                              child: _BrowseChip(
+                                label: label,
+                                background:
+                                    background ?? const Color(0xFFFFF9E3),
+                              ),
+                            );
+                          }
+
+                          return Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              if (deity.isNotEmpty) chip(deity),
+                              for (final label in honestyLabels)
+                                chip(
+                                  label,
+                                  background: label == 'Heritage visit'
+                                      ? const Color(0xFFFFF3D8)
+                                      : const Color(0xFFFFF9E3),
+                                ),
+                            ],
+                          );
+                        },
+                      ),
                     ],
                   ],
                 ),
@@ -136,64 +185,76 @@ class _BrowseCover extends StatelessWidget {
       return const TempleImagePlaceholder(height: TempleBrowseCard.coverHeight);
     }
 
-    return CachedNetworkImage(
-      imageUrl: urls.first,
-      height: TempleBrowseCard.coverHeight,
-      width: double.infinity,
-      fit: BoxFit.cover,
-      fadeInDuration: const Duration(milliseconds: 300),
-      placeholder: (context, url) => const ColoredBox(
-        color: Color(0xFFFFF8EE),
-        child: Center(
-          child: SizedBox(
-            width: 22,
-            height: 22,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: TempleBrowseCard.saffron,
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final dpr = MediaQuery.devicePixelRatioOf(context);
+        final width = constraints.maxWidth.isFinite && constraints.maxWidth > 0
+            ? constraints.maxWidth
+            : MediaQuery.sizeOf(context).width;
+        return CachedNetworkImage(
+          imageUrl: urls.first,
+          height: TempleBrowseCard.coverHeight,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          memCacheWidth: (width * dpr).round().clamp(1, 1600),
+          memCacheHeight: (TempleBrowseCard.coverHeight * dpr).round().clamp(
+            1,
+            1200,
           ),
-        ),
-      ),
-      errorWidget: (context, url, error) =>
-          const TempleImagePlaceholder(height: TempleBrowseCard.coverHeight),
-    );
-  }
-}
-
-class _DeityChip extends StatelessWidget {
-  const _DeityChip({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Flexible(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF9E3),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: TempleBrowseCard.gold),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF6D4C41),
-                  height: 1.2,
+          fadeInDuration: const Duration(milliseconds: 300),
+          placeholder: (context, url) => const ColoredBox(
+            color: Color(0xFFFFF8EE),
+            child: Center(
+              child: SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: TempleBrowseCard.saffron,
                 ),
               ),
             ),
           ),
+          errorWidget: (context, url, error) => const TempleImagePlaceholder(
+            height: TempleBrowseCard.coverHeight,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _BrowseChip extends StatelessWidget {
+  const _BrowseChip({
+    required this.label,
+    this.background = const Color(0xFFFFF9E3),
+  });
+
+  final String label;
+  final Color background;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: TempleBrowseCard.gold),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF6D4C41),
+            height: 1.2,
+          ),
         ),
-      ],
+      ),
     );
   }
 }

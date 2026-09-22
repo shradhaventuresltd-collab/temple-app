@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:temple_app/data/sample_data.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/widgets/temple_browse_card.dart';
 import 'package:temple_app/widgets/temple_image_placeholder.dart';
@@ -90,7 +91,8 @@ void main() {
       tester,
       temple(
         deity: '   ',
-        imageUrl: 'https://firebasestorage.googleapis.com/v0/b/app/o/temple.jpg?alt=media',
+        imageUrl:
+            'https://firebasestorage.googleapis.com/v0/b/app/o/temple.jpg?alt=media',
       ),
     );
 
@@ -112,4 +114,78 @@ void main() {
     expect(taps, 1);
     expect(find.byType(TempleBrowseCard), findsOneWidget);
   });
+
+  test('honesty labels flag outliers and skip living-temple copy', () {
+    expect(
+      templeBrowseHonestyLabels(_named('Meenakshi Amman Temple')),
+      isEmpty,
+    );
+    expect(templeBrowseHonestyLabels(_named('Dilwara Temples')), ['Jain']);
+    expect(templeBrowseHonestyLabels(_named('Mahabodhi Temple')), ['Buddhist']);
+    expect(templeBrowseHonestyLabels(_named('Shore Temple')), [
+      'Heritage visit',
+    ]);
+    expect(templeBrowseHonestyLabels(_named('Konark Sun Temple')), [
+      'Heritage visit',
+    ]);
+    expect(templeBrowseHonestyLabels(_named('Martand Sun Temple')), [
+      'Heritage visit',
+    ]);
+  });
+
+  testWidgets('outlier cards show honesty chips and not story or timings', (
+    tester,
+  ) async {
+    final shore = _named('Shore Temple');
+    await pumpCard(tester, shore);
+
+    expect(find.text('Shiva'), findsOneWidget);
+    expect(find.text('Heritage visit'), findsOneWidget);
+    expect(find.text('Living temple'), findsNothing);
+    expect(find.text(shore.story), findsNothing);
+    expect(find.text(shore.timings), findsNothing);
+    expect(find.text('Photo pending'), findsOneWidget);
+
+    final dilwara = _named('Dilwara Temples');
+    await pumpCard(tester, dilwara);
+    expect(find.text('Jain Tirthankaras'), findsOneWidget);
+    expect(find.text('Jain'), findsOneWidget);
+    expect(find.text('Living temple'), findsNothing);
+    expect(find.text('Heritage visit'), findsNothing);
+    expect(find.text(dilwara.story), findsNothing);
+
+    final meenakshi = _named('Meenakshi Amman Temple');
+    await pumpCard(tester, meenakshi);
+    expect(find.text('Devi'), findsOneWidget);
+    expect(find.text('Living temple'), findsNothing);
+    expect(find.text('Heritage visit'), findsNothing);
+    expect(find.text(meenakshi.story), findsNothing);
+  });
+
+  testWidgets('verified covers decode at the card size', (tester) async {
+    await pumpCard(
+      tester,
+      temple(
+        imageUrl:
+            'https://firebasestorage.googleapis.com/v0/b/app/o/temple.jpg?alt=media',
+      ),
+    );
+
+    final image = tester.widget<CachedNetworkImage>(
+      find.byType(CachedNetworkImage),
+    );
+    final context = tester.element(find.byType(CachedNetworkImage));
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    final width = tester.getSize(find.byType(TempleBrowseCard)).width;
+
+    expect(image.memCacheWidth, (width * dpr).round().clamp(1, 1600));
+    expect(
+      image.memCacheHeight,
+      (TempleBrowseCard.coverHeight * dpr).round().clamp(1, 1200),
+    );
+  });
+}
+
+Temple _named(String name) {
+  return sampleTemples.firstWhere((temple) => temple.name == name);
 }
