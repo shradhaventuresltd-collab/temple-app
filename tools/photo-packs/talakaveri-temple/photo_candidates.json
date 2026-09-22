@@ -24,15 +24,21 @@
     "notes": "local_file=04_Mountains_North_Tala_Kaveri_Coorg_India_Feb24_A7C_09525.jpg"
   },
   {
-    "url": "https://commons.wikimedia.org/wiki/File%3ABrihadeeswara_Temple_Tamilnadu.jpg",
-    "license": "CC BY-SA 4.0",
-    "attribution": "Nellikkal",
-    "notes": "local_file=05_Brihadeeswara_Temple_Tamilnadu.jpg"
+    "url": "https://commons.wikimedia.org/wiki/File%3AThalakkaveri_Temple%2C_Karnataka.jpg",
+    "license": "CC BY-SA 3.0",
+    "attribution": "Pranchiyettan",
+    "notes": "local_file=05_Thalakkaveri_Temple_Karnataka.jpg"
   },
   {
-    "url": "https://commons.wikimedia.org/wiki/File%3ASri_Ranganathaswamy_Temple%2C_dedicated_to_Vishnu%2C_in_Srirangam%2C_near_Tiruchirappali_%28151%29_%2837465657406%29.jpg",
-    "license": "CC BY 2.0",
-    "attribution": "Richard Mortel from Riyadh, Saudi Arabia",
-    "notes": "local_file=06_Sri_Ranganathaswamy_Temple_dedicated_to_Vishnu_in_Srirangam_near_Tiruc.jpg"
+    "url": "https://commons.wikimedia.org/wiki/File%3AView_of_Talacauvery_temple_from_Talacauvery_mountain.jpg",
+    "license": "CC BY-SA 3.0",
+    "attribution": "Vinayaraj",
+    "notes": "local_file=06_View_of_Talacauvery_temple_from_Talacauvery_mountain.jpg"
+  },
+  {
+    "url": "https://commons.wikimedia.org/wiki/File%3ATalakaveri_Temple%2C_Talacauvery_and_surroundings_%2834%29.jpg",
+    "license": "CC BY-SA 4.0",
+    "attribution": "Vinayaraj",
+    "notes": "local_file=07_Talakaveri_Temple_Talacauvery_and_surroundings_34.jpg"
   }
 ]

@@ -88,6 +88,38 @@ void main() {
     },
   );
 
+  test('reviewer wrong-site frames are not in Karnataka sample galleries', () {
+    Temple named(String name) => karnataka.firstWhere((t) => t.name == name);
+
+    final banashankari = named('Banashankari Temple, Bengaluru');
+    final banashankariUrls = banashankari.images.join(' ');
+    expect(banashankari.images, hasLength(2));
+    expect(banashankari.imageUrl, banashankari.images.first);
+    expect(banashankariUrls, contains('Sri_Banashankari_Temple'));
+    expect(banashankariUrls, contains('Bengaluru'));
+    for (final banned in ['Badami', 'Cholachagudda', 'Baanashakari']) {
+      expect(banashankariUrls.contains(banned), isFalse, reason: banned);
+    }
+
+    final talakaveri = named('Talakaveri Temple');
+    final talakaveriUrls = talakaveri.images.join(' ');
+    expect(talakaveri.images, hasLength(7));
+    expect(talakaveri.imageUrl, talakaveri.images.first);
+    expect(talakaveriUrls, contains('Thalakkaveri_Temple'));
+    for (final banned in ['Brihadeeswara', 'Srirangam', 'Ranganathaswamy']) {
+      expect(talakaveriUrls.contains(banned), isFalse, reason: banned);
+    }
+
+    final gokarna = named('Mahabaleshwar Temple, Gokarna');
+    final gokarnaUrls = gokarna.images.join(' ');
+    expect(gokarna.images, hasLength(7));
+    expect(gokarna.imageUrl, gokarna.images.first);
+    expect(gokarnaUrls, contains('Mahabaleshwar_temple_at_Gokaran'));
+    for (final banned in ['Kathmandu', 'Gokarneshwor']) {
+      expect(gokarnaUrls.contains(banned), isFalse, reason: banned);
+    }
+  });
+
   test('uncertain Karnataka timings keep source caveats', () {
     Temple named(String name) => karnataka.firstWhere((t) => t.name == name);
 

@@ -75,3 +75,15 @@ Cheluvanarayana is the only mismatch: the sample name has no city, so Seed
 stays `cheluvanarayana-swamy-temple`. The pack folder keeps the Melukote
 research slug. `manifest.json` records `seed_document_id`, and
 `upload_research_pack.js` maps that folder onto the Seed id.
+
+## Wrong-site frames removed (review)
+
+`--all-packs` must not upload these. They are gone from the manifests,
+`ATTRIBUTION.md`, `photo_candidates.json`, and the jpg folders. Sample
+`imageUrl` / `images` match the remaining Commons `downloaded_url` values.
+
+| Pack | Dropped | Replacement |
+| --- | --- | --- |
+| `banashankari-temple-bengaluru` | All six sweep frames (Badami towers, Cholachagudda ratha, Badami Banashankari temple / guard tower, dried Badami kalyani). The sweep candidate list had no Bengaluru file. | Two Bengaluru files already listed in `docs/karnataka-sample-research.md`: `Sri Banashankari Temple, Bengaluru (2024) 01` and `05` (Gpkp, CC BY-SA 4.0). |
+| `talakaveri-temple` | Image 5 Brihadeeswara (Thanjavur) and image 6 Srirangam. | Kept Talakaveri frames 1–4. Added the three Talakaveri candidates from the research doc (Pranchiyettan; Vinayaraj ×2). |
+| `mahabaleshwar-temple-gokarna` | Image 6 Gokarneshwor Mahadev, Kathmandu. | Kept Gokarna frames 1–5. Added the research-doc gopura (Nvvchar) and entrance (Deepak Patil; timestamp watermark on that Panoramio file). |

@@ -72,20 +72,34 @@
       "notes": "Back side view in 3D of Adi Gokarna temple in Mahabaleshwar temple premises, Gokarna, Karnataka. Parallel view images ta"
     },
     {
-      "filename": "06_Gokarneshwor_Mahadev_Temple_Gokarna_Kathmandu_Nepal_Rajesh_Dhungana_9.jpg",
-      "commons_title": "File:Gokarneshwor Mahadev Temple Gokarna Kathmandu Nepal Rajesh Dhungana (9).jpg",
-      "author": "Rajesh Dhungana",
-      "license": "CC BY-SA 4.0",
-      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-      "source_url": "https://commons.wikimedia.org/wiki/File%3AGokarneshwor_Mahadev_Temple_Gokarna_Kathmandu_Nepal_Rajesh_Dhungana_%289%29.jpg",
-      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e5/Gokarneshwor_Mahadev_Temple_Gokarna_Kathmandu_Nepal_Rajesh_Dhungana_%289%29.jpg/1280px-Gokarneshwor_Mahadev_Temple_Gokarna_Kathmandu_Nepal_Rajesh_Dhungana_%289%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "bytes": 421347,
+      "filename": "06_Dravidian_style_Gopura_of_Mahabaleshwar_temple_at_Gokaran.jpg",
+      "commons_title": "File:Dravidian style Gopura of Mahabaleshwar temple at Gokaran.jpg",
+      "author": "Nvvchar",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ADravidian_style_Gopura_of_Mahabaleshwar_temple_at_Gokaran.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/20/Dravidian_style_Gopura_of_Mahabaleshwar_temple_at_Gokaran.jpg/1280px-Dravidian_style_Gopura_of_Mahabaleshwar_temple_at_Gokaran.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 464826,
       "width": 1280,
-      "height": 804,
-      "notes": "The famous temple of Gokarneshwar Mahadev is located in Gokarna Municipality of Kathmandu. The confluence of Chandramati"
+      "height": 1707,
+      "notes": "Dravidian style gopura of Mahabaleshwar temple at Gokarna."
+    },
+    {
+      "filename": "07_Entrance_to_Gokarna_Mahabaleshwar_Temple_panoramio.jpg",
+      "commons_title": "File:Entrance to Gokarna Mahabaleshwar Temple - panoramio.jpg",
+      "author": "Deepak Patil",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AEntrance_to_Gokarna_Mahabaleshwar_Temple_-_panoramio.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/a/ac/Entrance_to_Gokarna_Mahabaleshwar_Temple_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "bytes": 308239,
+      "width": 1024,
+      "height": 768,
+      "notes": "Entrance to Gokarna Mahabaleshwar Temple. Panoramio file; timestamp watermark on the image."
     }
   ],
   "no_live_imageUrl": true,
   "retrieved": "2026-09-22",
-  "user_agent": "TempleAppResearch/1.0 (KAN-76 sweep)"
+  "user_agent": "TempleAppResearch/1.0 (KAN-76 sweep)",
+  "review_correction": "2026-09-22: dropped wrong-site frames. Replacements are Commons files already listed as photo candidates in docs/karnataka-sample-research.md."
 }

@@ -43,6 +43,13 @@ Seed ids are `templeDocumentId(name)`. Nineteen pack folders match that id.
 The Commons file-page lists below are the earlier research pass. The pack
 `manifest.json` is the set actually bundled.
 
+Reviewer correction (wrong-site frames removed from the packs): Bengaluru
+Banashankari no longer uses the Badami / Cholachagudda sweep. Those slots now
+use the Bengaluru candidates listed below (`Sri_Banashankari_Temple,_Bengaluru_(2024)`).
+Talakaveri dropped Brihadeeswara and Srirangam and added the Talakaveri
+candidates below. Gokarna dropped the Kathmandu Gokarneshwor file and added
+the Gokarna gopura and entrance candidates below.
+
 Photo coverage is thinner for **Dharmasthala** (gateway-only Commons candidate)
 and **Nanjangud** (single modest Commons file).
 

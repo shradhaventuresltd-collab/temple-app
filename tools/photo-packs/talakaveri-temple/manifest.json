@@ -56,36 +56,50 @@
       "bytes": 358887,
       "width": 1280,
       "height": 853,
-      "notes": "Kopatti peak (1,475 m (4,839 ft)) in the mountain range northeast of Tala Kaveri, Coorg, Karnataka, India"
+      "notes": "Kopatti peak (1,475\u00a0m (4,839\u00a0ft)) in the mountain range northeast of Tala Kaveri, Coorg, Karnataka, India"
     },
     {
-      "filename": "05_Brihadeeswara_Temple_Tamilnadu.jpg",
-      "commons_title": "File:Brihadeeswara Temple Tamilnadu.jpg",
-      "author": "Nellikkal",
+      "filename": "05_Thalakkaveri_Temple_Karnataka.jpg",
+      "commons_title": "File:Thalakkaveri Temple, Karnataka.jpg",
+      "author": "Pranchiyettan",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AThalakkaveri_Temple%2C_Karnataka.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b9/Thalakkaveri_Temple%2C_Karnataka.jpg/1280px-Thalakkaveri_Temple%2C_Karnataka.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 404892,
+      "width": 1280,
+      "height": 853,
+      "notes": "Thalakkaveri Temple, Brahmagiri, Karnataka."
+    },
+    {
+      "filename": "06_View_of_Talacauvery_temple_from_Talacauvery_mountain.jpg",
+      "commons_title": "File:View of Talacauvery temple from Talacauvery mountain.jpg",
+      "author": "Vinayaraj",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AView_of_Talacauvery_temple_from_Talacauvery_mountain.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8b/View_of_Talacauvery_temple_from_Talacauvery_mountain.jpg/1280px-View_of_Talacauvery_temple_from_Talacauvery_mountain.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 321364,
+      "width": 1280,
+      "height": 779,
+      "notes": "View of Talacauvery temple from Talacauvery mountain."
+    },
+    {
+      "filename": "07_Talakaveri_Temple_Talacauvery_and_surroundings_34.jpg",
+      "commons_title": "File:Talakaveri Temple, Talacauvery and surroundings (34).jpg",
+      "author": "Vinayaraj",
       "license": "CC BY-SA 4.0",
       "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-      "source_url": "https://commons.wikimedia.org/wiki/File%3ABrihadeeswara_Temple_Tamilnadu.jpg",
-      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c8/Brihadeeswara_Temple_Tamilnadu.jpg/1280px-Brihadeeswara_Temple_Tamilnadu.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "bytes": 284894,
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ATalakaveri_Temple%2C_Talacauvery_and_surroundings_%2834%29.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/55/Talakaveri_Temple%2C_Talacauvery_and_surroundings_%2834%29.jpg/1280px-Talakaveri_Temple%2C_Talacauvery_and_surroundings_%2834%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 345892,
       "width": 1280,
-      "height": 720,
-      "notes": "Brihadishvara Temple, called Rajarajesvaram by its builder, and known locally as Thanjai Periya Kovil and Peruvudaiyar K"
-    },
-    {
-      "filename": "06_Sri_Ranganathaswamy_Temple_dedicated_to_Vishnu_in_Srirangam_near_Tiruc.jpg",
-      "commons_title": "File:Sri Ranganathaswamy Temple, dedicated to Vishnu, in Srirangam, near Tiruchirappali (151) (37465657406).jpg",
-      "author": "Richard Mortel from Riyadh, Saudi Arabia",
-      "license": "CC BY 2.0",
-      "license_url": "https://creativecommons.org/licenses/by/2.0",
-      "source_url": "https://commons.wikimedia.org/wiki/File%3ASri_Ranganathaswamy_Temple%2C_dedicated_to_Vishnu%2C_in_Srirangam%2C_near_Tiruchirappali_%28151%29_%2837465657406%29.jpg",
-      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/44/Sri_Ranganathaswamy_Temple%2C_dedicated_to_Vishnu%2C_in_Srirangam%2C_near_Tiruchirappali_%28151%29_%2837465657406%29.jpg/1280px-Sri_Ranganathaswamy_Temple%2C_dedicated_to_Vishnu%2C_in_Srirangam%2C_near_Tiruchirappali_%28151%29_%2837465657406%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "bytes": 199745,
-      "width": 1280,
-      "height": 852,
-      "notes": "Sri Ranganathaswamy Temple, dedicated to Vishnu, in Srirangam, near Tiruchirappali (151)\nFrom the wikipedia article: (pl"
+      "height": 960,
+      "notes": "Talakaveri Temple and surroundings."
     }
   ],
   "no_live_imageUrl": true,
   "retrieved": "2026-09-22",
-  "user_agent": "TempleAppResearch/1.0 (KAN-76 sweep)"
+  "user_agent": "TempleAppResearch/1.0 (KAN-76 sweep)",
+  "review_correction": "2026-09-22: dropped wrong-site frames. Replacements are Commons files already listed as photo candidates in docs/karnataka-sample-research.md."
 }
