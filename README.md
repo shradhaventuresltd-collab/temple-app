@@ -18,10 +18,10 @@ India's temple heritage is one of the richest in the world — thousands of sacr
 ### For Users
 - **Mosaic Home Screen** — A visually striking collage of temple images with an overlay introducing the directory.
 - **Heritage Write-Up** — A comprehensive, 10,000+ word exploration of India's temple heritage embedded directly in the app.
-- **Temple List & Filtering** — Browse all temples in a grid view. Filter by state (Tamil Nadu, Kerala, Karnataka, Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, Jammu and Kashmir, Maharashtra, Rajasthan, West Bengal, Madhya Pradesh, Bihar, Himachal Pradesh) and deity (Shiva, Vishnu, Devi, Murugan, Ganesha, Surya, Hanuman, Swaminarayan, Gorakhnath, plus labels such as Sai Baba, Vitthal, Khandoba, Brahma, Jain Tirthankaras, Buddha, Kapil Muni, and specific forms used on individual temples) via the navigation drawer.
+- **Temple List & Filtering** — Browse temples already loaded for the directory. State and deity chips (the same labels as before, including Jain and Buddhist listings) open one filter sheet on the browse list and in the drawer. Clear resets those chips. An empty match says so, without admin tools.
 - **Search** — Type in the temple list, or in the drawer, to match name, city, state, deity, or address. Search combines with the state and deity filters. See [Search](#search).
 - **Temple Detail Screen** — Full-screen image gallery with auto-advance and swipe, pinch-to-zoom, temple story, description, specialities (as chips), timings, and one-tap Google Maps directions.
-- **Navigation Drawer** — Shared across all screens with text search, state/deity filters, temple counts, and quick navigation.
+- **Navigation Drawer** — Shared across screens with text search, the same state/deity filter chips, and quick navigation.
 
 ### For Admins (Debug Mode + Auth)
 - **Admin CMS** — Debug builds only. After admin sign-in, create, edit, and delete temple documents in Firestore using the same fields the app already reads.
@@ -41,9 +41,9 @@ India's temple heritage is one of the richest in the world — thousands of sacr
 
 Public directory search runs on the device against temples already loaded for browse (Firestore, or the 150 bundled sample temples if Firestore is empty or unreachable). It does not call a search service or add a Firestore index.
 
-- **Where:** open **All Temples** and type in the search field above the grid, or type in the drawer **Search** field and tap **View matches** (keyboard search does the same). State and deity chips still apply. **Browse** opens that filtered set with the query filled in, and the list narrows it further.
+- **Where:** open **All Temples** and type in the search field above the list, or type in the drawer **Search** field and tap **View matches** (keyboard search does the same). State and deity chips on the list and in the drawer combine with that search. **Browse** opens the loaded directory with those chips selected, and the list narrows it further.
 - **Match:** the query is trimmed and compared without case sensitivity. Extra spaces are collapsed. Every word must appear in the temple’s name, city, state, deity, or address (`location`, stored as Firestore `address`). `meena` matches Meenakshi; `shiva gujarat` matches a Gujarat Shiva temple. Story and description are not searched.
-- **Empty query:** clearing the field restores that list — all temples from **All Temples**, or the state/deity subset from **Browse**.
+- **Empty query:** clearing the field restores the temples that still match the state and deity chips. Clearing the chips restores every loaded temple that still matches the query.
 - **No matches:** the list shows `No temples match "…"`, with a clear action.
 - **Typing:** the field updates immediately. The grid refreshes after 300ms so each keystroke does not rebuild the temple images.
 
@@ -78,7 +78,9 @@ lib/
 │   ├── admin_screen.dart              # Debug admin panel (sign-in + CMS + uploads)
 │   └── admin_temple_form_screen.dart  # Create/edit temple form
 ├── widgets/
-│   ├── app_drawer.dart                # Navigation drawer + TempleListScreen + grid cards
+│   ├── app_drawer.dart                # Navigation drawer + TempleListScreen + browse list
+│   ├── directory_filter_bar.dart      # State/deity filter chips and sheet
+│   ├── temple_browse_card.dart        # Browse card (cover, place, deity, honesty)
 │   ├── banner_ad_widget.dart          # Self-contained banner ad widget
 │   ├── seed_temples_control.dart      # Debug-only Seed control (idle/running/success/failure)
 │   ├── admin_auth_gate.dart           # Debug admin sign-in / not-admin states
@@ -86,6 +88,7 @@ lib/
 │   └── temple_image_placeholder.dart  # Placeholder for missing images
 └── utils/
     ├── temple_search.dart              # Client-side directory search (name, city, state, deity, address)
+    ├── directory_filters.dart          # Supported state/deity filter values
     ├── image_picker_helper.dart       # Platform-aware image picker
     ├── image_picker_web.dart          # Web image picker implementation
     ├── image_picker_stub.dart         # Stub for non-web platforms
