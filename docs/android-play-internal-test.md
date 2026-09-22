@@ -1,6 +1,6 @@
 # Android Play internal-test prep
 
-This prepares the Android identity and release-signing scaffold. It does not upload to Play, and it does not add directory search. The first internal-test upload still waits on that separate search work.
+This prepares the Android identity and release-signing scaffold. It does not upload to Play. Directory search is already in the app. Draft Play listing copy is in [`play-store-listing.md`](play-store-listing.md).
 
 | Item | Value |
 | --- | --- |

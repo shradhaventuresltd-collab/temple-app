@@ -1,5 +1,5 @@
 name: temple_app
-description: "A new Flutter project."
+description: "Directory of famous temples across India, with history, timings, and directions."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
