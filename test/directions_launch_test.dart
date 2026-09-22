@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/temple_detail_screen.dart';
+import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 const _unavailable = "Couldn't open directions on this device.";
@@ -34,6 +35,10 @@ class _FakeUrlLauncher extends UrlLauncherPlatform {
   final bool canOpen;
   final bool launchResult;
   final bool throwOnLaunch;
+
+  @override
+  LinkDelegate? get linkDelegate => null;
+
   String? launchedUrl;
   PreferredLaunchMode? launchMode;
   int canLaunchCount = 0;
