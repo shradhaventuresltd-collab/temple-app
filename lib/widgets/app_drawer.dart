@@ -10,6 +10,7 @@ import 'package:temple_app/utils/directory_filters.dart';
 import 'package:temple_app/utils/temple_search.dart';
 import 'package:temple_app/widgets/banner_ad_widget.dart';
 import 'package:temple_app/widgets/directory_filter_bar.dart';
+import 'package:temple_app/widgets/home_mosaic_collage.dart';
 import 'package:temple_app/widgets/temple_browse_card.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -330,12 +331,7 @@ class _AppDrawerState extends State<AppDrawer> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: Text(
-                  'Explore 180 famous temples across Tamil Nadu, Kerala, Karnataka, '
-                  'Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, '
-                  'Jammu and Kashmir, Maharashtra, Rajasthan, West Bengal, '
-                  'Madhya Pradesh, Bihar, and Himachal Pradesh. '
-                  'Discover histories, legends, timings and specialities — '
-                  'all in one curated directory.',
+                  drawerAboutDirectoryBlurb(all.length),
                   style: GoogleFonts.poppins(
                     fontSize: 13,
                     color: Colors.brown.shade600,

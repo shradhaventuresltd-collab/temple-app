@@ -22,12 +22,12 @@ Directory of famous temples across India, with history, timings, and directions.
 
 ## Full description
 
-Paste the block below. It describes the current app: public browse of the 180 bundled temples (or newer Firestore records when the cloud has them), on-device search, and AdMob on Android.
+Paste the block below. It describes the current app: public browse of the bundled sample temples (or newer Firestore records when the cloud has them), on-device search, and AdMob on Android.
 
 ```
-Temple Directory India is a guide to famous temples across India. Browse 180 temples in 15 states, read their history and legends, check opening timings, view photos, and open directions in Google Maps.
+Temple Directory India is a guide to famous temples across India. Browse temples in 15 states, read their history and legends, check opening timings, and open directions in Google Maps. Verified photographs appear when on file; otherwise the app shows Photo pending instead of stock art.
 
-Find a temple by name, city, state, deity, or address. Filter the list by state and deity, then open a page with the story, specialities, timings, and a photo gallery.
+Find a temple by name, city, state, deity, or address. Filter the list by state and deity, then open a page with the story, specialities, timings, and any verified photos on file.
 
 States in this directory: Tamil Nadu, Kerala, Karnataka, Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, Jammu and Kashmir, Maharashtra, Rajasthan, West Bengal, Madhya Pradesh, Bihar, and Himachal Pradesh.
 

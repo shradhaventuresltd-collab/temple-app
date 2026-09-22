@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,9 +6,9 @@ import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/admin_screen.dart';
 import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/services/temple_service.dart';
-import 'package:temple_app/utils/detail_honesty.dart';
 import 'package:temple_app/widgets/app_drawer.dart';
 import 'package:temple_app/widgets/debug_home_admin_actions.dart';
+import 'package:temple_app/widgets/home_mosaic_collage.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  HOME SCREEN
@@ -146,18 +145,13 @@ class _HomeBody extends StatelessWidget {
 
   final List<Temple> allTemples;
 
-  /// Same honesty as browse/detail: picsum and placeholder hosts are omitted.
-  List<String> get _allImages => verifiedMosaicUrls(allTemples);
-
   @override
   Widget build(BuildContext context) {
-    final images = _allImages;
-
     return CustomScrollView(
       slivers: [
-        // ── Static mosaic collage ──
+        // Verified-photo mosaic (KAN-73) — picsum never shown as temple art.
         SliverToBoxAdapter(
-          child: _MosaicCollage(images: images, templeCount: allTemples.length),
+          child: HomeMosaicCollage(temples: allTemples),
         ),
 
         // ── Heritage write-up ──
@@ -166,206 +160,6 @@ class _HomeBody extends StatelessWidget {
         // Bottom spacing
         const SliverToBoxAdapter(child: SizedBox(height: 32)),
       ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  MOSAIC COLLAGE — static, non-interactive grid of temple images
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _MosaicCollage extends StatelessWidget {
-  const _MosaicCollage({required this.images, required this.templeCount});
-
-  final List<String> images;
-  final int templeCount;
-
-  static const Color _deepSaffron = Color(0xFFE65100);
-
-  @override
-  Widget build(BuildContext context) {
-    if (images.isEmpty) {
-      return Container(
-        height: 260,
-        color: Colors.brown.shade200,
-        child: Center(
-          child: Text(
-            'Temple Collage',
-            style: GoogleFonts.lora(color: Colors.white, fontSize: 24),
-          ),
-        ),
-      );
-    }
-
-    return SizedBox(
-      height: 420,
-      child: Stack(
-        children: [
-          // Mosaic grid of images
-          Column(
-            children: [
-              // Row 1: 3 images
-              Expanded(
-                flex: 3,
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: _mosaicImage(images[0 % images.length]),
-                    ),
-                    const SizedBox(width: 2),
-                    Expanded(
-                      flex: 1,
-                      child: Column(
-                        children: [
-                          Expanded(
-                              child: _mosaicImage(
-                                  images[1 % images.length])),
-                          const SizedBox(height: 2),
-                          Expanded(
-                              child: _mosaicImage(
-                                  images[2 % images.length])),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 2),
-              // Row 2: 4 equal images
-              Expanded(
-                flex: 2,
-                child: Row(
-                  children: [
-                    for (int i = 3; i < 7; i++) ...[
-                      if (i > 3) const SizedBox(width: 2),
-                      Expanded(
-                          child:
-                              _mosaicImage(images[i % images.length])),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 2),
-              // Row 3: 2 images with different proportions
-              Expanded(
-                flex: 2,
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 1,
-                      child: Column(
-                        children: [
-                          Expanded(
-                              child: _mosaicImage(
-                                  images[7 % images.length])),
-                          const SizedBox(height: 2),
-                          Expanded(
-                              child: _mosaicImage(
-                                  images[8 % images.length])),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 2),
-                    Expanded(
-                      flex: 2,
-                      child: _mosaicImage(images[9 % images.length]),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          // Gradient overlay
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  stops: const [0.0, 0.3, 0.7, 1.0],
-                  colors: [
-                    _deepSaffron.withAlpha(160),
-                    Colors.transparent,
-                    Colors.transparent,
-                    _deepSaffron.withAlpha(200),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // Text overlay
-          Positioned(
-            left: 24,
-            right: 24,
-            bottom: 28,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Discover',
-                  style: GoogleFonts.lora(
-                    fontSize: 36,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    height: 1.1,
-                    shadows: [
-                      Shadow(
-                          blurRadius: 12,
-                          color: Colors.black.withAlpha(120)),
-                    ],
-                  ),
-                ),
-                Text(
-                  "India's Sacred Temples",
-                  style: GoogleFonts.lora(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.white.withAlpha(235),
-                    height: 1.3,
-                    shadows: [
-                      Shadow(
-                          blurRadius: 12,
-                          color: Colors.black.withAlpha(120)),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '$templeCount temples across India',
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    color: Colors.white70,
-                    fontWeight: FontWeight.w500,
-                    shadows: [
-                      Shadow(
-                          blurRadius: 8,
-                          color: Colors.black.withAlpha(100)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _mosaicImage(String url) {
-    return CachedNetworkImage(
-      imageUrl: url,
-      fit: BoxFit.cover,
-      width: double.infinity,
-      height: double.infinity,
-      fadeInDuration: const Duration(milliseconds: 400),
-      placeholder: (context, url) => Container(color: Colors.brown.shade100),
-      errorWidget: (context, url, error) => Container(
-        color: Colors.brown.shade200,
-        child: const Icon(Icons.temple_hindu, color: Colors.white54, size: 28),
-      ),
     );
   }
 }
