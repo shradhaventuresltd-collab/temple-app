@@ -126,4 +126,54 @@ void main() {
     expect(find.text('Vaikom Mahadeva Temple'), findsOneWidget);
     expect(find.text('Meenakshi Amman Temple'), findsNothing);
   });
+
+  testWidgets('loading and empty directory states stay non-admin', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: TempleBrowseList(temples: [], isLoading: true)),
+      ),
+    );
+
+    expect(find.text('Loading temples'), findsOneWidget);
+    expect(find.text('Fetching the directory.'), findsOneWidget);
+    expect(find.textContaining('Seed'), findsNothing);
+    expect(find.textContaining('Admin'), findsNothing);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: TempleBrowseList(temples: [])),
+      ),
+    );
+
+    expect(find.text('No temples to browse'), findsOneWidget);
+    expect(find.text('Nothing is listed in this view yet.'), findsOneWidget);
+    expect(find.textContaining('Seed'), findsNothing);
+  });
+
+  testWidgets('banner slot stays below the card', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TempleBrowseList(
+            temples: temples,
+            footer: const SizedBox(
+              key: Key('browse-banner'),
+              width: 320,
+              height: 50,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
+    final card = tester.getRect(find.text('Meenakshi Amman Temple'));
+    final banner = tester.getRect(find.byKey(const Key('browse-banner')));
+    expect(card.bottom, lessThanOrEqualTo(banner.top));
+    expect(find.text('Devi'), findsOneWidget);
+    expect(find.text('Madurai, Tamil Nadu'), findsOneWidget);
+    expect(find.text('Photo pending'), findsWidgets);
+  });
 }
