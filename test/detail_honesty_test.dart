@@ -77,7 +77,6 @@ void main() {
       'Meenakshi Amman Temple',
       'Anegudde Vinayaka Temple',
       'Annapoorneshwari Temple, Horanadu',
-      'Banashankari Temple, Bengaluru',
       'Chamundeshwari Temple',
       'Cheluvanarayana Swamy Temple',
       'Chennakeshava Temple, Belur',

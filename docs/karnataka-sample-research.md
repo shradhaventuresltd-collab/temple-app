@@ -27,11 +27,12 @@ No `pooja_schedule` / `festivals` collections were added.
 
 ## Images
 
-**KAN-77 Wave B:** all 20 Karnataka sample temples (this original 10 and the
-batch-18 ten) use Wikimedia Commons 1280px `downloaded_url` thumbs for
-`imageUrl` and `images`. Files and attribution live in
-`tools/photo-packs/<slug>/`. Those URLs are Commons thumbs, not Firebase
-Storage. Do **not** invent `storage.googleapis.com` URLs. Sanu uploads with
+**KAN-77 Wave B:** Karnataka sample temples use Wikimedia Commons 1280px
+`downloaded_url` thumbs for `imageUrl` and `images`, except **Banashankari
+Temple, Bengaluru**, which is Photo pending until Research resends that pack.
+Files and attribution live in `tools/photo-packs/<slug>/`. Those URLs are
+Commons thumbs, not Firebase Storage. Do **not** invent
+`storage.googleapis.com` URLs or stand-in covers. Sanu uploads with
 `scripts/upload_research_pack.js` (runbook: `tools/photo-packs/README.md`).
 
 Seed ids are `templeDocumentId(name)`. Nineteen pack folders match that id.
@@ -43,12 +44,11 @@ Seed ids are `templeDocumentId(name)`. Nineteen pack folders match that id.
 The Commons file-page lists below are the earlier research pass. The pack
 `manifest.json` is the set actually bundled.
 
-Reviewer correction (wrong-site frames removed from the packs): Bengaluru
-Banashankari no longer uses the Badami / Cholachagudda sweep. Those slots now
-use the Bengaluru candidates listed below (`Sri_Banashankari_Temple,_Bengaluru_(2024)`).
-Talakaveri dropped Brihadeeswara and Srirangam and added the Talakaveri
-candidates below. Gokarna dropped the Kathmandu Gokarneshwor file and added
-the Gokarna gopura and entrance candidates below.
+Hold: Research is regenerating three packs (`banashankari-temple-bengaluru`,
+`talakaveri-temple`, `mahabaleshwar-temple-gokarna`). Flagged wrong-site
+frames were removed and no stand-in images were added. Bengaluru Banashankari
+is Photo pending. Talakaveri keeps four on-site frames. Gokarna keeps five
+on-site frames. Wire the new manifests and jpgs when Research marks them READY.
 
 Photo coverage is thinner for **Dharmasthala** (gateway-only Commons candidate)
 and **Nanjangud** (single modest Commons file).

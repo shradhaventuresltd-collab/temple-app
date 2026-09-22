@@ -2,16 +2,17 @@
 
 Retrieved: 2026-09-22 (IST)
 Source: Wikimedia Commons
-User-Agent: TempleAppResearch/1.0 (KAN-76 sweep); replacements fetched 2026-09-22 for reviewer wrong-site fix
-Thumbs: 1280px Commons only (smaller originals stay unscaled). Licenses: CC BY / BY-SA / CC0 / PD.
+User-Agent: TempleAppResearch/1.0 (KAN-76 sweep)
+Thumbs: 1280px Commons only. Licenses: CC BY / BY-SA / CC0 / PD.
 Do NOT set live imageUrl — engineering upload only (KAN-77).
+
+Research is regenerating this pack. Wrong-site frames below were removed.
+No stand-in images were added. Sample stays Photo pending or on the shorter remaining gallery until the new manifest and jpgs arrive.
 
 ## Dropped wrong-site frames (not in this pack)
 
 - 05_Brihadeeswara_Temple_Tamilnadu.jpg — Brihadeeswara, Thanjavur
-- 06_Sri_Ranganathaswamy_Temple_dedicated_to_Vishnu_in_Srirangam_near_Tiruc.jpg — Srirangam
-
-Replacements, where added, are Commons files already listed under Photo candidates in `docs/karnataka-sample-research.md`. The sweep `photo_candidates.json` only repeated the wrong frames, so it was not used as a replacement source.
+- 06 Sri Ranganathaswamy, Srirangam — not Talakaveri
 
 ## 01_Thala_Cauvery_18125847938.jpg
 - **Commons File:** File:Thala Cauvery (18125847938).jpg
@@ -56,36 +57,3 @@ Replacements, where added, are Commons files already listed under Photo candidat
 - **Retrieved date (IST):** 2026-09-22
 - **Dimensions (file on disk):** 1280×853
 - **Bytes:** 358887
-
-## 05_Thalakkaveri_Temple_Karnataka.jpg
-- **Commons File:** File:Thalakkaveri Temple, Karnataka.jpg
-- **Author:** Pranchiyettan
-- **License:** CC BY-SA 3.0
-- **License URL:** https://creativecommons.org/licenses/by-sa/3.0
-- **Source page URL:** https://commons.wikimedia.org/wiki/File%3AThalakkaveri_Temple%2C_Karnataka.jpg
-- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b9/Thalakkaveri_Temple%2C_Karnataka.jpg/1280px-Thalakkaveri_Temple%2C_Karnataka.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
-- **Retrieved date (IST):** 2026-09-22
-- **Dimensions (file on disk):** 1280×853
-- **Bytes:** 404892
-
-## 06_View_of_Talacauvery_temple_from_Talacauvery_mountain.jpg
-- **Commons File:** File:View of Talacauvery temple from Talacauvery mountain.jpg
-- **Author:** Vinayaraj
-- **License:** CC BY-SA 3.0
-- **License URL:** https://creativecommons.org/licenses/by-sa/3.0
-- **Source page URL:** https://commons.wikimedia.org/wiki/File%3AView_of_Talacauvery_temple_from_Talacauvery_mountain.jpg
-- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8b/View_of_Talacauvery_temple_from_Talacauvery_mountain.jpg/1280px-View_of_Talacauvery_temple_from_Talacauvery_mountain.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
-- **Retrieved date (IST):** 2026-09-22
-- **Dimensions (file on disk):** 1280×779
-- **Bytes:** 321364
-
-## 07_Talakaveri_Temple_Talacauvery_and_surroundings_34.jpg
-- **Commons File:** File:Talakaveri Temple, Talacauvery and surroundings (34).jpg
-- **Author:** Vinayaraj
-- **License:** CC BY-SA 4.0
-- **License URL:** https://creativecommons.org/licenses/by-sa/4.0
-- **Source page URL:** https://commons.wikimedia.org/wiki/File%3ATalakaveri_Temple%2C_Talacauvery_and_surroundings_%2834%29.jpg
-- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/5/55/Talakaveri_Temple%2C_Talacauvery_and_surroundings_%2834%29.jpg/1280px-Talakaveri_Temple%2C_Talacauvery_and_surroundings_%2834%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
-- **Retrieved date (IST):** 2026-09-22
-- **Dimensions (file on disk):** 1280×960
-- **Bytes:** 345892

@@ -73,6 +73,12 @@ void main() {
         }
         expect(temple.latitude, inInclusiveRange(11.5, 16.0));
         expect(temple.longitude, inInclusiveRange(74.0, 78.0));
+        // Bengaluru Banashankari is Photo pending until Research resends a pack.
+        if (temple.name == 'Banashankari Temple, Bengaluru') {
+          expect(temple.imageUrl, isEmpty);
+          expect(temple.images, isEmpty);
+          continue;
+        }
         // KAN-77 Wave B: Commons downloaded_url thumbs, not picsum or Storage.
         expect(temple.imageUrl.contains('picsum'), isFalse);
         expect(temple.imageUrl, contains('wikimedia.org'));
@@ -92,30 +98,32 @@ void main() {
     Temple named(String name) => karnataka.firstWhere((t) => t.name == name);
 
     final banashankari = named('Banashankari Temple, Bengaluru');
-    final banashankariUrls = banashankari.images.join(' ');
-    expect(banashankari.images, hasLength(2));
-    expect(banashankari.imageUrl, banashankari.images.first);
-    expect(banashankariUrls, contains('Sri_Banashankari_Temple'));
-    expect(banashankariUrls, contains('Bengaluru'));
-    for (final banned in ['Badami', 'Cholachagudda', 'Baanashakari']) {
-      expect(banashankariUrls.contains(banned), isFalse, reason: banned);
-    }
+    expect(banashankari.imageUrl, isEmpty);
+    expect(banashankari.images, isEmpty);
 
     final talakaveri = named('Talakaveri Temple');
     final talakaveriUrls = talakaveri.images.join(' ');
-    expect(talakaveri.images, hasLength(7));
+    expect(talakaveri.images, hasLength(4));
     expect(talakaveri.imageUrl, talakaveri.images.first);
-    expect(talakaveriUrls, contains('Thalakkaveri_Temple'));
-    for (final banned in ['Brihadeeswara', 'Srirangam', 'Ranganathaswamy']) {
+    for (final banned in [
+      'Brihadeeswara',
+      'Srirangam',
+      'Ranganathaswamy',
+      'Thalakkaveri_Temple',
+    ]) {
       expect(talakaveriUrls.contains(banned), isFalse, reason: banned);
     }
 
     final gokarna = named('Mahabaleshwar Temple, Gokarna');
     final gokarnaUrls = gokarna.images.join(' ');
-    expect(gokarna.images, hasLength(7));
+    expect(gokarna.images, hasLength(5));
     expect(gokarna.imageUrl, gokarna.images.first);
-    expect(gokarnaUrls, contains('Mahabaleshwar_temple_at_Gokaran'));
-    for (final banned in ['Kathmandu', 'Gokarneshwor']) {
+    for (final banned in [
+      'Kathmandu',
+      'Gokarneshwor',
+      'Mahabaleshwar_temple_at_Gokaran',
+      'panoramio',
+    ]) {
       expect(gokarnaUrls.contains(banned), isFalse, reason: banned);
     }
   });

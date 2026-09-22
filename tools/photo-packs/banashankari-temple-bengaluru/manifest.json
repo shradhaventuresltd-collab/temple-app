@@ -5,36 +5,9 @@
   "city": "Bengaluru",
   "state": "Karnataka",
   "tradition_note": "Banashankari Temple, Bengaluru, Bengaluru, Karnataka",
-  "photos": [
-    {
-      "filename": "01_Sri_Banashankari_Temple_Bengaluru_2024_01.jpg",
-      "commons_title": "File:Sri Banashankari Temple, Bengaluru (2024) 01.jpg",
-      "author": "Gpkp",
-      "license": "CC BY-SA 4.0",
-      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-      "source_url": "https://commons.wikimedia.org/wiki/File%3ASri_Banashankari_Temple%2C_Bengaluru_%282024%29_01.jpg",
-      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/59/Sri_Banashankari_Temple%2C_Bengaluru_%282024%29_01.jpg/1280px-Sri_Banashankari_Temple%2C_Bengaluru_%282024%29_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "bytes": 314817,
-      "width": 1280,
-      "height": 964,
-      "notes": "Sri Banashankari Temple, Kanakapura Road, Sarbandapalya, Bengaluru."
-    },
-    {
-      "filename": "02_Sri_Banashankari_Temple_Bengaluru_2024_05.jpg",
-      "commons_title": "File:Sri Banashankari Temple, Bengaluru (2024) 05.jpg",
-      "author": "Gpkp",
-      "license": "CC BY-SA 4.0",
-      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-      "source_url": "https://commons.wikimedia.org/wiki/File%3ASri_Banashankari_Temple%2C_Bengaluru_%282024%29_05.jpg",
-      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/27/Sri_Banashankari_Temple%2C_Bengaluru_%282024%29_05.jpg/1280px-Sri_Banashankari_Temple%2C_Bengaluru_%282024%29_05.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "bytes": 393206,
-      "width": 1280,
-      "height": 964,
-      "notes": "Sri Banashankari Temple, Kanakapura Road, Sarbandapalya, Bengaluru."
-    }
-  ],
+  "photos": [],
   "no_live_imageUrl": true,
   "retrieved": "2026-09-22",
   "user_agent": "TempleAppResearch/1.0 (KAN-76 sweep)",
-  "review_correction": "2026-09-22: dropped wrong-site frames. Replacements are Commons files already listed as photo candidates in docs/karnataka-sample-research.md."
+  "awaiting_research": "Wrong-site Badami/Cholachagudda frames removed. No replacement images. Research is regenerating this pack."
 }

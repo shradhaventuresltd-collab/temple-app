@@ -145,6 +145,7 @@ void main() {
       latRange: (11.5, 16.0),
       lngRange: (74.0, 78.0),
       commonsPhotoPack: true,
+      photoPendingIds: {'banashankari-temple-bengaluru'},
     );
   });
 
@@ -167,7 +168,9 @@ void main() {
     final banashankari = named('Banashankari Temple, Bengaluru');
     expect(banashankari.city, 'Bengaluru');
     expect(banashankari.story.toLowerCase(), contains('badami'));
-    expect(banashankari.imageUrl, contains('wikimedia.org'));
+    // Wrong-site Badami frames removed. Photo pending until Research resends.
+    expect(banashankari.imageUrl, isEmpty);
+    expect(banashankari.images, isEmpty);
 
     final vaitheeswaran = named('Vaitheeswaran Koil');
     expect(vaitheeswaran.timings.toLowerCase(), contains('thin'));
@@ -218,6 +221,7 @@ void _assertExpansionRows(
   required (double, double) latRange,
   required (double, double) lngRange,
   bool commonsPhotoPack = false,
+  Set<String> photoPendingIds = const {},
 }) {
   final slugs = rows.map((t) => templeDocumentId(t.name)).toList();
   expect(slugs.toSet(), expected.keys.toSet());
@@ -242,7 +246,8 @@ void _assertExpansionRows(
     }
     expect(temple.latitude, inInclusiveRange(latRange.$1, latRange.$2));
     expect(temple.longitude, inInclusiveRange(lngRange.$1, lngRange.$2));
-    if (commonsPhotoPack) {
+    final awaitingResearch = photoPendingIds.contains(id);
+    if (commonsPhotoPack && !awaitingResearch) {
       // KAN-77 Wave B: Commons thumbs, never picsum or invented Storage URLs.
       expect(temple.imageUrl.contains('picsum'), isFalse);
       expect(temple.imageUrl, contains('wikimedia.org'));
@@ -268,7 +273,7 @@ void _assertExpansionRows(
     expect(parsed.name, temple.name);
     expect(parsed.state, temple.state);
     expect(parsed.location, temple.location);
-    if (commonsPhotoPack) {
+    if (commonsPhotoPack && !photoPendingIds.contains(id)) {
       expect(parsed.imageUrl, temple.imageUrl);
       expect(parsed.images, temple.images);
     } else {

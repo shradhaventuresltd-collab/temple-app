@@ -133,9 +133,9 @@ function loadManifest(packDir) {
 
 function resolvePhotos(packDir, manifest) {
   const photos = Array.isArray(manifest.photos) ? manifest.photos : [];
-  if (photos.length === 0) {
-    throw new Error("manifest.photos is empty");
-  }
+  // An empty manifest is a held pack (wrong-site frames removed, Research
+  // regenerating). Do not invent files and do not fail --all-packs.
+  if (photos.length === 0) return [];
 
   const resolved = [];
   for (const photo of photos) {
@@ -229,6 +229,20 @@ async function processPack({
     );
   }
   console.log(`Photos     : ${photos.length} (from manifest.json only)`);
+
+  if (photos.length === 0) {
+    console.log(
+      "Skipped    : empty pack (wrong-site frames removed; awaiting Research). No upload and no Firestore patch."
+    );
+    return {
+      docId,
+      imageUrl: "",
+      images: [],
+      photos: [],
+      uploaded: false,
+      skipped: true,
+    };
+  }
 
   if (dryRun) {
     for (const photo of photos) {
