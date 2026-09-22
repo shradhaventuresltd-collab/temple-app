@@ -1,21 +1,38 @@
-import 'package:firebase_core/firebase_core.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:temple_app/firebase_options.dart';
 import 'package:temple_app/screens/home_screen.dart';
-import 'package:temple_app/services/ad_helper.dart';
+import 'package:temple_app/services/app_bootstrap.dart';
+import 'package:temple_app/services/temple_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  await AdHelper.initializeAds();
+  // Paint Flutter UI immediately. Native splash is solid saffron (#FF8F00);
+  // awaiting Ads/Firebase here made that orange linger for several seconds
+  // (KAN-75). Firebase + Ads start from [TempleDirectoryApp] instead.
   runApp(const TempleDirectoryApp());
 }
 
-class TempleDirectoryApp extends StatelessWidget {
+class TempleDirectoryApp extends StatefulWidget {
   const TempleDirectoryApp({super.key});
+
+  @override
+  State<TempleDirectoryApp> createState() => _TempleDirectoryAppState();
+}
+
+class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
+  late final Future<bool> _firebaseReady;
+
+  @override
+  void initState() {
+    super.initState();
+    _firebaseReady = AppBootstrap.initializeFirebase();
+    // Ads after first frame — never block splash dismissal on AdMob.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(AppBootstrap.initializeAdsSafely());
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +52,14 @@ class TempleDirectoryApp extends StatelessWidget {
         textTheme: GoogleFonts.poppinsTextTheme(),
         scaffoldBackgroundColor: const Color(0xFFFFFBF2),
       ),
-      home: const HomeScreen(),
+      home: HomeScreen(
+        // Cream Home shell paints first; temple fetch waits for Firebase
+        // (or its short timeout) then uses Firestore / sample fallback.
+        templesLoader: () async {
+          await _firebaseReady;
+          return TempleService().getTemples();
+        },
+      ),
     );
   }
 }
