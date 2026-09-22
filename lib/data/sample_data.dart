@@ -2286,15 +2286,16 @@ const List<Temple> sampleTemples = [
     state: 'Karnataka',
     city: 'Gokarna',
     deity: 'Shiva',
-    // KAN-77 Wave B: Commons downloaded_url thumbs —
+    // KAN-77: Research site_verified Commons downloaded_url thumbs —
     // tools/photo-packs/mahabaleshwar-temple-gokarna/ (not Storage).
-    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/11/KW23-0751-Gokarna-AdiGokarna-Front1_3D.jpg/1280px-KW23-0751-Gokarna-AdiGokarna-Front1_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/KW23-0751-Gokarna-AdiGokarna-Front1_3D.jpg/1280px-KW23-0751-Gokarna-AdiGokarna-Front1_3D.jpg',
     images: [
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/11/KW23-0751-Gokarna-AdiGokarna-Front1_3D.jpg/1280px-KW23-0751-Gokarna-AdiGokarna-Front1_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cf/KW23-0752-Gokarna-AdiGokarna-RightFront2_3D.jpg/1280px-KW23-0752-Gokarna-AdiGokarna-RightFront2_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/22/KW23-0753-Gokarna-AdiGokarna-LeftFront3_3D.jpg/1280px-KW23-0753-Gokarna-AdiGokarna-LeftFront3_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/aa/KW23-0754-Gokarna-AdiGokarna-FrontFull4_3D.jpg/1280px-KW23-0754-Gokarna-AdiGokarna-FrontFull4_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/35/KW23-0757-Gokarna-AdiGokarna-BackView5_3D.jpg/1280px-KW23-0757-Gokarna-AdiGokarna-BackView5_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/KW23-0751-Gokarna-AdiGokarna-Front1_3D.jpg/1280px-KW23-0751-Gokarna-AdiGokarna-Front1_3D.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/KW23-0752-Gokarna-AdiGokarna-RightFront2_3D.jpg/1280px-KW23-0752-Gokarna-AdiGokarna-RightFront2_3D.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/KW23-0754-Gokarna-AdiGokarna-FrontFull4_3D.jpg/1280px-KW23-0754-Gokarna-AdiGokarna-FrontFull4_3D.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Main_entry_to_the_Mahabaleshwar_Temple_at_Gokaran.jpg/1280px-Main_entry_to_the_Mahabaleshwar_Temple_at_Gokaran.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/Entrance_to_Gokarna_Mahabaleshwar_Temple_-_panoramio.jpg/1280px-Entrance_to_Gokarna_Mahabaleshwar_Temple_-_panoramio.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Dravidian_style_Gopura_of_Mahabaleshwar_temple_at_Gokaran.jpg/1280px-Dravidian_style_Gopura_of_Mahabaleshwar_temple_at_Gokaran.jpg',
     ],
     description:
         'Ancient coastal Shaiva kshetra enshrining the Atmalinga (Pranalinga) at Gokarna — '
@@ -2883,9 +2884,17 @@ const List<Temple> sampleTemples = [
     state: 'Karnataka',
     city: 'Bengaluru',
     deity: 'Devi',
-    // KAN-77: Badami / Cholachagudda frames removed. Photo pending until
-    // Research sends a Bengaluru pack. Do not invent a stand-in cover.
-    imageUrl: '',
+    // KAN-77: Research site_verified Commons downloaded_url thumbs —
+    // tools/photo-packs/banashankari-temple-bengaluru/ (Bengaluru, not Storage).
+    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/00/Sri_Banashankri_Temple%2C_Bangalore_%282024%29.jpg/1280px-Sri_Banashankri_Temple%2C_Bangalore_%282024%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/00/Sri_Banashankri_Temple%2C_Bangalore_%282024%29.jpg/1280px-Sri_Banashankri_Temple%2C_Bangalore_%282024%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/59/Sri_Banashankari_Temple%2C_Bengaluru_%282024%29_01.jpg/1280px-Sri_Banashankari_Temple%2C_Bengaluru_%282024%29_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4f/Sri_Banashankari_Temple%2C_Bengaluru_%282024%29_03.jpg/1280px-Sri_Banashankari_Temple%2C_Bengaluru_%282024%29_03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1a/Sri_Banashankari_Temple%2C_Bengaluru_%282024%29_06.jpg/1280px-Sri_Banashankari_Temple%2C_Bengaluru_%282024%29_06.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d5/Sri_Banashankari_Temple%2C_Bengaluru_%282024%29_10.jpg/1280px-Sri_Banashankari_Temple%2C_Bengaluru_%282024%29_10.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/98/Banashankari_temple_inside_ome_small_plant.jpg/1280px-Banashankari_temple_inside_ome_small_plant.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Popular early-20th-century Banashankari Amma (Shakambari) temple on S. '
         'Kariyappa / Kanakapura Road that gives South Bengaluru’s Banashankari '
@@ -3119,14 +3128,15 @@ const List<Temple> sampleTemples = [
     state: 'Karnataka',
     city: 'Bhagamandala',
     deity: 'Devi',
-    // KAN-77 Wave B: Commons downloaded_url thumbs —
-    // tools/photo-packs/talakaveri-temple/ (not Storage).
-    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/41/Thala_Cauvery_%2818125847938%29.jpg/1280px-Thala_Cauvery_%2818125847938%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    // KAN-77: Research site_verified Commons downloaded_url thumbs —
+    // tools/photo-packs/talakaveri-temple/ (Kodagu only, not Storage).
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Thala_Cauvery_%2818125847938%29.jpg/1280px-Thala_Cauvery_%2818125847938%29.jpg',
     images: [
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/41/Thala_Cauvery_%2818125847938%29.jpg/1280px-Thala_Cauvery_%2818125847938%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/16/Thalakauvery-hillview-panorama.jpg/1280px-Thalakauvery-hillview-panorama.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ea/Talacauvery_panorama.jpg/1280px-Talacauvery_panorama.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/57/Mountains_North_Tala_Kaveri_Coorg_India_Feb24_A7C_09525.jpg/1280px-Mountains_North_Tala_Kaveri_Coorg_India_Feb24_A7C_09525.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Thala_Cauvery_%2818125847938%29.jpg/1280px-Thala_Cauvery_%2818125847938%29.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Thalakauvery-hillview-panorama.jpg/1280px-Thalakauvery-hillview-panorama.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Talacauvery_panorama.jpg/1280px-Talacauvery_panorama.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Talakaveri_temple_tank_01.jpg/1280px-Talakaveri_temple_tank_01.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Hills_surrounding_Thalakaveri.jpg/1280px-Hills_surrounding_Thalakaveri.jpg',
     ],
     description:
         'Sacred source shrine of the Kaveri on Brahmagiri at Talakaveri, '

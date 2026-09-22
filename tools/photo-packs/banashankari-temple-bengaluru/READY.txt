@@ -1,0 +1,5 @@
+Ready: 6 photos
+slug: banashankari-temple-bengaluru
+retrieved: 2026-09-22 IST
+KAN-76 wrong-site FIX (PR #20). site_verified=true; site=Sri Banashankari Temple, Kanakapura Road / Banashankari, Bengaluru, Karnataka
+Do NOT set live imageUrl — eng upload only.

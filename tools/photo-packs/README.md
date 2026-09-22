@@ -76,14 +76,14 @@ stays `cheluvanarayana-swamy-temple`. The pack folder keeps the Melukote
 research slug. `manifest.json` records `seed_document_id`, and
 `upload_research_pack.js` maps that folder onto the Seed id.
 
-## Held for Research (not reviewer-ready)
+## Reviewer wrong-site fix (Research site_verified)
 
-Research is regenerating these three packs. Flagged wrong-site frames are
-gone. No stand-in images were added. `--all-packs` skips an empty manifest
-and does not patch Firestore for it.
+Research replaced these three packs. Sample `imageUrl` / `images` use the
+new manifest `downloaded_url` values. Do not set live Firestore `imageUrl`
+from this branch.
 
-| Pack | Dropped | Gallery now |
+| Pack | Removed | Now |
 | --- | --- | --- |
-| `banashankari-temple-bengaluru` | All six Badami / Cholachagudda frames | Empty. Sample is Photo pending. |
-| `talakaveri-temple` | Brihadeeswara (Thanjavur) and Srirangam | Four remaining Talakaveri frames. |
-| `mahabaleshwar-temple-gokarna` | Kathmandu Gokarneshwor | Five remaining Gokarna frames. |
+| `banashankari-temple-bengaluru` | Badami / Cholachagudda frames | 6 Bengaluru / Kanakapura Road photos. `site_verified`. |
+| `talakaveri-temple` | Brihadeeswara and Srirangam | 5 Talakaveri / Kodagu photos. `site_verified`. |
+| `mahabaleshwar-temple-gokarna` | Kathmandu Gokarneshwor | 6 Gokarna, Karnataka photos. `site_verified`. |

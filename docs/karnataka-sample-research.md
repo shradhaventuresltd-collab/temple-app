@@ -27,13 +27,12 @@ No `pooja_schedule` / `festivals` collections were added.
 
 ## Images
 
-**KAN-77 Wave B:** Karnataka sample temples use Wikimedia Commons 1280px
-`downloaded_url` thumbs for `imageUrl` and `images`, except **Banashankari
-Temple, Bengaluru**, which is Photo pending until Research resends that pack.
-Files and attribution live in `tools/photo-packs/<slug>/`. Those URLs are
-Commons thumbs, not Firebase Storage. Do **not** invent
-`storage.googleapis.com` URLs or stand-in covers. Sanu uploads with
-`scripts/upload_research_pack.js` (runbook: `tools/photo-packs/README.md`).
+**KAN-77 Wave B:** all 20 Karnataka sample temples use Wikimedia Commons
+`downloaded_url` thumbs for `imageUrl` and `images`. Files and attribution
+live in `tools/photo-packs/<slug>/`. Those URLs are Commons thumbs, not
+Firebase Storage. Do **not** invent `storage.googleapis.com` URLs. Sanu
+uploads with `scripts/upload_research_pack.js` (runbook:
+`tools/photo-packs/README.md`).
 
 Seed ids are `templeDocumentId(name)`. Nineteen pack folders match that id.
 **Cheluvanarayana Swamy Temple** does not: the sample name slugs to
@@ -44,11 +43,11 @@ Seed ids are `templeDocumentId(name)`. Nineteen pack folders match that id.
 The Commons file-page lists below are the earlier research pass. The pack
 `manifest.json` is the set actually bundled.
 
-Hold: Research is regenerating three packs (`banashankari-temple-bengaluru`,
-`talakaveri-temple`, `mahabaleshwar-temple-gokarna`). Flagged wrong-site
-frames were removed and no stand-in images were added. Bengaluru Banashankari
-is Photo pending. Talakaveri keeps four on-site frames. Gokarna keeps five
-on-site frames. Wire the new manifests and jpgs when Research marks them READY.
+Research site_verified replacements are now the bundled packs for
+`banashankari-temple-bengaluru` (6 Bengaluru / Kanakapura Road frames),
+`talakaveri-temple` (5 Talakaveri / Kodagu frames), and
+`mahabaleshwar-temple-gokarna` (6 Gokarna, Karnataka frames). Badami,
+Brihadeeswara, Srirangam, and Kathmandu files are not in those galleries.
 
 Photo coverage is thinner for **Dharmasthala** (gateway-only Commons candidate)
 and **Nanjangud** (single modest Commons file).

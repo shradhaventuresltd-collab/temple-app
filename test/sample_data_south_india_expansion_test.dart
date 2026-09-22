@@ -145,7 +145,6 @@ void main() {
       latRange: (11.5, 16.0),
       lngRange: (74.0, 78.0),
       commonsPhotoPack: true,
-      photoPendingIds: {'banashankari-temple-bengaluru'},
     );
   });
 
@@ -168,9 +167,8 @@ void main() {
     final banashankari = named('Banashankari Temple, Bengaluru');
     expect(banashankari.city, 'Bengaluru');
     expect(banashankari.story.toLowerCase(), contains('badami'));
-    // Wrong-site Badami frames removed. Photo pending until Research resends.
-    expect(banashankari.imageUrl, isEmpty);
-    expect(banashankari.images, isEmpty);
+    expect(banashankari.imageUrl, contains('wikimedia.org'));
+    expect(banashankari.images, hasLength(6));
 
     final vaitheeswaran = named('Vaitheeswaran Koil');
     expect(vaitheeswaran.timings.toLowerCase(), contains('thin'));
