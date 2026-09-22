@@ -57,7 +57,7 @@ Answer the IARC questionnaire from the release app, not from the debug admin too
 - No chat, no public user posts, and no social graph. Visitors cannot create an account in the release app. The admin CMS (including sign-in) and seed tools are debug-only; release/profile builds do not present that UI.
 - No unrestricted web browser. Directions open Google Maps for a temple’s published coordinates.
 - The app does not request device location.
-- Advertising: **yes**. Google AdMob on Android (banner on the temple list; interstitial every third temple detail). Ads are disabled on web.
+- Advertising: **yes**. Google AdMob on Android (banner on the temple list; interstitial every third temple detail), after a Google UMP consent check. Ads are disabled on web.
 - Digital purchases: none in this repo (no in-app purchases or subscriptions).
 
 Do not submit a rating until the questionnaire matches the build you upload.
@@ -69,7 +69,7 @@ Draft bullets for the Data safety form. Sanu should confirm them against Play’
 **Honesty vs the binary (KAN-70 / KAN-66 B1):** the release App Bundle still links `firebase_auth` and `firebase_storage` (Play’s scan will see those SDKs). There is no separate release flavor that strips them. Visitor-facing honesty is **UI + write gating**, not SDK absence:
 
 - **Not collected from visitors:** name, email, password, or user ID. Public browse has no sign-in surface. Firebase Auth email/password and Storage uploads exist only for the **debug-only** Admin CMS (custom claim `admin: true`). Release and profile builds gate the entire Admin screen — including `AdminSignInPanel` — so visitors never see sign-in or upload UI even if a route to Admin is forced.
-- **App activity and device IDs (advertising):** Google AdMob on Android. Google may receive the advertising ID and ad interactions under Google’s policies. Shared with Google for ads. Debug and profile builds use Google’s test ad units; release uses the AdMob units already in the project. This draft does not change those IDs.
+- **App activity and device IDs (advertising):** Google AdMob on Android, after Google’s User Messaging Platform consent check (KAN-69 / KAN-60). Startup requests a consent-info update and, when Google requires a form, shows it before `MobileAds.initialize`. Where UMP says consent is not required, ad requests may be personalized. Where the user completes the form, requests do not force non-personalized ads; the Mobile Ads SDK applies the choices UMP stored. If the user dismisses a required form without consent, the app does not request ads. If UMP fails or times out, the app still runs and any ad request is non-personalized. When ads are requested, Google may receive the advertising ID and ad interactions under Google’s policies. The manifest declares `com.google.android.gms.permission.AD_ID` for that case. Debug and profile builds use Google’s test ad units; release uses the AdMob units already in the project. This draft does not change those IDs. iOS App Tracking Transparency is not part of this Android listing.
 - **Directory content, not a user profile:** Cloud Firestore holds temple records (name, state, city, deity, story, description, timings, address, coordinates, image URLs). Visitors read that published content. They do not write it.
 - **Photos:** Firebase Storage holds temple images uploaded by admins (debug CMS). Visitors download them. The release app does not ask visitors to pick or upload photos, even though the Storage SDK is present in the binary.
 - **Location:** the app does not request device location and does not read GPS. “Directions” opens Google Maps with the temple’s published coordinates.
@@ -82,7 +82,7 @@ When filling Play Console, declare SDKs that the scan reports (including Auth/St
 
 **URL: TBD by Sanu.** Leave this as a placeholder until a public HTTPS page exists. Enter that same URL in Play Console. Do not invent a URL here.
 
-The page should cover public temple data in Cloud Firestore and Firebase Storage, AdMob on Android, the fact that `firebase_auth` / `firebase_storage` may ship in the release binary while visitors are never asked to sign in, upload photos, or share device location, and a contact for Shradha Ventures Ltd. This file is not the policy.
+The page should cover public temple data in Cloud Firestore and Firebase Storage, AdMob on Android (including the UMP consent form where Google requires it, non-personalized ads when UMP fails, and no ad request when a required form is dismissed without consent), the fact that `firebase_auth` / `firebase_storage` may ship in the release binary while visitors are never asked to sign in, upload photos, or share device location, and a contact for Shradha Ventures Ltd. This file is not the policy.
 
 ## Screenshot shot list
 

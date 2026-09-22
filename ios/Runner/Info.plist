@@ -70,5 +70,11 @@
 		<false/>
 		<key>GADApplicationIdentifier</key>
 		<string>ca-app-pub-7782159535499045~2293663404</string>
+		<!-- Delay app measurement until MobileAds.initialize, which follows UMP.
+		     NSUserTrackingUsageDescription / ATT is intentionally absent:
+		     iOS is not the Play shipping target. Add ATT before an iOS release
+		     that requests the advertising identifier. -->
+		<key>GADDelayAppMeasurementInit</key>
+		<true/>
 	</dict>
 </plist>

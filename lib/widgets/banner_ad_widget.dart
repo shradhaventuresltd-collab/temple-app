@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:temple_app/services/ad_helper.dart';
@@ -17,10 +19,16 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   void initState() {
     super.initState();
     if (!AdHelper.isSupported) return;
+    unawaited(_loadWhenConsentResolved());
+  }
+
+  Future<void> _loadWhenConsentResolved() async {
+    await AdHelper.ready;
+    if (!mounted || !AdHelper.shouldRequestAds) return;
     _bannerAd = BannerAd(
       adUnitId: AdHelper.bannerAdUnitId,
       size: AdSize.banner,
-      request: const AdRequest(),
+      request: AdHelper.adRequest,
       listener: BannerAdListener(
         onAdLoaded: (ad) {
           if (mounted) {
