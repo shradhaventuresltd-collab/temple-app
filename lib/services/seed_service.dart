@@ -134,8 +134,9 @@ class SeedResult {
 /// [seedHonestyImageFields] (PR #18): picsum is never written, and a verified
 /// existing gallery is kept so admin / Storage uploads are not wiped.
 /// [seedImageFieldsWithPack] then fills an empty gallery from verified sample
-/// `images` (Commons packs). `createdAt` is preserved. Other bundled fields
-/// (name, story, timings, …) are refreshed from sample data.
+/// `images` (Commons packs) only when live has no verified URLs. `createdAt`
+/// is preserved. Other bundled fields (name, story, timings, …) are
+/// refreshed from sample data.
 ///
 /// Debug-only: calling this from a release/profile build throws.
 /// Also requires a signed-in Firebase user with custom claim `admin: true`

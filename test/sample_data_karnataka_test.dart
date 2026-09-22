@@ -73,12 +73,16 @@ void main() {
         }
         expect(temple.latitude, inInclusiveRange(11.5, 16.0));
         expect(temple.longitude, inInclusiveRange(74.0, 78.0));
-        expect(temple.images, isEmpty);
-        final slug = templeDocumentId(temple.name);
-        if (originalExpected.containsKey(slug)) {
-          expect(temple.imageUrl, startsWith('https://picsum.photos/seed/'));
-        } else {
-          expect(temple.imageUrl, isEmpty);
+        // KAN-77 Wave B: Commons downloaded_url thumbs, not picsum or Storage.
+        expect(temple.imageUrl.contains('picsum'), isFalse);
+        expect(temple.imageUrl, contains('wikimedia.org'));
+        expect(temple.imageUrl.contains('firebasestorage'), isFalse);
+        expect(temple.imageUrl.contains('storage.googleapis.com'), isFalse);
+        expect(temple.images, isNotEmpty);
+        expect(temple.imageUrl, temple.images.first);
+        for (final url in temple.images) {
+          expect(url, contains('wikimedia.org'));
+          expect(url.contains('picsum'), isFalse);
         }
       }
     },
@@ -128,6 +132,7 @@ void main() {
         expect(parsed.latitude, temple.latitude);
         expect(parsed.longitude, temple.longitude);
         expect(parsed.imageUrl, temple.imageUrl);
+        expect(parsed.images, temple.images);
       }
     },
   );

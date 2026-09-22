@@ -1,0 +1,91 @@
+{
+  "temple_slug": "virupaksha-temple",
+  "temple_name": "Virupaksha Temple",
+  "doc_id_hint": "virupaksha-temple",
+  "city": "Hampi",
+  "state": "Karnataka",
+  "tradition_note": "Virupaksha Temple, Hampi, Karnataka",
+  "photos": [
+    {
+      "filename": "01_Hemakuta_Hills.jpg",
+      "commons_title": "File:Hemakuta Hills.jpg",
+      "author": "Arjun Dharne",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AHemakuta_Hills.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Hemakuta_Hills.jpg/1280px-Hemakuta_Hills.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 101030,
+      "width": 1280,
+      "height": 341,
+      "notes": "The Myths of Hampi have it that it’s on this hill that Lord Siva (the god of destruction) did penance before marrying a "
+    },
+    {
+      "filename": "02_Virupaksha_-_Hemakuta_Hill_-_1.jpg",
+      "commons_title": "File:Virupaksha - Hemakuta Hill - 1.jpg",
+      "author": "Ingo Mehling",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AVirupaksha_-_Hemakuta_Hill_-_1.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d4/Virupaksha_-_Hemakuta_Hill_-_1.jpg/1280px-Virupaksha_-_Hemakuta_Hill_-_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 128239,
+      "width": 1280,
+      "height": 298,
+      "notes": "Hampi / Karnataka - View of Virupaksha Temple from Hemakuta Hill"
+    },
+    {
+      "filename": "03_Virupaksha_-_Hemakuta_Hill_-_3.jpg",
+      "commons_title": "File:Virupaksha - Hemakuta Hill - 3.jpg",
+      "author": "Ingo Mehling",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AVirupaksha_-_Hemakuta_Hill_-_3.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fc/Virupaksha_-_Hemakuta_Hill_-_3.jpg/1280px-Virupaksha_-_Hemakuta_Hill_-_3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 132039,
+      "width": 1280,
+      "height": 375,
+      "notes": "Hampi / Karnataka - View of Virupaksha Temple from Hemakuta Hill"
+    },
+    {
+      "filename": "04_Virupaksha_Temple_Tower.jpg",
+      "commons_title": "File:Virupaksha Temple Tower.jpg",
+      "author": "Krishnakulkarni36",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AVirupaksha_Temple_Tower.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/53/Virupaksha_Temple_Tower.jpg/1280px-Virupaksha_Temple_Tower.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 778610,
+      "width": 1280,
+      "height": 1707,
+      "notes": "View of the Virupaksha temple landscape, Hampi"
+    },
+    {
+      "filename": "05_Hampi_-_Hemakuta_Hill_-_Sri_Guddada_Moola_Virupaksha_Temple.jpg",
+      "commons_title": "File:Hampi - Hemakuta Hill - Sri Guddada Moola Virupaksha Temple.jpg",
+      "author": "Ingo Mehling",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AHampi_-_Hemakuta_Hill_-_Sri_Guddada_Moola_Virupaksha_Temple.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cf/Hampi_-_Hemakuta_Hill_-_Sri_Guddada_Moola_Virupaksha_Temple.jpg/1280px-Hampi_-_Hemakuta_Hill_-_Sri_Guddada_Moola_Virupaksha_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 179111,
+      "width": 1280,
+      "height": 495,
+      "notes": "Hampi / Karnataka - Hemakuta Hill -  Sri Guddada Moola Virupaksha Temple"
+    },
+    {
+      "filename": "06_Hampi_-_Underground_Shive_Temple_-_Columns.jpg",
+      "commons_title": "File:Hampi - Underground Shive Temple - Columns.jpg",
+      "author": "Ingo Mehling",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AHampi_-_Underground_Shive_Temple_-_Columns.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/29/Hampi_-_Underground_Shive_Temple_-_Columns.jpg/1280px-Hampi_-_Underground_Shive_Temple_-_Columns.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 443833,
+      "width": 1280,
+      "height": 921,
+      "notes": "Hampi / Karnataka- Underground Shiva Temple - Columns"
+    }
+  ],
+  "no_live_imageUrl": true,
+  "retrieved": "2026-09-22",
+  "user_agent": "TempleAppResearch/1.0 (KAN-76 sweep)"
+}

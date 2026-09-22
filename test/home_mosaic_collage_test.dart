@@ -56,37 +56,35 @@ void main() {
     expect(empty, isNot(contains(RegExp(r'Explore \d+ famous'))));
   });
 
-  testWidgets(
-    'KAN-73: sample mosaic uses verified photos and drops picsum',
-    (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: HomeMosaicCollage(temples: sampleTemples),
-          ),
-        ),
-      );
+  testWidgets('KAN-73: sample mosaic uses verified photos and drops picsum', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: HomeMosaicCollage(temples: sampleTemples)),
+      ),
+    );
 
-      // KAN-77 packs supply verified Commons covers, so the hero is a mosaic
-      // rather than a single Photo pending tile.
-      expect(find.byType(TempleImagePlaceholder), findsNothing);
-      expect(find.text('Photo pending'), findsNothing);
-      expect(find.byType(CachedNetworkImage), findsWidgets);
-      expect(
-        find.text('${sampleTemples.length} temples across India'),
-        findsOneWidget,
-      );
-      expect(find.textContaining('150 temples'), findsNothing);
+    // KAN-77 packs supply verified Commons covers, so the hero is a mosaic
+    // rather than a single Photo pending tile.
+    expect(find.byType(TempleImagePlaceholder), findsNothing);
+    expect(find.text('Photo pending'), findsNothing);
+    expect(find.byType(CachedNetworkImage), findsWidgets);
+    expect(
+      find.text('${sampleTemples.length} temples across India'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('150 temples'), findsNothing);
 
-      final urls = tester
-          .widgetList<CachedNetworkImage>(find.byType(CachedNetworkImage))
-          .map((image) => image.imageUrl)
-          .toList();
-      expect(urls, isNotEmpty);
-      expect(urls.any((url) => url.contains('picsum')), isFalse);
-      expect(urls.any((url) => url.contains('upload.wikimedia.org')), isTrue);
-    },
-  );
+    final urls = tester
+        .widgetList<CachedNetworkImage>(find.byType(CachedNetworkImage))
+        .map((image) => image.imageUrl)
+        .toList();
+    expect(urls, isNotEmpty);
+    expect(urls.any((url) => url.contains('picsum')), isFalse);
+    expect(urls.any((url) => url.contains('wikimedia.org')), isTrue);
+    expect(urls.any((url) => url.contains('storage.googleapis.com')), isFalse);
+  });
 
   testWidgets('KAN-73: a picsum-only list still shows Photo pending', (
     tester,
@@ -96,9 +94,7 @@ void main() {
         home: Scaffold(
           body: HomeMosaicCollage(
             temples: [
-              _temple(
-                imageUrl: 'https://picsum.photos/seed/only/800/600',
-              ),
+              _temple(imageUrl: 'https://picsum.photos/seed/only/800/600'),
             ],
           ),
         ),

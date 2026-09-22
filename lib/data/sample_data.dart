@@ -365,7 +365,6 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
-
   // ── KAN-64 / KAN-74 expansion batch 16 — +10 additional Tamil Nadu temples
   // Core Temple fields only (Hybrid C): trip_planning stripped / not seeded.
   // imageUrl/images left empty (photo-pending honesty); Commons candidates in
@@ -575,7 +574,8 @@ const List<Temple> sampleTemples = [
         'Pair with a Kumbakonam temple circuit if time allows. Confirm festival '
         'continuity and special-entry tickets on '
         'swamimalaiswaminathar.hrce.tn.gov.in.',
-    location: 'Swamimalai, near Kumbakonam, Thanjavur District, Tamil Nadu 612302',
+    location:
+        'Swamimalai, near Kumbakonam, Thanjavur District, Tamil Nadu 612302',
     timings:
         'OFFICIAL HR&CE (swamimalaiswaminathar.hrce.tn.gov.in, tid=18002): '
         '06:00 AM–01:00 PM and 04:00 PM–09:00 PM; closed 01:00–04:00 PM on '
@@ -630,7 +630,8 @@ const List<Temple> sampleTemples = [
         'pilgrimage pattern.\n\n'
         'Confirm festival overrides and special abhishekams on '
         'thiruvanaikavaljambukeswarar.hrce.tn.gov.in.',
-    location: 'Thiruvanaikaval (Thiruvanaikoil), Tiruchirappalli, Tamil Nadu 620005',
+    location:
+        'Thiruvanaikaval (Thiruvanaikoil), Tiruchirappalli, Tamil Nadu 620005',
     timings:
         'OFFICIAL HR&CE (thiruvanaikavaljambukeswarar.hrce.tn.gov.in / '
         'tid=25706): Mon–Thu 06:00 AM–01:00 PM and 03:00 PM–09:00 PM (midday '
@@ -1427,7 +1428,6 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
-
   // ── KAN-64 / KAN-74 expansion batch 17 — +10 additional Kerala temples
   // Core Temple fields only (Hybrid C): trip_planning stripped / not seeded.
   // imageUrl/images left empty (photo-pending honesty); Commons candidates in
@@ -1980,15 +1980,25 @@ const List<Temple> sampleTemples = [
   //  KARNATAKA
   // ═══════════════════════════════════════════════════════════════════════════
   // Research-enriched visitor copy for the existing 10 Karnataka temples
-  // (matched by name/slug — no new documents). Cover imageUrl values remain
-  // the bundled picsum placeholders; do not treat Commons candidates as Storage
-  // paths. Sources and photo_candidates: docs/karnataka-sample-research.md.
+  // (matched by name/slug — no new documents). KAN-77 Wave B replaces picsum
+  // covers with Commons downloaded_url thumbs from tools/photo-packs/<slug>/
+  // (not Storage). Sources: docs/karnataka-sample-research.md.
   Temple(
     name: 'Sri Krishna Matha (Udupi)',
     state: 'Karnataka',
     city: 'Udupi',
     deity: 'Vishnu',
-    imageUrl: 'https://picsum.photos/seed/udupi/800/600',
+    // KAN-77 Wave B: Commons downloaded_url thumbs —
+    // tools/photo-packs/sri-krishna-matha-udupi/ (not Storage).
+    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/Udupi_Parashurama_Temple_View_from_the_top_March_2025.jpg/1280px-Udupi_Parashurama_Temple_View_from_the_top_March_2025.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/Udupi_Parashurama_Temple_View_from_the_top_March_2025.jpg/1280px-Udupi_Parashurama_Temple_View_from_the_top_March_2025.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8d/Udupi_Krishna_Temple_gopuram_and_Kankana_kindi.jpg/1280px-Udupi_Krishna_Temple_gopuram_and_Kankana_kindi.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/Udupi_Krishna_Temple_gopuram_from_the_west.jpg/1280px-Udupi_Krishna_Temple_gopuram_from_the_west.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f6/Ashirvad_Theatre%2C_Udupi.jpg/1280px-Ashirvad_Theatre%2C_Udupi.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/da/Udupi_railway_station_02.jpg/1280px-Udupi_railway_station_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f2/Udupi.jpg/1280px-Udupi.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Thirteenth-century Dvaita seat founded by Sri Madhvacharya, where Bala Krishna is viewed '
         'only through the nine-holed silver Navagraha / Kanakana Kindi, and temple administration '
@@ -2041,7 +2051,17 @@ const List<Temple> sampleTemples = [
     state: 'Karnataka',
     city: 'Dharmasthala',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/dharmasthala/800/600',
+    // KAN-77 Wave B: Commons downloaded_url thumbs —
+    // tools/photo-packs/sri-manjunatha-temple-dharmasthala/ (not Storage).
+    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/90/KASHDK_21_Dharmasthala_Sculptures_inPark.jpg/1280px-KASHDK_21_Dharmasthala_Sculptures_inPark.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/90/KASHDK_21_Dharmasthala_Sculptures_inPark.jpg/1280px-KASHDK_21_Dharmasthala_Sculptures_inPark.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/af/KASHDK_25_Dharmasthala_SaraswatiMandapam_inPark.jpg/1280px-KASHDK_25_Dharmasthala_SaraswatiMandapam_inPark.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/de/KASHDK_24_Dharmasthala_SaraswatiMandapam_in_Park.jpg/1280px-KASHDK_24_Dharmasthala_SaraswatiMandapam_in_Park.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6b/KASHDK_22_Dharmasthala_Bhadrakali_inPark_3D.jpg/1280px-KASHDK_22_Dharmasthala_Bhadrakali_inPark_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fb/KASHDK_23_Dharmasthala_Bhairavi_inPark_3D.jpg/1280px-KASHDK_23_Dharmasthala_Bhairavi_inPark_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/93/Jungle_Babbler_perched.jpg/1280px-Jungle_Babbler_perched.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Major Dakshina Kannada pilgrimage where Lord Manjunatha (Shiva) is administered by the '
         'Jain Heggade lineage with Vaishnava Brahmin priests — a long-running model of dharmic '
@@ -2091,7 +2111,17 @@ const List<Temple> sampleTemples = [
     state: 'Karnataka',
     city: 'Sullia',
     deity: 'Murugan',
-    imageUrl: 'https://picsum.photos/seed/kukkesubramanya/800/600',
+    // KAN-77 Wave B: Commons downloaded_url thumbs —
+    // tools/photo-packs/kukke-subramanya-temple/ (not Storage).
+    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d4/Kukke_Shree_Subrahmanya_Temple_%281%29.jpg/1280px-Kukke_Shree_Subrahmanya_Temple_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d4/Kukke_Shree_Subrahmanya_Temple_%281%29.jpg/1280px-Kukke_Shree_Subrahmanya_Temple_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/35/Kukke_Shree_Subrahmanya_Temple_%2810%29.jpg/1280px-Kukke_Shree_Subrahmanya_Temple_%2810%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/97/Kukke_Shree_Subrahmanya_Temple_%2811%29.jpg/1280px-Kukke_Shree_Subrahmanya_Temple_%2811%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ca/Kukke_Shree_Subrahmanya_Temple_%2812%29.jpg/1280px-Kukke_Shree_Subrahmanya_Temple_%2812%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5f/Kukke_Shree_Subrahmanya_Temple_%2813%29.jpg/1280px-Kukke_Shree_Subrahmanya_Temple_%2813%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e9/Kukke_Shree_Subrahmanya_Temple_%2814%29.jpg/1280px-Kukke_Shree_Subrahmanya_Temple_%2814%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Western Ghats pilgrimage to Lord Subrahmanya (Kartikeya) as protector of the nagas, '
         'famed across South India for Sarpa Dosha nivarana sevas such as Sarpa Samskara and '
@@ -2138,7 +2168,17 @@ const List<Temple> sampleTemples = [
     state: 'Karnataka',
     city: 'Sringeri',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/sringeri/800/600',
+    // KAN-77 Wave B: Commons downloaded_url thumbs —
+    // tools/photo-packs/sringeri-sharada-peetham/ (not Storage).
+    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/28/A_distant_view_of_the_Sringeri_Sharada_Peetham.jpg/1280px-A_distant_view_of_the_Sringeri_Sharada_Peetham.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/28/A_distant_view_of_the_Sringeri_Sharada_Peetham.jpg/1280px-A_distant_view_of_the_Sringeri_Sharada_Peetham.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7e/Rajagopuram_of_the_Sringeri_Sarada_peetham.jpg/1280px-Rajagopuram_of_the_Sringeri_Sarada_peetham.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/be/Shringeri_Sharadamba_Temple_-_1.jpg/1280px-Shringeri_Sharadamba_Temple_-_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e8/Shringeri_Sharadamba_Temple_-_2.jpg/1280px-Shringeri_Sharadamba_Temple_-_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/Shringeri_Sharadamba_Temple_-_3.jpg/1280px-Shringeri_Sharadamba_Temple_-_3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a3/Sri_Vidyashankara_Temple%281342_AD%29_at_Sringeri%2C_Karnataka.jpg/1280px-Sri_Vidyashankara_Temple%281342_AD%29_at_Sringeri%2C_Karnataka.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Dakshinamnaya Sri Sharada Peetham — the southern Amnaya matha of Adi Shankaracharya — on '
         'the Tunga river in Malnad Karnataka, centred on Goddess Sharadamba with the ornate '
@@ -2187,7 +2227,17 @@ const List<Temple> sampleTemples = [
     state: 'Karnataka',
     city: 'Kollur',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/mookambika/800/600',
+    // KAN-77 Wave B: Commons downloaded_url thumbs —
+    // tools/photo-packs/kollur-mookambika-temple/ (not Storage).
+    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d8/Kollur_Mookambika_Temple_main_shrine.jpg/1280px-Kollur_Mookambika_Temple_main_shrine.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d8/Kollur_Mookambika_Temple_main_shrine.jpg/1280px-Kollur_Mookambika_Temple_main_shrine.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f7/Kollur_Mookambika_temple_east_entrance_gate.jpg/1280px-Kollur_Mookambika_temple_east_entrance_gate.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/57/Kollur_Mookambika_temple_entrance_gate.jpg/1280px-Kollur_Mookambika_temple_entrance_gate.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/Vimana_of_the_Kollur_Mookambika_Temple.jpg/1280px-Vimana_of_the_Kollur_Mookambika_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/28/Kollur_Mookambika_Temple_20080123.JPG/1280px-Kollur_Mookambika_Temple_20080123.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/15/Walking_through_Kollur_misty_forest_path.jpg/1280px-Walking_through_Kollur_misty_forest_path.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Powerful Shakti kshetra at the foot of Kodachadri in the Western Ghats, where Goddess '
         'Mookambika is worshipped with a swayambhu linga uniting Shiva–Shakti; a major Navaratri '
@@ -2236,7 +2286,17 @@ const List<Temple> sampleTemples = [
     state: 'Karnataka',
     city: 'Gokarna',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/gokarna/800/600',
+    // KAN-77 Wave B: Commons downloaded_url thumbs —
+    // tools/photo-packs/mahabaleshwar-temple-gokarna/ (not Storage).
+    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/11/KW23-0751-Gokarna-AdiGokarna-Front1_3D.jpg/1280px-KW23-0751-Gokarna-AdiGokarna-Front1_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/11/KW23-0751-Gokarna-AdiGokarna-Front1_3D.jpg/1280px-KW23-0751-Gokarna-AdiGokarna-Front1_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cf/KW23-0752-Gokarna-AdiGokarna-RightFront2_3D.jpg/1280px-KW23-0752-Gokarna-AdiGokarna-RightFront2_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/22/KW23-0753-Gokarna-AdiGokarna-LeftFront3_3D.jpg/1280px-KW23-0753-Gokarna-AdiGokarna-LeftFront3_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/aa/KW23-0754-Gokarna-AdiGokarna-FrontFull4_3D.jpg/1280px-KW23-0754-Gokarna-AdiGokarna-FrontFull4_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/35/KW23-0757-Gokarna-AdiGokarna-BackView5_3D.jpg/1280px-KW23-0757-Gokarna-AdiGokarna-BackView5_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e5/Gokarneshwor_Mahadev_Temple_Gokarna_Kathmandu_Nepal_Rajesh_Dhungana_%289%29.jpg/1280px-Gokarneshwor_Mahadev_Temple_Gokarna_Kathmandu_Nepal_Rajesh_Dhungana_%289%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Ancient coastal Shaiva kshetra enshrining the Atmalinga (Pranalinga) at Gokarna — '
         'counted among Karnataka’s Muktisthalas and often called a Dakshina Kashi — where '
@@ -2285,7 +2345,17 @@ const List<Temple> sampleTemples = [
     state: 'Karnataka',
     city: 'Mysuru',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/chamundeshwari/800/600',
+    // KAN-77 Wave B: Commons downloaded_url thumbs —
+    // tools/photo-packs/chamundeshwari-temple/ (not Storage).
+    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4e/Chamundi_From_Karanji_Mysore_Nov23_A7C_08173.jpg/1280px-Chamundi_From_Karanji_Mysore_Nov23_A7C_08173.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4e/Chamundi_From_Karanji_Mysore_Nov23_A7C_08173.jpg/1280px-Chamundi_From_Karanji_Mysore_Nov23_A7C_08173.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d1/Chamundeshwari_Temple%2C_Mysuru%2C_Karnataka%2C_India_Temple.jpg/1280px-Chamundeshwari_Temple%2C_Mysuru%2C_Karnataka%2C_India_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/75/Chamundeshwari_Devi_Temple-Dr._Murali_Mohan_Gurram_%2830%29.jpg/1280px-Chamundeshwari_Devi_Temple-Dr._Murali_Mohan_Gurram_%2830%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Mysore_-_Race_Course_From_Chamundi_Hill.jpg/1280px-Mysore_-_Race_Course_From_Chamundi_Hill.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e1/Chamundeshwari_Devi_Temple-Dr._Murali_Mohan_Gurram_%2833%29.jpg/1280px-Chamundeshwari_Devi_Temple-Dr._Murali_Mohan_Gurram_%2833%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/eb/Chamundeshwari_Devi_Temple-Dr._Murali_Mohan_Gurram_%2834%29.jpg/1280px-Chamundeshwari_Devi_Temple-Dr._Murali_Mohan_Gurram_%2834%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Hilltop Shakti temple of Goddess Chamundeshwari — fierce Durga who slew Mahishasura — '
         'tutelary deity of the Mysuru Wodeyars and ritual focus of the world-famous Mysuru '
@@ -2332,7 +2402,17 @@ const List<Temple> sampleTemples = [
     state: 'Karnataka',
     city: 'Hampi',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/virupaksha/800/600',
+    // KAN-77 Wave B: Commons downloaded_url thumbs —
+    // tools/photo-packs/virupaksha-temple/ (not Storage).
+    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Hemakuta_Hills.jpg/1280px-Hemakuta_Hills.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Hemakuta_Hills.jpg/1280px-Hemakuta_Hills.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d4/Virupaksha_-_Hemakuta_Hill_-_1.jpg/1280px-Virupaksha_-_Hemakuta_Hill_-_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fc/Virupaksha_-_Hemakuta_Hill_-_3.jpg/1280px-Virupaksha_-_Hemakuta_Hill_-_3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/53/Virupaksha_Temple_Tower.jpg/1280px-Virupaksha_Temple_Tower.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cf/Hampi_-_Hemakuta_Hill_-_Sri_Guddada_Moola_Virupaksha_Temple.jpg/1280px-Hampi_-_Hemakuta_Hill_-_Sri_Guddada_Moola_Virupaksha_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/29/Hampi_-_Underground_Shive_Temple_-_Columns.jpg/1280px-Hampi_-_Underground_Shive_Temple_-_Columns.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Living Shiva temple at the heart of Hampi’s UNESCO World Heritage Group of Monuments — '
         'continuous worship since before the Vijayanagara Empire, which took Virupaksha as a '
@@ -2378,7 +2458,17 @@ const List<Temple> sampleTemples = [
     state: 'Karnataka',
     city: 'Nanjangud',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/nanjangud/800/600',
+    // KAN-77 Wave B: Commons downloaded_url thumbs —
+    // tools/photo-packs/srikanteshwara-temple-nanjangud/ (not Storage).
+    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/Laundry_Upstream_Kabini_Nanjangud_Sep24_A7CR_02967.jpg/1280px-Laundry_Upstream_Kabini_Nanjangud_Sep24_A7CR_02967.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/Laundry_Upstream_Kabini_Nanjangud_Sep24_A7CR_02967.jpg/1280px-Laundry_Upstream_Kabini_Nanjangud_Sep24_A7CR_02967.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/Upstream_Kabini_Bridge_Nanjangud_Sep24_A7CR_02971.jpg/1280px-Upstream_Kabini_Bridge_Nanjangud_Sep24_A7CR_02971.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f7/KAM22_Nanjangud_01_SriKanteshwara_Temple_South_Side.jpg/1280px-KAM22_Nanjangud_01_SriKanteshwara_Temple_South_Side.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/af/Upstream_Kabini_Southbound_Bridge_Nanjangud_Sep24_A7CR_02976.jpg/1280px-Upstream_Kabini_Southbound_Bridge_Nanjangud_Sep24_A7CR_02976.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/eb/Upstream_Kabini_Southbound_Bridge_Nanjangud_Sep24_A7CR_02974.jpg/1280px-Upstream_Kabini_Southbound_Bridge_Nanjangud_Sep24_A7CR_02974.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/Upstream_Kabini_Northbound_Bridge_Nanjangud_Sep24_A7CR_02966.jpg/1280px-Upstream_Kabini_Northbound_Bridge_Nanjangud_Sep24_A7CR_02966.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Grand Kapila-bank Shaiva temple of Srikanteshwara / Nanjundeshwara — popularly Dakshina '
         'Kashi — with a towering Dravidian gopuram shaped by Ganga, Chola, Hoysala, and '
@@ -2424,7 +2514,17 @@ const List<Temple> sampleTemples = [
     state: 'Karnataka',
     city: 'Bengaluru',
     deity: 'Vishnu',
-    imageUrl: 'https://picsum.photos/seed/iskconbangalore/800/600',
+    // KAN-77 Wave B: Commons downloaded_url thumbs —
+    // tools/photo-packs/iskcon-temple-bangalore/ (not Storage).
+    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Clothes_for_drying_in_Iskcon_temple%2C_Bangalore.JPG/1280px-Clothes_for_drying_in_Iskcon_temple%2C_Bangalore.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Clothes_for_drying_in_Iskcon_temple%2C_Bangalore.JPG/1280px-Clothes_for_drying_in_Iskcon_temple%2C_Bangalore.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4d/ISKCON_Temple_-_Bangalore_-_Karnataka_-_DSCN0101.jpg/1280px-ISKCON_Temple_-_Bangalore_-_Karnataka_-_DSCN0101.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ce/Iskcon_bengaluru.jpg/1280px-Iskcon_bengaluru.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2f/ISKON_temple_in_Bengaluru.jpg/1280px-ISKON_temple_in_Bengaluru.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d5/Iskcon_Temple_from_Bengaluru_City%2C_May_2026.jpg/1280px-Iskcon_Temple_from_Bengaluru_City%2C_May_2026.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d5/ISKCON_Vaikunta_hill%2C_Vasanthpura%2C_Bangalore_%282024%29_150.jpg/1280px-ISKCON_Vaikunta_hill%2C_Vasanthpura%2C_Bangalore_%282024%29_150.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Sri Radha Krishna Temple of ISKCON on Hare Krishna Hill, Rajajinagar — a major modern '
         'Vaishnava complex opened in the late 1990s with elaborate arati schedule, cultural '
@@ -2471,17 +2571,28 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
-
   // ── KAN-64 / KAN-74 expansion batch 18 — +10 additional Karnataka temples
   // Core Temple fields only (Hybrid C): trip_planning stripped / not seeded.
-  // imageUrl/images left empty (photo-pending honesty); Commons candidates in
-  // docs/karnataka-sample-research.md.
+  // KAN-77 Wave B: imageUrl/images are Commons downloaded_url thumbs from
+  // tools/photo-packs/<slug>/ (not Storage). Cheluvanarayana's pack folder is
+  // cheluvanarayana-swamy-temple-melukote; Seed id stays
+  // cheluvanarayana-swamy-temple. See docs/karnataka-sample-research.md.
   Temple(
     name: 'Cheluvanarayana Swamy Temple',
     state: 'Karnataka',
     city: 'Melukote',
     deity: 'Vishnu',
-    imageUrl: '',
+    // KAN-77 Wave B: Commons downloaded_url thumbs —
+    // tools/photo-packs/cheluvanarayana-swamy-temple-melukote/ (not Storage).
+    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/Melukote_mantap.jpg/1280px-Melukote_mantap.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/Melukote_mantap.jpg/1280px-Melukote_mantap.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Cheluvanarayana_Swamy_Temple%2C_Melkote_-_during_PHMSTBGP-2020_%281%29.jpg/1280px-Cheluvanarayana_Swamy_Temple%2C_Melkote_-_during_PHMSTBGP-2020_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/09/Cheluvanarayana_Swamy_Temple%2C_Melkote_-_during_PHMSTBGP-2020_%2810%29.jpg/1280px-Cheluvanarayana_Swamy_Temple%2C_Melkote_-_during_PHMSTBGP-2020_%2810%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5a/Cheluvanarayana_Swamy_Temple%2C_Melkote_-_during_PHMSTBGP-2020_%2811%29.jpg/1280px-Cheluvanarayana_Swamy_Temple%2C_Melkote_-_during_PHMSTBGP-2020_%2811%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/66/Cheluvanarayana_Swamy_Temple%2C_Melkote_-_during_PHMSTBGP-2020_%28111%29.jpg/1280px-Cheluvanarayana_Swamy_Temple%2C_Melkote_-_during_PHMSTBGP-2020_%28111%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a9/Cheluvanarayana_Swamy_Temple%2C_Melkote_-_during_PHMSTBGP-2020_%28118%29.jpg/1280px-Cheluvanarayana_Swamy_Temple%2C_Melkote_-_during_PHMSTBGP-2020_%28118%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Sri Vaishnava Vishnu temple of Cheluva Narayana at Melukote '
         '(Thirunarayanapura), linked to Ramanujacharya’s stay and famed for the '
@@ -2532,7 +2643,17 @@ const List<Temple> sampleTemples = [
     state: 'Karnataka',
     city: 'Murudeshwar',
     deity: 'Shiva',
-    imageUrl: '',
+    // KAN-77 Wave B: Commons downloaded_url thumbs —
+    // tools/photo-packs/murudeshwar-temple/ (not Storage).
+    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/78/KW23-0422-Murdeshwar-Shani-Bhagvan-Temple_3D.jpg/1280px-KW23-0422-Murdeshwar-Shani-Bhagvan-Temple_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/78/KW23-0422-Murdeshwar-Shani-Bhagvan-Temple_3D.jpg/1280px-KW23-0422-Murdeshwar-Shani-Bhagvan-Temple_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/04/KW23-0424-Murdeshwar-Krishna-Arjuna-with-ShivaBackground_3D.jpg/1280px-KW23-0424-Murdeshwar-Krishna-Arjuna-with-ShivaBackground_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/85/KW23-0421-Murdeshwar-ShivaStatue-RightView_3D.jpg/1280px-KW23-0421-Murdeshwar-ShivaStatue-RightView_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/97/KW23-0423-Murdeshwar-Temple-Gopuram_3D.jpg/1280px-KW23-0423-Murdeshwar-Temple-Gopuram_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e4/KW23-0420-Murdeshwar-ShivaStatue-LeftView_3D.jpg/1280px-KW23-0420-Murdeshwar-ShivaStatue-LeftView_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/12/Murdeshwara_Temple_beach_22_30_36_747000.jpeg/1280px-Murdeshwara_Temple_beach_22_30_36_747000.jpeg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Coastal Shiva temple on Kanduka Hill at Murudeshwar, known for its '
         'towering Raja Gopura, ~123 ft Shiva statue, Arabian Sea setting, and '
@@ -2581,7 +2702,17 @@ const List<Temple> sampleTemples = [
     state: 'Karnataka',
     city: 'Horanadu',
     deity: 'Devi',
-    imageUrl: '',
+    // KAN-77 Wave B: Commons downloaded_url thumbs —
+    // tools/photo-packs/annapoorneshwari-temple-horanadu/ (not Storage).
+    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Horanadu_Temple_Entrance_%2832965363862%29.jpg/1280px-Horanadu_Temple_Entrance_%2832965363862%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Horanadu_Temple_Entrance_%2832965363862%29.jpg/1280px-Horanadu_Temple_Entrance_%2832965363862%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ac/Horanadu_Annapurneshwari_Temple.jpg/1280px-Horanadu_Annapurneshwari_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0c/Horanadu_Jaatre.jpg/1280px-Horanadu_Jaatre.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cc/Horanadu.jpg/1280px-Horanadu.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/27/Hills_2.jpg/1280px-Hills_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3e/Santhana_Priya_Naga_Kshetra.jpg/1280px-Santhana_Priya_Naga_Kshetra.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Western Ghats shrine of Adishakti Annapoorneshwari at Horanadu (Sri '
         'Kshetra Horanadu), known for continuous annadana and a gold-clad '
@@ -2629,7 +2760,17 @@ const List<Temple> sampleTemples = [
     state: 'Karnataka',
     city: 'Kateel',
     deity: 'Devi',
-    imageUrl: '',
+    // KAN-77 Wave B: Commons downloaded_url thumbs —
+    // tools/photo-packs/kateel-durga-parameshwari-temple/ (not Storage).
+    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dc/Kateelu_Durgaparameshwari_Temple_10_55_15_890000.jpeg/1280px-Kateelu_Durgaparameshwari_Temple_10_55_15_890000.jpeg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dc/Kateelu_Durgaparameshwari_Temple_10_55_15_890000.jpeg/1280px-Kateelu_Durgaparameshwari_Temple_10_55_15_890000.jpeg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/de/Kateelu.jpg/1280px-Kateelu.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cb/KATEEL_TEMPLE.jpg/1280px-KATEEL_TEMPLE.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c3/Shri_durgaparameshwari_temple.jpg/1280px-Shri_durgaparameshwari_temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/83/Shree_Durga_parameshwari_Temple%2C_Kateel_01.jpg/1280px-Shree_Durga_parameshwari_Temple%2C_Kateel_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fd/Shree_Durga_parameshwari_Temple%2C_Kateel_02.jpg/1280px-Shree_Durga_parameshwari_Temple%2C_Kateel_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'River-island Devi temple of Durga Parameshwari at Kateel on the '
         'Nandini, a major Tulunadu Shakti pilgrimage known for Yakshagana '
@@ -2651,7 +2792,8 @@ const List<Temple> sampleTemples = [
         'roughly early morning to late evening with Friday late close, but '
         'midday-break claims conflict—treat detailed clocks as provisional and '
         'confirm the temple board.',
-    location: 'Kateel (Kateelu), Mangaluru Taluk, Dakshina Kannada, Karnataka 574148',
+    location:
+        'Kateel (Kateelu), Mangaluru Taluk, Dakshina Kannada, Karnataka 574148',
     timings:
         'PROVISIONAL / secondary tourism compilations (official English full '
         'clock thin): often listed ~5:30 AM–9:30 PM daily, Fridays ~5:30 '
@@ -2679,7 +2821,17 @@ const List<Temple> sampleTemples = [
     state: 'Karnataka',
     city: 'Doddaballapur',
     deity: 'Murugan',
-    imageUrl: '',
+    // KAN-77 Wave B: Commons downloaded_url thumbs —
+    // tools/photo-packs/ghati-subramanya-temple/ (not Storage).
+    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/da/Ghati_Subramanya_08.jpg/1280px-Ghati_Subramanya_08.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/da/Ghati_Subramanya_08.jpg/1280px-Ghati_Subramanya_08.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/02/Ghati_Subramanya_09.jpg/1280px-Ghati_Subramanya_09.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ea/Ghati_Subramanya_10.jpg/1280px-Ghati_Subramanya_10.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/16/Ghati_Subramanya_11.jpg/1280px-Ghati_Subramanya_11.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cb/Ghati_Subramanya_16.jpg/1280px-Ghati_Subramanya_16.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c0/Ghati_Subramanya_24.jpg/1280px-Ghati_Subramanya_24.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Unique Subrahmanya–Narasimha swayambhu shrine near Doddaballapur (~60 '
         'km from Bengaluru), a major regional Subrahmanya kshetra known for '
@@ -2732,7 +2884,17 @@ const List<Temple> sampleTemples = [
     state: 'Karnataka',
     city: 'Bengaluru',
     deity: 'Devi',
-    imageUrl: '',
+    // KAN-77 Wave B: Commons downloaded_url thumbs —
+    // tools/photo-packs/banashankari-temple-bengaluru/ (not Storage).
+    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c4/Badami_Towers_canal.jpg/1280px-Badami_Towers_canal.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c4/Badami_Towers_canal.jpg/1280px-Badami_Towers_canal.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cb/Cholachagudda%2C_Banashankari_Amma_temple%2C_ratha_%28temple_chariot%29_%289841951636%29.jpg/1280px-Cholachagudda%2C_Banashankari_Amma_temple%2C_ratha_%28temple_chariot%29_%289841951636%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/45/Banashankari_2.jpg/1280px-Banashankari_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e2/Banashankari_guard_tower.jpg/1280px-Banashankari_guard_tower.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bf/Banashankari_Temple.jpg/1280px-Banashankari_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/01/Dried_kalyani_of_Badami_Baanashakari.jpg/1280px-Dried_kalyani_of_Badami_Baanashakari.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Popular early-20th-century Banashankari Amma (Shakambari) temple on S. '
         'Kariyappa / Kanakapura Road that gives South Bengaluru’s Banashankari '
@@ -2779,7 +2941,17 @@ const List<Temple> sampleTemples = [
     state: 'Karnataka',
     city: 'Belur',
     deity: 'Vishnu',
-    imageUrl: '',
+    // KAN-77 Wave B: Commons downloaded_url thumbs —
+    // tools/photo-packs/chennakeshava-temple-belur/ (not Storage).
+    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1e/KA_052_Belur_Hoysala_Emblem_Left_small.jpg/1280px-KA_052_Belur_Hoysala_Emblem_Left_small.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1e/KA_052_Belur_Hoysala_Emblem_Left_small.jpg/1280px-KA_052_Belur_Hoysala_Emblem_Left_small.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/37/Belur_1_4.jpg/1280px-Belur_1_4.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3f/Relief_work%CC%9E_Chennakeshava_temple%2C_Belur_%283%29.jpg/1280px-Relief_work%CC%9E_Chennakeshava_temple%2C_Belur_%283%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f4/Belloor_-_Temple_of_Vishnu%2C_Ddweepastumbum_and_Culyana_Munduppum.jpg/1280px-Belloor_-_Temple_of_Vishnu%2C_Ddweepastumbum_and_Culyana_Munduppum.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/75/Belloor_-_Temple_of_Vishnu%2C_Nagarcana_Gopuram_and_Tharomootee.jpg/1280px-Belloor_-_Temple_of_Vishnu%2C_Nagarcana_Gopuram_and_Tharomootee.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c8/Belloor_-_Temple_of_Vishnu%2C_Gateway.jpg/1280px-Belloor_-_Temple_of_Vishnu%2C_Gateway.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Living 12th-century Hoysala Vishnu temple of Chennakeshava at Belur '
         '(commissioned 1117 CE), combining continuous worship with '
@@ -2832,7 +3004,17 @@ const List<Temple> sampleTemples = [
     state: 'Karnataka',
     city: 'Halebidu',
     deity: 'Shiva',
-    imageUrl: '',
+    // KAN-77 Wave B: Commons downloaded_url thumbs —
+    // tools/photo-packs/hoysaleswara-temple-halebidu/ (not Storage).
+    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/01/Hoysaleswara_Temple_Sculptures_Halebid_Hassan_Karnataka_6.jpg/1280px-Hoysaleswara_Temple_Sculptures_Halebid_Hassan_Karnataka_6.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/01/Hoysaleswara_Temple_Sculptures_Halebid_Hassan_Karnataka_6.jpg/1280px-Hoysaleswara_Temple_Sculptures_Halebid_Hassan_Karnataka_6.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/af/Hoysaleswara_Temple_Sculptures_Halebid_Hassan_Karnataka.jpg/1280px-Hoysaleswara_Temple_Sculptures_Halebid_Hassan_Karnataka.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/30/Hoysaleswara_Temple_Sculptures_Halebid_Hassan_Karnataka_5.jpg/1280px-Hoysaleswara_Temple_Sculptures_Halebid_Hassan_Karnataka_5.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/Pillared_Hall_Hoysaleswara_Temple_Halebid.jpg/1280px-Pillared_Hall_Hoysaleswara_Temple_Halebid.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/38/Artwork_at_Hoysaleswara_Temple_Halebid_%282%29.jpg/1280px-Artwork_at_Hoysaleswara_Temple_Halebid_%282%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/16/Artwork_at_Hoysaleswara_Temple_Halebid_%283%29.jpg/1280px-Artwork_at_Hoysaleswara_Temple_Halebid_%283%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         '12th-century Hoysala twin-Shiva masterpiece at Halebidu (Hoysalesvara '
         '& Shantalesvara), an ASI-protected monument in the UNESCO Sacred '
@@ -2886,7 +3068,17 @@ const List<Temple> sampleTemples = [
     state: 'Karnataka',
     city: 'Kumbhashi',
     deity: 'Ganesha',
-    imageUrl: '',
+    // KAN-77 Wave B: Commons downloaded_url thumbs —
+    // tools/photo-packs/anegudde-vinayaka-temple/ (not Storage).
+    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2e/KW23-0310-AneguddeVinayaka-TempleChariot_3D.jpg/1280px-KW23-0310-AneguddeVinayaka-TempleChariot_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2e/KW23-0310-AneguddeVinayaka-TempleChariot_3D.jpg/1280px-KW23-0310-AneguddeVinayaka-TempleChariot_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/37/Anegudde_Sri_Vinayaka_Temple_22_08_26_260000.jpeg/1280px-Anegudde_Sri_Vinayaka_Temple_22_08_26_260000.jpeg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/Anegudde_Sri_Vinayaka_Temple_22_08_37_641000.jpeg/1280px-Anegudde_Sri_Vinayaka_Temple_22_08_37_641000.jpeg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/80/Anegudde_Sri_Vinayaka_Temple_22_08_46_945000.jpeg/1280px-Anegudde_Sri_Vinayaka_Temple_22_08_46_945000.jpeg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a7/Sri_Vinayaka_Temple.jpg/1280px-Sri_Vinayaka_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/71/Sri_Vinayaka_Temple_2.jpg/1280px-Sri_Vinayaka_Temple_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Hillock Ganesha temple at Anegudde (Kumbhashi) on the Udupi–Kundapura '
         'NH66 belt, one of coastal Karnataka’s foremost Vinayaka kshetras, with '
@@ -2936,7 +3128,17 @@ const List<Temple> sampleTemples = [
     state: 'Karnataka',
     city: 'Bhagamandala',
     deity: 'Devi',
-    imageUrl: '',
+    // KAN-77 Wave B: Commons downloaded_url thumbs —
+    // tools/photo-packs/talakaveri-temple/ (not Storage).
+    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/41/Thala_Cauvery_%2818125847938%29.jpg/1280px-Thala_Cauvery_%2818125847938%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/41/Thala_Cauvery_%2818125847938%29.jpg/1280px-Thala_Cauvery_%2818125847938%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/16/Thalakauvery-hillview-panorama.jpg/1280px-Thalakauvery-hillview-panorama.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ea/Talacauvery_panorama.jpg/1280px-Talacauvery_panorama.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/57/Mountains_North_Tala_Kaveri_Coorg_India_Feb24_A7C_09525.jpg/1280px-Mountains_North_Tala_Kaveri_Coorg_India_Feb24_A7C_09525.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c8/Brihadeeswara_Temple_Tamilnadu.jpg/1280px-Brihadeeswara_Temple_Tamilnadu.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/44/Sri_Ranganathaswamy_Temple%2C_dedicated_to_Vishnu%2C_in_Srirangam%2C_near_Tiruchirappali_%28151%29_%2837465657406%29.jpg/1280px-Sri_Ranganathaswamy_Temple%2C_dedicated_to_Vishnu%2C_in_Srirangam%2C_near_Tiruchirappali_%28151%29_%2837465657406%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Sacred source shrine of the Kaveri on Brahmagiri at Talakaveri, '
         'centred on the Brahma Kundike spring and Kaveramma worship, with '
@@ -4402,8 +4604,7 @@ const List<Temple> sampleTemples = [
         'against WhatsApp/Facebook impersonators.\n\nJanmashtami, Holi, and '
         'ekadashi observances intensify crowds; confirm festival overrides on '
         'the official site.',
-    location:
-        'Shri Ranchhodraiji Maharaj Mandir, Dakor, Kheda district, Gujarat 388225',
+    location: 'Shri Ranchhodraiji Maharaj Mandir, Dakor, Kheda district, Gujarat 388225',
     timings:
         'Official ranchhodraiji.org Live Darshan board: Mangala aarti/darshan '
         '6:45–8:30 AM; Shringar-bhog darshan 9:00–11:00 AM; Rajbhog 11:30 '
@@ -4498,8 +4699,7 @@ const List<Temple> sampleTemples = [
         'ticketed.\n\nArrive via Ahmedabad airport (~21 km) or Ahmedabad railway '
         '(~32 km). Peak days (Diwali, anniversaries, weekends) mean long '
         'security queues — plan buffer time.',
-    location:
-        'Swaminarayan Akshardham, Sector 20, J Road, Gandhinagar, Gujarat 382020',
+    location: 'Swaminarayan Akshardham, Sector 20, J Road, Gandhinagar, Gujarat 382020',
     timings:
         'Official BAPS Akshardham Gujarat visitor-info: CLOSED every Monday. '
         'Tue–Sun first entry 10:00 AM, last entry 7:30 PM. Mandir darshan 10:00 '
@@ -4918,8 +5118,7 @@ const List<Temple> sampleTemples = [
         'kitchen detail. Timings in secondary guides are commonly ~6:00 AM–9:00 '
         'PM with possible afternoon ritual breaks; Odisha tourism snippets '
         'sometimes list shorter windows — confirm locally.',
-    location:
-        'Sakhigopal (Satyabadi), Puri District, Odisha (Bhubaneswar–Puri highway)',
+    location: 'Sakhigopal (Satyabadi), Puri District, Odisha (Bhubaneswar–Puri highway)',
     timings:
         'Secondary visitor guides commonly list ~6:00 AM–9:00 PM with possible '
         'brief afternoon ritual closure; some Odisha tourism notes cite shorter '
@@ -4967,8 +5166,7 @@ const List<Temple> sampleTemples = [
         'against the official board. Combine spiritually with other Odisha '
         'Shakti circuits (e.g. Biraja, Cuttack Chandi) when planning '
         'Ganjam–coast travel.',
-    location:
-        'Kumari Hills, Purushottampur, Ganjam District, Odisha (Rushikulya river)',
+    location: 'Kumari Hills, Purushottampur, Ganjam District, Odisha (Rushikulya river)',
     timings:
         'Secondary schedules (confirm on taratarini.nic.in / temple board — thin '
         'on fully detailed English pooja clocks): temple often listed ~6:30 '
@@ -5152,8 +5350,7 @@ const List<Temple> sampleTemples = [
     state: 'Uttar Pradesh',
     city: 'Ayodhya',
     deity: 'Vishnu',
-    imageUrl:
-        'https://picsum.photos/seed/ram-mandir-shri-ram-janmabhoomi-temple/800/600',
+    imageUrl: 'https://picsum.photos/seed/ram-mandir-shri-ram-janmabhoomi-temple/800/600',
     description:
         'Large Nagara-style temple complex in Ayodhya dedicated to Ram Lalla '
         '(infant Rama), consecrated in January 2024 and managed by Shri Ram '
@@ -5555,8 +5752,7 @@ const List<Temple> sampleTemples = [
     state: 'Uttar Pradesh',
     city: 'Prayagraj',
     deity: 'Hanuman',
-    imageUrl:
-        'https://picsum.photos/seed/bade-hanuman-ji-temple-lete-hanuman/800/600',
+    imageUrl: 'https://picsum.photos/seed/bade-hanuman-ji-temple-lete-hanuman/800/600',
     description:
         'Unique reclining (lete) Hanuman temple near the Triveni Sangam in '
         'Prayagraj, famous for its colossal recumbent image that can be '
@@ -5643,8 +5839,7 @@ const List<Temple> sampleTemples = [
         'peak crowds. Follow maavaishnodevi.org for live aarti windows, '
         'registration, helicopter/pooja bookings, and security dress rules '
         'before travel.',
-    location:
-        'Bhawan, Trikuta Hills, Katra, Reasi district, Jammu and Kashmir 182301',
+    location: 'Bhawan, Trikuta Hills, Katra, Reasi district, Jammu and Kashmir 182301',
     timings:
         'Official Board practice (maavaishnodevi.org): Bhawan darshan nearly 24 '
         'hours daily; suspended only during twice-daily Atka Aarti (~2 hours '
@@ -6108,7 +6303,6 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
-
   // ═══════════════════════════════════════════════════════════════════════════
   //  MAHARASHTRA
   // ═══════════════════════════════════════════════════════════════════════════
@@ -6208,8 +6402,7 @@ const List<Temple> sampleTemples = [
         'boards on phones and offerings. Confirm the live day-type board '
         'on siddhivinayak.org before travel — festival and Tuesday clocks '
         'override the Wednesday–Monday default.',
-    location:
-        'SK Bole Marg, Prabhadevi, Mumbai, Maharashtra 400028',
+    location: 'SK Bole Marg, Prabhadevi, Mumbai, Maharashtra 400028',
     timings:
         'Official Trust board (siddhivinayak.org/temple-schedule). '
         'Wednesday–Monday: Kakad Aarti 5:30–6:00 AM; Shree Darshan 6:00 '
@@ -6266,8 +6459,7 @@ const List<Temple> sampleTemples = [
         'are among the year’s densest days.\n\nConfirm live clocks and '
         'pass rules on trimbakeshwartrust.com before travel; festival '
         'boards override ordinary hours.',
-    location:
-        'Trimbakeshwar, Nashik district, Maharashtra 422212',
+    location: 'Trimbakeshwar, Nashik district, Maharashtra 422212',
     timings:
         'Official Trust home board: temple open for darshan 05:30 AM–09:00 '
         'PM. Daily programme (Trust): Morning Puja — Puja of Brahma Deva '
@@ -6321,8 +6513,7 @@ const List<Temple> sampleTemples = [
         '(Tripurari tradition), Maha Shivaratri, and Shravan Mondays are '
         'peak.\n\nCombine spiritual visit with monsoon-road and sanctuary '
         'advisories; fog and winding ghat roads affect timing.',
-    location:
-        'Bhimashankar, Khed taluka, Pune district, Maharashtra 410509',
+    location: 'Bhimashankar, Khed taluka, Pune district, Maharashtra 410509',
     timings:
         'Official Devasthan daily board (shreebhimashankar.com/en): Temple '
         'opens 5:00 AM; Worship 5:00–5:30 AM; Darshan & Abhishekam 5:30 '
@@ -6543,8 +6734,7 @@ const List<Temple> sampleTemples = [
         'mornings. Photography inside the sanctum is prohibited; entry is '
         'free with optional booked special poojas.\n\nConfirm festival '
         'boards on mahalakshmi-temple.com before Navratri or Diwali travel.',
-    location:
-        'Bhulabhai Desai Road, Mahalaxmi, Mumbai, Maharashtra 400026',
+    location: 'Bhulabhai Desai Road, Mahalaxmi, Mumbai, Maharashtra 400026',
     timings:
         'Official Trust board (mahalakshmi-temple.com/darshan): Darshan '
         'hours 6:00 AM–10:00 PM daily, but temple remains closed for '
@@ -7250,8 +7440,7 @@ const List<Temple> sampleTemples = [
         'queues. Incredible India supplies the firm public clock used '
         'here; named aarti minutes reported by guide sites are not treated '
         'as authoritative.',
-    location:
-        'Anami Sangha, Kalighat, Kolkata, West Bengal 700026',
+    location: 'Anami Sangha, Kalighat, Kolkata, West Bengal 700026',
     timings:
         'Incredible India: 5:00 AM–2:00 PM and 5:00–10:30 PM daily, with '
         'the temple closed 2:00–5:00 PM. Kali Puja, Poila Baisakh, '
@@ -7297,8 +7486,7 @@ const List<Temple> sampleTemples = [
         'Sandhya Aarti anchors the evening. Dipanwita, Phalaharini and '
         'Ratanti Kali Pujas, Snan Yatra and Kalpataru Utsav are major '
         'observances.',
-    location:
-        'Dakshineswar, Kolkata, West Bengal 700035',
+    location: 'Dakshineswar, Kolkata, West Bengal 700035',
     timings:
         'Official Trust board: public darshan 6:30 AM–12:30 PM and '
         '3:30–7:30 PM. Daily rites: Mangal Aarti 4:00 AM; morning '
@@ -7345,8 +7533,7 @@ const List<Temple> sampleTemples = [
         'and Swami Vivekananda are important observances. The institution '
         'should be categorised as Ramakrishna–Vedanta rather than forced '
         'into a single conventional deity label.',
-    location:
-        'PO Belur Math, Howrah district, West Bengal 711202',
+    location: 'PO Belur Math, Howrah district, West Bengal 711202',
     timings:
         'Official Belur Math campus hours: morning 6:30–11:30 AM; evening '
         'April–September 4:00–9:00 PM and October–March 3:30–8:30 PM. '
@@ -7443,8 +7630,7 @@ const List<Temple> sampleTemples = [
         'Kali shrine. Kali Puja is the major annual festival. The Hooghly '
         'district page is strong for heritage facts but publishes no '
         'worship clock; current split hours remain provisional.',
-    location:
-        'Bansberia, Hooghly district, West Bengal 712502',
+    location: 'Bansberia, Hooghly district, West Bengal 712502',
     timings:
         'Provisional visitor hours commonly reported: about 6:00 AM–11:00 '
         'AM and 4:00–7:00 PM daily. Other current listings extend the '
@@ -7537,8 +7723,7 @@ const List<Temple> sampleTemples = [
         'the largest crowds. Public clocks vary substantially with season '
         'and mela arrangements, so the provisional split schedule below '
         'should not be treated as a permanent official board.',
-    location:
-        'Tarakeswar, Hooghly district, West Bengal 712410',
+    location: 'Tarakeswar, Hooghly district, West Bengal 712410',
     timings:
         'Provisional ordinary-day schedule from current temple guides: '
         'morning darshan approximately 6:00 AM–1:30 PM, followed by an '
@@ -7742,8 +7927,7 @@ const List<Temple> sampleTemples = [
         'Sandhya/Shayan Aarti, sheeghra darshan and pujan bookings, and '
         'follow the reporting time and identification instructions on the '
         'confirmation.',
-    location:
-        'Jaisinghpura, Ujjain, Madhya Pradesh 456006',
+    location: 'Jaisinghpura, Ujjain, Madhya Pradesh 456006',
     timings:
         'Official seasonal aarti board: Bhasma Aarti 4:00–6:00 AM '
         'year-round. Chaitra Krishna Pratipada–Ashwin Purnima: '
@@ -7978,8 +8162,7 @@ const List<Temple> sampleTemples = [
         'conservative provisional listing and verify the current closing '
         'and lamp-lighting time locally; evening aarti shifts with sunset '
         'and festival arrangements.',
-    location:
-        'Harsiddhi Marg, near Rudra Sagar, Ujjain, Madhya Pradesh 456006',
+    location: 'Harsiddhi Marg, near Rudra Sagar, Ujjain, Madhya Pradesh 456006',
     timings:
         'Provisional ordinary-day visiting span: about 5:00 AM–9:00 PM; '
         'local listings disagree, with some citing 7:00 PM or 10:00 PM '
@@ -8025,8 +8208,7 @@ const List<Temple> sampleTemples = [
         'closing around 10:00 PM, with morning decoration/aarti and '
         'evening/shayan observances, but a strong official detailed clock '
         'is not readily available.',
-    location:
-        'Chintaman Road, Fatehabad, Ujjain, Madhya Pradesh 456006',
+    location: 'Chintaman Road, Fatehabad, Ujjain, Madhya Pradesh 456006',
     timings:
         'Provisional daily span: approximately 5:00/6:00 AM–10:00 PM. '
         'Secondary schedules commonly list morning Chola Aarti around '
@@ -8120,8 +8302,7 @@ const List<Temple> sampleTemples = [
         'schedules extend to 9:00 PM. Ropeway operation is separate, '
         'weather-dependent and normally ends before or around temple '
         'closing.',
-    location:
-        'Trikuta Hill, Maihar, Maihar district, Madhya Pradesh 485771',
+    location: 'Trikuta Hill, Maihar, Maihar district, Madhya Pradesh 485771',
     timings:
         'Ministry of Tourism live-darshan listing: 5:30 AM–7:00 PM. Other '
         'guides often claim 5:00 AM–9:00 PM, so treat later hours as '
@@ -8167,8 +8348,7 @@ const List<Temple> sampleTemples = [
         'aarti, pauses after Rajbhog, resumes at Sandhya Aarti, and ends '
         'after Biyari Aarti. The seasonal board is more reliable than '
         'generic “sunrise to sunset” tourism wording.',
-    location:
-        'Ram Raja Temple, Orchha, Niwari district, Madhya Pradesh 472246',
+    location: 'Ram Raja Temple, Orchha, Niwari district, Madhya Pradesh 472246',
     timings:
         'Official seasonal routine. Phagun–Kwar/Kartik (approximately '
         'February–October): morning Aarti 8:00 AM; Rajbhog Chik 12:00 PM; '
@@ -8230,8 +8410,7 @@ const List<Temple> sampleTemples = [
         '10:30 PM. Use only the official Mahavir Mandir sites for donation '
         'information; the Trust warns about unauthorised sites using its '
         'name.',
-    location:
-        'Near Patna Junction railway station, Patna, Bihar 800001',
+    location: 'Near Patna Junction railway station, Patna, Bihar 800001',
     timings:
         'Official Mahavir Mandir board: doors open and morning aarti at '
         '5:00 AM daily; bhog aarti 11:00 AM; afternoon aarti 4:00 PM; '
@@ -8282,8 +8461,7 @@ const List<Temple> sampleTemples = [
         'released. Ram Navami, Maha Shivaratri, and Navratri draw major '
         'crowds. The hill approach and steps require extra time, '
         'particularly for older visitors and during hot weather.',
-    location:
-        'Mundeshwari Hill, Bhagwanpur, Kaimur district, Bihar 821110',
+    location: 'Mundeshwari Hill, Bhagwanpur, Kaimur district, Bihar 821110',
     timings:
         'Bihar Tourism and the district page do not publish a stable '
         'all-season daily clock. Common visitor listings give '
@@ -8334,8 +8512,7 @@ const List<Temple> sampleTemples = [
         'clearly on services and costs before beginning, follow district '
         'mela guidance during Pitrapaksha, and reserve enough time for '
         'riverbank and vedi rituals beyond the main sanctum visit.',
-    location:
-        'Vishnupad Road, on the Phalgu River, Gaya, Bihar 823001',
+    location: 'Vishnupad Road, on the Phalgu River, Gaya, Bihar 823001',
     timings:
         'Bihar Tourism currently presents daily visiting roughly 5:00 '
         'AM–9:00 PM, while some official ready-reckoner material has shown '
@@ -8453,8 +8630,7 @@ const List<Temple> sampleTemples = [
         'PM and some visitor sources show a midday break. Treat the '
         'official tourism windows as planning boundaries, but confirm the '
         'actual day’s opening and ritual closures locally.',
-    location:
-        'Badi Patan Devi, Sadikpur, Patna City, Patna, Bihar 800007',
+    location: 'Badi Patan Devi, Sadikpur, Patna City, Patna, Bihar 800007',
     timings:
         'Conflicting government tourism listings: Bihar Tourism’s Patna '
         'overview gives 5:00 AM–10:00 PM; Incredible India gives opening '
@@ -8503,8 +8679,7 @@ const List<Temple> sampleTemples = [
         'commercial listings publish incompatible split clocks and aarti '
         'minutes, so they should not be treated as authoritative. An early '
         'morning visit is best for the climb and quieter darshan.',
-    location:
-        'Mangala Gauri Hill, Gaya, Bihar 823001',
+    location: 'Mangala Gauri Hill, Gaya, Bihar 823001',
     timings:
         'Bihar Tourism gives a broad sunrise-to-sunset visiting span '
         'rather than fixed all-season minutes. Secondary sources variously '
@@ -8600,8 +8775,7 @@ const List<Temple> sampleTemples = [
         'guides publish longer days. Use the Bihar Tourism span for '
         'ordinary planning and verify locally before dawn worship or any '
         'evening visit.',
-    location:
-        'Deo, Aurangabad district, Bihar 824202',
+    location: 'Deo, Aurangabad district, Bihar 824202',
     timings:
         'Bihar Tourism currently lists approximately 6:00 AM–6:00 PM for '
         'ordinary visits, with worship focused around sunrise and sunset. '
@@ -8650,8 +8824,7 @@ const List<Temple> sampleTemples = [
         'they broadly place worship from early morning into the evening. '
         'The district page is strong for identity and access, not for '
         'ritual minutes.',
-    location:
-        'Shri Ugratara Sthan, Mahishi, Saharsa district, Bihar 852216',
+    location: 'Shri Ugratara Sthan, Mahishi, Saharsa district, Bihar 852216',
     timings:
         'Thin official clock. The Saharsa district and Bihar Tourism pages '
         'identify the shrine but do not publish a daily timetable. '
@@ -8699,8 +8872,7 @@ const List<Temple> sampleTemples = [
         'visitors should re-check on festival dates. The birthplace '
         'identification is a revered local tradition and should be phrased '
         'as such, not as an archaeological certainty.',
-    location:
-        'Punaura Dham, Punaura, Sitamarhi district, Bihar 843302',
+    location: 'Punaura Dham, Punaura, Sitamarhi district, Bihar 843302',
     timings:
         'Bihar Tourism lists Punaura Dham visiting hours as 6:00 AM–6:00 '
         'PM. Some local / directory listings show longer split sessions, '
