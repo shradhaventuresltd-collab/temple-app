@@ -223,17 +223,27 @@ SiteFraming _framing(String corpus) {
   return SiteFraming.neutral;
 }
 
-SiteTradition _tradition(Temple temple) {
-  final deity = temple.deity.toLowerCase();
-  if (RegExp(r'\b(jain|tirthankaras?)\b').hasMatch(deity)) {
+/// Tradition named by a deity string alone.
+///
+/// Name, story, and description are not read. [_tradition] still checks those
+/// when the deity field itself does not say.
+SiteTradition traditionFromDeityText(String deity) {
+  final lower = deity.toLowerCase();
+  if (RegExp(r'\b(jain|tirthankaras?)\b').hasMatch(lower)) {
     return SiteTradition.jain;
   }
-  if (RegExp(r'\b(buddha|buddhist)\b').hasMatch(deity)) {
+  if (RegExp(r'\b(buddha|buddhist)\b').hasMatch(lower)) {
     return SiteTradition.buddhist;
   }
-  if (RegExp(r'\b(sikh|gurdwara|gurudwara|guru nanak)\b').hasMatch(deity)) {
+  if (RegExp(r'\b(sikh|gurdwara|gurudwara|guru nanak)\b').hasMatch(lower)) {
     return SiteTradition.sikh;
   }
+  return SiteTradition.unspecified;
+}
+
+SiteTradition _tradition(Temple temple) {
+  final fromDeity = traditionFromDeityText(temple.deity);
+  if (fromDeity != SiteTradition.unspecified) return fromDeity;
 
   final name = temple.name.toLowerCase();
   if (name.contains('gurdwara') || name.contains('gurudwara')) {

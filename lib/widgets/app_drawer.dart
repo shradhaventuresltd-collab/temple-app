@@ -6,8 +6,10 @@ import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/temple_detail_screen.dart';
 import 'package:temple_app/services/interstitial_ad_manager.dart';
 import 'package:temple_app/services/temple_service.dart';
+import 'package:temple_app/utils/directory_filters.dart';
 import 'package:temple_app/utils/temple_search.dart';
 import 'package:temple_app/widgets/banner_ad_widget.dart';
+import 'package:temple_app/widgets/directory_filter_bar.dart';
 import 'package:temple_app/widgets/temple_browse_card.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -25,85 +27,6 @@ class _AppDrawerState extends State<AppDrawer> {
   static const Color _saffron = Color(0xFFFF8F00);
   static const Color _deepSaffron = Color(0xFFE65100);
   static const Color _gold = Color(0xFFFFD54F);
-
-  static const _states = [
-    'Tamil Nadu',
-    'Kerala',
-    'Karnataka',
-    'Andhra Pradesh',
-    'Telangana',
-    'Gujarat',
-    'Odisha',
-    'Uttar Pradesh',
-    'Jammu and Kashmir',
-    'Maharashtra',
-    'Rajasthan',
-    'West Bengal',
-    'Madhya Pradesh',
-    'Bihar',
-    'Himachal Pradesh',
-  ];
-  static const _deities = [
-    'Shiva',
-    'Vishnu',
-    'Devi',
-    'Murugan',
-    'Ganesha',
-    'Surya',
-    'Hanuman',
-    'Swaminarayan',
-    'Gorakhnath',
-    'Sai Baba',
-    'Vitthal',
-    'Khandoba',
-    'Brahma',
-    'Jain Tirthankaras',
-    'Devi (Kali)',
-    'Devi (Bhavatarini Kali)',
-    'Sri Ramakrishna (Ramakrishna–Vedanta tradition)',
-    'Devi (Tara)',
-    'Devi (Hangseshwari Kali)',
-    'Radha-Madhava / Pancha-tattva (Gaudiya Vaishnavism)',
-    'Shiva (Taraknath)',
-    'Vishnu (Radha-Krishna / Lakshminarayan)',
-    'Devi (Kiriteswari / Mahishamardini)',
-    'Kapil Muni',
-    'Vishnu/Rama',
-    'Buddha',
-    'Sita (Devi)',
-  ];
-
-  static const _deityIcons = {
-    'Shiva': Icons.brightness_3_rounded,
-    'Vishnu': Icons.water_drop_rounded,
-    'Devi': Icons.auto_awesome_rounded,
-    'Murugan': Icons.shield_rounded,
-    'Ganesha': Icons.spa_rounded,
-    'Surya': Icons.wb_sunny_rounded,
-    'Hanuman': Icons.back_hand_rounded,
-    'Swaminarayan': Icons.account_balance_rounded,
-    'Gorakhnath': Icons.self_improvement_rounded,
-    'Sai Baba': Icons.person_rounded,
-    'Vitthal': Icons.favorite_rounded,
-    'Khandoba': Icons.shield_rounded,
-    'Brahma': Icons.filter_vintage_rounded,
-    'Jain Tirthankaras': Icons.account_balance_rounded,
-    'Devi (Kali)': Icons.auto_awesome_rounded,
-    'Devi (Bhavatarini Kali)': Icons.auto_awesome_rounded,
-    'Sri Ramakrishna (Ramakrishna–Vedanta tradition)':
-        Icons.self_improvement_rounded,
-    'Devi (Tara)': Icons.auto_awesome_rounded,
-    'Devi (Hangseshwari Kali)': Icons.auto_awesome_rounded,
-    'Radha-Madhava / Pancha-tattva (Gaudiya Vaishnavism)':
-        Icons.favorite_rounded,
-    'Shiva (Taraknath)': Icons.brightness_3_rounded,
-    'Vishnu (Radha-Krishna / Lakshminarayan)': Icons.water_drop_rounded,
-    'Devi (Kiriteswari / Mahishamardini)': Icons.auto_awesome_rounded,
-    'Kapil Muni': Icons.self_improvement_rounded,
-    'Vishnu/Rama': Icons.water_drop_rounded,
-    'Buddha': Icons.spa_rounded,
-    'Sita (Devi)': Icons.auto_awesome_rounded,
-  };
 
   String? _selectedState;
   String? _selectedDeity;
@@ -178,20 +101,6 @@ class _AppDrawerState extends State<AppDrawer> {
       future: _templesFuture,
       builder: (context, snapshot) {
         final all = snapshot.data ?? [];
-
-        final stateCounts = <String, int>{};
-        for (final t in all) {
-          stateCounts[t.state] = (stateCounts[t.state] ?? 0) + 1;
-        }
-
-        // Deity counts reflect selected state if any
-        final deityPool = _selectedState != null
-            ? all.where((t) => t.state == _selectedState)
-            : all;
-        final deityCounts = <String, int>{};
-        for (final t in deityPool) {
-          deityCounts[t.deity] = (deityCounts[t.deity] ?? 0) + 1;
-        }
 
         final filtered = filterTemples(
           all,
@@ -311,64 +220,23 @@ class _AppDrawerState extends State<AppDrawer> {
                   ),
                 ),
 
-              // ── State filter ──
-              _SectionHeader(
-                label: 'FILTER BY STATE',
-                trailing: _selectedState != null
-                    ? _ClearChip(
-                        onTap: () => setState(() {
-                          _selectedState = null;
-                          // Reset deity if it has 0 count without state filter
-                          if (_selectedDeity != null) {
-                            final globalDeityCount = all
-                                .where((t) => t.deity == _selectedDeity)
-                                .length;
-                            if (globalDeityCount == 0) _selectedDeity = null;
-                          }
-                        }),
-                      )
-                    : null,
-              ),
-              for (final state in _states)
-                _FilterTile(
-                  label: state,
-                  icon: Icons.location_on_rounded,
-                  count: stateCounts[state] ?? 0,
-                  selected: _selectedState == state,
-                  onTap: () => setState(() {
-                    _selectedState = _selectedState == state ? null : state;
+              // ── State + deity chips (sheet). Same control as the browse list. ──
+              _SectionHeader(label: 'FILTERS'),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 0, 8, 4),
+                child: DirectoryFilterBar(
+                  temples: all,
+                  query: _appliedQuery,
+                  selectedState: _selectedState,
+                  selectedDeity: _selectedDeity,
+                  onChanged: (state, deity) => setState(() {
+                    _selectedState = state;
+                    _selectedDeity = deity;
                   }),
                 ),
-
-              const Divider(height: 20, indent: 18, endIndent: 18),
-
-              // ── Deity filter ──
-              _SectionHeader(
-                label: _selectedState != null
-                    ? 'DEITY IN ${_selectedState!.toUpperCase()}'
-                    : 'FILTER BY DEITY',
-                trailing: _selectedDeity != null
-                    ? _ClearChip(
-                        onTap: () => setState(() => _selectedDeity = null),
-                      )
-                    : null,
               ),
-              for (final deity in _deities)
-                _FilterTile(
-                  label: '$deity Temples',
-                  icon: _deityIcons[deity] ?? Icons.circle,
-                  count: deityCounts[deity] ?? 0,
-                  selected: _selectedDeity == deity,
-                  onTap: (deityCounts[deity] ?? 0) > 0
-                      ? () => setState(() {
-                          _selectedDeity = _selectedDeity == deity
-                              ? null
-                              : deity;
-                        })
-                      : null,
-                ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
 
               // ── Browse button ──
               if (hasFilter)
@@ -494,14 +362,6 @@ class _AppDrawerState extends State<AppDrawer> {
     );
   }
 
-  String get _filterLabel {
-    final parts = <String>[];
-    if (_selectedDeity != null) parts.add(_selectedDeity!);
-    if (_selectedState != null) parts.add(_selectedState!);
-    if (parts.isEmpty) return 'All Temples';
-    return parts.join(' · ');
-  }
-
   String get _summaryLabel {
     final parts = <String>[];
     if (_selectedDeity != null) parts.add(_selectedDeity!);
@@ -514,7 +374,7 @@ class _AppDrawerState extends State<AppDrawer> {
 
   String _browseTitle() {
     if (_selectedState == null && _selectedDeity == null) return 'Search';
-    return _filterLabel;
+    return directoryBrowseTitle(state: _selectedState, deity: _selectedDeity);
   }
 
   String _matchButtonLabel(int count) {
@@ -533,16 +393,13 @@ class _AppDrawerState extends State<AppDrawer> {
     _appliedQuery = query;
     _showClear = query.isNotEmpty;
     _hasDraft = query.trim().isNotEmpty;
-    final base = filterTemples(
-      all,
-      state: _selectedState,
-      deity: _selectedDeity,
-    );
     _navigateToList(
       context,
-      base,
+      all,
       _browseTitle(),
       initialQuery: query,
+      stateFilter: _selectedState,
+      deityFilter: _selectedDeity,
       directory: directory,
     );
   }
@@ -552,6 +409,8 @@ class _AppDrawerState extends State<AppDrawer> {
     List<Temple> temples,
     String title, {
     String initialQuery = '',
+    String? stateFilter,
+    String? deityFilter,
     required AsyncSnapshot<List<Temple>> directory,
   }) {
     final waiting = directory.connectionState == ConnectionState.waiting;
@@ -565,8 +424,8 @@ class _AppDrawerState extends State<AppDrawer> {
           title: title,
           initialQuery: initialQuery,
           templesFuture: waiting ? _templesFuture : null,
-          stateFilter: waiting ? _selectedState : null,
-          deityFilter: waiting ? _selectedDeity : null,
+          stateFilter: stateFilter,
+          deityFilter: deityFilter,
           loadFailed: failed,
         ),
       ),
@@ -600,8 +459,8 @@ class TempleListScreen extends StatefulWidget {
   /// that same fetch instead of showing an empty directory.
   final Future<List<Temple>>? templesFuture;
 
-  /// Applied only when [templesFuture] resolves. Already-loaded lists arrive
-  /// pre-filtered.
+  /// Chips selected when the list opens. [temples] stays the loaded directory;
+  /// the list filters it on the device.
   final String? stateFilter;
   final String? deityFilter;
 
@@ -617,11 +476,23 @@ class _TempleListScreenState extends State<TempleListScreen> {
 
   final InterstitialAdManager _interstitialAdManager = InterstitialAdManager();
   int _templeOpenCount = 0;
+  late String _title;
 
   @override
   void initState() {
     super.initState();
+    _title = widget.title;
     _interstitialAdManager.loadAd();
+  }
+
+  void _onFiltersChanged(String? state, String? deity) {
+    final next = state == null &&
+            deity == null &&
+            widget.initialQuery.trim().isNotEmpty
+        ? 'Search'
+        : directoryBrowseTitle(state: state, deity: deity);
+    if (next == _title) return;
+    setState(() => _title = next);
   }
 
   @override
@@ -650,7 +521,7 @@ class _TempleListScreenState extends State<TempleListScreen> {
         elevation: 0,
         centerTitle: true,
         title: Text(
-          widget.title,
+          _title,
           style: GoogleFonts.lora(
             fontWeight: FontWeight.w700,
             letterSpacing: 0.3,
@@ -687,6 +558,9 @@ class _TempleListScreenState extends State<TempleListScreen> {
       return TempleBrowseList(
         temples: widget.temples,
         initialQuery: widget.initialQuery,
+        initialState: widget.stateFilter,
+        initialDeity: widget.deityFilter,
+        onFiltersChanged: _onFiltersChanged,
         onTempleTap: _onTempleTap,
         footer: const BannerAdWidget(),
       );
@@ -699,6 +573,8 @@ class _TempleListScreenState extends State<TempleListScreen> {
           return TempleBrowseList(
             temples: const [],
             initialQuery: widget.initialQuery,
+            initialState: widget.stateFilter,
+            initialDeity: widget.deityFilter,
             isLoading: true,
             onTempleTap: _onTempleTap,
           );
@@ -711,14 +587,12 @@ class _TempleListScreenState extends State<TempleListScreen> {
             onTempleTap: _onTempleTap,
           );
         }
-        final base = filterTemples(
-          snapshot.data ?? const [],
-          state: widget.stateFilter,
-          deity: widget.deityFilter,
-        );
         return TempleBrowseList(
-          temples: base,
+          temples: snapshot.data ?? const [],
           initialQuery: widget.initialQuery,
+          initialState: widget.stateFilter,
+          initialDeity: widget.deityFilter,
+          onFiltersChanged: _onFiltersChanged,
           onTempleTap: _onTempleTap,
           footer: const BannerAdWidget(),
         );
@@ -736,15 +610,22 @@ class TempleBrowseList extends StatefulWidget {
     super.key,
     required this.temples,
     this.initialQuery = '',
+    this.initialState,
+    this.initialDeity,
+    this.onFiltersChanged,
     this.onTempleTap,
     this.footer,
     this.isLoading = false,
     this.loadFailed = false,
   });
 
-  /// Temples already limited by state/deity (or the full directory).
+  /// Directory already loaded for this screen. State and deity chips filter
+  /// it on the device.
   final List<Temple> temples;
   final String initialQuery;
+  final String? initialState;
+  final String? initialDeity;
+  final void Function(String? state, String? deity)? onFiltersChanged;
   final ValueChanged<Temple>? onTempleTap;
 
   /// Banner slot under the cards when at least one temple is visible.
@@ -764,12 +645,16 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
   Timer? _searchDebounce;
   String _appliedQuery = '';
   bool _showClear = false;
+  String? _selectedState;
+  String? _selectedDeity;
 
   @override
   void initState() {
     super.initState();
     _appliedQuery = widget.initialQuery;
     _showClear = widget.initialQuery.isNotEmpty;
+    _selectedState = widget.initialState;
+    _selectedDeity = widget.initialDeity;
     _searchController = TextEditingController(text: widget.initialQuery);
   }
 
@@ -815,10 +700,25 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
     });
   }
 
+  void _setFilters(String? state, String? deity) {
+    setState(() {
+      _selectedState = state;
+      _selectedDeity = deity;
+    });
+    widget.onFiltersChanged?.call(state, deity);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final visible = filterTemples(widget.temples, query: _appliedQuery);
+    final visible = filterTemples(
+      widget.temples,
+      state: _selectedState,
+      deity: _selectedDeity,
+      query: _appliedQuery,
+    );
     final query = _appliedQuery.trim();
+    final filtersActive = _selectedState != null || _selectedDeity != null;
+    final showFilterBar = !widget.isLoading && !widget.loadFailed;
 
     return Align(
       alignment: Alignment.topCenter,
@@ -837,7 +737,18 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
                 showClear: _showClear,
               ),
             ),
-            if (query.isNotEmpty && visible.isNotEmpty)
+            if (showFilterBar)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 10, 8, 0),
+                child: DirectoryFilterBar(
+                  temples: widget.temples,
+                  query: _appliedQuery,
+                  selectedState: _selectedState,
+                  selectedDeity: _selectedDeity,
+                  onChanged: _setFilters,
+                ),
+              ),
+            if ((query.isNotEmpty || filtersActive) && visible.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
                 child: Align(
@@ -852,7 +763,9 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
                   ),
                 ),
               ),
-            Expanded(child: _browseBody(visible, query)),
+            Expanded(
+              child: _browseBody(visible, query, filtersActive: filtersActive),
+            ),
             if (visible.isNotEmpty &&
                 !widget.isLoading &&
                 !widget.loadFailed &&
@@ -867,7 +780,11 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
     );
   }
 
-  Widget _browseBody(List<Temple> visible, String query) {
+  Widget _browseBody(
+    List<Temple> visible,
+    String query, {
+    required bool filtersActive,
+  }) {
     if (widget.isLoading) {
       return const _BrowseMessage(
         progress: true,
@@ -885,7 +802,9 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
     if (visible.isEmpty) {
       return _SearchEmptyState(
         query: query,
-        onClear: query.isEmpty ? null : _clearSearch,
+        filtersActive: filtersActive,
+        onClearSearch: query.isEmpty ? null : _clearSearch,
+        onClearFilters: filtersActive ? () => _setFilters(null, null) : null,
       );
     }
     return ListView.separated(
@@ -965,28 +884,51 @@ class _DirectorySearchField extends StatelessWidget {
 }
 
 class _SearchEmptyState extends StatelessWidget {
-  const _SearchEmptyState({required this.query, this.onClear});
+  const _SearchEmptyState({
+    required this.query,
+    this.filtersActive = false,
+    this.onClearSearch,
+    this.onClearFilters,
+  });
 
   final String query;
-  final VoidCallback? onClear;
+  final bool filtersActive;
+  final VoidCallback? onClearSearch;
+  final VoidCallback? onClearFilters;
 
   @override
   Widget build(BuildContext context) {
     final searching = query.isNotEmpty;
+    final title = filtersActive && searching
+        ? 'No temples match these filters and "$query".'
+        : filtersActive
+        ? 'No temples match these filters.'
+        : searching
+        ? 'No temples match "$query".'
+        : 'No temples to browse';
+    final message = filtersActive && searching
+        ? 'Clear the filters or the search. The list is the directory already loaded.'
+        : filtersActive
+        ? 'Nothing in the loaded directory fits this state and deity.'
+        : searching
+        ? 'Try a name, city, state, deity, or address.'
+        : 'Nothing is listed in this view yet.';
+    final icon = filtersActive
+        ? Icons.filter_alt_off_rounded
+        : searching
+        ? Icons.search_off_rounded
+        : Icons.temple_hindu_rounded;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              searching ? Icons.search_off_rounded : Icons.temple_hindu_rounded,
-              size: 56,
-              color: Colors.brown.shade300,
-            ),
+            Icon(icon, size: 56, color: Colors.brown.shade300),
             const SizedBox(height: 12),
             Text(
-              searching ? 'No temples match "$query".' : 'No temples to browse',
+              title,
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 color: Colors.brown.shade700,
@@ -995,18 +937,32 @@ class _SearchEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              searching
-                  ? 'Try a name, city, state, deity, or address.'
-                  : 'Nothing is listed in this view yet.',
+              message,
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 fontSize: 13,
                 color: Colors.brown.shade400,
               ),
             ),
-            if (searching) ...[
+            if (onClearFilters != null || onClearSearch != null) ...[
               const SizedBox(height: 12),
-              TextButton(onPressed: onClear, child: const Text('Clear search')),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 8,
+                children: [
+                  if (onClearFilters != null)
+                    TextButton(
+                      key: const Key('filter-empty-clear'),
+                      onPressed: onClearFilters,
+                      child: const Text('Clear filters'),
+                    ),
+                  if (onClearSearch != null)
+                    TextButton(
+                      onPressed: onClearSearch,
+                      child: const Text('Clear search'),
+                    ),
+                ],
+              ),
             ],
           ],
         ),
@@ -1070,139 +1026,21 @@ class _BrowseMessage extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.label, this.trailing});
+  const _SectionHeader({required this.label});
   final String label;
-  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 14, 18, 6),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: GoogleFonts.poppins(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w700,
-                color: Colors.brown.shade400,
-                letterSpacing: 1.2,
-              ),
-            ),
-          ),
-          ?trailing,
-        ],
-      ),
-    );
-  }
-}
-
-class _ClearChip extends StatelessWidget {
-  const _ClearChip({required this.onTap});
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        decoration: BoxDecoration(
-          color: const Color(0xFFE65100).withAlpha(20),
-          borderRadius: BorderRadius.circular(8),
+      child: Text(
+        label,
+        style: GoogleFonts.poppins(
+          fontSize: 11.5,
+          fontWeight: FontWeight.w700,
+          color: Colors.brown.shade400,
+          letterSpacing: 1.2,
         ),
-        child: Text(
-          'clear',
-          style: GoogleFonts.poppins(
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFFE65100),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FilterTile extends StatelessWidget {
-  const _FilterTile({
-    required this.label,
-    required this.icon,
-    required this.count,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final int count;
-  final bool selected;
-  final VoidCallback? onTap;
-
-  static const _saffron = Color(0xFFFF8F00);
-
-  @override
-  Widget build(BuildContext context) {
-    final disabled = onTap == null;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-      child: ListTile(
-        dense: true,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        tileColor: selected ? const Color(0xFFFFF3D8) : null,
-        leading: Icon(
-          icon,
-          size: 20,
-          color: disabled
-              ? Colors.brown.shade200
-              : selected
-              ? _saffron
-              : Colors.brown.shade400,
-        ),
-        title: Text(
-          label,
-          style: GoogleFonts.poppins(
-            fontSize: 14.5,
-            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-            color: disabled
-                ? Colors.brown.shade300
-                : selected
-                ? _saffron
-                : Colors.brown.shade800,
-          ),
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: selected
-                    ? _saffron.withAlpha(30)
-                    : Colors.brown.shade100,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                '$count',
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: disabled
-                      ? Colors.brown.shade300
-                      : selected
-                      ? _saffron
-                      : Colors.brown.shade500,
-                ),
-              ),
-            ),
-            if (selected) ...[
-              const SizedBox(width: 6),
-              const Icon(Icons.check_circle_rounded, color: _saffron, size: 20),
-            ],
-          ],
-        ),
-        onTap: onTap,
       ),
     );
   }
