@@ -129,9 +129,21 @@ void main() {
       expect(url.contains('picsum'), isFalse);
     }
 
-    final picsumCover = sampleTemples.firstWhere(
+    final brihad = sampleTemples.firstWhere(
       (t) => t.name == 'Brihadeeswarar Temple',
     );
+    final brihadFresh = seedImageFieldsWithPack(
+      bundledImageUrl: brihad.imageUrl,
+      bundledImages: brihad.images,
+    );
+    expect(brihadFresh['imageUrl'], brihad.imageUrl);
+    expect(brihadFresh['images'], brihad.images);
+    expect((brihadFresh['images'] as List).length, 6);
+
+    final picsumCover = sampleTemples.firstWhere(
+      (t) => t.name == 'Anjengo Sree Durga Devi Temple',
+    );
+    expect(picsumCover.imageUrl, contains('picsum.photos'));
     expect(
       seedImageFieldsWithPack(
         bundledImageUrl: picsumCover.imageUrl,

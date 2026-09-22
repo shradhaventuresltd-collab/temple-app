@@ -1,0 +1,89 @@
+{
+  "temple_slug": "nellaiappar-temple-tirunelveli",
+  "temple_name": "Nellaiappar Temple",
+  "doc_id_hint": "nellaiappar-temple-tirunelveli",
+  "city": "Tirunelveli",
+  "state": "Tamil Nadu",
+  "tradition_note": "Shiva temple",
+  "photos": [
+    {
+      "filename": "01_Nellaiappar_Temple_48410.jpg",
+      "commons_title": "File:Nellaiappar Temple (48410).jpg",
+      "author": "Manukrishnan80",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ANellaiappar_Temple_%2848410%29.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/27/Nellaiappar_Temple_%2848410%29.jpg/1280px-Nellaiappar_Temple_%2848410%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 668734,
+      "width": 1280,
+      "height": 1707,
+      "notes": "Nellaiappar Temple"
+    },
+    {
+      "filename": "02_NELLAIAPPAR_TEMPLE_02.jpg",
+      "commons_title": "File:NELLAIAPPAR TEMPLE 02.jpg",
+      "author": "Vishucm",
+      "license": "Public domain",
+      "license_url": "",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ANELLAIAPPAR_TEMPLE_02.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c5/NELLAIAPPAR_TEMPLE_02.jpg/1280px-NELLAIAPPAR_TEMPLE_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 752167,
+      "width": 1280,
+      "height": 3652,
+      "notes": "Pillar at Nellaiappar Temple Tirunelveli, musical pillar"
+    },
+    {
+      "filename": "03_Thamira_saba-Nellaiappar_Temple.jpg",
+      "commons_title": "File:Thamira saba-Nellaiappar Temple.jpg",
+      "author": "Booradleyp1",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AThamira_saba-Nellaiappar_Temple.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cc/Thamira_saba-Nellaiappar_Temple.jpg/1280px-Thamira_saba-Nellaiappar_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 245185,
+      "width": 1280,
+      "height": 960,
+      "notes": "Thamira Saba, Nellaiappar Temple"
+    },
+    {
+      "filename": "04_Natarajar_Sannithi_Nellaiappar_Temple.jpg",
+      "commons_title": "File:Natarajar Sannithi, Nellaiappar Temple.jpg",
+      "author": "Booradleyp1",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ANatarajar_Sannithi%2C_Nellaiappar_Temple.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0d/Natarajar_Sannithi%2C_Nellaiappar_Temple.jpg/1280px-Natarajar_Sannithi%2C_Nellaiappar_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 671335,
+      "width": 1280,
+      "height": 1707,
+      "notes": "Natarajar Sannithi, Nellaiappar Temple"
+    },
+    {
+      "filename": "05_Nellaiappar_temple_tower.jpg",
+      "commons_title": "File:Nellaiappar temple tower.jpg",
+      "author": "Theni.M.Subramani",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ANellaiappar_temple_tower.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9a/Nellaiappar_temple_tower.jpg/1280px-Nellaiappar_temple_tower.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 350896,
+      "width": 1280,
+      "height": 864,
+      "notes": "Tirunelveli Nellaiappar Temple Tower"
+    },
+    {
+      "filename": "06_Nellaiappar_Temple10.jpg",
+      "commons_title": "File:Nellaiappar Temple10.jpg",
+      "author": "Ssriram mt",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ANellaiappar_Temple10.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f0/Nellaiappar_Temple10.jpg/1280px-Nellaiappar_Temple10.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 701470,
+      "width": 1280,
+      "height": 1707,
+      "notes": "Nellaiappar Temple"
+    }
+  ],
+  "seed_document_id": "nellaiappar-temple"
+}

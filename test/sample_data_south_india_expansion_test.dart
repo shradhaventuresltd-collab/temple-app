@@ -54,6 +54,13 @@ void main() {
       expectedMeta: expectedMeta,
       latRange: (8.0, 14.0),
       lngRange: (76.0, 81.0),
+      commonsSlugs: expected.keys
+          .where(
+            (id) =>
+                id != 'kanyakumari-bhagavathi-amman-temple' &&
+                id != 'subramanya-swamy-temple',
+          )
+          .toSet(),
     );
   });
 
@@ -102,6 +109,7 @@ void main() {
       expectedMeta: expectedMeta,
       latRange: (8.0, 12.5),
       lngRange: (74.5, 78.0),
+      commonsSlugs: expected.keys.toSet(),
     );
   });
 
@@ -172,14 +180,13 @@ void main() {
 
     final vaitheeswaran = named('Vaitheeswaran Koil');
     expect(vaitheeswaran.timings.toLowerCase(), contains('thin'));
+    expect(vaitheeswaran.imageUrl, contains('wikimedia.org'));
 
     // Seed / CMS payload must not grow trip_planning or research-only keys.
     for (final temple in [
       halebidu,
       belur,
       banashankari,
-      named('Sri Ranganathaswamy Temple'),
-      named('Vadakkunnathan Temple'),
     ]) {
       final map = temple.toFirestoreData(
         documentId: templeDocumentId(temple.name),
@@ -209,6 +216,22 @@ void main() {
         '',
       );
     }
+
+    for (final temple in [
+      named('Sri Ranganathaswamy Temple'),
+      named('Vadakkunnathan Temple'),
+    ]) {
+      final map = temple.toFirestoreData(
+        documentId: templeDocumentId(temple.name),
+      );
+      expect(map.containsKey('trip_planning'), isFalse);
+      expect(map.containsKey('photo_candidates'), isFalse);
+      expect(map.containsKey('sources'), isFalse);
+      expect(map.containsKey('rituals_notes'), isFalse);
+      expect(map['imageUrl'], contains('wikimedia.org'));
+      expect((map['imageUrl'] as String).contains('picsum'), isFalse);
+      expect(map['images'], temple.images);
+    }
   });
 }
 
@@ -220,6 +243,7 @@ void _assertExpansionRows(
   required (double, double) lngRange,
   bool commonsPhotoPack = false,
   Set<String> photoPendingIds = const {},
+  Set<String> commonsSlugs = const {},
 }) {
   final slugs = rows.map((t) => templeDocumentId(t.name)).toList();
   expect(slugs.toSet(), expected.keys.toSet());
@@ -244,19 +268,25 @@ void _assertExpansionRows(
     }
     expect(temple.latitude, inInclusiveRange(latRange.$1, latRange.$2));
     expect(temple.longitude, inInclusiveRange(lngRange.$1, lngRange.$2));
-    final awaitingResearch = photoPendingIds.contains(id);
-    if (commonsPhotoPack && !awaitingResearch) {
-      // KAN-77 Wave B: Commons thumbs, never picsum or invented Storage URLs.
-      expect(temple.imageUrl.contains('picsum'), isFalse);
-      expect(temple.imageUrl, contains('wikimedia.org'));
-      expect(temple.imageUrl.contains('firebasestorage'), isFalse);
-      expect(temple.imageUrl.contains('storage.googleapis.com'), isFalse);
-      expect(temple.images, isNotEmpty);
-      expect(temple.imageUrl, temple.images.first);
+    final useCommons =
+        commonsSlugs.contains(id) ||
+        (commonsPhotoPack && !photoPendingIds.contains(id));
+    if (useCommons) {
+      // KAN-77 Wave A and Wave B: Commons thumbs, never picsum or Storage URLs.
+      expect(temple.imageUrl.contains('picsum'), isFalse, reason: id);
+      expect(temple.imageUrl, contains('wikimedia.org'), reason: id);
+      expect(temple.imageUrl.contains('firebasestorage'), isFalse, reason: id);
+      expect(
+        temple.imageUrl.contains('storage.googleapis.com'),
+        isFalse,
+        reason: id,
+      );
+      expect(temple.images.length, greaterThanOrEqualTo(5), reason: id);
+      expect(temple.imageUrl, temple.images.first, reason: id);
     } else {
       // Hybrid C honesty: no invented picsum / Storage covers for this wave.
-      expect(temple.imageUrl, isEmpty);
-      expect(temple.images, isEmpty);
+      expect(temple.imageUrl, isEmpty, reason: id);
+      expect(temple.images, isEmpty, reason: id);
     }
 
     final map = temple.toFirestoreData(documentId: id);
@@ -271,11 +301,9 @@ void _assertExpansionRows(
     expect(parsed.name, temple.name);
     expect(parsed.state, temple.state);
     expect(parsed.location, temple.location);
-    if (commonsPhotoPack && !photoPendingIds.contains(id)) {
-      expect(parsed.imageUrl, temple.imageUrl);
+    expect(parsed.imageUrl, temple.imageUrl);
+    if (useCommons) {
       expect(parsed.images, temple.images);
-    } else {
-      expect(parsed.imageUrl, isEmpty);
     }
   }
 }

@@ -1,0 +1,75 @@
+{
+  "temple_slug": "sabarimala-ayyappan-temple",
+  "temple_name": "Sabarimala Ayyappan Temple",
+  "doc_id_hint": "sabarimala-ayyappan-temple",
+  "city": "Pathanamthitta",
+  "state": "Kerala",
+  "tradition_note": "Sabarimala Ayyappa pilgrimage temple",
+  "photos": [
+    {
+      "filename": "01_Sabarimala.jpg",
+      "commons_title": "File:Sabarimala.jpg",
+      "author": "Tmppn",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ASabarimala.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/05/Sabarimala.jpg/1280px-Sabarimala.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 547399,
+      "width": 1280,
+      "height": 956,
+      "notes": "Sabarimala Ayyappa pilgrimage temple"
+    },
+    {
+      "filename": "02_Sabarimala_1.jpg",
+      "commons_title": "File:Sabarimala 1.jpg",
+      "author": "Saisumanth532",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ASabarimala_1.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/Sabarimala_Garbhagudi.jpg/1280px-Sabarimala_Garbhagudi.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 254452,
+      "width": 1280,
+      "height": 720,
+      "notes": "Sabarimala Ayyappa pilgrimage temple"
+    },
+    {
+      "filename": "03_Sabarimala_3.jpg",
+      "commons_title": "File:Sabarimala 3.jpg",
+      "author": "Dhinakar01",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ASabarimala_3.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5e/Sabarimala_3.jpg/1280px-Sabarimala_3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 483267,
+      "width": 1280,
+      "height": 960,
+      "notes": "Sabarimala Ayyappa pilgrimage temple"
+    },
+    {
+      "filename": "04_Sabarimala_4.jpg",
+      "commons_title": "File:Sabarimala 4.jpg",
+      "author": "Dhinakar01",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ASabarimala_4.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Sabarimala_4.jpg/1280px-Sabarimala_4.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 498021,
+      "width": 1280,
+      "height": 960,
+      "notes": "Sabarimala Ayyappa pilgrimage temple"
+    },
+    {
+      "filename": "05_Sabarimala_5.jpg",
+      "commons_title": "File:Sabarimala_5.jpg",
+      "author": "Dhinakar01",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ASabarimala_5.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Sabarimala_5.jpg/1280px-Sabarimala_5.jpg",
+      "bytes": 445051,
+      "width": 1280,
+      "height": 960,
+      "notes": "Sabarimala Ayyappa pilgrimage temple Manifest downloaded_url was the placeholder '(1280px Commons thumb)'; replaced with the Commons 1280px thumb."
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "temple_slug": "subramanya-swamy-temple-thiruchendur",
+  "temple_name": "Subramanya Swamy Temple",
+  "doc_id_hint": "subramanya-swamy-temple-thiruchendur",
+  "city": "Thiruchendur",
+  "state": "Tamil Nadu",
+  "tradition_note": "Murugan temple",
+  "photos": [],
+  "seed_document_id": "subramanya-swamy-temple",
+  "dropped_wrong_site": [
+    {
+      "filename": "01_009222022_Elamkunnapuzha_Subramanya_Swamy_Temple_Kerala_011.jpg",
+      "commons_title": "File:009222022 Elamkunnapuzha Subramanya Swamy Temple Kerala 011.jpg",
+      "reason": "All six frames are Elamkunnapuzha Subramanya Swamy Temple, Kerala (Category:Elamkunnapuzha Subramanya Swamy Temple, Kerala), not Subramanya Swamy Temple, Thiruchendur."
+    },
+    {
+      "filename": "02_009222022_Elamkunnapuzha_Subramanya_Swamy_Temple_Kerala_025.jpg",
+      "commons_title": "File:009222022 Elamkunnapuzha Subramanya Swamy Temple Kerala 025.jpg",
+      "reason": "All six frames are Elamkunnapuzha Subramanya Swamy Temple, Kerala (Category:Elamkunnapuzha Subramanya Swamy Temple, Kerala), not Subramanya Swamy Temple, Thiruchendur."
+    },
+    {
+      "filename": "03_009222022_Elamkunnapuzha_Subramanya_Swamy_Temple_Kerala_034.jpg",
+      "commons_title": "File:009222022 Elamkunnapuzha Subramanya Swamy Temple Kerala 034.jpg",
+      "reason": "All six frames are Elamkunnapuzha Subramanya Swamy Temple, Kerala (Category:Elamkunnapuzha Subramanya Swamy Temple, Kerala), not Subramanya Swamy Temple, Thiruchendur."
+    },
+    {
+      "filename": "04_009222022_Elamkunnapuzha_Subramanya_Swamy_Temple_Kerala_040.jpg",
+      "commons_title": "File:009222022 Elamkunnapuzha Subramanya Swamy Temple Kerala 040.jpg",
+      "reason": "All six frames are Elamkunnapuzha Subramanya Swamy Temple, Kerala (Category:Elamkunnapuzha Subramanya Swamy Temple, Kerala), not Subramanya Swamy Temple, Thiruchendur."
+    },
+    {
+      "filename": "05_009222022_Elamkunnapuzha_Subramanya_Swamy_Temple_Kerala_046.jpg",
+      "commons_title": "File:009222022 Elamkunnapuzha Subramanya Swamy Temple Kerala 046.jpg",
+      "reason": "All six frames are Elamkunnapuzha Subramanya Swamy Temple, Kerala (Category:Elamkunnapuzha Subramanya Swamy Temple, Kerala), not Subramanya Swamy Temple, Thiruchendur."
+    },
+    {
+      "filename": "06_009222022_Elamkunnapuzha_Subramanya_Swamy_Temple_Kerala_058.jpg",
+      "commons_title": "File:009222022 Elamkunnapuzha Subramanya Swamy Temple Kerala 058.jpg",
+      "reason": "All six frames are Elamkunnapuzha Subramanya Swamy Temple, Kerala (Category:Elamkunnapuzha Subramanya Swamy Temple, Kerala), not Subramanya Swamy Temple, Thiruchendur."
+    }
+  ]
+}

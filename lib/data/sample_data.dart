@@ -5,9 +5,9 @@ const List<Temple> sampleTemples = [
   //  TAMIL NADU
   // ═══════════════════════════════════════════════════════════════════════════
   // Research-enriched visitor copy for the existing 10 Tamil Nadu temples
-  // (matched by name/slug — no new documents). Cover imageUrl values remain
-  // the bundled picsum placeholders; do not treat Commons candidates as Storage
-  // paths. Sources and photo_candidates: docs/tamil-nadu-sample-research.md.
+  // (matched by name/slug — no new documents). KAN-77 Wave A covers are
+  // Commons downloaded_url thumbs (not Storage paths). Sources:
+  // docs/tamil-nadu-sample-research.md.
 
   // KAN-77: verified Commons thumbs — tools/photo-packs/meenakshi-amman-temple/
   Temple(
@@ -53,12 +53,22 @@ const List<Temple> sampleTemples = [
       'Six daily poojas for both deities',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/brihadeeswarar-temple/
   Temple(
     name: 'Brihadeeswarar Temple',
     state: 'Tamil Nadu',
     city: 'Thanjavur',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/brihadeeswarar/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/13/Ancient_Thanjavur_Brihadeeswarar_Temple_photos.jpg/1280px-Ancient_Thanjavur_Brihadeeswarar_Temple_photos.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/13/Ancient_Thanjavur_Brihadeeswarar_Temple_photos.jpg/1280px-Ancient_Thanjavur_Brihadeeswarar_Temple_photos.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b2/Thanjavur_Brihadeeswarar_temple.JPG/1280px-Thanjavur_Brihadeeswarar_temple.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ce/Brihadeeswarar_Temple_Entrance_in_Thanjavur.jpg/1280px-Brihadeeswarar_Temple_Entrance_in_Thanjavur.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1b/Brihadeeswarar_temple_evening%2C_Thanjavur%2C_Tamilnadu.jpg/1280px-Brihadeeswarar_temple_evening%2C_Thanjavur%2C_Tamilnadu.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0f/Brihadeeswarar_temple_late_night%2C_Thanjavur%2C_Tamilnadu.jpg/1280px-Brihadeeswarar_temple_late_night%2C_Thanjavur%2C_Tamilnadu.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/37/Brihadeeswarar_temple_night%2C_Thanjavur%2C_Tamilnadu.jpg/1280px-Brihadeeswarar_temple_night%2C_Thanjavur%2C_Tamilnadu.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'UNESCO World Heritage Chola masterpiece (Great Living Chola Temples), built by Raja Raja '
         'Chola I around 1003–1010 CE, crowned by a soaring granite vimana and a monumental '
@@ -86,12 +96,22 @@ const List<Temple> sampleTemples = [
       'Living temple — not a museum-only monument',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/kapaleeshwarar-temple/
   Temple(
     name: 'Kapaleeshwarar Temple',
     state: 'Tamil Nadu',
     city: 'Chennai',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/kapaleeshwarar/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/af/Chennai-Kapaleeshwarar_Temple-IMG_20250219_114340.jpg/1280px-Chennai-Kapaleeshwarar_Temple-IMG_20250219_114340.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/af/Chennai-Kapaleeshwarar_Temple-IMG_20250219_114340.jpg/1280px-Chennai-Kapaleeshwarar_Temple-IMG_20250219_114340.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b1/Chennai-Kapaleeshwarar_Temple-IMG_20250219_114343.jpg/1280px-Chennai-Kapaleeshwarar_Temple-IMG_20250219_114343.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/Chennai-Kapaleeshwarar_Temple-WUS01436.jpg/1280px-Chennai-Kapaleeshwarar_Temple-WUS01436.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/66/A_down_angle_view_of_the_Kapaleeshwarar_Temple_in_Chennai.jpg/1280px-A_down_angle_view_of_the_Kapaleeshwarar_Temple_in_Chennai.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dc/The_Kapaleeshwarar_Temple_in_Chennai.jpg/1280px-The_Kapaleeshwarar_Temple_in_Chennai.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5f/TNC25-4_Chariot_festival_Kapaleeshwarar_temple_Chennai.jpg/1280px-TNC25-4_Chariot_festival_Kapaleeshwarar_temple_Chennai.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Beloved Mylapore Shiva temple for Kapaleeshwarar and Karpagambal, known for its '
         'colourful rajagopuram, sacred tank, and the Panguni Peruvizha climaxed by the Arubathu '
@@ -119,12 +139,22 @@ const List<Temple> sampleTemples = [
       '24-hour opening on Maha Shivaratri',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/ramanathaswamy-temple/
   Temple(
     name: 'Ramanathaswamy Temple',
     state: 'Tamil Nadu',
     city: 'Rameswaram',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/ramanathaswamy/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/85/Ramanathaswamy_Temple%2C_Rameswaram.jpg/1280px-Ramanathaswamy_Temple%2C_Rameswaram.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/85/Ramanathaswamy_Temple%2C_Rameswaram.jpg/1280px-Ramanathaswamy_Temple%2C_Rameswaram.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c4/Ramanathaswamy_Temple_Rameswaram_%281%29.jpg/1280px-Ramanathaswamy_Temple_Rameswaram_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Ramanathaswamy_Temple_Rameswaram_%282%29.jpg/1280px-Ramanathaswamy_Temple_Rameswaram_%282%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/46/Ramanathaswamy_Temple_Rameswaram_%283%29.jpg/1280px-Ramanathaswamy_Temple_Rameswaram_%283%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/The_great_corridor_at_Rameswaram_Ramanathaswamy_Temple.jpg/1280px-The_great_corridor_at_Rameswaram_Ramanathaswamy_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/25/Ramanathaswamy_temple_corridor.JPG/1280px-Ramanathaswamy_temple_corridor.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Jyotirlinga and Char Dham pilgrimage temple on Pamban Island, celebrated for its vast '
         'pillared corridors, twenty-two sacred theerthams, and the legend of Rama’s worship of '
@@ -151,12 +181,22 @@ const List<Temple> sampleTemples = [
       'Paadal Petra Sthalam',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/murugan-temple-thirupparankundram/
   Temple(
     name: 'Murugan Temple, Thirupparankundram',
     state: 'Tamil Nadu',
     city: 'Madurai',
     deity: 'Murugan',
-    imageUrl: 'https://picsum.photos/seed/thirupparankundram/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dc/8th_century_Thirupparankundram_cave_temple%2C_Madurai_district%2C_Tamil_Nadu_India_-_2.jpg/1280px-8th_century_Thirupparankundram_cave_temple%2C_Madurai_district%2C_Tamil_Nadu_India_-_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dc/8th_century_Thirupparankundram_cave_temple%2C_Madurai_district%2C_Tamil_Nadu_India_-_2.jpg/1280px-8th_century_Thirupparankundram_cave_temple%2C_Madurai_district%2C_Tamil_Nadu_India_-_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a4/8th_century_Thirupparankundram_cave_temple%2C_Madurai_district%2C_Tamil_Nadu_India_-_6.jpg/1280px-8th_century_Thirupparankundram_cave_temple%2C_Madurai_district%2C_Tamil_Nadu_India_-_6.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0c/8th_century_Thirupparankundram_cave_temple%2C_Madurai_district%2C_Tamil_Nadu_India_-_4.jpg/1280px-8th_century_Thirupparankundram_cave_temple%2C_Madurai_district%2C_Tamil_Nadu_India_-_4.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/68/8th_century_Thirupparankundram_cave_temple%2C_Madurai_district%2C_Tamil_Nadu_India_-_7.jpg/1280px-8th_century_Thirupparankundram_cave_temple%2C_Madurai_district%2C_Tamil_Nadu_India_-_7.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0f/8th_century_Thirupparankundram_cave_temple%2C_Madurai_district%2C_Tamil_Nadu_India_-_1.jpg/1280px-8th_century_Thirupparankundram_cave_temple%2C_Madurai_district%2C_Tamil_Nadu_India_-_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6a/8th_century_Thirupparankundram_cave_temple%2C_Madurai_district%2C_Tamil_Nadu_India_-_5.jpg/1280px-8th_century_Thirupparankundram_cave_temple%2C_Madurai_district%2C_Tamil_Nadu_India_-_5.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'First of Murugan’s six Arupadai Veedu, a Pandya-era rock-cut cave temple in a Madurai '
         'hillside where tradition places Murugan’s marriage to Devasena after the defeat of '
@@ -226,12 +266,22 @@ const List<Temple> sampleTemples = [
       'Mamallapuram Dance Festival backdrop',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/nataraja-temple/
   Temple(
     name: 'Nataraja Temple',
     state: 'Tamil Nadu',
     city: 'Chidambaram',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/nataraja/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/83/A_view_of_Nataraja_Shiva_Temple_at_Chidambaram%2C_Tamil_Nadu_%2812%29.jpg/1280px-A_view_of_Nataraja_Shiva_Temple_at_Chidambaram%2C_Tamil_Nadu_%2812%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/83/A_view_of_Nataraja_Shiva_Temple_at_Chidambaram%2C_Tamil_Nadu_%2812%29.jpg/1280px-A_view_of_Nataraja_Shiva_Temple_at_Chidambaram%2C_Tamil_Nadu_%2812%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/20/A_view_of_Nataraja_Shiva_Temple_at_Chidambaram%2C_Tamil_Nadu_%2814%29.jpg/1280px-A_view_of_Nataraja_Shiva_Temple_at_Chidambaram%2C_Tamil_Nadu_%2814%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/87/Nataraja_Shiva_Temple_at_Chidambaram%2C_Tamil_Nadu_2017_%2811%29.jpg/1280px-Nataraja_Shiva_Temple_at_Chidambaram%2C_Tamil_Nadu_2017_%2811%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b3/Nataraja_temple%2C_chidambaram_view_from_inside.jpg/1280px-Nataraja_temple%2C_chidambaram_view_from_inside.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/Thillai_Nataraja_Temple_%28Chidambaram_Nataraja_Temple%29.jpg/1280px-Thillai_Nataraja_Temple_%28Chidambaram_Nataraja_Temple%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/59/Courtyard%2C_Nataraja_Temple%2C_Chidambaram.jpg/1280px-Courtyard%2C_Nataraja_Temple%2C_Chidambaram.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Thillai Nataraja Temple where Shiva is worshipped as the cosmic dancer; home of the '
         'Chidambara Rahasyam and the Akasha (space) linga among the Pancha Bootha Sthalams.',
@@ -260,12 +310,22 @@ const List<Temple> sampleTemples = [
       'Spatika linga & Rathnasabhapathi abhishekams',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/ekambaranathar-temple/
   Temple(
     name: 'Ekambaranathar Temple',
     state: 'Tamil Nadu',
     city: 'Kanchipuram',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/ekambaranathar/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/16/Kanchipuram%2C_Sri_Ekambaranathar_Temple_%286846490776%29.jpg/1280px-Kanchipuram%2C_Sri_Ekambaranathar_Temple_%286846490776%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/16/Kanchipuram%2C_Sri_Ekambaranathar_Temple_%286846490776%29.jpg/1280px-Kanchipuram%2C_Sri_Ekambaranathar_Temple_%286846490776%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8e/Ekambaranathar_Temple%2C_Kanchipuram_%2850065027238%29.jpg/1280px-Ekambaranathar_Temple%2C_Kanchipuram_%2850065027238%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/28/Ekambaranathar_Temple%2C_Kanchipuram_%2850065027343%29.jpg/1280px-Ekambaranathar_Temple%2C_Kanchipuram_%2850065027343%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/18/Ekambaranathar_Temple%2C_Kanchipuram_%2850065027493%29.jpg/1280px-Ekambaranathar_Temple%2C_Kanchipuram_%2850065027493%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/11/Ekambaranathar_Temple%2C_Kanchipuram_%2850065027528%29.jpg/1280px-Ekambaranathar_Temple%2C_Kanchipuram_%2850065027528%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/88/Ekambaranathar_Temple%2C_Kanchipuram_%2850065842317%29.jpg/1280px-Ekambaranathar_Temple%2C_Kanchipuram_%2850065842317%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Vast Kanchipuram Shaiva complex and Pancha Bootha Sthalam of Earth (Prithvi), famed for '
         'its ~59 m rajagopuram, thousand-pillared hall, and the sacred mango tree tied to '
@@ -294,12 +354,22 @@ const List<Temple> sampleTemples = [
       'Panguni Brahmotsavam / Kalyanotsavam',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/arunachaleswarar-temple/
   Temple(
     name: 'Arunachaleswarar Temple',
     state: 'Tamil Nadu',
     city: 'Tiruvannamalai',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/arunachaleswarar/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/86/Arulmigu_Arunachaleswarar_Temple%2C_Thiruvannamalai_%2842492949895%29.jpg/1280px-Arulmigu_Arunachaleswarar_Temple%2C_Thiruvannamalai_%2842492949895%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/86/Arulmigu_Arunachaleswarar_Temple%2C_Thiruvannamalai_%2842492949895%29.jpg/1280px-Arulmigu_Arunachaleswarar_Temple%2C_Thiruvannamalai_%2842492949895%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/09/Thiruvannamalai_Arunachaleswarar_Temple_Rajagopuram.jpg/1280px-Thiruvannamalai_Arunachaleswarar_Temple_Rajagopuram.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/78/Tiruvannamalai_arunachaleswarar_kovil.jpg/1280px-Tiruvannamalai_arunachaleswarar_kovil.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2d/Thiruvannamalai%2C_Arunachalesvara_Temple%2C_Annamalaiyar_Temple%2C_India.jpg/1280px-Thiruvannamalai%2C_Arunachalesvara_Temple%2C_Annamalaiyar_Temple%2C_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/db/Thiruvannamalai%2C_Arunachalesvara_Temple%2C_Annamalaiyar_Temple%2C_Night_2%2C_India.jpg/1280px-Thiruvannamalai%2C_Arunachalesvara_Temple%2C_Annamalaiyar_Temple%2C_Night_2%2C_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/aa/Thiruvannamalai%2C_Arunachalesvara_Temple%2C_Annamalaiyar_Temple%2C_Panoramic_view%2C_India.jpg/1280px-Thiruvannamalai%2C_Arunachalesvara_Temple%2C_Annamalaiyar_Temple%2C_Panoramic_view%2C_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Monumental Pancha Bootha Sthalam of Fire at the foot of Arunachala hill, centre of '
         'Girivalam circumambulation and the Karthigai Deepam beacon lit atop the mountain.',
@@ -329,12 +399,22 @@ const List<Temple> sampleTemples = [
       'Ramana Maharshi spiritual associations nearby',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/sarangapani-temple/
   Temple(
     name: 'Sarangapani Temple',
     state: 'Tamil Nadu',
     city: 'Kumbakonam',
     deity: 'Vishnu',
-    imageUrl: 'https://picsum.photos/seed/sarangapani/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3b/Kumbakonam-Sarangapani_Temple-WUS03048.jpg/1280px-Kumbakonam-Sarangapani_Temple-WUS03048.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3b/Kumbakonam-Sarangapani_Temple-WUS03048.jpg/1280px-Kumbakonam-Sarangapani_Temple-WUS03048.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/54/Kumbakonam-Sarangapani_Temple-WUS03052.jpg/1280px-Kumbakonam-Sarangapani_Temple-WUS03052.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7e/Kumbakonam-Sarangapani_Temple-WUS03053.jpg/1280px-Kumbakonam-Sarangapani_Temple-WUS03053.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/90/Kumbakonam-Sarangapani_Temple-WUS03055.jpg/1280px-Kumbakonam-Sarangapani_Temple-WUS03055.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/32/Kumbakonam-Sarangapani_Temple-WUS03057.jpg/1280px-Kumbakonam-Sarangapani_Temple-WUS03057.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fc/Kumbakonam-Sarangapani_Temple-WUS03059.jpg/1280px-Kumbakonam-Sarangapani_Temple-WUS03059.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Largest Vishnu temple in Kumbakonam and a Divya Desam / Pancharanga Kshetram, with an '
         '11-tier ~173 ft rajagopuram and a chariot-shaped sanctum recalling Vishnu’s descent from '
@@ -367,14 +447,25 @@ const List<Temple> sampleTemples = [
 
   // ── KAN-64 / KAN-74 expansion batch 16 — +10 additional Tamil Nadu temples
   // Core Temple fields only (Hybrid C): trip_planning stripped / not seeded.
-  // imageUrl/images left empty (photo-pending honesty); Commons candidates in
-  // docs/tamil-nadu-sample-research.md.
+  // KAN-77 Wave A fills Commons thumbs where a pack is on file. Kanyakumari
+  // stays empty (shortfall). Thiruchendur stays empty: the research frames
+  // were Elamkunnapuzha, Kerala, and were not used.
+  // KAN-77: verified Commons thumbs — tools/photo-packs/sri-ranganathaswamy-temple-srirangam/
   Temple(
     name: 'Sri Ranganathaswamy Temple',
     state: 'Tamil Nadu',
     city: 'Srirangam',
     deity: 'Vishnu',
-    imageUrl: '',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/09/Sri_Ranganathaswamy_Temple%2C_dedicated_to_Vishnu%2C_in_Srirangam%2C_near_Tiruchirappali_%28105%29_%2836802865564%29.jpg/1280px-Sri_Ranganathaswamy_Temple%2C_dedicated_to_Vishnu%2C_in_Srirangam%2C_near_Tiruchirappali_%28105%29_%2836802865564%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/09/Sri_Ranganathaswamy_Temple%2C_dedicated_to_Vishnu%2C_in_Srirangam%2C_near_Tiruchirappali_%28105%29_%2836802865564%29.jpg/1280px-Sri_Ranganathaswamy_Temple%2C_dedicated_to_Vishnu%2C_in_Srirangam%2C_near_Tiruchirappali_%28105%29_%2836802865564%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/44/Sri_Ranganathaswamy_Temple%2C_dedicated_to_Vishnu%2C_in_Srirangam%2C_near_Tiruchirappali_%28151%29_%2837465657406%29.jpg/1280px-Sri_Ranganathaswamy_Temple%2C_dedicated_to_Vishnu%2C_in_Srirangam%2C_near_Tiruchirappali_%28151%29_%2837465657406%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/86/Sri_Ranganathaswamy_Temple%2C_dedicated_to_Vishnu%2C_in_Srirangam%2C_near_Tiruchirappali_%2816%29_%2836842412443%29.jpg/1280px-Sri_Ranganathaswamy_Temple%2C_dedicated_to_Vishnu%2C_in_Srirangam%2C_near_Tiruchirappali_%2816%29_%2836842412443%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/36/Sri_Ranganathaswamy_Temple_in_Srirangam%2C_Tamil_Nadu.jpg/1280px-Sri_Ranganathaswamy_Temple_in_Srirangam%2C_Tamil_Nadu.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6c/Ranganathaswamy_Temple%2C_Srirangam_ttkcvrvb122k23iph_%281%29.jpg/1280px-Ranganathaswamy_Temple%2C_Srirangam_ttkcvrvb122k23iph_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/09/Ranganathaswamy_Temple%2C_Srirangam_ttkcvrvb122k23iph_%2813%29.jpg/1280px-Ranganathaswamy_Temple%2C_Srirangam_ttkcvrvb122k23iph_%2813%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Foremost among the 108 Divya Desams — a vast island temple town '
         'dedicated to reclining Vishnu as Ranganatha, with concentric '
@@ -434,12 +525,22 @@ const List<Temple> sampleTemples = [
       'Veg food: dense pure-veg / sattvic options in Srirangam temple streets',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/dhandayuthapani-swamy-temple-palani/
   Temple(
     name: 'Dhandayuthapani Swamy Temple',
     state: 'Tamil Nadu',
     city: 'Palani',
     deity: 'Murugan',
-    imageUrl: '',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c4/Arulmigu_Dhandayuthapani_Swamy_Temple_in_Palany_hill.jpg/1280px-Arulmigu_Dhandayuthapani_Swamy_Temple_in_Palany_hill.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c4/Arulmigu_Dhandayuthapani_Swamy_Temple_in_Palany_hill.jpg/1280px-Arulmigu_Dhandayuthapani_Swamy_Temple_in_Palany_hill.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/43/Palani_Temple-WUS05301.jpg/1280px-Palani_Temple-WUS05301.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/48/Palani_Temple-WUS05302.jpg/1280px-Palani_Temple-WUS05302.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7c/Palani_Temple-WUS05303.jpg/1280px-Palani_Temple-WUS05303.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b4/Palani_Murugan_Hill_Temple.jpg/1280px-Palani_Murugan_Hill_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Gopuram_in_the_way_to_palani_temple.jpg/1280px-Gopuram_in_the_way_to_palani_temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'One of the Six Abodes of Murugan (Arupadai Veedu) — the hill shrine of '
         'Dhandayuthapani atop Sivagiri at Palani, famed for the standing '
@@ -490,6 +591,7 @@ const List<Temple> sampleTemples = [
       'Veg food: dense pure-veg pilgrim messes around Adivaram / town',
     ],
   ),
+  // KAN-77: pack held — Elamkunnapuzha (Kerala) frames dropped; cover stays empty (Photo pending).
   Temple(
     name: 'Subramanya Swamy Temple',
     state: 'Tamil Nadu',
@@ -544,12 +646,22 @@ const List<Temple> sampleTemples = [
       'Veg food: pure-veg pilgrim eateries in temple town',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/swamimalai-murugan-temple/
   Temple(
     name: 'Swamimalai Murugan Temple',
     state: 'Tamil Nadu',
     city: 'Swamimalai',
     deity: 'Murugan',
-    imageUrl: '',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/Swamimalai_Murugan_Temple.jpg/1280px-Swamimalai_Murugan_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/Swamimalai_Murugan_Temple.jpg/1280px-Swamimalai_Murugan_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ca/Swaminathan_Temple_-_Swamimalai_%281%29.jpg/1280px-Swaminathan_Temple_-_Swamimalai_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/68/Swaminathan_Temple_-_Swamimalai_%282%29.jpg/1280px-Swaminathan_Temple_-_Swamimalai_%282%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b3/Swaminathan_Temple_-_Swamimalai_%283%29.jpg/1280px-Swaminathan_Temple_-_Swamimalai_%283%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/96/Swamimalai_temple.jpg/1280px-Swamimalai_temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/Swamimalai%2C_Kumbakonam%2C_Tamil_Nadu%2C_India_-_panoramio_%281%29.jpg/1280px-Swamimalai%2C_Kumbakonam%2C_Tamil_Nadu%2C_India_-_panoramio_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Arupadai Veedu where Murugan as Swaminatha taught the Pranava mantra '
         'to Shiva — a hillock shrine near Kumbakonam with sixty steps named for '
@@ -600,12 +712,22 @@ const List<Temple> sampleTemples = [
       'Veg food: easy pure-veg options via Kumbakonam / Swamimalai pilgrim belt',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/jambukeswarar-temple-thiruvanaikaval/
   Temple(
     name: 'Jambukeswarar Temple',
     state: 'Tamil Nadu',
     city: 'Thiruvanaikaval',
     deity: 'Shiva',
-    imageUrl: '',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/Jambukeswarar_Temple_surroundings%2C_Thiruvanaikaval_ttkcvrvb122k23pxl_%2852%29.jpg/1280px-Jambukeswarar_Temple_surroundings%2C_Thiruvanaikaval_ttkcvrvb122k23pxl_%2852%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/Jambukeswarar_Temple_surroundings%2C_Thiruvanaikaval_ttkcvrvb122k23pxl_%2852%29.jpg/1280px-Jambukeswarar_Temple_surroundings%2C_Thiruvanaikaval_ttkcvrvb122k23pxl_%2852%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/69/Jambukeswarar_Temple_surroundings%2C_Thiruvanaikaval_ttkcvrvb122k23pxl_%281%29.jpg/1280px-Jambukeswarar_Temple_surroundings%2C_Thiruvanaikaval_ttkcvrvb122k23pxl_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9a/Jambukeswarar_Temple_surroundings%2C_Thiruvanaikaval_ttkcvrvb122k23pxl_%2815%29.jpg/1280px-Jambukeswarar_Temple_surroundings%2C_Thiruvanaikaval_ttkcvrvb122k23pxl_%2815%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c0/Jambukeswarar_Temple_surroundings%2C_Thiruvanaikaval_ttkcvrvb122k23pxl_%2816%29.jpg/1280px-Jambukeswarar_Temple_surroundings%2C_Thiruvanaikaval_ttkcvrvb122k23pxl_%2816%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/57/Jambukeswarar_Temple_surroundings%2C_Thiruvanaikaval_ttkcvrvb122k23pxl_%2817%29.jpg/1280px-Jambukeswarar_Temple_surroundings%2C_Thiruvanaikaval_ttkcvrvb122k23pxl_%2817%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b4/Jambukeswarar_Temple_surroundings%2C_Thiruvanaikaval_ttkcvrvb122k23pxl_%2818%29.jpg/1280px-Jambukeswarar_Temple_surroundings%2C_Thiruvanaikaval_ttkcvrvb122k23pxl_%2818%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Pancha Bhoota Stalam for water (Appu Lingam) at Thiruvanaikaval on '
         'Srirangam island — Shiva as Jambukeswarar with Goddess Akilandeswari, '
@@ -654,12 +776,22 @@ const List<Temple> sampleTemples = [
       'Veg food: shared Srirangam / Trichy pure-veg corridor',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/thyagaraja-temple-tiruvarur/
   Temple(
     name: 'Thyagaraja Temple',
     state: 'Tamil Nadu',
     city: 'Tiruvarur',
     deity: 'Shiva',
-    imageUrl: '',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1d/Thyagarajar_temple%2C_Tiruvarur_%2813%29.jpg/1280px-Thyagarajar_temple%2C_Tiruvarur_%2813%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1d/Thyagarajar_temple%2C_Tiruvarur_%2813%29.jpg/1280px-Thyagarajar_temple%2C_Tiruvarur_%2813%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/18/Thyagarajar_temple%2C_Tiruvarur_%2814%29.jpg/1280px-Thyagarajar_temple%2C_Tiruvarur_%2814%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/95/Thyagarajar_temple%2C_Tiruvarur_%2826%29.jpg/1280px-Thyagarajar_temple%2C_Tiruvarur_%2826%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6c/Thyagarajar_temple%2C_Tiruvarur_%2827%29.jpg/1280px-Thyagarajar_temple%2C_Tiruvarur_%2827%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/Thyagarajar_temple%2C_Tiruvarur_%2828%29.jpg/1280px-Thyagarajar_temple%2C_Tiruvarur_%2828%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/27/Thyagarajar_temple%2C_Tiruvarur_%2834%29.jpg/1280px-Thyagarajar_temple%2C_Tiruvarur_%2834%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Paadal Petra Shiva temple of Thyagarajaswami and Neelotpalambika at '
         'Tiruvarur — Chola-era complex famed for the massive temple car, '
@@ -706,12 +838,22 @@ const List<Temple> sampleTemples = [
       'Veg food: temple-town pure-veg messes',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/nellaiappar-temple-tirunelveli/
   Temple(
     name: 'Nellaiappar Temple',
     state: 'Tamil Nadu',
     city: 'Tirunelveli',
     deity: 'Shiva',
-    imageUrl: '',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/27/Nellaiappar_Temple_%2848410%29.jpg/1280px-Nellaiappar_Temple_%2848410%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/27/Nellaiappar_Temple_%2848410%29.jpg/1280px-Nellaiappar_Temple_%2848410%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c5/NELLAIAPPAR_TEMPLE_02.jpg/1280px-NELLAIAPPAR_TEMPLE_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cc/Thamira_saba-Nellaiappar_Temple.jpg/1280px-Thamira_saba-Nellaiappar_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0d/Natarajar_Sannithi%2C_Nellaiappar_Temple.jpg/1280px-Natarajar_Sannithi%2C_Nellaiappar_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9a/Nellaiappar_temple_tower.jpg/1280px-Nellaiappar_temple_tower.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f0/Nellaiappar_Temple10.jpg/1280px-Nellaiappar_Temple10.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Twin Shaiva complex of Nellaiappar and Kanthimathi Amman in '
         'Tirunelveli — a Paadal Petra Sthalam on the Tamiraparani with musical '
@@ -811,12 +953,22 @@ const List<Temple> sampleTemples = [
       'Veg food: mixed tourist town — seek labelled pure-veg near temple',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/vaitheeswaran-koil/
   Temple(
     name: 'Vaitheeswaran Koil',
     state: 'Tamil Nadu',
     city: 'Vaitheeswaran Koil',
     deity: 'Shiva',
-    imageUrl: '',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cb/VAITHEESWARAN_KOIL_-_panoramio.jpg/1280px-VAITHEESWARAN_KOIL_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cb/VAITHEESWARAN_KOIL_-_panoramio.jpg/1280px-VAITHEESWARAN_KOIL_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c4/VAITHEESWARAN_KOIL_-_panoramio_%2810%29.jpg/1280px-VAITHEESWARAN_KOIL_-_panoramio_%2810%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/29/VAITHEESWARAN_KOIL_-_panoramio_%2811%29.jpg/1280px-VAITHEESWARAN_KOIL_-_panoramio_%2811%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/71/VAITHEESWARAN_KOIL_-_panoramio_%2812%29.jpg/1280px-VAITHEESWARAN_KOIL_-_panoramio_%2812%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f8/VAITHEESWARAN_KOIL_-_panoramio_%2813%29.jpg/1280px-VAITHEESWARAN_KOIL_-_panoramio_%2813%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/51/VAITHEESWARAN_KOIL_-_panoramio_%2814%29.jpg/1280px-VAITHEESWARAN_KOIL_-_panoramio_%2814%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Shaiva healing shrine of Vaidyanathaswamy (Vaitheeswaran) with '
         'Thaiyalnayaki — a Navagraha (Angaraka/Mars) associated Paadal Petra '
@@ -866,12 +1018,22 @@ const List<Temple> sampleTemples = [
       'Veg food: pilgrim-town pure-veg messes',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/tiruttani-murugan-temple/
   Temple(
     name: 'Tiruttani Murugan Temple',
     state: 'Tamil Nadu',
     city: 'Tiruttani',
     deity: 'Murugan',
-    imageUrl: '',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cb/Tiruttani_Murugan_temple.jpg/1280px-Tiruttani_Murugan_temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cb/Tiruttani_Murugan_temple.jpg/1280px-Tiruttani_Murugan_temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/35/Arulmigu_Subramaniya_Swami_Temple%2C_Tiruttani_2.jpg/1280px-Arulmigu_Subramaniya_Swami_Temple%2C_Tiruttani_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/Arulmigu_Subramaniya_Swami_Temple%2C_Tiruttani.jpg/1280px-Arulmigu_Subramaniya_Swami_Temple%2C_Tiruttani.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e2/Subramaniya_Swamy_Temple%2C_Tiruttani.jpg/1280px-Subramaniya_Swamy_Temple%2C_Tiruttani.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/58/Tiruthani_Murugan_Temple_parking_lot.jpg/1280px-Tiruthani_Murugan_Temple_parking_lot.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/75/Thiruthani_Murugan_Temple_.jpg/1280px-Thiruthani_Murugan_Temple_.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Northernmost of Murugan’s Six Abodes — the hill shrine of '
         'Subramanyaswamy at Tiruttani, associated with peace after Surasamharam '
@@ -919,15 +1081,24 @@ const List<Temple> sampleTemples = [
   //  KERALA
   // ═══════════════════════════════════════════════════════════════════════════
   // Research-enriched visitor copy for the existing 10 Kerala temples
-  // (matched by name/slug — no new documents). Cover imageUrl values remain
-  // the bundled picsum placeholders; do not treat Commons candidates as Storage
-  // paths. Sources and photo_candidates: docs/kerala-sample-research.md.
+  // (matched by name/slug — no new documents). KAN-77 Wave A covers are
+  // Commons downloaded_url thumbs (not Storage paths). Anjengo and Mannarsala
+  // stay picsum (shortfall, no pack). Sources: docs/kerala-sample-research.md.
+  // KAN-77: verified Commons thumbs — tools/photo-packs/guruvayur-sri-krishna-temple/
   Temple(
     name: 'Guruvayur Sri Krishna Temple',
     state: 'Kerala',
     city: 'Guruvayur',
     deity: 'Vishnu',
-    imageUrl: 'https://picsum.photos/seed/guruvayur/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d2/Garuda_statue_at_Guruvayur_Sri_Krishna_Temple.jpg/1280px-Garuda_statue_at_Guruvayur_Sri_Krishna_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d2/Garuda_statue_at_Guruvayur_Sri_Krishna_Temple.jpg/1280px-Garuda_statue_at_Guruvayur_Sri_Krishna_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://upload.wikimedia.org/wikipedia/commons/e/eb/Guruvayur_Sree_Krishna_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/62/009392022_Guruvayur_temple%2C_Kerala_024.jpg/1280px-009392022_Guruvayur_temple%2C_Kerala_024.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/43/Sabarimala_pilgrims_at_Guruvayur_Temple.JPG/1280px-Sabarimala_pilgrims_at_Guruvayur_Temple.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2a/Sadhu_at_Guruvayur_Temple.JPG/1280px-Sadhu_at_Guruvayur_Temple.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Often called Bhuloka Vaikuntha or the Dwarka of the South, Guruvayurappan’s Kerala-style '
         'shrine houses a standing Chaturbhuja Vishnu murti traditionally installed by Guru '
@@ -979,12 +1150,22 @@ const List<Temple> sampleTemples = [
       'Hindu-only entry; traditional Kerala dress code enforced',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/sree-padmanabhaswamy-temple/
   Temple(
     name: 'Sree Padmanabhaswamy Temple',
     state: 'Kerala',
     city: 'Thiruvananthapuram',
     deity: 'Vishnu',
-    imageUrl: 'https://picsum.photos/seed/padmanabhaswamy/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/59/Sree_Padmanabhaswamy_Temple_Gopuram_Thiruvananthapuram_Kerala_India.jpg/1280px-Sree_Padmanabhaswamy_Temple_Gopuram_Thiruvananthapuram_Kerala_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/59/Sree_Padmanabhaswamy_Temple_Gopuram_Thiruvananthapuram_Kerala_India.jpg/1280px-Sree_Padmanabhaswamy_Temple_Gopuram_Thiruvananthapuram_Kerala_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6e/Sree_Padmanabhaswamy_Temple%2C_Thiruvananthapuram.jpg/1280px-Sree_Padmanabhaswamy_Temple%2C_Thiruvananthapuram.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/43/Sree_Padmanabhaswamy_Temple_2.jpg/1280px-Sree_Padmanabhaswamy_Temple_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/aa/Sree_Padmanabhaswamy_Temple_at_night.jpg/1280px-Sree_Padmanabhaswamy_Temple_at_night.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5d/Sree_Padmanabhaswamy_Temple_3.jpg/1280px-Sree_Padmanabhaswamy_Temple_3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2d/Sree_Padmanabhaswamy_Temple_Lakshadeepam.jpg/1280px-Sree_Padmanabhaswamy_Temple_Lakshadeepam.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'A major Divya Desam Vishnu temple in Thiruvananthapuram’s East Fort, famous for the '
         'Ananthashayana (reclining Padmanabha) murti viewed through three doors and for historic '
@@ -1026,12 +1207,21 @@ const List<Temple> sampleTemples = [
       'East Fort civic-ritual landmark of Thiruvananthapuram',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/sabarimala-ayyappan-temple/
   Temple(
     name: 'Sabarimala Ayyappan Temple',
     state: 'Kerala',
     city: 'Pathanamthitta',
     deity: 'Vishnu',
-    imageUrl: 'https://picsum.photos/seed/sabarimala/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/05/Sabarimala.jpg/1280px-Sabarimala.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/05/Sabarimala.jpg/1280px-Sabarimala.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/Sabarimala_Garbhagudi.jpg/1280px-Sabarimala_Garbhagudi.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5e/Sabarimala_3.jpg/1280px-Sabarimala_3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Sabarimala_4.jpg/1280px-Sabarimala_4.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Sabarimala_5.jpg/1280px-Sabarimala_5.jpg',
+    ],
     description:
         'Hill shrine of Lord Ayyappa (Dharmasastha / Hariharaputra) in the Periyar forests of '
         'Pathanamthitta, drawing tens of millions of pilgrims in the Mandala–Makaravilakku season '
@@ -1085,12 +1275,22 @@ const List<Temple> sampleTemples = [
       'Administered by Travancore Devaswom Board; online slot booking',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/attukal-bhagavathy-temple/
   Temple(
     name: 'Attukal Bhagavathy Temple',
     state: 'Kerala',
     city: 'Thiruvananthapuram',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/attukal/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5d/Attukal_Bhagavathy_temple_1.jpg/1280px-Attukal_Bhagavathy_temple_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5d/Attukal_Bhagavathy_temple_1.jpg/1280px-Attukal_Bhagavathy_temple_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fc/Attukal_Bhagavathy_temple_2.jpg/1280px-Attukal_Bhagavathy_temple_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/61/Attukal_Bhagavathy_temple_3.jpg/1280px-Attukal_Bhagavathy_temple_3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6e/Attukal_Bhagavathy_temple_4.jpg/1280px-Attukal_Bhagavathy_temple_4.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a3/Attukal_Bhagavathy_temple_5.jpg/1280px-Attukal_Bhagavathy_temple_5.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ce/Attukal_Bhagavathytemple.jpg/1280px-Attukal_Bhagavathytemple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Known as the Sabarimala of women, this Bhagavathy shrine near East Fort is famed for '
         'Attukal Pongala — certified by Guinness World Records as the largest annual gathering of '
@@ -1133,12 +1333,22 @@ const List<Temple> sampleTemples = [
       'Near Padmanabhaswamy / East Fort pilgrim circuit',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/chottanikkara-bhagavathy-temple/
   Temple(
     name: 'Chottanikkara Bhagavathy Temple',
     state: 'Kerala',
     city: 'Ernakulam',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/chottanikkara/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ee/Chottanikkara_Temple_2024.jpg/1280px-Chottanikkara_Temple_2024.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ee/Chottanikkara_Temple_2024.jpg/1280px-Chottanikkara_Temple_2024.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5b/Chottanikkara_Bhagavathy_Temple_and_surroundings_%281%29.jpg/1280px-Chottanikkara_Bhagavathy_Temple_and_surroundings_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/49/Chottanikkara_Bhagavathy_Temple_and_surroundings_%2810%29.jpg/1280px-Chottanikkara_Bhagavathy_Temple_and_surroundings_%2810%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/Chottanikkara_Bhagavathy_Temple_and_surroundings_%2811%29.jpg/1280px-Chottanikkara_Bhagavathy_Temple_and_surroundings_%2811%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d6/Chottanikkara_Bhagavathy_Temple_and_surroundings_%2812%29.jpg/1280px-Chottanikkara_Bhagavathy_Temple_and_surroundings_%2812%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3b/Chottanikkara_Bhagavathy_Temple_and_surroundings_%2813%29.jpg/1280px-Chottanikkara_Bhagavathy_Temple_and_surroundings_%2813%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Major Cochin Devaswom Board Bhagavathy temple where the goddess is worshipped through '
         'the day as Saraswati (morning), Lakshmi (noon), and Durga (evening), famed for Keezhkavu '
@@ -1182,12 +1392,22 @@ const List<Temple> sampleTemples = [
       'Cochin Devaswom Board flagship shrine',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/ernakulathappan-temple/
   Temple(
     name: 'Ernakulathappan Temple',
     state: 'Kerala',
     city: 'Ernakulam',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/ernakulathappan/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c6/Ernakulathappan_temple1.jpg/1280px-Ernakulathappan_temple1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c6/Ernakulathappan_temple1.jpg/1280px-Ernakulathappan_temple1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/96/Ernakulathappan_temple2.jpg/1280px-Ernakulathappan_temple2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/eb/Ernakulathappan_temple3.jpg/1280px-Ernakulathappan_temple3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/13/Ernakulathappan_temple4.jpg/1280px-Ernakulathappan_temple4.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4f/Ernakulathappan_temple5.jpg/1280px-Ernakulathappan_temple5.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/01/Ernakulathappan_temple8.jpg/1280px-Ernakulathappan_temple8.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'City temple of Kochi dedicated to Lord Shiva (Ernakulathappan — “Lord of Ernakulam”), '
         'historically one of the seven royal temples of the Kochi Maharajas and still the '
@@ -1226,12 +1446,22 @@ const List<Temple> sampleTemples = [
       'Cochin Devaswom Board administration',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/vaikom-mahadeva-temple/
   Temple(
     name: 'Vaikom Mahadeva Temple',
     state: 'Kerala',
     city: 'Kottayam',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/vaikom/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/Vaikom_Mahadeva_Temple%2C_Kottayam%2C_Kerala_state%2C_India.jpg/1280px-Vaikom_Mahadeva_Temple%2C_Kottayam%2C_Kerala_state%2C_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/Vaikom_Mahadeva_Temple%2C_Kottayam%2C_Kerala_state%2C_India.jpg/1280px-Vaikom_Mahadeva_Temple%2C_Kottayam%2C_Kerala_state%2C_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/21/009262022_Vaikom_Mahadeva_temple_aerial_view%2C_Kottayam_Kerala_012.jpg/1280px-009262022_Vaikom_Mahadeva_temple_aerial_view%2C_Kottayam_Kerala_012.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/54/Pambady_Rajan_carrying_Idol_of_vaikom_mahadeva_temple.jpg/1280px-Pambady_Rajan_carrying_Idol_of_vaikom_mahadeva_temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Vaikom_Mahadeva_Temple_entrance.jpg/1280px-Vaikom_Mahadeva_Temple_entrance.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/01/Vaikom_Mahadeva_Temple-_Front_view.jpg/1280px-Vaikom_Mahadeva_Temple-_Front_view.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/15/Vaikom_Mahadeva_Temple-_an_evening_view.jpg/1280px-Vaikom_Mahadeva_Temple-_an_evening_view.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Ancient Kerala-style Mahadeva temple at Vaikom (Vaikkathappan), renowned for unbroken '
         'Shaiva worship, the twelve-day Vaikathashtami festival, and as the ground of the 1924–25 '
@@ -1376,12 +1606,22 @@ const List<Temple> sampleTemples = [
       'No photography; sacred grove (Appoppan Kavu) off-limits to visitors',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/thirunelli-maha-vishnu-temple/
   Temple(
     name: 'Thirunelli Maha Vishnu Temple',
     state: 'Kerala',
     city: 'Wayanad',
     deity: 'Vishnu',
-    imageUrl: 'https://picsum.photos/seed/thirunelli/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/34/Thirunelli_Maha_Vishnu_temple_in_Wayanad_region_Kerala_India.jpg/1280px-Thirunelli_Maha_Vishnu_temple_in_Wayanad_region_Kerala_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/34/Thirunelli_Maha_Vishnu_temple_in_Wayanad_region_Kerala_India.jpg/1280px-Thirunelli_Maha_Vishnu_temple_in_Wayanad_region_Kerala_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2a/Thirunelli_Maha_Vishnu_Temple.JPG/1280px-Thirunelli_Maha_Vishnu_Temple.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a7/A_Namaste_relief_at_Thirunelli_Maha_Vishnu_temple_Kerala_India.jpg/1280px-A_Namaste_relief_at_Thirunelli_Maha_Vishnu_temple_Kerala_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3f/Nadini_and_other_icons_near_Shiva_shrine_at_Maha_Vishnu_Thirunelli_temple.jpg/1280px-Nadini_and_other_icons_near_Shiva_shrine_at_Maha_Vishnu_Thirunelli_temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/59/Thirunelli_Maha_Vishnu_temple_walkway_and_parking_lot.jpg/1280px-Thirunelli_Maha_Vishnu_temple_walkway_and_parking_lot.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/53/Thirunelli_Maha_Vishnu_temple_water_tank_square_and_circle_icons.jpg/1280px-Thirunelli_Maha_Vishnu_temple_water_tank_square_and_circle_icons.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Ancient Maha Vishnu temple on Brahmagiri’s flank in Wayanad — called the Kashi of the '
         'South — famed for ancestral rites (Pitru Tharpanam) at the Papanashini stream amid dense '
@@ -1430,14 +1670,23 @@ const List<Temple> sampleTemples = [
 
   // ── KAN-64 / KAN-74 expansion batch 17 — +10 additional Kerala temples
   // Core Temple fields only (Hybrid C): trip_planning stripped / not seeded.
-  // imageUrl/images left empty (photo-pending honesty); Commons candidates in
-  // docs/kerala-sample-research.md.
+  // KAN-77 Wave A fills Commons thumbs for these ten. No Storage URLs.
+  // KAN-77: verified Commons thumbs — tools/photo-packs/vadakkunnathan-temple/
   Temple(
     name: 'Vadakkunnathan Temple',
     state: 'Kerala',
     city: 'Thrissur',
     deity: 'Shiva',
-    imageUrl: '',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/ff/Vadakkunnathan_Temple_Trichur_Keral_India1.jpg/1280px-Vadakkunnathan_Temple_Trichur_Keral_India1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/ff/Vadakkunnathan_Temple_Trichur_Keral_India1.jpg/1280px-Vadakkunnathan_Temple_Trichur_Keral_India1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/13/Vadakkunnathan_Temple_Thrissur_BN3Q3984.jpg/1280px-Vadakkunnathan_Temple_Thrissur_BN3Q3984.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/00/Grand_Onam_Pookkalam_in_front_of_Vadakkunnathan_Temple%2C_Thrissur.jpg/1280px-Grand_Onam_Pookkalam_in_front_of_Vadakkunnathan_Temple%2C_Thrissur.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c5/Vadakkunnathan_Temple%2C_Thrissur.jpg/1280px-Vadakkunnathan_Temple%2C_Thrissur.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/Vadakkunnathan_Temple_Trichur_Keral_India2.jpg/1280px-Vadakkunnathan_Temple_Trichur_Keral_India2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/23/Sri_Vadakkunnathan_Temple%2C_Thrissur_-_%E0%B4%B6%E0%B5%8D%E0%B4%B0%E0%B5%80_%E0%B4%B5%E0%B4%9F%E0%B4%95%E0%B5%8D%E0%B4%95%E0%B5%81%E0%B4%A8%E0%B4%BE%E0%B4%A5%E0%B5%BB_%E0%B4%95%E0%B5%8D%E0%B4%B7%E0%B5%87%E0%B4%A4%E0%B5%8D%E0%B4%B0%E0%B4%82%2C_%E0%B4%A4%E0%B5%83%E0%B4%B6%E0%B5%82%E0%B5%BC_01.jpg/1280px-Sri_Vadakkunnathan_Temple%2C_Thrissur_-_%E0%B4%B6%E0%B5%8D%E0%B4%B0%E0%B5%80_%E0%B4%B5%E0%B4%9F%E0%B4%95%E0%B5%8D%E0%B4%95%E0%B5%81%E0%B4%A8%E0%B4%BE%E0%B4%A5%E0%B5%BB_%E0%B4%95%E0%B5%8D%E0%B4%B7%E0%B5%87%E0%B4%A4%E0%B5%8D%E0%B4%B0%E0%B4%82%2C_%E0%B4%A4%E0%B5%83%E0%B4%B6%E0%B5%82%E0%B5%BC_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Ancient circular-plan Shiva temple at the heart of Thrissur’s '
         'Thekkinkadu Maidan, celebrated for Kerala murals, multi-shrine layout, '
@@ -1493,12 +1742,22 @@ const List<Temple> sampleTemples = [
       'Veg/pilgrim food plentiful in Thrissur temple-town belt',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/sree-poornathrayeesa-temple/
   Temple(
     name: 'Sree Poornathrayeesa Temple',
     state: 'Kerala',
     city: 'Tripunithura',
     deity: 'Vishnu',
-    imageUrl: '',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cc/Pampadi_Rajan_at_Sree_Poornathrayeesa_Temple_Thrippunithura.jpg/1280px-Pampadi_Rajan_at_Sree_Poornathrayeesa_Temple_Thrippunithura.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cc/Pampadi_Rajan_at_Sree_Poornathrayeesa_Temple_Thrippunithura.jpg/1280px-Pampadi_Rajan_at_Sree_Poornathrayeesa_Temple_Thrippunithura.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b7/Thiruvambadi_Chandrasekharan_at_Sree_Poornathrayeesa_Temple_Thrippunithura.jpg/1280px-Thiruvambadi_Chandrasekharan_at_Sree_Poornathrayeesa_Temple_Thrippunithura.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://upload.wikimedia.org/wikipedia/commons/3/3f/Sree_Poornathrayeesa_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/38/Sree_Poornathrayesa_Temple%2C_Tripunithura%2C_Kochi%2C_India_-_20080427.jpg/1280px-Sree_Poornathrayesa_Temple%2C_Tripunithura%2C_Kochi%2C_India_-_20080427.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d7/Thrippunithara%40Temple.jpg/1280px-Thrippunithara%40Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/61/Thrippunithura-Elephant-Entering-Temple-1_crop.jpg/1280px-Thrippunithura-Elephant-Entering-Temple-1_crop.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Royal Cochin Vishnu temple at Tripunithura where Poornathrayeesa is '
         'worshipped as Santhanagopala Murthy — famed for elephant-rich '
@@ -1550,12 +1809,22 @@ const List<Temple> sampleTemples = [
       'Veg hotels common around Tripunithura temple street',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/ambalappuzha-sri-krishna-temple/
   Temple(
     name: 'Ambalappuzha Sri Krishna Temple',
     state: 'Kerala',
     city: 'Ambalappuzha',
     deity: 'Vishnu',
-    imageUrl: '',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e7/Ambalappuzha_Sree_Krishna_Temple_07.jpg/1280px-Ambalappuzha_Sree_Krishna_Temple_07.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e7/Ambalappuzha_Sree_Krishna_Temple_07.jpg/1280px-Ambalappuzha_Sree_Krishna_Temple_07.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/80/Ambalappuzha_Sree_Krishna_Temple_08.jpg/1280px-Ambalappuzha_Sree_Krishna_Temple_08.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7a/Ambalappuzha_Sree_Krishna_Temple_17.jpg/1280px-Ambalappuzha_Sree_Krishna_Temple_17.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/14/Ambalappuzha_Sree_Krishna_Temple_Ficus_religiosa.jpg/1280px-Ambalappuzha_Sree_Krishna_Temple_Ficus_religiosa.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/Ambalappuzha_Sree_Krishna_Temple_Pond.jpg/1280px-Ambalappuzha_Sree_Krishna_Temple_Pond.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e5/Ambalappuzha_Sree_Krishna_Temple_Pond_iide_view.jpg/1280px-Ambalappuzha_Sree_Krishna_Temple_Pond_iide_view.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Historic Alappuzha Krishna (Parthasarathy) temple renowned statewide '
         'for its daily Palpayasam milk-payasam offering and classical Kerala '
@@ -1607,12 +1876,22 @@ const List<Temple> sampleTemples = [
       'Plan midday if collecting Palpayasam (queue)',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/ettumanoor-mahadeva-temple/
   Temple(
     name: 'Ettumanoor Mahadeva Temple',
     state: 'Kerala',
     city: 'Ettumanoor',
     deity: 'Shiva',
-    imageUrl: '',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/009242022_Ettumanoor_Mahadeva_temple%2C_Kottayam_Kerala_005.jpg/1280px-009242022_Ettumanoor_Mahadeva_temple%2C_Kottayam_Kerala_005.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/009242022_Ettumanoor_Mahadeva_temple%2C_Kottayam_Kerala_005.jpg/1280px-009242022_Ettumanoor_Mahadeva_temple%2C_Kottayam_Kerala_005.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3c/009242022_Ettumanoor_Mahadeva_temple%2C_Kottayam_Kerala_010.jpg/1280px-009242022_Ettumanoor_Mahadeva_temple%2C_Kottayam_Kerala_010.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b4/009242022_Ettumanoor_Mahadeva_temple%2C_Kottayam_Kerala_017.jpg/1280px-009242022_Ettumanoor_Mahadeva_temple%2C_Kottayam_Kerala_017.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c0/009242022_Ettumanoor_Mahadeva_temple%2C_Kottayam_Kerala_028.jpg/1280px-009242022_Ettumanoor_Mahadeva_temple%2C_Kottayam_Kerala_028.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2c/009242022_Ettumanoor_Mahadeva_temple%2C_Kottayam_Kerala_051.jpg/1280px-009242022_Ettumanoor_Mahadeva_temple%2C_Kottayam_Kerala_051.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/49/009242022_Ettumanoor_Mahadeva_temple%2C_Kottayam_Kerala_058.jpg/1280px-009242022_Ettumanoor_Mahadeva_temple%2C_Kottayam_Kerala_058.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Major Travancore Devaswom Shiva temple in Kottayam district, famed for '
         'its Pradosha Nritham mural, golden Ezharaponnana elephants, and '
@@ -1659,12 +1938,22 @@ const List<Temple> sampleTemples = [
       'Veg pilgrim eateries around Ettumanoor junction',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/chettikulangara-devi-temple/
   Temple(
     name: 'Chettikulangara Devi Temple',
     state: 'Kerala',
     city: 'Chettikulangara',
     deity: 'Devi',
-    imageUrl: '',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7a/Kettukazhcha_at_Chettikulangara_Devi_temple.jpg/1280px-Kettukazhcha_at_Chettikulangara_Devi_temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7a/Kettukazhcha_at_Chettikulangara_Devi_temple.jpg/1280px-Kettukazhcha_at_Chettikulangara_Devi_temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/07/CHETTIKULANGARA_TEMPLE.jpg/1280px-CHETTIKULANGARA_TEMPLE.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bc/Chettikulangara_Kettukazcha_panorama.jpg/1280px-Chettikulangara_Kettukazcha_panorama.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4d/Chettikulangara_kumbha_bharani_captured_in_realme_15pro.jpg/1280px-Chettikulangara_kumbha_bharani_captured_in_realme_15pro.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/73/Kuthira.JPG/1280px-Kuthira.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f5/Theru.JPG/1280px-Theru.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Prominent Bhadrakali temple near Mavelikkara, famous across central '
         'Travancore for Kumbha Bharani’s towering Kettukazhcha effigies and '
@@ -1713,12 +2002,22 @@ const List<Temple> sampleTemples = [
       'Book lodging early for Bharani week',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/kodungallur-bhagavathy-temple/
   Temple(
     name: 'Kodungallur Bhagavathy Temple',
     state: 'Kerala',
     city: 'Kodungallur',
     deity: 'Devi',
-    imageUrl: '',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8b/Kodungallur_Bhagavathy_Temple_02.jpg/1280px-Kodungallur_Bhagavathy_Temple_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8b/Kodungallur_Bhagavathy_Temple_02.jpg/1280px-Kodungallur_Bhagavathy_Temple_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d5/Kodungallur_Bhagavathy_Temple_03.jpg/1280px-Kodungallur_Bhagavathy_Temple_03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/22/Kodungallur_Bhagavathy_Temple_03_bnr.png/1280px-Kodungallur_Bhagavathy_Temple_03_bnr.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9d/Kodungallur_Bhagavathy_Temple_04.jpg/1280px-Kodungallur_Bhagavathy_Temple_04.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d4/Kodungallur_Bhagavathy_Temple_05.jpg/1280px-Kodungallur_Bhagavathy_Temple_05.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/92/Kodungallur_Bhagavathy_Temple_06.jpg/1280px-Kodungallur_Bhagavathy_Temple_06.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Ancient Sree Kurumba Bhagavathy (Bhadrakali) temple of the Chera '
         'Mahodayapuram landscape, renowned for the intense Kodungallur Bharani '
@@ -1766,12 +2065,22 @@ const List<Temple> sampleTemples = [
       'Respectful conduct essential during Bharani',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/parassinikadavu-muthappan-temple/
   Temple(
     name: 'Parassinikadavu Muthappan Temple',
     state: 'Kerala',
     city: 'Parassinikadavu',
     deity: 'Muthappan',
-    imageUrl: '',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c2/Parassinikadavu_Sri_Muthappan_Temple.png/1280px-Parassinikadavu_Sri_Muthappan_Temple.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c2/Parassinikadavu_Sri_Muthappan_Temple.png/1280px-Parassinikadavu_Sri_Muthappan_Temple.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/17/Parassini_Madappura_Sree_Muthappan_Parassinikadavu_2026_0224_072159.jpg/1280px-Parassini_Madappura_Sree_Muthappan_Parassinikadavu_2026_0224_072159.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7f/Parassini_Madappura_Sree_Muthappan_Parassinikadavu_2026_0224_072221.jpg/1280px-Parassini_Madappura_Sree_Muthappan_Parassinikadavu_2026_0224_072221.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d0/Parassini_Madappura_Sree_Muthappan_Parassinikadavu_2026_0224_072231.jpg/1280px-Parassini_Madappura_Sree_Muthappan_Parassinikadavu_2026_0224_072231.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/41/Parassini_Madappura_Sree_Muthappan_Parassinikadavu_2026_0224_072245.jpg/1280px-Parassini_Madappura_Sree_Muthappan_Parassinikadavu_2026_0224_072245.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e7/Parassini_Madappura_Sree_Muthappan_Parassinikadavu_2026_0224_072251.jpg/1280px-Parassini_Madappura_Sree_Muthappan_Parassinikadavu_2026_0224_072251.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'North Malabar riverside madappura where Sree Muthappan is worshipped '
         'through daily Theyyam enactments (Thiruvappana and Vellattam), with '
@@ -1819,12 +2128,22 @@ const List<Temple> sampleTemples = [
       'Arrive before 5:45 AM for morning Theyyam',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/thiruvalla-sreevallabha-temple/
   Temple(
     name: 'Thiruvalla Sreevallabha Temple',
     state: 'Kerala',
     city: 'Thiruvalla',
     deity: 'Vishnu',
-    imageUrl: '',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/33/Kadhakali_-_Sreevallabha_Temple%2C_Thiruvalla.jpg/1280px-Kadhakali_-_Sreevallabha_Temple%2C_Thiruvalla.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/33/Kadhakali_-_Sreevallabha_Temple%2C_Thiruvalla.jpg/1280px-Kadhakali_-_Sreevallabha_Temple%2C_Thiruvalla.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2f/Lakshmi_vilakku_sreevallabha_temple%2C_thiruvalla.JPG/1280px-Lakshmi_vilakku_sreevallabha_temple%2C_thiruvalla.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/33/Nammalvar_phalakam_at_sreevallabha_temple%2C_thiruvalla.JPG/1280px-Nammalvar_phalakam_at_sreevallabha_temple%2C_thiruvalla.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7b/Shangh_sreevallabha_temple%2C_thiruvalla.JPG/1280px-Shangh_sreevallabha_temple%2C_thiruvalla.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1d/Sreevallabha_temple%2C_thiruvalla.JPG/1280px-Sreevallabha_temple%2C_thiruvalla.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/45/009242022_Shri_Vallabha_temple%2C_Thiruvalla_Kerala_004.jpg/1280px-009242022_Shri_Vallabha_temple%2C_Thiruvalla_Kerala_004.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'One of the 108 Divya Desams — Sreevallabha (Kolapira Perumal) at '
         'Thiruvalla — noted for a towering granite Garuda pillar, '
@@ -1868,12 +2187,22 @@ const List<Temple> sampleTemples = [
       'Veg hotels plentiful in Thiruvalla town',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/chengannur-mahadeva-temple/
   Temple(
     name: 'Chengannur Mahadeva Temple',
     state: 'Kerala',
     city: 'Chengannur',
     deity: 'Shiva',
-    imageUrl: '',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3e/Chengannur_Mahadeva_Temple_2022_September.jpg/1280px-Chengannur_Mahadeva_Temple_2022_September.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3e/Chengannur_Mahadeva_Temple_2022_September.jpg/1280px-Chengannur_Mahadeva_Temple_2022_September.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b7/009232022_Thiru_Chengannur_Mahadeva_Temple_Kerala_156.jpg/1280px-009232022_Thiru_Chengannur_Mahadeva_Temple_Kerala_156.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f7/009232022_Thiru_Chengannur_Mahadeva_Temple_Kerala_002.jpg/1280px-009232022_Thiru_Chengannur_Mahadeva_Temple_Kerala_002.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a9/009232022_Thiru_Chengannur_Mahadeva_Temple_Kerala_009.jpg/1280px-009232022_Thiru_Chengannur_Mahadeva_Temple_Kerala_009.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ab/009232022_Thiru_Chengannur_Mahadeva_Temple_Kerala_024.jpg/1280px-009232022_Thiru_Chengannur_Mahadeva_Temple_Kerala_024.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0c/009232022_Thiru_Chengannur_Mahadeva_Temple_Kerala_036.jpg/1280px-009232022_Thiru_Chengannur_Mahadeva_Temple_Kerala_036.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Ancient Pamba-side Shiva–Bhagavathy complex with a circular Kerala '
         'vimana, dual sanctums, and the rare Thriputharattu fertility rite when '
@@ -1922,12 +2251,22 @@ const List<Temple> sampleTemples = [
       'Confirm Thriputharattu status before travel',
     ],
   ),
+  // KAN-77: verified Commons thumbs — tools/photo-packs/kaviyoor-mahadeva-temple/
   Temple(
     name: 'Kaviyoor Mahadeva Temple',
     state: 'Kerala',
     city: 'Kaviyoor',
     deity: 'Shiva',
-    imageUrl: '',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/98/RoudraBhima_and_Draupadi%2C_Wood_Carving%2C_Kaviyoor_Mahadevar_Temple..JPG/1280px-RoudraBhima_and_Draupadi%2C_Wood_Carving%2C_Kaviyoor_Mahadevar_Temple..JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: const [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/98/RoudraBhima_and_Draupadi%2C_Wood_Carving%2C_Kaviyoor_Mahadevar_Temple..JPG/1280px-RoudraBhima_and_Draupadi%2C_Wood_Carving%2C_Kaviyoor_Mahadevar_Temple..JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/09/Sree_Krishna_Leela%2C_Wood_Carving%2C_Kaviyoor_Mahadevar_Temple..JPG/1280px-Sree_Krishna_Leela%2C_Wood_Carving%2C_Kaviyoor_Mahadevar_Temple..JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a3/Wood_Carving%2C_Kaviyoor_Mahadevar_Temple..JPG/1280px-Wood_Carving%2C_Kaviyoor_Mahadevar_Temple..JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e5/Kaviyoor_mahadeva_temple_01.jpg/1280px-Kaviyoor_mahadeva_temple_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1a/Kaviyoor_mahadeva_temple_02.jpg/1280px-Kaviyoor_mahadeva_temple_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/98/Kaviyoor_mahadeva_temple_03.jpg/1280px-Kaviyoor_mahadeva_temple_03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Tenth-century circular-plan Mahadeva temple near Thiruvalla, noted for '
         'early inscriptions (c. 950–951 CE), exquisite wood carvings, and a '
