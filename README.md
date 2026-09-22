@@ -99,7 +99,8 @@ docs/
 ├── gujarat-sample-research.md         # Gujarat expansion sources, caveats, Commons photo candidates
 ├── odisha-sample-research.md          # Odisha expansion sources, caveats, Commons photo candidates
 ├── uttar-pradesh-sample-research.md   # UP expansion sources, caveats, Commons photo candidates
-└── jammu-kashmir-sample-research.md   # Jammu and Kashmir expansion sources, caveats, Commons photo candidates
+├── jammu-kashmir-sample-research.md   # Jammu and Kashmir expansion sources, caveats, Commons photo candidates
+└── android-play-internal-test.md      # Android application id, upload key, Firebase package follow-up
 ```
 
 ## Prerequisites
@@ -258,6 +259,12 @@ flutter build ios --release
 # Web
 flutter build web --release
 ```
+
+Application id is `com.shradhaventures.temple` and the Android launcher label is **Temple Directory India**. Release signing and the Play upload key are documented in [`docs/android-play-internal-test.md`](docs/android-play-internal-test.md). `android/key.properties`, `*.jks`, and `*.keystore` stay out of git. Debug builds do not need that file. A release build with missing or incomplete signing properties fails with an actionable error and is not signed with the debug keystore.
+
+`android/app/google-services.json` is the Firebase-generated config for project `temple-directory-india`. It includes the previous `com.example.temple_app` client and the new `com.shradhaventures.temple` app (`1:109314154382:android:d34e6caea62c14124ccedf`). The Android section of `lib/firebase_options.dart` uses that new app id. Other platforms are unchanged.
+
+The first Play internal-test upload still waits on the separate directory search work. This repository does not include that search yet.
 
 ## Ad Unit IDs Reference
 

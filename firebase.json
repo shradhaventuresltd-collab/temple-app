@@ -4,7 +4,7 @@
       "android": {
         "default": {
           "projectId": "temple-directory-india",
-          "appId": "1:109314154382:android:d2e607c7a242743c4ccedf",
+          "appId": "1:109314154382:android:d34e6caea62c14124ccedf",
           "fileOutput": "android/app/google-services.json"
         }
       },
@@ -28,7 +28,7 @@
         "lib/firebase_options.dart": {
           "projectId": "temple-directory-india",
           "configurations": {
-            "android": "1:109314154382:android:d2e607c7a242743c4ccedf",
+            "android": "1:109314154382:android:d34e6caea62c14124ccedf",
             "ios": "1:109314154382:ios:262247718f97cde64ccedf",
             "macos": "1:109314154382:ios:262247718f97cde64ccedf",
             "web": "1:109314154382:web:ad68bb3740d1c3e34ccedf",
