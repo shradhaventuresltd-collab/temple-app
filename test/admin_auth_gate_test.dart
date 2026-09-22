@@ -10,12 +10,43 @@ import 'package:temple_app/widgets/debug_home_admin_actions.dart';
 import 'helpers/fake_admin_auth.dart';
 
 void main() {
+  testWidgets(
+      'AdminScreen hides sign-in and CMS when debug flag is false (release gate)',
+      (tester) async {
+    final auth = FakeAdminAuth();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AdminScreen(adminAuth: auth, isDebug: false),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byKey(const Key('admin-unavailable-message')), findsOneWidget);
+    expect(
+      find.text('Admin CMS is available in debug builds only.'),
+      findsOneWidget,
+    );
+    expect(find.text('Admin sign-in required'), findsNothing);
+    expect(find.byKey(const Key('admin-sign-in-button')), findsNothing);
+    expect(find.byKey(const Key('admin-email-field')), findsNothing);
+    expect(find.byKey(const Key('admin-password-field')), findsNothing);
+    expect(find.text('Sign in'), findsNothing);
+    expect(find.text('Seed'), findsNothing);
+    expect(find.text('Seed sample temples'), findsNothing);
+    expect(find.text('Upload'), findsNothing);
+    expect(find.text('Create a temple'), findsNothing);
+    expect(find.text('Edit'), findsNothing);
+    expect(find.text('Delete'), findsNothing);
+    expect(auth.signInCalls, 0);
+  });
+
   testWidgets('AdminScreen shows sign-in when signed out and hides Seed',
       (tester) async {
     final auth = FakeAdminAuth();
 
     await tester.pumpWidget(
-      MaterialApp(home: AdminScreen(adminAuth: auth)),
+      MaterialApp(home: AdminScreen(adminAuth: auth, isDebug: true)),
     );
     await tester.pump();
 
@@ -35,7 +66,7 @@ void main() {
     final auth = FakeAdminAuth()..signInError = Exception('invalid-credential');
 
     await tester.pumpWidget(
-      MaterialApp(home: AdminScreen(adminAuth: auth)),
+      MaterialApp(home: AdminScreen(adminAuth: auth, isDebug: true)),
     );
     await tester.pump();
 
@@ -61,7 +92,7 @@ void main() {
     final auth = FakeAdminAuth();
 
     await tester.pumpWidget(
-      MaterialApp(home: AdminScreen(adminAuth: auth)),
+      MaterialApp(home: AdminScreen(adminAuth: auth, isDebug: true)),
     );
     await tester.pump();
 
@@ -164,6 +195,7 @@ void main() {
       MaterialApp(
         home: AdminScreen(
           adminAuth: _HangingAdminAuth(hanging.stream),
+          isDebug: true,
         ),
       ),
     );

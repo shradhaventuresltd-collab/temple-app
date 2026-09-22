@@ -12,13 +12,22 @@ import 'package:temple_app/widgets/admin_auth_gate.dart';
 import 'package:temple_app/widgets/seed_temples_control.dart';
 
 class AdminScreen extends StatefulWidget {
-  const AdminScreen({super.key, this.adminAuth, this.adminTemples});
+  const AdminScreen({
+    super.key,
+    this.adminAuth,
+    this.adminTemples,
+    this.isDebug,
+  });
 
   /// Injected in tests. Defaults to [AdminAuth.instance].
   final AdminAuth? adminAuth;
 
   /// Injected in tests. Defaults to [AdminTempleService].
   final AdminTempleApi? adminTemples;
+
+  /// Defaults to [kDebugMode]. Pass `false` in tests to simulate release/profile.
+  /// When false, the entire Admin surface (including sign-in) is unavailable.
+  final bool? isDebug;
 
   @override
   State<AdminScreen> createState() => _AdminScreenState();
@@ -31,6 +40,7 @@ class _AdminScreenState extends State<AdminScreen> {
   late final AdminTempleApi _temples =
       widget.adminTemples ?? AdminTempleService();
   late final Stream<AdminSession> _session = _auth.session;
+  late final bool _isDebug = widget.isDebug ?? kDebugMode;
 
   Future<void> _openForm({Temple? existing}) async {
     await Navigator.of(context).push<bool>(
@@ -45,6 +55,39 @@ class _AdminScreenState extends State<AdminScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Release/profile: never present sign-in, CMS, or Seed — even if reached
+    // via a deep link or direct route (Home entry is separately kDebugMode-gated).
+    if (!_isDebug) {
+      return Scaffold(
+        key: const Key('admin-unavailable-scaffold'),
+        backgroundColor: const Color(0xFFFFFBF2),
+        appBar: AppBar(
+          backgroundColor: _saffron,
+          elevation: 0,
+          centerTitle: true,
+          title: Text(
+            'Admin Panel',
+            style: GoogleFonts.lora(
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+          iconTheme: const IconThemeData(color: Colors.white),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 28),
+            child: Text(
+              'Admin CMS is available in debug builds only.',
+              key: const Key('admin-unavailable-message'),
+              style: GoogleFonts.poppins(color: Colors.brown.shade700),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+
     return StreamBuilder<AdminSession>(
       stream: _session,
       initialData: AdminSession.signedOut,
@@ -66,7 +109,7 @@ class _AdminScreenState extends State<AdminScreen> {
             ),
             iconTheme: const IconThemeData(color: Colors.white),
             actions: [
-              if (kDebugMode && session.isAdmin) ...[
+              if (session.isAdmin) ...[
                 const SeedTemplesControl(compact: true, light: true),
                 IconButton(
                   key: const Key('admin-add-temple-appbar'),
