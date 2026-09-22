@@ -48,7 +48,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Temple Directory'), findsOneWidget);
-    expect(find.text('Temple Collage'), findsOneWidget);
+    expect(find.text('Discover'), findsOneWidget);
+    expect(find.text('1 temples across India'), findsOneWidget);
     expect(find.byKey(const Key('home-browse-temples')), findsOneWidget);
     expect(find.text('Browse 1 Temple'), findsOneWidget);
 
