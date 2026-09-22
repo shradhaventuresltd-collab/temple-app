@@ -203,7 +203,7 @@ Production / release browsing does **not** require signing in. Seed and Admin wr
 
 **Idempotency:** each seeded temple is stored under a slug of its name (e.g. `meenakshi-amman-temple`). Re-running Seed merges into those same documents instead of creating duplicates. Existing admin-uploaded `images` and original `createdAt` values are preserved. CMS **Create** uses the same slug rule and refuses a name that would collide.
 
-Release and profile builds hide Seed/Admin; `seedTempleData` and Admin CMS writes also refuse to run outside debug, and rules reject non-admin writes even if a client tried.
+Release and profile builds hide Seed/Admin entirely (including the Admin sign-in panel); `seedTempleData` and Admin CMS writes also refuse to run outside debug, and rules reject non-admin writes even if a client tried. The release App Bundle still links `firebase_auth` and `firebase_storage` — Play Data safety must not claim those SDKs are absent (see [`docs/play-store-listing.md`](docs/play-store-listing.md)).
 
 The home screen **falls back** to the 180 bundled sample temples if Firestore is empty or unreachable, so browse can look populated while the cloud `temples` collection is still empty. Admin reads Firestore only — it stays empty until an admin seeds or creates a temple.
 
