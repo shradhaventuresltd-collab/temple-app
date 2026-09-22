@@ -33,6 +33,7 @@ List<String> templeBrowseHonestyLabels(Temple temple) {
 
 /// Browse card: cover, name, place, and deity chip.
 ///
+/// Cover uses [verifiedCoverUrl] — the same honesty as the detail hero.
 /// Placeholder hosts (picsum, placehold, and the rest of
 /// [isPlaceholderImageUrl]) render as [TempleImagePlaceholder] so stock
 /// images are not presented as photographs. Outlier sites also show the
@@ -180,8 +181,9 @@ class _BrowseCover extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final urls = verifiedGalleryUrls(temple);
-    if (urls.isEmpty) {
+    // Same honesty as detail hero: never bind picsum / placeholder hosts.
+    final coverUrl = verifiedCoverUrl(temple);
+    if (coverUrl == null) {
       return const TempleImagePlaceholder(height: TempleBrowseCard.coverHeight);
     }
 
@@ -192,7 +194,7 @@ class _BrowseCover extends StatelessWidget {
             ? constraints.maxWidth
             : MediaQuery.sizeOf(context).width;
         return CachedNetworkImage(
-          imageUrl: urls.first,
+          imageUrl: coverUrl,
           height: TempleBrowseCard.coverHeight,
           width: double.infinity,
           fit: BoxFit.cover,

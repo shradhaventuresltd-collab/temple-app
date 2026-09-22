@@ -7,6 +7,7 @@ import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/admin_screen.dart';
 import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/services/temple_service.dart';
+import 'package:temple_app/utils/detail_honesty.dart';
 import 'package:temple_app/widgets/app_drawer.dart';
 import 'package:temple_app/widgets/debug_home_admin_actions.dart';
 
@@ -145,17 +146,8 @@ class _HomeBody extends StatelessWidget {
 
   final List<Temple> allTemples;
 
-  List<String> get _allImages {
-    final urls = <String>[];
-    for (final t in allTemples) {
-      if (t.images.isNotEmpty) {
-        urls.addAll(t.images.where((u) => u.trim().isNotEmpty));
-      } else if (t.hasNetworkImage) {
-        urls.add(t.imageUrl);
-      }
-    }
-    return urls;
-  }
+  /// Same honesty as browse/detail: picsum and placeholder hosts are omitted.
+  List<String> get _allImages => verifiedMosaicUrls(allTemples);
 
   @override
   Widget build(BuildContext context) {

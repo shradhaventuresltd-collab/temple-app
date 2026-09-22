@@ -74,6 +74,7 @@ void main() {
         isTrue,
         reason: temple.name,
       );
+      expect(verifiedCoverUrl(temple), isNull, reason: temple.name);
     }
 
     final mixed = _draft(
@@ -84,10 +85,31 @@ void main() {
       ],
     );
     expect(verifiedGalleryUrls(mixed), ['https://example.com/temple.jpg']);
+    expect(verifiedCoverUrl(mixed), 'https://example.com/temple.jpg');
 
     final realCover = _draft(imageUrl: 'https://example.com/cover.jpg');
     expect(DetailHonesty.of(realCover).photoPending, isFalse);
     expect(verifiedGalleryUrls(realCover), ['https://example.com/cover.jpg']);
+    expect(verifiedCoverUrl(realCover), 'https://example.com/cover.jpg');
+  });
+
+  test('mosaic URLs drop placeholder hosts across temples', () {
+    final temples = [
+      _draft(imageUrl: 'https://picsum.photos/seed/a/800/600'),
+      _draft(
+        name: 'With real photo',
+        imageUrl: 'https://picsum.photos/seed/b/800/600',
+        images: const [
+          'https://picsum.photos/seed/c/800/600',
+          'https://firebasestorage.googleapis.com/v0/b/app/o/a.jpg?alt=media',
+        ],
+      ),
+      _draft(name: 'Empty', imageUrl: ''),
+    ];
+
+    expect(verifiedMosaicUrls(temples), [
+      'https://firebasestorage.googleapis.com/v0/b/app/o/a.jpg?alt=media',
+    ]);
   });
 
   test(
