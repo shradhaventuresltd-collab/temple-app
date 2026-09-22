@@ -1,0 +1,126 @@
+{
+  "temple_slug": "martand-sun-temple",
+  "temple_name": "Martand Sun Temple",
+  "doc_id_hint": "martand-sun-temple",
+  "city": "Anantnag",
+  "state": "Jammu and Kashmir",
+  "tradition_note": "ASI Surya temple ruins",
+  "photos": [
+    {
+      "filename": "01_Martand_Sun_Temple_J_K_01.jpg",
+      "commons_title": "File:Martand Sun Temple, J&K 01.jpg",
+      "author": "Deepank Ranka",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMartand_Sun_Temple%2C_J%26K_01.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Martand_Sun_Temple%2C_J%26K_01.jpg/1280px-Martand_Sun_Temple%2C_J%26K_01.jpg",
+      "bytes": 304768,
+      "width": 1280,
+      "height": 855,
+      "notes": "Exterior ruins overview"
+    },
+    {
+      "filename": "02_1_Sun_Temple_Martand_Jammu_Kashmir_India_ancient_Hindu_temple_in_ruins.jpg",
+      "commons_title": "File:1 Sun Temple Martand Jammu Kashmir India ancient Hindu temple in ruins.jpg",
+      "author": "Ankur P",
+      "license": "CC BY-SA 2.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3A1_Sun_Temple_Martand_Jammu_Kashmir_India_ancient_Hindu_temple_in_ruins.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/1_Sun_Temple_Martand_Jammu_Kashmir_India_ancient_Hindu_temple_in_ruins.jpg/1280px-1_Sun_Temple_Martand_Jammu_Kashmir_India_ancient_Hindu_temple_in_ruins.jpg",
+      "bytes": 407712,
+      "width": 1280,
+      "height": 720,
+      "notes": "Ruins landscape overview"
+    },
+    {
+      "filename": "03_Martand_Sun_Temple.jpg",
+      "commons_title": "File:Martand Sun Temple.JPG",
+      "author": "Shiva shanker prasad",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMartand_Sun_Temple.JPG",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Martand_Sun_Temple.JPG/1280px-Martand_Sun_Temple.JPG",
+      "bytes": 366301,
+      "width": 1280,
+      "height": 857,
+      "notes": "ASI monument exterior"
+    },
+    {
+      "filename": "04_Sun_Temple_Martand.jpg",
+      "commons_title": "File:Sun Temple Martand.JPG",
+      "author": "Drmaliktariq",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ASun_Temple_Martand.JPG",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Sun_Temple_Martand.JPG/1280px-Sun_Temple_Martand.JPG",
+      "bytes": 372702,
+      "width": 1280,
+      "height": 853,
+      "notes": "Temple ruins view"
+    },
+    {
+      "filename": "05_Sun_temple_martand_indogreek.jpg",
+      "commons_title": "File:Sun temple martand indogreek.jpg",
+      "author": "John Burke",
+      "license": "Public Domain",
+      "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ASun_temple_martand_indogreek.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/Sun_temple_martand_indogreek.jpg/1280px-Sun_temple_martand_indogreek.jpg",
+      "bytes": 322779,
+      "width": 1280,
+      "height": 953,
+      "notes": "Historic 1868 photograph"
+    },
+    {
+      "filename": "06_Martand_Sun_Temple_J_K_02.jpg",
+      "commons_title": "File:Martand Sun Temple, J&K 02.jpg",
+      "author": "Deepank Ranka",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMartand_Sun_Temple%2C_J%26K_02.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Martand_Sun_Temple%2C_J%26K_02.jpg/1280px-Martand_Sun_Temple%2C_J%26K_02.jpg",
+      "bytes": 339124,
+      "width": 1280,
+      "height": 855,
+      "notes": "Additional exterior view"
+    }
+  ],
+  "photo_candidates": [
+    {
+      "url": "https://commons.wikimedia.org/wiki/File%3AMartand_Sun_Temple%2C_J%26K_01.jpg",
+      "license": "CC BY-SA 4.0",
+      "attribution": "Deepank Ranka",
+      "notes": "local_file=01_Martand_Sun_Temple_J_K_01.jpg"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/File%3A1_Sun_Temple_Martand_Jammu_Kashmir_India_ancient_Hindu_temple_in_ruins.jpg",
+      "license": "CC BY-SA 2.0",
+      "attribution": "Ankur P",
+      "notes": "local_file=02_1_Sun_Temple_Martand_Jammu_Kashmir_India_ancient_Hindu_temple_in_ruins.jpg"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/File%3AMartand_Sun_Temple.JPG",
+      "license": "CC BY-SA 3.0",
+      "attribution": "Shiva shanker prasad",
+      "notes": "local_file=03_Martand_Sun_Temple.jpg"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/File%3ASun_Temple_Martand.JPG",
+      "license": "CC BY-SA 3.0",
+      "attribution": "Drmaliktariq",
+      "notes": "local_file=04_Sun_Temple_Martand.jpg"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/File%3ASun_temple_martand_indogreek.jpg",
+      "license": "Public Domain",
+      "attribution": "John Burke",
+      "notes": "local_file=05_Sun_temple_martand_indogreek.jpg"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/File%3AMartand_Sun_Temple%2C_J%26K_02.jpg",
+      "license": "CC BY-SA 4.0",
+      "attribution": "Deepank Ranka",
+      "notes": "local_file=06_Martand_Sun_Temple_J_K_02.jpg"
+    }
+  ]
+}

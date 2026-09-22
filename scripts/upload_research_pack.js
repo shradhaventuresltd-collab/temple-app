@@ -1,40 +1,47 @@
-import { existsSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "fs";
 import { basename, dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "..");
+const defaultPacksRoot = resolve(repoRoot, "tools/photo-packs");
 
 function printUsage() {
   console.log(`
 Usage:
   node upload_research_pack.js --pack <folder> [options]
+  node upload_research_pack.js --packs-dir <dir> [options]
+  node upload_research_pack.js --all-packs [options]
 
-Uploads Research-verified temple photos from a pack folder (manifest.json + jpgs)
+Uploads Research-verified temple photos from pack folder(s) (manifest.json + jpgs)
 to Firebase Storage under temples/{docId}/…
 
 Options:
-  --pack <path>          Pack folder with manifest.json + image files (required)
-  --doc-id <id>          Firestore / Storage temple id (default: manifest.temple_slug
-                         or manifest.doc_id_hint)
+  --pack <path>          One pack folder (repeatable)
+  --packs-dir <path>     Directory of pack folders (each with manifest.json)
+  --all-packs            Upload every pack under tools/photo-packs/
+  --doc-id <id>          Override Storage/Firestore id (single --pack only)
   --bucket <name>        Storage bucket (default: temple-directory-india.firebasestorage.app)
   --patch-firestore      Also set temples/{docId}.imageUrl + images in Firestore
-  --dry-run              Parse pack and print planned uploads; do not touch Storage
+  --dry-run              Parse packs and print planned uploads; do not touch Storage
   --write-urls <path>    Write a JSON summary of download URLs to this file
   --help                 Show this help
 
 Requires service-account.json in the repo root or scripts/ (gitignored).
 Does not use Google Places. Prefer only filenames listed in manifest.json.
 
-Example (Mahabodhi):
+Examples:
+  node upload_research_pack.js --all-packs --dry-run
   node upload_research_pack.js --pack ../tools/photo-packs/mahabodhi-temple --dry-run
-  node upload_research_pack.js --pack ../tools/photo-packs/mahabodhi-temple --patch-firestore
+  node upload_research_pack.js --packs-dir ../tools/photo-packs --patch-firestore
 `);
 }
 
 function parseArgs(argv) {
   const opts = {
-    pack: null,
+    packs: [],
+    packsDir: null,
+    allPacks: false,
     docId: null,
     bucket: "temple-directory-india.firebasestorage.app",
     patchFirestore: false,
@@ -45,7 +52,9 @@ function parseArgs(argv) {
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--help" || arg === "-h") opts.help = true;
-    else if (arg === "--pack") opts.pack = argv[++i];
+    else if (arg === "--pack") opts.packs.push(argv[++i]);
+    else if (arg === "--packs-dir") opts.packsDir = argv[++i];
+    else if (arg === "--all-packs") opts.allPacks = true;
     else if (arg === "--doc-id") opts.docId = argv[++i];
     else if (arg === "--bucket") opts.bucket = argv[++i];
     else if (arg === "--patch-firestore") opts.patchFirestore = true;
@@ -108,12 +117,37 @@ function resolvePhotos(packDir, manifest) {
   return resolved;
 }
 
+function discoverPackDirs(packsDir) {
+  if (!existsSync(packsDir)) {
+    throw new Error(`Packs directory not found: ${packsDir}`);
+  }
+  return readdirSync(packsDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => resolve(packsDir, entry.name))
+    .filter((dir) => existsSync(resolve(dir, "manifest.json")))
+    .sort();
+}
+
+function resolvePackDirs(opts) {
+  const dirs = [];
+  if (opts.allPacks) {
+    dirs.push(...discoverPackDirs(defaultPacksRoot));
+  }
+  if (opts.packsDir) {
+    dirs.push(...discoverPackDirs(resolve(process.cwd(), opts.packsDir)));
+  }
+  for (const pack of opts.packs) {
+    dirs.push(resolve(process.cwd(), pack));
+  }
+  // De-dupe while preserving order
+  return [...new Set(dirs)];
+}
+
 function publicUrl(bucketName, storagePath) {
   return `https://storage.googleapis.com/${bucketName}/${storagePath}`;
 }
 
 async function uploadFile(bucket, localPath, storagePath) {
-  const file = bucket.file(storagePath);
   await bucket.upload(localPath, {
     destination: storagePath,
     metadata: {
@@ -121,73 +155,56 @@ async function uploadFile(bucket, localPath, storagePath) {
       cacheControl: "public, max-age=86400",
     },
   });
+  const file = bucket.file(storagePath);
   await file.makePublic();
   return publicUrl(bucket.name, storagePath);
 }
 
-async function main() {
-  const opts = parseArgs(process.argv.slice(2));
-  if (opts.help || !opts.pack) {
-    printUsage();
-    process.exit(opts.help && !opts.pack ? 0 : 1);
-  }
-
-  const packDir = resolve(process.cwd(), opts.pack);
+async function processPack({
+  packDir,
+  docIdOverride,
+  bucketName,
+  patchFirestore,
+  dryRun,
+  adminApp,
+}) {
   if (!existsSync(packDir)) {
-    console.error(`✖  Pack folder not found: ${packDir}`);
-    process.exit(1);
+    throw new Error(`Pack folder not found: ${packDir}`);
   }
 
   const manifest = loadManifest(packDir);
   const docId =
-    opts.docId ||
+    docIdOverride ||
     manifest.temple_slug ||
     manifest.doc_id_hint ||
     basename(packDir);
   const photos = resolvePhotos(packDir, manifest);
 
-  console.log("╔════════════════════════════════════════════════════════════╗");
-  console.log("║  Research photo pack → Firebase Storage                    ║");
-  console.log("╚════════════════════════════════════════════════════════════╝");
+  console.log("────────────────────────────────────────────────────────────");
   console.log(`Pack       : ${packDir}`);
   console.log(`Temple     : ${manifest.temple_name || docId}`);
   console.log(`Doc id     : ${docId}`);
   console.log(`Photos     : ${photos.length} (from manifest.json only)`);
-  console.log(`Bucket     : ${opts.bucket}`);
-  console.log(`Firestore  : ${opts.patchFirestore ? "patch imageUrl + images" : "skip"}`);
-  console.log(`Mode       : ${opts.dryRun ? "dry-run" : "upload"}\n`);
 
-  if (opts.dryRun) {
+  if (dryRun) {
     for (const photo of photos) {
       const storagePath = `temples/${docId}/${photo.filename}`;
       console.log(`• ${photo.filename}`);
-      console.log(`    → gs://${opts.bucket}/${storagePath}`);
-      console.log(`    license: ${photo.license || "(none)"} / ${photo.author || "(unknown)"}`);
+      console.log(`    → gs://${bucketName}/${storagePath}`);
+      console.log(
+        `    license: ${photo.license || "(none)"} / ${photo.author || "(unknown)"}`
+      );
     }
-    console.log("\nDry run complete — no Storage or Firestore writes.");
-    process.exit(0);
+    return {
+      docId,
+      imageUrl: photos[0]?.downloadedUrl || "",
+      images: photos.map((p) => p.downloadedUrl).filter(Boolean),
+      photos,
+      uploaded: false,
+    };
   }
 
-  const sa = loadServiceAccount();
-  if (!sa) {
-    console.error(
-      "\n✖  service-account.json not found.\n" +
-        "   Download it from Firebase Console → Project Settings → Service Accounts\n" +
-        "   → Generate New Private Key. Place it in the project root or scripts/.\n" +
-        "   Do not commit the key.\n"
-    );
-    process.exit(1);
-  }
-
-  console.log(`Service account: ${sa.path}`);
-
-  const { default: admin } = await import("firebase-admin");
-  admin.initializeApp({
-    credential: admin.credential.cert(sa.json),
-    storageBucket: opts.bucket,
-  });
-
-  const bucket = admin.storage().bucket();
+  const bucket = adminApp.storage().bucket();
   const uploadedUrls = [];
 
   for (let i = 0; i < photos.length; i++) {
@@ -203,8 +220,7 @@ async function main() {
       console.log(`    ${url}`);
     } catch (err) {
       console.log("FAILED");
-      console.error(`    ${err.message}`);
-      process.exit(1);
+      throw new Error(`${photo.filename}: ${err.message}`);
     }
   }
 
@@ -221,15 +237,17 @@ async function main() {
   }
   console.log("],");
 
-  if (opts.patchFirestore) {
-    const db = admin.firestore();
+  if (patchFirestore) {
+    const db = adminApp.firestore();
     const docRef = db.collection("temples").doc(docId);
     const snap = await docRef.get();
     if (!snap.exists) {
       console.log(
         `\n⚠  Firestore doc temples/${docId} not found — skipping patch.`
       );
-      console.log('   Run debug Seed first, then re-run with --patch-firestore.');
+      console.log(
+        "   Run debug Seed first, then re-run with --patch-firestore."
+      );
     } else {
       await docRef.update({
         imageUrl: uploadedUrls[0],
@@ -243,26 +261,103 @@ async function main() {
     );
   }
 
+  return {
+    docId,
+    imageUrl: uploadedUrls[0],
+    images: uploadedUrls,
+    photos,
+    uploaded: true,
+  };
+}
+
+async function main() {
+  const opts = parseArgs(process.argv.slice(2));
+  const packDirs = resolvePackDirs(opts);
+
+  if (opts.help || packDirs.length === 0) {
+    printUsage();
+    process.exit(opts.help && packDirs.length === 0 ? 0 : 1);
+  }
+
+  if (opts.docId && packDirs.length > 1) {
+    console.error("✖  --doc-id can only be used with a single --pack");
+    process.exit(1);
+  }
+
+  console.log("╔════════════════════════════════════════════════════════════╗");
+  console.log("║  Research photo pack → Firebase Storage                    ║");
+  console.log("╚════════════════════════════════════════════════════════════╝");
+  console.log(`Packs      : ${packDirs.length}`);
+  console.log(`Bucket     : ${opts.bucket}`);
+  console.log(
+    `Firestore  : ${opts.patchFirestore ? "patch imageUrl + images" : "skip"}`
+  );
+  console.log(`Mode       : ${opts.dryRun ? "dry-run" : "upload"}\n`);
+
+  let adminApp = null;
+  if (!opts.dryRun) {
+    const sa = loadServiceAccount();
+    if (!sa) {
+      console.error(
+        "\n✖  service-account.json not found.\n" +
+          "   Download it from Firebase Console → Project Settings → Service Accounts\n" +
+          "   → Generate New Private Key. Place it in the project root or scripts/.\n" +
+          "   Do not commit the key.\n"
+      );
+      process.exit(1);
+    }
+    console.log(`Service account: ${sa.path}\n`);
+    const { default: admin } = await import("firebase-admin");
+    adminApp = admin.initializeApp({
+      credential: admin.credential.cert(sa.json),
+      storageBucket: opts.bucket,
+    });
+  }
+
+  const summaries = [];
+  for (const packDir of packDirs) {
+    const summary = await processPack({
+      packDir,
+      docIdOverride: opts.docId,
+      bucketName: opts.bucket,
+      patchFirestore: opts.patchFirestore,
+      dryRun: opts.dryRun,
+      adminApp,
+    });
+    summaries.push(summary);
+    console.log("");
+  }
+
+  if (opts.dryRun) {
+    console.log(`Dry run complete — ${summaries.length} pack(s), no Storage writes.`);
+  } else {
+    console.log(`Done — ${summaries.length} pack(s) processed.`);
+  }
+
   if (opts.writeUrls) {
     const outPath = resolve(process.cwd(), opts.writeUrls);
     const payload = {
-      docId,
       bucket: opts.bucket,
-      imageUrl: uploadedUrls[0],
-      images: uploadedUrls,
-      photos: photos.map((p, i) => ({
-        filename: p.filename,
-        storageUrl: uploadedUrls[i],
-        author: p.author,
-        license: p.license,
-        source_url: p.sourceUrl,
+      dryRun: opts.dryRun,
+      packs: summaries.map((s) => ({
+        docId: s.docId,
+        imageUrl: s.imageUrl,
+        images: s.images,
+        uploaded: s.uploaded,
+        photos: s.photos.map((p, i) => ({
+          filename: p.filename,
+          storageUrl: s.uploaded ? s.images[i] : null,
+          downloaded_url: p.downloadedUrl,
+          author: p.author,
+          license: p.license,
+          source_url: p.sourceUrl,
+        })),
       })),
     };
     writeFileSync(outPath, `${JSON.stringify(payload, null, 2)}\n`);
-    console.log(`\nWrote URL summary → ${outPath}`);
+    console.log(`Wrote URL summary → ${outPath}`);
   }
 
-  console.log("\nDone.");
   process.exit(0);
 }
 

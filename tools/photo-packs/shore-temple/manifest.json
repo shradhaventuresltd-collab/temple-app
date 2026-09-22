@@ -1,0 +1,126 @@
+{
+  "temple_slug": "shore-temple",
+  "temple_name": "Shore Temple",
+  "doc_id_hint": "shore-temple",
+  "city": "Mahabalipuram",
+  "state": "Tamil Nadu",
+  "tradition_note": "ASI / UNESCO Pallava shore temple",
+  "photos": [
+    {
+      "filename": "01_Shore_Temple_view_2_-_Mahabalipuram.jpg",
+      "commons_title": "File:Shore Temple view 2 - Mahabalipuram.jpg",
+      "author": "C.S.Gautham",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AShore_Temple_view_2_-_Mahabalipuram.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/86/Shore_Temple_view_2_-_Mahabalipuram.jpg/1280px-Shore_Temple_view_2_-_Mahabalipuram.jpg",
+      "bytes": 311462,
+      "width": 1280,
+      "height": 720,
+      "notes": "Exterior shore view"
+    },
+    {
+      "filename": "02_Shore_Temple_Mahabalipuram_Tamil-Nadu_India.jpg",
+      "commons_title": "File:Shore Temple Mahabalipuram Tamil-Nadu India.jpg",
+      "author": "N. Vivekananthamoorthy",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AShore_Temple_Mahabalipuram_Tamil-Nadu_India.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Shore_Temple_Mahabalipuram_Tamil-Nadu_India.jpg/1280px-Shore_Temple_Mahabalipuram_Tamil-Nadu_India.jpg",
+      "bytes": 147162,
+      "width": 1280,
+      "height": 720,
+      "notes": "UNESCO Shore Temple exterior"
+    },
+    {
+      "filename": "03_The_Shore_Temple_Mahabalipuram.jpg",
+      "commons_title": "File:The Shore Temple Mahabalipuram.jpg",
+      "author": "Kashyap Kaki",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AThe_Shore_Temple_Mahabalipuram.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/The_Shore_Temple_Mahabalipuram.jpg/1280px-The_Shore_Temple_Mahabalipuram.jpg",
+      "bytes": 286456,
+      "width": 1280,
+      "height": 960,
+      "notes": "Western entrance view"
+    },
+    {
+      "filename": "04_Inside_Shore_Temple_facing_West.jpg",
+      "commons_title": "File:Inside Shore Temple facing West.jpg",
+      "author": "IM3847",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AInside_Shore_Temple_facing_West.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Inside_Shore_Temple_facing_West.jpg/1280px-Inside_Shore_Temple_facing_West.jpg",
+      "bytes": 652810,
+      "width": 1280,
+      "height": 960,
+      "notes": "Interior facing west"
+    },
+    {
+      "filename": "05_Beautiful_Shore_Temple_Mamallapuram_Tamil_Nadu.jpg",
+      "commons_title": "File:Beautiful Shore Temple, Mamallapuram, Tamil Nadu.jpg",
+      "author": "Sharvarism",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ABeautiful_Shore_Temple%2C_Mamallapuram%2C_Tamil_Nadu.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Beautiful_Shore_Temple%2C_Mamallapuram%2C_Tamil_Nadu.jpg/1280px-Beautiful_Shore_Temple%2C_Mamallapuram%2C_Tamil_Nadu.jpg",
+      "bytes": 279881,
+      "width": 1280,
+      "height": 853,
+      "notes": "Exterior overview"
+    },
+    {
+      "filename": "06_Front_View_of_Shore_Temple.jpg",
+      "commons_title": "File:Front View of Shore Temple.jpg",
+      "author": "Ajaybeny1989",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AFront_View_of_Shore_Temple.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Front_View_of_Shore_Temple.jpg/1280px-Front_View_of_Shore_Temple.jpg",
+      "bytes": 300539,
+      "width": 1280,
+      "height": 853,
+      "notes": "Front view"
+    }
+  ],
+  "photo_candidates": [
+    {
+      "url": "https://commons.wikimedia.org/wiki/File%3AShore_Temple_view_2_-_Mahabalipuram.jpg",
+      "license": "CC BY-SA 4.0",
+      "attribution": "C.S.Gautham",
+      "notes": "local_file=01_Shore_Temple_view_2_-_Mahabalipuram.jpg"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/File%3AShore_Temple_Mahabalipuram_Tamil-Nadu_India.jpg",
+      "license": "CC BY-SA 4.0",
+      "attribution": "N. Vivekananthamoorthy",
+      "notes": "local_file=02_Shore_Temple_Mahabalipuram_Tamil-Nadu_India.jpg"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/File%3AThe_Shore_Temple_Mahabalipuram.jpg",
+      "license": "CC BY-SA 4.0",
+      "attribution": "Kashyap Kaki",
+      "notes": "local_file=03_The_Shore_Temple_Mahabalipuram.jpg"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/File%3AInside_Shore_Temple_facing_West.jpg",
+      "license": "CC BY-SA 4.0",
+      "attribution": "IM3847",
+      "notes": "local_file=04_Inside_Shore_Temple_facing_West.jpg"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/File%3ABeautiful_Shore_Temple%2C_Mamallapuram%2C_Tamil_Nadu.jpg",
+      "license": "CC BY-SA 4.0",
+      "attribution": "Sharvarism",
+      "notes": "local_file=05_Beautiful_Shore_Temple_Mamallapuram_Tamil_Nadu.jpg"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/File%3AFront_View_of_Shore_Temple.jpg",
+      "license": "CC BY-SA 4.0",
+      "attribution": "Ajaybeny1989",
+      "notes": "local_file=06_Front_View_of_Shore_Temple.jpg"
+    }
+  ]
+}

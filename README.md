@@ -189,8 +189,8 @@ Production / release browsing does **not** require signing in. Seed and Admin wr
    ```bash
    cd scripts
    npm install
-   node upload_research_pack.js --pack ../tools/photo-packs/mahabodhi-temple --dry-run
-   node upload_research_pack.js --pack ../tools/photo-packs/mahabodhi-temple --patch-firestore
+   node upload_research_pack.js --all-packs --dry-run
+   node upload_research_pack.js --all-packs --patch-firestore
    ```
 
    Sample/Seed may already use Commons `downloaded_url` thumbs so honesty clears before Storage; after upload, replace `imageUrl` / `images` with the printed Storage URLs (or let `--patch-firestore` write live docs). Do not invent Storage URLs.

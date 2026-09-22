@@ -1,0 +1,126 @@
+{
+  "temple_slug": "dilwara-temples",
+  "temple_name": "Dilwara Temples",
+  "doc_id_hint": "dilwara-temples",
+  "city": "Mount Abu",
+  "state": "Rajasthan",
+  "tradition_note": "Jain marble temples",
+  "photos": [
+    {
+      "filename": "01_Dilwara_temple_in_mount_abu.jpg",
+      "commons_title": "File:Dilwara temple in mount abu.jpg",
+      "author": "Ranjith Kumar Inbasekaran",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ADilwara_temple_in_mount_abu.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Dilwara_temple_in_mount_abu.jpg/1280px-Dilwara_temple_in_mount_abu.jpg",
+      "bytes": 367703,
+      "width": 1280,
+      "height": 960,
+      "notes": "Exterior / complex view"
+    },
+    {
+      "filename": "02_DILWADA_TEMPLE.jpg",
+      "commons_title": "File:DILWADA TEMPLE.JPG",
+      "author": "Surohit",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ADILWADA_TEMPLE.JPG",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/DILWADA_TEMPLE.JPG/1280px-DILWADA_TEMPLE.JPG",
+      "bytes": 458505,
+      "width": 1280,
+      "height": 860,
+      "notes": "Marble carving interior detail"
+    },
+    {
+      "filename": "03_Dilwara_Temple_Mount_Abu_Rajasthan.jpg",
+      "commons_title": "File:Dilwara Temple, Mount Abu, Rajasthan.jpg",
+      "author": "B. L. Singley / Getty Museum",
+      "license": "CC0 1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ADilwara_Temple%2C_Mount_Abu%2C_Rajasthan.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/Dilwara_Temple%2C_Mount_Abu%2C_Rajasthan.jpg/1280px-Dilwara_Temple%2C_Mount_Abu%2C_Rajasthan.jpg",
+      "bytes": 262919,
+      "width": 1280,
+      "height": 677,
+      "notes": "Historic interior albumen (1901)"
+    },
+    {
+      "filename": "04_Marble_Carved_Ceilings_Showing_Jain_Mythology_in_Dilwara_Temple_Mt._Abu.jpg",
+      "commons_title": "File:Marble Carved Ceilings Showing Jain Mythology in Dilwara Temple, Mt. Abu.jpg",
+      "author": "Lala Deen Dayal",
+      "license": "CC0 1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMarble_Carved_Ceilings_Showing_Jain_Mythology_in_Dilwara_Temple%2C_Mt._Abu.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Marble_Carved_Ceilings_Showing_Jain_Mythology_in_Dilwara_Temple%2C_Mt._Abu.jpg/1280px-Marble_Carved_Ceilings_Showing_Jain_Mythology_in_Dilwara_Temple%2C_Mt._Abu.jpg",
+      "bytes": 415638,
+      "width": 1280,
+      "height": 885,
+      "notes": "Historic carved ceiling"
+    },
+    {
+      "filename": "05_The_Jain_temples_on_mount_Abu_Rajasthan.jpg",
+      "commons_title": "File:The Jain temples on mount Abu, Rajasthan.jpg",
+      "author": "Bourne & Shepherd",
+      "license": "Public Domain",
+      "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AThe_Jain_temples_on_mount_Abu%2C_Rajasthan.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/The_Jain_temples_on_mount_Abu%2C_Rajasthan.jpg/1280px-The_Jain_temples_on_mount_Abu%2C_Rajasthan.jpg",
+      "bytes": 278668,
+      "width": 1280,
+      "height": 875,
+      "notes": "Historic exterior overview (1874)"
+    },
+    {
+      "filename": "06_Aisle_in_a_Jain_temple_mount_Abu_Rajasthan.jpg",
+      "commons_title": "File:Aisle in a Jain temple, mount Abu, Rajasthan.jpg",
+      "author": "Bourne & Shepherd",
+      "license": "Public Domain",
+      "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AAisle_in_a_Jain_temple%2C_mount_Abu%2C_Rajasthan.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Aisle_in_a_Jain_temple%2C_mount_Abu%2C_Rajasthan.jpg/1280px-Aisle_in_a_Jain_temple%2C_mount_Abu%2C_Rajasthan.jpg",
+      "bytes": 480795,
+      "width": 1280,
+      "height": 1638,
+      "notes": "Historic aisle interior (1874)"
+    }
+  ],
+  "photo_candidates": [
+    {
+      "url": "https://commons.wikimedia.org/wiki/File%3ADilwara_temple_in_mount_abu.jpg",
+      "license": "CC BY-SA 4.0",
+      "attribution": "Ranjith Kumar Inbasekaran",
+      "notes": "local_file=01_Dilwara_temple_in_mount_abu.jpg"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/File%3ADILWADA_TEMPLE.JPG",
+      "license": "CC BY-SA 3.0",
+      "attribution": "Surohit",
+      "notes": "local_file=02_DILWADA_TEMPLE.jpg"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/File%3ADilwara_Temple%2C_Mount_Abu%2C_Rajasthan.jpg",
+      "license": "CC0 1.0",
+      "attribution": "B. L. Singley / Getty Museum",
+      "notes": "local_file=03_Dilwara_Temple_Mount_Abu_Rajasthan.jpg"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/File%3AMarble_Carved_Ceilings_Showing_Jain_Mythology_in_Dilwara_Temple%2C_Mt._Abu.jpg",
+      "license": "CC0 1.0",
+      "attribution": "Lala Deen Dayal",
+      "notes": "local_file=04_Marble_Carved_Ceilings_Showing_Jain_Mythology_in_Dilwara_Temple_Mt._Abu.jpg"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/File%3AThe_Jain_temples_on_mount_Abu%2C_Rajasthan.jpg",
+      "license": "Public Domain",
+      "attribution": "Bourne & Shepherd",
+      "notes": "local_file=05_The_Jain_temples_on_mount_Abu_Rajasthan.jpg"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/File%3AAisle_in_a_Jain_temple%2C_mount_Abu%2C_Rajasthan.jpg",
+      "license": "Public Domain",
+      "attribution": "Bourne & Shepherd",
+      "notes": "local_file=06_Aisle_in_a_Jain_temple_mount_Abu_Rajasthan.jpg"
+    }
+  ]
+}
