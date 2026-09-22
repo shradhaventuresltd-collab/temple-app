@@ -1,6 +1,6 @@
 # 🛕 Temple Directory India
 
-A beautifully crafted Flutter application that serves as a comprehensive directory of famous temples across India. The app showcases 150 bundled sample temples from Tamil Nadu, Kerala, Karnataka, Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, Jammu and Kashmir, Maharashtra, Rajasthan, West Bengal, Madhya Pradesh, Bihar, and Himachal Pradesh with rich details including history, legends, timings, photo galleries, GPS directions, and an in-depth heritage write-up on India's sacred architectural legacy.
+A beautifully crafted Flutter application that serves as a comprehensive directory of famous temples across India. The app showcases 180 bundled sample temples from Tamil Nadu, Kerala, Karnataka, Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, Jammu and Kashmir, Maharashtra, Rajasthan, West Bengal, Madhya Pradesh, Bihar, and Himachal Pradesh with rich details including history, legends, timings, photo galleries, GPS directions, and an in-depth heritage write-up on India's sacred architectural legacy.
 
 ## Why We Built This
 
@@ -26,7 +26,7 @@ India's temple heritage is one of the richest in the world — thousands of sacr
 ### For Admins (Debug Mode + Auth)
 - **Admin CMS** — Debug builds only. After admin sign-in, create, edit, and delete temple documents in Firestore using the same fields the app already reads.
 - **Image Upload** — Pick and upload multiple images per temple to Firebase Storage with progress tracking. The file picker is **web-oriented** (native `<input type="file">`); field CRUD still works in mobile debug.
-- **Seed Data** — Debug-only **Seed** control (Home + Admin) writes the 150 bundled sample temples. It is shown only for a signed-in admin. Re-running is idempotent (stable document IDs). Hidden in release/profile builds.
+- **Seed Data** — Debug-only **Seed** control (Home + Admin) writes the 180 bundled sample temples. It is shown only for a signed-in admin. Re-running is idempotent (stable document IDs). Hidden in release/profile builds.
 
 ### Technical
 - **Firebase Backend** — Cloud Firestore for temple data, Firebase Storage for images, Firebase Auth for admin writes.
@@ -39,7 +39,7 @@ India's temple heritage is one of the richest in the world — thousands of sacr
 
 ### Search
 
-Public directory search runs on the device against temples already loaded for browse (Firestore, or the 150 bundled sample temples if Firestore is empty or unreachable). It does not call a search service or add a Firestore index.
+Public directory search runs on the device against temples already loaded for browse (Firestore, or the 180 bundled sample temples if Firestore is empty or unreachable). It does not call a search service or add a Firestore index.
 
 - **Where:** open **All Temples** and type in the search field above the list, or type in the drawer **Search** field and tap **View matches** (keyboard search does the same). State and deity chips on the list and in the drawer combine with that search. **Browse** opens the loaded directory with those chips selected, and the list narrows it further.
 - **Match:** the query is trimmed and compared without case sensitivity. Extra spaces are collapsed. Every word must appear in the temple’s name, city, state, deity, or address (`location`, stored as Firestore `address`). `meena` matches Meenakshi; `shiva gujarat` matches a Gujarat Shiva temple. Story and description are not searched.
@@ -62,7 +62,7 @@ lib/
 ├── models/
 │   └── temple.dart                    # Temple data model
 ├── data/
-│   ├── sample_data.dart               # 150 bundled sample temples (offline fallback; research-backed copy)
+│   ├── sample_data.dart               # 180 bundled sample temples (offline fallback; research-backed copy)
 │   └── heritage_content.dart          # Heritage write-up content sections
 ├── services/
 │   ├── temple_service.dart            # Firestore temple reads with fallback
@@ -194,13 +194,13 @@ Production / release browsing does **not** require signing in. Seed and Admin wr
 
 Release and profile builds hide Seed/Admin; `seedTempleData` and Admin CMS writes also refuse to run outside debug, and rules reject non-admin writes even if a client tried.
 
-The home screen **falls back** to the 150 bundled sample temples if Firestore is empty or unreachable, so browse can look populated while the cloud `temples` collection is still empty. Admin reads Firestore only — it stays empty until an admin seeds or creates a temple.
+The home screen **falls back** to the 180 bundled sample temples if Firestore is empty or unreachable, so browse can look populated while the cloud `temples` collection is still empty. Admin reads Firestore only — it stays empty until an admin seeds or creates a temple.
 
-The 10 Tamil Nadu, 10 Kerala, and 10 Karnataka sample temples carry research-enriched story, timings (with source caveats), specialities, address, and map pins. Expansion batches add 10 temples each for Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, Jammu and Kashmir, Maharashtra, Rajasthan, West Bengal, Madhya Pradesh, Bihar, and Himachal Pradesh, with the same field mapping (`location` stored as `address`) and the same honesty caveats kept in `timings` / `story`. Cover `imageUrl` values are picsum placeholders (existing seeds left as-is; new rows use `https://picsum.photos/seed/{slug}/800/600`). Gallery `images` stay empty until a real Storage upload. Sources and Commons photo candidates live in [`docs/tamil-nadu-sample-research.md`](docs/tamil-nadu-sample-research.md), [`docs/kerala-sample-research.md`](docs/kerala-sample-research.md), [`docs/karnataka-sample-research.md`](docs/karnataka-sample-research.md), [`docs/andhra-pradesh-sample-research.md`](docs/andhra-pradesh-sample-research.md), [`docs/telangana-sample-research.md`](docs/telangana-sample-research.md), [`docs/gujarat-sample-research.md`](docs/gujarat-sample-research.md), [`docs/odisha-sample-research.md`](docs/odisha-sample-research.md), [`docs/uttar-pradesh-sample-research.md`](docs/uttar-pradesh-sample-research.md), [`docs/jammu-kashmir-sample-research.md`](docs/jammu-kashmir-sample-research.md), [`docs/maharashtra-sample-research.md`](docs/maharashtra-sample-research.md), [`docs/rajasthan-sample-research.md`](docs/rajasthan-sample-research.md), [`docs/west-bengal-sample-research.md`](docs/west-bengal-sample-research.md), [`docs/madhya-pradesh-sample-research.md`](docs/madhya-pradesh-sample-research.md), [`docs/bihar-sample-research.md`](docs/bihar-sample-research.md), and [`docs/himachal-pradesh-sample-research.md`](docs/himachal-pradesh-sample-research.md) — they are not Firestore fields. Re-seeding from a debug admin client refreshes bundled text on the stable slug IDs; this repo does not ship a live Firebase seed from CI.
+The original 10 Tamil Nadu, 10 Kerala, and 10 Karnataka sample temples carry research-enriched story, timings (with source caveats), specialities, address, and map pins. KAN-74 adds +10 more temples each for Tamil Nadu, Kerala, and Karnataka (batches 16–18) with **empty** covers (photo-pending honesty; no new picsum). Expansion batches also add 10 temples each for Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, Jammu and Kashmir, Maharashtra, Rajasthan, West Bengal, Madhya Pradesh, Bihar, and Himachal Pradesh, with the same field mapping (`location` stored as `address`) and the same honesty caveats kept in `timings` / `story`. Pre-KAN-74 cover `imageUrl` values remain picsum placeholders; KAN-74 South India additions keep `imageUrl` empty. Gallery `images` stay empty until a real Storage upload. **Hybrid C:** `trip_planning` is not in the Dart model or Seed. Sources and Commons photo candidates live in [`docs/tamil-nadu-sample-research.md`](docs/tamil-nadu-sample-research.md), [`docs/kerala-sample-research.md`](docs/kerala-sample-research.md), [`docs/karnataka-sample-research.md`](docs/karnataka-sample-research.md), [`docs/andhra-pradesh-sample-research.md`](docs/andhra-pradesh-sample-research.md), [`docs/telangana-sample-research.md`](docs/telangana-sample-research.md), [`docs/gujarat-sample-research.md`](docs/gujarat-sample-research.md), [`docs/odisha-sample-research.md`](docs/odisha-sample-research.md), [`docs/uttar-pradesh-sample-research.md`](docs/uttar-pradesh-sample-research.md), [`docs/jammu-kashmir-sample-research.md`](docs/jammu-kashmir-sample-research.md), [`docs/maharashtra-sample-research.md`](docs/maharashtra-sample-research.md), [`docs/rajasthan-sample-research.md`](docs/rajasthan-sample-research.md), [`docs/west-bengal-sample-research.md`](docs/west-bengal-sample-research.md), [`docs/madhya-pradesh-sample-research.md`](docs/madhya-pradesh-sample-research.md), [`docs/bihar-sample-research.md`](docs/bihar-sample-research.md), and [`docs/himachal-pradesh-sample-research.md`](docs/himachal-pradesh-sample-research.md) — they are not Firestore fields. Re-seeding from a debug admin client refreshes bundled text on the stable slug IDs; this repo does not ship a live Firebase seed from CI.
 
 ### Admin CMS vs Seed
 
-**Seed** is a one-shot debug action: it writes the 150 bundled sample temples with stable slug IDs. Use it to populate Firestore quickly. It does not provide a per-field editor.
+**Seed** is a one-shot debug action: it writes the 180 bundled sample temples with stable slug IDs. Use it to populate Firestore quickly. It does not provide a per-field editor.
 
 **Admin CMS** is the Admin panel form + list: a signed-in admin can create, edit, and delete individual `temples/{id}` documents. Fields match what the app already stores and reads — `name`, `state`, `city`, `deity`, `description`, `story`, `imageUrl`, `address` (the model’s location), `timings`, `specialities`, `images`, `latitude`, `longitude`. There is no separate admin schema.
 

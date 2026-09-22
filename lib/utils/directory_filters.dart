@@ -51,6 +51,7 @@ const List<String> directoryFilterDeities = [
   'Vishnu/Rama',
   'Buddha',
   'Sita (Devi)',
+  'Muthappan',
 ];
 
 /// Honesty chip for a listed deity, or null for the Hindu-first default.

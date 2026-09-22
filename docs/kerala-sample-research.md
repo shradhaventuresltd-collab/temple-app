@@ -229,3 +229,225 @@ Photo candidates (Commons file pages):
 - https://commons.wikimedia.org/wiki/File:Thirunelli_temple.JPG — CC BY-SA 3.0, Vijayakumarblathur. Temple front/context
 - https://commons.wikimedia.org/wiki/File:Thirunelli_Temple.JPG — CC0, RajeshUnuppally. Temple view; CC0
 - https://commons.wikimedia.org/wiki/File:Wayanad_-_Thirunelli_Temple_Relief.jpg — CC BY-SA 4.0, Ingo Mehling. Stone relief detail
+
+---
+
+# KAN-64 / KAN-74 expansion (batch 17) — +10 additional Kerala temples
+
+Research-backed **new** temples applied into `lib/data/sample_data.dart` under
+[KAN-74](https://shradhaventuresltd.atlassian.net/browse/KAN-74) (Hybrid C).
+
+These are **additional** rows — they do not replace or re-enrich the original
+batch 1–3 Kerala temples.
+
+## Hybrid C / schema lock
+
+- Core Temple / Seed fields only (`name`, `state`, `city`, `deity`, `description`,
+  `story`, `location`→`address`, `timings`, `specialities`, `latitude`, `longitude`,
+  `imageUrl`, `images`).
+- **`trip_planning` is research-JSON-only** — not added to the Dart model, sample
+  data, or Seed writes.
+- `sources`, `photo_candidates`, and `rituals_notes` stay out of Firestore; useful
+  ritual tips were folded into `timings` / `story` / `specialities` free text where room.
+- Cover **`imageUrl` is empty** and `images` is `[]` (photo-pending honesty). Do **not**
+  invent picsum or Storage URLs for this wave.
+
+## Verify before CMS / publish
+
+| Temple | Seed slug | Caveat |
+| --- | --- | --- |
+| Vadakkunnathan Temple | `vadakkunnathan-temple` | Hindu-only entry commonly enforced; men typically mundu with bare upper body inside, women saree/churidar with dupatta — confirm live… |
+| Sree Poornathrayeesa Temple | `sree-poornathrayeesa-temple` | Traditional Kerala dress expected; photography usually banned inside. Elephant-festival crowd and safety rules have been under Kerala… |
+| Ambalappuzha Sri Krishna Temple | `ambalappuzha-sri-krishna-temple` | Traditional dress expected. Palpayasam: offline counter only per 2026 pilgrim notices — no invented online booking claims. Thin official… |
+| Ettumanoor Mahadeva Temple | `ettumanoor-mahadeva-temple` | Contact on temple site includes ettumanoordevaswom@gmail.com — useful for festival-night crowd planning. Confirm Ezharaponnana midnight… |
+| Chettikulangara Devi Temple | `chettikulangara-devi-temple` | THIN OFFICIAL CLOCK for ordinary days — timings labelled provisional. Photo coverage on Commons is festival-kuthira heavy rather than… |
+| Kodungallur Bhagavathy Temple | `kodungallur-bhagavathy-temple` | THIN official English ordinary-day clock. Bharani is culturally intense — follow local advisories; not a casual photo-tourism event.… |
+| Parassinikadavu Muthappan Temple | `parassinikadavu-muthappan-temple` | Accurate deity label is Muthappan (not simply Shiva or Vishnu alone). Theyyam pause mid-Oct–mid-Nov is critical trip planning.… |
+| Thiruvalla Sreevallabha Temple | `thiruvalla-sreevallabha-temple` | Dress code typical of Kerala Vishnu temples; ask before photographing inside. Kathakali–puja calendar is seasonal — check local notice… |
+| Chengannur Mahadeva Temple | `chengannur-mahadeva-temple` | THIN official English named-pooja clock. Thriputharattu closures are irregular — always verify same-week status. Treat fertility rite… |
+| Kaviyoor Mahadeva Temple | `kaviyoor-mahadeva-temple` | THIN/conflicting official English clocks. Keep rock-cut cave temple as a separate optional heritage stop — not this doc’s primary sanctum. |
+
+## Sources and photo candidates
+
+### Vadakkunnathan Temple
+
+Seed slug: `vadakkunnathan-temple` (research id `vadakkunnathan-temple`).
+
+Sources:
+
+- [Sree Wadakkunathan Temple — daily pooja (official-aligned)](https://sreewadakkunathantemple.org/daily_pooja)
+- [Vadakkunnathan Temple — Wikipedia](https://en.wikipedia.org/wiki/Vadakkunnathan_Temple)
+- [Kerala Tourism — Thrissur / Pooram context](https://www.keralatourism.org/)
+
+Photo candidates (Commons file pages):
+
+- https://commons.wikimedia.org/wiki/File:Vadakkumnathan_Temple.jpg — CC BY 3.0; Adarsh Padmanabhan
+- https://commons.wikimedia.org/wiki/File:Vadakkunnathan_temple_at_night_-_December_2019.jpg — CC BY-SA 4.0; Ajay090
+
+Ritual overflow (folded into timings where length allowed):
+
+- Hindu-only entry commonly enforced; men typically mundu with bare upper body inside, women saree/churidar with dupatta — confirm live board. Children under one often restricted per secondary notices.
+
+### Sree Poornathrayeesa Temple
+
+Seed slug: `sree-poornathrayeesa-temple` (research id `sree-poornathrayeesa-temple`).
+
+Sources:
+
+- [Sree Poornathrayeesa Temple — official about](https://sreepoornathrayeesatemple.org/index.php/welcome/aboutUs)
+- [Sree Poornathrayeesa Temple — Wikipedia](https://en.wikipedia.org/wiki/Sree_Poornathrayeesa_Temple)
+- [Sahapedia — major festivals (secondary)](https://www.sahapedia.org/)
+
+Photo candidates (Commons file pages):
+
+- https://commons.wikimedia.org/wiki/File:Sree_Poornathrayeesa_Temple.jpg — CC BY-SA 4.0; Ashok.tcr
+
+Ritual overflow (folded into timings where length allowed):
+
+- Traditional Kerala dress expected; photography usually banned inside. Elephant-festival crowd and safety rules have been under Kerala High Court scrutiny — follow current Devaswom advisories.
+
+### Ambalappuzha Sri Krishna Temple
+
+Seed slug: `ambalappuzha-sri-krishna-temple` (research id `ambalappuzha-sri-krishna-temple`).
+
+Sources:
+
+- [Ambalappuzha Temple — Wikipedia](https://en.wikipedia.org/wiki/Ambalappuzha_Temple)
+- [Incredible India / Kerala Tourism context (secondary for hours)](https://www.incredibleindia.gov.in/)
+- [Kerala Tourism](https://www.keralatourism.org/)
+
+Photo candidates (Commons file pages):
+
+- https://commons.wikimedia.org/wiki/File:009232022_Ambalaphuzha_Shri_Krishna_Swamy_Temple_Kerala_08.jpg — CC0; Ms Sarah Welch
+
+Ritual overflow (folded into timings where length allowed):
+
+- Traditional dress expected. Palpayasam: offline counter only per 2026 pilgrim notices — no invented online booking claims. Thin official English timetable — re-check Devaswom/local board.
+
+### Ettumanoor Mahadeva Temple
+
+Seed slug: `ettumanoor-mahadeva-temple` (research id `ettumanoor-mahadeva-temple`).
+
+Sources:
+
+- [Ettumanoor Mahadeva Temple — puja timings](https://ettumanoormahadevatemple.com/puja/)
+- [Kerala Tourism — Ezhara Ponnana festival](https://www.keralatourism.org/event/ezhara-ponnana/101/)
+- [Ettumanoor Mahadevar Temple — Wikipedia](https://en.wikipedia.org/wiki/Ettumanoor_Mahadevar_Temple)
+
+Photo candidates (Commons file pages):
+
+- https://commons.wikimedia.org/wiki/File:Ettumanoor_Temple_Front_Arch.JPG — CC BY-SA 3.0; Ranjithsiji
+- https://commons.wikimedia.org/wiki/File:Shiva_Nataraja_at_Hindu_Mahadeva_Temple_entrance,_Ettumanoor_Kerala.jpg — CC BY-SA 4.0; Ms Sarah Welch
+
+Ritual overflow (folded into timings where length allowed):
+
+- Contact on temple site includes ettumanoordevaswom@gmail.com — useful for festival-night crowd planning. Confirm Ezharaponnana midnight opening annually.
+
+### Chettikulangara Devi Temple
+
+Seed slug: `chettikulangara-devi-temple` (research id `chettikulangara-devi-temple`).
+
+Sources:
+
+- [Chettikulangara Devi Temple — major festivals (official site)](https://www.chettikulangara.org/chettikulangaradevitemple/major-festivals.php)
+- [Kerala Tourism — Chettikulangara Bhagavathy Temple](https://www.keralatourism.org/destination/chettikulangara-bhagavathy-temple-mavelikkara/68/)
+- [Chettikulangara Devi Temple — Wikipedia](https://en.wikipedia.org/wiki/Chettikulangara_Devi_Temple)
+
+Photo candidates (Commons file pages):
+
+- https://commons.wikimedia.org/wiki/File:Kuthira.JPG — CC BY-SA 3.0; Hellblazzer
+
+Ritual overflow (folded into timings where length allowed):
+
+- THIN OFFICIAL CLOCK for ordinary days — timings labelled provisional. Photo coverage on Commons is festival-kuthira heavy rather than main gopuram exteriors.
+
+### Kodungallur Bhagavathy Temple
+
+Seed slug: `kodungallur-bhagavathy-temple` (research id `kodungallur-bhagavathy-temple`).
+
+Sources:
+
+- [Kerala Tourism — Kodungalloor Bharani / Kaavutheendal](https://www.keralatourism.org/event/kodungalloor-bharani/56/)
+- [Kodungallur Bhagavathy Temple — Wikipedia](https://en.wikipedia.org/wiki/Kodungallur_Bhagavathy_Temple)
+- [Commons category — Kodungallur Bhagavathy Temple](https://commons.wikimedia.org/wiki/Category:Kodungallur_Bhagavathy_Temple)
+
+Photo candidates (Commons file pages):
+
+- https://commons.wikimedia.org/wiki/File:0092122_Shri_Kurumbha_Bhagavathi_temple,_Chera_dynasty,_Kodungallur_Kerala_026.jpg — CC0; Ms Sarah Welch
+
+Ritual overflow (folded into timings where length allowed):
+
+- THIN official English ordinary-day clock. Bharani is culturally intense — follow local advisories; not a casual photo-tourism event. Photo candidate is verified Commons temple exterior (Ms Sarah Welch CC0).
+
+### Parassinikadavu Muthappan Temple
+
+Seed slug: `parassinikadavu-muthappan-temple` (research id `parassinikadavu-muthappan-temple`).
+
+Sources:
+
+- [Parassinikadavu Muthappan Temple — Wikipedia](https://en.wikipedia.org/wiki/Parassinikadavu_Muthappan_Temple)
+- [Kerala Tourism — Theyyam / Kannur context](https://www.keralatourism.org/)
+- [Temples of Kerala — Parassinikadavu page (secondary)](https://templesofkerala.org/kannur/parassinikadavutemple.html)
+
+Photo candidates (Commons file pages):
+
+- https://commons.wikimedia.org/wiki/File:Parassini_Madappura_Sree_MuthappanTemple.jpg — CC BY 3.0; Dexsolutions
+
+Ritual overflow (folded into timings where length allowed):
+
+- Accurate deity label is Muthappan (not simply Shiva or Vishnu alone). Theyyam pause mid-Oct–mid-Nov is critical trip planning. Photography rules during performance vary — ask locally.
+
+### Thiruvalla Sreevallabha Temple
+
+Seed slug: `thiruvalla-sreevallabha-temple` (research id `thiruvalla-sreevallabha-temple`).
+
+Sources:
+
+- [Sreevallabha Temple — Wikipedia](https://en.wikipedia.org/wiki/Sreevallabha_Temple)
+- [Commons category — Sreevallabha Temple](https://commons.wikimedia.org/wiki/Category:Sreevallabha_Temple)
+- [Kerala Tourism](https://www.keralatourism.org/)
+
+Photo candidates (Commons file pages):
+
+- https://commons.wikimedia.org/wiki/File:009242022_Shri_Vallabha_temple,_Thiruvalla_Kerala_145.jpg — CC0; Ms Sarah Welch
+
+Ritual overflow (folded into timings where length allowed):
+
+- Dress code typical of Kerala Vishnu temples; ask before photographing inside. Kathakali–puja calendar is seasonal — check local notice boards.
+
+### Chengannur Mahadeva Temple
+
+Seed slug: `chengannur-mahadeva-temple` (research id `chengannur-mahadeva-temple`).
+
+Sources:
+
+- [Chengannur Mahadeva Temple — Wikipedia](https://en.wikipedia.org/wiki/Chengannur_Mahadeva_Temple)
+- [Commons category — Chengannur Mahadeva temple](https://commons.wikimedia.org/wiki/Category:Chengannur_Mahadeva_temple)
+- [Kerala Tourism](https://www.keralatourism.org/)
+
+Photo candidates (Commons file pages):
+
+- https://commons.wikimedia.org/wiki/File:009232022_Thiru_Chengannur_Mahadeva_Temple_Kerala_156.jpg — CC0; Ms Sarah Welch
+
+Ritual overflow (folded into timings where length allowed):
+
+- THIN official English named-pooja clock. Thriputharattu closures are irregular — always verify same-week status. Treat fertility rite with cultural respect.
+
+### Kaviyoor Mahadeva Temple
+
+Seed slug: `kaviyoor-mahadeva-temple` (research id `kaviyoor-mahadeva-temple`).
+
+Sources:
+
+- [Kaviyoor Mahadevar Temple — Wikipedia](https://en.wikipedia.org/wiki/Kaviyoor_Mahadevar_Temple)
+- [Commons category — Kaviyoor Mahadevar Temple](https://commons.wikimedia.org/wiki/Category:Kaviyoor_Mahadevar_Temple)
+- [Temple site (if reachable) — thrikaviyoormahadevartemple.com](http://www.thrikaviyoormahadevartemple.com)
+
+Photo candidates (Commons file pages):
+
+- https://commons.wikimedia.org/wiki/File:009242022_Kaviyur_Mahadeva_Temple_Kerala_004.jpg — CC0; Ms Sarah Welch
+- https://commons.wikimedia.org/wiki/File:Kaviyoor_mahadeva_temple_01.jpg — CC BY-SA 4.0; Dvellakat
+
+Ritual overflow (folded into timings where length allowed):
+
+- THIN/conflicting official English clocks. Keep rock-cut cave temple as a separate optional heritage stop — not this doc’s primary sanctum.
