@@ -87,6 +87,7 @@ void main() {
     expect(directoryFilterDeities, contains('Shiva'));
     expect(directoryFilterDeities, contains('Jain Tirthankaras'));
     expect(directoryFilterDeities, contains('Buddha'));
+    expect(directoryFilterDeities, contains('Muthappan'));
     expect(listedDeityTraditionLabel('Jain Tirthankaras'), 'Jain');
     expect(listedDeityTraditionLabel('Buddha'), 'Buddhist');
     expect(listedDeityTraditionLabel('Shiva'), isNull);
