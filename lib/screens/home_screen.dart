@@ -114,7 +114,8 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
-      drawer: const AppDrawer(),
+      // New future identity refreshes the drawer after Seed / Admin.
+      drawer: AppDrawer(key: ObjectKey(_templesFuture)),
     );
   }
 }

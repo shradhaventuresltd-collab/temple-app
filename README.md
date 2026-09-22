@@ -19,8 +19,9 @@ India's temple heritage is one of the richest in the world — thousands of sacr
 - **Mosaic Home Screen** — A visually striking collage of temple images with an overlay introducing the directory.
 - **Heritage Write-Up** — A comprehensive, 10,000+ word exploration of India's temple heritage embedded directly in the app.
 - **Temple List & Filtering** — Browse all temples in a grid view. Filter by state (Tamil Nadu, Kerala, Karnataka, Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, Jammu and Kashmir) and deity (Shiva, Vishnu, Devi, Murugan, Ganesha, Surya, Hanuman, Swaminarayan, Gorakhnath) via the navigation drawer.
+- **Search** — Type in the temple list, or in the drawer, to match name, city, state, deity, or address. Search combines with the state and deity filters. See [Search](#search).
 - **Temple Detail Screen** — Full-screen image gallery with auto-advance and swipe, pinch-to-zoom, temple story, description, specialities (as chips), timings, and one-tap Google Maps directions.
-- **Navigation Drawer** — Shared across all screens with state/deity filters, temple counts, and quick navigation.
+- **Navigation Drawer** — Shared across all screens with text search, state/deity filters, temple counts, and quick navigation.
 
 ### For Admins (Debug Mode + Auth)
 - **Admin CMS** — Debug builds only. After admin sign-in, create, edit, and delete temple documents in Firestore using the same fields the app already reads.
@@ -35,6 +36,18 @@ India's temple heritage is one of the richest in the world — thousands of sacr
 - **Platform-Aware Ads** — Ads are fully disabled on web; the app runs cleanly on Chrome/web with no ads and no crashes.
 - **Custom App Icon & Splash** — A temple gopuram silhouette on saffron background, generated for all platform sizes (Android adaptive, iOS, web).
 - **Material 3 Theming** — Saffron and gold color palette with Google Fonts (Poppins + Lora).
+
+### Search
+
+Public directory search runs on the device against temples already loaded for browse (Firestore, or the 90 bundled sample temples if Firestore is empty or unreachable). It does not call a search service or add a Firestore index.
+
+- **Where:** open **All Temples** and type in the search field above the grid, or type in the drawer **Search** field and tap **View matches** (keyboard search does the same). State and deity chips still apply. **Browse** opens that filtered set with the query filled in, and the list narrows it further.
+- **Match:** the query is trimmed and compared without case sensitivity. Extra spaces are collapsed. Every word must appear in the temple’s name, city, state, deity, or address (`location`, stored as Firestore `address`). `meena` matches Meenakshi; `shiva gujarat` matches a Gujarat Shiva temple. Story and description are not searched.
+- **Empty query:** clearing the field restores that list — all temples from **All Temples**, or the state/deity subset from **Browse**.
+- **No matches:** the list shows `No temples match "…"`, with a clear action.
+- **Typing:** the field updates immediately. The grid refreshes after 300ms so each keystroke does not rebuild the temple images.
+
+Admin, Seed, and Auth are unchanged.
 
 ## Screenshots
 
@@ -72,6 +85,7 @@ lib/
 │   ├── debug_home_admin_actions.dart  # Home app-bar Seed vs Admin sign-in
 │   └── temple_image_placeholder.dart  # Placeholder for missing images
 └── utils/
+    ├── temple_search.dart              # Client-side directory search (name, city, state, deity, address)
     ├── image_picker_helper.dart       # Platform-aware image picker
     ├── image_picker_web.dart          # Web image picker implementation
     ├── image_picker_stub.dart         # Stub for non-web platforms
@@ -184,7 +198,7 @@ The 10 Tamil Nadu, 10 Kerala, and 10 Karnataka sample temples carry research-enr
 
 Image **file** picking is implemented for **web** only (`lib/utils/image_picker_web.dart`). On iOS/Android/desktop debug, you can still create/edit/delete temple fields and paste image URLs; choosing local image files is not implemented.
 
-This CMS is not public user accounts, search, AdMob configuration, or store listing hygiene.
+This CMS is not public user accounts, directory search, AdMob configuration, or store listing hygiene. Browse search is covered under [Search](#search).
 
 ### 5. AdMob Configuration
 
