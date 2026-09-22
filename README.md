@@ -270,7 +270,7 @@ Application id is `com.shradhaventures.temple` and the Android launcher label is
 
 `android/app/google-services.json` is the Firebase-generated config for project `temple-directory-india`. It includes the previous `com.example.temple_app` client and the new `com.shradhaventures.temple` app (`1:109314154382:android:d34e6caea62c14124ccedf`). The Android section of `lib/firebase_options.dart` uses that new app id. Other platforms are unchanged.
 
-The first Play internal-test upload still waits on the separate directory search work. This repository does not include that search yet.
+Draft Play Console listing copy is in [`docs/play-store-listing.md`](docs/play-store-listing.md).
 
 ## Ad Unit IDs Reference
 
