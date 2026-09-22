@@ -327,7 +327,7 @@ class _MosaicCollage extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '$templeCount temples across South India',
+                  '$templeCount temples across India',
                   style: GoogleFonts.poppins(
                     fontSize: 13,
                     color: Colors.white70,

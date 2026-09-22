@@ -23,14 +23,39 @@ class _AppDrawerState extends State<AppDrawer> {
   static const Color _deepSaffron = Color(0xFFE65100);
   static const Color _gold = Color(0xFFFFD54F);
 
-  static const _states = ['Tamil Nadu', 'Kerala', 'Karnataka'];
-  static const _deities = ['Shiva', 'Vishnu', 'Devi', 'Murugan'];
+  static const _states = [
+    'Tamil Nadu',
+    'Kerala',
+    'Karnataka',
+    'Andhra Pradesh',
+    'Telangana',
+    'Gujarat',
+    'Odisha',
+    'Uttar Pradesh',
+    'Jammu and Kashmir',
+  ];
+  static const _deities = [
+    'Shiva',
+    'Vishnu',
+    'Devi',
+    'Murugan',
+    'Ganesha',
+    'Surya',
+    'Hanuman',
+    'Swaminarayan',
+    'Gorakhnath',
+  ];
 
   static const _deityIcons = {
     'Shiva': Icons.brightness_3_rounded,
     'Vishnu': Icons.water_drop_rounded,
     'Devi': Icons.auto_awesome_rounded,
     'Murugan': Icons.shield_rounded,
+    'Ganesha': Icons.spa_rounded,
+    'Surya': Icons.wb_sunny_rounded,
+    'Hanuman': Icons.back_hand_rounded,
+    'Swaminarayan': Icons.account_balance_rounded,
+    'Gorakhnath': Icons.self_improvement_rounded,
   };
 
   String? _selectedState;
@@ -98,7 +123,7 @@ class _AppDrawerState extends State<AppDrawer> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'South India',
+                      'India',
                       style: GoogleFonts.poppins(
                         fontSize: 13,
                         color: Colors.white70,
@@ -278,9 +303,11 @@ class _AppDrawerState extends State<AppDrawer> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: Text(
-                  'Explore 30 famous temples across Tamil Nadu, Kerala & Karnataka. '
+                  'Explore 90 famous temples across Tamil Nadu, Kerala, Karnataka, '
+                  'Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, and '
+                  'Jammu and Kashmir. '
                   'Discover histories, legends, timings and specialities — '
-                  'all in one beautifully curated directory.',
+                  'all in one curated directory.',
                   style: GoogleFonts.poppins(
                     fontSize: 13,
                     color: Colors.brown.shade600,

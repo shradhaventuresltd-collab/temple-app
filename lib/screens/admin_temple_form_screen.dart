@@ -198,7 +198,8 @@ class _AdminTempleFormScreenState extends State<AdminTempleFormScreen> {
                 key: const Key('admin-temple-state-field'),
                 controller: _state,
                 label: 'State',
-                hint: 'Tamil Nadu, Kerala, Karnataka, …',
+                hint:
+                    'Tamil Nadu, Kerala, Karnataka, Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, Jammu and Kashmir',
                 fieldKey: 'state',
                 textInputAction: TextInputAction.next,
               ),

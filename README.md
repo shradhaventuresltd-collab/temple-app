@@ -1,6 +1,6 @@
 # 🛕 Temple Directory India
 
-A beautifully crafted Flutter application that serves as a comprehensive directory of famous temples across South India. The app showcases 30+ temples from Tamil Nadu, Kerala, and Karnataka with rich details including history, legends, timings, photo galleries, GPS directions, and an in-depth heritage write-up on India's sacred architectural legacy.
+A beautifully crafted Flutter application that serves as a comprehensive directory of famous temples across India. The app showcases 90 bundled sample temples from Tamil Nadu, Kerala, Karnataka, Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, and Jammu and Kashmir with rich details including history, legends, timings, photo galleries, GPS directions, and an in-depth heritage write-up on India's sacred architectural legacy.
 
 ## Why We Built This
 
@@ -18,14 +18,14 @@ India's temple heritage is one of the richest in the world — thousands of sacr
 ### For Users
 - **Mosaic Home Screen** — A visually striking collage of temple images with an overlay introducing the directory.
 - **Heritage Write-Up** — A comprehensive, 10,000+ word exploration of India's temple heritage embedded directly in the app.
-- **Temple List & Filtering** — Browse all temples in a grid view. Filter by state (Tamil Nadu, Kerala, Karnataka) and deity (Shiva, Vishnu, Devi, Murugan) via the navigation drawer.
+- **Temple List & Filtering** — Browse all temples in a grid view. Filter by state (Tamil Nadu, Kerala, Karnataka, Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, Jammu and Kashmir) and deity (Shiva, Vishnu, Devi, Murugan, Ganesha, Surya, Hanuman, Swaminarayan, Gorakhnath) via the navigation drawer.
 - **Temple Detail Screen** — Full-screen image gallery with auto-advance and swipe, pinch-to-zoom, temple story, description, specialities (as chips), timings, and one-tap Google Maps directions.
 - **Navigation Drawer** — Shared across all screens with state/deity filters, temple counts, and quick navigation.
 
 ### For Admins (Debug Mode + Auth)
 - **Admin CMS** — Debug builds only. After admin sign-in, create, edit, and delete temple documents in Firestore using the same fields the app already reads.
 - **Image Upload** — Pick and upload multiple images per temple to Firebase Storage with progress tracking. The file picker is **web-oriented** (native `<input type="file">`); field CRUD still works in mobile debug.
-- **Seed Data** — Debug-only **Seed** control (Home + Admin) writes the 30 bundled sample temples. It is shown only for a signed-in admin. Re-running is idempotent (stable document IDs). Hidden in release/profile builds.
+- **Seed Data** — Debug-only **Seed** control (Home + Admin) writes the 90 bundled sample temples. It is shown only for a signed-in admin. Re-running is idempotent (stable document IDs). Hidden in release/profile builds.
 
 ### Technical
 - **Firebase Backend** — Cloud Firestore for temple data, Firebase Storage for images, Firebase Auth for admin writes.
@@ -49,7 +49,7 @@ lib/
 ├── models/
 │   └── temple.dart                    # Temple data model
 ├── data/
-│   ├── sample_data.dart               # 30 bundled sample temples (offline fallback; TN copy research-enriched)
+│   ├── sample_data.dart               # 90 bundled sample temples (offline fallback; research-backed copy)
 │   └── heritage_content.dart          # Heritage write-up content sections
 ├── services/
 │   ├── temple_service.dart            # Firestore temple reads with fallback
@@ -79,7 +79,13 @@ lib/
 docs/
 ├── tamil-nadu-sample-research.md      # TN sample sources, caveats, Commons photo candidates
 ├── kerala-sample-research.md          # Kerala sample sources, caveats, Commons photo candidates
-└── karnataka-sample-research.md       # Karnataka sample sources, caveats, Commons photo candidates
+├── karnataka-sample-research.md       # Karnataka sample sources, caveats, Commons photo candidates
+├── andhra-pradesh-sample-research.md  # AP expansion sources, caveats, Commons photo candidates
+├── telangana-sample-research.md       # Telangana expansion sources, caveats, Commons photo candidates
+├── gujarat-sample-research.md         # Gujarat expansion sources, caveats, Commons photo candidates
+├── odisha-sample-research.md          # Odisha expansion sources, caveats, Commons photo candidates
+├── uttar-pradesh-sample-research.md   # UP expansion sources, caveats, Commons photo candidates
+└── jammu-kashmir-sample-research.md   # Jammu and Kashmir expansion sources, caveats, Commons photo candidates
 ```
 
 ## Prerequisites
@@ -164,13 +170,13 @@ Production / release browsing does **not** require signing in. Seed and Admin wr
 
 Release and profile builds hide Seed/Admin; `seedTempleData` and Admin CMS writes also refuse to run outside debug, and rules reject non-admin writes even if a client tried.
 
-The home screen **falls back** to the 30 bundled sample temples if Firestore is empty or unreachable, so browse can look populated while the cloud `temples` collection is still empty. Admin reads Firestore only — it stays empty until an admin seeds or creates a temple.
+The home screen **falls back** to the 90 bundled sample temples if Firestore is empty or unreachable, so browse can look populated while the cloud `temples` collection is still empty. Admin reads Firestore only — it stays empty until an admin seeds or creates a temple.
 
-The 10 Tamil Nadu, 10 Kerala, and 10 Karnataka sample temples carry research-enriched story, timings (with source caveats), specialities, address, and map pins. Cover `imageUrl` values stay the existing picsum placeholders. Sources and Commons photo candidates for later Storage upload live in [`docs/tamil-nadu-sample-research.md`](docs/tamil-nadu-sample-research.md), [`docs/kerala-sample-research.md`](docs/kerala-sample-research.md), and [`docs/karnataka-sample-research.md`](docs/karnataka-sample-research.md) — they are not Firestore fields. Re-seeding from a debug admin client refreshes those text fields on the existing slug IDs; this repo does not ship a live Firebase seed from CI.
+The 10 Tamil Nadu, 10 Kerala, and 10 Karnataka sample temples carry research-enriched story, timings (with source caveats), specialities, address, and map pins. Expansion batches add 10 temples each for Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, and Jammu and Kashmir, with the same field mapping (`location` stored as `address`) and the same honesty caveats kept in `timings` / `story`. Cover `imageUrl` values are picsum placeholders (existing seeds left as-is; new rows use `https://picsum.photos/seed/{slug}/800/600`). Gallery `images` stay empty until a real Storage upload. Sources and Commons photo candidates live in [`docs/tamil-nadu-sample-research.md`](docs/tamil-nadu-sample-research.md), [`docs/kerala-sample-research.md`](docs/kerala-sample-research.md), [`docs/karnataka-sample-research.md`](docs/karnataka-sample-research.md), [`docs/andhra-pradesh-sample-research.md`](docs/andhra-pradesh-sample-research.md), [`docs/telangana-sample-research.md`](docs/telangana-sample-research.md), [`docs/gujarat-sample-research.md`](docs/gujarat-sample-research.md), [`docs/odisha-sample-research.md`](docs/odisha-sample-research.md), [`docs/uttar-pradesh-sample-research.md`](docs/uttar-pradesh-sample-research.md), and [`docs/jammu-kashmir-sample-research.md`](docs/jammu-kashmir-sample-research.md) — they are not Firestore fields. Re-seeding from a debug admin client refreshes bundled text on the stable slug IDs; this repo does not ship a live Firebase seed from CI.
 
 ### Admin CMS vs Seed
 
-**Seed** is a one-shot debug action: it writes the 30 bundled sample temples with stable slug IDs. Use it to populate Firestore quickly. It does not provide a per-field editor.
+**Seed** is a one-shot debug action: it writes the 90 bundled sample temples with stable slug IDs. Use it to populate Firestore quickly. It does not provide a per-field editor.
 
 **Admin CMS** is the Admin panel form + list: a signed-in admin can create, edit, and delete individual `temples/{id}` documents. Fields match what the app already stores and reads — `name`, `state`, `city`, `deity`, `description`, `story`, `imageUrl`, `address` (the model’s location), `timings`, `specialities`, `images`, `latitude`, `longitude`. There is no separate admin schema.
 
