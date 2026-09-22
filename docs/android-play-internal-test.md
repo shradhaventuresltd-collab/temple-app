@@ -11,22 +11,11 @@ This prepares the Android identity and release-signing scaffold. It does not upl
 
 `MainActivity` lives at `android/app/src/main/kotlin/com/shradhaventures/temple/MainActivity.kt`.
 
-## Firebase follow-up (Sanu)
+## Firebase Android app
 
-The existing Firebase config files were left unchanged on purpose. They still belong to the old Android package `com.example.temple_app`:
+Firebase project `temple-directory-india` now has an Android app for `com.shradhaventures.temple`. The checked-in `android/app/google-services.json` is the file Firebase generated for that registration. It still lists the old `com.example.temple_app` client as well as the new one. The Android `FirebaseOptions` in `lib/firebase_options.dart` use the new app id `1:109314154382:android:d34e6caea62c14124ccedf`. iOS, macOS, web, and Windows options are unchanged.
 
-- `android/app/google-services.json` (`package_name`)
-- `lib/firebase_options.dart` (generated Android `FirebaseOptions`)
-
-Do not invent API keys, app ids, or a replacement `google-services.json`.
-
-Before an Android build that applies the Google Services plugin, or before any Play upload:
-
-1. In Firebase project `temple-directory-india`, register a **new Android app** with package name `com.shradhaventures.temple`.
-2. Download that app's generated config and replace `android/app/google-services.json`.
-3. Regenerate `lib/firebase_options.dart` (FlutterFire) so the Android options match the new app. Leave iOS, macOS, web, and Windows entries as the CLI emits them.
-
-The Google Services Gradle plugin matches `applicationId` to `package_name`. Until step 2 lands, Android assemble fails with no matching client for `com.shradhaventures.temple`.
+The Google Services plugin selects the client whose `package_name` matches `applicationId`.
 
 ## Upload keystore
 
@@ -67,7 +56,7 @@ If `android/key.properties` is missing, any of those keys is blank, or `storeFil
 
 Debug builds (`flutter run`, `flutter build apk --debug`) do not need the upload key.
 
-After signing is configured, Android assemble is still blocked until the Firebase follow-up above is done. The Google Services plugin fails while `google-services.json` names `com.example.temple_app`. A release build reports the signing error first when the upload key is absent, so that message appears before the Firebase package error.
+A release build reports that signing error before it packages an artifact. Debug builds do not need the upload key. The Google Services plugin can match `com.shradhaventures.temple` from the checked-in `google-services.json`.
 
 ```bash
 flutter build appbundle --release

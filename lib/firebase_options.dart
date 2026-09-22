@@ -51,7 +51,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyAqohirMdWgc4kSpR8ccJamu5UtevSj5z8',
-    appId: '1:109314154382:android:d2e607c7a242743c4ccedf',
+    appId: '1:109314154382:android:d34e6caea62c14124ccedf',
     messagingSenderId: '109314154382',
     projectId: 'temple-directory-india',
     storageBucket: 'temple-directory-india.firebasestorage.app',

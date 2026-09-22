@@ -246,9 +246,9 @@ flutter build ios --release
 flutter build web --release
 ```
 
-Application id is `com.shradhaventures.temple` and the Android launcher label is **Temple Directory India**. Release signing and the Play upload key are documented in [`docs/android-play-internal-test.md`](docs/android-play-internal-test.md). `android/key.properties`, `*.jks`, and `*.keystore` stay out of git. Debug builds do not need that file. A release build with missing or incomplete signing properties fails with an actionable error and is not signed with the debug keystore. After signing is configured, Android builds stay blocked until the Firebase config below matches the new application id.
+Application id is `com.shradhaventures.temple` and the Android launcher label is **Temple Directory India**. Release signing and the Play upload key are documented in [`docs/android-play-internal-test.md`](docs/android-play-internal-test.md). `android/key.properties`, `*.jks`, and `*.keystore` stay out of git. Debug builds do not need that file. A release build with missing or incomplete signing properties fails with an actionable error and is not signed with the debug keystore.
 
-**Sanu — Firebase follow-up before an Android build or Play upload:** the checked-in Firebase Android config still names `com.example.temple_app`. Register a new Firebase Android app with package name `com.shradhaventures.temple`, then replace `android/app/google-services.json` and the generated Android section of `lib/firebase_options.dart`. Do not invent API keys or app ids. The Google Services plugin rejects the Android build until `package_name` matches the new application id.
+`android/app/google-services.json` is the Firebase-generated config for project `temple-directory-india`. It includes the previous `com.example.temple_app` client and the new `com.shradhaventures.temple` app (`1:109314154382:android:d34e6caea62c14124ccedf`). The Android section of `lib/firebase_options.dart` uses that new app id. Other platforms are unchanged.
 
 The first Play internal-test upload still waits on the separate directory search work. This repository does not include that search yet.
 
