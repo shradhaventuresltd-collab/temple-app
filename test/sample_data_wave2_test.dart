@@ -366,8 +366,20 @@ void main() {
       }
       expect(temple.latitude, inInclusiveRange(24.638, 26.607));
       expect(temple.longitude, inInclusiveRange(83.544, 86.755));
-      expect(temple.imageUrl, 'https://picsum.photos/seed/$id/800/600');
-      expect(temple.images, isEmpty);
+      if (id == 'mahabodhi-temple') {
+        // KAN-77: verified Commons thumbs until Storage upload.
+        expect(temple.imageUrl.contains('picsum'), isFalse);
+        expect(temple.imageUrl, contains('upload.wikimedia.org'));
+        expect(temple.images, hasLength(7));
+        for (final url in temple.images) {
+          expect(url, contains('upload.wikimedia.org'));
+          expect(url.contains('picsum'), isFalse);
+        }
+        expect(temple.imageUrl, temple.images.first);
+      } else {
+        expect(temple.imageUrl, 'https://picsum.photos/seed/$id/800/600');
+        expect(temple.images, isEmpty);
+      }
       expect(temple.imageUrl.contains('firebasestorage'), isFalse);
 
       final map = temple.toFirestoreData(documentId: id);
@@ -386,6 +398,9 @@ void main() {
       expect(parsed.timings, temple.timings);
       expect(parsed.specialities, temple.specialities);
       expect(parsed.imageUrl, temple.imageUrl);
+      if (id == 'mahabodhi-temple') {
+        expect(parsed.images, temple.images);
+      }
     }
   });
 

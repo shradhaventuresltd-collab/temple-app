@@ -8317,12 +8317,26 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-77: Research-verified Wikimedia Commons thumbs (CC BY / BY-SA).
+  // Attribution: tools/photo-packs/mahabodhi-temple/ATTRIBUTION.md
+  // Replace with Firebase Storage URLs after:
+  //   node scripts/upload_research_pack.js --pack tools/photo-packs/mahabodhi-temple --patch-firestore
   Temple(
     name: 'Mahabodhi Temple',
     state: 'Bihar',
     city: 'Bodh Gaya',
     deity: 'Buddha',
-    imageUrl: 'https://picsum.photos/seed/mahabodhi-temple/800/600',
+    imageUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Mahabodhi_temple_at_Bodhgaya_in_Bihar_03.jpg/1280px-Mahabodhi_temple_at_Bodhgaya_in_Bihar_03.jpg',
+    images: const [
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Mahabodhi_temple_at_Bodhgaya_in_Bihar_03.jpg/1280px-Mahabodhi_temple_at_Bodhgaya_in_Bihar_03.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Mahabodhi_Temple_%2C_Bodh_Gaya.jpg/1280px-Mahabodhi_Temple_%2C_Bodh_Gaya.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mahabodhi_Temple_Complex_-_Bodh_Gaya_%281%29.jpg/1280px-Mahabodhi_Temple_Complex_-_Bodh_Gaya_%281%29.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Mahabodhi_Temple_-_Bodh_Gaya_%281%29.jpg/1280px-Mahabodhi_Temple_-_Bodh_Gaya_%281%29.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Mahabodhi_temple_complex%2C_Bodhgaya_23.jpg/1280px-Mahabodhi_temple_complex%2C_Bodhgaya_23.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Mahabodhi_Temple_Shikhara_-_Bodh_Gaya_%281%29.jpg/1280px-Mahabodhi_Temple_Shikhara_-_Bodh_Gaya_%281%29.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Votive_Stupas_-_Mahabodhi_Temple_Complex_-_Bodh_Gaya_%281%29.jpg/1280px-Votive_Stupas_-_Mahabodhi_Temple_Complex_-_Bodh_Gaya_%281%29.jpg',
+    ],
     description:
         'UNESCO World Heritage Buddhist temple complex at the place '
         'associated with Gautama Buddha’s Enlightenment, centred on the '

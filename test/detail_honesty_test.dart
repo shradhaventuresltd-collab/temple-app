@@ -68,7 +68,10 @@ void main() {
   });
 
   test('picsum covers and empty galleries are photo pending', () {
+    // KAN-77: Mahabodhi carries verified Commons thumbs (not picsum).
+    const verifiedPhotoNames = {'Mahabodhi Temple'};
     for (final temple in sampleTemples) {
+      if (verifiedPhotoNames.contains(temple.name)) continue;
       expect(
         DetailHonesty.of(temple).photoPending,
         isTrue,
@@ -110,6 +113,19 @@ void main() {
     expect(verifiedMosaicUrls(temples), [
       'https://firebasestorage.googleapis.com/v0/b/app/o/a.jpg?alt=media',
     ]);
+  });
+
+  test('Mahabodhi sample has verified Commons gallery (KAN-77)', () {
+    final mahabodhi = _named('Mahabodhi Temple');
+    final honesty = DetailHonesty.of(mahabodhi);
+    expect(mahabodhi.imageUrl.contains('picsum'), isFalse);
+    expect(mahabodhi.imageUrl, contains('upload.wikimedia.org'));
+    expect(mahabodhi.images, isNotEmpty);
+    expect(honesty.photoPending, isFalse);
+    expect(honesty.verifiedImages, isNotEmpty);
+    expect(verifiedGalleryUrls(mahabodhi), mahabodhi.images);
+    expect(honesty.tradition, SiteTradition.buddhist);
+    expect(honesty.traditionLabel, 'Buddhist');
   });
 
   test(
