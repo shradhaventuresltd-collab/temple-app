@@ -17,26 +17,27 @@ plugins {
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
 val hasReleaseKeystore = keystorePropertiesFile.exists()
-val releaseStoreFilePath: String?
-val releaseStorePassword: String?
-val releaseKeyAlias: String?
-val releaseKeyPassword: String?
 if (hasReleaseKeystore) {
     keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
-    val missingKeys = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
-        .filter { keystoreProperties.getProperty(it).isNullOrBlank() }
+}
+
+fun keystoreProperty(name: String): String? =
+    keystoreProperties.getProperty(name)?.takeIf { it.isNotBlank() }
+
+val releaseStoreFilePath = keystoreProperty("storeFile")
+val releaseStorePassword = keystoreProperty("storePassword")
+val releaseKeyAlias = keystoreProperty("keyAlias")
+val releaseKeyPassword = keystoreProperty("keyPassword")
+if (hasReleaseKeystore) {
+    val missingKeys = listOf(
+        "storeFile" to releaseStoreFilePath,
+        "storePassword" to releaseStorePassword,
+        "keyAlias" to releaseKeyAlias,
+        "keyPassword" to releaseKeyPassword,
+    ).filter { it.second.isNullOrBlank() }.map { it.first }
     require(missingKeys.isEmpty()) {
         "android/key.properties must define ${missingKeys.joinToString(", ")}."
     }
-    releaseStoreFilePath = keystoreProperties.getProperty("storeFile")
-    releaseStorePassword = keystoreProperties.getProperty("storePassword")
-    releaseKeyAlias = keystoreProperties.getProperty("keyAlias")
-    releaseKeyPassword = keystoreProperties.getProperty("keyPassword")
-} else {
-    releaseStoreFilePath = null
-    releaseStorePassword = null
-    releaseKeyAlias = null
-    releaseKeyPassword = null
 }
 
 android {

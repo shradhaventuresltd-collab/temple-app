@@ -41,7 +41,7 @@ keytool -genkey -v \
   -alias <key-alias>
 ```
 
-`keytool` prompts for the store password, the key password, and the certificate name fields. Keep those passwords in a password manager. A lost upload key cannot be rotated the same way as a Play app signing key.
+`keytool` prompts for the store password, the key password, and the certificate name fields. Current Java defaults to PKCS12, which uses one password: if `keytool` warns that a separate key password is ignored, put that same store password in both `storePassword` and `keyPassword`. Keep the passwords in a password manager. A lost upload key cannot be rotated the same way as a Play app signing key.
 
 Prefer a path outside the repo. If the file sits inside the repo, `*.jks` and `*.keystore` are gitignored (repo root `.gitignore` and `android/.gitignore`).
 
