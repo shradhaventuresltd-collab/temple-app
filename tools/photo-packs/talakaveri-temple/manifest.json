@@ -1,0 +1,96 @@
+{
+  "temple_slug": "talakaveri-temple",
+  "temple_name": "Talakaveri Temple",
+  "doc_id_hint": "talakaveri-temple",
+  "site_note": "Talakaveri / Talacauvery, Kodagu, Karnataka (Kaveri source) \u2014 NOT Brihadeeswara/Srirangam",
+  "photos": [
+    {
+      "filename": "01_Thala_Cauvery__18125847938_.jpg",
+      "commons_title": "File:Thala Cauvery (18125847938).jpg",
+      "author": "See Commons file page",
+      "license": "CC BY-SA 2.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Thala_Cauvery_%2818125847938%29.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Thala_Cauvery_%2818125847938%29.jpg/1280px-Thala_Cauvery_%2818125847938%29.jpg",
+      "site_verified": true,
+      "site": "Talakaveri / Talacauvery, Kodagu, Karnataka (Kaveri source) \u2014 NOT Brihadeeswara/Srirangam"
+    },
+    {
+      "filename": "02_Thalakauvery-hillview-panorama.jpg",
+      "commons_title": "File:Thalakauvery-hillview-panorama.jpg",
+      "author": "See Commons file page",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Thalakauvery-hillview-panorama.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Thalakauvery-hillview-panorama.jpg/1280px-Thalakauvery-hillview-panorama.jpg",
+      "site_verified": true,
+      "site": "Talakaveri / Talacauvery, Kodagu, Karnataka (Kaveri source) \u2014 NOT Brihadeeswara/Srirangam"
+    },
+    {
+      "filename": "03_Talacauvery_panorama.jpg",
+      "commons_title": "File:Talacauvery panorama.jpg",
+      "author": "See Commons file page",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Talacauvery_panorama.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Talacauvery_panorama.jpg/1280px-Talacauvery_panorama.jpg",
+      "site_verified": true,
+      "site": "Talakaveri / Talacauvery, Kodagu, Karnataka (Kaveri source) \u2014 NOT Brihadeeswara/Srirangam"
+    },
+    {
+      "filename": "04_Talakaveri_temple_tank_01.jpg",
+      "commons_title": "File:Talakaveri temple tank 01.jpg",
+      "author": "Shanmugamp7",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Talakaveri_temple_tank_01.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Talakaveri_temple_tank_01.jpg/1280px-Talakaveri_temple_tank_01.jpg",
+      "site_verified": true,
+      "site": "Talakaveri / Talacauvery, Kodagu, Karnataka (Kaveri source) \u2014 NOT Brihadeeswara/Srirangam"
+    },
+    {
+      "filename": "06_Hills_surrounding_Thalakaveri.jpg",
+      "commons_title": "File:Hills surrounding Thalakaveri.jpg",
+      "author": "See Commons file page",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Hills_surrounding_Thalakaveri.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Hills_surrounding_Thalakaveri.jpg/1280px-Hills_surrounding_Thalakaveri.jpg",
+      "site_verified": true,
+      "site": "Talakaveri / Talacauvery, Kodagu, Karnataka (Kaveri source) \u2014 NOT Brihadeeswara/Srirangam"
+    }
+  ],
+  "photo_candidates": [
+    {
+      "url": "https://commons.wikimedia.org/wiki/File:Thala_Cauvery_%2818125847938%29.jpg",
+      "license": "CC BY-SA 2.0",
+      "attribution": "See Commons file page",
+      "notes": "local_file=01_Thala_Cauvery__18125847938_.jpg; site=Talakaveri / Talacauvery, Kodagu, Karnataka (Kaveri source) \u2014 NOT Brihadeeswara/Srirangam"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/File:Thalakauvery-hillview-panorama.jpg",
+      "license": "CC BY-SA 3.0",
+      "attribution": "See Commons file page",
+      "notes": "local_file=02_Thalakauvery-hillview-panorama.jpg; site=Talakaveri / Talacauvery, Kodagu, Karnataka (Kaveri source) \u2014 NOT Brihadeeswara/Srirangam"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/File:Talacauvery_panorama.jpg",
+      "license": "CC BY-SA 3.0",
+      "attribution": "See Commons file page",
+      "notes": "local_file=03_Talacauvery_panorama.jpg; site=Talakaveri / Talacauvery, Kodagu, Karnataka (Kaveri source) \u2014 NOT Brihadeeswara/Srirangam"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/File:Talakaveri_temple_tank_01.jpg",
+      "license": "CC BY-SA 3.0",
+      "attribution": "Shanmugamp7",
+      "notes": "local_file=04_Talakaveri_temple_tank_01.jpg; site=Talakaveri / Talacauvery, Kodagu, Karnataka (Kaveri source) \u2014 NOT Brihadeeswara/Srirangam"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/File:Hills_surrounding_Thalakaveri.jpg",
+      "license": "CC BY-SA 4.0",
+      "attribution": "See Commons file page",
+      "notes": "local_file=06_Hills_surrounding_Thalakaveri.jpg; site=Talakaveri / Talacauvery, Kodagu, Karnataka (Kaveri source) \u2014 NOT Brihadeeswara/Srirangam"
+    }
+  ],
+  "correction": "KAN-76 Reviewer wrong-site fix"
+}

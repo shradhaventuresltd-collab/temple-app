@@ -73,16 +73,60 @@ void main() {
         }
         expect(temple.latitude, inInclusiveRange(11.5, 16.0));
         expect(temple.longitude, inInclusiveRange(74.0, 78.0));
-        expect(temple.images, isEmpty);
-        final slug = templeDocumentId(temple.name);
-        if (originalExpected.containsKey(slug)) {
-          expect(temple.imageUrl, startsWith('https://picsum.photos/seed/'));
-        } else {
-          expect(temple.imageUrl, isEmpty);
+        // KAN-77 Wave B: Commons downloaded_url thumbs, not picsum or Storage.
+        expect(temple.imageUrl.contains('picsum'), isFalse);
+        expect(temple.imageUrl, contains('wikimedia.org'));
+        expect(temple.imageUrl.contains('firebasestorage'), isFalse);
+        expect(temple.imageUrl.contains('storage.googleapis.com'), isFalse);
+        expect(temple.images, isNotEmpty);
+        expect(temple.imageUrl, temple.images.first);
+        for (final url in temple.images) {
+          expect(url, contains('wikimedia.org'));
+          expect(url.contains('picsum'), isFalse);
         }
       }
     },
   );
+
+  test('reviewer wrong-site frames are not in Karnataka sample galleries', () {
+    Temple named(String name) => karnataka.firstWhere((t) => t.name == name);
+
+    final banashankari = named('Banashankari Temple, Bengaluru');
+    final banashankariUrls = banashankari.images.join(' ');
+    expect(banashankari.images, hasLength(6));
+    expect(banashankari.imageUrl, banashankari.images.first);
+    expect(banashankariUrls, contains('Banashank'));
+    for (final banned in ['Badami', 'Cholachagudda', 'Baanashakari']) {
+      expect(banashankariUrls.contains(banned), isFalse, reason: banned);
+    }
+
+    final talakaveri = named('Talakaveri Temple');
+    final talakaveriUrls = talakaveri.images.join(' ');
+    expect(talakaveri.images, hasLength(5));
+    expect(talakaveri.imageUrl, talakaveri.images.first);
+    expect(talakaveriUrls, contains('Talakaveri'));
+    for (final banned in ['Brihadeeswara', 'Srirangam', 'Ranganathaswamy']) {
+      expect(talakaveriUrls.contains(banned), isFalse, reason: banned);
+    }
+
+    final gokarna = named('Mahabaleshwar Temple, Gokarna');
+    final gokarnaUrls = gokarna.images.join(' ');
+    expect(gokarna.images, hasLength(6));
+    expect(gokarna.imageUrl, gokarna.images.first);
+    expect(gokarnaUrls, contains('Gokarna'));
+    for (final banned in ['Kathmandu', 'Gokarneshwor']) {
+      expect(gokarnaUrls.contains(banned), isFalse, reason: banned);
+    }
+
+    final udupi = named('Sri Krishna Matha (Udupi)');
+    final udupiUrls = udupi.images.join(' ');
+    expect(udupi.images, hasLength(8));
+    expect(udupi.imageUrl, udupi.images.first);
+    expect(udupiUrls, contains('Krishna_Math'));
+    for (final banned in ['Parashurama', 'Theatre', 'railway', 'Ashirvad']) {
+      expect(udupiUrls.contains(banned), isFalse, reason: banned);
+    }
+  });
 
   test('uncertain Karnataka timings keep source caveats', () {
     Temple named(String name) => karnataka.firstWhere((t) => t.name == name);
@@ -128,6 +172,7 @@ void main() {
         expect(parsed.latitude, temple.latitude);
         expect(parsed.longitude, temple.longitude);
         expect(parsed.imageUrl, temple.imageUrl);
+        expect(parsed.images, temple.images);
       }
     },
   );

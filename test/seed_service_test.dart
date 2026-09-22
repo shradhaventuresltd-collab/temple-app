@@ -168,5 +168,27 @@ void main() {
     expect(picsumBesideStorage['images'], [
       'https://firebasestorage.googleapis.com/v0/b/app/o/real.jpg?alt=media',
     ]);
+
+    final chamundi = sampleTemples.firstWhere(
+      (t) => t.name == 'Chamundeshwari Temple',
+    );
+    final karnataka = seedImageFieldsWithPack(
+      bundledImageUrl: chamundi.imageUrl,
+      bundledImages: chamundi.images,
+    );
+    expect(karnataka['images'], chamundi.images);
+    expect((karnataka['imageUrl'] as String).contains('picsum'), isFalse);
+    expect((karnataka['imageUrl'] as String).contains('wikimedia.org'), isTrue);
+  });
+
+  test('Cheluvanarayana Seed id differs from the Melukote pack folder', () {
+    expect(
+      templeDocumentId('Cheluvanarayana Swamy Temple'),
+      'cheluvanarayana-swamy-temple',
+    );
+    expect(
+      templeDocumentId('Cheluvanarayana Swamy Temple'),
+      isNot('cheluvanarayana-swamy-temple-melukote'),
+    );
   });
 }

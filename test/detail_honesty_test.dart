@@ -75,6 +75,26 @@ void main() {
       'Martand Sun Temple',
       'Shore Temple',
       'Meenakshi Amman Temple',
+      'Anegudde Vinayaka Temple',
+      'Annapoorneshwari Temple, Horanadu',
+      'Banashankari Temple, Bengaluru',
+      'Chamundeshwari Temple',
+      'Cheluvanarayana Swamy Temple',
+      'Chennakeshava Temple, Belur',
+      'Ghati Subramanya Temple',
+      'Hoysaleswara Temple, Halebidu',
+      'ISKCON Temple, Bangalore',
+      'Kateel Durga Parameshwari Temple',
+      'Kollur Mookambika Temple',
+      'Kukke Subramanya Temple',
+      'Mahabaleshwar Temple, Gokarna',
+      'Murudeshwar Temple',
+      'Sri Krishna Matha (Udupi)',
+      'Sri Manjunatha Temple, Dharmasthala',
+      'Srikanteshwara Temple, Nanjangud',
+      'Sringeri Sharada Peetham',
+      'Talakaveri Temple',
+      'Virupaksha Temple',
     };
     for (final temple in sampleTemples) {
       if (verifiedPhotoNames.contains(temple.name)) continue;
@@ -121,43 +141,46 @@ void main() {
     ]);
   });
 
-  test('KAN-77 verified Commons packs clear Photo pending and keep framing', () {
-    final mahabodhi = DetailHonesty.of(_named('Mahabodhi Temple'));
-    expect(_named('Mahabodhi Temple').imageUrl.contains('picsum'), isFalse);
-    expect(mahabodhi.photoPending, isFalse);
-    expect(mahabodhi.verifiedImages, hasLength(7));
-    expect(mahabodhi.tradition, SiteTradition.buddhist);
+  test(
+    'KAN-77 verified Commons packs clear Photo pending and keep framing',
+    () {
+      final mahabodhi = DetailHonesty.of(_named('Mahabodhi Temple'));
+      expect(_named('Mahabodhi Temple').imageUrl.contains('picsum'), isFalse);
+      expect(mahabodhi.photoPending, isFalse);
+      expect(mahabodhi.verifiedImages, hasLength(7));
+      expect(mahabodhi.tradition, SiteTradition.buddhist);
 
-    final dilwara = DetailHonesty.of(_named('Dilwara Temples'));
-    expect(_named('Dilwara Temples').imageUrl.contains('picsum'), isFalse);
-    expect(dilwara.photoPending, isFalse);
-    expect(dilwara.verifiedImages, hasLength(6));
-    expect(dilwara.tradition, SiteTradition.jain);
-    expect(dilwara.framing, SiteFraming.livingTemple);
+      final dilwara = DetailHonesty.of(_named('Dilwara Temples'));
+      expect(_named('Dilwara Temples').imageUrl.contains('picsum'), isFalse);
+      expect(dilwara.photoPending, isFalse);
+      expect(dilwara.verifiedImages, hasLength(6));
+      expect(dilwara.tradition, SiteTradition.jain);
+      expect(dilwara.framing, SiteFraming.livingTemple);
 
-    final martand = DetailHonesty.of(_named('Martand Sun Temple'));
-    expect(_named('Martand Sun Temple').imageUrl.contains('picsum'), isFalse);
-    expect(martand.photoPending, isFalse);
-    expect(martand.verifiedImages, hasLength(6));
-    expect(martand.framing, SiteFraming.monumentVisit);
-    expect(martand.framingLabel, 'Heritage visit');
+      final martand = DetailHonesty.of(_named('Martand Sun Temple'));
+      expect(_named('Martand Sun Temple').imageUrl.contains('picsum'), isFalse);
+      expect(martand.photoPending, isFalse);
+      expect(martand.verifiedImages, hasLength(6));
+      expect(martand.framing, SiteFraming.monumentVisit);
+      expect(martand.framingLabel, 'Heritage visit');
 
-    final shore = DetailHonesty.of(_named('Shore Temple'));
-    expect(_named('Shore Temple').imageUrl.contains('picsum'), isFalse);
-    expect(shore.photoPending, isFalse);
-    expect(shore.verifiedImages, hasLength(6));
-    expect(shore.framing, SiteFraming.monumentVisit);
+      final shore = DetailHonesty.of(_named('Shore Temple'));
+      expect(_named('Shore Temple').imageUrl.contains('picsum'), isFalse);
+      expect(shore.photoPending, isFalse);
+      expect(shore.verifiedImages, hasLength(6));
+      expect(shore.framing, SiteFraming.monumentVisit);
 
-    final meenakshi = DetailHonesty.of(_named('Meenakshi Amman Temple'));
-    expect(
-      _named('Meenakshi Amman Temple').imageUrl.contains('picsum'),
-      isFalse,
-    );
-    expect(meenakshi.photoPending, isFalse);
-    expect(meenakshi.verifiedImages, hasLength(6));
-    expect(meenakshi.framing, SiteFraming.livingTemple);
-    expect(meenakshi.tradition, SiteTradition.unspecified);
-  });
+      final meenakshi = DetailHonesty.of(_named('Meenakshi Amman Temple'));
+      expect(
+        _named('Meenakshi Amman Temple').imageUrl.contains('picsum'),
+        isFalse,
+      );
+      expect(meenakshi.photoPending, isFalse);
+      expect(meenakshi.verifiedImages, hasLength(6));
+      expect(meenakshi.framing, SiteFraming.livingTemple);
+      expect(meenakshi.tradition, SiteTradition.unspecified);
+    },
+  );
 
   test(
     'timings stay free text and flag thin, seasonal, or multi-window notes',
@@ -332,28 +355,29 @@ void main() {
     expect(find.byKey(const Key('get-directions-button')), findsOneWidget);
   });
 
-  testWidgets('phone width lays out living-temple caveat without Photo pending', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets(
+    'phone width lays out living-temple caveat without Photo pending',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: TempleDetailBody(temple: _named('Meenakshi Amman Temple')),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TempleDetailBody(temple: _named('Meenakshi Amman Temple')),
+          ),
         ),
-      ),
-    );
-    await tester.pump();
+      );
+      await tester.pump();
 
-    expect(find.text('Photo pending'), findsNothing);
-    expect(find.text('Living temple'), findsOneWidget);
-    expect(find.byKey(const Key('timings-caveat')), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
+      expect(find.text('Photo pending'), findsNothing);
+      expect(find.text('Living temple'), findsOneWidget);
+      expect(find.byKey(const Key('timings-caveat')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('a single stated window does not add a timings caveat', (
     tester,

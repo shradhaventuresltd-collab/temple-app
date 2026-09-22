@@ -6,6 +6,47 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "..");
 const defaultPacksRoot = resolve(repoRoot, "tools/photo-packs");
 
+// KAN-77 Wave B. --all-packs uploads every manifest under tools/photo-packs,
+// and fails if any of these Karnataka packs are missing.
+const WAVE_B_KARNATAKA_PACKS = [
+  "anegudde-vinayaka-temple",
+  "annapoorneshwari-temple-horanadu",
+  "banashankari-temple-bengaluru",
+  "chamundeshwari-temple",
+  "cheluvanarayana-swamy-temple-melukote",
+  "chennakeshava-temple-belur",
+  "ghati-subramanya-temple",
+  "hoysaleswara-temple-halebidu",
+  "iskcon-temple-bangalore",
+  "kateel-durga-parameshwari-temple",
+  "kollur-mookambika-temple",
+  "kukke-subramanya-temple",
+  "mahabaleshwar-temple-gokarna",
+  "murudeshwar-temple",
+  "sri-krishna-matha-udupi",
+  "sri-manjunatha-temple-dharmasthala",
+  "srikanteshwara-temple-nanjangud",
+  "sringeri-sharada-peetham",
+  "talakaveri-temple",
+  "virupaksha-temple",
+];
+
+// Pack folder / temple_slug → Seed templeDocumentId when they differ.
+// Sample name "Cheluvanarayana Swamy Temple" slugs without the city.
+const SEED_DOCUMENT_ID_BY_PACK_SLUG = {
+  "cheluvanarayana-swamy-temple-melukote": "cheluvanarayana-swamy-temple",
+};
+
+function resolveSeedDocId(packDir, manifest, docIdOverride) {
+  if (docIdOverride) return docIdOverride;
+  const packSlug = manifest.temple_slug || basename(packDir);
+  if (SEED_DOCUMENT_ID_BY_PACK_SLUG[packSlug]) {
+    return SEED_DOCUMENT_ID_BY_PACK_SLUG[packSlug];
+  }
+  if (manifest.seed_document_id) return manifest.seed_document_id;
+  return manifest.temple_slug || manifest.doc_id_hint || basename(packDir);
+}
+
 function printUsage() {
   console.log(`
 Usage:
@@ -20,6 +61,7 @@ Options:
   --pack <path>          One pack folder (repeatable)
   --packs-dir <path>     Directory of pack folders (each with manifest.json)
   --all-packs            Upload every pack under tools/photo-packs/
+                         (includes Karnataka Wave B; fails if one is missing)
   --doc-id <id>          Override Storage/Firestore id (single --pack only)
   --bucket <name>        Storage bucket (default: temple-directory-india.firebasestorage.app)
   --patch-firestore      Also set temples/{docId}.imageUrl + images in Firestore
@@ -91,9 +133,9 @@ function loadManifest(packDir) {
 
 function resolvePhotos(packDir, manifest) {
   const photos = Array.isArray(manifest.photos) ? manifest.photos : [];
-  if (photos.length === 0) {
-    throw new Error("manifest.photos is empty");
-  }
+  // An empty manifest is a held pack (wrong-site frames removed, Research
+  // regenerating). Do not invent files and do not fail --all-packs.
+  if (photos.length === 0) return [];
 
   const resolved = [];
   for (const photo of photos) {
@@ -173,18 +215,34 @@ async function processPack({
   }
 
   const manifest = loadManifest(packDir);
-  const docId =
-    docIdOverride ||
-    manifest.temple_slug ||
-    manifest.doc_id_hint ||
-    basename(packDir);
+  const packSlug = manifest.temple_slug || basename(packDir);
+  const docId = resolveSeedDocId(packDir, manifest, docIdOverride);
   const photos = resolvePhotos(packDir, manifest);
 
   console.log("────────────────────────────────────────────────────────────");
   console.log(`Pack       : ${packDir}`);
   console.log(`Temple     : ${manifest.temple_name || docId}`);
   console.log(`Doc id     : ${docId}`);
+  if (packSlug !== docId) {
+    console.log(
+      `Pack slug  : ${packSlug} → Seed temples/${docId} (folder name differs)`
+    );
+  }
   console.log(`Photos     : ${photos.length} (from manifest.json only)`);
+
+  if (photos.length === 0) {
+    console.log(
+      "Skipped    : empty pack (wrong-site frames removed; awaiting Research). No upload and no Firestore patch."
+    );
+    return {
+      docId,
+      imageUrl: "",
+      images: [],
+      photos: [],
+      uploaded: false,
+      skipped: true,
+    };
+  }
 
   if (dryRun) {
     for (const photo of photos) {
@@ -282,6 +340,18 @@ async function main() {
   if (opts.docId && packDirs.length > 1) {
     console.error("✖  --doc-id can only be used with a single --pack");
     process.exit(1);
+  }
+
+  if (opts.allPacks) {
+    const present = new Set(packDirs.map((dir) => basename(dir)));
+    const missing = WAVE_B_KARNATAKA_PACKS.filter((slug) => !present.has(slug));
+    if (missing.length > 0) {
+      console.error(
+        "✖  --all-packs is missing Karnataka Wave B packs:\n   " +
+          missing.join("\n   ")
+      );
+      process.exit(1);
+    }
   }
 
   console.log("╔════════════════════════════════════════════════════════════╗");

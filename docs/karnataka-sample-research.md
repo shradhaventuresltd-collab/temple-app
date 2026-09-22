@@ -20,18 +20,34 @@ Dasara, Paryaya, Shivaratri, and booked sevas (e.g. Kukke Sarpa Samskara).
 | `description`, `story`, `timings` | same |
 | `specialities` (`List<String>`) | same |
 | `latitude`, `longitude` | same |
-| `imageUrl` / `images` | same — **picsum placeholders left as-is**; do not invent Storage URLs |
+| `imageUrl` / `images` | same — KAN-77 Wave B uses Commons `downloaded_url` thumbs from `tools/photo-packs/`; do not invent Storage URLs |
 | `sources`, `photo_candidates`, `rituals_notes` | **not in the Temple schema** — documented here only |
 
 No `pooja_schedule` / `festivals` collections were added.
 
 ## Images
 
-Bundled covers remain `https://picsum.photos/seed/…` placeholders. Commons
-`photo_candidates` below are file **pages** for later manual download,
-attribution, upload to `temples/{docId}/…`, then CMS `images` / `imageUrl`.
-Do **not** paste these Commons URLs into sample data as if they were Storage
-paths.
+**KAN-77 Wave B:** all 20 Karnataka sample temples use Wikimedia Commons
+`downloaded_url` thumbs for `imageUrl` and `images`. Files and attribution
+live in `tools/photo-packs/<slug>/`. Those URLs are Commons thumbs, not
+Firebase Storage. Do **not** invent `storage.googleapis.com` URLs. Sanu
+uploads with `scripts/upload_research_pack.js` (runbook:
+`tools/photo-packs/README.md`).
+
+Seed ids are `templeDocumentId(name)`. Nineteen pack folders match that id.
+**Cheluvanarayana Swamy Temple** does not: the sample name slugs to
+`cheluvanarayana-swamy-temple`, while the research folder is
+`cheluvanarayana-swamy-temple-melukote`. The upload script writes
+`temples/cheluvanarayana-swamy-temple/`.
+
+The Commons file-page lists below are the earlier research pass. The pack
+`manifest.json` is the set actually bundled.
+
+Research site_verified replacements are now the bundled packs for
+`banashankari-temple-bengaluru` (6 Bengaluru / Kanakapura Road frames),
+`talakaveri-temple` (5 Talakaveri / Kodagu frames), and
+`mahabaleshwar-temple-gokarna` (6 Gokarna, Karnataka frames). Badami,
+Brihadeeswara, Srirangam, and Kathmandu files are not in those galleries.
 
 Photo coverage is thinner for **Dharmasthala** (gateway-only Commons candidate)
 and **Nanjangud** (single modest Commons file).
@@ -236,8 +252,10 @@ batch 1–3 Karnataka temples.
   data, or Seed writes.
 - `sources`, `photo_candidates`, and `rituals_notes` stay out of Firestore; useful
   ritual tips were folded into `timings` / `story` / `specialities` free text where room.
-- Cover **`imageUrl` is empty** and `images` is `[]` (photo-pending honesty). Do **not**
-  invent picsum or Storage URLs for this wave.
+- Cover **`imageUrl` / `images`** are KAN-77 Wave B Commons thumbs from
+  `tools/photo-packs/<slug>/`. Do **not** invent picsum or Storage URLs.
+  Cheluvanarayana’s pack folder is `cheluvanarayana-swamy-temple-melukote`;
+  the Seed document id stays `cheluvanarayana-swamy-temple`.
 
 ## Verify before CMS / publish
 
