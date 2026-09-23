@@ -89,13 +89,42 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
     _startAutoAdvance();
   }
 
+  static const String _directionsUnavailableMessage =
+      "Couldn't open directions on this device.";
+
   Future<void> _openGoogleMaps() async {
     final url = Uri.parse(
       'https://www.google.com/maps/search/?api=1&query=${temple.latitude},${temple.longitude}',
     );
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
+    final opened = await _tryOpenMaps(url);
+    if (!opened && mounted) {
+      _showDirectionsUnavailable();
     }
+  }
+
+  /// Returns false when no app can open [url], or the launch itself fails.
+  Future<bool> _tryOpenMaps(Uri url) async {
+    try {
+      if (!await canLaunchUrl(url)) return false;
+      return await launchUrl(url, mode: LaunchMode.externalApplication);
+    } on Exception {
+      return false;
+    }
+  }
+
+  void _showDirectionsUnavailable() {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            _directionsUnavailableMessage,
+            style: GoogleFonts.poppins(),
+          ),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   @override
