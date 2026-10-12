@@ -1,0 +1,75 @@
+{
+  "temple_slug": "govind-dev-ji-temple-jaipur",
+  "temple_name": "Govind Dev Ji Temple",
+  "doc_id_hint": "govind-dev-ji-temple-jaipur",
+  "city": "Jaipur",
+  "state": "Rajasthan",
+  "tradition_note": "Vishnu",
+  "photos": [
+    {
+      "filename": "01_Shree_Govind_Dev_Ji_Temple_Jaipur_Rajasthan.jpg",
+      "commons_title": "File:Shree Govind Dev Ji Temple Jaipur Rajasthan.jpg",
+      "author": "Siddharth429",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AShree_Govind_Dev_Ji_Temple_Jaipur_Rajasthan.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e1/Shree_Govind_Dev_Ji_Temple_Jaipur_Rajasthan.jpg/1280px-Shree_Govind_Dev_Ji_Temple_Jaipur_Rajasthan.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 274154,
+      "width": 1280,
+      "height": 720,
+      "notes": "Shree Govind Dev Ji Temple Jaipur Rajasthan"
+    },
+    {
+      "filename": "02_Govind_Dev_Ji_Temple_Jaipur_20191218_1059_9092.jpg",
+      "commons_title": "File:Govind Dev Ji Temple, Jaipur, 20191218 1059 9092.jpg",
+      "author": "Jakub Hałun",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AGovind_Dev_Ji_Temple%2C_Jaipur%2C_20191218_1059_9092.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/55/Govind_Dev_Ji_Temple%2C_Jaipur%2C_20191218_1059_9092.jpg/1280px-Govind_Dev_Ji_Temple%2C_Jaipur%2C_20191218_1059_9092.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 325069,
+      "width": 1280,
+      "height": 851,
+      "notes": "Govind Dev Ji Temple, Jaipur"
+    },
+    {
+      "filename": "03_Govind_Dev_Ji_Temple_Jaipur_20191218_1059_9091.jpg",
+      "commons_title": "File:Govind Dev Ji Temple, Jaipur, 20191218 1059 9091.jpg",
+      "author": "Jakub Hałun",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AGovind_Dev_Ji_Temple%2C_Jaipur%2C_20191218_1059_9091.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/54/Govind_Dev_Ji_Temple%2C_Jaipur%2C_20191218_1059_9091.jpg/1280px-Govind_Dev_Ji_Temple%2C_Jaipur%2C_20191218_1059_9091.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 292802,
+      "width": 1280,
+      "height": 851,
+      "notes": "Govind Dev Ji Temple, Jaipur"
+    },
+    {
+      "filename": "04_Pandit_Jasraj_at_Govind_Dev_Ji_Temple_Jaipur_2011.jpg",
+      "commons_title": "File:Pandit Jasraj at Govind Dev Ji Temple, Jaipur 2011.jpg",
+      "author": "Avinashmaurya",
+      "license": "CC BY 3.0",
+      "license_url": "https://creativecommons.org/licenses/by/3.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3APandit_Jasraj_at_Govind_Dev_Ji_Temple%2C_Jaipur_2011.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/d/db/Pandit_Jasraj_at_Govind_Dev_Ji_Temple%2C_Jaipur_2011.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "bytes": 1147805,
+      "width": 1122,
+      "height": 1167,
+      "notes": "This is a photograph of Pandit Jasraj at Satsang Bhawan of Govind Dev Ji Temple in Jaipur. Panditji gave a live performa"
+    },
+    {
+      "filename": "05_Jaipur_City_Palace_Rajasthan.jpg",
+      "commons_title": "File:Jaipur City Palace, Rajasthan.jpg",
+      "author": "LIPIKA1704",
+      "license": "CC BY 3.0",
+      "license_url": "https://creativecommons.org/licenses/by/3.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AJaipur_City_Palace%2C_Rajasthan.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/66/Jaipur_City_Palace%2C_Rajasthan.jpg/1280px-Jaipur_City_Palace%2C_Rajasthan.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 351610,
+      "width": 1280,
+      "height": 960,
+      "notes": "This palace was established at the same time as the city of Jaipur, by Maharaja Sawai Jai Singh II, who moved his court "
+    }
+  ]
+}

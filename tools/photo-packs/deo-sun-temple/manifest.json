@@ -1,0 +1,75 @@
+{
+  "temple_slug": "deo-sun-temple",
+  "temple_name": "Deo Sun Temple",
+  "doc_id_hint": "deo-sun-temple",
+  "city": "Deo",
+  "state": "Bihar",
+  "tradition_note": "Surya",
+  "photos": [
+    {
+      "filename": "01_Deo_Surya_Mandir_Deo_India_-_DPLA_-_161df5a4fc3c518102059a89ce64b5f3.jpg",
+      "commons_title": "File:Deo Surya Mandir, Deo, India - DPLA - 161df5a4fc3c518102059a89ce64b5f3.jpg",
+      "author": "Peppé, Thomas Fraser, 1833-1902; Fergusson, James, 1808-1886",
+      "license": "Public Domain",
+      "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ADeo_Surya_Mandir%2C_Deo%2C_India_-_DPLA_-_161df5a4fc3c518102059a89ce64b5f3.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/2/26/Deo_Surya_Mandir%2C_Deo%2C_India_-_DPLA_-_161df5a4fc3c518102059a89ce64b5f3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "bytes": 116480,
+      "width": 627,
+      "height": 800,
+      "notes": "Title supplied by cataloger.; Number written on print: 650.; Number written on back of print: 90.; Photographer attribut"
+    },
+    {
+      "filename": "02_Deo_Surya_Mandir_Deo_India_-_DPLA_-_7ed1eb8cde6cbbb76c2bab3b0fbba82a.jpg",
+      "commons_title": "File:Deo Surya Mandir, Deo, India - DPLA - 7ed1eb8cde6cbbb76c2bab3b0fbba82a.jpg",
+      "author": "Peppé, Thomas Fraser, 1833-1902; Fergusson, James, 1808-1886",
+      "license": "Public Domain",
+      "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ADeo_Surya_Mandir%2C_Deo%2C_India_-_DPLA_-_7ed1eb8cde6cbbb76c2bab3b0fbba82a.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/2/2e/Deo_Surya_Mandir%2C_Deo%2C_India_-_DPLA_-_7ed1eb8cde6cbbb76c2bab3b0fbba82a.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "bytes": 122243,
+      "width": 800,
+      "height": 605,
+      "notes": "Title supplied by cataloger.; Number written on print: 651.; Number written on back of print: 132.; Photographer attribu"
+    },
+    {
+      "filename": "03_Oriental_Scenery_Part_5_Fig_5.jpg",
+      "commons_title": "File:Oriental Scenery Part 5 Fig 5.jpg",
+      "author": "Thomas Daniell",
+      "license": "Public Domain",
+      "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AOriental_Scenery_Part_5_Fig_5.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d6/Oriental_Scenery_Part_5_Fig_5.jpg/1280px-Oriental_Scenery_Part_5_Fig_5.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 474169,
+      "width": 1280,
+      "height": 913,
+      "notes": "Plate 5, part 5. Image from Oriental Scenery. The Chaturbhuja Vishnu temple in the village of Deo in western Bihar was o"
+    },
+    {
+      "filename": "04_Oriental_Scenery_Part_5_Fig_6.jpg",
+      "commons_title": "File:Oriental Scenery Part 5 Fig 6.jpg",
+      "author": "Thomas Daniell",
+      "license": "Public Domain",
+      "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AOriental_Scenery_Part_5_Fig_6.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a7/Oriental_Scenery_Part_5_Fig_6.jpg/1280px-Oriental_Scenery_Part_5_Fig_6.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 940117,
+      "width": 1280,
+      "height": 912,
+      "notes": "Plate 6, part 5. Image from Oriental Scenery. The interior of the Chaturbhuja temple at Deo in Bihar has polygonal colum"
+    },
+    {
+      "filename": "05_An_Iupiter_Ammon.jpg",
+      "commons_title": "File:An Iupiter Ammon.jpg",
+      "author": "William Musgrave",
+      "license": "Public Domain",
+      "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AAn_Iupiter_Ammon.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1e/An_Iupiter_Ammon.jpg/1280px-An_Iupiter_Ammon.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 436993,
+      "width": 1280,
+      "height": 2433,
+      "notes": "\"Penates (Household Gods) Dug Up at Devises in Our Belgium in the Year 1714, Table 4, to Go before Page 125., , \"Figure "
+    }
+  ]
+}

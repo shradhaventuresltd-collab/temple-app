@@ -1,0 +1,75 @@
+{
+  "temple_slug": "trimbakeshwar-temple",
+  "temple_name": "Trimbakeshwar Temple",
+  "doc_id_hint": "trimbakeshwar-temple",
+  "city": "Trimbak",
+  "state": "Maharashtra",
+  "tradition_note": "Shiva",
+  "photos": [
+    {
+      "filename": "01_Trimbakeshwar_Temple-Nashik-Maharashtra-1.jpg",
+      "commons_title": "File:Trimbakeshwar Temple-Nashik-Maharashtra-1.jpg",
+      "author": "Abhideo21",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ATrimbakeshwar_Temple-Nashik-Maharashtra-1.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/12/Trimbakeshwar_Temple-Nashik-Maharashtra-1.jpg/1280px-Trimbakeshwar_Temple-Nashik-Maharashtra-1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 303940,
+      "width": 1280,
+      "height": 853,
+      "notes": "This is a photo of ASI monument number"
+    },
+    {
+      "filename": "02_Trimbakeshwar_Temple-Nashik-Maharashtra-2.jpg",
+      "commons_title": "File:Trimbakeshwar Temple-Nashik-Maharashtra-2.jpg",
+      "author": "Abhideo21",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ATrimbakeshwar_Temple-Nashik-Maharashtra-2.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/Trimbakeshwar_Temple-Nashik-Maharashtra-2.jpg/1280px-Trimbakeshwar_Temple-Nashik-Maharashtra-2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 945421,
+      "width": 1280,
+      "height": 1920,
+      "notes": "This is a photo of ASI monument number"
+    },
+    {
+      "filename": "03_Trimbakeshwar_Bus_Station_Trimbak_Maharashtra.jpg",
+      "commons_title": "File:Trimbakeshwar Bus Station, Trimbak, Maharashtra.jpg",
+      "author": "K.Venkataramana",
+      "license": "CC0 1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ATrimbakeshwar_Bus_Station%2C_Trimbak%2C_Maharashtra.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Trimbakeshwar_Bus_Station%2C_Trimbak%2C_Maharashtra.jpg/1280px-Trimbakeshwar_Bus_Station%2C_Trimbak%2C_Maharashtra.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 813193,
+      "width": 1280,
+      "height": 1707,
+      "notes": "Trimbakeshwar Bus Station, Trimbak, Maharashtra"
+    },
+    {
+      "filename": "04_Close-up_of_the_shikhara_of_Trimbakeshwar_Shiva_Temple_Trimbak_Maharas.jpg",
+      "commons_title": "File:Close-up of the shikhara of Trimbakeshwar Shiva Temple, Trimbak, Maharashtra, India.jpg",
+      "author": "Mr. Debapriya Hore",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AClose-up_of_the_shikhara_of_Trimbakeshwar_Shiva_Temple%2C_Trimbak%2C_Maharashtra%2C_India.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2d/Close-up_of_the_shikhara_of_Trimbakeshwar_Shiva_Temple%2C_Trimbak%2C_Maharashtra%2C_India.jpg/1280px-Close-up_of_the_shikhara_of_Trimbakeshwar_Shiva_Temple%2C_Trimbak%2C_Maharashtra%2C_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 407915,
+      "width": 1280,
+      "height": 1707,
+      "notes": "Close-up of the shikhara of Trimbakeshwar Shiva Temple, Trimbak, Maharashtra, India"
+    },
+    {
+      "filename": "05_Trimbakeshwar_Shiva_Temple.jpg",
+      "commons_title": "File:Trimbakeshwar Shiva Temple.jpg",
+      "author": "Aniket.ganguly",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ATrimbakeshwar_Shiva_Temple.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/01/Trimbakeshwar_Shiva_Temple.jpg/1280px-Trimbakeshwar_Shiva_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 573597,
+      "width": 1280,
+      "height": 1930,
+      "notes": "Trimbakeshwar Temple, Trimbak"
+    }
+  ]
+}

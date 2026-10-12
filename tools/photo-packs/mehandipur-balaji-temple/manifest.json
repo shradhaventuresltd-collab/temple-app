@@ -1,0 +1,75 @@
+{
+  "temple_slug": "mehandipur-balaji-temple",
+  "temple_name": "Mehandipur Balaji Temple",
+  "doc_id_hint": "mehandipur-balaji-temple",
+  "city": "Mehandipur",
+  "state": "Rajasthan",
+  "tradition_note": "Hanuman",
+  "photos": [
+    {
+      "filename": "01_Mehandipur_balaji.jpg",
+      "commons_title": "File:Mehandipur balaji.jpg",
+      "author": "KUMAR2912",
+      "license": "CC BY-SA 4.0",
+      "license_url": "",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMehandipur_balaji.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fb/Mehandipur_balaji.jpg/1280px-Mehandipur_balaji.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 221971,
+      "width": 4096,
+      "height": 4096,
+      "notes": "Mehandipur Balaji"
+    },
+    {
+      "filename": "02_Mehandipur_Balaji_idol.jpg",
+      "commons_title": "File:Mehandipur Balaji idol.jpg",
+      "author": "Unknown",
+      "license": "Public Domain",
+      "license_url": "",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMehandipur_Balaji_idol.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/6/6c/Mehandipur_Balaji_idol.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "bytes": 673080,
+      "width": 1036,
+      "height": 1313,
+      "notes": "Mehandipur Balaji"
+    },
+    {
+      "filename": "03_Mehandipur-Balaji-Temple.png",
+      "commons_title": "File:Mehandipur-Balaji-Temple.png",
+      "author": "VikramKaushik1976",
+      "license": "CC BY-SA 4.0",
+      "license_url": "",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMehandipur-Balaji-Temple.png",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/7/7f/Mehandipur-Balaji-Temple.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "bytes": 404008,
+      "width": 1200,
+      "height": 628,
+      "notes": "Mehandipur Balaji"
+    },
+    {
+      "filename": "04_Mehandipur_Balaji_todabhim.jpg",
+      "commons_title": "File:Mehandipur Balaji todabhim.jpg",
+      "author": "Seoduniya,pramod kumar gupta, karauli adminstration",
+      "license": "CC BY-SA 4.0",
+      "license_url": "",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMehandipur_Balaji_todabhim.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/c/cb/Mehandipur_Balaji_todabhim.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "bytes": 105675,
+      "width": 533,
+      "height": 800,
+      "notes": "Mehandipur Balaji"
+    },
+    {
+      "filename": "05_Mehndipur_balaji_hanuman_temple.jpg",
+      "commons_title": "File:Mehndipur balaji(hanuman temple).jpg",
+      "author": "KUMAR2912",
+      "license": "CC BY-SA 4.0",
+      "license_url": "",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMehndipur_balaji%28hanuman_temple%29.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/Mehndipur_balaji%28hanuman_temple%29.jpg/1280px-Mehndipur_balaji%28hanuman_temple%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 453186,
+      "width": 4096,
+      "height": 4096,
+      "notes": "Mehandipur Balaji"
+    }
+  ]
+}

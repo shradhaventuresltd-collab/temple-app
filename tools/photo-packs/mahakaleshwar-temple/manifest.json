@@ -1,0 +1,75 @@
+{
+  "temple_slug": "mahakaleshwar-temple",
+  "temple_name": "Mahakaleshwar Temple",
+  "doc_id_hint": "mahakaleshwar-temple",
+  "city": "Ujjain",
+  "state": "Madhya Pradesh",
+  "tradition_note": "Shiva",
+  "photos": [
+    {
+      "filename": "01_Mahakaleshwar_Temple_Ujjain.jpg",
+      "commons_title": "File:Mahakaleshwar Temple, Ujjain.jpg",
+      "author": "Ashverse",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMahakaleshwar_Temple%2C_Ujjain.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/75/Mahakaleshwar_Temple%2C_Ujjain.jpg/1280px-Mahakaleshwar_Temple%2C_Ujjain.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 322706,
+      "width": 1280,
+      "height": 720,
+      "notes": "Mahakaleshwar Temple, Ujjain"
+    },
+    {
+      "filename": "02_Mahakaleshwar_Temple_in_Ujjain.jpg",
+      "commons_title": "File:Mahakaleshwar Temple in Ujjain.jpg",
+      "author": "Imakanksha",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMahakaleshwar_Temple_in_Ujjain.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f0/Mahakaleshwar_Temple_in_Ujjain.jpg/1280px-Mahakaleshwar_Temple_in_Ujjain.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 468923,
+      "width": 1280,
+      "height": 1707,
+      "notes": "Serene morning at the ancient Mahakaleshwar Jyotirlinga Temple in Ujjain."
+    },
+    {
+      "filename": "03_Mahakaleshwar_ujjain.jpg",
+      "commons_title": "File:Mahakaleshwar ujjain.jpg",
+      "author": "Snay015",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMahakaleshwar_ujjain.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0c/Mahakaleshwar_ujjain.jpg/1280px-Mahakaleshwar_ujjain.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 760546,
+      "width": 1280,
+      "height": 1707,
+      "notes": "The Mahakaleshwar Temple is a famous Hindu temple located in Ujjain, Madhya Pradesh, India. It is dedicated to Lord Shiv"
+    },
+    {
+      "filename": "04_Mahakaleshwar_Ujjain.jpg",
+      "commons_title": "File:Mahakaleshwar Ujjain.jpeg",
+      "author": "Unknown",
+      "license": "Public Domain",
+      "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMahakaleshwar_Ujjain.jpeg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/43/Mahakaleshwar_Ujjain.jpeg/1280px-Mahakaleshwar_Ujjain.jpeg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 576104,
+      "width": 1280,
+      "height": 1707,
+      "notes": "Mahakaleshwar Temple, Ujjain"
+    },
+    {
+      "filename": "05_Narmada_river_from_mahakaleshwar_temple_Ujjain.jpg",
+      "commons_title": "File:Narmada river from mahakaleshwar temple, Ujjain.jpg",
+      "author": "Prabhavsharma8",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ANarmada_river_from_mahakaleshwar_temple%2C_Ujjain.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a0/Narmada_river_from_mahakaleshwar_temple%2C_Ujjain.jpg/1280px-Narmada_river_from_mahakaleshwar_temple%2C_Ujjain.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 669702,
+      "width": 1280,
+      "height": 1707,
+      "notes": "It's the Narmada river captured with the lush green rocks taken from the well reknowned mahakaleshwar temple in Ujjain"
+    }
+  ]
+}

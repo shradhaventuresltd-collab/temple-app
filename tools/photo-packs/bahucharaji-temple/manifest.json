@@ -1,0 +1,75 @@
+{
+  "temple_slug": "bahucharaji-temple",
+  "temple_name": "Bahucharaji Temple",
+  "doc_id_hint": "bahucharaji-temple",
+  "city": "Bahucharaji",
+  "state": "Gujarat",
+  "tradition_note": "Devi",
+  "photos": [
+    {
+      "filename": "01_ETH-BIB-Oase_Colomb-Bechar-Nordafrikaflug_1932-LBS_MH02-13-0276.jpg",
+      "commons_title": "File:ETH-BIB-Oase Colomb-Bechar-Nordafrikaflug 1932-LBS MH02-13-0276.tif",
+      "author": "Walter Mittelholzer",
+      "license": "Public Domain",
+      "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AETH-BIB-Oase_Colomb-Bechar-Nordafrikaflug_1932-LBS_MH02-13-0276.tif",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/ETH-BIB-Oase_Colomb-Bechar-Nordafrikaflug_1932-LBS_MH02-13-0276.tif/lossy-page1-1280px-ETH-BIB-Oase_Colomb-Bechar-Nordafrikaflug_1932-LBS_MH02-13-0276.tif.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 204536,
+      "width": 1280,
+      "height": 848,
+      "notes": "Bahucharaji Temple, Bahucharaji"
+    },
+    {
+      "filename": "02_ETH-BIB-Moschee_in_Colomb-Bechar-Nordafrikaflug_1932-LBS_MH02-13-0259.jpg",
+      "commons_title": "File:ETH-BIB-Moschee in Colomb-Bechar-Nordafrikaflug 1932-LBS MH02-13-0259.tif",
+      "author": "Walter Mittelholzer",
+      "license": "Public Domain",
+      "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AETH-BIB-Moschee_in_Colomb-Bechar-Nordafrikaflug_1932-LBS_MH02-13-0259.tif",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6d/ETH-BIB-Moschee_in_Colomb-Bechar-Nordafrikaflug_1932-LBS_MH02-13-0259.tif/lossy-page1-1280px-ETH-BIB-Moschee_in_Colomb-Bechar-Nordafrikaflug_1932-LBS_MH02-13-0259.tif.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 229107,
+      "width": 1280,
+      "height": 850,
+      "notes": "Bahucharaji Temple, Bahucharaji"
+    },
+    {
+      "filename": "03_ETH-BIB-Moschee_in_Colomb-Bechar-Nordafrikaflug_1932-LBS_MH02-13-0258.jpg",
+      "commons_title": "File:ETH-BIB-Moschee in Colomb-Bechar-Nordafrikaflug 1932-LBS MH02-13-0258.tif",
+      "author": "Walter Mittelholzer",
+      "license": "Public Domain",
+      "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AETH-BIB-Moschee_in_Colomb-Bechar-Nordafrikaflug_1932-LBS_MH02-13-0258.tif",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/34/ETH-BIB-Moschee_in_Colomb-Bechar-Nordafrikaflug_1932-LBS_MH02-13-0258.tif/lossy-page1-1280px-ETH-BIB-Moschee_in_Colomb-Bechar-Nordafrikaflug_1932-LBS_MH02-13-0258.tif.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 230224,
+      "width": 1280,
+      "height": 850,
+      "notes": "Bahucharaji Temple, Bahucharaji"
+    },
+    {
+      "filename": "04_Ksar_de_Taghit_Bechar_01.jpg",
+      "commons_title": "File:Ksar de Taghit Bechar 01.jpg",
+      "author": "BRAHIM DJELLOUL Mustapha",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AKsar_de_Taghit_Bechar_01.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/69/Ksar_de_Taghit_Bechar_01.jpg/1280px-Ksar_de_Taghit_Bechar_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 208927,
+      "width": 1280,
+      "height": 848,
+      "notes": "Bahucharaji Temple, Bahucharaji"
+    },
+    {
+      "filename": "05_Ksar_de_Taghit_Bechar_03.jpg",
+      "commons_title": "File:Ksar de Taghit Bechar 03.jpg",
+      "author": "BRAHIM DJELLOUL Mustapha",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AKsar_de_Taghit_Bechar_03.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/Ksar_de_Taghit_Bechar_03.jpg/1280px-Ksar_de_Taghit_Bechar_03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 416492,
+      "width": 1280,
+      "height": 1933,
+      "notes": "Bahucharaji Temple, Bahucharaji"
+    }
+  ]
+}

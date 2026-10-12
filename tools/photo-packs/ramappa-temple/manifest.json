@@ -1,0 +1,75 @@
+{
+  "temple_slug": "ramappa-temple",
+  "temple_name": "Ramappa Temple (Rudreshwara)",
+  "doc_id_hint": "ramappa-temple",
+  "city": "Palampet",
+  "state": "Telangana",
+  "tradition_note": "Shiva",
+  "photos": [
+    {
+      "filename": "01_Beautifully_carved_gate_of_the_Kakatiya_Rudreshwara_Ramappa_Temple.jpg",
+      "commons_title": "File:Beautifully carved gate of the Kakatiya Rudreshwara Ramappa Temple.jpg",
+      "author": "Sharvarism",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ABeautifully_carved_gate_of_the_Kakatiya_Rudreshwara_Ramappa_Temple.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/Beautifully_carved_gate_of_the_Kakatiya_Rudreshwara_Ramappa_Temple.jpg/1280px-Beautifully_carved_gate_of_the_Kakatiya_Rudreshwara_Ramappa_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 378504,
+      "width": 1280,
+      "height": 853,
+      "notes": "Kakatiya Rudreshwara Ramappa Temple, also known as the Rudreshwara temple or Ramappa Temple, is a recently declaired UNE"
+    },
+    {
+      "filename": "02_Rudreshwara_Temple_at_Ramappa.jpg",
+      "commons_title": "File:Rudreshwara Temple at Ramappa.jpg",
+      "author": "Dayakargundamalla",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ARudreshwara_Temple_at_Ramappa.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/8/8f/Rudreshwara_Temple_at_Ramappa.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "bytes": 235171,
+      "width": 1019,
+      "height": 1280,
+      "notes": "Ramappa Temple, also known as the Rudreshwara (Lord Siva) temple, is a UNESCO World Heritage Site located in the state o"
+    },
+    {
+      "filename": "03_Ramappa_a_Telangana_First_UNESCO_Site.jpg",
+      "commons_title": "File:Ramappa a Telangana First UNESCO Site.jpg",
+      "author": "Dayakargundamalla",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ARamappa_a_Telangana_First_UNESCO_Site.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/d/db/Ramappa_a_Telangana_First_UNESCO_Site.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "bytes": 241468,
+      "width": 1021,
+      "height": 1280,
+      "notes": "Ramappa Temple, also known as the Rudreshwara (Lord Siva) temple, is a UNESCO World Heritage Site located in the state o"
+    },
+    {
+      "filename": "04_Ramappa_Temple.png",
+      "commons_title": "File:Ramappa Temple.png",
+      "author": "Sainath Venigalla",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ARamappa_Temple.png",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e5/Ramappa_Temple.png/1280px-Ramappa_Temple.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 1424588,
+      "width": 1280,
+      "height": 853,
+      "notes": "Ramappa Temple, also known as the Rudreshwara (Lord Siva) temple, is a UNESCO World Heritage Site located in the state o"
+    },
+    {
+      "filename": "05_WHS_Ramappa_Temple_1.jpg",
+      "commons_title": "File:WHS Ramappa Temple 1.jpg",
+      "author": "Khushi Shah 280",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AWHS_Ramappa_Temple_1.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/WHS_Ramappa_Temple_1.jpg/1280px-WHS_Ramappa_Temple_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 369614,
+      "width": 1280,
+      "height": 960,
+      "notes": "Exterior view of WHS_Ramappa Temple_"
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "temple_slug": "ram-raja-temple-orchha",
+  "temple_name": "Ram Raja Temple",
+  "doc_id_hint": "ram-raja-temple-orchha",
+  "city": "Orchha",
+  "state": "Madhya Pradesh",
+  "tradition_note": "Vishnu/Rama",
+  "photos": [
+    {
+      "filename": "01_Ram_Raja_Temple_Orchha_Madhya_Pradesh_India.jpg",
+      "commons_title": "File:Ram Raja Temple, Orchha, Madhya Pradesh, India.jpg",
+      "author": "PRATYUSHMAURYA.ECOHUMAN",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ARam_Raja_Temple%2C_Orchha%2C_Madhya_Pradesh%2C_India.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6d/Ram_Raja_Temple%2C_Orchha%2C_Madhya_Pradesh%2C_India.jpg/1280px-Ram_Raja_Temple%2C_Orchha%2C_Madhya_Pradesh%2C_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 256931,
+      "width": 1280,
+      "height": 960,
+      "notes": "Ram Raja Temple is situated at Orchha in Madhya Pradesh, India"
+    },
+    {
+      "filename": "02_Ram_raja_temple_Orchha.jpg",
+      "commons_title": "File:Ram raja temple, Orchha.jpg",
+      "author": "Sudhanshusahu",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ARam_raja_temple%2C_Orchha.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a6/Ram_raja_temple%2C_Orchha.jpg/1280px-Ram_raja_temple%2C_Orchha.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 651388,
+      "width": 1280,
+      "height": 1707,
+      "notes": "The temple is situated in the Orchha Fort complex. It was build by the King so that he can see the idol from specific po"
+    },
+    {
+      "filename": "03_Dévots_devant_le_Ram_Raja_Temple_Orchha_8450516645.jpg",
+      "commons_title": "File:Dévots devant le Ram Raja Temple (Orchha) (8450516645).jpg",
+      "author": "Jean-Pierre Dalbéra from Paris, France",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AD%C3%A9vots_devant_le_Ram_Raja_Temple_%28Orchha%29_%288450516645%29.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b5/D%C3%A9vots_devant_le_Ram_Raja_Temple_%28Orchha%29_%288450516645%29.jpg/1280px-D%C3%A9vots_devant_le_Ram_Raja_Temple_%28Orchha%29_%288450516645%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 454986,
+      "width": 1280,
+      "height": 853,
+      "notes": "Dévots devant le Ram Raja Temple Ce temple est un ancien palais, c'est le seul temple où le Seigneur Rama est célébré co"
+    },
+    {
+      "filename": "04_Dévots_devant_le_Ram_Raja_Temple_Orchha_8451604116.jpg",
+      "commons_title": "File:Dévots devant le Ram Raja Temple (Orchha) (8451604116).jpg",
+      "author": "Jean-Pierre Dalbéra from Paris, France",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AD%C3%A9vots_devant_le_Ram_Raja_Temple_%28Orchha%29_%288451604116%29.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a3/D%C3%A9vots_devant_le_Ram_Raja_Temple_%28Orchha%29_%288451604116%29.jpg/1280px-D%C3%A9vots_devant_le_Ram_Raja_Temple_%28Orchha%29_%288451604116%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 384733,
+      "width": 1280,
+      "height": 853,
+      "notes": "Dévots devant le Ram Raja Temple en train de chanter Le temple \"Ram Raja Temple\" à Orchha en Inde est un ancien palais, "
+    },
+    {
+      "filename": "05_Devant_le_Ram_Raja_Temple_Orchha_8451603428.jpg",
+      "commons_title": "File:Devant le Ram Raja Temple (Orchha) (8451603428).jpg",
+      "author": "Jean-Pierre Dalbéra from Paris, France",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ADevant_le_Ram_Raja_Temple_%28Orchha%29_%288451603428%29.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/Devant_le_Ram_Raja_Temple_%28Orchha%29_%288451603428%29.jpg/1280px-Devant_le_Ram_Raja_Temple_%28Orchha%29_%288451603428%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 220651,
+      "width": 1280,
+      "height": 960,
+      "notes": "Brahmanes (?) devant le temple dédié à Rama (Ram Raja Temple) Ce temple est un ancien palais, c'est le seul temple où le"
+    }
+  ]
+}

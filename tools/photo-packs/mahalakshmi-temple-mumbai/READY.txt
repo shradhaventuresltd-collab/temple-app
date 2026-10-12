@@ -1,0 +1,4 @@
+Ready: 5 photos
+slug: mahalakshmi-temple-mumbai
+retrieved: 2026-09-22 IST
+KAN-76 WAVE C — do NOT set live imageUrl.

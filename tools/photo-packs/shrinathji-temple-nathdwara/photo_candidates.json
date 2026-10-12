@@ -1,0 +1,32 @@
+[
+  {
+    "url": "https://commons.wikimedia.org/wiki/File%3APainter_at_work%2C_Nathdwara.jpg",
+    "license": "CC BY 2.0",
+    "attribution": "Prakhar Amba",
+    "notes": "local_file=01_Painter_at_work_Nathdwara.jpg"
+  },
+  {
+    "url": "https://commons.wikimedia.org/wiki/File%3ANathdwara_srinathji.jpg",
+    "license": "Public Domain",
+    "attribution": "Unknown artistUnknown artist",
+    "notes": "local_file=02_Nathdwara_srinathji.jpg"
+  },
+  {
+    "url": "https://commons.wikimedia.org/wiki/File%3AHistoric_heritage_sites_of_Rajasthan_with_GPS_coordinates.jpg",
+    "license": "CC BY-SA 4.0",
+    "attribution": "Ms Sarah Welch",
+    "notes": "local_file=03_Historic_heritage_sites_of_Rajasthan_with_GPS_coordinates.jpg"
+  },
+  {
+    "url": "https://commons.wikimedia.org/wiki/File%3AMaha_Daan_Leela.png",
+    "license": "CC BY-SA 4.0",
+    "attribution": "Khubiram Gopilal (1891-1970)",
+    "notes": "local_file=04_Maha_Daan_Leela.png"
+  },
+  {
+    "url": "https://commons.wikimedia.org/wiki/File%3AShrinathji_Darshan%2C_Nathdwara_Kalam_of_Rajasthani_School_of_Art%2C_circa_1850-1900_CE%2C_INHCRF_Coin_Museum%2C_Nashik%2C_Maharashtra.jpg",
+    "license": "CC BY-SA 4.0",
+    "attribution": "SpeakingArch",
+    "notes": "local_file=05_Shrinathji_Darshan_Nathdwara_Kalam_of_Rajasthani_School_of_Art_circa_1.jpg"
+  }
+]

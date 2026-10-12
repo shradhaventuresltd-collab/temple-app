@@ -1,0 +1,75 @@
+{
+  "temple_slug": "tarapith-temple",
+  "temple_name": "Tarapith Temple",
+  "doc_id_hint": "tarapith-temple",
+  "city": "Tarapith",
+  "state": "West Bengal",
+  "tradition_note": "Devi (Tara)",
+  "photos": [
+    {
+      "filename": "01_Tarapith_Temple_04.jpg",
+      "commons_title": "File:Tarapith Temple 04.jpg",
+      "author": "Tarunsamanta",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ATarapith_Temple_04.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ac/Tarapith_Temple_04.jpg/1280px-Tarapith_Temple_04.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 311385,
+      "width": 1280,
+      "height": 960,
+      "notes": "Tarapith temple at Rampurhat in West Bengal"
+    },
+    {
+      "filename": "02_Tarapith_Kali_temple_at_Tarapith_01.jpg",
+      "commons_title": "File:Tarapith Kali temple at Tarapith 01.jpg",
+      "author": "Pinakpani",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ATarapith_Kali_temple_at_Tarapith_01.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4c/Tarapith_Kali_temple_at_Tarapith_01.jpg/1280px-Tarapith_Kali_temple_at_Tarapith_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 352663,
+      "width": 1280,
+      "height": 960,
+      "notes": "Tarapith Kali temple, a famous Hindu Temple of Tara/Kali at Tarapith, Birbhum district"
+    },
+    {
+      "filename": "03_Tarapith_Kali_temple_at_Tarapith_02.jpg",
+      "commons_title": "File:Tarapith Kali temple at Tarapith 02.jpg",
+      "author": "Pinakpani",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ATarapith_Kali_temple_at_Tarapith_02.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Tarapith_Kali_temple_at_Tarapith_02.jpg/1280px-Tarapith_Kali_temple_at_Tarapith_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 305590,
+      "width": 1280,
+      "height": 960,
+      "notes": "Tarapith Kali temple, a famous Hindu Temple of Tara/Kali at Tarapith, Birbhum district"
+    },
+    {
+      "filename": "04_Tarapith_Kali_temple_at_Tarapith_03.jpg",
+      "commons_title": "File:Tarapith Kali temple at Tarapith 03.jpg",
+      "author": "Pinakpani",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ATarapith_Kali_temple_at_Tarapith_03.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0a/Tarapith_Kali_temple_at_Tarapith_03.jpg/1280px-Tarapith_Kali_temple_at_Tarapith_03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 264686,
+      "width": 1280,
+      "height": 960,
+      "notes": "Tarapith Kali temple, a famous Hindu Temple of Tara/Kali at Tarapith, Birbhum district"
+    },
+    {
+      "filename": "05_Tarapith_Kali_temple_at_Tarapith_04.jpg",
+      "commons_title": "File:Tarapith Kali temple at Tarapith 04.jpg",
+      "author": "Pinakpani",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ATarapith_Kali_temple_at_Tarapith_04.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7b/Tarapith_Kali_temple_at_Tarapith_04.jpg/1280px-Tarapith_Kali_temple_at_Tarapith_04.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 295016,
+      "width": 1280,
+      "height": 960,
+      "notes": "Tarapith Kali temple, a famous Hindu Temple of Tara/Kali at Tarapith, Birbhum district"
+    }
+  ]
+}

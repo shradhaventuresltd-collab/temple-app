@@ -71,6 +71,104 @@ const WAVE_A_TN_KL_PACKS = [
   "vaitheeswaran-koil",
 ];
 
+// KAN-76/KAN-77 Wave C (all-India photo-pending temples). --all-packs fails
+// if any of these folders are missing.
+const WAVE_C_KAN76_PACKS = [
+  "ahobilam-narasimha-temples",
+  "ambaji-temple",
+  "ananta-vasudeva-temple",
+  "bahucharaji-temple",
+  "baijnath-temple-himachal",
+  "banke-bihari-temple",
+  "belur-math",
+  "bhadrakali-temple-warangal",
+  "bhimakali-temple-sarahan",
+  "bhimashankar-temple",
+  "biraja-temple",
+  "birla-mandir-jaipur",
+  "birla-mandir-kolkata",
+  "brahma-temple-pushkar",
+  "chilkur-balaji-temple",
+  "chintpurni-temple",
+  "chotila-chamunda-mata-temple",
+  "cuttack-chandi-temple",
+  "dakshineswar-kali-temple",
+  "deo-sun-temple",
+  "dwarkadhish-temple",
+  "eklingji-temple",
+  "gnana-saraswati-temple-basara",
+  "gorakhnath-temple",
+  "govind-dev-ji-temple-jaipur",
+  "grishneshwar-temple",
+  "hadimba-devi-temple",
+  "hangseshwari-temple",
+  "harsiddhi-temple-ujjain",
+  "jagannath-temple-puri",
+  "jejuri-khandoba-temple",
+  "jogulamba-temple-alampur",
+  "jwalamukhi-temple",
+  "kalighat-kali-temple",
+  "kalika-mata-temple-pavagadh",
+  "kandariya-mahadeva-temple",
+  "kapil-muni-temple-gangasagar",
+  "karni-mata-temple-deshnok",
+  "khatushyam-temple",
+  "kheer-bhawani-temple",
+  "kiriteswari-temple",
+  "konark-sun-temple",
+  "lakshmana-temple-khajuraho",
+  "lakshmi-narayan-temple-chamba",
+  "lingaraj-temple",
+  "mahakaleshwar-temple",
+  "mahalakshmi-temple-mumbai",
+  "mahavir-mandir-patna",
+  "manikaran-shiva-temple",
+  "mehandipur-balaji-temple",
+  "modhera-sun-temple",
+  "morgaon-mayureshwar-temple",
+  "mukteshwar-temple",
+  "mumba-devi-temple",
+  "mundeshwari-devi-temple",
+  "nageshwar-jyotirlinga-temple",
+  "naina-devi-temple-bilaspur",
+  "omkareshwar-temple",
+  "panchvaktra-temple-mandi",
+  "pashupatinath-temple-mandsaur",
+  "patan-devi-temple",
+  "prem-mandir-vrindavan",
+  "raghunath-temple-jammu",
+  "rajarani-temple",
+  "ram-mandir-ayodhya",
+  "ram-raja-temple-orchha",
+  "ramappa-temple",
+  "salasar-balaji-temple",
+  "sankat-mochan-hanuman-temple",
+  "satyanarayana-swamy-temple-annavaram",
+  "shankaracharya-temple",
+  "sharda-devi-temple-maihar",
+  "shree-saibaba-samadhi-mandir",
+  "shrinathji-temple-nathdwara",
+  "siddhivinayak-temple-mumbai",
+  "sita-ramachandra-swamy-bhadrachalam",
+  "somnath-temple",
+  "sri-lakshmi-narasimha-swamy-yadagirigutta",
+  "sri-mallikarjuna-swamy-temple-srisailam",
+  "sri-mayapur-chandrodaya-mandir",
+  "taraknath-temple-tarakeswar",
+  "tarapith-temple",
+  "thousand-pillar-temple",
+  "tirumala-venkateswara-temple",
+  "trimbakeshwar-temple",
+  "vaishno-devi-temple",
+  "varaha-lakshmi-narasimha-temple-simhachalam",
+  "varasidhi-vinayaka-temple-kanipakam",
+  "veerabhadra-temple-lepakshi",
+  "vindhyavasini-temple",
+  "vishnupad-temple",
+  "vitthal-rukmini-temple-pandharpur",
+  "yaganti-uma-maheswara-temple",
+];
+
 // Pack folder / temple_slug → Seed templeDocumentId when the sample name
 // omits the city.
 const SEED_DOCUMENT_ID_BY_PACK_SLUG = {
@@ -81,6 +179,46 @@ const SEED_DOCUMENT_ID_BY_PACK_SLUG = {
   "jambukeswarar-temple-thiruvanaikaval": "jambukeswarar-temple",
   "thyagaraja-temple-tiruvarur": "thyagaraja-temple",
   "nellaiappar-temple-tirunelveli": "nellaiappar-temple",
+  // KAN-76 Wave C
+  "baijnath-temple-himachal": "baijnath-temple",
+  "bhadrakali-temple-warangal": "bhadrakali-temple",
+  "bhimakali-temple-sarahan": "bhimakali-temple",
+  "birla-mandir-jaipur": "birla-mandir-lakshmi-narayan-temple",
+  "birla-mandir-kolkata": "birla-mandir",
+  "brahma-temple-pushkar": "brahma-temple",
+  "gnana-saraswati-temple-basara": "gnana-saraswati-temple",
+  "govind-dev-ji-temple-jaipur": "govind-dev-ji-temple",
+  "harsiddhi-temple-ujjain": "harsiddhi-temple",
+  "jagannath-temple-puri": "jagannath-temple",
+  "jogulamba-temple-alampur": "jogulamba-temple",
+  "kalika-mata-temple-pavagadh": "kalika-mata-temple",
+  "kapil-muni-temple-gangasagar": "kapil-muni-temple",
+  "karni-mata-temple-deshnok": "karni-mata-temple",
+  "lakshmana-temple-khajuraho": "lakshmana-temple",
+  "lakshmi-narayan-temple-chamba": "lakshmi-narayan-temple",
+  "mahalakshmi-temple-mumbai": "mahalakshmi-temple",
+  "mahavir-mandir-patna": "mahavir-mandir",
+  "naina-devi-temple-bilaspur": "naina-devi-temple",
+  "panchvaktra-temple-mandi": "panchvaktra-temple",
+  "pashupatinath-temple-mandsaur": "pashupatinath-temple",
+  "prem-mandir-vrindavan": "prem-mandir",
+  "raghunath-temple-jammu": "raghunath-temple",
+  "ram-mandir-ayodhya": "ram-mandir-shri-ram-janmabhoomi-temple",
+  "ram-raja-temple-orchha": "ram-raja-temple",
+  "ramappa-temple": "ramappa-temple-rudreshwara",
+  "salasar-balaji-temple": "salasar-balaji",
+  "satyanarayana-swamy-temple-annavaram": "satyanarayana-swamy-temple",
+  "shrinathji-temple-nathdwara": "shrinathji-temple",
+  "siddhivinayak-temple-mumbai": "siddhivinayak-temple",
+  "sita-ramachandra-swamy-bhadrachalam": "sita-ramachandra-swamy-temple",
+  "sri-lakshmi-narasimha-swamy-yadagirigutta": "sri-lakshmi-narasimha-swamy-temple",
+  "sri-mallikarjuna-swamy-temple-srisailam": "sri-mallikarjuna-swamy-temple",
+  "sri-mayapur-chandrodaya-mandir": "sri-mayapur-chandrodaya-mandir-iskcon-mayapur",
+  "taraknath-temple-tarakeswar": "taraknath-temple",
+  "varaha-lakshmi-narasimha-temple-simhachalam": "varaha-lakshmi-narasimha-temple",
+  "varasidhi-vinayaka-temple-kanipakam": "varasidhi-vinayaka-temple",
+  "veerabhadra-temple-lepakshi": "veerabhadra-temple",
+  "vitthal-rukmini-temple-pandharpur": "vitthal-rukmini-temple",
 };
 
 function resolveSeedDocId(packDir, manifest, docIdOverride) {
@@ -404,7 +542,18 @@ async function main() {
       (slug) => !present.has(slug)
     );
     const missingWaveA = WAVE_A_TN_KL_PACKS.filter((slug) => !present.has(slug));
-    if (missingWaveB.length > 0 || missingWaveA.length > 0) {
+    const missingWaveC = WAVE_C_KAN76_PACKS.filter((slug) => !present.has(slug));
+    if (missingWaveC.length > 0) {
+      console.error(
+        "✖  --all-packs is missing KAN-76 Wave C packs:\n   " +
+          missingWaveC.join("\n   ")
+      );
+    }
+    if (
+      missingWaveB.length > 0 ||
+      missingWaveA.length > 0 ||
+      missingWaveC.length > 0
+    ) {
       if (missingWaveB.length > 0) {
         console.error(
           "✖  --all-packs is missing Karnataka Wave B packs:\n   " +

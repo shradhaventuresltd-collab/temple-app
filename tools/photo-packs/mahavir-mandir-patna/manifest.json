@@ -1,0 +1,75 @@
+{
+  "temple_slug": "mahavir-mandir-patna",
+  "temple_name": "Mahavir Mandir",
+  "doc_id_hint": "mahavir-mandir-patna",
+  "city": "Patna",
+  "state": "Bihar",
+  "tradition_note": "Hanuman",
+  "photos": [
+    {
+      "filename": "01_Mahavir_Mandir_Patna_Patna_Junction_Bihar_INDIA.jpg",
+      "commons_title": "File:Mahavir Mandir Patna, Patna Junction, Bihar INDIA.jpg",
+      "author": "KDhruv406",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMahavir_Mandir_Patna%2C_Patna_Junction%2C_Bihar_INDIA.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/24/Mahavir_Mandir_Patna%2C_Patna_Junction%2C_Bihar_INDIA.jpg/1280px-Mahavir_Mandir_Patna%2C_Patna_Junction%2C_Bihar_INDIA.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 313451,
+      "width": 1280,
+      "height": 1024,
+      "notes": "Side view of Mahavir Mandir Patna near Patna Junction Railway Station during Ram Navami"
+    },
+    {
+      "filename": "02_Mahavir_Mandir_patna.jpg",
+      "commons_title": "File:Mahavir Mandir, patna.JPG",
+      "author": "Rheashita12345",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMahavir_Mandir%2C_patna.JPG",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5f/Mahavir_Mandir%2C_patna.JPG/1280px-Mahavir_Mandir%2C_patna.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 262381,
+      "width": 1280,
+      "height": 960,
+      "notes": "mahavir mandir is a well known temple situated in the historical ground of patliputra (modern day Patna)."
+    },
+    {
+      "filename": "03_Patna_junction.jpg",
+      "commons_title": "File:Patna junction.jpg",
+      "author": "Summit Kumar Shaurya",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3APatna_junction.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/eb/Patna_junction.jpg/1280px-Patna_junction.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 331321,
+      "width": 1280,
+      "height": 1153,
+      "notes": "This is front view of Patna junction, this photo is clicked from Mahavir mandir"
+    },
+    {
+      "filename": "04_Patna_junction_front_view.jpg",
+      "commons_title": "File:Patna junction front view.jpg",
+      "author": "Summit Kumar Shaurya",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3APatna_junction_front_view.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bb/Patna_junction_front_view.jpg/1280px-Patna_junction_front_view.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 338270,
+      "width": 1280,
+      "height": 1722,
+      "notes": "This is front view of Patna junction, this photo is clicked from Mahavir mandir"
+    },
+    {
+      "filename": "05_Mahavir_Mandir_-_55446610929.jpg",
+      "commons_title": "File:Mahavir Mandir - 55446610929.jpg",
+      "author": "Shivam Setu",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMahavir_Mandir_-_55446610929.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d7/Mahavir_Mandir_-_55446610929.jpg/1280px-Mahavir_Mandir_-_55446610929.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 178017,
+      "width": 1280,
+      "height": 576,
+      "notes": "North Entrance of Patna Junction"
+    }
+  ]
+}

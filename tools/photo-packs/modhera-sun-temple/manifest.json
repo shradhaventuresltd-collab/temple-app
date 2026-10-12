@@ -1,0 +1,75 @@
+{
+  "temple_slug": "modhera-sun-temple",
+  "temple_name": "Modhera Sun Temple",
+  "doc_id_hint": "modhera-sun-temple",
+  "city": "Modhera",
+  "state": "Gujarat",
+  "tradition_note": "Surya",
+  "photos": [
+    {
+      "filename": "01_Sun_Temple_-_Modhera_-_Gujarat_-_DSC002.jpg",
+      "commons_title": "File:Sun Temple - Modhera - Gujarat - DSC002.jpg",
+      "author": "Snehrashmi",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ASun_Temple_-_Modhera_-_Gujarat_-_DSC002.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Sun_Temple_-_Modhera_-_Gujarat_-_DSC002.jpg/1280px-Sun_Temple_-_Modhera_-_Gujarat_-_DSC002.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 383622,
+      "width": 1280,
+      "height": 853,
+      "notes": "This is a photo of ASI monument number"
+    },
+    {
+      "filename": "02_Sun_Temple_Modhera_-_Sabha_Mandap_0.jpg",
+      "commons_title": "File:Sun Temple, Modhera - Sabha Mandap 0.jpg",
+      "author": "Bernard Gagnon",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ASun_Temple%2C_Modhera_-_Sabha_Mandap_0.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Sun_Temple%2C_Modhera_-_Sabha_Mandap_0.jpg/1280px-Sun_Temple%2C_Modhera_-_Sabha_Mandap_0.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 480181,
+      "width": 1280,
+      "height": 853,
+      "notes": "Reliefs of éléphants on the Sabha Mandap, Sun Temple, Modhera, India"
+    },
+    {
+      "filename": "03_Sun_Temple_Modhera_05.jpg",
+      "commons_title": "File:Sun Temple, Modhera 05.jpg",
+      "author": "Bernard Gagnon",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ASun_Temple%2C_Modhera_05.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/36/Sun_Temple%2C_Modhera_05.jpg/1280px-Sun_Temple%2C_Modhera_05.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 365995,
+      "width": 1280,
+      "height": 853,
+      "notes": "Sun Temple, Modhera, India"
+    },
+    {
+      "filename": "04_Sun_Temple_Modhera_-_Hindu_people.jpg",
+      "commons_title": "File:Sun Temple, Modhera - Hindu people.jpg",
+      "author": "Bernard Gagnon",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ASun_Temple%2C_Modhera_-_Hindu_people.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b9/Sun_Temple%2C_Modhera_-_Hindu_people.jpg/1280px-Sun_Temple%2C_Modhera_-_Hindu_people.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 564392,
+      "width": 1280,
+      "height": 1920,
+      "notes": "Hindu people at the Sun Temple, Modhera, India"
+    },
+    {
+      "filename": "05_Sun_Temple_Modhera_03.jpg",
+      "commons_title": "File:Sun Temple, Modhera 03.jpg",
+      "author": "Bernard Gagnon",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ASun_Temple%2C_Modhera_03.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e0/Sun_Temple%2C_Modhera_03.jpg/1280px-Sun_Temple%2C_Modhera_03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 336162,
+      "width": 1280,
+      "height": 853,
+      "notes": "Sun Temple, Modhera, India"
+    }
+  ]
+}
