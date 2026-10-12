@@ -54,7 +54,7 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Source page URL:** https://commons.wikimedia.org/wiki/File%3ATaratarini_Temple.jpg
 - **Download URL used:** https://upload.wikimedia.org/wikipedia/commons/thumb/d/dc/Taratarini_Temple.jpg/1280px-Taratarini_Temple.jpg
 - **Site:** Maa Tara Tarini Temple, Ganjam, Odisha
-- **Dimensions:** 1280×960, 295520 bytes
+- **Dimensions:** 1280×960, 385397 bytes
 
 ## 06_Taratarini_temple_at_night_on_Chaitra_festival.jpg
 - **Commons File:** File:Taratarini temple at night on Chaitra festival.jpg

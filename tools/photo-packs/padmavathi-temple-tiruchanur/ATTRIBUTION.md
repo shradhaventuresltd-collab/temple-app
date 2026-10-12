@@ -54,7 +54,7 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Source page URL:** https://commons.wikimedia.org/wiki/File%3AMain_gopuram_of_padmavati_ammavaari_temple_tirucanuru.JPG
 - **Download URL used:** https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Main_gopuram_of_padmavati_ammavaari_temple_tirucanuru.JPG/1280px-Main_gopuram_of_padmavati_ammavaari_temple_tirucanuru.JPG
 - **Site:** Sri Padmavathi Ammavari Temple, Tiruchanur
-- **Dimensions:** 1280×1707, 516576 bytes
+- **Dimensions:** 1280×1707, 516628 bytes
 
 ## 06_Padmavathi_Ammavari_Temple.jpg
 - **Commons File:** File:Padmavathi Ammavari Temple.JPG

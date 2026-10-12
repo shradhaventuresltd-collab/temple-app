@@ -14,7 +14,7 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Source page URL:** https://commons.wikimedia.org/wiki/File%3AAjgabinath.JPG
 - **Download URL used:** https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Ajgabinath.JPG/1280px-Ajgabinath.JPG
 - **Site:** Ajgaibinath (Ajgaivinath) Temple, Sultanganj
-- **Dimensions:** 1280×960, 264719 bytes
+- **Dimensions:** 1280×960, 264771 bytes
 
 ## 02_Ajgaibinath_temple_Day-View.png
 - **Commons File:** File:Ajgaibinath temple Day-View.png

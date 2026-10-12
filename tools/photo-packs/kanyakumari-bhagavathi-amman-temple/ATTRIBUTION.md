@@ -44,7 +44,7 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Source page URL:** https://commons.wikimedia.org/wiki/File%3AKanniyakuma_%282%29.jpg
 - **Download URL used:** https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Kanniyakuma_%282%29.jpg/1280px-Kanniyakuma_%282%29.jpg
 - **Site:** Kanyakumari Bhagavathy (Kumari) Amman Temple, Kanyakumari
-- **Dimensions:** 1280×960, 246916 bytes
+- **Dimensions:** 1280×960, 246968 bytes
 
 ## 05_Kanniyakuma_4.jpg
 - **Commons File:** File:Kanniyakuma (4).jpg

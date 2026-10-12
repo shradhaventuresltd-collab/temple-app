@@ -24,7 +24,7 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Source page URL:** https://commons.wikimedia.org/wiki/File%3AMain_Entrance_Shri_Chamunda-Kangra_Ji_Temple.JPG
 - **Download URL used:** https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Main_Entrance_Shri_Chamunda-Kangra_Ji_Temple.JPG/1280px-Main_Entrance_Shri_Chamunda-Kangra_Ji_Temple.JPG
 - **Site:** Shri Chamunda Devi Temple, Kangra district
-- **Dimensions:** 1280×960, 385820 bytes
+- **Dimensions:** 1280×960, 385872 bytes
 
 ## 03_Chamunda_Devi_Temple_01.jpg
 - **Commons File:** File:Chamunda Devi Temple 01.JPG
@@ -64,4 +64,4 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Source page URL:** https://commons.wikimedia.org/wiki/File%3AChamunda_Devi_Temple_08.JPG
 - **Download URL used:** https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Chamunda_Devi_Temple_08.JPG/1280px-Chamunda_Devi_Temple_08.JPG
 - **Site:** Shri Chamunda Devi Temple, Kangra district
-- **Dimensions:** 1280×960, 248029 bytes
+- **Dimensions:** 1280×960, 248081 bytes
