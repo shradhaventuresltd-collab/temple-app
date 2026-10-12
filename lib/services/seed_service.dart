@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
+import 'package:temple_app/config/build_flags.dart';
 import 'package:temple_app/data/sample_data.dart';
 import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
@@ -145,8 +145,8 @@ Future<SeedResult> seedTempleData({
   FirebaseFirestore? firestore,
   Future<bool> Function()? isAdmin,
 }) async {
-  if (!kDebugMode) {
-    throw StateError('Temple seeding is only available in debug builds.');
+  if (!kAdminToolsEnabled) {
+    throw StateError('Temple seeding is only available in debug builds (or demo builds with ENABLE_ADMIN_TOOLS).');
   }
 
   final allowed = await (isAdmin ?? AdminAuth.instance.isCurrentUserAdmin)();

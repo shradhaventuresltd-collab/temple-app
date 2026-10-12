@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/foundation.dart';
+import 'package:temple_app/config/build_flags.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/services/seed_service.dart';
@@ -200,7 +200,7 @@ class AdminTempleService implements AdminTempleApi {
               storage: storage,
             ),
         _isAdmin = isAdmin ?? AdminAuth.instance.isCurrentUserAdmin,
-        _isDebug = isDebug ?? kDebugMode,
+        _isDebug = isDebug ?? kAdminToolsEnabled,
         _watch = watch;
 
   final FirebaseFirestore? _firestore;
@@ -372,7 +372,7 @@ class AdminTempleService implements AdminTempleApi {
 
   Future<void> _assertCanWrite() async {
     if (!_isDebug) {
-      throw StateError('Temple CMS writes are only available in debug builds.');
+      throw StateError('Temple CMS writes are only available in debug builds (or demo builds with ENABLE_ADMIN_TOOLS).');
     }
     final allowed = await _isAdmin();
     if (!allowed) {

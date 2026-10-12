@@ -1,6 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:temple_app/config/build_flags.dart';
 import 'package:temple_app/services/seed_service.dart';
 
 /// Injectable seeder so widget tests do not need Firebase.
@@ -120,7 +120,7 @@ class _SeedTemplesControlState extends State<SeedTemplesControl> {
 
   @override
   Widget build(BuildContext context) {
-    if (!kDebugMode) return const SizedBox.shrink();
+    if (!kAdminToolsEnabled) return const SizedBox.shrink();
     return widget.compact ? _buildCompact() : _buildPanel();
   }
 

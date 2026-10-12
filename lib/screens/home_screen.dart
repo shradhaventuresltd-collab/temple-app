@@ -1,6 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:temple_app/config/build_flags.dart';
 import 'package:temple_app/data/heritage_content.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/admin_screen.dart';
@@ -80,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          if (kDebugMode)
+          if (kAdminToolsEnabled)
             DebugHomeAdminActions(
               auth: _auth,
               onOpenAdmin: _openAdmin,

@@ -3,6 +3,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:temple_app/config/build_flags.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/admin_temple_form_screen.dart';
 import 'package:temple_app/services/admin_auth.dart';
@@ -25,7 +26,7 @@ class AdminScreen extends StatefulWidget {
   /// Injected in tests. Defaults to [AdminTempleService].
   final AdminTempleApi? adminTemples;
 
-  /// Defaults to [kDebugMode]. Pass `false` in tests to simulate release/profile.
+  /// Defaults to [kAdminToolsEnabled]. Pass `false` in tests to simulate release/profile.
   /// When false, the entire Admin surface (including sign-in) is unavailable.
   final bool? isDebug;
 
@@ -40,7 +41,7 @@ class _AdminScreenState extends State<AdminScreen> {
   late final AdminTempleApi _temples =
       widget.adminTemples ?? AdminTempleService();
   late final Stream<AdminSession> _session = _auth.session;
-  late final bool _isDebug = widget.isDebug ?? kDebugMode;
+  late final bool _isDebug = widget.isDebug ?? kAdminToolsEnabled;
 
   Future<void> _openForm({Temple? existing}) async {
     await Navigator.of(context).push<bool>(
@@ -56,7 +57,7 @@ class _AdminScreenState extends State<AdminScreen> {
   @override
   Widget build(BuildContext context) {
     // Release/profile: never present sign-in, CMS, or Seed — even if reached
-    // via a deep link or direct route (Home entry is separately kDebugMode-gated).
+    // via a deep link or direct route (Home entry is separately kAdminToolsEnabled-gated).
     if (!_isDebug) {
       return Scaffold(
         key: const Key('admin-unavailable-scaffold'),
@@ -160,7 +161,7 @@ class _AdminTemplesBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!kDebugMode) {
+    if (!kAdminToolsEnabled) {
       return Center(
         child: Text(
           'Admin CMS is available in debug builds only.',
