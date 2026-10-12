@@ -56,6 +56,7 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **License:** CC BY-SA 3.0
 - **License URL:** http://creativecommons.org/licenses/by-sa/3.0/
 - **Source page URL:** https://commons.wikimedia.org/wiki/File:Mahakal_Temple_Ujjain.JPG
+- **Bytes:** 603977
 
 ## 06_Mahakal_Temple_Ujjain_India.jpg
 - **Commons File:** File:Mahakal Temple, Ujjain, India.jpg
