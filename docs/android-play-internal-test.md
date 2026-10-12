@@ -58,8 +58,10 @@ Debug builds (`flutter run`, `flutter build apk --debug`) do not need the upload
 
 A release build reports that signing error before it packages an artifact. Debug builds do not need the upload key. The Google Services plugin can match `com.shradhaventures.temple` from the checked-in `google-services.json`.
 
+Build the Play bundle with `scripts/build_play_aab.sh`. It runs `flutter build appbundle --release` and refuses `ENABLE_ADMIN_TOOLS` (environment variable or `--dart-define=ENABLE_ADMIN_TOOLS=true`), so Seed, CMS, and Upload stay out of the Play AAB. Demo APKs pass that define on their own `flutter build apk` command; do not use the Play script for those.
+
 ```bash
-flutter build appbundle --release
+./scripts/build_play_aab.sh
 ```
 
 The bundle is `build/app/outputs/bundle/release/app-release.aab`.

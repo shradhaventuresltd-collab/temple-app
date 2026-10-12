@@ -11,20 +11,22 @@ import 'helpers/fake_admin_auth.dart';
 
 void main() {
   testWidgets(
-      'AdminScreen hides sign-in and CMS when debug flag is false (release gate)',
+      'AdminScreen hides sign-in and CMS when admin tools are off',
       (tester) async {
     final auth = FakeAdminAuth();
 
     await tester.pumpWidget(
       MaterialApp(
-        home: AdminScreen(adminAuth: auth, isDebug: false),
+        home: AdminScreen(adminAuth: auth, adminToolsEnabled: false),
       ),
     );
     await tester.pump();
 
     expect(find.byKey(const Key('admin-unavailable-message')), findsOneWidget);
     expect(
-      find.text('Admin CMS is available in debug builds only.'),
+      find.text(
+        'Admin CMS is available in debug or demo builds (ENABLE_ADMIN_TOOLS).',
+      ),
       findsOneWidget,
     );
     expect(find.text('Admin sign-in required'), findsNothing);
@@ -46,7 +48,7 @@ void main() {
     final auth = FakeAdminAuth();
 
     await tester.pumpWidget(
-      MaterialApp(home: AdminScreen(adminAuth: auth, isDebug: true)),
+      MaterialApp(home: AdminScreen(adminAuth: auth, adminToolsEnabled: true)),
     );
     await tester.pump();
 
@@ -66,7 +68,7 @@ void main() {
     final auth = FakeAdminAuth()..signInError = Exception('invalid-credential');
 
     await tester.pumpWidget(
-      MaterialApp(home: AdminScreen(adminAuth: auth, isDebug: true)),
+      MaterialApp(home: AdminScreen(adminAuth: auth, adminToolsEnabled: true)),
     );
     await tester.pump();
 
@@ -92,7 +94,7 @@ void main() {
     final auth = FakeAdminAuth();
 
     await tester.pumpWidget(
-      MaterialApp(home: AdminScreen(adminAuth: auth, isDebug: true)),
+      MaterialApp(home: AdminScreen(adminAuth: auth, adminToolsEnabled: true)),
     );
     await tester.pump();
 
@@ -195,7 +197,7 @@ void main() {
       MaterialApp(
         home: AdminScreen(
           adminAuth: _HangingAdminAuth(hanging.stream),
-          isDebug: true,
+          adminToolsEnabled: true,
         ),
       ),
     );

@@ -17,7 +17,7 @@ class AdminScreen extends StatefulWidget {
     super.key,
     this.adminAuth,
     this.adminTemples,
-    this.isDebug,
+    this.adminToolsEnabled,
   });
 
   /// Injected in tests. Defaults to [AdminAuth.instance].
@@ -26,9 +26,10 @@ class AdminScreen extends StatefulWidget {
   /// Injected in tests. Defaults to [AdminTempleService].
   final AdminTempleApi? adminTemples;
 
-  /// Defaults to [kAdminToolsEnabled]. Pass `false` in tests to simulate release/profile.
+  /// Defaults to [kAdminToolsEnabled] (debug, or `ENABLE_ADMIN_TOOLS`).
+  /// Pass `false` in tests to simulate a Play/release build without the define.
   /// When false, the entire Admin surface (including sign-in) is unavailable.
-  final bool? isDebug;
+  final bool? adminToolsEnabled;
 
   @override
   State<AdminScreen> createState() => _AdminScreenState();
@@ -41,7 +42,8 @@ class _AdminScreenState extends State<AdminScreen> {
   late final AdminTempleApi _temples =
       widget.adminTemples ?? AdminTempleService();
   late final Stream<AdminSession> _session = _auth.session;
-  late final bool _isDebug = widget.isDebug ?? kAdminToolsEnabled;
+  late final bool _adminToolsEnabled =
+      widget.adminToolsEnabled ?? kAdminToolsEnabled;
 
   Future<void> _openForm({Temple? existing}) async {
     await Navigator.of(context).push<bool>(
@@ -56,9 +58,9 @@ class _AdminScreenState extends State<AdminScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Release/profile: never present sign-in, CMS, or Seed — even if reached
-    // via a deep link or direct route (Home entry is separately kAdminToolsEnabled-gated).
-    if (!_isDebug) {
+    // Without admin tools: never present sign-in, CMS, or Seed — even if
+    // reached via a deep link or direct route (Home is gated the same way).
+    if (!_adminToolsEnabled) {
       return Scaffold(
         key: const Key('admin-unavailable-scaffold'),
         backgroundColor: const Color(0xFFFFFBF2),
@@ -79,7 +81,8 @@ class _AdminScreenState extends State<AdminScreen> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 28),
             child: Text(
-              'Admin CMS is available in debug builds only.',
+              'Admin CMS is available in debug or demo builds '
+              '(ENABLE_ADMIN_TOOLS).',
               key: const Key('admin-unavailable-message'),
               style: GoogleFonts.poppins(color: Colors.brown.shade700),
               textAlign: TextAlign.center,
@@ -164,7 +167,8 @@ class _AdminTemplesBody extends StatelessWidget {
     if (!kAdminToolsEnabled) {
       return Center(
         child: Text(
-          'Admin CMS is available in debug builds only.',
+          'Admin CMS is available in debug or demo builds '
+          '(ENABLE_ADMIN_TOOLS).',
           style: GoogleFonts.poppins(color: Colors.brown.shade700),
           textAlign: TextAlign.center,
         ),

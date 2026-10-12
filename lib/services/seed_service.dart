@@ -138,7 +138,7 @@ class SeedResult {
 /// is preserved. Other bundled fields (name, story, timings, …) are
 /// refreshed from sample data. Admin and Storage galleries are not replaced.
 ///
-/// Debug-only: calling this from a release/profile build throws.
+/// Throws when admin tools are off (release/profile without ENABLE_ADMIN_TOOLS).
 /// Also requires a signed-in Firebase user with custom claim `admin: true`
 /// (rules reject the write otherwise). Pass [isAdmin] in tests.
 Future<SeedResult> seedTempleData({
@@ -146,7 +146,10 @@ Future<SeedResult> seedTempleData({
   Future<bool> Function()? isAdmin,
 }) async {
   if (!kAdminToolsEnabled) {
-    throw StateError('Temple seeding is only available in debug builds (or demo builds with ENABLE_ADMIN_TOOLS).');
+    throw StateError(
+      'Temple seeding is only available in debug builds '
+      '(or demo builds with ENABLE_ADMIN_TOOLS).',
+    );
   }
 
   final allowed = await (isAdmin ?? AdminAuth.instance.isCurrentUserAdmin)();

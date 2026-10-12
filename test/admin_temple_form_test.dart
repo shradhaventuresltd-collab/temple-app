@@ -49,7 +49,7 @@ Future<void> _pumpAdmin(
 }) async {
   await tester.pumpWidget(
     MaterialApp(
-      home: AdminScreen(adminAuth: auth, adminTemples: api, isDebug: true),
+      home: AdminScreen(adminAuth: auth, adminTemples: api, adminToolsEnabled: true),
     ),
   );
   await tester.pump();

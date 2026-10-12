@@ -11,7 +11,7 @@ India's temple heritage is one of the richest in the world — thousands of sacr
 - **Preserve and share heritage** — Detailed write-ups on temple history, mythology, and architectural significance so this knowledge reaches a wider audience.
 - **Help pilgrims and tourists** — One-tap Google Maps directions, opening timings, and photo galleries so visitors can plan their trips with ease.
 - **Celebrate Dravidian and South Indian architecture** — Showcasing the gopurams, vimanas, and mandapams that make these temples world-class cultural monuments.
-- **Build a living directory** — An admin panel (debug builds, admin Auth) lets content managers add, edit, and remove temples, upload images, and keep information current via Firebase.
+- **Build a living directory** — An admin panel (debug or demo builds, admin Auth) lets content managers add, edit, and remove temples, upload images, and keep information current via Firebase.
 
 ## Features
 
@@ -23,10 +23,26 @@ India's temple heritage is one of the richest in the world — thousands of sacr
 - **Temple Detail Screen** — Full-screen image gallery with auto-advance and swipe, pinch-to-zoom, temple story, description, specialities (as chips), timings, and one-tap Google Maps directions.
 - **Navigation Drawer** — Shared across screens with text search, the same state/deity filter chips, and quick navigation.
 
-### For Admins (Debug Mode + Auth)
-- **Admin CMS** — Debug builds only. After admin sign-in, create, edit, and delete temple documents in Firestore using the same fields the app already reads.
-- **Image Upload** — Pick and upload multiple images per temple to Firebase Storage with progress tracking. The file picker is **web-oriented** (native `<input type="file">`); field CRUD still works in mobile debug.
-- **Seed Data** — Debug-only **Seed** control (Home + Admin) writes the 180 bundled sample temples. It is shown only for a signed-in admin. Re-running is idempotent (stable document IDs). Hidden in release/profile builds.
+### For Admins (debug OR demo builds with `--dart-define=ENABLE_ADMIN_TOOLS=true`)
+Admin entry points (Seed, CMS, Upload) are compiled in for **debug** builds, and for any other build that passes `--dart-define=ENABLE_ADMIN_TOOLS=true`. Firebase sign-in and the `admin: true` custom claim are still required. **The Play AAB never takes that define.**
+
+- **Admin CMS** — After admin sign-in, create, edit, and delete temple documents in Firestore using the same fields the app already reads.
+- **Image Upload** — Pick and upload multiple images per temple to Firebase Storage with progress tracking. The file picker is **web-oriented** (native `<input type="file">`); field CRUD still works in mobile debug and demo builds.
+- **Seed Data** — **Seed** control (Home + Admin) writes the 180 bundled sample temples. It is shown only for a signed-in admin. Re-running is idempotent (stable document IDs). Hidden when admin tools are off (release/profile without `ENABLE_ADMIN_TOOLS`).
+
+Demo APK (profile, arm64). A release demo APK uses the same define (`flutter build apk --release --dart-define=ENABLE_ADMIN_TOOLS=true`). Do not pass it to the Play bundle.
+
+```bash
+flutter build apk --profile --target-platform=android-arm64 --dart-define=ENABLE_ADMIN_TOOLS=true
+```
+
+Play Store bundles go through [`scripts/build_play_aab.sh`](scripts/build_play_aab.sh). That script runs `flutter build appbundle --release` and exits with an error if `ENABLE_ADMIN_TOOLS=true` is set in the environment or in the arguments (including `--dart-define=ENABLE_ADMIN_TOOLS=true`).
+
+`flutter test` runs without the define, so `kEnableAdminToolsDefine` is false. To confirm the define is read, run the same suite with it set. `test/build_flags_test.dart` asserts `kEnableAdminToolsDefine` matches `bool.fromEnvironment('ENABLE_ADMIN_TOOLS')`, so the test passes in both runs.
+
+```bash
+flutter test --dart-define=ENABLE_ADMIN_TOOLS=true
+```
 
 ### Technical
 - **Firebase Backend** — Cloud Firestore for temple data, Firebase Storage for images, Firebase Auth for admin writes.
@@ -59,6 +75,8 @@ The app uses a warm saffron (`#FF8F00`) and gold (`#FFD54F`) color palette with 
 lib/
 ├── main.dart                          # App entry point, Firebase & AdMob init
 ├── firebase_options.dart              # FlutterFire CLI generated config
+├── config/
+│   └── build_flags.dart               # kAdminToolsEnabled (debug or ENABLE_ADMIN_TOOLS)
 ├── models/
 │   └── temple.dart                    # Temple data model
 ├── data/
@@ -271,8 +289,8 @@ dart run flutter_native_splash:create
 # Android APK
 flutter build apk --release
 
-# Android App Bundle (for Play Store)
-flutter build appbundle --release
+# Android App Bundle (for Play Store). Refuses ENABLE_ADMIN_TOOLS.
+./scripts/build_play_aab.sh
 
 # iOS (requires Xcode and Apple Developer account)
 flutter build ios --release

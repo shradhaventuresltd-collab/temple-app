@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/home_screen.dart';
 import 'package:temple_app/widgets/app_drawer.dart';
+import 'package:temple_app/widgets/debug_home_admin_actions.dart';
 
 import 'helpers/fake_admin_auth.dart';
 
@@ -123,4 +124,48 @@ void main() {
     expect(find.text('Could not load temples.'), findsOneWidget);
     expect(find.text('Retry'), findsOneWidget);
   });
+
+  testWidgets(
+    'Home hides Seed and Admin app-bar actions when override is false',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: HomeScreen(
+            adminAuth: FakeAdminAuth(),
+            templesLoader: () async => [sampleTemple()],
+            adminToolsEnabled: false,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DebugHomeAdminActions), findsNothing);
+      expect(find.byKey(const Key('home-admin-sign-in')), findsNothing);
+      expect(find.text('Admin sign-in'), findsNothing);
+      expect(find.text('Seed'), findsNothing);
+      expect(find.byIcon(Icons.admin_panel_settings_rounded), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'Home shows Admin app-bar action when override is true',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: HomeScreen(
+            adminAuth: FakeAdminAuth(),
+            templesLoader: () async => [sampleTemple()],
+            adminToolsEnabled: true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DebugHomeAdminActions), findsOneWidget);
+      expect(find.byKey(const Key('home-admin-sign-in')), findsOneWidget);
+      expect(find.text('Admin sign-in'), findsOneWidget);
+      expect(find.byIcon(Icons.admin_panel_settings_rounded), findsOneWidget);
+      expect(find.text('Seed'), findsNothing);
+    },
+  );
 }

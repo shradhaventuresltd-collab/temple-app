@@ -372,7 +372,10 @@ class AdminTempleService implements AdminTempleApi {
 
   Future<void> _assertCanWrite() async {
     if (!_isDebug) {
-      throw StateError('Temple CMS writes are only available in debug builds (or demo builds with ENABLE_ADMIN_TOOLS).');
+      throw StateError(
+        'Temple CMS writes are only available in debug builds '
+        '(or demo builds with ENABLE_ADMIN_TOOLS).',
+      );
     }
     final allowed = await _isAdmin();
     if (!allowed) {

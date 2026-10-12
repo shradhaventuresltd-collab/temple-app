@@ -8,8 +8,8 @@ typedef SeedTemplesFn = Future<SeedResult> Function();
 
 enum SeedPhase { idle, running, success, failure }
 
-/// Debug-only control that runs [seedTempleData] with idle / running /
-/// success / failure feedback. Hidden in release/profile builds.
+/// Seed control that runs [seedTempleData] with idle / running /
+/// success / failure feedback. Hidden unless admin tools are enabled.
 class SeedTemplesControl extends StatefulWidget {
   const SeedTemplesControl({
     super.key,

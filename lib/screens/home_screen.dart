@@ -15,13 +15,22 @@ import 'package:temple_app/widgets/home_mosaic_collage.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, this.adminAuth, this.templesLoader});
+  const HomeScreen({
+    super.key,
+    this.adminAuth,
+    this.templesLoader,
+    this.adminToolsEnabled,
+  });
 
   /// Injected in tests. Defaults to [AdminAuth.instance].
   final AdminAuth? adminAuth;
 
   /// Injected in tests. Defaults to [TempleService.getTemples].
   final Future<List<Temple>> Function()? templesLoader;
+
+  /// Defaults to [kAdminToolsEnabled]. Pass `false` in tests to hide
+  /// Seed / Admin app-bar actions (Play/release without the define).
+  final bool? adminToolsEnabled;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -52,11 +61,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   AdminAuth get _auth => widget.adminAuth ?? AdminAuth.instance;
 
+  bool get _showAdminTools => widget.adminToolsEnabled ?? kAdminToolsEnabled;
+
   Future<void> _openAdmin() async {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AdminScreen(adminAuth: widget.adminAuth),
+        builder: (_) => AdminScreen(
+          adminAuth: widget.adminAuth,
+          adminToolsEnabled: _showAdminTools,
+        ),
       ),
     );
     if (mounted) _reloadTemples();
@@ -80,7 +94,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          if (kAdminToolsEnabled)
+          if (_showAdminTools)
             DebugHomeAdminActions(
               auth: _auth,
               onOpenAdmin: _openAdmin,
