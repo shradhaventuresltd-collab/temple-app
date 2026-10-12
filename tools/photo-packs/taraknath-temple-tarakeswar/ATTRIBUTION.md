@@ -6,6 +6,18 @@ User-Agent: TempleAppResearch/1.0 (KAN-76 sweep)
 License verification: Commons extmetadata / file page.
 Do NOT set live imageUrl — eng upload only (KAN-77).
 
+## 06_Tarakeshwar_temple_entrance.jpg
+- **Commons File:** File:Tarakeshwar temple entrance.jpg
+- **Author:** K.vishnupranay
+- **License:** CC BY-SA 4.0
+- **License URL:** https://creativecommons.org/licenses/by-sa/4.0/
+- **Source page URL:** https://commons.wikimedia.org/wiki/File%3ATarakeshwar_temple_entrance.jpg
+- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/5/50/Tarakeshwar_temple_entrance.jpg/1280px-Tarakeshwar_temple_entrance.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
+- **Retrieved date (IST):** 2026-10-12
+- **Dimensions (file on disk):** 1280×960
+- **Bytes:** 406969
+- **Credit:** Own work. Cover. Temple front; Commons category Taraknath Temple (Wiki Loves Monuments 2016). The file page has no description.
+
 ## 01_Devotees_of_Lord_Shiva_at_the_Tarakeswar_Shiva_Temple_in_Hooghly_West.jpg
 - **Commons File:** File:Devotees of Lord Shiva at the Tarakeswar Shiva Temple in Hooghly, West Bengal, India, photographed by Yogabrata Chakraborty, on August 14, 2023 1.jpg
 - **Author:** Billjones94

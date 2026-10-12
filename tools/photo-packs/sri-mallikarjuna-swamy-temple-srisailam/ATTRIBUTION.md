@@ -17,17 +17,6 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Dimensions (file on disk):** 1280×954
 - **Bytes:** 170426
 
-## 02_APSS303_Srisailam_town_zoom_view_from_welcome_center2.jpg
-- **Commons File:** File:APSS303 Srisailam town zoom view from welcome center2.jpg
-- **Author:** VasuVR
-- **License:** CC BY-SA 4.0
-- **License URL:** https://creativecommons.org/licenses/by-sa/4.0/
-- **Source page URL:** https://commons.wikimedia.org/wiki/File%3AAPSS303_Srisailam_town_zoom_view_from_welcome_center2.jpg
-- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2d/APSS303_Srisailam_town_zoom_view_from_welcome_center2.jpg/1280px-APSS303_Srisailam_town_zoom_view_from_welcome_center2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
-- **Retrieved date (IST):** 2026-09-22
-- **Dimensions (file on disk):** 1280×960
-- **Bytes:** 425493
-
 ## 03_SRISAILAM_TEMPLE_AP_-_panoramio.jpg
 - **Commons File:** File:SRISAILAM TEMPLE,AP - panoramio.jpg
 - **Author:** rajaraman sundaram

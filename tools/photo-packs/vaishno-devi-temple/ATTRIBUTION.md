@@ -17,17 +17,6 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Dimensions (file on disk):** 1280×719
 - **Bytes:** 346972
 
-## 02_View_of_Katra_enroute_to_Maa_Vaishno_Devi_temple.jpg
-- **Commons File:** File:View of Katra enroute to Maa Vaishno Devi temple.JPG
-- **Author:** Wikice
-- **License:** CC BY-SA 3.0
-- **License URL:** https://creativecommons.org/licenses/by-sa/3.0/
-- **Source page URL:** https://commons.wikimedia.org/wiki/File%3AView_of_Katra_enroute_to_Maa_Vaishno_Devi_temple.JPG
-- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/8/82/View_of_Katra_enroute_to_Maa_Vaishno_Devi_temple.JPG/1280px-View_of_Katra_enroute_to_Maa_Vaishno_Devi_temple.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
-- **Retrieved date (IST):** 2026-09-22
-- **Dimensions (file on disk):** 1280×430
-- **Bytes:** 120676
-
 ## 03_Vaishno_Devi_temple_in_katra.jpg
 - **Commons File:** File:Vaishno Devi temple in katra.jpg
 - **Author:** 02addicted

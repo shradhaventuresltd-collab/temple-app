@@ -3669,7 +3669,6 @@ const List<Temple> sampleTemples = [
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1f/Night_view_of_Srisailam_Temple_South_Gopuram.jpg/1280px-Night_view_of_Srisailam_Temple_South_Gopuram.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1f/Night_view_of_Srisailam_Temple_South_Gopuram.jpg/1280px-Night_view_of_Srisailam_Temple_South_Gopuram.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2d/APSS303_Srisailam_town_zoom_view_from_welcome_center2.jpg/1280px-APSS303_Srisailam_town_zoom_view_from_welcome_center2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1f/SRISAILAM_TEMPLE%2CAP_-_panoramio.jpg/1280px-SRISAILAM_TEMPLE%2CAP_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/82/2025_West_Gopuram_and_Bhramaramba_Devi_temple_view_in_Srisailam.jpg/1280px-2025_West_Gopuram_and_Bhramaramba_Devi_temple_view_in_Srisailam.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b0/Srisailam-temple-entrance.jpg/1280px-Srisailam-temple-entrance.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -6641,7 +6640,6 @@ const List<Temple> sampleTemples = [
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/71/Vaishno_devi_katra_jammu_n_kashmir.jpg/1280px-Vaishno_devi_katra_jammu_n_kashmir.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/71/Vaishno_devi_katra_jammu_n_kashmir.jpg/1280px-Vaishno_devi_katra_jammu_n_kashmir.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/82/View_of_Katra_enroute_to_Maa_Vaishno_Devi_temple.JPG/1280px-View_of_Katra_enroute_to_Maa_Vaishno_Devi_temple.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e4/Vaishno_Devi_temple_in_katra.jpg/1280px-Vaishno_Devi_temple_in_katra.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7e/Katra_Vaishno_Devi_temple_Seen1.jpg/1280px-Katra_Vaishno_Devi_temple_Seen1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f2/Vaishno_devi_katra.jpg/1280px-Vaishno_devi_katra.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -7712,7 +7710,6 @@ const List<Temple> sampleTemples = [
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c9/Jejuri_khandoba.JPG/1280px-Jejuri_khandoba.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c9/Jejuri_khandoba.JPG/1280px-Jejuri_khandoba.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/43/View_of_Jejuri_city_from_Khandoba_Temple.jpg/1280px-View_of_Jejuri_city_from_Khandoba_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/44/Khandoba%2C_Jejuri_-_panoramio.jpg/1280px-Khandoba%2C_Jejuri_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9c/JEJURI%2C_KHANDOBA_TEMPLE.jpg/1280px-JEJURI%2C_KHANDOBA_TEMPLE.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/97/Jejuri_khandoba_temple_Longshot.jpg/1280px-Jejuri_khandoba_temple_Longshot.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -8804,8 +8801,9 @@ const List<Temple> sampleTemples = [
     city: 'Tarakeswar',
     deity: 'Shiva (Taraknath)',
     imageUrl:
-        'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/Devotees_of_Lord_Shiva_at_the_Tarakeswar_Shiva_Temple_in_Hooghly%2C_West_Bengal%2C_India%2C_photographed_by_Yogabrata_Chakraborty%2C_on_August_14%2C_2023_1.jpg/1280px-Devotees_of_Lord_Shiva_at_the_Tarakeswar_Shiva_Temple_in_Hooghly%2C_West_Bengal%2C_India%2C_photographed_by_Yogabrata_Chakraborty%2C_on_August_14%2C_2023_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/50/Tarakeshwar_temple_entrance.jpg/1280px-Tarakeshwar_temple_entrance.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/50/Tarakeshwar_temple_entrance.jpg/1280px-Tarakeshwar_temple_entrance.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/Devotees_of_Lord_Shiva_at_the_Tarakeswar_Shiva_Temple_in_Hooghly%2C_West_Bengal%2C_India%2C_photographed_by_Yogabrata_Chakraborty%2C_on_August_14%2C_2023_1.jpg/1280px-Devotees_of_Lord_Shiva_at_the_Tarakeswar_Shiva_Temple_in_Hooghly%2C_West_Bengal%2C_India%2C_photographed_by_Yogabrata_Chakraborty%2C_on_August_14%2C_2023_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d5/Devotees_of_Lord_Shiva_at_the_Tarakeswar_Shiva_Temple_in_Hooghly%2C_West_Bengal%2C_India%2C_photographed_by_Yogabrata_Chakraborty%2C_on_August_14%2C_2023_2.jpg/1280px-Devotees_of_Lord_Shiva_at_the_Tarakeswar_Shiva_Temple_in_Hooghly%2C_West_Bengal%2C_India%2C_photographed_by_Yogabrata_Chakraborty%2C_on_August_14%2C_2023_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/49/Entrance_gate_of_the_Tarakeswar_Shiva_Temple_in_Hooghly%2C_West_Bengal%2C_India%2C_photographed_by_Yogabrata_Chakraborty%2C_on_August_14%2C_2023.jpg/1280px-Entrance_gate_of_the_Tarakeswar_Shiva_Temple_in_Hooghly%2C_West_Bengal%2C_India%2C_photographed_by_Yogabrata_Chakraborty%2C_on_August_14%2C_2023.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -10743,7 +10741,6 @@ const List<Temple> sampleTemples = [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/40/Panorama_Manikaran_Ram_temple_%2816746684003%29.jpg/1280px-Panorama_Manikaran_Ram_temple_%2816746684003%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6b/Manikaran_Temple.jpg/1280px-Manikaran_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/17/Gurdwara_Manikaran_Sahib.jpg/1280px-Gurdwara_Manikaran_Sahib.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/24/Inside_view_of_Gurdwara_Manikaran_Sahib.jpg/1280px-Inside_view_of_Gurdwara_Manikaran_Sahib.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     ],
     description:
         'Shiva–Parvati pilgrimage precinct in Manikaran’s Parvati Valley, '

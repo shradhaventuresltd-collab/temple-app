@@ -161,6 +161,10 @@ Pack folders keep the research names. Storage and Firestore ids are Seed
 
 Photo counts below 5 are packs that lost off-topic or unsuitable frames
 in review. Research still needs to add licensed temple photos there.
+The optional Wave C pass also drops the Srisailam town-zoom frame, the
+Jejuri city view, the Vaishno Devi Katra panorama, and the Manikaran
+gurdwara interior. Taraknath’s cover is the temple-front
+`File:Tarakeshwar temple entrance.jpg` (CC BY-SA 4.0, K.vishnupranay).
 
 | Pack folder | Seed `templeDocumentId` | Temple | State | Photos |
 | --- | --- | --- | --- | --- |
@@ -194,7 +198,7 @@ in review. Research still needs to add licensed temple photos there.
 | `hangseshwari-temple` | same | Hangseshwari Temple | West Bengal | 5 |
 | `harsiddhi-temple-ujjain` | `harsiddhi-temple` | Harsiddhi Temple | Madhya Pradesh | 5 |
 | `jagannath-temple-puri` | `jagannath-temple` | Jagannath Temple | Odisha | 5 |
-| `jejuri-khandoba-temple` | same | Jejuri Khandoba Temple | Maharashtra | 5 |
+| `jejuri-khandoba-temple` | same | Jejuri Khandoba Temple | Maharashtra | 4 |
 | `jogulamba-temple-alampur` | `jogulamba-temple` | Jogulamba Temple | Telangana | 5 |
 | `jwalamukhi-temple` | same | Jwalamukhi Temple | Himachal Pradesh | 5 |
 | `kalighat-kali-temple` | same | Kalighat Kali Temple | West Bengal | 5 |
@@ -212,7 +216,7 @@ in review. Research still needs to add licensed temple photos there.
 | `mahakaleshwar-temple` | same | Mahakaleshwar Temple | Madhya Pradesh | 4 |
 | `mahalakshmi-temple-mumbai` | `mahalakshmi-temple` | Mahalakshmi Temple | Maharashtra | 5 |
 | `mahavir-mandir-patna` | `mahavir-mandir` | Mahavir Mandir | Bihar | 5 |
-| `manikaran-shiva-temple` | same | Manikaran Shiva Temple | Himachal Pradesh | 5 |
+| `manikaran-shiva-temple` | same | Manikaran Shiva Temple | Himachal Pradesh | 4 |
 | `mehandipur-balaji-temple` | same | Mehandipur Balaji Temple | Rajasthan | 5 |
 | `modhera-sun-temple` | same | Modhera Sun Temple | Gujarat | 5 |
 | `morgaon-mayureshwar-temple` | same | Morgaon Mayureshwar Temple | Maharashtra | 4 |
@@ -242,14 +246,14 @@ in review. Research still needs to add licensed temple photos there.
 | `sita-ramachandra-swamy-bhadrachalam` | `sita-ramachandra-swamy-temple` | Sita Ramachandra Swamy Temple | Telangana | 5 |
 | `somnath-temple` | same | Somnath Temple | Gujarat | 4 |
 | `sri-lakshmi-narasimha-swamy-yadagirigutta` | `sri-lakshmi-narasimha-swamy-temple` | Sri Lakshmi Narasimha Swamy Temple | Telangana | 5 |
-| `sri-mallikarjuna-swamy-temple-srisailam` | `sri-mallikarjuna-swamy-temple` | Sri Mallikarjuna Swamy Temple | Andhra Pradesh | 5 |
+| `sri-mallikarjuna-swamy-temple-srisailam` | `sri-mallikarjuna-swamy-temple` | Sri Mallikarjuna Swamy Temple | Andhra Pradesh | 4 |
 | `sri-mayapur-chandrodaya-mandir` | `sri-mayapur-chandrodaya-mandir-iskcon-mayapur` | Sri Mayapur Chandrodaya Mandir (ISKCON Mayapur) | West Bengal | 5 |
-| `taraknath-temple-tarakeswar` | `taraknath-temple` | Taraknath Temple | West Bengal | 5 |
+| `taraknath-temple-tarakeswar` | `taraknath-temple` | Taraknath Temple | West Bengal | 6 |
 | `tarapith-temple` | same | Tarapith Temple | West Bengal | 5 |
 | `thousand-pillar-temple` | same | Thousand Pillar Temple | Telangana | 5 |
 | `tirumala-venkateswara-temple` | same | Tirumala Venkateswara Temple | Andhra Pradesh | 5 |
 | `trimbakeshwar-temple` | same | Trimbakeshwar Temple | Maharashtra | 4 |
-| `vaishno-devi-temple` | same | Vaishno Devi Temple | Jammu and Kashmir | 5 |
+| `vaishno-devi-temple` | same | Vaishno Devi Temple | Jammu and Kashmir | 4 |
 | `varaha-lakshmi-narasimha-temple-simhachalam` | `varaha-lakshmi-narasimha-temple` | Varaha Lakshmi Narasimha Temple | Andhra Pradesh | 5 |
 | `varasidhi-vinayaka-temple-kanipakam` | `varasidhi-vinayaka-temple` | Varasidhi Vinayaka Temple | Andhra Pradesh | 5 |
 | `veerabhadra-temple-lepakshi` | `veerabhadra-temple` | Veerabhadra Temple | Andhra Pradesh | 5 |

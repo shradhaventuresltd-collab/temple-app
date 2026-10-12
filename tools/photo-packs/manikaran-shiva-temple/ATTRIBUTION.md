@@ -50,14 +50,3 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Dimensions (file on disk):** 1280×853
 - **Bytes:** 489683
 
-## 05_Inside_view_of_Gurdwara_Manikaran_Sahib.jpg
-- **Commons File:** File:Inside view of Gurdwara Manikaran Sahib.jpg
-- **Author:** Gurpreet Singh
-- **License:** CC BY-SA 4.0
-- **License URL:** https://creativecommons.org/licenses/by-sa/4.0/
-- **Source page URL:** https://commons.wikimedia.org/wiki/File%3AInside_view_of_Gurdwara_Manikaran_Sahib.jpg
-- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/2/24/Inside_view_of_Gurdwara_Manikaran_Sahib.jpg/1280px-Inside_view_of_Gurdwara_Manikaran_Sahib.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
-- **Retrieved date (IST):** 2026-09-22
-- **Dimensions (file on disk):** 1280×853
-- **Bytes:** 431438
-
