@@ -30,13 +30,13 @@ Admin entry points (Seed, CMS, Upload) are compiled in for **debug** builds, and
 - **Image Upload** — Pick and upload multiple images per temple to Firebase Storage with progress tracking. The file picker is **web-oriented** (native `<input type="file">`); field CRUD still works in mobile debug and demo builds.
 - **Seed Data** — **Seed** control (Home + Admin) writes the 180 bundled sample temples. It is shown only for a signed-in admin. Re-running is idempotent (stable document IDs). Hidden when admin tools are off (release/profile without `ENABLE_ADMIN_TOOLS`).
 
-Demo APK (profile, arm64). A release demo APK uses the same define (`flutter build apk --release --dart-define=ENABLE_ADMIN_TOOLS=true`). Do not pass it to the Play bundle.
+Demo APK (profile, arm64). A release demo APK uses the same define (`flutter build apk --release --dart-define=ENABLE_ADMIN_TOOLS=true`; never upload to Play). Do not pass it to the Play bundle.
 
 ```bash
 flutter build apk --profile --target-platform=android-arm64 --dart-define=ENABLE_ADMIN_TOOLS=true
 ```
 
-Play Store bundles go through [`scripts/build_play_aab.sh`](scripts/build_play_aab.sh). That script runs `flutter build appbundle --release` and exits with an error if `ENABLE_ADMIN_TOOLS=true` is set in the environment or in the arguments (including `--dart-define=ENABLE_ADMIN_TOOLS=true`).
+Play Store bundles go through [`scripts/build_play_aab.sh`](scripts/build_play_aab.sh). That script runs `flutter build appbundle --release` and exits with an error if `ENABLE_ADMIN_TOOLS=true` is set in the environment or in the arguments (including `--dart-define=ENABLE_ADMIN_TOOLS=true`), or if `--dart-define-from-file` is passed (`--dart-define-from-file=file` or `--dart-define-from-file file`).
 
 `flutter test` runs without the define, so `kEnableAdminToolsDefine` is false. To confirm the define is read, run the same suite with it set. `test/build_flags_test.dart` asserts `kEnableAdminToolsDefine` matches `bool.fromEnvironment('ENABLE_ADMIN_TOOLS')`, so the test passes in both runs.
 
