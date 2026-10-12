@@ -55,5 +55,12 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- Get Directions calls canLaunchUrl on an https Google Maps link.
+             On Android 11+ (API 30+) that check returns false unless https
+             VIEW handlers are visible, so the button never launched. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
     </queries>
 </manifest>
