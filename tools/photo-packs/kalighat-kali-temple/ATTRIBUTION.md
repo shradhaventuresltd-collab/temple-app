@@ -6,16 +6,16 @@ User-Agent: TempleAppResearch/1.0 (KAN-76 sweep)
 License verification: Commons extmetadata / file page.
 Do NOT set live imageUrl — eng upload only (KAN-77).
 
-## 01_Dakshineswar_kali_mandir_or_Kalighat_temple_Kolkata.jpg
-- **Commons File:** File:Dakshineswar kali mandir or Kalighat temple @Kolkata.jpg
-- **Author:** Sivakeshreddy
-- **License:** CC BY-SA 4.0
-- **License URL:** https://creativecommons.org/licenses/by-sa/4.0/
-- **Source page URL:** https://commons.wikimedia.org/wiki/File%3ADakshineswar_kali_mandir_or_Kalighat_temple_%40Kolkata.jpg
-- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/7/75/Dakshineswar_kali_mandir_or_Kalighat_temple_%40Kolkata.jpg/1280px-Dakshineswar_kali_mandir_or_Kalighat_temple_%40Kolkata.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
-- **Retrieved date (IST):** 2026-09-22
-- **Dimensions (file on disk):** 1280×853
-- **Bytes:** 310093
+## 01_Kalighat_Kali_Temple.jpg
+- **Commons File:** File:Kalighat Kali Temple.jpg
+- **Author:** Bernard Gagnon
+- **License:** CC BY-SA 3.0
+- **License URL:** https://creativecommons.org/licenses/by-sa/3.0/
+- **Source page URL:** https://commons.wikimedia.org/wiki/File%3AKalighat_Kali_Temple.jpg
+- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a4/Kalighat_Kali_Temple.jpg/1280px-Kalighat_Kali_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
+- **Retrieved date (IST):** 2026-10-12
+- **Dimensions (file on disk):** 1280×1812
+- **Bytes:** 407103
 
 ## 02_Kalighat_Kali_Temple_kolkata.jpg
 - **Commons File:** File:Kalighat Kali Temple @kolkata.jpg
@@ -60,4 +60,3 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Retrieved date (IST):** 2026-09-22
 - **Dimensions (file on disk):** 1280×1920
 - **Bytes:** 619878
-

@@ -17,18 +17,7 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Dimensions (file on disk):** 1280×960
 - **Bytes:** 386290
 
-## 02_Monkeys_near_Banke_Bihari_Temple_Vrindavan_Mathura_Agra_Uttar_Pradesh.jpg
-- **Commons File:** File:Monkeys near Banke Bihari Temple, Vrindavan, Mathura, Agra, Uttar Pradesh, India (2010).jpg
-- **Author:** Guptaele
-- **License:** CC BY-SA 4.0
-- **License URL:** https://creativecommons.org/licenses/by-sa/4.0/
-- **Source page URL:** https://commons.wikimedia.org/wiki/File%3AMonkeys_near_Banke_Bihari_Temple%2C_Vrindavan%2C_Mathura%2C_Agra%2C_Uttar_Pradesh%2C_India_%282010%29.jpg
-- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3e/Monkeys_near_Banke_Bihari_Temple%2C_Vrindavan%2C_Mathura%2C_Agra%2C_Uttar_Pradesh%2C_India_%282010%29.jpg/1280px-Monkeys_near_Banke_Bihari_Temple%2C_Vrindavan%2C_Mathura%2C_Agra%2C_Uttar_Pradesh%2C_India_%282010%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
-- **Retrieved date (IST):** 2026-09-22
-- **Dimensions (file on disk):** 1280×1707
-- **Bytes:** 424453
-
-## 03_Banke_Bihari_Mandir_Vrindavan_-_Phool_Bangla_Darshan.jpg
+## 02_Banke_Bihari_Mandir_Vrindavan_-_Phool_Bangla_Darshan.jpg
 - **Commons File:** File:Banke Bihari Mandir Vrindavan - Phool Bangla Darshan.jpg
 - **Author:** Aliva Sahoo
 - **License:** CC BY-SA 3.0
@@ -39,7 +28,7 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Dimensions (file on disk):** 1280×1491
 - **Bytes:** 821869
 
-## 04_Phool_Bangla_floral_chandelier_at_Banke_Bihari_Temple_Vrindavan.jpg
+## 03_Phool_Bangla_floral_chandelier_at_Banke_Bihari_Temple_Vrindavan.jpg
 - **Commons File:** File:Phool Bangla floral chandelier at Banke Bihari Temple, Vrindavan.jpg
 - **Author:** Aliva Sahoo
 - **License:** CC BY-SA 3.0
@@ -50,7 +39,7 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Dimensions (file on disk):** 1280×1072
 - **Bytes:** 588510
 
-## 05_Bankebihari_temple_main_gate_Vrindavan.jpg
+## 04_Bankebihari_temple_main_gate_Vrindavan.jpg
 - **Commons File:** File:Bankebihari temple main gate Vrindavan.JPG
 - **Author:** आशीष भटनागर
 - **License:** CC BY-SA 3.0
@@ -60,4 +49,3 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Retrieved date (IST):** 2026-09-22
 - **Dimensions (file on disk):** 1280×1707
 - **Bytes:** 688174
-

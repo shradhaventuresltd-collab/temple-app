@@ -26,20 +26,9 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/Trimbakeshwar_Temple-Nashik-Maharashtra-2.jpg/1280px-Trimbakeshwar_Temple-Nashik-Maharashtra-2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
 - **Retrieved date (IST):** 2026-09-22
 - **Dimensions (file on disk):** 1280×1920
-- **Bytes:** 945421
+- **Bytes:** 942125
 
-## 03_Trimbakeshwar_Bus_Station_Trimbak_Maharashtra.jpg
-- **Commons File:** File:Trimbakeshwar Bus Station, Trimbak, Maharashtra.jpg
-- **Author:** K.Venkataramana
-- **License:** CC0 1.0
-- **License URL:** https://creativecommons.org/publicdomain/zero/1.0/
-- **Source page URL:** https://commons.wikimedia.org/wiki/File%3ATrimbakeshwar_Bus_Station%2C_Trimbak%2C_Maharashtra.jpg
-- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Trimbakeshwar_Bus_Station%2C_Trimbak%2C_Maharashtra.jpg/1280px-Trimbakeshwar_Bus_Station%2C_Trimbak%2C_Maharashtra.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
-- **Retrieved date (IST):** 2026-09-22
-- **Dimensions (file on disk):** 1280×1707
-- **Bytes:** 813193
-
-## 04_Close-up_of_the_shikhara_of_Trimbakeshwar_Shiva_Temple_Trimbak_Maharas.jpg
+## 03_Close-up_of_the_shikhara_of_Trimbakeshwar_Shiva_Temple_Trimbak_Maharas.jpg
 - **Commons File:** File:Close-up of the shikhara of Trimbakeshwar Shiva Temple, Trimbak, Maharashtra, India.jpg
 - **Author:** Mr. Debapriya Hore
 - **License:** CC BY-SA 4.0
@@ -50,7 +39,7 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Dimensions (file on disk):** 1280×1707
 - **Bytes:** 407915
 
-## 05_Trimbakeshwar_Shiva_Temple.jpg
+## 04_Trimbakeshwar_Shiva_Temple.jpg
 - **Commons File:** File:Trimbakeshwar Shiva Temple.jpg
 - **Author:** Aniket.ganguly
 - **License:** CC BY-SA 3.0
@@ -60,4 +49,3 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Retrieved date (IST):** 2026-09-22
 - **Dimensions (file on disk):** 1280×1930
 - **Bytes:** 573597
-

@@ -15,7 +15,7 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e5/Srila_Prabhupada_Pushpa_Samadhi_Mandir_with_Chandrodaya_temple_in_the_background_at_ISKCON%2C_Mayapur_01.jpg/1280px-Srila_Prabhupada_Pushpa_Samadhi_Mandir_with_Chandrodaya_temple_in_the_background_at_ISKCON%2C_Mayapur_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
 - **Retrieved date (IST):** 2026-09-22
 - **Dimensions (file on disk):** 1280×657
-- **Bytes:** 218242
+- **Bytes:** 218190
 
 ## 02_Chandrodaya_Mandir_Under_Construction_-_Temple_Of_Vedic_Planetarium_-.jpg
 - **Commons File:** File:Chandrodaya Mandir Under Construction - Temple Of Vedic Planetarium - ISKCON Campus - Mayapur - Nadia 2017-08-15 1840.JPG

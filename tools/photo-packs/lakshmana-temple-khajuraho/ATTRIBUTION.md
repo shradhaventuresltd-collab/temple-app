@@ -17,29 +17,7 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Dimensions (file on disk):** 1280×853
 - **Bytes:** 357128
 
-## 02_20120303_erotic_zoophilia_Lakshmana_Temple_Khajuraho_India.jpg
-- **Commons File:** File:20120303 erotic zoophilia Lakshmana Temple Khajuraho India.jpg
-- **Author:** User:Ggia
-- **License:** CC BY-SA 3.0
-- **License URL:** https://creativecommons.org/licenses/by-sa/3.0/
-- **Source page URL:** https://commons.wikimedia.org/wiki/File%3A20120303_erotic_zoophilia_Lakshmana_Temple_Khajuraho_India.jpg
-- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f0/20120303_erotic_zoophilia_Lakshmana_Temple_Khajuraho_India.jpg/1280px-20120303_erotic_zoophilia_Lakshmana_Temple_Khajuraho_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
-- **Retrieved date (IST):** 2026-09-22
-- **Dimensions (file on disk):** 1280×829
-- **Bytes:** 304956
-
-## 03_20120303_zoophilia_Lakshmana_Temple_Khajuraho_India_panoramic_version.jpg
-- **Commons File:** File:20120303 zoophilia Lakshmana Temple Khajuraho India (panoramic version).jpg
-- **Author:** User:Ggia
-- **License:** CC BY-SA 3.0
-- **License URL:** https://creativecommons.org/licenses/by-sa/3.0/
-- **Source page URL:** https://commons.wikimedia.org/wiki/File%3A20120303_zoophilia_Lakshmana_Temple_Khajuraho_India_%28panoramic_version%29.jpg
-- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cb/20120303_zoophilia_Lakshmana_Temple_Khajuraho_India_%28panoramic_version%29.jpg/1280px-20120303_zoophilia_Lakshmana_Temple_Khajuraho_India_%28panoramic_version%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
-- **Retrieved date (IST):** 2026-09-22
-- **Dimensions (file on disk):** 1280×694
-- **Bytes:** 310507
-
-## 04_Khajuraho_-_Lakshmana_temple.jpg
+## 02_Khajuraho_-_Lakshmana_temple.jpg
 - **Commons File:** File:Khajuraho - Lakshmana temple.jpg
 - **Author:** Radosław Botev
 - **License:** CC BY 3.0
@@ -50,7 +28,7 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Dimensions (file on disk):** 1280×960
 - **Bytes:** 266684
 
-## 05_Lakshmana_Temple_Khajuraho.jpg
+## 03_Lakshmana_Temple_Khajuraho.jpg
 - **Commons File:** File:Lakshmana Temple Khajuraho.JPG
 - **Author:** Arbhishek
 - **License:** CC BY-SA 3.0
@@ -60,4 +38,3 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Retrieved date (IST):** 2026-09-22
 - **Dimensions (file on disk):** 1280×841
 - **Bytes:** 338960
-

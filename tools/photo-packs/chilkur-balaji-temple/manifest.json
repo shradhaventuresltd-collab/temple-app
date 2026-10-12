@@ -7,33 +7,7 @@
   "tradition_note": "Vishnu",
   "photos": [
     {
-      "filename": "01_Bats_on_a_tree_at_Chilkur_Balaji_Temple.jpg",
-      "commons_title": "File:Bats on a tree at Chilkur Balaji Temple.jpg",
-      "author": "Chetan Datta Poduri",
-      "license": "CC BY-SA 4.0",
-      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
-      "source_url": "https://commons.wikimedia.org/wiki/File%3ABats_on_a_tree_at_Chilkur_Balaji_Temple.jpg",
-      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/Bats_on_a_tree_at_Chilkur_Balaji_Temple.jpg/1280px-Bats_on_a_tree_at_Chilkur_Balaji_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "bytes": 539192,
-      "width": 1280,
-      "height": 1707,
-      "notes": "Photo taken using my mobile (Nokia-C2-01) camera."
-    },
-    {
-      "filename": "02_Kotta_Chilkur_Anjaneya_Swamy_Temple.jpg",
-      "commons_title": "File:Kotta Chilkur Anjaneya Swamy Temple.JPG",
-      "author": "Sunjay.kodaru",
-      "license": "CC BY-SA 3.0",
-      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
-      "source_url": "https://commons.wikimedia.org/wiki/File%3AKotta_Chilkur_Anjaneya_Swamy_Temple.JPG",
-      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/Kotta_Chilkur_Anjaneya_Swamy_Temple.JPG/1280px-Kotta_Chilkur_Anjaneya_Swamy_Temple.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "bytes": 256749,
-      "width": 1280,
-      "height": 960,
-      "notes": "Kotta Chilkur Anjaneya Swamy Temple situated in the village entrance."
-    },
-    {
-      "filename": "03_Balaji_temple_chilkoor.jpg",
+      "filename": "01_Balaji_temple_chilkoor.jpg",
       "commons_title": "File:Balaji temple, chilkoor.jpg",
       "author": "Prabhavathi anaka",
       "license": "CC BY-SA 4.0",
@@ -46,7 +20,7 @@
       "notes": "entrance gate of temple"
     },
     {
-      "filename": "04_Chilukuru_temple.jpg",
+      "filename": "02_Chilukuru_temple.jpg",
       "commons_title": "File:Chilukuru temple.jpg",
       "author": "Srilakshmi1991",
       "license": "CC BY-SA 3.0",
@@ -59,17 +33,17 @@
       "notes": "Gopuram of Balaji temple in chilukuru, rangareddy district, Telangana, India."
     },
     {
-      "filename": "05_Goshala.jpg",
-      "commons_title": "File:Goshala.jpg",
-      "author": "Nskjnv",
-      "license": "CC BY-SA 4.0",
-      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
-      "source_url": "https://commons.wikimedia.org/wiki/File%3AGoshala.jpg",
-      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/84/Goshala.jpg/1280px-Goshala.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "bytes": 643825,
+      "filename": "03_Kotta_Chilkur_Anjaneya_Swamy_Temple.jpg",
+      "commons_title": "File:Kotta Chilkur Anjaneya Swamy Temple.JPG",
+      "author": "Sunjay.kodaru",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AKotta_Chilkur_Anjaneya_Swamy_Temple.JPG",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/Kotta_Chilkur_Anjaneya_Swamy_Temple.JPG/1280px-Kotta_Chilkur_Anjaneya_Swamy_Temple.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 256749,
       "width": 1280,
       "height": 960,
-      "notes": "Goshala at chilkur balaji temple"
+      "notes": "Kotta Chilkur Anjaneya Swamy Temple situated in the village entrance."
     }
   ]
 }

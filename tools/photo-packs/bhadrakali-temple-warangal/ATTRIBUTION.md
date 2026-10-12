@@ -6,58 +6,57 @@ User-Agent: TempleAppResearch/1.0 (KAN-76 sweep)
 License verification: Commons extmetadata / file page.
 Do NOT set live imageUrl — eng upload only (KAN-77).
 
-## 01_Warangal_Bhadrakali_Temple_beside_Bhadrakali_lake_Warangal_Telangana_I.jpg
-- **Commons File:** File:Warangal Bhadrakali Temple beside Bhadrakali lake, Warangal, Telangana, India (2017).jpg
-- **Author:** Harsha8398
-- **License:** CC BY-SA 4.0
-- **License URL:** https://creativecommons.org/licenses/by-sa/4.0/
-- **Source page URL:** https://commons.wikimedia.org/wiki/File%3AWarangal_Bhadrakali_Temple_beside_Bhadrakali_lake%2C_Warangal%2C_Telangana%2C_India_%282017%29.jpg
-- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/0/00/Warangal_Bhadrakali_Temple_beside_Bhadrakali_lake%2C_Warangal%2C_Telangana%2C_India_%282017%29.jpg/1280px-Warangal_Bhadrakali_Temple_beside_Bhadrakali_lake%2C_Warangal%2C_Telangana%2C_India_%282017%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
-- **Retrieved date (IST):** 2026-09-22
+## 01_Bhadrakali_Temple_at_Warangal_01.jpg
+- **Commons File:** File:Bhadrakali Temple at Warangal 01.JPG
+- **Author:** Adityamadhav83
+- **License:** CC BY-SA 3.0
+- **License URL:** https://creativecommons.org/licenses/by-sa/3.0/
+- **Source page URL:** https://commons.wikimedia.org/wiki/File%3ABhadrakali_Temple_at_Warangal_01.JPG
+- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b1/Bhadrakali_Temple_at_Warangal_01.JPG/1280px-Bhadrakali_Temple_at_Warangal_01.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
+- **Retrieved date (IST):** 2026-10-12
 - **Dimensions (file on disk):** 1280×960
-- **Bytes:** 181073
+- **Bytes:** 145257
 
-## 02_Warangal_Bhadrakali_Temple_beside_Bhadrakali_lake_Warangal_Telangana_I.jpg
-- **Commons File:** File:Warangal Bhadrakali Temple beside Bhadrakali lake, Warangal, Telangana, India (2017) 1.jpg
-- **Author:** Harsha8398
+## 02_Bhadrakali_Temple_in_Warangal.jpg
+- **Commons File:** File:Bhadrakali Temple in Warangal.jpg
+- **Author:** Dursety
 - **License:** CC BY-SA 4.0
 - **License URL:** https://creativecommons.org/licenses/by-sa/4.0/
-- **Source page URL:** https://commons.wikimedia.org/wiki/File%3AWarangal_Bhadrakali_Temple_beside_Bhadrakali_lake%2C_Warangal%2C_Telangana%2C_India_%282017%29_1.jpg
-- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d3/Warangal_Bhadrakali_Temple_beside_Bhadrakali_lake%2C_Warangal%2C_Telangana%2C_India_%282017%29_1.jpg/1280px-Warangal_Bhadrakali_Temple_beside_Bhadrakali_lake%2C_Warangal%2C_Telangana%2C_India_%282017%29_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
-- **Retrieved date (IST):** 2026-09-22
+- **Source page URL:** https://commons.wikimedia.org/wiki/File%3ABhadrakali_Temple_in_Warangal.jpg
+- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bc/Bhadrakali_Temple_in_Warangal.jpg/1280px-Bhadrakali_Temple_in_Warangal.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
+- **Retrieved date (IST):** 2026-10-12
+- **Dimensions (file on disk):** 1280×720
+- **Bytes:** 238372
+
+## 03_Entrance_Arch_Bhadrakali_temple_sunset.jpg
+- **Commons File:** File:Entrance Arch of the Bhadrakali temple during sunset.JPG
+- **Author:** Adityamadhav83
+- **License:** CC BY-SA 4.0
+- **License URL:** https://creativecommons.org/licenses/by-sa/4.0/
+- **Source page URL:** https://commons.wikimedia.org/wiki/File%3AEntrance_Arch_of_the_Bhadrakali_temple_during_sunset.JPG
+- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/2/20/Entrance_Arch_of_the_Bhadrakali_temple_during_sunset.JPG/1280px-Entrance_Arch_of_the_Bhadrakali_temple_during_sunset.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
+- **Retrieved date (IST):** 2026-10-12
 - **Dimensions (file on disk):** 1280×960
-- **Bytes:** 276815
+- **Bytes:** 213110
 
-## 03_1_Bhadrakali_Cheruvu_Warangal.jpg
-- **Commons File:** File:1 Bhadrakali Cheruvu, Warangal.jpg
-- **Author:** Santhu9299
+## 04_Bhadrakali_Temple_Warangal.jpg
+- **Commons File:** File:Bhadrakali Temple, Warangal.jpg
+- **Author:** Warangalite
 - **License:** CC BY-SA 4.0
 - **License URL:** https://creativecommons.org/licenses/by-sa/4.0/
-- **Source page URL:** https://commons.wikimedia.org/wiki/File%3A1_Bhadrakali_Cheruvu%2C_Warangal.jpg
-- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9b/1_Bhadrakali_Cheruvu%2C_Warangal.jpg/1280px-1_Bhadrakali_Cheruvu%2C_Warangal.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
-- **Retrieved date (IST):** 2026-09-22
-- **Dimensions (file on disk):** 1280×576
-- **Bytes:** 312627
+- **Source page URL:** https://commons.wikimedia.org/wiki/File%3ABhadrakali_Temple%2C_Warangal.jpg
+- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/4/44/Bhadrakali_Temple%2C_Warangal.jpg/1280px-Bhadrakali_Temple%2C_Warangal.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
+- **Retrieved date (IST):** 2026-10-12
+- **Dimensions (file on disk):** 1280×720
+- **Bytes:** 259835
 
-## 04_1_Bhadrakali_Cheruvu_Warangal_2.jpg
-- **Commons File:** File:1 Bhadrakali Cheruvu, Warangal 2.jpg
-- **Author:** Santhu9299
+## 05_SRI_BHADRAKALI_TEMPLE_WARANGAL.jpg
+- **Commons File:** File:SRI BHADRAKALI TEMPLE WARANGAL.jpg
+- **Author:** KINNERA ARAVIND
 - **License:** CC BY-SA 4.0
 - **License URL:** https://creativecommons.org/licenses/by-sa/4.0/
-- **Source page URL:** https://commons.wikimedia.org/wiki/File%3A1_Bhadrakali_Cheruvu%2C_Warangal_2.jpg
-- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7c/1_Bhadrakali_Cheruvu%2C_Warangal_2.jpg/1280px-1_Bhadrakali_Cheruvu%2C_Warangal_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
-- **Retrieved date (IST):** 2026-09-22
+- **Source page URL:** https://commons.wikimedia.org/wiki/File%3ASRI_BHADRAKALI_TEMPLE_WARANGAL.jpg
+- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/SRI_BHADRAKALI_TEMPLE_WARANGAL.jpg/1280px-SRI_BHADRAKALI_TEMPLE_WARANGAL.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
+- **Retrieved date (IST):** 2026-10-12
 - **Dimensions (file on disk):** 1280×576
-- **Bytes:** 301268
-
-## 05_3_Bhadrakali_Cheruvu_Warangal.jpg
-- **Commons File:** File:3 Bhadrakali Cheruvu, Warangal.jpg
-- **Author:** Santhu9299
-- **License:** CC BY-SA 4.0
-- **License URL:** https://creativecommons.org/licenses/by-sa/4.0/
-- **Source page URL:** https://commons.wikimedia.org/wiki/File%3A3_Bhadrakali_Cheruvu%2C_Warangal.jpg
-- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3f/3_Bhadrakali_Cheruvu%2C_Warangal.jpg/1280px-3_Bhadrakali_Cheruvu%2C_Warangal.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
-- **Retrieved date (IST):** 2026-09-22
-- **Dimensions (file on disk):** 1280×576
-- **Bytes:** 327664
-
+- **Bytes:** 286603

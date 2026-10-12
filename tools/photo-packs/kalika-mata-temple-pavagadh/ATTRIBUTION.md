@@ -17,18 +17,7 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Dimensions (file on disk):** 1280×853
 - **Bytes:** 404355
 
-## 02_Pavagadh_donkeys_9840099266.jpg
-- **Commons File:** File:Pavagadh, donkeys (9840099266).jpg
-- **Author:** Arian Zwegers from Brussels, Belgium
-- **License:** CC BY 2.0
-- **License URL:** https://creativecommons.org/licenses/by/2.0/
-- **Source page URL:** https://commons.wikimedia.org/wiki/File%3APavagadh%2C_donkeys_%289840099266%29.jpg
-- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/7/70/Pavagadh%2C_donkeys_%289840099266%29.jpg/1280px-Pavagadh%2C_donkeys_%289840099266%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
-- **Retrieved date (IST):** 2026-09-22
-- **Dimensions (file on disk):** 1280×853
-- **Bytes:** 345482
-
-## 03_Pavagadh_002.jpg
+## 02_Pavagadh_002.jpg
 - **Commons File:** File:Pavagadh 002.jpg
 - **Author:** Anupamg
 - **License:** CC BY-SA 3.0
@@ -39,7 +28,7 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Dimensions (file on disk):** 1280×960
 - **Bytes:** 256227
 
-## 04_Kalika_Mata_Temple_Pavagarh.jpg
+## 03_Kalika_Mata_Temple_Pavagarh.jpg
 - **Commons File:** File:Kalika Mata Temple, Pavagarh.jpg
 - **Author:** Kridha20
 - **License:** CC BY-SA 4.0
@@ -50,7 +39,7 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Dimensions (file on disk):** 1280×2275
 - **Bytes:** 770847
 
-## 05_Jalli_at_Kalika_Temple.jpg
+## 04_Jalli_at_Kalika_Temple.jpg
 - **Commons File:** File:Jalli at Kalika Temple.jpg
 - **Author:** Satish Madhiwalla
 - **License:** CC0 1.0
@@ -60,4 +49,3 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Retrieved date (IST):** 2026-09-22
 - **Dimensions (file on disk):** 1280×2276
 - **Bytes:** 910885
-

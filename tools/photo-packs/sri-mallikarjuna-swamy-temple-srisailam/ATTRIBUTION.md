@@ -6,16 +6,16 @@ User-Agent: TempleAppResearch/1.0 (KAN-76 sweep)
 License verification: Commons extmetadata / file page.
 Do NOT set live imageUrl — eng upload only (KAN-77).
 
-## 01_KASS301_Srisailam_Temple_Pond_3D.jpg
-- **Commons File:** File:KASS301 Srisailam Temple Pond 3D.jpg
-- **Author:** VasuVR
-- **License:** CC BY-SA 4.0
-- **License URL:** https://creativecommons.org/licenses/by-sa/4.0/
-- **Source page URL:** https://commons.wikimedia.org/wiki/File%3AKASS301_Srisailam_Temple_Pond_3D.jpg
-- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/a/af/KASS301_Srisailam_Temple_Pond_3D.jpg/1280px-KASS301_Srisailam_Temple_Pond_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
-- **Retrieved date (IST):** 2026-09-22
-- **Dimensions (file on disk):** 1280×569
-- **Bytes:** 272464
+## 01_Night_view_of_Srisailam_Temple_South_Gopuram.jpg
+- **Commons File:** File:Night view of Srisailam Temple South Gopuram.jpg
+- **Author:** Adityamadhav83
+- **License:** CC BY 4.0
+- **License URL:** https://creativecommons.org/licenses/by/4.0/
+- **Source page URL:** https://commons.wikimedia.org/wiki/File%3ANight_view_of_Srisailam_Temple_South_Gopuram.jpg
+- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1f/Night_view_of_Srisailam_Temple_South_Gopuram.jpg/1280px-Night_view_of_Srisailam_Temple_South_Gopuram.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
+- **Retrieved date (IST):** 2026-10-12
+- **Dimensions (file on disk):** 1280×954
+- **Bytes:** 170426
 
 ## 02_APSS303_Srisailam_town_zoom_view_from_welcome_center2.jpg
 - **Commons File:** File:APSS303 Srisailam town zoom view from welcome center2.jpg
@@ -60,4 +60,3 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Retrieved date (IST):** 2026-09-22
 - **Dimensions (file on disk):** 1280×960
 - **Bytes:** 244475
-

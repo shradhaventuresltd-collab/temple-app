@@ -48,7 +48,7 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e5/Ramappa_Temple.png/1280px-Ramappa_Temple.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
 - **Retrieved date (IST):** 2026-09-22
 - **Dimensions (file on disk):** 1280×853
-- **Bytes:** 1424588
+- **Bytes:** 1446072
 
 ## 05_WHS_Ramappa_Temple_1.jpg
 - **Commons File:** File:WHS Ramappa Temple 1.jpg

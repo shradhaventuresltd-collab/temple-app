@@ -1,32 +1,32 @@
 [
   {
-    "url": "https://commons.wikimedia.org/wiki/File%3AEklingji_%282002%29_01.jpg",
-    "license": "CC BY-SA 4.0",
-    "attribution": "LBM1948",
-    "notes": "local_file=01_Eklingji_2002_01.jpg"
-  },
-  {
-    "url": "https://commons.wikimedia.org/wiki/File%3AIndia-Eklingji.jpg",
-    "license": "CC BY-SA 2.0",
-    "attribution": "Dennis G. Jarvis",
-    "notes": "local_file=02_EklingJi_Temple.jpg"
-  },
-  {
-    "url": "https://commons.wikimedia.org/wiki/File%3AIndia-Eklingji.jpg",
-    "license": "CC BY-SA 2.0",
-    "attribution": "Dennis G. Jarvis",
-    "notes": "local_file=03_India-Eklingji.jpg"
-  },
-  {
-    "url": "https://commons.wikimedia.org/wiki/File%3AEklingji_%282002%29_01.jpg",
-    "license": "CC BY-SA 4.0",
-    "attribution": "LBM1948",
-    "notes": "local_file=04_Meera_temple_Eklingji.jpg"
-  },
-  {
     "url": "https://commons.wikimedia.org/wiki/File%3AEklingJi_Temple.jpg",
     "license": "CC BY-SA 4.0",
     "attribution": "Karora23",
-    "notes": "local_file=05_EklingJi_Temple.jpg"
+    "notes": "local_file=01_EklingJi_Temple.jpg"
+  },
+  {
+    "url": "https://commons.wikimedia.org/wiki/File%3AIndia-Eklingji.jpg",
+    "license": "CC BY-SA 2.0",
+    "attribution": "Dennis G. Jarvis",
+    "notes": "local_file=02_India-Eklingji.jpg"
+  },
+  {
+    "url": "https://commons.wikimedia.org/wiki/File%3AIndia-7398_-_Flickr_-_archer10_%28Dennis%29.jpg",
+    "license": "CC BY-SA 2.0",
+    "attribution": "Dennis G. Jarvis",
+    "notes": "local_file=03_India-7398_Flickr_archer10_Dennis.jpg"
+  },
+  {
+    "url": "https://commons.wikimedia.org/wiki/File%3AIndia-7407_-_Flickr_-_archer10_%28Dennis%29.jpg",
+    "license": "CC BY-SA 2.0",
+    "attribution": "Dennis G. Jarvis",
+    "notes": "local_file=04_India-7407_Flickr_archer10_Dennis.jpg"
+  },
+  {
+    "url": "https://commons.wikimedia.org/wiki/File%3AIndia-7410_-_Flickr_-_archer10_%28Dennis%29.jpg",
+    "license": "CC BY-SA 2.0",
+    "attribution": "Dennis G. Jarvis",
+    "notes": "local_file=05_India-7410_Flickr_archer10_Dennis.jpg"
   }
 ]

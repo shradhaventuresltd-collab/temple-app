@@ -17,18 +17,7 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Dimensions (file on disk):** 720×1599
 - **Bytes:** 157331
 
-## 02_Entrance_signboard_of_Shri_Mayureshwar_Mandir_Morgaon.jpg
-- **Commons File:** File:Entrance signboard of Shri Mayureshwar Mandir, Morgaon.jpg
-- **Author:** FailedEngineer2027
-- **License:** CC BY-SA 4.0
-- **License URL:** https://creativecommons.org/licenses/by-sa/4.0/
-- **Source page URL:** https://commons.wikimedia.org/wiki/File%3AEntrance_signboard_of_Shri_Mayureshwar_Mandir%2C_Morgaon.jpg
-- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/Entrance_signboard_of_Shri_Mayureshwar_Mandir%2C_Morgaon.jpg/1280px-Entrance_signboard_of_Shri_Mayureshwar_Mandir%2C_Morgaon.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
-- **Retrieved date (IST):** 2026-09-22
-- **Dimensions (file on disk):** 1280×576
-- **Bytes:** 144479
-
-## 03_Morgaon_temple.jpg
+## 02_Morgaon_temple.jpg
 - **Commons File:** File:Morgaon temple.jpg
 - **Author:** Redtigerxyz
 - **License:** CC BY-SA 3.0
@@ -39,7 +28,7 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Dimensions (file on disk):** 1280×1707
 - **Bytes:** 416702
 
-## 04_Morgaon.jpg
+## 03_Morgaon.jpg
 - **Commons File:** File:Morgaon.jpg
 - **Author:** Redtigerxyz
 - **License:** CC BY-SA 3.0
@@ -50,7 +39,7 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Dimensions (file on disk):** 1280×1707
 - **Bytes:** 545329
 
-## 05_Morgaon_temple_gate.jpg
+## 04_Morgaon_temple_gate.jpg
 - **Commons File:** File:Morgaon temple gate.jpg
 - **Author:** Redtigerxyz
 - **License:** CC BY-SA 3.0
@@ -60,4 +49,3 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Retrieved date (IST):** 2026-09-22
 - **Dimensions (file on disk):** 600×800
 - **Bytes:** 110783
-

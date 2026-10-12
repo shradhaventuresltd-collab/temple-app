@@ -159,6 +159,9 @@ stays in the gallery. Thiruvalla’s cover is the gopuram already in
 Pack folders keep the research names. Storage and Firestore ids are Seed
 `templeDocumentId(name)` (mapped in `scripts/upload_research_pack.js`).
 
+Photo counts below 5 are packs that lost off-topic or unsuitable frames
+in review. Research still needs to add licensed temple photos there.
+
 | Pack folder | Seed `templeDocumentId` | Temple | State | Photos |
 | --- | --- | --- | --- | --- |
 | `ahobilam-narasimha-temples` | same | Ahobilam Narasimha Temples | Andhra Pradesh | 5 |
@@ -166,7 +169,7 @@ Pack folders keep the research names. Storage and Firestore ids are Seed
 | `ananta-vasudeva-temple` | same | Ananta Vasudeva Temple | Odisha | 5 |
 | `bahucharaji-temple` | same | Bahucharaji Temple | Gujarat | 5 |
 | `baijnath-temple-himachal` | `baijnath-temple` | Baijnath Temple | Himachal Pradesh | 5 |
-| `banke-bihari-temple` | same | Banke Bihari Temple | Uttar Pradesh | 5 |
+| `banke-bihari-temple` | same | Banke Bihari Temple | Uttar Pradesh | 4 |
 | `belur-math` | same | Belur Math | West Bengal | 5 |
 | `bhadrakali-temple-warangal` | `bhadrakali-temple` | Bhadrakali Temple | Telangana | 5 |
 | `bhimakali-temple-sarahan` | `bhimakali-temple` | Bhimakali Temple | Himachal Pradesh | 5 |
@@ -175,7 +178,7 @@ Pack folders keep the research names. Storage and Firestore ids are Seed
 | `birla-mandir-jaipur` | `birla-mandir-lakshmi-narayan-temple` | Birla Mandir (Lakshmi Narayan Temple) | Rajasthan | 5 |
 | `birla-mandir-kolkata` | `birla-mandir` | Birla Mandir | West Bengal | 5 |
 | `brahma-temple-pushkar` | `brahma-temple` | Brahma Temple | Rajasthan | 5 |
-| `chilkur-balaji-temple` | same | Chilkur Balaji Temple | Telangana | 5 |
+| `chilkur-balaji-temple` | same | Chilkur Balaji Temple | Telangana | 3 |
 | `chintpurni-temple` | same | Chintpurni Temple | Himachal Pradesh | 5 |
 | `chotila-chamunda-mata-temple` | same | Chotila Chamunda Mata Temple | Gujarat | 5 |
 | `cuttack-chandi-temple` | same | Cuttack Chandi Temple | Odisha | 5 |
@@ -195,7 +198,7 @@ Pack folders keep the research names. Storage and Firestore ids are Seed
 | `jogulamba-temple-alampur` | `jogulamba-temple` | Jogulamba Temple | Telangana | 5 |
 | `jwalamukhi-temple` | same | Jwalamukhi Temple | Himachal Pradesh | 5 |
 | `kalighat-kali-temple` | same | Kalighat Kali Temple | West Bengal | 5 |
-| `kalika-mata-temple-pavagadh` | `kalika-mata-temple` | Kalika Mata Temple | Gujarat | 5 |
+| `kalika-mata-temple-pavagadh` | `kalika-mata-temple` | Kalika Mata Temple | Gujarat | 4 |
 | `kandariya-mahadeva-temple` | same | Kandariya Mahadeva Temple | Madhya Pradesh | 5 |
 | `kapil-muni-temple-gangasagar` | `kapil-muni-temple` | Kapil Muni Temple | West Bengal | 5 |
 | `karni-mata-temple-deshnok` | `karni-mata-temple` | Karni Mata Temple | Rajasthan | 5 |
@@ -203,16 +206,16 @@ Pack folders keep the research names. Storage and Firestore ids are Seed
 | `kheer-bhawani-temple` | same | Kheer Bhawani Temple | Jammu and Kashmir | 5 |
 | `kiriteswari-temple` | same | Kiriteswari Temple | West Bengal | 5 |
 | `konark-sun-temple` | same | Konark Sun Temple | Odisha | 5 |
-| `lakshmana-temple-khajuraho` | `lakshmana-temple` | Lakshmana Temple | Madhya Pradesh | 5 |
+| `lakshmana-temple-khajuraho` | `lakshmana-temple` | Lakshmana Temple | Madhya Pradesh | 3 |
 | `lakshmi-narayan-temple-chamba` | `lakshmi-narayan-temple` | Lakshmi Narayan Temple | Himachal Pradesh | 5 |
 | `lingaraj-temple` | same | Lingaraj Temple | Odisha | 5 |
-| `mahakaleshwar-temple` | same | Mahakaleshwar Temple | Madhya Pradesh | 5 |
+| `mahakaleshwar-temple` | same | Mahakaleshwar Temple | Madhya Pradesh | 4 |
 | `mahalakshmi-temple-mumbai` | `mahalakshmi-temple` | Mahalakshmi Temple | Maharashtra | 5 |
 | `mahavir-mandir-patna` | `mahavir-mandir` | Mahavir Mandir | Bihar | 5 |
 | `manikaran-shiva-temple` | same | Manikaran Shiva Temple | Himachal Pradesh | 5 |
 | `mehandipur-balaji-temple` | same | Mehandipur Balaji Temple | Rajasthan | 5 |
 | `modhera-sun-temple` | same | Modhera Sun Temple | Gujarat | 5 |
-| `morgaon-mayureshwar-temple` | same | Morgaon Mayureshwar Temple | Maharashtra | 5 |
+| `morgaon-mayureshwar-temple` | same | Morgaon Mayureshwar Temple | Maharashtra | 4 |
 | `mukteshwar-temple` | same | Mukteshwar Temple | Odisha | 5 |
 | `mumba-devi-temple` | same | Mumba Devi Temple | Maharashtra | 5 |
 | `mundeshwari-devi-temple` | same | Mundeshwari Devi Temple | Bihar | 5 |
@@ -230,14 +233,14 @@ Pack folders keep the research names. Storage and Firestore ids are Seed
 | `ramappa-temple` | `ramappa-temple-rudreshwara` | Ramappa Temple (Rudreshwara) | Telangana | 5 |
 | `salasar-balaji-temple` | `salasar-balaji` | Salasar Balaji | Rajasthan | 5 |
 | `sankat-mochan-hanuman-temple` | same | Sankat Mochan Hanuman Temple | Uttar Pradesh | 5 |
-| `satyanarayana-swamy-temple-annavaram` | `satyanarayana-swamy-temple` | Satyanarayana Swamy Temple | Andhra Pradesh | 5 |
+| `satyanarayana-swamy-temple-annavaram` | `satyanarayana-swamy-temple` | Satyanarayana Swamy Temple | Andhra Pradesh | 3 |
 | `shankaracharya-temple` | same | Shankaracharya Temple | Jammu and Kashmir | 5 |
 | `sharda-devi-temple-maihar` | same | Sharda Devi Temple Maihar | Madhya Pradesh | 5 |
 | `shree-saibaba-samadhi-mandir` | same | Shree Saibaba Samadhi Mandir | Maharashtra | 6 |
 | `shrinathji-temple-nathdwara` | `shrinathji-temple` | Shrinathji Temple | Rajasthan | 5 |
 | `siddhivinayak-temple-mumbai` | `siddhivinayak-temple` | Siddhivinayak Temple | Maharashtra | 5 |
 | `sita-ramachandra-swamy-bhadrachalam` | `sita-ramachandra-swamy-temple` | Sita Ramachandra Swamy Temple | Telangana | 5 |
-| `somnath-temple` | same | Somnath Temple | Gujarat | 5 |
+| `somnath-temple` | same | Somnath Temple | Gujarat | 4 |
 | `sri-lakshmi-narasimha-swamy-yadagirigutta` | `sri-lakshmi-narasimha-swamy-temple` | Sri Lakshmi Narasimha Swamy Temple | Telangana | 5 |
 | `sri-mallikarjuna-swamy-temple-srisailam` | `sri-mallikarjuna-swamy-temple` | Sri Mallikarjuna Swamy Temple | Andhra Pradesh | 5 |
 | `sri-mayapur-chandrodaya-mandir` | `sri-mayapur-chandrodaya-mandir-iskcon-mayapur` | Sri Mayapur Chandrodaya Mandir (ISKCON Mayapur) | West Bengal | 5 |
@@ -245,12 +248,12 @@ Pack folders keep the research names. Storage and Firestore ids are Seed
 | `tarapith-temple` | same | Tarapith Temple | West Bengal | 5 |
 | `thousand-pillar-temple` | same | Thousand Pillar Temple | Telangana | 5 |
 | `tirumala-venkateswara-temple` | same | Tirumala Venkateswara Temple | Andhra Pradesh | 5 |
-| `trimbakeshwar-temple` | same | Trimbakeshwar Temple | Maharashtra | 5 |
+| `trimbakeshwar-temple` | same | Trimbakeshwar Temple | Maharashtra | 4 |
 | `vaishno-devi-temple` | same | Vaishno Devi Temple | Jammu and Kashmir | 5 |
 | `varaha-lakshmi-narasimha-temple-simhachalam` | `varaha-lakshmi-narasimha-temple` | Varaha Lakshmi Narasimha Temple | Andhra Pradesh | 5 |
 | `varasidhi-vinayaka-temple-kanipakam` | `varasidhi-vinayaka-temple` | Varasidhi Vinayaka Temple | Andhra Pradesh | 5 |
 | `veerabhadra-temple-lepakshi` | `veerabhadra-temple` | Veerabhadra Temple | Andhra Pradesh | 5 |
 | `vindhyavasini-temple` | same | Vindhyavasini Temple | Uttar Pradesh | 5 |
-| `vishnupad-temple` | same | Vishnupad Temple | Bihar | 5 |
+| `vishnupad-temple` | same | Vishnupad Temple | Bihar | 4 |
 | `vitthal-rukmini-temple-pandharpur` | `vitthal-rukmini-temple` | Vitthal Rukmini Temple | Maharashtra | 5 |
 | `yaganti-uma-maheswara-temple` | same | Yaganti Uma Maheswara Temple | Andhra Pradesh | 5 |
