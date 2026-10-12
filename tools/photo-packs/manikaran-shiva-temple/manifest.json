@@ -7,6 +7,19 @@
   "tradition_note": "Shiva",
   "photos": [
     {
+      "filename": "03_Manikaran_Temple.jpg",
+      "commons_title": "File:Manikaran Temple.jpg",
+      "author": "Prachurjya Biswas",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AManikaran_Temple.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6b/Manikaran_Temple.jpg/1280px-Manikaran_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 585264,
+      "width": 1280,
+      "height": 2276,
+      "notes": "Cover. The Famous Shiv Parvati Temple at Manikaran, Himachal Pradesh. The temple has a natural hot spring and is connected to t"
+    },
+    {
       "filename": "01_Manikaran_view_from_Shiva_Temple.jpg",
       "commons_title": "File:Manikaran view from Shiva Temple.jpg",
       "author": "Consequoia",
@@ -31,32 +44,6 @@
       "width": 1280,
       "height": 325,
       "notes": "Panorama Manikaran Ram temple"
-    },
-    {
-      "filename": "03_Manikaran_Temple.jpg",
-      "commons_title": "File:Manikaran Temple.jpg",
-      "author": "Prachurjya Biswas",
-      "license": "CC BY-SA 4.0",
-      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
-      "source_url": "https://commons.wikimedia.org/wiki/File%3AManikaran_Temple.jpg",
-      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6b/Manikaran_Temple.jpg/1280px-Manikaran_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "bytes": 585264,
-      "width": 1280,
-      "height": 2276,
-      "notes": "The Famous Shiv Parvati Temple at Manikaran, Himachal Pradesh. The temple has a natural hot spring and is connected to t"
-    },
-    {
-      "filename": "04_Gurdwara_Manikaran_Sahib.jpg",
-      "commons_title": "File:Gurdwara Manikaran Sahib.jpg",
-      "author": "Gurpreet Singh",
-      "license": "CC BY-SA 4.0",
-      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
-      "source_url": "https://commons.wikimedia.org/wiki/File%3AGurdwara_Manikaran_Sahib.jpg",
-      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/17/Gurdwara_Manikaran_Sahib.jpg/1280px-Gurdwara_Manikaran_Sahib.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "bytes": 489683,
-      "width": 1280,
-      "height": 853,
-      "notes": "This picture shows the Gurdwara from outside. It is made in the remembrance of Shri Guru Nanak Dev Ji, the founder of Si"
     }
   ]
 }

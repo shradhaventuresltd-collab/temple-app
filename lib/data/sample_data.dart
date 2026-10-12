@@ -6030,14 +6030,14 @@ const List<Temple> sampleTemples = [
     city: 'Varanasi',
     deity: 'Shiva',
     imageUrl:
-        'https://upload.wikimedia.org/wikipedia/commons/6/64/20220519159L2022071406593520220714082601.jpg',
+        'https://upload.wikimedia.org/wikipedia/commons/3/38/Kashi_Vishwanath_Temple_in_2025.jpg',
     images: [
+      'https://upload.wikimedia.org/wikipedia/commons/3/38/Kashi_Vishwanath_Temple_in_2025.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/6/64/20220519159L2022071406593520220714082601.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Kashi_Vishwanath_Temple_Main_Area-1.jpg/1280px-Kashi_Vishwanath_Temple_Main_Area-1.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Kashi_Vishwanath_Temple_Main_Area-2.jpg/1280px-Kashi_Vishwanath_Temple_Main_Area-2.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/Ganga_Dwar%2C_Gateway_of_Corridor_of_Kashi_Vishwanath_Temple%2C_Varanasi.webp/1280px-Ganga_Dwar%2C_Gateway_of_Corridor_of_Kashi_Vishwanath_Temple%2C_Varanasi.webp',
       'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/Kashi_Vishwanath_Temple_Main_Area-3.jpg/1280px-Kashi_Vishwanath_Temple_Main_Area-3.jpg',
-      'https://upload.wikimedia.org/wikipedia/commons/3/38/Kashi_Vishwanath_Temple_in_2025.jpg',
     ],
     description:
         'One of the twelve Jyotirlinga shrines of Shiva in sacred Kashi '
@@ -6240,7 +6240,6 @@ const List<Temple> sampleTemples = [
       'https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Banke_Bihari_Mandir_Vrindavan_-_Phool_Bangla_Darshan.jpg/1280px-Banke_Bihari_Mandir_Vrindavan_-_Phool_Bangla_Darshan.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Phool_Bangla_floral_chandelier_at_Banke_Bihari_Temple%2C_Vrindavan.jpg/1280px-Phool_Bangla_floral_chandelier_at_Banke_Bihari_Temple%2C_Vrindavan.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Bankebihari_temple_main_gate_Vrindavan.JPG/1280px-Bankebihari_temple_main_gate_Vrindavan.JPG',
-      'https://upload.wikimedia.org/wikipedia/commons/5/55/Banke-Bihari-Mandir-Vrindavan.jpg',
     ],
     description:
         'Beloved Vrindavan temple of Thakur Banke Bihariji — a charming '
@@ -7781,12 +7780,12 @@ const List<Temple> sampleTemples = [
     city: 'Morgaon',
     deity: 'Ganesha',
     imageUrl:
-        'https://upload.wikimedia.org/wikipedia/commons/0/03/Entrance_gateway_of_Shri_Mayureshwar_Mandir%2C_Morgaon.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+        'https://upload.wikimedia.org/wikipedia/commons/0/03/Entrance_gateway_of_Shri_Mayureshwar_Mandir%2C_Morgaon.jpg',
     images: [
-      'https://upload.wikimedia.org/wikipedia/commons/0/03/Entrance_gateway_of_Shri_Mayureshwar_Mandir%2C_Morgaon.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+      'https://upload.wikimedia.org/wikipedia/commons/0/03/Entrance_gateway_of_Shri_Mayureshwar_Mandir%2C_Morgaon.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Morgaon_temple.jpg/1280px-Morgaon_temple.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Morgaon.jpg/1280px-Morgaon.jpg',
-      'https://upload.wikimedia.org/wikipedia/commons/4/47/Morgaon_temple_gate.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+      'https://upload.wikimedia.org/wikipedia/commons/4/47/Morgaon_temple_gate.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/Moraya3.jpg/1280px-Moraya3.jpg',
     ],
     description:
@@ -10754,12 +10753,11 @@ const List<Temple> sampleTemples = [
     city: 'Manikaran',
     deity: 'Shiva',
     imageUrl:
-        'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/Manikaran_view_from_Shiva_Temple.jpg/1280px-Manikaran_view_from_Shiva_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6b/Manikaran_Temple.jpg/1280px-Manikaran_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6b/Manikaran_Temple.jpg/1280px-Manikaran_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/Manikaran_view_from_Shiva_Temple.jpg/1280px-Manikaran_view_from_Shiva_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/40/Panorama_Manikaran_Ram_temple_%2816746684003%29.jpg/1280px-Panorama_Manikaran_Ram_temple_%2816746684003%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6b/Manikaran_Temple.jpg/1280px-Manikaran_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/17/Gurdwara_Manikaran_Sahib.jpg/1280px-Gurdwara_Manikaran_Sahib.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     ],
     description:
         'Shiva–Parvati pilgrimage precinct in Manikaran’s Parvati Valley, '

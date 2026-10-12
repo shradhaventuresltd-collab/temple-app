@@ -45,6 +45,7 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Download URL used:** https://upload.wikimedia.org/wikipedia/commons/5/59/Indian_Ayodhya_City_Temple_Image_%2845%29.jpg
 - **Site:** Hanuman Garhi Temple, Ayodhya
 - **Dimensions:** 960×1178, 196688 bytes
+- **Notes:** Research confirmed this frame. The श्री हनुमानगढ़ी signboard is visible.
 
 ## 07_Hanuman_Garhi_Temple-20.jpg
 - **Commons File:** File:Hanuman Garhi Temple-20.jpg

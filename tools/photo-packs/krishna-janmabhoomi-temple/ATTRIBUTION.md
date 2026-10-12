@@ -52,3 +52,4 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **License:** CC BY-SA 2.0
 - **License URL:** https://creativecommons.org/licenses/by-sa/2.0
 - **Source page URL:** https://commons.wikimedia.org/wiki/File:Keshav_Dev_Temple_at_the_Shri_Krishna_Janma-Bhoomi_-_Mathura_-_India_-_2013-03_096_(11552205214).jpg
+- **Notes:** Keshav Dev gate tower, Krishna Janmabhoomi, Mathura.

@@ -1,5 +1,11 @@
 [
   {
+    "url": "https://commons.wikimedia.org/wiki/File%3AKashi_Vishwanath_Temple_in_2025.jpg",
+    "license": "CC BY 4.0",
+    "attribution": "Pradum Shukla, own work",
+    "notes": "local_file=06_Kashi_Vishwanath_Temple_in_2025.jpg; site_verified=true; cover"
+  },
+  {
     "url": "https://commons.wikimedia.org/wiki/File%3A20220519159L2022071406593520220714082601.jpg",
     "license": "CC BY-SA 4.0",
     "attribution": "Das740724",
@@ -28,11 +34,5 @@
     "license": "CC BY 4.0",
     "attribution": "Immanuelle",
     "notes": "local_file=05_Kashi_Vishwanath_Temple_Main_Area-3.jpg; site_verified=true"
-  },
-  {
-    "url": "https://commons.wikimedia.org/wiki/File%3AKashi_Vishwanath_Temple_in_2025.jpg",
-    "license": "CC BY 4.0",
-    "attribution": "Pradum Shukla",
-    "notes": "local_file=06_Kashi_Vishwanath_Temple_in_2025.jpg; site_verified=true"
   }
 ]

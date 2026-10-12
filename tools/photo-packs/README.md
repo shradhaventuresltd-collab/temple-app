@@ -164,8 +164,11 @@ Photo counts below 5 are packs that lost off-topic or unsuitable frames
 in review. Research still needs to add licensed temple photos there.
 The optional Wave C pass also drops the Srisailam town-zoom frame, the
 Jejuri city view, the Vaishno Devi Katra panorama, and the Manikaran
-gurdwara interior. Taraknath’s cover is the temple-front
-`File:Tarakeshwar temple entrance.jpg` (CC BY-SA 4.0, K.vishnupranay).
+gurdwara interior. A later review also drops the Manikaran Gurdwara
+exterior and makes `03_Manikaran_Temple.jpg` the cover (pack is 3), and
+drops the 434px Banke Bihari frame (pack is 4). Taraknath’s cover is the
+temple-front `File:Tarakeshwar temple entrance.jpg` (CC BY-SA 4.0,
+K.vishnupranay).
 
 | Pack folder | Seed `templeDocumentId` | Temple | State | Photos |
 | --- | --- | --- | --- | --- |
@@ -174,7 +177,7 @@ gurdwara interior. Taraknath’s cover is the temple-front
 | `ananta-vasudeva-temple` | same | Ananta Vasudeva Temple | Odisha | 5 |
 | `bahucharaji-temple` | same | Bahucharaji Temple | Gujarat | 5 |
 | `baijnath-temple-himachal` | `baijnath-temple` | Baijnath Temple | Himachal Pradesh | 5 |
-| `banke-bihari-temple` | same | Banke Bihari Temple | Uttar Pradesh | 5 |
+| `banke-bihari-temple` | same | Banke Bihari Temple | Uttar Pradesh | 4 |
 | `belur-math` | same | Belur Math | West Bengal | 5 |
 | `bhadrakali-temple-warangal` | `bhadrakali-temple` | Bhadrakali Temple | Telangana | 5 |
 | `bhimakali-temple-sarahan` | `bhimakali-temple` | Bhimakali Temple | Himachal Pradesh | 5 |
@@ -217,7 +220,7 @@ gurdwara interior. Taraknath’s cover is the temple-front
 | `mahakaleshwar-temple` | same | Mahakaleshwar Temple | Madhya Pradesh | 7 |
 | `mahalakshmi-temple-mumbai` | `mahalakshmi-temple` | Mahalakshmi Temple | Maharashtra | 5 |
 | `mahavir-mandir-patna` | `mahavir-mandir` | Mahavir Mandir | Bihar | 5 |
-| `manikaran-shiva-temple` | same | Manikaran Shiva Temple | Himachal Pradesh | 4 |
+| `manikaran-shiva-temple` | same | Manikaran Shiva Temple | Himachal Pradesh | 3 |
 | `mehandipur-balaji-temple` | same | Mehandipur Balaji Temple | Rajasthan | 5 |
 | `modhera-sun-temple` | same | Modhera Sun Temple | Gujarat | 5 |
 | `morgaon-mayureshwar-temple` | same | Morgaon Mayureshwar Temple | Maharashtra | 5 |
@@ -289,12 +292,13 @@ Built on Wave C (#25). Fresh Research manifests; URLs are Commons
 | `sakshi-gopal-temple` | same | Sakshi Gopal Temple | Odisha | 6 |
 
 Dropped in review: `krishna-janmabhoomi-temple` / `05_*` (`File:Krishnajanmabhoomi 1988A.jpg`) shows the adjoining Shahi Idgah, not the temple.
+Kashi Vishwanath’s cover is `File:Kashi Vishwanath Temple in 2025.jpg` (CC BY 4.0, Pradum Shukla, own work). The original is 1153px wide, so the pack keeps the unscaled file.
 
 ## KAN-76 top-up (Research new_in_topup frames)
 
 | Pack | Photos | Change |
 | --- | --- | --- |
-| `hanuman-garhi-ayodhya` | 6 | dropped 05 `(60)` and 06 `Ancient Temple Ayodhya` (not site-verified), added 08 |
+| `hanuman-garhi-ayodhya` | 6 | dropped 05 `(60)` and 06 `Ancient Temple Ayodhya` (not site-verified), added 08; 04 confirmed by Research (श्री हनुमानगढ़ी signboard visible) |
 | `krishna-janmabhoomi-temple` | 5 | added Research top-up frames |
 | `lakshmana-temple-khajuraho` | 6 | added Research top-up frames |
 | `satyanarayana-swamy-temple-annavaram` | 6 | added Research top-up frames |
@@ -303,6 +307,6 @@ Dropped in review: `krishna-janmabhoomi-temple` / `05_*` (`File:Krishnajanmabhoo
 | `mahakaleshwar-temple` | 7 | added Research top-up frames |
 | `vishnupad-temple` | 6 | added Research top-up frames |
 | `somnath-temple` | 5 | dropped 02 floor-plan drawing and 03 night aerial (near-duplicate of 04), added 05–07 |
-| `banke-bihari-temple` | 5 | added Research top-up frames |
+| `banke-bihari-temple` | 4 | added Research top-up frames, then dropped the 434px `05_Banke-Bihari-Mandir-Vrindavan.jpg` |
 | `morgaon-mayureshwar-temple` | 5 | added Research top-up frames |
 | `chilkur-balaji-temple` | 4 | added Research top-up frames |
