@@ -49,3 +49,17 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Retrieved date (IST):** 2026-09-22
 - **Dimensions (file on disk):** 1280×1930
 - **Bytes:** 573597
+
+## 05_Triambakeshwar_Front_Corner_View.jpg
+- **Commons File:** File:Triambakeshwar Front Corner View.jpg
+- **Author:** Pradeep717
+- **License:** CC BY-SA 4.0
+- **License URL:** https://creativecommons.org/licenses/by-sa/4.0
+- **Source page URL:** https://commons.wikimedia.org/wiki/File:Triambakeshwar_Front_Corner_View.jpg
+
+## 06_Trimbakeshwar_temple_front_view.jpg
+- **Commons File:** File:Trimbakeshwar temple front view.jpg
+- **Author:** Varuninaganti
+- **License:** CC BY-SA 4.0
+- **License URL:** https://creativecommons.org/licenses/by-sa/4.0
+- **Source page URL:** https://commons.wikimedia.org/wiki/File:Trimbakeshwar_temple_front_view.jpg

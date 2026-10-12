@@ -45,3 +45,10 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Download URL used:** https://upload.wikimedia.org/wikipedia/commons/thumb/9/9d/Mathura_Temple-Mathura-India0002.JPG/1280px-Mathura_Temple-Mathura-India0002.JPG
 - **Site:** Shri Krishna Janmabhoomi (Janmasthan) Temple Complex, Mathura
 - **Dimensions:** 1280×853, 275844 bytes
+
+## 05_Keshav_Dev_Temple_at_the_Shri_Krishna_Janma-Bhoomi_-_Mathura_-_India_-.jpg
+- **Commons File:** File:Keshav Dev Temple at the Shri Krishna Janma-Bhoomi - Mathura - India - 2013-03 096 (11552205214).jpg
+- **Author:** Edmund Gall
+- **License:** CC BY-SA 2.0
+- **License URL:** https://creativecommons.org/licenses/by-sa/2.0
+- **Source page URL:** https://commons.wikimedia.org/wiki/File:Keshav_Dev_Temple_at_the_Shri_Krishna_Janma-Bhoomi_-_Mathura_-_India_-_2013-03_096_(11552205214).jpg

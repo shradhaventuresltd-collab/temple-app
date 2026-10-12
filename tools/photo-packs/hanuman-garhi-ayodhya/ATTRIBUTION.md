@@ -46,26 +46,6 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Site:** Hanuman Garhi Temple, Ayodhya
 - **Dimensions:** 960×1178, 196688 bytes
 
-## 05_Indian_Ayodhya_City_Temple_Image_60.jpg
-- **Commons File:** File:Indian Ayodhya City Temple Image (60).jpg
-- **Author:** AmanAgrahari01
-- **License:** CC BY-SA 4.0
-- **License URL:** https://creativecommons.org/licenses/by-sa/4.0
-- **Source page URL:** https://commons.wikimedia.org/wiki/File%3AIndian_Ayodhya_City_Temple_Image_%2860%29.jpg
-- **Download URL used:** https://upload.wikimedia.org/wikipedia/commons/0/05/Indian_Ayodhya_City_Temple_Image_%2860%29.jpg
-- **Site:** Hanuman Garhi Temple, Ayodhya
-- **Dimensions:** 960×1062, 181465 bytes
-
-## 06_Ancient_Temple_Ayodhya.jpg
-- **Commons File:** File:Ancient Temple Ayodhya.jpg
-- **Author:** 25 Cents FC
-- **License:** CC BY 4.0
-- **License URL:** https://creativecommons.org/licenses/by/4.0
-- **Source page URL:** https://commons.wikimedia.org/wiki/File%3AAncient_Temple_Ayodhya.jpg
-- **Download URL used:** https://upload.wikimedia.org/wikipedia/commons/2/2b/Ancient_Temple_Ayodhya.jpg
-- **Site:** Hanuman Garhi Temple, Ayodhya
-- **Dimensions:** 1056×1408, 356160 bytes
-
 ## 07_Hanuman_Garhi_Temple-20.jpg
 - **Commons File:** File:Hanuman Garhi Temple-20.jpg
 - **Author:** Immanuelle
@@ -75,3 +55,10 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Download URL used:** https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Hanuman_Garhi_Temple-20.jpg/1280px-Hanuman_Garhi_Temple-20.jpg
 - **Site:** Hanuman Garhi Temple, Ayodhya
 - **Dimensions:** 1280×960, 517630 bytes
+
+## 08_Hanuman_Garhi_Temple_a_major_religious_site_in_Ayodhya_utter_pradesh.jpg
+- **Commons File:** File:Hanuman Garhi Temple, a major religious site in Ayodhya utter pradesh.jpg
+- **Author:** Prashant Kharote
+- **License:** CC BY-SA 4.0
+- **License URL:** https://creativecommons.org/licenses/by-sa/4.0
+- **Source page URL:** https://commons.wikimedia.org/wiki/File:Hanuman_Garhi_Temple,_a_major_religious_site_in_Ayodhya_utter_pradesh.jpg

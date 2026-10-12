@@ -38,3 +38,10 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Retrieved date (IST):** 2026-09-22
 - **Dimensions (file on disk):** 1280×960
 - **Bytes:** 256749
+
+## 04_Gopuram_at_Chilkur_Temple1.jpg
+- **Commons File:** File:Gopuram at Chilkur Temple1.jpg
+- **Author:** Adityamadhav83
+- **License:** CC BY-SA 3.0
+- **License URL:** https://creativecommons.org/licenses/by-sa/3.0
+- **Source page URL:** https://commons.wikimedia.org/wiki/File:Gopuram_at_Chilkur_Temple1.jpg

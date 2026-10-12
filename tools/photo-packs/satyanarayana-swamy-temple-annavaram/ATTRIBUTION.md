@@ -38,3 +38,24 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Retrieved date (IST):** 2026-10-12
 - **Dimensions (file on disk):** 1280×960
 - **Bytes:** 393280
+
+## 04_Annavaram_main_temple..jpg
+- **Commons File:** File:Annavaram main temple..JPG
+- **Author:** B.K.Viswanadh
+- **License:** CC BY-SA 3.0
+- **License URL:** http://creativecommons.org/licenses/by-sa/3.0/
+- **Source page URL:** https://commons.wikimedia.org/wiki/File:Annavaram_main_temple..JPG
+
+## 05_Annavaram_temple_Tower..jpg
+- **Commons File:** File:Annavaram temple Tower..jpg
+- **Author:** Palagiri
+- **License:** CC BY-SA 3.0
+- **License URL:** https://creativecommons.org/licenses/by-sa/3.0
+- **Source page URL:** https://commons.wikimedia.org/wiki/File:Annavaram_temple_Tower..jpg
+
+## 06_East_gopuram_at_Annavaram_Temple_01.jpg
+- **Commons File:** File:East gopuram at Annavaram Temple 01.jpg
+- **Author:** Adityamadhav83
+- **License:** CC BY-SA 3.0
+- **License URL:** https://creativecommons.org/licenses/by-sa/3.0
+- **Source page URL:** https://commons.wikimedia.org/wiki/File:East_gopuram_at_Annavaram_Temple_01.jpg

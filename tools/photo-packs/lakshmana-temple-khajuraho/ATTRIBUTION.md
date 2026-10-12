@@ -38,3 +38,24 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Retrieved date (IST):** 2026-09-22
 - **Dimensions (file on disk):** 1280×841
 - **Bytes:** 338960
+
+## 04_Ganesh_Sculpture_-_Lakshamana_Temple.jpg
+- **Commons File:** File:Ganesh Sculpture - Lakshamana Temple.jpg
+- **Author:** Manuel Menal
+- **License:** CC BY-SA 2.0
+- **License URL:** https://creativecommons.org/licenses/by-sa/2.0
+- **Source page URL:** https://commons.wikimedia.org/wiki/File:Ganesh_Sculpture_-_Lakshamana_Temple.jpg
+
+## 05_Khajuraho_India_Lakshman_Temple_Sculpture_07.jpg
+- **Commons File:** File:Khajuraho India, Lakshman Temple, Sculpture 07.JPG
+- **Author:** Rajenver
+- **License:** CC BY-SA 3.0
+- **License URL:** https://creativecommons.org/licenses/by-sa/3.0
+- **Source page URL:** https://commons.wikimedia.org/wiki/File:Khajuraho_India,_Lakshman_Temple,_Sculpture_07.JPG
+
+## 06_Khajuraho_ni04-11.jpg
+- **Commons File:** File:Khajuraho ni04-11.jpg
+- **Author:** G41rn8
+- **License:** CC BY-SA 4.0
+- **License URL:** https://creativecommons.org/licenses/by-sa/4.0
+- **Source page URL:** https://commons.wikimedia.org/wiki/File:Khajuraho_ni04-11.jpg

@@ -49,3 +49,10 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Retrieved date (IST):** 2026-09-22
 - **Dimensions (file on disk):** 600×800
 - **Bytes:** 110783
+
+## 05_Moraya3.jpg
+- **Commons File:** File:Moraya3.jpg
+- **Author:** Mayujagtap
+- **License:** CC BY-SA 4.0
+- **License URL:** https://creativecommons.org/licenses/by-sa/4.0
+- **Source page URL:** https://commons.wikimedia.org/wiki/File:Moraya3.jpg

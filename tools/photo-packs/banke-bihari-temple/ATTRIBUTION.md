@@ -49,3 +49,10 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Retrieved date (IST):** 2026-09-22
 - **Dimensions (file on disk):** 1280×1707
 - **Bytes:** 688174
+
+## 05_Banke-Bihari-Mandir-Vrindavan.jpg
+- **Commons File:** File:Banke-Bihari-Mandir-Vrindavan.jpg
+- **Author:** Aman Kumar
+- **License:** CC BY-SA 4.0
+- **License URL:** https://creativecommons.org/licenses/by-sa/4.0
+- **Source page URL:** https://commons.wikimedia.org/wiki/File:Banke-Bihari-Mandir-Vrindavan.jpg
