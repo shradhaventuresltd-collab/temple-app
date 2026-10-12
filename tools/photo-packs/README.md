@@ -257,3 +257,30 @@ in review. Research still needs to add licensed temple photos there.
 | `vishnupad-temple` | same | Vishnupad Temple | Bihar | 4 |
 | `vitthal-rukmini-temple-pandharpur` | `vitthal-rukmini-temple` | Vitthal Rukmini Temple | Maharashtra | 5 |
 | `yaganti-uma-maheswara-temple` | same | Yaganti Uma Maheswara Temple | Andhra Pradesh | 5 |
+
+## KAN-76 Wave D
+
+Built on Wave C (#25). Fresh Research manifests; URLs are Commons
+`upload.wikimedia.org` 1280px thumbs (or the original when it is narrower than
+1280px). Storage and Firestore ids are Seed `templeDocumentId(name)`.
+
+| Pack folder | Seed `templeDocumentId` | Temple | State | Photos |
+| --- | --- | --- | --- | --- |
+| `ajgaibinath-temple` | same | Ajgaibinath Temple | Bihar | 5 |
+| `amarnath-cave-temple` | same | Amarnath Cave Temple | Jammu and Kashmir | 7 |
+| `bade-hanuman-ji-temple-prayagraj` | `bade-hanuman-ji-temple-lete-hanuman` | Bade Hanuman Ji Temple (Lete Hanuman) | Uttar Pradesh | 7 |
+| `chamunda-devi-temple-kangra` | `chamunda-devi-temple` | Chamunda Devi Temple | Himachal Pradesh | 6 |
+| `hanuman-garhi-ayodhya` | `hanuman-garhi` | Hanuman Garhi | Uttar Pradesh | 7 |
+| `kanaka-durga-temple` | same | Kanaka Durga Temple | Andhra Pradesh | 6 |
+| `kanyakumari-bhagavathi-amman-temple` | same | Kanyakumari Bhagavathi Amman Temple | Tamil Nadu | 6 |
+| `kashi-vishwanath-temple` | same | Kashi Vishwanath Temple | Uttar Pradesh | 6 |
+| `keesaragutta-temple` | same | Keesaragutta Temple | Telangana | 6 |
+| `krishna-janmabhoomi-temple` | same | Krishna Janmabhoomi Temple | Uttar Pradesh | 4 |
+| `maa-taratarini-temple` | same | Maa Taratarini Temple | Odisha | 6 |
+| `mannarsala-sree-nagaraja-temple` | same | Mannarsala Sree Nagaraja Temple | Kerala | 5 |
+| `matangeshwar-temple` | same | Matangeshwar Temple | Madhya Pradesh | 6 |
+| `padmavathi-temple-tiruchanur` | `padmavathi-temple` | Padmavathi Temple | Andhra Pradesh | 7 |
+| `ranchhodraiji-temple-dakor` | `ranchhodraiji-temple` | Ranchhodraiji Temple | Gujarat | 7 |
+| `sakshi-gopal-temple` | same | Sakshi Gopal Temple | Odisha | 6 |
+
+Dropped in review: `krishna-janmabhoomi-temple` / `05_*` (`File:Krishnajanmabhoomi 1988A.jpg`) shows the adjoining Shahi Idgah, not the temple.

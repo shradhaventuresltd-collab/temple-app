@@ -169,6 +169,27 @@ const WAVE_C_KAN76_PACKS = [
   "yaganti-uma-maheswara-temple",
 ];
 
+// KAN-76 Wave D (16 more photo-pending temples). --all-packs fails if any
+// of these folders are missing.
+const WAVE_D_KAN76_PACKS = [
+  "ajgaibinath-temple",
+  "amarnath-cave-temple",
+  "bade-hanuman-ji-temple-prayagraj",
+  "chamunda-devi-temple-kangra",
+  "hanuman-garhi-ayodhya",
+  "kanaka-durga-temple",
+  "kanyakumari-bhagavathi-amman-temple",
+  "kashi-vishwanath-temple",
+  "keesaragutta-temple",
+  "krishna-janmabhoomi-temple",
+  "maa-taratarini-temple",
+  "mannarsala-sree-nagaraja-temple",
+  "matangeshwar-temple",
+  "padmavathi-temple-tiruchanur",
+  "ranchhodraiji-temple-dakor",
+  "sakshi-gopal-temple",
+];
+
 // Pack folder / temple_slug → Seed templeDocumentId when the sample name
 // omits the city.
 const SEED_DOCUMENT_ID_BY_PACK_SLUG = {
@@ -219,6 +240,12 @@ const SEED_DOCUMENT_ID_BY_PACK_SLUG = {
   "varasidhi-vinayaka-temple-kanipakam": "varasidhi-vinayaka-temple",
   "veerabhadra-temple-lepakshi": "veerabhadra-temple",
   "vitthal-rukmini-temple-pandharpur": "vitthal-rukmini-temple",
+  // KAN-76 Wave D
+  "bade-hanuman-ji-temple-prayagraj": "bade-hanuman-ji-temple-lete-hanuman",
+  "chamunda-devi-temple-kangra": "chamunda-devi-temple",
+  "hanuman-garhi-ayodhya": "hanuman-garhi",
+  "padmavathi-temple-tiruchanur": "padmavathi-temple",
+  "ranchhodraiji-temple-dakor": "ranchhodraiji-temple",
 };
 
 function resolveSeedDocId(packDir, manifest, docIdOverride) {
@@ -543,6 +570,13 @@ async function main() {
     );
     const missingWaveA = WAVE_A_TN_KL_PACKS.filter((slug) => !present.has(slug));
     const missingWaveC = WAVE_C_KAN76_PACKS.filter((slug) => !present.has(slug));
+    const missingWaveD = WAVE_D_KAN76_PACKS.filter((slug) => !present.has(slug));
+    if (missingWaveD.length > 0) {
+      console.error(
+        "✖  --all-packs is missing KAN-76 Wave D packs:\n   " +
+          missingWaveD.join("\n   ")
+      );
+    }
     if (missingWaveC.length > 0) {
       console.error(
         "✖  --all-packs is missing KAN-76 Wave C packs:\n   " +
@@ -552,7 +586,8 @@ async function main() {
     if (
       missingWaveB.length > 0 ||
       missingWaveA.length > 0 ||
-      missingWaveC.length > 0
+      missingWaveC.length > 0 ||
+      missingWaveD.length > 0
     ) {
       if (missingWaveB.length > 0) {
         console.error(
