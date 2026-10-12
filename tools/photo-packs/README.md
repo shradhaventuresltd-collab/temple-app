@@ -136,8 +136,9 @@ Pack folders keep the research tar names. Storage and Firestore ids are Seed
 Six folders differ from Seed because the sample name has no city. The upload
 script maps them. `manifest.json` also records `seed_document_id`.
 
-Skipped shortfalls (no pack): Kanyakumari Bhagavathi Amman Temple,
-Anjengo Sree Durga Devi Temple, Mannarsala Sree Nagaraja Temple.
+Skipped shortfalls (no pack): Anjengo Sree Durga Devi Temple.
+Kanyakumari Bhagavathi Amman Temple and Mannarsala Sree Nagaraja Temple
+are wired in Wave D.
 
 ## Wrong-site frames dropped
 
