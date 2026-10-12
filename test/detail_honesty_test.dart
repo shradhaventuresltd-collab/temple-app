@@ -69,7 +69,7 @@ void main() {
 
   test('picsum covers and empty galleries are photo pending', () {
     // KAN-77: #19 packs, Wave B Karnataka, and Wave A TN/KL Commons thumbs,
-    // including Thiruchendur.
+    // including Thiruchendur. KAN-76 Wave C adds 93 all-India packs.
     var verifiedCount = 0;
     for (final temple in sampleTemples) {
       final urls = verifiedGalleryUrls(temple);
@@ -95,7 +95,7 @@ void main() {
         );
       }
     }
-    expect(verifiedCount, 60);
+    expect(verifiedCount, 153);
 
     final mixed = _draft(
       imageUrl: 'https://picsum.photos/seed/cover/800/600',

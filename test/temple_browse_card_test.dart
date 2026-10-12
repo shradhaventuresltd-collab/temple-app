@@ -239,11 +239,12 @@ void main() {
     expect(find.text(meenakshi.story), findsNothing);
     expect(find.text('Photo pending'), findsNothing);
 
-    // Still-picsum heritage outlier keeps Photo pending.
+    // KAN-76 Wave C: Commons cover — heritage framing remains, no Photo pending.
     final konark = _named('Konark Sun Temple');
     await pumpCard(tester, konark);
     expect(find.text('Heritage visit'), findsOneWidget);
-    expect(find.text('Photo pending'), findsOneWidget);
+    expect(find.text('Photo pending'), findsNothing);
+    expect(find.byType(CachedNetworkImage), findsOneWidget);
   });
 
   testWidgets('verified covers decode at the card size', (tester) async {

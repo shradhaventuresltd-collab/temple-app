@@ -53,9 +53,7 @@ void main() {
       }
       expect(temple.latitude, inInclusiveRange(17.654, 20.045));
       expect(temple.longitude, inInclusiveRange(72.786, 75.344));
-      expect(temple.imageUrl, 'https://picsum.photos/seed/$id/800/600');
-      expect(temple.images, isEmpty);
-      expect(temple.imageUrl.contains('firebasestorage'), isFalse);
+      _expectWaveCOrPicsum(temple, id);
 
       final map = temple.toFirestoreData(documentId: id);
       expect(map['id'], id);
@@ -139,11 +137,10 @@ void main() {
           expect(url.contains('picsum'), isFalse);
         }
         expect(temple.imageUrl, temple.images.first);
+        expect(temple.imageUrl.contains('firebasestorage'), isFalse);
       } else {
-        expect(temple.imageUrl, 'https://picsum.photos/seed/$id/800/600');
-        expect(temple.images, isEmpty);
+        _expectWaveCOrPicsum(temple, id);
       }
-      expect(temple.imageUrl.contains('firebasestorage'), isFalse);
 
       final map = temple.toFirestoreData(documentId: id);
       expect(map['id'], id);
@@ -235,9 +232,7 @@ void main() {
       }
       expect(temple.latitude, inInclusiveRange(21.616, 24.22));
       expect(temple.longitude, inInclusiveRange(87.77, 88.42));
-      expect(temple.imageUrl, 'https://picsum.photos/seed/$id/800/600');
-      expect(temple.images, isEmpty);
-      expect(temple.imageUrl.contains('firebasestorage'), isFalse);
+      _expectWaveCOrPicsum(temple, id);
 
       final map = temple.toFirestoreData(documentId: id);
       expect(map['id'], id);
@@ -309,9 +304,14 @@ void main() {
       }
       expect(temple.latitude, inInclusiveRange(22.225, 25.371));
       expect(temple.longitude, inInclusiveRange(75.052, 80.744));
-      expect(temple.imageUrl, 'https://picsum.photos/seed/$id/800/600');
-      expect(temple.images, isEmpty);
-      expect(temple.imageUrl.contains('firebasestorage'), isFalse);
+      _expectWaveCOrPicsum(
+        temple,
+        id,
+        stillPicsum: const {
+          'matangeshwar-temple',
+          'chintaman-ganesh-temple',
+        },
+      );
 
       final map = temple.toFirestoreData(documentId: id);
       expect(map['id'], id);
@@ -391,11 +391,19 @@ void main() {
           expect(url.contains('picsum'), isFalse);
         }
         expect(temple.imageUrl, temple.images.first);
+        expect(temple.imageUrl.contains('firebasestorage'), isFalse);
       } else {
-        expect(temple.imageUrl, 'https://picsum.photos/seed/$id/800/600');
-        expect(temple.images, isEmpty);
+        _expectWaveCOrPicsum(
+          temple,
+          id,
+          stillPicsum: const {
+            'mangala-gauri-temple',
+            'ajgaibinath-temple',
+            'ugratara-temple',
+            'janaki-temple-sitamarhi',
+          },
+        );
       }
-      expect(temple.imageUrl.contains('firebasestorage'), isFalse);
 
       final map = temple.toFirestoreData(documentId: id);
       expect(map['id'], id);
@@ -470,9 +478,11 @@ void main() {
       }
       expect(temple.latitude, inInclusiveRange(31.286, 32.578));
       expect(temple.longitude, inInclusiveRange(76.082, 77.651));
-      expect(temple.imageUrl, 'https://picsum.photos/seed/$id/800/600');
-      expect(temple.images, isEmpty);
-      expect(temple.imageUrl.contains('firebasestorage'), isFalse);
+      _expectWaveCOrPicsum(
+        temple,
+        id,
+        stillPicsum: const {'chamunda-devi-temple'},
+      );
 
       final map = temple.toFirestoreData(documentId: id);
       expect(map['id'], id);
@@ -573,4 +583,32 @@ void main() {
     expect(named('Kapil Muni Temple').timings.toLowerCase(), contains('thin'));
     expect(named('Belur Math').deity.toLowerCase(), contains('ramakrishna'));
   });
+}
+
+/// Temples without a Wave C pack stay on picsum. The rest use Commons thumbs.
+void _expectWaveCOrPicsum(
+  Temple temple,
+  String id, {
+  Set<String> stillPicsum = const {},
+}) {
+  expect(temple.imageUrl.contains('firebasestorage'), isFalse, reason: id);
+  if (stillPicsum.contains(id)) {
+    expect(
+      temple.imageUrl,
+      'https://picsum.photos/seed/$id/800/600',
+      reason: id,
+    );
+    expect(temple.images, isEmpty, reason: id);
+    return;
+  }
+  // KAN-76/KAN-77 Wave C: Commons downloaded_url thumbs until Storage upload.
+  expect(temple.imageUrl.contains('picsum'), isFalse, reason: id);
+  expect(temple.imageUrl, contains('wikimedia.org'), reason: id);
+  expect(temple.images.length, greaterThanOrEqualTo(5), reason: id);
+  expect(temple.imageUrl, temple.images.first, reason: id);
+  for (final url in temple.images) {
+    expect(url, contains('wikimedia.org'), reason: id);
+    expect(url.contains('picsum'), isFalse, reason: id);
+    expect(url.contains('firebasestorage'), isFalse, reason: id);
+  }
 }
