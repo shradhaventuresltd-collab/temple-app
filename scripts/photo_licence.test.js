@@ -5,6 +5,7 @@ import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 
 import {
+  MAX_PHOTO_CREDIT_LENGTH,
   mapPhotoLicence,
   parseAttributionLicences,
   photoCredit,
@@ -78,6 +79,79 @@ test("CC BY-NC-ND is rejected", () => {
   );
 });
 
+test("CC BY-SA-NC is rejected", () => {
+  assert.throws(
+    () => mapPhotoLicence("CC BY-SA-NC 4.0"),
+    /Rejected licence CC BY-NC-SA:/,
+  );
+});
+
+test("CC BY 4.0 NC is rejected", () => {
+  assert.throws(
+    () => mapPhotoLicence("CC BY 4.0 NC"),
+    /Rejected licence CC BY-NC:/,
+  );
+});
+
+test("CC-BY-NCSA is rejected", () => {
+  assert.throws(
+    () => mapPhotoLicence("CC-BY-NCSA"),
+    /Rejected licence CC BY-NC-SA:/,
+  );
+});
+
+test("CC BYNC is rejected", () => {
+  assert.throws(
+    () => mapPhotoLicence("CC BYNC"),
+    /Rejected licence CC BY-NC:/,
+  );
+});
+
+test("standalone nc is rejected", () => {
+  assert.throws(() => mapPhotoLicence("nc"), /Rejected licence CC BY-NC:/);
+  assert.throws(() => mapPhotoLicence("NC"), /Rejected licence CC BY-NC:/);
+});
+
+test("standalone nd is rejected", () => {
+  assert.throws(() => mapPhotoLicence("nd"), /Rejected licence CC BY-ND:/);
+  assert.throws(() => mapPhotoLicence("ND"), /Rejected licence CC BY-ND:/);
+});
+
+test("noncommercial is rejected", () => {
+  assert.throws(
+    () => mapPhotoLicence("noncommercial"),
+    /Rejected licence CC BY-NC:/,
+  );
+  assert.throws(
+    () => mapPhotoLicence("CC BY-NonCommercial 4.0"),
+    /Rejected licence CC BY-NC:/,
+  );
+});
+
+test("noderiv is rejected", () => {
+  assert.throws(() => mapPhotoLicence("noderiv"), /Rejected licence CC BY-ND:/);
+  assert.throws(
+    () => mapPhotoLicence("CC BY-NoDerivs 4.0"),
+    /Rejected licence CC BY-ND:/,
+  );
+});
+
+test("US-only public domain is rejected", () => {
+  for (const raw of [
+    "public domain in the USA only",
+    "Public domain in the USA only",
+    "PD-US",
+    "Public domain (US)",
+    "public domain in the United States",
+  ]) {
+    assert.throws(
+      () => mapPhotoLicence(raw),
+      /Rejected licence US-only public domain:/,
+      raw,
+    );
+  }
+});
+
 test("bare by does not map to CC-BY", () => {
   for (const raw of ["by", "BY", "by 4.0"]) {
     assert.equal(mapPhotoLicence(raw), null, raw);
@@ -112,6 +186,50 @@ test("CC-BY and CC-BY-SA credits keep the version", () => {
   assert.equal(photoCredit("Ada", "CC BY 4.0"), "Ada · CC BY 4.0");
   assert.equal(photoCredit("", "CC BY-SA 3.0"), "CC BY-SA 3.0");
   assert.equal(photoCredit("Ada", "Public domain"), "Ada");
+});
+
+test("photoCredit drops the Gonsalves usage note and stays within 200 characters", () => {
+  const packs = [
+    ["chamundeshwari-temple", "01_"],
+    ["srikanteshwara-temple-nanjangud", "02_"],
+  ];
+  for (const [pack, prefix] of packs) {
+    const manifest = JSON.parse(
+      readFileSync(
+        resolve(here, `../tools/photo-packs/${pack}/manifest.json`),
+        "utf8",
+      ),
+    );
+    const photo = manifest.photos.find((entry) =>
+      entry.filename.startsWith(prefix),
+    );
+    assert.ok(photo, `${pack} ${prefix}`);
+    assert.ok(photo.author.length > MAX_PHOTO_CREDIT_LENGTH, photo.filename);
+    const credit = photoCredit(photo.author, photo.license);
+    assert.equal(credit, "Timothy A. Gonsalves · CC BY-SA 4.0");
+    assert.ok(credit.length <= MAX_PHOTO_CREDIT_LENGTH);
+  }
+
+  const trimmed = photoCredit("A".repeat(500), "CC BY 4.0");
+  assert.ok(trimmed.length <= MAX_PHOTO_CREDIT_LENGTH);
+  assert.ok(trimmed.endsWith(" · CC BY 4.0"));
+});
+
+test("research pack cache is short because paths are fixed filenames", () => {
+  const source = readFileSync(resolve(here, "upload_research_pack.js"), "utf8");
+  const cacheLines = source
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("cacheControl:"));
+  assert.deepEqual(cacheLines, ['cacheControl: "public, max-age=3600",']);
+  const adminUpload = readFileSync(
+    resolve(here, "../lib/services/temple_photo_upload.dart"),
+    "utf8",
+  );
+  assert.match(
+    adminUpload,
+    /cacheControl: 'public, max-age=31536000, immutable'/,
+  );
 });
 
 test("ATTRIBUTION backfill accepts CC0 and maps Public domain to CC0", () => {

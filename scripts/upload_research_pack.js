@@ -416,7 +416,9 @@ async function uploadFile(bucket, localPath, storagePath, filename) {
     destination: storagePath,
     metadata: {
       contentType: contentTypeFor(filename),
-      cacheControl: "public, max-age=31536000, immutable",
+      // temples/{docId}/{filename} is overwritten in place. Do not mark it
+      // immutable. Timestamped admin uploads keep the one-year cache.
+      cacheControl: "public, max-age=3600",
     },
   });
   const file = bucket.file(storagePath);

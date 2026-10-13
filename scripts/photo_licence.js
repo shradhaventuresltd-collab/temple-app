@@ -7,12 +7,16 @@
  * (KAN-49). There is no separate PD value. CC0 matches only as a whole
  * token, so "cc0.5" does not.
  *
- * CC BY-NC, CC BY-NC-SA, CC BY-ND, and CC BY-NC-ND are rejected. They are
- * not stored as CC-BY.
+ * NC and ND licences are rejected, including fused forms such as
+ * "CC-BY-NCSA" and "CC BYNC", and standalone nc / nd / noncommercial /
+ * noderiv tokens. They are not stored as CC-BY.
+ *
+ * Public domain maps to CC0, except US-only claims such as
+ * "public domain in the USA only" or "PD-US".
  *
  * @param {unknown} raw
  * @returns {"CC-BY"|"CC-BY-SA"|"CC0"|"Own"|"Permission"|null}
- * @throws {Error} when the source is an NC or ND Creative Commons licence.
+ * @throws {Error} when the source is NC, ND, or US-only public domain.
  */
 export function mapPhotoLicence(raw) {
   const text = String(raw ?? "")
@@ -29,7 +33,15 @@ export function mapPhotoLicence(raw) {
     );
   }
 
-  if (isCc0Source(text) || isPublicDomain(text)) return "CC0";
+  if (isCc0Source(text)) return "CC0";
+
+  if (isUsOnlyPublicDomain(text)) {
+    throw new Error(
+      `Rejected licence US-only public domain: "${raw}". A worldwide public-domain or CC0 dedication is required.`,
+    );
+  }
+
+  if (isPublicDomain(text)) return "CC0";
 
   if (isCcBySa(text)) return "CC-BY-SA";
   if (isCcBy(text)) return "CC-BY";
@@ -42,18 +54,56 @@ export function mapPhotoLicence(raw) {
 /**
  * Credit stored on a photo. CC-BY and CC-BY-SA keep the Commons version
  * in the credit string ("Author · CC BY-SA 3.0"). Other licences keep the
- * author. No licenceUrl field is added.
+ * author. No licenceUrl field is added. The result is at most 200
+ * characters, matching the Firestore credit cap. Commons usage notes
+ * such as the Gonsalves "Feel free to use my photos" text are dropped.
  *
  * @param {unknown} author
  * @param {unknown} licenseRaw
  * @returns {string}
  */
+export const MAX_PHOTO_CREDIT_LENGTH = 200;
+
 export function photoCredit(author, licenseRaw) {
-  const name = String(author ?? "").trim();
+  const name = cleanAuthor(author);
   const licence = mapPhotoLicence(licenseRaw);
-  if (licence !== "CC-BY" && licence !== "CC-BY-SA") return name;
+  if (licence !== "CC-BY" && licence !== "CC-BY-SA") return clampCredit(name);
   const label = ccVersionLabel(licence, licenseRaw);
-  return name ? `${name} · ${label}` : label;
+  if (!name) return clampCredit(label);
+  const suffix = ` · ${label}`;
+  const full = `${name}${suffix}`;
+  if (full.length <= MAX_PHOTO_CREDIT_LENGTH) return full;
+  const room = MAX_PHOTO_CREDIT_LENGTH - suffix.length;
+  if (room <= 0) return clampCredit(label);
+  return `${name.slice(0, room).trimEnd()}${suffix}`;
+}
+
+function clampCredit(value) {
+  const text = String(value ?? "").trim();
+  if (text.length <= MAX_PHOTO_CREDIT_LENGTH) return text;
+  return text.slice(0, MAX_PHOTO_CREDIT_LENGTH).trimEnd();
+}
+
+/**
+ * Keep the person named in a Commons author field and drop the usage note.
+ * @param {unknown} author
+ * @returns {string}
+ */
+export function cleanAuthor(author) {
+  let name = String(author ?? "").replace(/\s+/g, " ").trim();
+  if (!name) return "";
+
+  const takenBy = name.match(
+    /^(?:this (?:photo|image) was taken by|taken by)\s+(.+)$/i,
+  );
+  if (takenBy) name = takenBy[1].trim();
+
+  const note = name.search(
+    /\.\s+(?:feel free|please\b|i would|otherwise|you may|for my information|contact me|do not)\b/i,
+  );
+  if (note !== -1) name = name.slice(0, note);
+
+  return name.replace(/[.,;:\s]+$/g, "").trim();
 }
 
 function ccVersionLabel(licence, licenseRaw) {
@@ -62,18 +112,42 @@ function ccVersionLabel(licence, licenseRaw) {
   return version ? `${base} ${version[1]}` : base;
 }
 
-/** Longer NC/ND names first so "by-nc-sa" is not reported as "by-nc". */
+/**
+ * Reject standalone nc, nd, noncommercial, and noderiv tokens, including
+ * fused spellings ("bync", "ncsa", "by-sa-nc").
+ * @param {string} text
+ * @returns {string|null}
+ */
 function restrictedLicence(text) {
-  const checks = [
-    ["CC BY-NC-ND", [/\bby-nc-nd\b/, /\bby nc nd\b/]],
-    ["CC BY-NC-SA", [/\bby-nc-sa\b/, /\bby nc sa\b/]],
-    ["CC BY-ND", [/\bby-nd\b/, /\bby nd\b/]],
-    ["CC BY-NC", [/\bby-nc\b/, /\bby nc\b/]],
-  ];
-  for (const [label, patterns] of checks) {
-    if (patterns.some((pattern) => pattern.test(text))) return label;
-  }
+  const expanded = expandRestrictionTokens(text);
+  const nc = /\bnc\b/.test(expanded) || /\bnon commercial\b/.test(expanded);
+  const nd = /\bnd\b/.test(expanded) || /\bno deriv/.test(expanded);
+  const sa = /\bsa\b/.test(expanded) || /\bshare alike\b/.test(expanded);
+  if (nc && nd) return "CC BY-NC-ND";
+  if (nc && sa) return "CC BY-NC-SA";
+  if (nd) return "CC BY-ND";
+  if (nc) return "CC BY-NC";
   return null;
+}
+
+function expandRestrictionTokens(text) {
+  return text
+    .replace(/byncnd/g, "by nc nd")
+    .replace(/byndnc/g, "by nd nc")
+    .replace(/byncsa/g, "by nc sa")
+    .replace(/bynd/g, "by nd")
+    .replace(/bync/g, "by nc")
+    .replace(/ncnd/g, "nc nd")
+    .replace(/ndnc/g, "nd nc")
+    .replace(/ncsa/g, "nc sa")
+    .replace(/noderivatives/g, "no derivatives")
+    .replace(/noderivative/g, "no derivative")
+    .replace(/noderivs/g, "no derivs")
+    .replace(/noderiv/g, "no deriv")
+    .replace(/noncommercial/g, "non commercial")
+    .replace(/-/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function hasCc0Token(text) {
@@ -89,6 +163,27 @@ function isCc0Source(text) {
   return (
     text.includes("publicdomain/zero") || text.includes("public-domain/zero")
   );
+}
+
+function isUsOnlyPublicDomain(text) {
+  const spaced = text
+    .replace(/[._]/g, " ")
+    .replace(/-/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const claimsPd =
+    spaced === "pd" ||
+    spaced.startsWith("pd ") ||
+    /(^|\s)pd(\s|$)/.test(spaced) ||
+    spaced.includes("public domain");
+  if (!claimsPd) return false;
+  if (/\b(usa|us|united states) only\b/.test(spaced)) return true;
+  if (/\bin the (usa|u s a|u s|us|united states)\b/.test(spaced)) return true;
+  if (/\bpd (us|usa|united states)\b/.test(spaced)) return true;
+  if (/\b(usa|us|united states)\b/.test(spaced) && /\bpublic domain\b/.test(spaced)) {
+    return true;
+  }
+  return false;
 }
 
 function isPublicDomain(text) {
