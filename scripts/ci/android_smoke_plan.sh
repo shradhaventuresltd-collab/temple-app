@@ -5,9 +5,13 @@
 # A scheduled run skips the emulator when main HEAD equals the last successful
 # android-smoke job on main, or the last failed attempt (a red SHA is not
 # retried every slot). A failure conclusion counts. A cancelled conclusion
-# counts only when that run's event is schedule. A workflow_dispatch cancel
-# does not count. workflow_dispatch always runs. Lookups pass branch=main.
-# If the Actions API cannot be read, the emulator runs.
+# counts when that run's event is schedule. Setup usually takes about 6 to
+# 7 minutes, so the 15-minute job limit fires before the 12-minute shell
+# timeout and that scheduled cancel counts as failed. Manually cancelling
+# a scheduled run also counts, so that SHA stays blocked until a new commit
+# or a workflow_dispatch. A workflow_dispatch cancel does not count.
+# workflow_dispatch always runs. Lookups pass branch=main. If the Actions
+# API cannot be read, the emulator runs.
 set -euo pipefail
 
 if [[ -z "${GITHUB_OUTPUT:-}" ]]; then
