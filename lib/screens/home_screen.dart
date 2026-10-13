@@ -1,6 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:temple_app/config/build_flags.dart';
 import 'package:temple_app/data/heritage_content.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/admin_screen.dart';
@@ -15,13 +15,22 @@ import 'package:temple_app/widgets/home_mosaic_collage.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, this.adminAuth, this.templesLoader});
+  const HomeScreen({
+    super.key,
+    this.adminAuth,
+    this.templesLoader,
+    this.adminToolsEnabled,
+  });
 
   /// Injected in tests. Defaults to [AdminAuth.instance].
   final AdminAuth? adminAuth;
 
   /// Injected in tests. Defaults to [TempleService.getTemples].
   final Future<List<Temple>> Function()? templesLoader;
+
+  /// Defaults to [kAdminToolsEnabled]. Pass `false` in tests to hide
+  /// Seed / Admin app-bar actions (Play/release without the define).
+  final bool? adminToolsEnabled;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -52,11 +61,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   AdminAuth get _auth => widget.adminAuth ?? AdminAuth.instance;
 
+  bool get _showAdminTools => widget.adminToolsEnabled ?? kAdminToolsEnabled;
+
   Future<void> _openAdmin() async {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AdminScreen(adminAuth: widget.adminAuth),
+        builder: (_) => AdminScreen(
+          adminAuth: widget.adminAuth,
+          adminToolsEnabled: _showAdminTools,
+        ),
       ),
     );
     if (mounted) _reloadTemples();
@@ -80,7 +94,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          if (kDebugMode)
+          if (_showAdminTools)
             DebugHomeAdminActions(
               auth: _auth,
               onOpenAdmin: _openAdmin,

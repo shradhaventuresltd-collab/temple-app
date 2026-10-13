@@ -1,6 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:temple_app/config/build_flags.dart';
 import 'package:temple_app/services/seed_service.dart';
 
 /// Injectable seeder so widget tests do not need Firebase.
@@ -8,8 +8,8 @@ typedef SeedTemplesFn = Future<SeedResult> Function();
 
 enum SeedPhase { idle, running, success, failure }
 
-/// Debug-only control that runs [seedTempleData] with idle / running /
-/// success / failure feedback. Hidden in release/profile builds.
+/// Seed control that runs [seedTempleData] with idle / running /
+/// success / failure feedback. Hidden unless admin tools are enabled.
 class SeedTemplesControl extends StatefulWidget {
   const SeedTemplesControl({
     super.key,
@@ -120,7 +120,7 @@ class _SeedTemplesControlState extends State<SeedTemplesControl> {
 
   @override
   Widget build(BuildContext context) {
-    if (!kDebugMode) return const SizedBox.shrink();
+    if (!kAdminToolsEnabled) return const SizedBox.shrink();
     return widget.compact ? _buildCompact() : _buildPanel();
   }
 
