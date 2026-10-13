@@ -1,0 +1,75 @@
+{
+  "temple_slug": "bhadrakali-temple-warangal",
+  "temple_name": "Bhadrakali Temple",
+  "doc_id_hint": "bhadrakali-temple-warangal",
+  "city": "Warangal",
+  "state": "Telangana",
+  "tradition_note": "Devi",
+  "photos": [
+    {
+      "filename": "01_Bhadrakali_Temple_at_Warangal_01.jpg",
+      "commons_title": "File:Bhadrakali Temple at Warangal 01.JPG",
+      "author": "Adityamadhav83",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ABhadrakali_Temple_at_Warangal_01.JPG",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b1/Bhadrakali_Temple_at_Warangal_01.JPG/1280px-Bhadrakali_Temple_at_Warangal_01.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 145257,
+      "width": 1280,
+      "height": 960,
+      "notes": "Bhadrakali temple facade, Warangal"
+    },
+    {
+      "filename": "02_Bhadrakali_Temple_in_Warangal.jpg",
+      "commons_title": "File:Bhadrakali Temple in Warangal.jpg",
+      "author": "Dursety",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ABhadrakali_Temple_in_Warangal.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bc/Bhadrakali_Temple_in_Warangal.jpg/1280px-Bhadrakali_Temple_in_Warangal.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 238372,
+      "width": 1280,
+      "height": 720,
+      "notes": "Bhadrakali temple gopuram, Warangal"
+    },
+    {
+      "filename": "03_Entrance_Arch_Bhadrakali_temple_sunset.jpg",
+      "commons_title": "File:Entrance Arch of the Bhadrakali temple during sunset.JPG",
+      "author": "Adityamadhav83",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AEntrance_Arch_of_the_Bhadrakali_temple_during_sunset.JPG",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/20/Entrance_Arch_of_the_Bhadrakali_temple_during_sunset.JPG/1280px-Entrance_Arch_of_the_Bhadrakali_temple_during_sunset.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 213110,
+      "width": 1280,
+      "height": 960,
+      "notes": "Entrance arch of the Bhadrakali temple at sunset, Warangal"
+    },
+    {
+      "filename": "04_Bhadrakali_Temple_Warangal.jpg",
+      "commons_title": "File:Bhadrakali Temple, Warangal.jpg",
+      "author": "Warangalite",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ABhadrakali_Temple%2C_Warangal.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/44/Bhadrakali_Temple%2C_Warangal.jpg/1280px-Bhadrakali_Temple%2C_Warangal.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 259835,
+      "width": 1280,
+      "height": 720,
+      "notes": "Bhadrakali Temple between Hanamkonda and Warangal"
+    },
+    {
+      "filename": "05_SRI_BHADRAKALI_TEMPLE_WARANGAL.jpg",
+      "commons_title": "File:SRI BHADRAKALI TEMPLE WARANGAL.jpg",
+      "author": "KINNERA ARAVIND",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ASRI_BHADRAKALI_TEMPLE_WARANGAL.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/SRI_BHADRAKALI_TEMPLE_WARANGAL.jpg/1280px-SRI_BHADRAKALI_TEMPLE_WARANGAL.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 286603,
+      "width": 1280,
+      "height": 576,
+      "notes": "Night view of the Bhadrakali temple gopuram, Warangal"
+    }
+  ]
+}

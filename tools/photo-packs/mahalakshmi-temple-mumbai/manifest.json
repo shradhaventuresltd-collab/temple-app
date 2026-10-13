@@ -1,0 +1,75 @@
+{
+  "temple_slug": "mahalakshmi-temple-mumbai",
+  "temple_name": "Mahalakshmi Temple",
+  "doc_id_hint": "mahalakshmi-temple-mumbai",
+  "city": "Mumbai",
+  "state": "Maharashtra",
+  "tradition_note": "Devi",
+  "photos": [
+    {
+      "filename": "01_Mahalakshmi_Temple_Mumbai.jpg",
+      "commons_title": "File:Mahalakshmi Temple, Mumbai.jpg",
+      "author": "Suraj Digrase",
+      "license": "CC0 1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMahalakshmi_Temple%2C_Mumbai.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/Mahalakshmi_Temple%2C_Mumbai.jpg/1280px-Mahalakshmi_Temple%2C_Mumbai.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 599832,
+      "width": 1280,
+      "height": 1707,
+      "notes": "Mahalakshmi Temple, Mumbai (temple in India)"
+    },
+    {
+      "filename": "02_Mahalakshmi_Temple_Mumbai_11848.jpg",
+      "commons_title": "File:Mahalakshmi Temple, Mumbai (11848).jpg",
+      "author": "Suraj Digrase",
+      "license": "CC0 1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMahalakshmi_Temple%2C_Mumbai_%2811848%29.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/69/Mahalakshmi_Temple%2C_Mumbai_%2811848%29.jpg/1280px-Mahalakshmi_Temple%2C_Mumbai_%2811848%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 335483,
+      "width": 1280,
+      "height": 1707,
+      "notes": "Mahalakshmi Temple, Mumbai (temple in India)"
+    },
+    {
+      "filename": "03_Mahalakshmi_Temple_Mumbai_22165.jpg",
+      "commons_title": "File:Mahalakshmi Temple, Mumbai (22165).jpg",
+      "author": "Suraj Digrase",
+      "license": "CC0 1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMahalakshmi_Temple%2C_Mumbai_%2822165%29.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7b/Mahalakshmi_Temple%2C_Mumbai_%2822165%29.jpg/1280px-Mahalakshmi_Temple%2C_Mumbai_%2822165%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 522346,
+      "width": 1280,
+      "height": 1707,
+      "notes": "Mahalakshmi Temple, Mumbai (temple in India)"
+    },
+    {
+      "filename": "04_Mahalakshmi_Temple_Mumbai_25878.jpg",
+      "commons_title": "File:Mahalakshmi Temple, Mumbai (25878).jpg",
+      "author": "Suraj Digrase",
+      "license": "CC0 1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMahalakshmi_Temple%2C_Mumbai_%2825878%29.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/07/Mahalakshmi_Temple%2C_Mumbai_%2825878%29.jpg/1280px-Mahalakshmi_Temple%2C_Mumbai_%2825878%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 408893,
+      "width": 1280,
+      "height": 1707,
+      "notes": "Mahalakshmi Temple, Mumbai (temple in India)"
+    },
+    {
+      "filename": "05_Mahalakshmi_Temple_Mumbai_42668.jpg",
+      "commons_title": "File:Mahalakshmi Temple, Mumbai (42668).jpg",
+      "author": "Suraj Digrase",
+      "license": "CC0 1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMahalakshmi_Temple%2C_Mumbai_%2842668%29.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b4/Mahalakshmi_Temple%2C_Mumbai_%2842668%29.jpg/1280px-Mahalakshmi_Temple%2C_Mumbai_%2842668%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 984340,
+      "width": 1280,
+      "height": 1707,
+      "notes": "Mahalakshmi Temple, Mumbai (temple in India)"
+    }
+  ]
+}

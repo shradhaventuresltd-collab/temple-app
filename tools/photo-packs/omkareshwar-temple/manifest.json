@@ -1,0 +1,75 @@
+{
+  "temple_slug": "omkareshwar-temple",
+  "temple_name": "Omkareshwar Temple",
+  "doc_id_hint": "omkareshwar-temple",
+  "city": "Omkareshwar",
+  "state": "Madhya Pradesh",
+  "tradition_note": "Shiva",
+  "photos": [
+    {
+      "filename": "01_Wiki-voyage-header-omkareshwar.jpg",
+      "commons_title": "File:Wiki-voyage-header-omkareshwar.jpg",
+      "author": "Sumit Surai",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AWiki-voyage-header-omkareshwar.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/93/Wiki-voyage-header-omkareshwar.jpg/1280px-Wiki-voyage-header-omkareshwar.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 159765,
+      "width": 1280,
+      "height": 283,
+      "notes": "Omkareshwar temple and Narmada river in Madhya Pradesh"
+    },
+    {
+      "filename": "02_Gomukh_ghat_Omkareshwar_02.jpg",
+      "commons_title": "File:Gomukh ghat, Omkareshwar 02.jpg",
+      "author": "Bernard Gagnon",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AGomukh_ghat%2C_Omkareshwar_02.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8b/Gomukh_ghat%2C_Omkareshwar_02.jpg/1280px-Gomukh_ghat%2C_Omkareshwar_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 453892,
+      "width": 1280,
+      "height": 853,
+      "notes": "The Gomukh ghat in Omkareshwar, India"
+    },
+    {
+      "filename": "03_Omkareshwar_kids_9840711893.jpg",
+      "commons_title": "File:Omkareshwar, kids (9840711893).jpg",
+      "author": "Arian Zwegers from Brussels, Belgium",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AOmkareshwar%2C_kids_%289840711893%29.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6c/Omkareshwar%2C_kids_%289840711893%29.jpg/1280px-Omkareshwar%2C_kids_%289840711893%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 233893,
+      "width": 1280,
+      "height": 853,
+      "notes": "Omkareshwar, kids Omkareshwar is a Hindu temple dedicated to God Shiva. It is one of the 12 revered Jyotirlinga shrines "
+    },
+    {
+      "filename": "04_Omkareshwar_04.jpg",
+      "commons_title": "File:Omkareshwar 04.jpg",
+      "author": "Bernard Gagnon",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AOmkareshwar_04.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/39/Omkareshwar_04.jpg/1280px-Omkareshwar_04.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 368332,
+      "width": 1280,
+      "height": 853,
+      "notes": "Houses in Omkareshwar, India"
+    },
+    {
+      "filename": "05_Omkareshwar_Temple_03.jpg",
+      "commons_title": "File:Omkareshwar Temple 03.jpg",
+      "author": "Bernard Gagnon",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AOmkareshwar_Temple_03.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/Omkareshwar_Temple_03.jpg/1280px-Omkareshwar_Temple_03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 380884,
+      "width": 1280,
+      "height": 853,
+      "notes": "Omkareshwar Mahadev Temple, Omkareshwar, India"
+    }
+  ]
+}

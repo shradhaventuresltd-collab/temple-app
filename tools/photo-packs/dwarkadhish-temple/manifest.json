@@ -1,0 +1,75 @@
+{
+  "temple_slug": "dwarkadhish-temple",
+  "temple_name": "Dwarkadhish Temple",
+  "doc_id_hint": "dwarkadhish-temple",
+  "city": "Dwarka",
+  "state": "Gujarat",
+  "tradition_note": "Vishnu",
+  "photos": [
+    {
+      "filename": "01_Dwarkadhish_Group_of_Temples-Dwarka-Gujarat-DSC_0101.jpg",
+      "commons_title": "File:Dwarkadhish Group of Temples-Dwarka-Gujarat-DSC 0101.jpg",
+      "author": "Sivaprasadsujatha",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ADwarkadhish_Group_of_Temples-Dwarka-Gujarat-DSC_0101.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cf/Dwarkadhish_Group_of_Temples-Dwarka-Gujarat-DSC_0101.jpg/1280px-Dwarkadhish_Group_of_Temples-Dwarka-Gujarat-DSC_0101.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 691832,
+      "width": 1280,
+      "height": 1920,
+      "notes": "Dwarka Temple main Gopur"
+    },
+    {
+      "filename": "02_Dwarkadhish_Group_of_Temples-Dwarka-Gujarat-DSC_0146.jpg",
+      "commons_title": "File:Dwarkadhish Group of Temples-Dwarka-Gujarat-DSC 0146.jpg",
+      "author": "Sivaprasadsujatha",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ADwarkadhish_Group_of_Temples-Dwarka-Gujarat-DSC_0146.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7b/Dwarkadhish_Group_of_Temples-Dwarka-Gujarat-DSC_0146.jpg/1280px-Dwarkadhish_Group_of_Temples-Dwarka-Gujarat-DSC_0146.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 291246,
+      "width": 1280,
+      "height": 853,
+      "notes": "Dwarka Temple"
+    },
+    {
+      "filename": "03_Dwarkadhish_Group_of_Temples-Dwarka-Gujarat-DSC_0233.jpg",
+      "commons_title": "File:Dwarkadhish Group of Temples-Dwarka-Gujarat-DSC 0233.jpg",
+      "author": "Sivaprasadsujatha",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ADwarkadhish_Group_of_Temples-Dwarka-Gujarat-DSC_0233.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/64/Dwarkadhish_Group_of_Temples-Dwarka-Gujarat-DSC_0233.jpg/1280px-Dwarkadhish_Group_of_Temples-Dwarka-Gujarat-DSC_0233.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 202497,
+      "width": 1280,
+      "height": 853,
+      "notes": "Dwarkadhish Temple, Dwarka"
+    },
+    {
+      "filename": "04_Dwarkadhish_Group_of_Temples-Dwarka-Gujarat-DSC_0234.jpg",
+      "commons_title": "File:Dwarkadhish Group of Temples-Dwarka-Gujarat-DSC 0234.jpg",
+      "author": "Sivaprasadsujatha",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ADwarkadhish_Group_of_Temples-Dwarka-Gujarat-DSC_0234.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/Dwarkadhish_Group_of_Temples-Dwarka-Gujarat-DSC_0234.jpg/1280px-Dwarkadhish_Group_of_Temples-Dwarka-Gujarat-DSC_0234.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 264946,
+      "width": 1280,
+      "height": 853,
+      "notes": "Dwarka Temple"
+    },
+    {
+      "filename": "05_Dwarkadhish_Group_of_Temples_Mul_Dwarka-Dwarka-Gujarat-DSC_0240.jpg",
+      "commons_title": "File:Dwarkadhish Group of Temples Mul Dwarka-Dwarka-Gujarat-DSC 0240.jpg",
+      "author": "Sivaprasadsujatha",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ADwarkadhish_Group_of_Temples_Mul_Dwarka-Dwarka-Gujarat-DSC_0240.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e0/Dwarkadhish_Group_of_Temples_Mul_Dwarka-Dwarka-Gujarat-DSC_0240.jpg/1280px-Dwarkadhish_Group_of_Temples_Mul_Dwarka-Dwarka-Gujarat-DSC_0240.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 345998,
+      "width": 1280,
+      "height": 853,
+      "notes": "Mul Dwarka Temple"
+    }
+  ]
+}

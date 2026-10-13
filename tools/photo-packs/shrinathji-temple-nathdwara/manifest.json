@@ -1,0 +1,75 @@
+{
+  "temple_slug": "shrinathji-temple-nathdwara",
+  "temple_name": "Shrinathji Temple",
+  "doc_id_hint": "shrinathji-temple-nathdwara",
+  "city": "Nathdwara",
+  "state": "Rajasthan",
+  "tradition_note": "Vishnu",
+  "photos": [
+    {
+      "filename": "01_Painter_at_work_Nathdwara.jpg",
+      "commons_title": "File:Painter at work, Nathdwara.jpg",
+      "author": "Prakhar Amba",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3APainter_at_work%2C_Nathdwara.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Painter_at_work%2C_Nathdwara.jpg/1280px-Painter_at_work%2C_Nathdwara.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 458033,
+      "width": 1280,
+      "height": 1033,
+      "notes": "Sitting amidst his painting, he creates magic with his brushes painting Lord Krishna woven in golden threads and brillia"
+    },
+    {
+      "filename": "02_Nathdwara_srinathji.jpg",
+      "commons_title": "File:Nathdwara srinathji.jpg",
+      "author": "Unknown artistUnknown artist",
+      "license": "Public Domain",
+      "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ANathdwara_srinathji.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/c/ca/Nathdwara_srinathji.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "bytes": 243987,
+      "width": 600,
+      "height": 948,
+      "notes": "\"Gouache painting on paper from Nathdwara representing the autumn Annakuta Festival. This annual festival is observed by"
+    },
+    {
+      "filename": "03_Historic_heritage_sites_of_Rajasthan_with_GPS_coordinates.jpg",
+      "commons_title": "File:Historic heritage sites of Rajasthan with GPS coordinates.jpg",
+      "author": "Ms Sarah Welch",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AHistoric_heritage_sites_of_Rajasthan_with_GPS_coordinates.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/33/Historic_heritage_sites_of_Rajasthan_with_GPS_coordinates.jpg/1280px-Historic_heritage_sites_of_Rajasthan_with_GPS_coordinates.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 461760,
+      "width": 1280,
+      "height": 1781,
+      "notes": "Rajasthan is a western state of India rich with historic monuments. The oldest sites are few and these are from the Hara"
+    },
+    {
+      "filename": "04_Maha_Daan_Leela.png",
+      "commons_title": "File:Maha Daan Leela.png",
+      "author": "Khubiram Gopilal (1891-1970)",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMaha_Daan_Leela.png",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/b/bb/Maha_Daan_Leela.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "bytes": 1412372,
+      "width": 758,
+      "height": 837,
+      "notes": "Seen here is the image of Krishna and the gopis in four registers, terminating at the bottom with Krishna and Radha in e"
+    },
+    {
+      "filename": "05_Shrinathji_Darshan_Nathdwara_Kalam_of_Rajasthani_School_of_Art_circa_1.jpg",
+      "commons_title": "File:Shrinathji Darshan, Nathdwara Kalam of Rajasthani School of Art, circa 1850-1900 CE, INHCRF Coin Museum, Nashik, Maharashtra.jpg",
+      "author": "SpeakingArch",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AShrinathji_Darshan%2C_Nathdwara_Kalam_of_Rajasthani_School_of_Art%2C_circa_1850-1900_CE%2C_INHCRF_Coin_Museum%2C_Nashik%2C_Maharashtra.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/8/81/Shrinathji_Darshan%2C_Nathdwara_Kalam_of_Rajasthani_School_of_Art%2C_circa_1850-1900_CE%2C_INHCRF_Coin_Museum%2C_Nashik%2C_Maharashtra.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "bytes": 259133,
+      "width": 944,
+      "height": 1244,
+      "notes": "Shrinathji Darshan, Nathdwara Kalam of Rajasthani School of Art, circa 1850-1900 CE, INHCRF Coin Museum, Nashik, Maharas"
+    }
+  ]
+}

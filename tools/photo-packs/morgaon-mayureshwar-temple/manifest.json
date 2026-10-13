@@ -1,0 +1,62 @@
+{
+  "temple_slug": "morgaon-mayureshwar-temple",
+  "temple_name": "Morgaon Mayureshwar Temple",
+  "doc_id_hint": "morgaon-mayureshwar-temple",
+  "city": "Morgaon",
+  "state": "Maharashtra",
+  "tradition_note": "Ganesha",
+  "photos": [
+    {
+      "filename": "01_Entrance_gateway_of_Shri_Mayureshwar_Mandir_Morgaon.jpg",
+      "commons_title": "File:Entrance gateway of Shri Mayureshwar Mandir, Morgaon.jpg",
+      "author": "FailedEngineer2027",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AEntrance_gateway_of_Shri_Mayureshwar_Mandir%2C_Morgaon.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/0/03/Entrance_gateway_of_Shri_Mayureshwar_Mandir%2C_Morgaon.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "bytes": 157331,
+      "width": 720,
+      "height": 1599,
+      "notes": "Photograph of the entrance gateway of Shri Mayureshwar Mandir, an important Ashtavinayak Ganesh temple located at Morgao"
+    },
+    {
+      "filename": "02_Morgaon_temple.jpg",
+      "commons_title": "File:Morgaon temple.jpg",
+      "author": "Redtigerxyz",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMorgaon_temple.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/43/Morgaon_temple.jpg/1280px-Morgaon_temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 416702,
+      "width": 1280,
+      "height": 1707,
+      "notes": "Morgaon temple"
+    },
+    {
+      "filename": "03_Morgaon.jpg",
+      "commons_title": "File:Morgaon.jpg",
+      "author": "Redtigerxyz",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMorgaon.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2d/Morgaon.jpg/1280px-Morgaon.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 545329,
+      "width": 1280,
+      "height": 1707,
+      "notes": "Morgaon temple"
+    },
+    {
+      "filename": "04_Morgaon_temple_gate.jpg",
+      "commons_title": "File:Morgaon temple gate.jpg",
+      "author": "Redtigerxyz",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AMorgaon_temple_gate.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/4/47/Morgaon_temple_gate.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "bytes": 110783,
+      "width": 600,
+      "height": 800,
+      "notes": "Morgaon temple"
+    }
+  ]
+}

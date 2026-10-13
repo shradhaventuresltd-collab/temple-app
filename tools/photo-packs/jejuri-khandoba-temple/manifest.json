@@ -1,0 +1,75 @@
+{
+  "temple_slug": "jejuri-khandoba-temple",
+  "temple_name": "Jejuri Khandoba Temple",
+  "doc_id_hint": "jejuri-khandoba-temple",
+  "city": "Jejuri",
+  "state": "Maharashtra",
+  "tradition_note": "Khandoba",
+  "photos": [
+    {
+      "filename": "01_Jejuri_khandoba.jpg",
+      "commons_title": "File:Jejuri khandoba.JPG",
+      "author": "PratibhaS Pawar",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AJejuri_khandoba.JPG",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c9/Jejuri_khandoba.JPG/1280px-Jejuri_khandoba.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 567739,
+      "width": 1280,
+      "height": 1707,
+      "notes": "Famous for Khandoba deity,"
+    },
+    {
+      "filename": "02_View_of_Jejuri_city_from_Khandoba_Temple.jpg",
+      "commons_title": "File:View of Jejuri city from Khandoba Temple.jpg",
+      "author": "Phoenixhit",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AView_of_Jejuri_city_from_Khandoba_Temple.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/43/View_of_Jejuri_city_from_Khandoba_Temple.jpg/1280px-View_of_Jejuri_city_from_Khandoba_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 373202,
+      "width": 1280,
+      "height": 720,
+      "notes": "View of Jejuri city from Khandoba Temple"
+    },
+    {
+      "filename": "03_Khandoba_Jejuri_-_panoramio.jpg",
+      "commons_title": "File:Khandoba, Jejuri - panoramio.jpg",
+      "author": "Amey_A",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AKhandoba%2C_Jejuri_-_panoramio.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/44/Khandoba%2C_Jejuri_-_panoramio.jpg/1280px-Khandoba%2C_Jejuri_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 317599,
+      "width": 1280,
+      "height": 960,
+      "notes": "Khandoba, Jejuri"
+    },
+    {
+      "filename": "04_JEJURI_KHANDOBA_TEMPLE.jpg",
+      "commons_title": "File:JEJURI, KHANDOBA TEMPLE.jpg",
+      "author": "Deepak Bansi",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AJEJURI%2C_KHANDOBA_TEMPLE.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9c/JEJURI%2C_KHANDOBA_TEMPLE.jpg/1280px-JEJURI%2C_KHANDOBA_TEMPLE.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 412057,
+      "width": 1280,
+      "height": 960,
+      "notes": "This is a photo of ASI monument number"
+    },
+    {
+      "filename": "05_Jejuri_khandoba_temple_Longshot.jpg",
+      "commons_title": "File:Jejuri khandoba temple Longshot.jpg",
+      "author": "Nahushraj",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AJejuri_khandoba_temple_Longshot.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/97/Jejuri_khandoba_temple_Longshot.jpg/1280px-Jejuri_khandoba_temple_Longshot.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 204526,
+      "width": 1280,
+      "height": 719,
+      "notes": "This is a photo of ASI monument number"
+    }
+  ]
+}

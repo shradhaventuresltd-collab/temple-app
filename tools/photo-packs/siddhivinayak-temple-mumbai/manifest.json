@@ -1,0 +1,75 @@
+{
+  "temple_slug": "siddhivinayak-temple-mumbai",
+  "temple_name": "Siddhivinayak Temple",
+  "doc_id_hint": "siddhivinayak-temple-mumbai",
+  "city": "Mumbai",
+  "state": "Maharashtra",
+  "tradition_note": "Ganesha",
+  "photos": [
+    {
+      "filename": "01_Shree_Siddhivinayak_Temple_Mumbai.jpg",
+      "commons_title": "File:Shree Siddhivinayak Temple Mumbai.jpg",
+      "author": "Darwininan",
+      "license": "CC BY-SA 3.0",
+      "license_url": "",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AShree_Siddhivinayak_Temple_Mumbai.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b9/Shree_Siddhivinayak_Temple_Mumbai.jpg/1280px-Shree_Siddhivinayak_Temple_Mumbai.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 467186,
+      "width": 2410,
+      "height": 3214,
+      "notes": "Siddhivinayak Temple, Mumbai"
+    },
+    {
+      "filename": "02_Siddhivinayak_Mumbai.jpg",
+      "commons_title": "File:Siddhivinayak Mumbai.jpg",
+      "author": "Av9",
+      "license": "CC BY-SA 4.0",
+      "license_url": "",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ASiddhivinayak_Mumbai.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f7/Siddhivinayak_Mumbai.jpg/1280px-Siddhivinayak_Mumbai.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 429473,
+      "width": 3056,
+      "height": 3056,
+      "notes": "Siddhivinayak Temple, Mumbai"
+    },
+    {
+      "filename": "03_Ganesha_Idol_Siddhivinayak_Temple_Mumbai.jpg",
+      "commons_title": "File:Ganesha Idol, Siddhivinayak Temple, Mumbai.jpg",
+      "author": "Feroze Ahmad 2",
+      "license": "CC BY-SA 4.0",
+      "license_url": "",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AGanesha_Idol%2C_Siddhivinayak_Temple%2C_Mumbai.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/1/16/Ganesha_Idol%2C_Siddhivinayak_Temple%2C_Mumbai.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "bytes": 127737,
+      "width": 1280,
+      "height": 960,
+      "notes": "Siddhivinayak Temple, Mumbai"
+    },
+    {
+      "filename": "04_Ganesha_Idol_Siddhivinayak_Temple_Mumbai_1.jpg",
+      "commons_title": "File:Ganesha Idol, Siddhivinayak Temple, Mumbai 1.jpg",
+      "author": "Feroze Ahmad 2",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AGanesha_Idol%2C_Siddhivinayak_Temple%2C_Mumbai_1.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/5/56/Ganesha_Idol%2C_Siddhivinayak_Temple%2C_Mumbai_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "bytes": 132759,
+      "width": 1280,
+      "height": 960,
+      "notes": "Ganesha Idol, Siddhivinayak Temple, Mumbai 1"
+    },
+    {
+      "filename": "05_Ganesha_art_Siddhivinayak_Temple_Mumbai_1.jpg",
+      "commons_title": "File:Ganesha art, Siddhivinayak Temple, Mumbai 1.jpg",
+      "author": "Feroze Ahmad 2",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AGanesha_art%2C_Siddhivinayak_Temple%2C_Mumbai_1.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/f/fc/Ganesha_art%2C_Siddhivinayak_Temple%2C_Mumbai_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "bytes": 103034,
+      "width": 960,
+      "height": 1280,
+      "notes": "Ganesha art, Siddhivinayak Temple, Mumbai 1"
+    }
+  ]
+}

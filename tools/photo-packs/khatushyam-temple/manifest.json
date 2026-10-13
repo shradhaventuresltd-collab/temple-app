@@ -1,0 +1,75 @@
+{
+  "temple_slug": "khatushyam-temple",
+  "temple_name": "Khatushyam Temple",
+  "doc_id_hint": "khatushyam-temple",
+  "city": "Khatu",
+  "state": "Rajasthan",
+  "tradition_note": "Vishnu",
+  "photos": [
+    {
+      "filename": "01_Khatushyam.jpg",
+      "commons_title": "File:Khatushyam.jpg",
+      "author": "Khatushyamdarbar",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AKhatushyam.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b5/Khatushyam.jpg/1280px-Khatushyam.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 317131,
+      "width": 1280,
+      "height": 1707,
+      "notes": "Khatu Shyam Darbar"
+    },
+    {
+      "filename": "02_Khatushyam_Ji_Temple.jpg",
+      "commons_title": "File:Khatushyam Ji Temple.jpg",
+      "author": "Yash26M12",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AKhatushyam_Ji_Temple.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Khatushyam_Ji_Temple.jpg/1280px-Khatushyam_Ji_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 331237,
+      "width": 1280,
+      "height": 960,
+      "notes": "Its a pilgrimage and devotees can come anytime to worship holy god Khatushyam Ji commonly known as \"Khatubaba\" or \"Khatu"
+    },
+    {
+      "filename": "03_Khatushyam_mandir.jpg",
+      "commons_title": "File:Khatushyam mandir.jpg",
+      "author": "Rajatdesiboy",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AKhatushyam_mandir.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5a/Khatushyam_mandir.jpg/1280px-Khatushyam_mandir.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 226929,
+      "width": 1280,
+      "height": 960,
+      "notes": "khatushyam mandir chulkana dham"
+    },
+    {
+      "filename": "04_Khatushyamji_Pad_Yatra_from_Kota.jpg",
+      "commons_title": "File:Khatushyamji Pad Yatra from Kota.JPG",
+      "author": "Myself",
+      "license": "CC BY-SA 2.5",
+      "license_url": "https://creativecommons.org/licenses/by-sa/2.5/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AKhatushyamji_Pad_Yatra_from_Kota.JPG",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9d/Khatushyamji_Pad_Yatra_from_Kota.JPG/1280px-Khatushyamji_Pad_Yatra_from_Kota.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 658443,
+      "width": 1280,
+      "height": 1707,
+      "notes": "an idol of Khatushyamji. During Pad Yatra-2007 from Kota."
+    },
+    {
+      "filename": "05_Shree_Shree_Khatu_Shyam_Temple.jpg",
+      "commons_title": "File:Shree Shree Khatu Shyam Temple.jpg",
+      "author": "SayandeepDutta",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AShree_Shree_Khatu_Shyam_Temple.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c1/Shree_Shree_Khatu_Shyam_Temple.jpg/1280px-Shree_Shree_Khatu_Shyam_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 1048863,
+      "width": 1280,
+      "height": 2276,
+      "notes": "Picture of Shree Shree Khatu Shyam temple near Islampur, West Bengal."
+    }
+  ]
+}

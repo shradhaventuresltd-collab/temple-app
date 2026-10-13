@@ -17,7 +17,7 @@ const List<Temple> sampleTemples = [
     deity: 'Devi',
     imageUrl:
         'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Meenakshi_Amman_Temple_-_Gateway_Tower%2C_Madurai.jpg/1280px-Meenakshi_Amman_Temple_-_Gateway_Tower%2C_Madurai.jpg',
-    images: const [
+    images: [
       'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Meenakshi_Amman_Temple_-_Gateway_Tower%2C_Madurai.jpg/1280px-Meenakshi_Amman_Temple_-_Gateway_Tower%2C_Madurai.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/03_sunrise_view_of_Meenakshi_temple_gopuram.jpg/1280px-03_sunrise_view_of_Meenakshi_temple_gopuram.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Madurai_Meenakshi_temple_gopuram.jpg/1280px-Madurai_Meenakshi_temple_gopuram.jpg',
@@ -61,7 +61,7 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/13/Ancient_Thanjavur_Brihadeeswarar_Temple_photos.jpg/1280px-Ancient_Thanjavur_Brihadeeswarar_Temple_photos.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/13/Ancient_Thanjavur_Brihadeeswarar_Temple_photos.jpg/1280px-Ancient_Thanjavur_Brihadeeswarar_Temple_photos.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b2/Thanjavur_Brihadeeswarar_temple.JPG/1280px-Thanjavur_Brihadeeswarar_temple.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ce/Brihadeeswarar_Temple_Entrance_in_Thanjavur.jpg/1280px-Brihadeeswarar_Temple_Entrance_in_Thanjavur.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -104,7 +104,7 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/af/Chennai-Kapaleeshwarar_Temple-IMG_20250219_114340.jpg/1280px-Chennai-Kapaleeshwarar_Temple-IMG_20250219_114340.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/af/Chennai-Kapaleeshwarar_Temple-IMG_20250219_114340.jpg/1280px-Chennai-Kapaleeshwarar_Temple-IMG_20250219_114340.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b1/Chennai-Kapaleeshwarar_Temple-IMG_20250219_114343.jpg/1280px-Chennai-Kapaleeshwarar_Temple-IMG_20250219_114343.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/Chennai-Kapaleeshwarar_Temple-WUS01436.jpg/1280px-Chennai-Kapaleeshwarar_Temple-WUS01436.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -147,7 +147,7 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/85/Ramanathaswamy_Temple%2C_Rameswaram.jpg/1280px-Ramanathaswamy_Temple%2C_Rameswaram.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/85/Ramanathaswamy_Temple%2C_Rameswaram.jpg/1280px-Ramanathaswamy_Temple%2C_Rameswaram.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c4/Ramanathaswamy_Temple_Rameswaram_%281%29.jpg/1280px-Ramanathaswamy_Temple_Rameswaram_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Ramanathaswamy_Temple_Rameswaram_%282%29.jpg/1280px-Ramanathaswamy_Temple_Rameswaram_%282%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -189,7 +189,7 @@ const List<Temple> sampleTemples = [
     deity: 'Murugan',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dc/8th_century_Thirupparankundram_cave_temple%2C_Madurai_district%2C_Tamil_Nadu_India_-_2.jpg/1280px-8th_century_Thirupparankundram_cave_temple%2C_Madurai_district%2C_Tamil_Nadu_India_-_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dc/8th_century_Thirupparankundram_cave_temple%2C_Madurai_district%2C_Tamil_Nadu_India_-_2.jpg/1280px-8th_century_Thirupparankundram_cave_temple%2C_Madurai_district%2C_Tamil_Nadu_India_-_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a4/8th_century_Thirupparankundram_cave_temple%2C_Madurai_district%2C_Tamil_Nadu_India_-_6.jpg/1280px-8th_century_Thirupparankundram_cave_temple%2C_Madurai_district%2C_Tamil_Nadu_India_-_6.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0c/8th_century_Thirupparankundram_cave_temple%2C_Madurai_district%2C_Tamil_Nadu_India_-_4.jpg/1280px-8th_century_Thirupparankundram_cave_temple%2C_Madurai_district%2C_Tamil_Nadu_India_-_4.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -231,7 +231,7 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     imageUrl:
         'https://upload.wikimedia.org/wikipedia/commons/thumb/8/86/Shore_Temple_view_2_-_Mahabalipuram.jpg/1280px-Shore_Temple_view_2_-_Mahabalipuram.jpg',
-    images: const [
+    images: [
       'https://upload.wikimedia.org/wikipedia/commons/thumb/8/86/Shore_Temple_view_2_-_Mahabalipuram.jpg/1280px-Shore_Temple_view_2_-_Mahabalipuram.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Shore_Temple_Mahabalipuram_Tamil-Nadu_India.jpg/1280px-Shore_Temple_Mahabalipuram_Tamil-Nadu_India.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/The_Shore_Temple_Mahabalipuram.jpg/1280px-The_Shore_Temple_Mahabalipuram.jpg',
@@ -274,7 +274,7 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/83/A_view_of_Nataraja_Shiva_Temple_at_Chidambaram%2C_Tamil_Nadu_%2812%29.jpg/1280px-A_view_of_Nataraja_Shiva_Temple_at_Chidambaram%2C_Tamil_Nadu_%2812%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/83/A_view_of_Nataraja_Shiva_Temple_at_Chidambaram%2C_Tamil_Nadu_%2812%29.jpg/1280px-A_view_of_Nataraja_Shiva_Temple_at_Chidambaram%2C_Tamil_Nadu_%2812%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/20/A_view_of_Nataraja_Shiva_Temple_at_Chidambaram%2C_Tamil_Nadu_%2814%29.jpg/1280px-A_view_of_Nataraja_Shiva_Temple_at_Chidambaram%2C_Tamil_Nadu_%2814%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/87/Nataraja_Shiva_Temple_at_Chidambaram%2C_Tamil_Nadu_2017_%2811%29.jpg/1280px-Nataraja_Shiva_Temple_at_Chidambaram%2C_Tamil_Nadu_2017_%2811%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -318,7 +318,7 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/16/Kanchipuram%2C_Sri_Ekambaranathar_Temple_%286846490776%29.jpg/1280px-Kanchipuram%2C_Sri_Ekambaranathar_Temple_%286846490776%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/16/Kanchipuram%2C_Sri_Ekambaranathar_Temple_%286846490776%29.jpg/1280px-Kanchipuram%2C_Sri_Ekambaranathar_Temple_%286846490776%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8e/Ekambaranathar_Temple%2C_Kanchipuram_%2850065027238%29.jpg/1280px-Ekambaranathar_Temple%2C_Kanchipuram_%2850065027238%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/28/Ekambaranathar_Temple%2C_Kanchipuram_%2850065027343%29.jpg/1280px-Ekambaranathar_Temple%2C_Kanchipuram_%2850065027343%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -362,7 +362,7 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/86/Arulmigu_Arunachaleswarar_Temple%2C_Thiruvannamalai_%2842492949895%29.jpg/1280px-Arulmigu_Arunachaleswarar_Temple%2C_Thiruvannamalai_%2842492949895%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/86/Arulmigu_Arunachaleswarar_Temple%2C_Thiruvannamalai_%2842492949895%29.jpg/1280px-Arulmigu_Arunachaleswarar_Temple%2C_Thiruvannamalai_%2842492949895%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/09/Thiruvannamalai_Arunachaleswarar_Temple_Rajagopuram.jpg/1280px-Thiruvannamalai_Arunachaleswarar_Temple_Rajagopuram.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/78/Tiruvannamalai_arunachaleswarar_kovil.jpg/1280px-Tiruvannamalai_arunachaleswarar_kovil.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -407,7 +407,7 @@ const List<Temple> sampleTemples = [
     deity: 'Vishnu',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3b/Kumbakonam-Sarangapani_Temple-WUS03048.jpg/1280px-Kumbakonam-Sarangapani_Temple-WUS03048.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3b/Kumbakonam-Sarangapani_Temple-WUS03048.jpg/1280px-Kumbakonam-Sarangapani_Temple-WUS03048.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/54/Kumbakonam-Sarangapani_Temple-WUS03052.jpg/1280px-Kumbakonam-Sarangapani_Temple-WUS03052.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7e/Kumbakonam-Sarangapani_Temple-WUS03053.jpg/1280px-Kumbakonam-Sarangapani_Temple-WUS03053.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -458,7 +458,7 @@ const List<Temple> sampleTemples = [
     deity: 'Vishnu',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/09/Sri_Ranganathaswamy_Temple%2C_dedicated_to_Vishnu%2C_in_Srirangam%2C_near_Tiruchirappali_%28105%29_%2836802865564%29.jpg/1280px-Sri_Ranganathaswamy_Temple%2C_dedicated_to_Vishnu%2C_in_Srirangam%2C_near_Tiruchirappali_%28105%29_%2836802865564%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/09/Sri_Ranganathaswamy_Temple%2C_dedicated_to_Vishnu%2C_in_Srirangam%2C_near_Tiruchirappali_%28105%29_%2836802865564%29.jpg/1280px-Sri_Ranganathaswamy_Temple%2C_dedicated_to_Vishnu%2C_in_Srirangam%2C_near_Tiruchirappali_%28105%29_%2836802865564%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/44/Sri_Ranganathaswamy_Temple%2C_dedicated_to_Vishnu%2C_in_Srirangam%2C_near_Tiruchirappali_%28151%29_%2837465657406%29.jpg/1280px-Sri_Ranganathaswamy_Temple%2C_dedicated_to_Vishnu%2C_in_Srirangam%2C_near_Tiruchirappali_%28151%29_%2837465657406%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/86/Sri_Ranganathaswamy_Temple%2C_dedicated_to_Vishnu%2C_in_Srirangam%2C_near_Tiruchirappali_%2816%29_%2836842412443%29.jpg/1280px-Sri_Ranganathaswamy_Temple%2C_dedicated_to_Vishnu%2C_in_Srirangam%2C_near_Tiruchirappali_%2816%29_%2836842412443%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -533,7 +533,7 @@ const List<Temple> sampleTemples = [
     deity: 'Murugan',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c4/Arulmigu_Dhandayuthapani_Swamy_Temple_in_Palany_hill.jpg/1280px-Arulmigu_Dhandayuthapani_Swamy_Temple_in_Palany_hill.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c4/Arulmigu_Dhandayuthapani_Swamy_Temple_in_Palany_hill.jpg/1280px-Arulmigu_Dhandayuthapani_Swamy_Temple_in_Palany_hill.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/43/Palani_Temple-WUS05301.jpg/1280px-Palani_Temple-WUS05301.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/48/Palani_Temple-WUS05302.jpg/1280px-Palani_Temple-WUS05302.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -599,7 +599,7 @@ const List<Temple> sampleTemples = [
     deity: 'Murugan',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fd/The_Raja_Gopuram_at_Thiruchendur_Murugan_Temple.JPG/1280px-The_Raja_Gopuram_at_Thiruchendur_Murugan_Temple.JPG',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fd/The_Raja_Gopuram_at_Thiruchendur_Murugan_Temple.JPG/1280px-The_Raja_Gopuram_at_Thiruchendur_Murugan_Temple.JPG',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bf/Arulmigu_Subramaniya_Swamy_Temple%2C_Tiruchendur.jpg/1280px-Arulmigu_Subramaniya_Swamy_Temple%2C_Tiruchendur.jpg',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/38/Murugan_temple_at_Thiruchendur.jpg/1280px-Murugan_temple_at_Thiruchendur.jpg',
@@ -665,7 +665,7 @@ const List<Temple> sampleTemples = [
     deity: 'Murugan',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/Swamimalai_Murugan_Temple.jpg/1280px-Swamimalai_Murugan_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/Swamimalai_Murugan_Temple.jpg/1280px-Swamimalai_Murugan_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ca/Swaminathan_Temple_-_Swamimalai_%281%29.jpg/1280px-Swaminathan_Temple_-_Swamimalai_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/68/Swaminathan_Temple_-_Swamimalai_%282%29.jpg/1280px-Swaminathan_Temple_-_Swamimalai_%282%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -731,7 +731,7 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/Jambukeswarar_Temple_surroundings%2C_Thiruvanaikaval_ttkcvrvb122k23pxl_%2852%29.jpg/1280px-Jambukeswarar_Temple_surroundings%2C_Thiruvanaikaval_ttkcvrvb122k23pxl_%2852%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/Jambukeswarar_Temple_surroundings%2C_Thiruvanaikaval_ttkcvrvb122k23pxl_%2852%29.jpg/1280px-Jambukeswarar_Temple_surroundings%2C_Thiruvanaikaval_ttkcvrvb122k23pxl_%2852%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/69/Jambukeswarar_Temple_surroundings%2C_Thiruvanaikaval_ttkcvrvb122k23pxl_%281%29.jpg/1280px-Jambukeswarar_Temple_surroundings%2C_Thiruvanaikaval_ttkcvrvb122k23pxl_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9a/Jambukeswarar_Temple_surroundings%2C_Thiruvanaikaval_ttkcvrvb122k23pxl_%2815%29.jpg/1280px-Jambukeswarar_Temple_surroundings%2C_Thiruvanaikaval_ttkcvrvb122k23pxl_%2815%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -795,7 +795,7 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1d/Thyagarajar_temple%2C_Tiruvarur_%2813%29.jpg/1280px-Thyagarajar_temple%2C_Tiruvarur_%2813%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1d/Thyagarajar_temple%2C_Tiruvarur_%2813%29.jpg/1280px-Thyagarajar_temple%2C_Tiruvarur_%2813%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/18/Thyagarajar_temple%2C_Tiruvarur_%2814%29.jpg/1280px-Thyagarajar_temple%2C_Tiruvarur_%2814%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/95/Thyagarajar_temple%2C_Tiruvarur_%2826%29.jpg/1280px-Thyagarajar_temple%2C_Tiruvarur_%2826%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -857,7 +857,7 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/27/Nellaiappar_Temple_%2848410%29.jpg/1280px-Nellaiappar_Temple_%2848410%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/27/Nellaiappar_Temple_%2848410%29.jpg/1280px-Nellaiappar_Temple_%2848410%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c5/NELLAIAPPAR_TEMPLE_02.jpg/1280px-NELLAIAPPAR_TEMPLE_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cc/Thamira_saba-Nellaiappar_Temple.jpg/1280px-Thamira_saba-Nellaiappar_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -972,7 +972,7 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cb/VAITHEESWARAN_KOIL_-_panoramio.jpg/1280px-VAITHEESWARAN_KOIL_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cb/VAITHEESWARAN_KOIL_-_panoramio.jpg/1280px-VAITHEESWARAN_KOIL_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c4/VAITHEESWARAN_KOIL_-_panoramio_%2810%29.jpg/1280px-VAITHEESWARAN_KOIL_-_panoramio_%2810%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/29/VAITHEESWARAN_KOIL_-_panoramio_%2811%29.jpg/1280px-VAITHEESWARAN_KOIL_-_panoramio_%2811%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -1037,7 +1037,7 @@ const List<Temple> sampleTemples = [
     deity: 'Murugan',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cb/Tiruttani_Murugan_temple.jpg/1280px-Tiruttani_Murugan_temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cb/Tiruttani_Murugan_temple.jpg/1280px-Tiruttani_Murugan_temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/35/Arulmigu_Subramaniya_Swami_Temple%2C_Tiruttani_2.jpg/1280px-Arulmigu_Subramaniya_Swami_Temple%2C_Tiruttani_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/Arulmigu_Subramaniya_Swami_Temple%2C_Tiruttani.jpg/1280px-Arulmigu_Subramaniya_Swami_Temple%2C_Tiruttani.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -1102,7 +1102,7 @@ const List<Temple> sampleTemples = [
     deity: 'Vishnu',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d2/Garuda_statue_at_Guruvayur_Sri_Krishna_Temple.jpg/1280px-Garuda_statue_at_Guruvayur_Sri_Krishna_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d2/Garuda_statue_at_Guruvayur_Sri_Krishna_Temple.jpg/1280px-Garuda_statue_at_Guruvayur_Sri_Krishna_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://upload.wikimedia.org/wikipedia/commons/e/eb/Guruvayur_Sree_Krishna_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/62/009392022_Guruvayur_temple%2C_Kerala_024.jpg/1280px-009392022_Guruvayur_temple%2C_Kerala_024.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -1168,7 +1168,7 @@ const List<Temple> sampleTemples = [
     deity: 'Vishnu',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/59/Sree_Padmanabhaswamy_Temple_Gopuram_Thiruvananthapuram_Kerala_India.jpg/1280px-Sree_Padmanabhaswamy_Temple_Gopuram_Thiruvananthapuram_Kerala_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/59/Sree_Padmanabhaswamy_Temple_Gopuram_Thiruvananthapuram_Kerala_India.jpg/1280px-Sree_Padmanabhaswamy_Temple_Gopuram_Thiruvananthapuram_Kerala_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6e/Sree_Padmanabhaswamy_Temple%2C_Thiruvananthapuram.jpg/1280px-Sree_Padmanabhaswamy_Temple%2C_Thiruvananthapuram.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/43/Sree_Padmanabhaswamy_Temple_2.jpg/1280px-Sree_Padmanabhaswamy_Temple_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -1225,7 +1225,7 @@ const List<Temple> sampleTemples = [
     deity: 'Vishnu',
     imageUrl:
         'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Sabarimala_5.jpg/1280px-Sabarimala_5.jpg',
-    images: const [
+    images: [
       'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Sabarimala_5.jpg/1280px-Sabarimala_5.jpg',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/05/Sabarimala.jpg/1280px-Sabarimala.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/Sabarimala_Garbhagudi.jpg/1280px-Sabarimala_Garbhagudi.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -1293,7 +1293,7 @@ const List<Temple> sampleTemples = [
     deity: 'Devi',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5d/Attukal_Bhagavathy_temple_1.jpg/1280px-Attukal_Bhagavathy_temple_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5d/Attukal_Bhagavathy_temple_1.jpg/1280px-Attukal_Bhagavathy_temple_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fc/Attukal_Bhagavathy_temple_2.jpg/1280px-Attukal_Bhagavathy_temple_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/61/Attukal_Bhagavathy_temple_3.jpg/1280px-Attukal_Bhagavathy_temple_3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -1351,7 +1351,7 @@ const List<Temple> sampleTemples = [
     deity: 'Devi',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ee/Chottanikkara_Temple_2024.jpg/1280px-Chottanikkara_Temple_2024.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ee/Chottanikkara_Temple_2024.jpg/1280px-Chottanikkara_Temple_2024.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5b/Chottanikkara_Bhagavathy_Temple_and_surroundings_%281%29.jpg/1280px-Chottanikkara_Bhagavathy_Temple_and_surroundings_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/49/Chottanikkara_Bhagavathy_Temple_and_surroundings_%2810%29.jpg/1280px-Chottanikkara_Bhagavathy_Temple_and_surroundings_%2810%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -1410,7 +1410,7 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c6/Ernakulathappan_temple1.jpg/1280px-Ernakulathappan_temple1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c6/Ernakulathappan_temple1.jpg/1280px-Ernakulathappan_temple1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/96/Ernakulathappan_temple2.jpg/1280px-Ernakulathappan_temple2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/eb/Ernakulathappan_temple3.jpg/1280px-Ernakulathappan_temple3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -1464,7 +1464,7 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/Vaikom_Mahadeva_Temple%2C_Kottayam%2C_Kerala_state%2C_India.jpg/1280px-Vaikom_Mahadeva_Temple%2C_Kottayam%2C_Kerala_state%2C_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/Vaikom_Mahadeva_Temple%2C_Kottayam%2C_Kerala_state%2C_India.jpg/1280px-Vaikom_Mahadeva_Temple%2C_Kottayam%2C_Kerala_state%2C_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/21/009262022_Vaikom_Mahadeva_temple_aerial_view%2C_Kottayam_Kerala_012.jpg/1280px-009262022_Vaikom_Mahadeva_temple_aerial_view%2C_Kottayam_Kerala_012.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/54/Pambady_Rajan_carrying_Idol_of_vaikom_mahadeva_temple.jpg/1280px-Pambady_Rajan_carrying_Idol_of_vaikom_mahadeva_temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -1624,7 +1624,7 @@ const List<Temple> sampleTemples = [
     deity: 'Vishnu',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/34/Thirunelli_Maha_Vishnu_temple_in_Wayanad_region_Kerala_India.jpg/1280px-Thirunelli_Maha_Vishnu_temple_in_Wayanad_region_Kerala_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/34/Thirunelli_Maha_Vishnu_temple_in_Wayanad_region_Kerala_India.jpg/1280px-Thirunelli_Maha_Vishnu_temple_in_Wayanad_region_Kerala_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2a/Thirunelli_Maha_Vishnu_Temple.JPG/1280px-Thirunelli_Maha_Vishnu_Temple.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a7/A_Namaste_relief_at_Thirunelli_Maha_Vishnu_temple_Kerala_India.jpg/1280px-A_Namaste_relief_at_Thirunelli_Maha_Vishnu_temple_Kerala_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -1689,7 +1689,7 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/ff/Vadakkunnathan_Temple_Trichur_Keral_India1.jpg/1280px-Vadakkunnathan_Temple_Trichur_Keral_India1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/ff/Vadakkunnathan_Temple_Trichur_Keral_India1.jpg/1280px-Vadakkunnathan_Temple_Trichur_Keral_India1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/13/Vadakkunnathan_Temple_Thrissur_BN3Q3984.jpg/1280px-Vadakkunnathan_Temple_Thrissur_BN3Q3984.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/00/Grand_Onam_Pookkalam_in_front_of_Vadakkunnathan_Temple%2C_Thrissur.jpg/1280px-Grand_Onam_Pookkalam_in_front_of_Vadakkunnathan_Temple%2C_Thrissur.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -1760,7 +1760,7 @@ const List<Temple> sampleTemples = [
     deity: 'Vishnu',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cc/Pampadi_Rajan_at_Sree_Poornathrayeesa_Temple_Thrippunithura.jpg/1280px-Pampadi_Rajan_at_Sree_Poornathrayeesa_Temple_Thrippunithura.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cc/Pampadi_Rajan_at_Sree_Poornathrayeesa_Temple_Thrippunithura.jpg/1280px-Pampadi_Rajan_at_Sree_Poornathrayeesa_Temple_Thrippunithura.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b7/Thiruvambadi_Chandrasekharan_at_Sree_Poornathrayeesa_Temple_Thrippunithura.jpg/1280px-Thiruvambadi_Chandrasekharan_at_Sree_Poornathrayeesa_Temple_Thrippunithura.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://upload.wikimedia.org/wikipedia/commons/3/3f/Sree_Poornathrayeesa_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original',
@@ -1827,7 +1827,7 @@ const List<Temple> sampleTemples = [
     deity: 'Vishnu',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e7/Ambalappuzha_Sree_Krishna_Temple_07.jpg/1280px-Ambalappuzha_Sree_Krishna_Temple_07.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e7/Ambalappuzha_Sree_Krishna_Temple_07.jpg/1280px-Ambalappuzha_Sree_Krishna_Temple_07.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/80/Ambalappuzha_Sree_Krishna_Temple_08.jpg/1280px-Ambalappuzha_Sree_Krishna_Temple_08.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7a/Ambalappuzha_Sree_Krishna_Temple_17.jpg/1280px-Ambalappuzha_Sree_Krishna_Temple_17.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -1894,7 +1894,7 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/009242022_Ettumanoor_Mahadeva_temple%2C_Kottayam_Kerala_005.jpg/1280px-009242022_Ettumanoor_Mahadeva_temple%2C_Kottayam_Kerala_005.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/009242022_Ettumanoor_Mahadeva_temple%2C_Kottayam_Kerala_005.jpg/1280px-009242022_Ettumanoor_Mahadeva_temple%2C_Kottayam_Kerala_005.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3c/009242022_Ettumanoor_Mahadeva_temple%2C_Kottayam_Kerala_010.jpg/1280px-009242022_Ettumanoor_Mahadeva_temple%2C_Kottayam_Kerala_010.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b4/009242022_Ettumanoor_Mahadeva_temple%2C_Kottayam_Kerala_017.jpg/1280px-009242022_Ettumanoor_Mahadeva_temple%2C_Kottayam_Kerala_017.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -1956,7 +1956,7 @@ const List<Temple> sampleTemples = [
     deity: 'Devi',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7a/Kettukazhcha_at_Chettikulangara_Devi_temple.jpg/1280px-Kettukazhcha_at_Chettikulangara_Devi_temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7a/Kettukazhcha_at_Chettikulangara_Devi_temple.jpg/1280px-Kettukazhcha_at_Chettikulangara_Devi_temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/07/CHETTIKULANGARA_TEMPLE.jpg/1280px-CHETTIKULANGARA_TEMPLE.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bc/Chettikulangara_Kettukazcha_panorama.jpg/1280px-Chettikulangara_Kettukazcha_panorama.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -2020,7 +2020,7 @@ const List<Temple> sampleTemples = [
     deity: 'Devi',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8b/Kodungallur_Bhagavathy_Temple_02.jpg/1280px-Kodungallur_Bhagavathy_Temple_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8b/Kodungallur_Bhagavathy_Temple_02.jpg/1280px-Kodungallur_Bhagavathy_Temple_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d5/Kodungallur_Bhagavathy_Temple_03.jpg/1280px-Kodungallur_Bhagavathy_Temple_03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/22/Kodungallur_Bhagavathy_Temple_03_bnr.png/1280px-Kodungallur_Bhagavathy_Temple_03_bnr.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -2083,7 +2083,7 @@ const List<Temple> sampleTemples = [
     deity: 'Muthappan',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c2/Parassinikadavu_Sri_Muthappan_Temple.png/1280px-Parassinikadavu_Sri_Muthappan_Temple.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c2/Parassinikadavu_Sri_Muthappan_Temple.png/1280px-Parassinikadavu_Sri_Muthappan_Temple.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/17/Parassini_Madappura_Sree_Muthappan_Parassinikadavu_2026_0224_072159.jpg/1280px-Parassini_Madappura_Sree_Muthappan_Parassinikadavu_2026_0224_072159.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7f/Parassini_Madappura_Sree_Muthappan_Parassinikadavu_2026_0224_072221.jpg/1280px-Parassini_Madappura_Sree_Muthappan_Parassinikadavu_2026_0224_072221.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -2146,7 +2146,7 @@ const List<Temple> sampleTemples = [
     deity: 'Vishnu',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1d/Sreevallabha_temple%2C_thiruvalla.JPG/1280px-Sreevallabha_temple%2C_thiruvalla.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1d/Sreevallabha_temple%2C_thiruvalla.JPG/1280px-Sreevallabha_temple%2C_thiruvalla.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/33/Kadhakali_-_Sreevallabha_Temple%2C_Thiruvalla.jpg/1280px-Kadhakali_-_Sreevallabha_Temple%2C_Thiruvalla.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2f/Lakshmi_vilakku_sreevallabha_temple%2C_thiruvalla.JPG/1280px-Lakshmi_vilakku_sreevallabha_temple%2C_thiruvalla.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -2205,7 +2205,7 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3e/Chengannur_Mahadeva_Temple_2022_September.jpg/1280px-Chengannur_Mahadeva_Temple_2022_September.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3e/Chengannur_Mahadeva_Temple_2022_September.jpg/1280px-Chengannur_Mahadeva_Temple_2022_September.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b7/009232022_Thiru_Chengannur_Mahadeva_Temple_Kerala_156.jpg/1280px-009232022_Thiru_Chengannur_Mahadeva_Temple_Kerala_156.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f7/009232022_Thiru_Chengannur_Mahadeva_Temple_Kerala_002.jpg/1280px-009232022_Thiru_Chengannur_Mahadeva_Temple_Kerala_002.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -2269,7 +2269,7 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     imageUrl:
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/98/RoudraBhima_and_Draupadi%2C_Wood_Carving%2C_Kaviyoor_Mahadevar_Temple..JPG/1280px-RoudraBhima_and_Draupadi%2C_Wood_Carving%2C_Kaviyoor_Mahadevar_Temple..JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-    images: const [
+    images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/98/RoudraBhima_and_Draupadi%2C_Wood_Carving%2C_Kaviyoor_Mahadevar_Temple..JPG/1280px-RoudraBhima_and_Draupadi%2C_Wood_Carving%2C_Kaviyoor_Mahadevar_Temple..JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/09/Sree_Krishna_Leela%2C_Wood_Carving%2C_Kaviyoor_Mahadevar_Temple..JPG/1280px-Sree_Krishna_Leela%2C_Wood_Carving%2C_Kaviyoor_Mahadevar_Temple..JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a3/Wood_Carving%2C_Kaviyoor_Mahadevar_Temple..JPG/1280px-Wood_Carving%2C_Kaviyoor_Mahadevar_Temple..JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -2339,7 +2339,8 @@ const List<Temple> sampleTemples = [
     deity: 'Vishnu',
     // KAN-77: Research site_verified Matha-only Commons downloaded_url thumbs —
     // tools/photo-packs/sri-krishna-matha-udupi/ (not Storage).
-    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/Udupi_Sri_Krishna_Matha_Temple.jpg/1280px-Udupi_Sri_Krishna_Matha_Temple.jpg',
+    imageUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/Udupi_Sri_Krishna_Matha_Temple.jpg/1280px-Udupi_Sri_Krishna_Matha_Temple.jpg',
     images: [
       'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/Udupi_Sri_Krishna_Matha_Temple.jpg/1280px-Udupi_Sri_Krishna_Matha_Temple.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Udupi_Sri_krishna_matha_Temple_pond.jpg/1280px-Udupi_Sri_krishna_matha_Temple_pond.jpg',
@@ -2404,7 +2405,8 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     // KAN-77 Wave B: Commons downloaded_url thumbs —
     // tools/photo-packs/sri-manjunatha-temple-dharmasthala/ (not Storage).
-    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/90/KASHDK_21_Dharmasthala_Sculptures_inPark.jpg/1280px-KASHDK_21_Dharmasthala_Sculptures_inPark.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/90/KASHDK_21_Dharmasthala_Sculptures_inPark.jpg/1280px-KASHDK_21_Dharmasthala_Sculptures_inPark.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/90/KASHDK_21_Dharmasthala_Sculptures_inPark.jpg/1280px-KASHDK_21_Dharmasthala_Sculptures_inPark.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/af/KASHDK_25_Dharmasthala_SaraswatiMandapam_inPark.jpg/1280px-KASHDK_25_Dharmasthala_SaraswatiMandapam_inPark.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -2464,7 +2466,8 @@ const List<Temple> sampleTemples = [
     deity: 'Murugan',
     // KAN-77 Wave B: Commons downloaded_url thumbs —
     // tools/photo-packs/kukke-subramanya-temple/ (not Storage).
-    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d4/Kukke_Shree_Subrahmanya_Temple_%281%29.jpg/1280px-Kukke_Shree_Subrahmanya_Temple_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d4/Kukke_Shree_Subrahmanya_Temple_%281%29.jpg/1280px-Kukke_Shree_Subrahmanya_Temple_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d4/Kukke_Shree_Subrahmanya_Temple_%281%29.jpg/1280px-Kukke_Shree_Subrahmanya_Temple_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/35/Kukke_Shree_Subrahmanya_Temple_%2810%29.jpg/1280px-Kukke_Shree_Subrahmanya_Temple_%2810%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -2521,7 +2524,8 @@ const List<Temple> sampleTemples = [
     deity: 'Devi',
     // KAN-77 Wave B: Commons downloaded_url thumbs —
     // tools/photo-packs/sringeri-sharada-peetham/ (not Storage).
-    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/28/A_distant_view_of_the_Sringeri_Sharada_Peetham.jpg/1280px-A_distant_view_of_the_Sringeri_Sharada_Peetham.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/28/A_distant_view_of_the_Sringeri_Sharada_Peetham.jpg/1280px-A_distant_view_of_the_Sringeri_Sharada_Peetham.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/28/A_distant_view_of_the_Sringeri_Sharada_Peetham.jpg/1280px-A_distant_view_of_the_Sringeri_Sharada_Peetham.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7e/Rajagopuram_of_the_Sringeri_Sarada_peetham.jpg/1280px-Rajagopuram_of_the_Sringeri_Sarada_peetham.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -2580,7 +2584,8 @@ const List<Temple> sampleTemples = [
     deity: 'Devi',
     // KAN-77 Wave B: Commons downloaded_url thumbs —
     // tools/photo-packs/kollur-mookambika-temple/ (not Storage).
-    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d8/Kollur_Mookambika_Temple_main_shrine.jpg/1280px-Kollur_Mookambika_Temple_main_shrine.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d8/Kollur_Mookambika_Temple_main_shrine.jpg/1280px-Kollur_Mookambika_Temple_main_shrine.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d8/Kollur_Mookambika_Temple_main_shrine.jpg/1280px-Kollur_Mookambika_Temple_main_shrine.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f7/Kollur_Mookambika_temple_east_entrance_gate.jpg/1280px-Kollur_Mookambika_temple_east_entrance_gate.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -2639,7 +2644,8 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     // KAN-77: Research site_verified Commons downloaded_url thumbs —
     // tools/photo-packs/mahabaleshwar-temple-gokarna/ (not Storage).
-    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/KW23-0751-Gokarna-AdiGokarna-Front1_3D.jpg/1280px-KW23-0751-Gokarna-AdiGokarna-Front1_3D.jpg',
+    imageUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/KW23-0751-Gokarna-AdiGokarna-Front1_3D.jpg/1280px-KW23-0751-Gokarna-AdiGokarna-Front1_3D.jpg',
     images: [
       'https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/KW23-0751-Gokarna-AdiGokarna-Front1_3D.jpg/1280px-KW23-0751-Gokarna-AdiGokarna-Front1_3D.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/KW23-0752-Gokarna-AdiGokarna-RightFront2_3D.jpg/1280px-KW23-0752-Gokarna-AdiGokarna-RightFront2_3D.jpg',
@@ -2698,7 +2704,8 @@ const List<Temple> sampleTemples = [
     deity: 'Devi',
     // KAN-77 Wave B: Commons downloaded_url thumbs —
     // tools/photo-packs/chamundeshwari-temple/ (not Storage).
-    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4e/Chamundi_From_Karanji_Mysore_Nov23_A7C_08173.jpg/1280px-Chamundi_From_Karanji_Mysore_Nov23_A7C_08173.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4e/Chamundi_From_Karanji_Mysore_Nov23_A7C_08173.jpg/1280px-Chamundi_From_Karanji_Mysore_Nov23_A7C_08173.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4e/Chamundi_From_Karanji_Mysore_Nov23_A7C_08173.jpg/1280px-Chamundi_From_Karanji_Mysore_Nov23_A7C_08173.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d1/Chamundeshwari_Temple%2C_Mysuru%2C_Karnataka%2C_India_Temple.jpg/1280px-Chamundeshwari_Temple%2C_Mysuru%2C_Karnataka%2C_India_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -2755,7 +2762,8 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     // KAN-77 Wave B: Commons downloaded_url thumbs —
     // tools/photo-packs/virupaksha-temple/ (not Storage).
-    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Hemakuta_Hills.jpg/1280px-Hemakuta_Hills.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Hemakuta_Hills.jpg/1280px-Hemakuta_Hills.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Hemakuta_Hills.jpg/1280px-Hemakuta_Hills.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d4/Virupaksha_-_Hemakuta_Hill_-_1.jpg/1280px-Virupaksha_-_Hemakuta_Hill_-_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -2811,7 +2819,8 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     // KAN-77 Wave B: Commons downloaded_url thumbs —
     // tools/photo-packs/srikanteshwara-temple-nanjangud/ (not Storage).
-    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/Laundry_Upstream_Kabini_Nanjangud_Sep24_A7CR_02967.jpg/1280px-Laundry_Upstream_Kabini_Nanjangud_Sep24_A7CR_02967.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/Laundry_Upstream_Kabini_Nanjangud_Sep24_A7CR_02967.jpg/1280px-Laundry_Upstream_Kabini_Nanjangud_Sep24_A7CR_02967.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/Laundry_Upstream_Kabini_Nanjangud_Sep24_A7CR_02967.jpg/1280px-Laundry_Upstream_Kabini_Nanjangud_Sep24_A7CR_02967.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/Upstream_Kabini_Bridge_Nanjangud_Sep24_A7CR_02971.jpg/1280px-Upstream_Kabini_Bridge_Nanjangud_Sep24_A7CR_02971.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -2867,7 +2876,8 @@ const List<Temple> sampleTemples = [
     deity: 'Vishnu',
     // KAN-77 Wave B: Commons downloaded_url thumbs —
     // tools/photo-packs/iskcon-temple-bangalore/ (not Storage).
-    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Clothes_for_drying_in_Iskcon_temple%2C_Bangalore.JPG/1280px-Clothes_for_drying_in_Iskcon_temple%2C_Bangalore.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Clothes_for_drying_in_Iskcon_temple%2C_Bangalore.JPG/1280px-Clothes_for_drying_in_Iskcon_temple%2C_Bangalore.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Clothes_for_drying_in_Iskcon_temple%2C_Bangalore.JPG/1280px-Clothes_for_drying_in_Iskcon_temple%2C_Bangalore.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4d/ISKCON_Temple_-_Bangalore_-_Karnataka_-_DSCN0101.jpg/1280px-ISKCON_Temple_-_Bangalore_-_Karnataka_-_DSCN0101.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -2935,7 +2945,8 @@ const List<Temple> sampleTemples = [
     deity: 'Vishnu',
     // KAN-77 Wave B: Commons downloaded_url thumbs —
     // tools/photo-packs/cheluvanarayana-swamy-temple-melukote/ (not Storage).
-    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/Melukote_mantap.jpg/1280px-Melukote_mantap.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/Melukote_mantap.jpg/1280px-Melukote_mantap.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/Melukote_mantap.jpg/1280px-Melukote_mantap.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Cheluvanarayana_Swamy_Temple%2C_Melkote_-_during_PHMSTBGP-2020_%281%29.jpg/1280px-Cheluvanarayana_Swamy_Temple%2C_Melkote_-_during_PHMSTBGP-2020_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -2996,7 +3007,8 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     // KAN-77 Wave B: Commons downloaded_url thumbs —
     // tools/photo-packs/murudeshwar-temple/ (not Storage).
-    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/78/KW23-0422-Murdeshwar-Shani-Bhagvan-Temple_3D.jpg/1280px-KW23-0422-Murdeshwar-Shani-Bhagvan-Temple_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/78/KW23-0422-Murdeshwar-Shani-Bhagvan-Temple_3D.jpg/1280px-KW23-0422-Murdeshwar-Shani-Bhagvan-Temple_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/78/KW23-0422-Murdeshwar-Shani-Bhagvan-Temple_3D.jpg/1280px-KW23-0422-Murdeshwar-Shani-Bhagvan-Temple_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/04/KW23-0424-Murdeshwar-Krishna-Arjuna-with-ShivaBackground_3D.jpg/1280px-KW23-0424-Murdeshwar-Krishna-Arjuna-with-ShivaBackground_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -3055,7 +3067,8 @@ const List<Temple> sampleTemples = [
     deity: 'Devi',
     // KAN-77 Wave B: Commons downloaded_url thumbs —
     // tools/photo-packs/annapoorneshwari-temple-horanadu/ (not Storage).
-    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Horanadu_Temple_Entrance_%2832965363862%29.jpg/1280px-Horanadu_Temple_Entrance_%2832965363862%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Horanadu_Temple_Entrance_%2832965363862%29.jpg/1280px-Horanadu_Temple_Entrance_%2832965363862%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Horanadu_Temple_Entrance_%2832965363862%29.jpg/1280px-Horanadu_Temple_Entrance_%2832965363862%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ac/Horanadu_Annapurneshwari_Temple.jpg/1280px-Horanadu_Annapurneshwari_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -3113,7 +3126,8 @@ const List<Temple> sampleTemples = [
     deity: 'Devi',
     // KAN-77 Wave B: Commons downloaded_url thumbs —
     // tools/photo-packs/kateel-durga-parameshwari-temple/ (not Storage).
-    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dc/Kateelu_Durgaparameshwari_Temple_10_55_15_890000.jpeg/1280px-Kateelu_Durgaparameshwari_Temple_10_55_15_890000.jpeg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dc/Kateelu_Durgaparameshwari_Temple_10_55_15_890000.jpeg/1280px-Kateelu_Durgaparameshwari_Temple_10_55_15_890000.jpeg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dc/Kateelu_Durgaparameshwari_Temple_10_55_15_890000.jpeg/1280px-Kateelu_Durgaparameshwari_Temple_10_55_15_890000.jpeg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/de/Kateelu.jpg/1280px-Kateelu.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -3174,7 +3188,8 @@ const List<Temple> sampleTemples = [
     deity: 'Murugan',
     // KAN-77 Wave B: Commons downloaded_url thumbs —
     // tools/photo-packs/ghati-subramanya-temple/ (not Storage).
-    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/da/Ghati_Subramanya_08.jpg/1280px-Ghati_Subramanya_08.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/da/Ghati_Subramanya_08.jpg/1280px-Ghati_Subramanya_08.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/da/Ghati_Subramanya_08.jpg/1280px-Ghati_Subramanya_08.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/02/Ghati_Subramanya_09.jpg/1280px-Ghati_Subramanya_09.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -3237,7 +3252,8 @@ const List<Temple> sampleTemples = [
     deity: 'Devi',
     // KAN-77: Research site_verified Commons downloaded_url thumbs —
     // tools/photo-packs/banashankari-temple-bengaluru/ (Bengaluru, not Storage).
-    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/00/Sri_Banashankri_Temple%2C_Bangalore_%282024%29.jpg/1280px-Sri_Banashankri_Temple%2C_Bangalore_%282024%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/00/Sri_Banashankri_Temple%2C_Bangalore_%282024%29.jpg/1280px-Sri_Banashankri_Temple%2C_Bangalore_%282024%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/00/Sri_Banashankri_Temple%2C_Bangalore_%282024%29.jpg/1280px-Sri_Banashankri_Temple%2C_Bangalore_%282024%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/59/Sri_Banashankari_Temple%2C_Bengaluru_%282024%29_01.jpg/1280px-Sri_Banashankari_Temple%2C_Bengaluru_%282024%29_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -3294,7 +3310,8 @@ const List<Temple> sampleTemples = [
     deity: 'Vishnu',
     // KAN-77 Wave B: Commons downloaded_url thumbs —
     // tools/photo-packs/chennakeshava-temple-belur/ (not Storage).
-    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1e/KA_052_Belur_Hoysala_Emblem_Left_small.jpg/1280px-KA_052_Belur_Hoysala_Emblem_Left_small.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1e/KA_052_Belur_Hoysala_Emblem_Left_small.jpg/1280px-KA_052_Belur_Hoysala_Emblem_Left_small.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1e/KA_052_Belur_Hoysala_Emblem_Left_small.jpg/1280px-KA_052_Belur_Hoysala_Emblem_Left_small.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/37/Belur_1_4.jpg/1280px-Belur_1_4.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -3357,7 +3374,8 @@ const List<Temple> sampleTemples = [
     deity: 'Shiva',
     // KAN-77 Wave B: Commons downloaded_url thumbs —
     // tools/photo-packs/hoysaleswara-temple-halebidu/ (not Storage).
-    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/01/Hoysaleswara_Temple_Sculptures_Halebid_Hassan_Karnataka_6.jpg/1280px-Hoysaleswara_Temple_Sculptures_Halebid_Hassan_Karnataka_6.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/01/Hoysaleswara_Temple_Sculptures_Halebid_Hassan_Karnataka_6.jpg/1280px-Hoysaleswara_Temple_Sculptures_Halebid_Hassan_Karnataka_6.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/01/Hoysaleswara_Temple_Sculptures_Halebid_Hassan_Karnataka_6.jpg/1280px-Hoysaleswara_Temple_Sculptures_Halebid_Hassan_Karnataka_6.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/af/Hoysaleswara_Temple_Sculptures_Halebid_Hassan_Karnataka.jpg/1280px-Hoysaleswara_Temple_Sculptures_Halebid_Hassan_Karnataka.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -3421,7 +3439,8 @@ const List<Temple> sampleTemples = [
     deity: 'Ganesha',
     // KAN-77 Wave B: Commons downloaded_url thumbs —
     // tools/photo-packs/anegudde-vinayaka-temple/ (not Storage).
-    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2e/KW23-0310-AneguddeVinayaka-TempleChariot_3D.jpg/1280px-KW23-0310-AneguddeVinayaka-TempleChariot_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2e/KW23-0310-AneguddeVinayaka-TempleChariot_3D.jpg/1280px-KW23-0310-AneguddeVinayaka-TempleChariot_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2e/KW23-0310-AneguddeVinayaka-TempleChariot_3D.jpg/1280px-KW23-0310-AneguddeVinayaka-TempleChariot_3D.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/37/Anegudde_Sri_Vinayaka_Temple_22_08_26_260000.jpeg/1280px-Anegudde_Sri_Vinayaka_Temple_22_08_26_260000.jpeg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -3481,7 +3500,8 @@ const List<Temple> sampleTemples = [
     deity: 'Devi',
     // KAN-77: Research site_verified Commons downloaded_url thumbs —
     // tools/photo-packs/talakaveri-temple/ (Kodagu only, not Storage).
-    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Thala_Cauvery_%2818125847938%29.jpg/1280px-Thala_Cauvery_%2818125847938%29.jpg',
+    imageUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Thala_Cauvery_%2818125847938%29.jpg/1280px-Thala_Cauvery_%2818125847938%29.jpg',
     images: [
       'https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Thala_Cauvery_%2818125847938%29.jpg/1280px-Thala_Cauvery_%2818125847938%29.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Thalakauvery-hillview-panorama.jpg/1280px-Thalakauvery-hillview-panorama.jpg',
@@ -3541,15 +3561,24 @@ const List<Temple> sampleTemples = [
   //  ANDHRA PRADESH
   // ═══════════════════════════════════════════════════════════════════════════
   // Expansion batch 4 — new temples, not enrichments of existing rows.
-  // Cover imageUrl values are picsum placeholders (same pattern as the
-  // original sample). Commons photo_candidates are not Storage paths.
+  // Wave C packs use Wikimedia Commons thumbs. Temples without a pack
+  // still use picsum placeholders. Commons files are not Storage paths.
   // Sources and photo candidates: docs/andhra-pradesh-sample-research.md
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/tirumala-venkateswara-temple/
   Temple(
     name: 'Tirumala Venkateswara Temple',
     state: 'Andhra Pradesh',
     city: 'Tirumala',
     deity: 'Vishnu',
-    imageUrl: 'https://picsum.photos/seed/tirumala-venkateswara-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0a/Tirumala_Venkateswara_Temple%2C_Tirupati_%2823710079574%29.jpg/1280px-Tirumala_Venkateswara_Temple%2C_Tirupati_%2823710079574%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0a/Tirumala_Venkateswara_Temple%2C_Tirupati_%2823710079574%29.jpg/1280px-Tirumala_Venkateswara_Temple%2C_Tirupati_%2823710079574%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/05/Tirumala_Venkateswara_Temple%2C_Tirupati_%2823711456573%29.jpg/1280px-Tirumala_Venkateswara_Temple%2C_Tirupati_%2823711456573%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2a/Tirumala_Venkateswara_Temple%2C_Tirupati_%2824042693290%29.jpg/1280px-Tirumala_Venkateswara_Temple%2C_Tirupati_%2824042693290%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/21/Tirumala_Venkateswara_Temple%2C_Tirupati_%2824255760451%29.jpg/1280px-Tirumala_Venkateswara_Temple%2C_Tirupati_%2824255760451%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ab/Tirumala_Venkateswara_Temple%2C_Tirupati_%2824312092216%29.jpg/1280px-Tirumala_Venkateswara_Temple%2C_Tirupati_%2824312092216%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'World-famous Divya Desam and Swayambhu Vishnu shrine of Venkateswara '
         '(Balaji/Srinivasa) on the seven peaks of Tirumala, administered by '
@@ -3611,13 +3640,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/sri-mallikarjuna-swamy-temple-srisailam/
   Temple(
     name: 'Sri Mallikarjuna Swamy Temple',
     state: 'Andhra Pradesh',
     city: 'Srisailam',
     deity: 'Shiva',
     imageUrl:
-        'https://picsum.photos/seed/sri-mallikarjuna-swamy-temple/800/600',
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1f/Night_view_of_Srisailam_Temple_South_Gopuram.jpg/1280px-Night_view_of_Srisailam_Temple_South_Gopuram.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1f/Night_view_of_Srisailam_Temple_South_Gopuram.jpg/1280px-Night_view_of_Srisailam_Temple_South_Gopuram.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2d/APSS303_Srisailam_town_zoom_view_from_welcome_center2.jpg/1280px-APSS303_Srisailam_town_zoom_view_from_welcome_center2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1f/SRISAILAM_TEMPLE%2CAP_-_panoramio.jpg/1280px-SRISAILAM_TEMPLE%2CAP_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/82/2025_West_Gopuram_and_Bhramaramba_Devi_temple_view_in_Srisailam.jpg/1280px-2025_West_Gopuram_and_Bhramaramba_Devi_temple_view_in_Srisailam.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b0/Srisailam-temple-entrance.jpg/1280px-Srisailam-temple-entrance.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'One of the twelve Jyotirlingas and a major Shakti Peetha, where Shiva '
         'as Mallikarjuna and Parvati as Bhramaramba are worshipped together in '
@@ -3667,13 +3704,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/varaha-lakshmi-narasimha-temple-simhachalam/
   Temple(
     name: 'Varaha Lakshmi Narasimha Temple',
     state: 'Andhra Pradesh',
     city: 'Visakhapatnam',
     deity: 'Vishnu',
     imageUrl:
-        'https://picsum.photos/seed/varaha-lakshmi-narasimha-temple/800/600',
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/53/Shri_Varaha_Lakshmi_Narasimha_temple%2C_Simachalam.jpg/1280px-Shri_Varaha_Lakshmi_Narasimha_temple%2C_Simachalam.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/53/Shri_Varaha_Lakshmi_Narasimha_temple%2C_Simachalam.jpg/1280px-Shri_Varaha_Lakshmi_Narasimha_temple%2C_Simachalam.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/22/Varaha_Lakshmi_Narasimha_temple_in_Simhachalam.jpg/1280px-Varaha_Lakshmi_Narasimha_temple_in_Simhachalam.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7f/Sri_Varaha_Lakshmi_Narasimha_temple%2C_Simhachalam.jpg/1280px-Sri_Varaha_Lakshmi_Narasimha_temple%2C_Simhachalam.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/94/Sri_Varaha_Lakshmi_Narasimha_temple.jpg/1280px-Sri_Varaha_Lakshmi_Narasimha_temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5a/Simhachalam_in_visakhapatnam1.jpg/1280px-Simhachalam_in_visakhapatnam1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Hilltop Vaishnava temple of Varaha Narasimha (Appanna) at Simhachalam, '
         'Visakhapatnam — famed for year-round sandalwood covering of the '
@@ -3778,12 +3823,19 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/satyanarayana-swamy-temple-annavaram/
   Temple(
     name: 'Satyanarayana Swamy Temple',
     state: 'Andhra Pradesh',
     city: 'Annavaram',
     deity: 'Vishnu',
-    imageUrl: 'https://picsum.photos/seed/satyanarayana-swamy-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/58/View_of_Annavaram_temple_complex.jpg/1280px-View_of_Annavaram_temple_complex.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/58/View_of_Annavaram_temple_complex.jpg/1280px-View_of_Annavaram_temple_complex.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/Annavaram.jpg/1280px-Annavaram.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b6/Night_view_of_Raja_Gopuram_Annvaram.jpg/1280px-Night_view_of_Raja_Gopuram_Annvaram.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Major Vaishnava hill temple of Sri Veera Venkata Satyanarayana Swamy on '
         'Ratnagiri, renowned statewide for continuous Satyanarayana Vratham and '
@@ -3832,12 +3884,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/veerabhadra-temple-lepakshi/
   Temple(
     name: 'Veerabhadra Temple',
     state: 'Andhra Pradesh',
     city: 'Lepakshi',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/veerabhadra-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Sculpture_at_the_Veerabhadra_Temple%2C_Lepakshi%2C_Andhra_Pradesh%2C_India_%282015%29.jpg/1280px-Sculpture_at_the_Veerabhadra_Temple%2C_Lepakshi%2C_Andhra_Pradesh%2C_India_%282015%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Sculpture_at_the_Veerabhadra_Temple%2C_Lepakshi%2C_Andhra_Pradesh%2C_India_%282015%29.jpg/1280px-Sculpture_at_the_Veerabhadra_Temple%2C_Lepakshi%2C_Andhra_Pradesh%2C_India_%282015%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ce/Deer_sculpture_at_the_Veerabhadra_Temple%2C_Lepakshi%2C_Andhra_Pradesh%2C_India_%282018%29.jpg/1280px-Deer_sculpture_at_the_Veerabhadra_Temple%2C_Lepakshi%2C_Andhra_Pradesh%2C_India_%282018%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ac/Pillars_at_the_Veerabhadra_Temple%2C_Lepakshi%2C_Andhra_Pradesh%2C_India_%282010%29.jpg/1280px-Pillars_at_the_Veerabhadra_Temple%2C_Lepakshi%2C_Andhra_Pradesh%2C_India_%282010%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fc/Sculptures_at_the_Veerabhadra_Temple%2C_Lepakshi%2C_Andhra_Pradesh%2C_India_%282017%29.jpg/1280px-Sculptures_at_the_Veerabhadra_Temple%2C_Lepakshi%2C_Andhra_Pradesh%2C_India_%282017%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/32/Sculptures_at_the_Veerabhadra_Temple%2C_Lepakshi%2C_Andhra_Pradesh%2C_India_%282017%29_1.jpg/1280px-Sculptures_at_the_Veerabhadra_Temple%2C_Lepakshi%2C_Andhra_Pradesh%2C_India_%282017%29_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'ASI-protected 16th-century Vijayanagara masterpiece for Veerabhadra '
         '(fierce Shiva), celebrated for hanging pillar, ceiling frescoes, '
@@ -3884,12 +3945,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/ahobilam-narasimha-temples/
   Temple(
     name: 'Ahobilam Narasimha Temples',
     state: 'Andhra Pradesh',
     city: 'Ahobilam',
     deity: 'Vishnu',
-    imageUrl: 'https://picsum.photos/seed/ahobilam-narasimha-temples/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/32/16th_century_Lakshmi_Narasimha_Swamy_temple%2C_Lower_Ahobilam%2C_Andhra_Pradesh_India_-_111.jpg/1280px-16th_century_Lakshmi_Narasimha_Swamy_temple%2C_Lower_Ahobilam%2C_Andhra_Pradesh_India_-_111.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/32/16th_century_Lakshmi_Narasimha_Swamy_temple%2C_Lower_Ahobilam%2C_Andhra_Pradesh_India_-_111.jpg/1280px-16th_century_Lakshmi_Narasimha_Swamy_temple%2C_Lower_Ahobilam%2C_Andhra_Pradesh_India_-_111.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c9/16th_century_Lakshmi_Narasimha_Swamy_temple%2C_Lower_Ahobilam%2C_Andhra_Pradesh_India_-_37.jpg/1280px-16th_century_Lakshmi_Narasimha_Swamy_temple%2C_Lower_Ahobilam%2C_Andhra_Pradesh_India_-_37.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/16th_century_Lakshmi_Narasimha_Swamy_temple%2C_Lower_Ahobilam%2C_Andhra_Pradesh_India_-_46.jpg/1280px-16th_century_Lakshmi_Narasimha_Swamy_temple%2C_Lower_Ahobilam%2C_Andhra_Pradesh_India_-_46.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9f/16th_century_Lakshmi_Narasimha_Swamy_temple%2C_Lower_Ahobilam%2C_Andhra_Pradesh_India_-_48.jpg/1280px-16th_century_Lakshmi_Narasimha_Swamy_temple%2C_Lower_Ahobilam%2C_Andhra_Pradesh_India_-_48.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/92/16th_century_Lakshmi_Narasimha_Swamy_temple%2C_Lower_Ahobilam%2C_Andhra_Pradesh_India_-_53.jpg/1280px-16th_century_Lakshmi_Narasimha_Swamy_temple%2C_Lower_Ahobilam%2C_Andhra_Pradesh_India_-_53.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Nava Narasimha pilgrimage in the Eastern Ghats — nine shrines of '
         'Narasimha across Lower and Upper Ahobilam, sacred to Sri Vaishnava '
@@ -3989,12 +4059,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/varasidhi-vinayaka-temple-kanipakam/
   Temple(
     name: 'Varasidhi Vinayaka Temple',
     state: 'Andhra Pradesh',
     city: 'Kanipakam',
     deity: 'Ganesha',
-    imageUrl: 'https://picsum.photos/seed/varasidhi-vinayaka-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2a/Sri_Varasidhi_Vinayaka_Temple%2C_Kanipakam%2C_Andhra_Pradesh-2023.jpg/1280px-Sri_Varasidhi_Vinayaka_Temple%2C_Kanipakam%2C_Andhra_Pradesh-2023.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2a/Sri_Varasidhi_Vinayaka_Temple%2C_Kanipakam%2C_Andhra_Pradesh-2023.jpg/1280px-Sri_Varasidhi_Vinayaka_Temple%2C_Kanipakam%2C_Andhra_Pradesh-2023.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/Sri_Varasidhi_Vinayaka_Temple%2C_Kanipakam%2C_Andhra_Pradesh-_Front_view_2023.jpg/1280px-Sri_Varasidhi_Vinayaka_Temple%2C_Kanipakam%2C_Andhra_Pradesh-_Front_view_2023.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/00/Sri_Varasidhi_Vinayaka_Temple%2C_Kanipakam%2C_Andhra_Pradesh.jpg/1280px-Sri_Varasidhi_Vinayaka_Temple%2C_Kanipakam%2C_Andhra_Pradesh.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d9/Sri_Varasidhi_Vinayaka_Temple%2C_Kanipakam%2C_Andhra_Pradesh_2_-_Front_view_2023.jpg/1280px-Sri_Varasidhi_Vinayaka_Temple%2C_Kanipakam%2C_Andhra_Pradesh_2_-_Front_view_2023.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/32/Galipgopuram_of_Kanipakam_temple_%28May_2019%29_3.jpg/1280px-Galipgopuram_of_Kanipakam_temple_%28May_2019%29_3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Famous swayambhu Sri Varasiddhi Vinayaka temple at Kanipakam near '
         'Chittoor, administered by AP Endowments, known for the self-manifested '
@@ -4038,12 +4117,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/yaganti-uma-maheswara-temple/
   Temple(
     name: 'Yaganti Uma Maheswara Temple',
     state: 'Andhra Pradesh',
     city: 'Yaganti',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/yaganti-uma-maheswara-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d7/Agastya_Pushkarini_at_Uma_Maheswara_Temple_Yaganti_Andhra_Pradesh.jpg/1280px-Agastya_Pushkarini_at_Uma_Maheswara_Temple_Yaganti_Andhra_Pradesh.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d7/Agastya_Pushkarini_at_Uma_Maheswara_Temple_Yaganti_Andhra_Pradesh.jpg/1280px-Agastya_Pushkarini_at_Uma_Maheswara_Temple_Yaganti_Andhra_Pradesh.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b1/15th_century_Yaganti_Umamahesvara_temple%2C_Andhra_Pradesh_India_-_130.jpg/1280px-15th_century_Yaganti_Umamahesvara_temple%2C_Andhra_Pradesh_India_-_130.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/55/15th_century_Yaganti_Umamahesvara_temple%2C_Andhra_Pradesh_India_-_166.jpg/1280px-15th_century_Yaganti_Umamahesvara_temple%2C_Andhra_Pradesh_India_-_166.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1b/15th_century_Yaganti_Umamahesvara_temple%2C_Andhra_Pradesh_India_-_168.jpg/1280px-15th_century_Yaganti_Umamahesvara_temple%2C_Andhra_Pradesh_India_-_168.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0a/15th_century_Yaganti_Umamahesvara_temple%2C_Andhra_Pradesh_India_-_175.jpg/1280px-15th_century_Yaganti_Umamahesvara_temple%2C_Andhra_Pradesh_India_-_175.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Cave-associated Shaiva temple of Uma Maheswara in the Erramala hills, '
         'famed for the ‘growing’ Nandi (Basavanna) and Agastya–Veerabrahmendra '
@@ -4091,16 +4179,24 @@ const List<Temple> sampleTemples = [
   //  TELANGANA
   // ═══════════════════════════════════════════════════════════════════════════
   // Expansion batch 5 — new temples, not enrichments of existing rows.
-  // Cover imageUrl values are picsum placeholders (same pattern as the
-  // original sample). Commons photo_candidates are not Storage paths.
+  // Wave C packs use Wikimedia Commons thumbs. Temples without a pack
+  // still use picsum placeholders. Commons files are not Storage paths.
   // Sources and photo candidates: docs/telangana-sample-research.md
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/sri-lakshmi-narasimha-swamy-yadagirigutta/
   Temple(
     name: 'Sri Lakshmi Narasimha Swamy Temple',
     state: 'Telangana',
     city: 'Yadagirigutta',
     deity: 'Vishnu',
     imageUrl:
-        'https://picsum.photos/seed/sri-lakshmi-narasimha-swamy-temple/800/600',
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/67/Sri_Lakshminarasimha_Swamy_Temple_Yadagirigutta_Yadadri_Telangana_01.jpg/1280px-Sri_Lakshminarasimha_Swamy_Temple_Yadagirigutta_Yadadri_Telangana_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/67/Sri_Lakshminarasimha_Swamy_Temple_Yadagirigutta_Yadadri_Telangana_01.jpg/1280px-Sri_Lakshminarasimha_Swamy_Temple_Yadagirigutta_Yadadri_Telangana_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ef/Sri_Lakshminarasimha_Swamy_Temple_Yadagirigutta_Yadadri_Telangana_02.jpg/1280px-Sri_Lakshminarasimha_Swamy_Temple_Yadagirigutta_Yadadri_Telangana_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/45/Sri_Lakshminarasimha_Swamy_Temple_Yadagirigutta_Yadadri_Telangana_03.jpg/1280px-Sri_Lakshminarasimha_Swamy_Temple_Yadagirigutta_Yadadri_Telangana_03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/85/Sri_Lakshminarasimha_Swamy_Temple_Yadagirigutta_Yadadri_Telangana_04.jpg/1280px-Sri_Lakshminarasimha_Swamy_Temple_Yadagirigutta_Yadadri_Telangana_04.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/16/Sri_Lakshminarasimha_Swamy_Temple_Yadagirigutta_Yadadri_Telangana_05.jpg/1280px-Sri_Lakshminarasimha_Swamy_Temple_Yadagirigutta_Yadadri_Telangana_05.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Major Narasimha pilgrimage on a hillock ~60–70 km from Hyderabad, '
         'popularly called Yadadri / Pancha Narasimha Kshetram, recently rebuilt '
@@ -4154,13 +4250,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/sita-ramachandra-swamy-bhadrachalam/
   Temple(
     name: 'Sita Ramachandra Swamy Temple',
     state: 'Telangana',
     city: 'Bhadrachalam',
     deity: 'Vishnu',
     imageUrl:
-        'https://picsum.photos/seed/sita-ramachandra-swamy-temple/800/600',
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/81/Lord_Sree_Sita_Ramachandra_Swamy_temple_double_goupuram_views_night%2C_Bhadrachalam.jpg/1280px-Lord_Sree_Sita_Ramachandra_Swamy_temple_double_goupuram_views_night%2C_Bhadrachalam.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/81/Lord_Sree_Sita_Ramachandra_Swamy_temple_double_goupuram_views_night%2C_Bhadrachalam.jpg/1280px-Lord_Sree_Sita_Ramachandra_Swamy_temple_double_goupuram_views_night%2C_Bhadrachalam.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7c/Lord_Sree_Sita_Ramachandra_Swamy_temple_goupuram_single%2C_Bhadrachalam.jpg/1280px-Lord_Sree_Sita_Ramachandra_Swamy_temple_goupuram_single%2C_Bhadrachalam.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/67/Lord_Sree_Sita_Ramachandra_Swamy_temple_kala_sham_for_pattabhi_shekam%2C_Bhadrachalam.jpg/1280px-Lord_Sree_Sita_Ramachandra_Swamy_temple_kala_sham_for_pattabhi_shekam%2C_Bhadrachalam.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4c/Lord_Sree_Sita_Ramachandra_Swamy_temple_night_view%2C_Bhadrachalam.jpg/1280px-Lord_Sree_Sita_Ramachandra_Swamy_temple_night_view%2C_Bhadrachalam.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/51/Lord_Sree_Sita_Ramachandra_Swamy_temple_night_view_from_top%2C_Bhadrachalam.jpg/1280px-Lord_Sree_Sita_Ramachandra_Swamy_temple_night_view_from_top%2C_Bhadrachalam.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Famous Rama temple on the Godavari at Bhadrachalam — often called '
         'Dakshina Ayodhya — known for Bhakta Ramadasu’s 17th-century building '
@@ -4209,12 +4313,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/thousand-pillar-temple/
   Temple(
     name: 'Thousand Pillar Temple',
     state: 'Telangana',
     city: 'Hanamkonda',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/thousand-pillar-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/be/102_Thousand_Pillar_Temple%2C_Hanamkonda.jpg/1280px-102_Thousand_Pillar_Temple%2C_Hanamkonda.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/be/102_Thousand_Pillar_Temple%2C_Hanamkonda.jpg/1280px-102_Thousand_Pillar_Temple%2C_Hanamkonda.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/107_Thousand_Pillar_Temple%2C_Hanamkonda.jpg/1280px-107_Thousand_Pillar_Temple%2C_Hanamkonda.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3f/120_Thousand_Pillar_Temple%2C_Hanamkonda.jpg/1280px-120_Thousand_Pillar_Temple%2C_Hanamkonda.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2a/124_Thousand_Pillar_Temple%2C_Hanamkonda.jpg/1280px-124_Thousand_Pillar_Temple%2C_Hanamkonda.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/128_Thousand_Pillar_Temple%2C_Hanamkonda.jpg/1280px-128_Thousand_Pillar_Temple%2C_Hanamkonda.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         '12th-century Kakatiya Trikutalaya (Rudreswara) at Hanamkonda, famed for '
         'star-shaped planning, richly carved pillars, and a monolithic Nandi; '
@@ -4260,12 +4373,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/ramappa-temple/
   Temple(
     name: 'Ramappa Temple (Rudreshwara)',
     state: 'Telangana',
     city: 'Palampet',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/ramappa-temple-rudreshwara/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/Beautifully_carved_gate_of_the_Kakatiya_Rudreshwara_Ramappa_Temple.jpg/1280px-Beautifully_carved_gate_of_the_Kakatiya_Rudreshwara_Ramappa_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/Beautifully_carved_gate_of_the_Kakatiya_Rudreshwara_Ramappa_Temple.jpg/1280px-Beautifully_carved_gate_of_the_Kakatiya_Rudreshwara_Ramappa_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://upload.wikimedia.org/wikipedia/commons/8/8f/Rudreshwara_Temple_at_Ramappa.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+      'https://upload.wikimedia.org/wikipedia/commons/d/db/Ramappa_a_Telangana_First_UNESCO_Site.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e5/Ramappa_Temple.png/1280px-Ramappa_Temple.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/WHS_Ramappa_Temple_1.jpg/1280px-WHS_Ramappa_Temple_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         '13th-century Kakatiya Shiva temple at Palampet beside Ramappa Lake — '
         'uniquely named after sculptor Ramappa — inscribed as a UNESCO World '
@@ -4309,12 +4431,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/gnana-saraswati-temple-basara/
   Temple(
     name: 'Gnana Saraswati Temple',
     state: 'Telangana',
     city: 'Basara',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/gnana-saraswati-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/Veda_sila_at_basara.JPG/1280px-Veda_sila_at_basara.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/Veda_sila_at_basara.JPG/1280px-Veda_sila_at_basara.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/de/Basara_Saraswathi_Temple_India.jpg/1280px-Basara_Saraswathi_Temple_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4e/Temple_at_basara..JPG/1280px-Temple_at_basara..JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fa/A_scene_in_the_temple_at_basara.JPG/1280px-A_scene_in_the_temple_at_basara.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/78/Basara-ghat.jpg/1280px-Basara-ghat.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Renowned Saraswati temple on the Godavari at Basara (Basar), one of the '
         'few major standalone Saraswati shrines in India, famous for children’s '
@@ -4363,12 +4494,19 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/chilkur-balaji-temple/
   Temple(
     name: 'Chilkur Balaji Temple',
     state: 'Telangana',
     city: 'Chilkur',
     deity: 'Vishnu',
-    imageUrl: 'https://picsum.photos/seed/chilkur-balaji-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cf/Balaji_temple%2C_chilkoor.jpg/1280px-Balaji_temple%2C_chilkoor.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cf/Balaji_temple%2C_chilkoor.jpg/1280px-Balaji_temple%2C_chilkoor.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/21/Chilukuru_temple.jpg/1280px-Chilukuru_temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/Kotta_Chilkur_Anjaneya_Swamy_Temple.JPG/1280px-Kotta_Chilkur_Anjaneya_Swamy_Temple.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Hyderabad-region Venkateswara temple near Osman Sagar, nicknamed Visa '
         'Balaji for the popular 11-then-108 pradakshina vow, notable for '
@@ -4470,12 +4608,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/bhadrakali-temple-warangal/
   Temple(
     name: 'Bhadrakali Temple',
     state: 'Telangana',
     city: 'Warangal',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/bhadrakali-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b1/Bhadrakali_Temple_at_Warangal_01.JPG/1280px-Bhadrakali_Temple_at_Warangal_01.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b1/Bhadrakali_Temple_at_Warangal_01.JPG/1280px-Bhadrakali_Temple_at_Warangal_01.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bc/Bhadrakali_Temple_in_Warangal.jpg/1280px-Bhadrakali_Temple_in_Warangal.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/20/Entrance_Arch_of_the_Bhadrakali_temple_during_sunset.JPG/1280px-Entrance_Arch_of_the_Bhadrakali_temple_during_sunset.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/44/Bhadrakali_Temple%2C_Warangal.jpg/1280px-Bhadrakali_Temple%2C_Warangal.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/SRI_BHADRAKALI_TEMPLE_WARANGAL.jpg/1280px-SRI_BHADRAKALI_TEMPLE_WARANGAL.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Historic goddess temple beside Bhadrakali Cheruvu between Hanamkonda '
         'and Warangal, traditionally linked to Chalukya Pulakeshin II–era '
@@ -4519,12 +4666,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/jogulamba-temple-alampur/
   Temple(
     name: 'Jogulamba Temple',
     state: 'Telangana',
     city: 'Alampur',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/jogulamba-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d7/Sri_Jogulamba_Balabrahmendra_Swamy_Devasthanam%2C_Alampur%2C_Telangana_01.jpg/1280px-Sri_Jogulamba_Balabrahmendra_Swamy_Devasthanam%2C_Alampur%2C_Telangana_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d7/Sri_Jogulamba_Balabrahmendra_Swamy_Devasthanam%2C_Alampur%2C_Telangana_01.jpg/1280px-Sri_Jogulamba_Balabrahmendra_Swamy_Devasthanam%2C_Alampur%2C_Telangana_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/39/Sri_Jogulamba_Balabrahmendra_Swamy_Devasthanam%2C_Alampur%2C_Telangana_02.jpg/1280px-Sri_Jogulamba_Balabrahmendra_Swamy_Devasthanam%2C_Alampur%2C_Telangana_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/79/Sri_Jogulamba_Balabrahmendra_Swamy_Devasthanam%2C_Alampur%2C_Telangana_03.jpg/1280px-Sri_Jogulamba_Balabrahmendra_Swamy_Devasthanam%2C_Alampur%2C_Telangana_03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/07/Sri_Jogulamba_Balabrahmendra_Swamy_Devasthanam%2C_Alampur%2C_Telangana_04.jpg/1280px-Sri_Jogulamba_Balabrahmendra_Swamy_Devasthanam%2C_Alampur%2C_Telangana_04.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/34/Sri_Jogulamba_Balabrahmendra_Swamy_Devasthanam%2C_Alampur%2C_Telangana_05.jpg/1280px-Sri_Jogulamba_Balabrahmendra_Swamy_Devasthanam%2C_Alampur%2C_Telangana_05.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Shakti Peetha of Goddess Jogulamba at Alampur on the Tungabhadra, '
         'paired with Balabrahmeshwara and the nearby Chalukyan Navabrahma temple '
@@ -4627,15 +4783,23 @@ const List<Temple> sampleTemples = [
   //  GUJARAT
   // ═══════════════════════════════════════════════════════════════════════════
   // Expansion batch 6 — new temples, not enrichments of existing rows.
-  // Cover imageUrl values are picsum placeholders (same pattern as the
-  // original sample). Commons photo_candidates are not Storage paths.
+  // Wave C packs use Wikimedia Commons thumbs. Temples without a pack
+  // still use picsum placeholders. Commons files are not Storage paths.
   // Sources and photo candidates: docs/gujarat-sample-research.md
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/somnath-temple/
   Temple(
     name: 'Somnath Temple',
     state: 'Gujarat',
     city: 'Somnath',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/somnath-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8c/Somnath_temple_Gujarat_India.jpg/1280px-Somnath_temple_Gujarat_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8c/Somnath_temple_Gujarat_India.jpg/1280px-Somnath_temple_Gujarat_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/78/Ancient_Somnath_temple%2C_Veraval_Gujarat.jpg/1280px-Ancient_Somnath_temple%2C_Veraval_Gujarat.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7b/%22Aerial_view_of_Somnath_temple_01%2C_Prabhas_Patan_Gujarat.jpg/1280px-%22Aerial_view_of_Somnath_temple_01%2C_Prabhas_Patan_Gujarat.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/ba/%22Aerial_view_of_Somnath_temple_02%2C_Prabhas_Patan_Gujarat.jpg/1280px-%22Aerial_view_of_Somnath_temple_02%2C_Prabhas_Patan_Gujarat.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'First among the twelve Jyotirlingas, the seaside Shiva shrine of '
         'Somnath (Prabhas Patan near Veraval) stands on the Arabian Sea under '
@@ -4682,12 +4846,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/dwarkadhish-temple/
   Temple(
     name: 'Dwarkadhish Temple',
     state: 'Gujarat',
     city: 'Dwarka',
     deity: 'Vishnu',
-    imageUrl: 'https://picsum.photos/seed/dwarkadhish-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cf/Dwarkadhish_Group_of_Temples-Dwarka-Gujarat-DSC_0101.jpg/1280px-Dwarkadhish_Group_of_Temples-Dwarka-Gujarat-DSC_0101.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cf/Dwarkadhish_Group_of_Temples-Dwarka-Gujarat-DSC_0101.jpg/1280px-Dwarkadhish_Group_of_Temples-Dwarka-Gujarat-DSC_0101.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7b/Dwarkadhish_Group_of_Temples-Dwarka-Gujarat-DSC_0146.jpg/1280px-Dwarkadhish_Group_of_Temples-Dwarka-Gujarat-DSC_0146.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/64/Dwarkadhish_Group_of_Temples-Dwarka-Gujarat-DSC_0233.jpg/1280px-Dwarkadhish_Group_of_Temples-Dwarka-Gujarat-DSC_0233.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/Dwarkadhish_Group_of_Temples-Dwarka-Gujarat-DSC_0234.jpg/1280px-Dwarkadhish_Group_of_Temples-Dwarka-Gujarat-DSC_0234.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e0/Dwarkadhish_Group_of_Temples_Mul_Dwarka-Dwarka-Gujarat-DSC_0240.jpg/1280px-Dwarkadhish_Group_of_Temples_Mul_Dwarka-Dwarka-Gujarat-DSC_0240.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Jagat Mandir of Dwarkadhish (Krishna as Lord of Dwarka), a Char Dham '
         'and major Vaishnava pilgrimage on the western tip of Saurashtra, with a '
@@ -4730,12 +4903,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/ambaji-temple/
   Temple(
     name: 'Ambaji Temple',
     state: 'Gujarat',
     city: 'Ambaji',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/ambaji-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/53/Ambaji_-_Gujarat%2C_India_%284587163815%29.jpg/1280px-Ambaji_-_Gujarat%2C_India_%284587163815%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/53/Ambaji_-_Gujarat%2C_India_%284587163815%29.jpg/1280px-Ambaji_-_Gujarat%2C_India_%284587163815%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6b/0081323_Arasuri_Ambaji_mandir%2C_Shakti_Peeth%2C_north_Gujarat_003.jpg/1280px-0081323_Arasuri_Ambaji_mandir%2C_Shakti_Peeth%2C_north_Gujarat_003.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/df/0081323_Arasuri_Ambaji_mandir%2C_Shakti_Peeth%2C_north_Gujarat_011.jpg/1280px-0081323_Arasuri_Ambaji_mandir%2C_Shakti_Peeth%2C_north_Gujarat_011.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/0081323_Arasuri_Ambaji_mandir%2C_Shakti_Peeth%2C_north_Gujarat_037.jpg/1280px-0081323_Arasuri_Ambaji_mandir%2C_Shakti_Peeth%2C_north_Gujarat_037.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b2/0081323_Arasuri_Ambaji_mandir%2C_Shakti_Peeth%2C_north_Gujarat_044.jpg/1280px-0081323_Arasuri_Ambaji_mandir%2C_Shakti_Peeth%2C_north_Gujarat_044.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Major Shakti Peetha of Arasuri Ambaji Mata in the Aravalli foothills of '
         'Banaskantha, famed for yantra worship (no conventional idol in the '
@@ -4779,12 +4961,20 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/kalika-mata-temple-pavagadh/
   Temple(
     name: 'Kalika Mata Temple',
     state: 'Gujarat',
     city: 'Pavagadh',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/kalika-mata-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b7/Pavagadh%2C_Kalika_Mata_Temple_%289840241633%29.jpg/1280px-Pavagadh%2C_Kalika_Mata_Temple_%289840241633%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b7/Pavagadh%2C_Kalika_Mata_Temple_%289840241633%29.jpg/1280px-Pavagadh%2C_Kalika_Mata_Temple_%289840241633%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/be/Pavagadh_002.jpg/1280px-Pavagadh_002.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/32/Kalika_Mata_Temple%2C_Pavagarh.jpg/1280px-Kalika_Mata_Temple%2C_Pavagarh.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/93/Jalli_at_Kalika_Temple.jpg/1280px-Jalli_at_Kalika_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Hilltop Mahakali / Kalika Mata Shakti Peetha on Pavagadh, a living '
         'shrine inside UNESCO’s Champaner-Pavagadh Archaeological Park, reached '
@@ -4827,12 +5017,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/modhera-sun-temple/
   Temple(
     name: 'Modhera Sun Temple',
     state: 'Gujarat',
     city: 'Modhera',
     deity: 'Surya',
-    imageUrl: 'https://picsum.photos/seed/modhera-sun-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Sun_Temple_-_Modhera_-_Gujarat_-_DSC002.jpg/1280px-Sun_Temple_-_Modhera_-_Gujarat_-_DSC002.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Sun_Temple_-_Modhera_-_Gujarat_-_DSC002.jpg/1280px-Sun_Temple_-_Modhera_-_Gujarat_-_DSC002.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Sun_Temple%2C_Modhera_-_Sabha_Mandap_0.jpg/1280px-Sun_Temple%2C_Modhera_-_Sabha_Mandap_0.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/36/Sun_Temple%2C_Modhera_05.jpg/1280px-Sun_Temple%2C_Modhera_05.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b9/Sun_Temple%2C_Modhera_-_Hindu_people.jpg/1280px-Sun_Temple%2C_Modhera_-_Hindu_people.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e0/Sun_Temple%2C_Modhera_03.jpg/1280px-Sun_Temple%2C_Modhera_03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         '11th-century Chaulukya (Solanki) masterpiece dedicated to Surya, '
         'preserved by ASI as a ticketed Monument of National Importance — '
@@ -4877,12 +5076,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/bahucharaji-temple/
   Temple(
     name: 'Bahucharaji Temple',
     state: 'Gujarat',
     city: 'Bahucharaji',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/bahucharaji-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/ETH-BIB-Oase_Colomb-Bechar-Nordafrikaflug_1932-LBS_MH02-13-0276.tif/lossy-page1-1280px-ETH-BIB-Oase_Colomb-Bechar-Nordafrikaflug_1932-LBS_MH02-13-0276.tif.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/ETH-BIB-Oase_Colomb-Bechar-Nordafrikaflug_1932-LBS_MH02-13-0276.tif/lossy-page1-1280px-ETH-BIB-Oase_Colomb-Bechar-Nordafrikaflug_1932-LBS_MH02-13-0276.tif.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6d/ETH-BIB-Moschee_in_Colomb-Bechar-Nordafrikaflug_1932-LBS_MH02-13-0259.tif/lossy-page1-1280px-ETH-BIB-Moschee_in_Colomb-Bechar-Nordafrikaflug_1932-LBS_MH02-13-0259.tif.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/34/ETH-BIB-Moschee_in_Colomb-Bechar-Nordafrikaflug_1932-LBS_MH02-13-0258.tif/lossy-page1-1280px-ETH-BIB-Moschee_in_Colomb-Bechar-Nordafrikaflug_1932-LBS_MH02-13-0258.tif.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/69/Ksar_de_Taghit_Bechar_01.jpg/1280px-Ksar_de_Taghit_Bechar_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/Ksar_de_Taghit_Bechar_03.jpg/1280px-Ksar_de_Taghit_Bechar_03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Major shrine of Bahuchara Mata at Becharaji in Mehsana district — a '
         'fertility and protection goddess with a rooster vahana, especially '
@@ -4954,7 +5162,8 @@ const List<Temple> sampleTemples = [
         'against WhatsApp/Facebook impersonators.\n\nJanmashtami, Holi, and '
         'ekadashi observances intensify crowds; confirm festival overrides on '
         'the official site.',
-    location: 'Shri Ranchhodraiji Maharaj Mandir, Dakor, Kheda district, Gujarat 388225',
+    location:
+        'Shri Ranchhodraiji Maharaj Mandir, Dakor, Kheda district, Gujarat 388225',
     timings:
         'Official ranchhodraiji.org Live Darshan board: Mangala aarti/darshan '
         '6:45–8:30 AM; Shringar-bhog darshan 9:00–11:00 AM; Rajbhog 11:30 '
@@ -4973,12 +5182,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/nageshwar-jyotirlinga-temple/
   Temple(
     name: 'Nageshwar Jyotirlinga Temple',
     state: 'Gujarat',
     city: 'Dwarka',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/nageshwar-jyotirlinga-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/Shree_Nageshwar_Jyotirling_temple%2C_Dwarka%2C_Gujarat.jpg/1280px-Shree_Nageshwar_Jyotirling_temple%2C_Dwarka%2C_Gujarat.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/Shree_Nageshwar_Jyotirling_temple%2C_Dwarka%2C_Gujarat.jpg/1280px-Shree_Nageshwar_Jyotirling_temple%2C_Dwarka%2C_Gujarat.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c3/Shri_Nageshwar_Jyotirling_temple%2C_Dwarka%2C_Gujarat.jpg/1280px-Shri_Nageshwar_Jyotirling_temple%2C_Dwarka%2C_Gujarat.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bf/Nageshwar_shiva_temple_during_Dwaraka_DWARASPDB_2015_%2816%29.jpg/1280px-Nageshwar_shiva_temple_during_Dwaraka_DWARASPDB_2015_%2816%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/37/Nageshwar_shiva_temple_during_Dwaraka_DWARASPDB_2015_%2817%29.jpg/1280px-Nageshwar_shiva_temple_during_Dwaraka_DWARASPDB_2015_%2817%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7a/Nageshwar_shiva_temple_during_Dwaraka_DWARASPDB_2015_%2818%29.jpg/1280px-Nageshwar_shiva_temple_during_Dwaraka_DWARASPDB_2015_%2818%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'One of the twelve Jyotirlingas, the Nageshwar Shiva temple near Dwarka '
         'is linked to the Darukavanam legend of devotee Supriya and is commonly '
@@ -5049,7 +5267,8 @@ const List<Temple> sampleTemples = [
         'ticketed.\n\nArrive via Ahmedabad airport (~21 km) or Ahmedabad railway '
         '(~32 km). Peak days (Diwali, anniversaries, weekends) mean long '
         'security queues — plan buffer time.',
-    location: 'Swaminarayan Akshardham, Sector 20, J Road, Gandhinagar, Gujarat 382020',
+    location:
+        'Swaminarayan Akshardham, Sector 20, J Road, Gandhinagar, Gujarat 382020',
     timings:
         'Official BAPS Akshardham Gujarat visitor-info: CLOSED every Monday. '
         'Tue–Sun first entry 10:00 AM, last entry 7:30 PM. Mandir darshan 10:00 '
@@ -5069,12 +5288,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/chotila-chamunda-mata-temple/
   Temple(
     name: 'Chotila Chamunda Mata Temple',
     state: 'Gujarat',
     city: 'Chotila',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/chotila-chamunda-mata-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/02/Chamunda_Mataji_Dungar%2C_Chotila_-_panoramio.jpg/1280px-Chamunda_Mataji_Dungar%2C_Chotila_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/02/Chamunda_Mataji_Dungar%2C_Chotila_-_panoramio.jpg/1280px-Chamunda_Mataji_Dungar%2C_Chotila_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/80/Chotila_-_Chamunda_Devi_Temple%2C_Gujarat_-_India_%283417730278%29.jpg/1280px-Chotila_-_Chamunda_Devi_Temple%2C_Gujarat_-_India_%283417730278%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1e/Chotila_-_Chamunda_Devi_Temple%2C_Gujarat_-_India_%283417731678%29.jpg/1280px-Chotila_-_Chamunda_Devi_Temple%2C_Gujarat_-_India_%283417731678%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f8/Chotila_-_Chamunda_Devi_Temple%2C_Gujarat_-_India_%283417746272%29.jpg/1280px-Chotila_-_Chamunda_Devi_Temple%2C_Gujarat_-_India_%283417746272%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/29/Chotila_-_Chamunda_Devi_Temple%2C_Gujarat_-_India_%283417734014%29.jpg/1280px-Chotila_-_Chamunda_Devi_Temple%2C_Gujarat_-_India_%283417734014%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Hilltop Chamunda Mata shrine above Chotila in Surendranagar district — '
         'a classic Saurashtra Devi pilgrimage with steep steps, Navaratri '
@@ -5123,15 +5351,24 @@ const List<Temple> sampleTemples = [
   //  ODISHA
   // ═══════════════════════════════════════════════════════════════════════════
   // Expansion batch 7 — new temples, not enrichments of existing rows.
-  // Cover imageUrl values are picsum placeholders (same pattern as the
-  // original sample). Commons photo_candidates are not Storage paths.
+  // Wave C packs use Wikimedia Commons thumbs. Temples without a pack
+  // still use picsum placeholders. Commons files are not Storage paths.
   // Sources and photo candidates: docs/odisha-sample-research.md
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/jagannath-temple-puri/
   Temple(
     name: 'Jagannath Temple',
     state: 'Odisha',
     city: 'Puri',
     deity: 'Vishnu',
-    imageUrl: 'https://picsum.photos/seed/jagannath-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7c/Jagannath_Temple%2C_Puri%2C_Odisha_%282017%29.jpg/1280px-Jagannath_Temple%2C_Puri%2C_Odisha_%282017%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7c/Jagannath_Temple%2C_Puri%2C_Odisha_%282017%29.jpg/1280px-Jagannath_Temple%2C_Puri%2C_Odisha_%282017%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5f/Jagannath_Temple%2C_Puri%2C_Odisha%2C_India_%282016%29.jpg/1280px-Jagannath_Temple%2C_Puri%2C_Odisha%2C_India_%282016%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7b/Jagannath_Temple%2C_Puri_04.jpg/1280px-Jagannath_Temple%2C_Puri_04.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e2/Jagannath_Temple%2C_Puri_03.jpg/1280px-Jagannath_Temple%2C_Puri_03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bf/Jagannath_Temple%2C_Puri_06.jpg/1280px-Jagannath_Temple%2C_Puri_06.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Char Dham Vaishnava temple of Jagannath, Balabhadra and Subhadra at '
         'Puri — famed for the annual Ratha Yatra, wooden nabakalebara idols, '
@@ -5193,12 +5430,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/lingaraj-temple/
   Temple(
     name: 'Lingaraj Temple',
     state: 'Odisha',
     city: 'Bhubaneswar',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/lingaraj-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bc/Lingaraj_Temple%2C_Bhubaneswar%2C_Odisha_2.jpg/1280px-Lingaraj_Temple%2C_Bhubaneswar%2C_Odisha_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bc/Lingaraj_Temple%2C_Bhubaneswar%2C_Odisha_2.jpg/1280px-Lingaraj_Temple%2C_Bhubaneswar%2C_Odisha_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/39/Lingaraj_Temple%2C_Bhubaneswar%2C_Odisha.jpg/1280px-Lingaraj_Temple%2C_Bhubaneswar%2C_Odisha.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/01/Lingaraj_Temple%2C_Bhubaneswar%2C_Odisha_3.jpg/1280px-Lingaraj_Temple%2C_Bhubaneswar%2C_Odisha_3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/92/Lingaraj_Temple%2C_Bhubaneswar%2C_Odisha_4.jpg/1280px-Lingaraj_Temple%2C_Bhubaneswar%2C_Odisha_4.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c4/Lingaraj_Temple%2C_Bhubaneswar%2C_Odisha_5.jpg/1280px-Lingaraj_Temple%2C_Bhubaneswar%2C_Odisha_5.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Largest and most prominent temple of Bhubaneswar’s Ekamra Kshetra, a '
         'towering 11th-century Kalinga Shaiva complex for Harihara / Lingaraja '
@@ -5248,12 +5494,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/konark-sun-temple/
   Temple(
     name: 'Konark Sun Temple',
     state: 'Odisha',
     city: 'Konark',
     deity: 'Surya',
-    imageUrl: 'https://picsum.photos/seed/konark-sun-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f2/13th_Century_stone_curvings_at_Konark_Sun_Temple_Puri_district%2C_Odisha%2C_India.jpg/1280px-13th_Century_stone_curvings_at_Konark_Sun_Temple_Puri_district%2C_Odisha%2C_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f2/13th_Century_stone_curvings_at_Konark_Sun_Temple_Puri_district%2C_Odisha%2C_India.jpg/1280px-13th_Century_stone_curvings_at_Konark_Sun_Temple_Puri_district%2C_Odisha%2C_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/91/13th_Century_stone_architectures_at_Konark_Sun_Temple_Puri%2C_Odisha%2C_India.jpg/1280px-13th_Century_stone_architectures_at_Konark_Sun_Temple_Puri%2C_Odisha%2C_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6c/13th_Century_stone_curvings_at_Konark_Sun_Temple_Puri_district%2C_Odisha%2C_India_1.jpg/1280px-13th_Century_stone_curvings_at_Konark_Sun_Temple_Puri_district%2C_Odisha%2C_India_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6c/Konark_Sun_Temple_Puri_district%2C_Odisha%2C_India_3.jpg/1280px-Konark_Sun_Temple_Puri_district%2C_Odisha%2C_India_3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/57/Konark_Sun_Temple_Puri_district%2C_Odisha%2C_India_1.jpg/1280px-Konark_Sun_Temple_Puri_district%2C_Odisha%2C_India_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'UNESCO World Heritage (1984) 13th-century Surya temple built as a '
         'colossal stone chariot by Eastern Ganga king Narasimhadeva I — '
@@ -5301,12 +5556,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/mukteshwar-temple/
   Temple(
     name: 'Mukteshwar Temple',
     state: 'Odisha',
     city: 'Bhubaneswar',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/mukteshwar-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a3/Mukteshwar_Temple%2C_Bhubaneswar%2C_Odisha_01.jpg/1280px-Mukteshwar_Temple%2C_Bhubaneswar%2C_Odisha_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a3/Mukteshwar_Temple%2C_Bhubaneswar%2C_Odisha_01.jpg/1280px-Mukteshwar_Temple%2C_Bhubaneswar%2C_Odisha_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a1/Mukteshwar_Temple%2C_Bhubaneswar%2C_Odisha_02.jpg/1280px-Mukteshwar_Temple%2C_Bhubaneswar%2C_Odisha_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7a/Mukteshwar_Temple%2C_Bhubaneswar%2C_Odisha_03.jpg/1280px-Mukteshwar_Temple%2C_Bhubaneswar%2C_Odisha_03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e3/Mukteshwar_Temple%2C_Bhubaneswar%2C_Odisha_04.jpg/1280px-Mukteshwar_Temple%2C_Bhubaneswar%2C_Odisha_04.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ec/Mukteshwar_Temple%2C_Bhubaneswar%2C_Odisha_05.jpg/1280px-Mukteshwar_Temple%2C_Bhubaneswar%2C_Odisha_05.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Exquisite 10th-century Shaiva “gem of Odisha architecture,” celebrated '
         'for its ornate torana gateway, compact Kalinga vimana, and as a '
@@ -5348,12 +5612,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/rajarani-temple/
   Temple(
     name: 'Rajarani Temple',
     state: 'Odisha',
     city: 'Bhubaneswar',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/rajarani-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f4/RajaRani-Bhubaneswar-Odisha-Dsc001.jpg/1280px-RajaRani-Bhubaneswar-Odisha-Dsc001.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f4/RajaRani-Bhubaneswar-Odisha-Dsc001.jpg/1280px-RajaRani-Bhubaneswar-Odisha-Dsc001.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cc/RajaRani-Bhubaneswar-Odisha-Dsc003.jpg/1280px-RajaRani-Bhubaneswar-Odisha-Dsc003.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4a/RajaRani-Bhubaneswar-Odisha-Dsc004.jpg/1280px-RajaRani-Bhubaneswar-Odisha-Dsc004.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b4/RajaRani-Bhubaneswar-Odisha-Dsc006.jpg/1280px-RajaRani-Bhubaneswar-Odisha-Dsc006.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/49/Rajarani_Temple%2C_Bhubaneswar%2C_Odisha%2C_India.JPG/1280px-Rajarani_Temple%2C_Bhubaneswar%2C_Odisha%2C_India.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Elegant 11th-century pancharatha temple of red-and-yellow “rajarani” '
         'sandstone, ASI-ticketed, famed for graceful nayika sculpture — the '
@@ -5394,12 +5667,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/ananta-vasudeva-temple/
   Temple(
     name: 'Ananta Vasudeva Temple',
     state: 'Odisha',
     city: 'Bhubaneswar',
     deity: 'Vishnu',
-    imageUrl: 'https://picsum.photos/seed/ananta-vasudeva-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/95/Ananta_Vasudeva_Temple%2C_Bhubaneswar%2C_Odisha%2C_India_%282016%29.jpg/1280px-Ananta_Vasudeva_Temple%2C_Bhubaneswar%2C_Odisha%2C_India_%282016%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/95/Ananta_Vasudeva_Temple%2C_Bhubaneswar%2C_Odisha%2C_India_%282016%29.jpg/1280px-Ananta_Vasudeva_Temple%2C_Bhubaneswar%2C_Odisha%2C_India_%282016%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bd/Ananta_Vasudeva_Temple%2C_Bhubaneswar%2C_India_01.tif/lossy-page1-1280px-Ananta_Vasudeva_Temple%2C_Bhubaneswar%2C_India_01.tif.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/94/Ananta_Vasudeva_Temple%2C_Bhubaneswar%2C_India.tif/lossy-page1-1280px-Ananta_Vasudeva_Temple%2C_Bhubaneswar%2C_India.tif.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/80/Ananta_Basudeba_Temple%2C_Bhubaneswar_Panorama_14.jpg/1280px-Ananta_Basudeba_Temple%2C_Bhubaneswar_Panorama_14.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/95/Ananta_Basudeba_Temple%2C_Bhubaneswar_Vertical_Panorama_17.jpg/1280px-Ananta_Basudeba_Temple%2C_Bhubaneswar_Vertical_Panorama_17.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         '13th-century Vaishnava temple on Bindusagar dedicated to '
         'Krishna–Balarama–Subhadra in complete stone form — Bhubaneswar’s Chakra '
@@ -5468,7 +5750,8 @@ const List<Temple> sampleTemples = [
         'kitchen detail. Timings in secondary guides are commonly ~6:00 AM–9:00 '
         'PM with possible afternoon ritual breaks; Odisha tourism snippets '
         'sometimes list shorter windows — confirm locally.',
-    location: 'Sakhigopal (Satyabadi), Puri District, Odisha (Bhubaneswar–Puri highway)',
+    location:
+        'Sakhigopal (Satyabadi), Puri District, Odisha (Bhubaneswar–Puri highway)',
     timings:
         'Secondary visitor guides commonly list ~6:00 AM–9:00 PM with possible '
         'brief afternoon ritual closure; some Odisha tourism notes cite shorter '
@@ -5516,7 +5799,8 @@ const List<Temple> sampleTemples = [
         'against the official board. Combine spiritually with other Odisha '
         'Shakti circuits (e.g. Biraja, Cuttack Chandi) when planning '
         'Ganjam–coast travel.',
-    location: 'Kumari Hills, Purushottampur, Ganjam District, Odisha (Rushikulya river)',
+    location:
+        'Kumari Hills, Purushottampur, Ganjam District, Odisha (Rushikulya river)',
     timings:
         'Secondary schedules (confirm on taratarini.nic.in / temple board — thin '
         'on fully detailed English pooja clocks): temple often listed ~6:30 '
@@ -5536,12 +5820,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/cuttack-chandi-temple/
   Temple(
     name: 'Cuttack Chandi Temple',
     state: 'Odisha',
     city: 'Cuttack',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/cuttack-chandi-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/61/Banasur_Temple%2CBarapurikia%2CNarasinghpur%2CCuttack%2COdisha%2CIndia.jpg/1280px-Banasur_Temple%2CBarapurikia%2CNarasinghpur%2CCuttack%2COdisha%2CIndia.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/61/Banasur_Temple%2CBarapurikia%2CNarasinghpur%2CCuttack%2COdisha%2CIndia.jpg/1280px-Banasur_Temple%2CBarapurikia%2CNarasinghpur%2CCuttack%2COdisha%2CIndia.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/22/Banasur_Temple_Barapurikia%2CCuttack%2COdisha.jpg/1280px-Banasur_Temple_Barapurikia%2CCuttack%2COdisha.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ef/Hanging_bridge_Dhabaleswara_temple_Cuttack_Odisha.jpg/1280px-Hanging_bridge_Dhabaleswara_temple_Cuttack_Odisha.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c0/Hanging_bridge_Dhabaleswara_temple_Cuttack_Odisha1.jpg/1280px-Hanging_bridge_Dhabaleswara_temple_Cuttack_Odisha1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b0/Hanging_bridge_Dhabaleswara_temple_Cuttack_Odisha2.jpg/1280px-Hanging_bridge_Dhabaleswara_temple_Cuttack_Odisha2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Historic city shrine of Maa Katak Chandi (Chandi / Durga) in Cuttack '
         'near the Mahanadi, especially thronged during Durga Puja when the '
@@ -5579,12 +5872,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/biraja-temple/
   Temple(
     name: 'Biraja Temple',
     state: 'Odisha',
     city: 'Jajpur',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/biraja-temple/800/600',
+    imageUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/a/a5/Biraja_Temple%2C_Jajpur%2C_Odisha%2C_India%2C_13th_century.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+    images: [
+      'https://upload.wikimedia.org/wikipedia/commons/a/a5/Biraja_Temple%2C_Jajpur%2C_Odisha%2C_India%2C_13th_century.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/91/Ratha_Jatra_of_Maa_Biraja%2C_Jajpur_in_2023_01.jpg/1280px-Ratha_Jatra_of_Maa_Biraja%2C_Jajpur_in_2023_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d3/Ratha_Jatra_of_Maa_Biraja%2C_Jajpur_in_2023_02.jpg/1280px-Ratha_Jatra_of_Maa_Biraja%2C_Jajpur_in_2023_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/22/Ratha_Jatra_of_Maa_Biraja%2C_Jajpur_in_2023_03.jpg/1280px-Ratha_Jatra_of_Maa_Biraja%2C_Jajpur_in_2023_03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ea/Ratha_Jatra_of_Maa_Biraja%2C_Jajpur_in_2023_04.jpg/1280px-Ratha_Jatra_of_Maa_Biraja%2C_Jajpur_in_2023_04.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Ancient Shakti Peetha of Maa Biraja (Viraja / Girija) at Jajpur — '
         'Mahishasuramardini shrine on the Vaitarani, also famed as Nabhi Gaya '
@@ -5631,8 +5933,8 @@ const List<Temple> sampleTemples = [
   //  UTTAR PRADESH
   // ═══════════════════════════════════════════════════════════════════════════
   // Expansion batch 8 — new temples, not enrichments of existing rows.
-  // Cover imageUrl values are picsum placeholders (same pattern as the
-  // original sample). Commons photo_candidates are not Storage paths.
+  // Wave C packs use Wikimedia Commons thumbs. Temples without a pack
+  // still use picsum placeholders. Commons files are not Storage paths.
   // Sources and photo candidates: docs/uttar-pradesh-sample-research.md
   Temple(
     name: 'Kashi Vishwanath Temple',
@@ -5695,12 +5997,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/ram-mandir-ayodhya/
   Temple(
     name: 'Ram Mandir (Shri Ram Janmabhoomi Temple)',
     state: 'Uttar Pradesh',
     city: 'Ayodhya',
     deity: 'Vishnu',
-    imageUrl: 'https://picsum.photos/seed/ram-mandir-shri-ram-janmabhoomi-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/68/Illuminated_gateway_inside_Shri_Ram_Janmabhoomi_Mandir_complex%2C_Ayodhya.png/1280px-Illuminated_gateway_inside_Shri_Ram_Janmabhoomi_Mandir_complex%2C_Ayodhya.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/68/Illuminated_gateway_inside_Shri_Ram_Janmabhoomi_Mandir_complex%2C_Ayodhya.png/1280px-Illuminated_gateway_inside_Shri_Ram_Janmabhoomi_Mandir_complex%2C_Ayodhya.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/31/Historical_information_board_of_Shri_Ram_Janmabhoomi_Mandir%2C_Ayodhya.png/1280px-Historical_information_board_of_Shri_Ram_Janmabhoomi_Mandir%2C_Ayodhya.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/da/Shri_Ram_in_Ram_Mandir_Ayodhya_%28Illustration%29.jpg/1280px-Shri_Ram_in_Ram_Mandir_Ayodhya_%28Illustration%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/Ayodhya_Ram_Mandir_exit.jpg/1280px-Ayodhya_Ram_Mandir_exit.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9b/Ayodhya_Ram_Mandir_line-1.jpg/1280px-Ayodhya_Ram_Mandir_line-1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Large Nagara-style temple complex in Ayodhya dedicated to Ram Lalla '
         '(infant Rama), consecrated in January 2024 and managed by Shri Ram '
@@ -5810,12 +6121,20 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/banke-bihari-temple/
   Temple(
     name: 'Banke Bihari Temple',
     state: 'Uttar Pradesh',
     city: 'Vrindavan',
     deity: 'Vishnu',
-    imageUrl: 'https://picsum.photos/seed/banke-bihari-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0d/Banke_Bihari_Temple%2C_Vrindavan%2C_Mathura%2C_Uttar_Pradesh%2C_India_%282010%29.jpg/1280px-Banke_Bihari_Temple%2C_Vrindavan%2C_Mathura%2C_Uttar_Pradesh%2C_India_%282010%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0d/Banke_Bihari_Temple%2C_Vrindavan%2C_Mathura%2C_Uttar_Pradesh%2C_India_%282010%29.jpg/1280px-Banke_Bihari_Temple%2C_Vrindavan%2C_Mathura%2C_Uttar_Pradesh%2C_India_%282010%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/27/Banke_Bihari_Mandir_Vrindavan_-_Phool_Bangla_Darshan.jpg/1280px-Banke_Bihari_Mandir_Vrindavan_-_Phool_Bangla_Darshan.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/43/Phool_Bangla_floral_chandelier_at_Banke_Bihari_Temple%2C_Vrindavan.jpg/1280px-Phool_Bangla_floral_chandelier_at_Banke_Bihari_Temple%2C_Vrindavan.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ec/Bankebihari_temple_main_gate_Vrindavan.JPG/1280px-Bankebihari_temple_main_gate_Vrindavan.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Beloved Vrindavan temple of Thakur Banke Bihariji — a charming '
         'tribhangi form of Krishna associated with Swami Haridas — known for '
@@ -5863,12 +6182,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/prem-mandir-vrindavan/
   Temple(
     name: 'Prem Mandir',
     state: 'Uttar Pradesh',
     city: 'Vrindavan',
     deity: 'Vishnu',
-    imageUrl: 'https://picsum.photos/seed/prem-mandir/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d6/Prem_Mandir_Vrindavan%2C_Mathura%2C_Agra%2C_Uttar_Pradesh%2C_India_%282012%29_%28421%29.jpg/1280px-Prem_Mandir_Vrindavan%2C_Mathura%2C_Agra%2C_Uttar_Pradesh%2C_India_%282012%29_%28421%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d6/Prem_Mandir_Vrindavan%2C_Mathura%2C_Agra%2C_Uttar_Pradesh%2C_India_%282012%29_%28421%29.jpg/1280px-Prem_Mandir_Vrindavan%2C_Mathura%2C_Agra%2C_Uttar_Pradesh%2C_India_%282012%29_%28421%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/43/Prem_Mandir_Vrindavan%2C_Mathura%2C_Agra%2C_Uttar_Pradesh%2C_India_%282012%29_%28423%29.jpg/1280px-Prem_Mandir_Vrindavan%2C_Mathura%2C_Agra%2C_Uttar_Pradesh%2C_India_%282012%29_%28423%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/Prem_Mandir_Vrindavan%2C_Mathura%2C_Agra%2C_Uttar_Pradesh%2C_India_%282012%29_%28424%29.jpg/1280px-Prem_Mandir_Vrindavan%2C_Mathura%2C_Agra%2C_Uttar_Pradesh%2C_India_%282012%29_%28424%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/02/Prem_Mandir_Vrindavan%2C_Mathura%2C_Agra%2C_Uttar_Pradesh%2C_India_%282012%29_%28471%29.jpg/1280px-Prem_Mandir_Vrindavan%2C_Mathura%2C_Agra%2C_Uttar_Pradesh%2C_India_%282012%29_%28471%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/58/Prem_Mandir%2C_Vrindavan.jpg/1280px-Prem_Mandir%2C_Vrindavan.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Contemporary Italian-marble “Temple of Divine Love” in Vrindavan, '
         'founded by Jagadguru Kripalu Ji Maharaj (inaugurated 2012), with '
@@ -5915,12 +6243,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/sankat-mochan-hanuman-temple/
   Temple(
     name: 'Sankat Mochan Hanuman Temple',
     state: 'Uttar Pradesh',
     city: 'Varanasi',
     deity: 'Hanuman',
-    imageUrl: 'https://picsum.photos/seed/sankat-mochan-hanuman-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ed/Sankat_Mochan_Temple_in_Varanasi_%288527226316%29.jpg/1280px-Sankat_Mochan_Temple_in_Varanasi_%288527226316%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ed/Sankat_Mochan_Temple_in_Varanasi_%288527226316%29.jpg/1280px-Sankat_Mochan_Temple_in_Varanasi_%288527226316%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/Sankat_Mochan_temple_entrance%2C_Varanasi_-_IRCTC_2017.jpg/1280px-Sankat_Mochan_temple_entrance%2C_Varanasi_-_IRCTC_2017.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/24/Sankat_Mochan_temple_entrance%2C_Varanasi_-_IRCTC_2017_%281%29.jpg/1280px-Sankat_Mochan_temple_entrance%2C_Varanasi_-_IRCTC_2017_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e7/Sankat_Mochan_temple_entrance%2C_Varanasi_-_IRCTC_2017_%282%29.jpg/1280px-Sankat_Mochan_temple_entrance%2C_Varanasi_-_IRCTC_2017_%282%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/59/Sankat_Mochan_Veer_Hanuman_Temple_interior.jpg/1280px-Sankat_Mochan_Veer_Hanuman_Temple_interior.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Famous Varanasi Hanuman temple traditionally founded by Goswami '
         'Tulsidas, known for Tuesday/Saturday crowds, continuous chanting, and '
@@ -6008,12 +6345,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/vindhyavasini-temple/
   Temple(
     name: 'Vindhyavasini Temple',
     state: 'Uttar Pradesh',
     city: 'Vindhyachal',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/vindhyavasini-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/24/Maa_Vindhyavasini_temple%2C_Vindhyachal.jpg/1280px-Maa_Vindhyavasini_temple%2C_Vindhyachal.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/24/Maa_Vindhyavasini_temple%2C_Vindhyachal.jpg/1280px-Maa_Vindhyavasini_temple%2C_Vindhyachal.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/20/Inside_Vindhyachal_Temple.JPG/1280px-Inside_Vindhyachal_Temple.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2a/Inside_Vindhyachal_Temple_enterance.JPG/1280px-Inside_Vindhyachal_Temple_enterance.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/98/Jhalki_Darshan_of_Vindhyachal_Temple.JPG/1280px-Jhalki_Darshan_of_Vindhyachal_Temple.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/Maa_Vindhyavasini_temple_entrance_gate.jpg/1280px-Maa_Vindhyavasini_temple_entrance_gate.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Ancient Devi shrine of Maa Vindhyavasini at Vindhyachal (Mirzapur), a '
         'major Shakti pilgrimage centre and the apex of the local Trikon / '
@@ -6052,12 +6398,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/gorakhnath-temple/
   Temple(
     name: 'Gorakhnath Temple',
     state: 'Uttar Pradesh',
     city: 'Gorakhpur',
     deity: 'Gorakhnath',
-    imageUrl: 'https://picsum.photos/seed/gorakhnath-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1b/Gorakhnath_mandir_in_Gorakhpur.jpg/1280px-Gorakhnath_mandir_in_Gorakhpur.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1b/Gorakhnath_mandir_in_Gorakhpur.jpg/1280px-Gorakhnath_mandir_in_Gorakhpur.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/Gorakhnath_temple%2C_gorakhpur.jpg/1280px-Gorakhnath_temple%2C_gorakhpur.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d4/Gorakhnath_temple_Gorkha_Durbar_Gorkha_Gorkha_District_Nepal_Rajesh_Dhungana_%2833%29.jpg/1280px-Gorakhnath_temple_Gorkha_Durbar_Gorkha_Gorkha_District_Nepal_Rajesh_Dhungana_%2833%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e2/Gorakhnath_temple_Gorkha_Durbar_Gorkha_Gorkha_District_Nepal_Rajesh_Dhungana_%286%29.jpg/1280px-Gorakhnath_temple_Gorkha_Durbar_Gorkha_Gorkha_District_Nepal_Rajesh_Dhungana_%286%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b9/Gorakhnath_temple_Gorkha_Durbar_Gorkha_Gorkha_District_Nepal_Rajesh_Dhungana_%288%29.jpg/1280px-Gorakhnath_temple_Gorkha_Durbar_Gorkha_Gorkha_District_Nepal_Rajesh_Dhungana_%288%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Historic Nath-sampradaya matha and temple in Gorakhpur dedicated to '
         'Guru Gorakhnath, with continuous bhandara tradition, prominent shikhara '
@@ -6102,7 +6457,8 @@ const List<Temple> sampleTemples = [
     state: 'Uttar Pradesh',
     city: 'Prayagraj',
     deity: 'Hanuman',
-    imageUrl: 'https://picsum.photos/seed/bade-hanuman-ji-temple-lete-hanuman/800/600',
+    imageUrl:
+        'https://picsum.photos/seed/bade-hanuman-ji-temple-lete-hanuman/800/600',
     description:
         'Unique reclining (lete) Hanuman temple near the Triveni Sangam in '
         'Prayagraj, famous for its colossal recumbent image that can be '
@@ -6152,15 +6508,24 @@ const List<Temple> sampleTemples = [
   // Expansion batch 9 — new temples, not enrichments of existing rows.
   // State label is Jammu and Kashmir. No separate Ladakh row: this pass
   // did not find a living Ladakh Hindu temple with a verified Commons photo.
-  // Cover imageUrl values are picsum placeholders. Empty Commons lists
-  // (Ranbireshwar, Sudh Mahadev) stay documented, not invented Storage paths.
+  // Wave C packs use Wikimedia Commons thumbs. Temples without a pack,
+  // including Ranbireshwar and Sudh Mahadev, still use picsum placeholders.
   // Sources and photo candidates: docs/jammu-kashmir-sample-research.md
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/vaishno-devi-temple/
   Temple(
     name: 'Vaishno Devi Temple',
     state: 'Jammu and Kashmir',
     city: 'Katra',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/vaishno-devi-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/71/Vaishno_devi_katra_jammu_n_kashmir.jpg/1280px-Vaishno_devi_katra_jammu_n_kashmir.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/71/Vaishno_devi_katra_jammu_n_kashmir.jpg/1280px-Vaishno_devi_katra_jammu_n_kashmir.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/82/View_of_Katra_enroute_to_Maa_Vaishno_Devi_temple.JPG/1280px-View_of_Katra_enroute_to_Maa_Vaishno_Devi_temple.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e4/Vaishno_Devi_temple_in_katra.jpg/1280px-Vaishno_Devi_temple_in_katra.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7e/Katra_Vaishno_Devi_temple_Seen1.jpg/1280px-Katra_Vaishno_Devi_temple_Seen1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f2/Vaishno_devi_katra.jpg/1280px-Vaishno_devi_katra.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Major Shakti pilgrimage cave shrine of Mata Vaishno Devi on Trikuta '
         'Hills above Katra, managed by Shri Mata Vaishno Devi Shrine Board; '
@@ -6189,7 +6554,8 @@ const List<Temple> sampleTemples = [
         'peak crowds. Follow maavaishnodevi.org for live aarti windows, '
         'registration, helicopter/pooja bookings, and security dress rules '
         'before travel.',
-    location: 'Bhawan, Trikuta Hills, Katra, Reasi district, Jammu and Kashmir 182301',
+    location:
+        'Bhawan, Trikuta Hills, Katra, Reasi district, Jammu and Kashmir 182301',
     timings:
         'Official Board practice (maavaishnodevi.org): Bhawan darshan nearly 24 '
         'hours daily; suspended only during twice-daily Atka Aarti (~2 hours '
@@ -6265,12 +6631,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/raghunath-temple-jammu/
   Temple(
     name: 'Raghunath Temple',
     state: 'Jammu and Kashmir',
     city: 'Jammu',
     deity: 'Vishnu',
-    imageUrl: 'https://picsum.photos/seed/raghunath-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8c/The_Temples_of_Raghunath%2C_Jammu%2C_India%2C_ca.1875-ca.1940_%28imp-cswc-GB-237-CSWC47-LS10-011%29.jpg/1280px-The_Temples_of_Raghunath%2C_Jammu%2C_India%2C_ca.1875-ca.1940_%28imp-cswc-GB-237-CSWC47-LS10-011%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8c/The_Temples_of_Raghunath%2C_Jammu%2C_India%2C_ca.1875-ca.1940_%28imp-cswc-GB-237-CSWC47-LS10-011%29.jpg/1280px-The_Temples_of_Raghunath%2C_Jammu%2C_India%2C_ca.1875-ca.1940_%28imp-cswc-GB-237-CSWC47-LS10-011%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/57/12th-century_Samaveda_samhita_and_brahmanam%2C_Aranyaganam_Prapathaka_1-6%2C_page_2_front%2C_Raghunath_temple_archives%2C_Jammu.jpg/1280px-12th-century_Samaveda_samhita_and_brahmanam%2C_Aranyaganam_Prapathaka_1-6%2C_page_2_front%2C_Raghunath_temple_archives%2C_Jammu.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2a/12th-century_Samaveda_samhita_and_brahmanam%2C_Aranyaganam_Prapathaka_1-6%2C_page_1_front%2C_Raghunath_temple_archives%2C_Jammu.jpg/1280px-12th-century_Samaveda_samhita_and_brahmanam%2C_Aranyaganam_Prapathaka_1-6%2C_page_1_front%2C_Raghunath_temple_archives%2C_Jammu.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/68/18th-century_Yajurveda_manuscript_folio%2C_page_1%2C_Raghunath_temple_Jammu_archives.jpg/1280px-18th-century_Yajurveda_manuscript_folio%2C_page_1%2C_Raghunath_temple_Jammu_archives.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5a/12th-century_Samaveda_samhita_and_brahmanam%2C_Aranyaganam_Prapathaka_1-6%2C_page_1_and_2_front%2C_Raghunath_temple_archives%2C_Jammu.jpg/1280px-12th-century_Samaveda_samhita_and_brahmanam%2C_Aranyaganam_Prapathaka_1-6%2C_page_1_and_2_front%2C_Raghunath_temple_archives%2C_Jammu.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Large Dogra-era temple complex of seven shrines with distinctive '
         'shikharas in old Jammu city; presiding deity Rama (Raghunath), an '
@@ -6311,12 +6686,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/shankaracharya-temple/
   Temple(
     name: 'Shankaracharya Temple',
     state: 'Jammu and Kashmir',
     city: 'Srinagar',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/shankaracharya-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fc/The_Ancient_Shankaracharya_Temple_%28Srinagar%2C_Jammu_and_Kashmir%29.jpg/1280px-The_Ancient_Shankaracharya_Temple_%28Srinagar%2C_Jammu_and_Kashmir%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fc/The_Ancient_Shankaracharya_Temple_%28Srinagar%2C_Jammu_and_Kashmir%29.jpg/1280px-The_Ancient_Shankaracharya_Temple_%28Srinagar%2C_Jammu_and_Kashmir%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9b/The_Ancient_Shankaracharya_Temple_%28Srinagar%2C_Jammu_and_Kashmir%29_%28cropped%29.jpg/1280px-The_Ancient_Shankaracharya_Temple_%28Srinagar%2C_Jammu_and_Kashmir%29_%28cropped%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/87/Shankaracharya_Temple%2C_Srinagar_and_views_around_-_vrvvkbjk2k23iph_%2864%29.jpg/1280px-Shankaracharya_Temple%2C_Srinagar_and_views_around_-_vrvvkbjk2k23iph_%2864%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bd/Shankaracharya_Temple%2C_Srinagar_and_views_around_-_vrvvkbjk2k23iph_%28103%29.jpg/1280px-Shankaracharya_Temple%2C_Srinagar_and_views_around_-_vrvvkbjk2k23iph_%28103%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/81/Shankaracharya_Temple%2C_Srinagar_and_views_around_-_vrvvkbjk2k23iph_%28105%29.jpg/1280px-Shankaracharya_Temple%2C_Srinagar_and_views_around_-_vrvvkbjk2k23iph_%28105%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Ancient hilltop Shiva temple (also Jyeshteshwara) overlooking Srinagar '
         'from the Zabarwan Range; ASI-noted monument and living worship site on '
@@ -6361,12 +6745,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/kheer-bhawani-temple/
   Temple(
     name: 'Kheer Bhawani Temple',
     state: 'Jammu and Kashmir',
     city: 'Tulmulla',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/kheer-bhawani-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1f/Kheer_Bhawani%2C_Ksheer_Bhawani_or_the_Ragnya_Devi_Temple_Tulmulla_Ganderbal_District_Jammu_%26_Kashmir_India.jpg/1280px-Kheer_Bhawani%2C_Ksheer_Bhawani_or_the_Ragnya_Devi_Temple_Tulmulla_Ganderbal_District_Jammu_%26_Kashmir_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1f/Kheer_Bhawani%2C_Ksheer_Bhawani_or_the_Ragnya_Devi_Temple_Tulmulla_Ganderbal_District_Jammu_%26_Kashmir_India.jpg/1280px-Kheer_Bhawani%2C_Ksheer_Bhawani_or_the_Ragnya_Devi_Temple_Tulmulla_Ganderbal_District_Jammu_%26_Kashmir_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9a/Kheer_Bhawani.jpg/1280px-Kheer_Bhawani.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9b/Kheer_Bhawani%2C_Ksheer_Bhawani_or_the_Ragnya_Devi_temple_Holy_Shrine_Front_View.jpg/1280px-Kheer_Bhawani%2C_Ksheer_Bhawani_or_the_Ragnya_Devi_temple_Holy_Shrine_Front_View.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/22/Kheer_Bhawani%2C_Ksheer_Bhawani_or_the_Ragnya_Devi_temple%2C_Hanumar_Temple.jpg/1280px-Kheer_Bhawani%2C_Ksheer_Bhawani_or_the_Ragnya_Devi_temple%2C_Hanumar_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/Kheer_Bhawani%2C_Ksheer_Bhawani_or_the_Ragnya_Devi_temple.jpg/1280px-Kheer_Bhawani%2C_Ksheer_Bhawani_or_the_Ragnya_Devi_temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Kashmiri Hindu shrine of Ragnya Devi (Kheer Bhawani) built over a '
         'sacred spring at Tulmulla; famed for the Jyeshtha Ashtami Mela and '
@@ -6505,7 +6898,7 @@ const List<Temple> sampleTemples = [
     // KAN-77: verified Commons thumbs — tools/photo-packs/martand-sun-temple/
     imageUrl:
         'https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Martand_Sun_Temple%2C_J%26K_01.jpg/1280px-Martand_Sun_Temple%2C_J%26K_01.jpg',
-    images: const [
+    images: [
       'https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Martand_Sun_Temple%2C_J%26K_01.jpg/1280px-Martand_Sun_Temple%2C_J%26K_01.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/1_Sun_Temple_Martand_Jammu_Kashmir_India_ancient_Hindu_temple_in_ruins.jpg/1280px-1_Sun_Temple_Martand_Jammu_Kashmir_India_ancient_Hindu_temple_in_ruins.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Martand_Sun_Temple.JPG/1280px-Martand_Sun_Temple.JPG',
@@ -6657,14 +7050,25 @@ const List<Temple> sampleTemples = [
   //  MAHARASHTRA
   // ═══════════════════════════════════════════════════════════════════════════
   // Expansion batch 10 — new temples, not enrichments of existing rows.
-  // Cover imageUrl values are picsum placeholders. Commons candidates
-  // stay in docs/maharashtra-sample-research.md, not Storage paths.
+  // Wave C packs use Wikimedia Commons thumbs. Temples without a pack
+  // still use picsum placeholders. Research notes stay in
+  // docs/maharashtra-sample-research.md, not Storage paths.
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/shree-saibaba-samadhi-mandir/
   Temple(
     name: 'Shree Saibaba Samadhi Mandir',
     state: 'Maharashtra',
     city: 'Shirdi',
     deity: 'Sai Baba',
-    imageUrl: 'https://picsum.photos/seed/shree-saibaba-samadhi-mandir/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d0/Saibaba_-_Shirdi.jpg/1280px-Saibaba_-_Shirdi.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d0/Saibaba_-_Shirdi.jpg/1280px-Saibaba_-_Shirdi.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/14/Sri_Shirdi_Saibaba_Temple_Thirivilwamala_%2811394%29.jpg/1280px-Sri_Shirdi_Saibaba_Temple_Thirivilwamala_%2811394%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4d/Annapoornadevi_Idol_at_Saibaba_temple%2C_Shirdi%2C_Maharastra_%281%29.jpg/1280px-Annapoornadevi_Idol_at_Saibaba_temple%2C_Shirdi%2C_Maharastra_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c6/Annapoornadevi_Idol_at_Saibaba_temple%2C_Shirdi%2C_Maharastra_%282%29.jpg/1280px-Annapoornadevi_Idol_at_Saibaba_temple%2C_Shirdi%2C_Maharastra_%282%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6d/Shirdi_Sai_baba_Statue_at_Shri_Saibaba_Prasadalaya%2C_Shirdi%2C_Maharastra_%281%29.jpg/1280px-Shirdi_Sai_baba_Statue_at_Shri_Saibaba_Prasadalaya%2C_Shirdi%2C_Maharastra_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/aa/Shirdi_Sai_baba_Statue_at_Shri_Saibaba_Prasadalaya%2C_Shirdi%2C_Maharastra_%282%29.jpg/1280px-Shirdi_Sai_baba_Statue_at_Shri_Saibaba_Prasadalaya%2C_Shirdi%2C_Maharastra_%282%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Samadhi shrine of Sai Baba of Shirdi in Ahmednagar district, '
         'administered by Shree Saibaba Sansthan Trust; among India’s most '
@@ -6720,12 +7124,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/siddhivinayak-temple-mumbai/
   Temple(
     name: 'Siddhivinayak Temple',
     state: 'Maharashtra',
     city: 'Mumbai',
     deity: 'Ganesha',
-    imageUrl: 'https://picsum.photos/seed/siddhivinayak-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b9/Shree_Siddhivinayak_Temple_Mumbai.jpg/1280px-Shree_Siddhivinayak_Temple_Mumbai.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b9/Shree_Siddhivinayak_Temple_Mumbai.jpg/1280px-Shree_Siddhivinayak_Temple_Mumbai.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f7/Siddhivinayak_Mumbai.jpg/1280px-Siddhivinayak_Mumbai.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://upload.wikimedia.org/wikipedia/commons/1/16/Ganesha_Idol%2C_Siddhivinayak_Temple%2C_Mumbai.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+      'https://upload.wikimedia.org/wikipedia/commons/5/56/Ganesha_Idol%2C_Siddhivinayak_Temple%2C_Mumbai_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+      'https://upload.wikimedia.org/wikipedia/commons/f/fc/Ganesha_art%2C_Siddhivinayak_Temple%2C_Mumbai_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+    ],
     description:
         'Famous Siddhi Vinayak (wish-granting Ganesha) temple in '
         'Prabhadevi, Mumbai, founded in 1801 and managed by Shree '
@@ -6777,12 +7190,20 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/trimbakeshwar-temple/
   Temple(
     name: 'Trimbakeshwar Temple',
     state: 'Maharashtra',
     city: 'Trimbak',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/trimbakeshwar-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/12/Trimbakeshwar_Temple-Nashik-Maharashtra-1.jpg/1280px-Trimbakeshwar_Temple-Nashik-Maharashtra-1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/12/Trimbakeshwar_Temple-Nashik-Maharashtra-1.jpg/1280px-Trimbakeshwar_Temple-Nashik-Maharashtra-1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/Trimbakeshwar_Temple-Nashik-Maharashtra-2.jpg/1280px-Trimbakeshwar_Temple-Nashik-Maharashtra-2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2d/Close-up_of_the_shikhara_of_Trimbakeshwar_Shiva_Temple%2C_Trimbak%2C_Maharashtra%2C_India.jpg/1280px-Close-up_of_the_shikhara_of_Trimbakeshwar_Shiva_Temple%2C_Trimbak%2C_Maharashtra%2C_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/01/Trimbakeshwar_Shiva_Temple.jpg/1280px-Trimbakeshwar_Shiva_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'One of the twelve Jyotirlinga shrines of Shiva at Trimbak near '
         'Nashik, at the source region of the Godavari; the linga is '
@@ -6830,12 +7251,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/bhimashankar-temple/
   Temple(
     name: 'Bhimashankar Temple',
     state: 'Maharashtra',
     city: 'Bhimashankar',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/bhimashankar-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a7/Bhimashankar_temple%2C_Maharashtra.JPG/1280px-Bhimashankar_temple%2C_Maharashtra.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a7/Bhimashankar_temple%2C_Maharashtra.JPG/1280px-Bhimashankar_temple%2C_Maharashtra.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/09/Bhimashankar_temple_front.jpg/1280px-Bhimashankar_temple_front.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/39/Bhimashankar_temple_2%2C_pune.jpg/1280px-Bhimashankar_temple_2%2C_pune.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d9/Pune_bhimashankar_way_10.jpg/1280px-Pune_bhimashankar_way_10.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/75/Pune_bhimashankar_way_4.jpg/1280px-Pune_bhimashankar_way_4.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Jyotirlinga shrine of Shiva deep in the Sahyadri (Western Ghats) '
         'of Pune district, inside the Bhimashankar Wildlife Sanctuary '
@@ -6887,12 +7317,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/grishneshwar-temple/
   Temple(
     name: 'Grishneshwar Temple',
     state: 'Maharashtra',
     city: 'Verul',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/grishneshwar-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/40/Grishneshwar_Jyotirlinga_Temple%2C_Verul_villag%2C_Aurangabad_district%2C_Maharashtra%2C_India_01.jpg/1280px-Grishneshwar_Jyotirlinga_Temple%2C_Verul_villag%2C_Aurangabad_district%2C_Maharashtra%2C_India_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/40/Grishneshwar_Jyotirlinga_Temple%2C_Verul_villag%2C_Aurangabad_district%2C_Maharashtra%2C_India_01.jpg/1280px-Grishneshwar_Jyotirlinga_Temple%2C_Verul_villag%2C_Aurangabad_district%2C_Maharashtra%2C_India_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a9/Grishneshwar_Jyotirlinga_Temple%2C_Verul_villag%2C_Aurangabad_district%2C_Maharashtra%2C_India_02.jpg/1280px-Grishneshwar_Jyotirlinga_Temple%2C_Verul_villag%2C_Aurangabad_district%2C_Maharashtra%2C_India_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/de/Grishneshwar_Jyotirlinga_Temple%2C_Verul_villag%2C_Aurangabad_district%2C_Maharashtra%2C_India_03.jpg/1280px-Grishneshwar_Jyotirlinga_Temple%2C_Verul_villag%2C_Aurangabad_district%2C_Maharashtra%2C_India_03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b5/Grishneshwar_Jyotirlinga_Temple%2C_Verul_villag%2C_Aurangabad_district%2C_Maharashtra%2C_India_04.jpg/1280px-Grishneshwar_Jyotirlinga_Temple%2C_Verul_villag%2C_Aurangabad_district%2C_Maharashtra%2C_India_04.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5f/Grishneshwar_Jyotirlinga_Temple%2C_Verul_villag%2C_Aurangabad_district%2C_Maharashtra%2C_India_05.jpg/1280px-Grishneshwar_Jyotirlinga_Temple%2C_Verul_villag%2C_Aurangabad_district%2C_Maharashtra%2C_India_05.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Twelfth Jyotirlinga shrine of Shiva at Verul near the Ellora '
         'Caves; compact red-stone temple closely paired with UNESCO Ellora '
@@ -6944,12 +7383,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/vitthal-rukmini-temple-pandharpur/
   Temple(
     name: 'Vitthal Rukmini Temple',
     state: 'Maharashtra',
     city: 'Pandharpur',
     deity: 'Vitthal',
-    imageUrl: 'https://picsum.photos/seed/vitthal-rukmini-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4e/Vitthal_Rukmini_Temple_%2Cpandharpur.jpg/1280px-Vitthal_Rukmini_Temple_%2Cpandharpur.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4e/Vitthal_Rukmini_Temple_%2Cpandharpur.jpg/1280px-Vitthal_Rukmini_Temple_%2Cpandharpur.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f0/Pandurang_vitthal_Temple%2C_Pandharpur%2C_Maharashtra_01.jpg/1280px-Pandurang_vitthal_Temple%2C_Pandharpur%2C_Maharashtra_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f9/Pandurang_vitthal_Temple%2C_Pandharpur%2C_Maharashtra_02.jpg/1280px-Pandurang_vitthal_Temple%2C_Pandharpur%2C_Maharashtra_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a9/Pandurang_vitthal_Temple%2C_Pandharpur%2C_Maharashtra_03.jpg/1280px-Pandurang_vitthal_Temple%2C_Pandharpur%2C_Maharashtra_03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/10/Pandurang_vitthal_Temple%2C_Pandharpur%2C_Maharashtra_04.jpg/1280px-Pandurang_vitthal_Temple%2C_Pandharpur%2C_Maharashtra_04.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Principal Varkari pilgrimage temple of Vitthal (Vithoba) and '
         'Rukmini on the Chandrabhaga (Bhima) at Pandharpur; emotional '
@@ -7000,12 +7448,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/mumba-devi-temple/
   Temple(
     name: 'Mumba Devi Temple',
     state: 'Maharashtra',
     city: 'Mumbai',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/mumba-devi-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/Mumbadevi_Sikhara.jpg/1280px-Mumbadevi_Sikhara.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/Mumbadevi_Sikhara.jpg/1280px-Mumbadevi_Sikhara.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://upload.wikimedia.org/wikipedia/commons/2/27/Mumbadevi_temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/Indian_Cultural_Monument_%2887%29.jpg/1280px-Indian_Cultural_Monument_%2887%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://upload.wikimedia.org/wikipedia/commons/8/81/Indian_Cultural_Monument_%2817%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/MumbaDevi_Marg%2CMumbai_-_panoramio_%281%29.jpg/1280px-MumbaDevi_Marg%2CMumbai_-_panoramio_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Ancient city-goddess temple of Mumba Devi (Mumbaai) in '
         'Bhuleshwar–Zaveri Bazar; Mumbai’s name is traditionally derived '
@@ -7055,12 +7512,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/mahalakshmi-temple-mumbai/
   Temple(
     name: 'Mahalakshmi Temple',
     state: 'Maharashtra',
     city: 'Mumbai',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/mahalakshmi-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/Mahalakshmi_Temple%2C_Mumbai.jpg/1280px-Mahalakshmi_Temple%2C_Mumbai.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/Mahalakshmi_Temple%2C_Mumbai.jpg/1280px-Mahalakshmi_Temple%2C_Mumbai.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/69/Mahalakshmi_Temple%2C_Mumbai_%2811848%29.jpg/1280px-Mahalakshmi_Temple%2C_Mumbai_%2811848%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7b/Mahalakshmi_Temple%2C_Mumbai_%2822165%29.jpg/1280px-Mahalakshmi_Temple%2C_Mumbai_%2822165%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/07/Mahalakshmi_Temple%2C_Mumbai_%2825878%29.jpg/1280px-Mahalakshmi_Temple%2C_Mumbai_%2825878%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b4/Mahalakshmi_Temple%2C_Mumbai_%2842668%29.jpg/1280px-Mahalakshmi_Temple%2C_Mumbai_%2842668%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Prominent seaside Devi temple on Bhulabhai Desai Road at '
         'Mahalaxmi, Mumbai, housing Mahalakshmi with Mahakali and '
@@ -7105,12 +7571,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/jejuri-khandoba-temple/
   Temple(
     name: 'Jejuri Khandoba Temple',
     state: 'Maharashtra',
     city: 'Jejuri',
     deity: 'Khandoba',
-    imageUrl: 'https://picsum.photos/seed/jejuri-khandoba-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c9/Jejuri_khandoba.JPG/1280px-Jejuri_khandoba.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c9/Jejuri_khandoba.JPG/1280px-Jejuri_khandoba.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/43/View_of_Jejuri_city_from_Khandoba_Temple.jpg/1280px-View_of_Jejuri_city_from_Khandoba_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/44/Khandoba%2C_Jejuri_-_panoramio.jpg/1280px-Khandoba%2C_Jejuri_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9c/JEJURI%2C_KHANDOBA_TEMPLE.jpg/1280px-JEJURI%2C_KHANDOBA_TEMPLE.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/97/Jejuri_khandoba_temple_Longshot.jpg/1280px-Jejuri_khandoba_temple_Longshot.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Hilltop Martand / Khandoba temple at Jejuri (Sonyachi Jejuri), '
         'the premier shrine of Khandoba — Maharashtra’s widely worshipped '
@@ -7161,12 +7636,20 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/morgaon-mayureshwar-temple/
   Temple(
     name: 'Morgaon Mayureshwar Temple',
     state: 'Maharashtra',
     city: 'Morgaon',
     deity: 'Ganesha',
-    imageUrl: 'https://picsum.photos/seed/morgaon-mayureshwar-temple/800/600',
+    imageUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/0/03/Entrance_gateway_of_Shri_Mayureshwar_Mandir%2C_Morgaon.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+    images: [
+      'https://upload.wikimedia.org/wikipedia/commons/0/03/Entrance_gateway_of_Shri_Mayureshwar_Mandir%2C_Morgaon.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/43/Morgaon_temple.jpg/1280px-Morgaon_temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2d/Morgaon.jpg/1280px-Morgaon.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://upload.wikimedia.org/wikipedia/commons/4/47/Morgaon_temple_gate.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+    ],
     description:
         'Shri Mayureshwar (Moreshwar) Ganpati temple at Morgaon — first '
         'and last stop of the Ashtavinayak circuit and a historic centre '
@@ -7223,15 +7706,24 @@ const List<Temple> sampleTemples = [
   //  RAJASTHAN
   // ═══════════════════════════════════════════════════════════════════════════
   // Expansion batch 11 — new temples, not enrichments of existing rows.
-  // Dilwara is a Jain tirtha, not a Hindu temple. Cover imageUrl
-  // values are picsum placeholders. Commons candidates stay in
-  // docs/rajasthan-sample-research.md, not Storage paths.
+  // Dilwara is a Jain tirtha, not a Hindu temple. Wave C packs use
+  // Wikimedia Commons thumbs. Temples without a pack still use picsum
+  // placeholders. Research notes stay in docs/rajasthan-sample-research.md.
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/brahma-temple-pushkar/
   Temple(
     name: 'Brahma Temple',
     state: 'Rajasthan',
     city: 'Pushkar',
     deity: 'Brahma',
-    imageUrl: 'https://picsum.photos/seed/brahma-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3a/Pushkar_Brahma_Temple%2C_at_Pushkar_in_Rajasthan_01.jpg/1280px-Pushkar_Brahma_Temple%2C_at_Pushkar_in_Rajasthan_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3a/Pushkar_Brahma_Temple%2C_at_Pushkar_in_Rajasthan_01.jpg/1280px-Pushkar_Brahma_Temple%2C_at_Pushkar_in_Rajasthan_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f3/Pushkar_Brahma_Temple%2C_at_Pushkar_in_Rajasthan_02.jpg/1280px-Pushkar_Brahma_Temple%2C_at_Pushkar_in_Rajasthan_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/72/Pushkar_Brahma_Temple%2C_at_Pushkar_in_Rajasthan_03.jpg/1280px-Pushkar_Brahma_Temple%2C_at_Pushkar_in_Rajasthan_03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/50/Pushkar_Brahma_Temple%2C_at_Pushkar_in_Rajasthan_06.jpg/1280px-Pushkar_Brahma_Temple%2C_at_Pushkar_in_Rajasthan_06.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/34/Pushkar_Brahma_Temple%2C_at_Pushkar_in_Rajasthan_04.jpg/1280px-Pushkar_Brahma_Temple%2C_at_Pushkar_in_Rajasthan_04.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Rare living temple to the creator-god Brahma beside sacred '
         'Pushkar Lake, with a distinctive red shikhara and marble sanctum; '
@@ -7280,12 +7772,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/eklingji-temple/
   Temple(
     name: 'Eklingji Temple',
     state: 'Rajasthan',
     city: 'Kailashpuri (near Udaipur)',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/eklingji-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/25/EklingJi_Temple.jpg/1280px-EklingJi_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/25/EklingJi_Temple.jpg/1280px-EklingJi_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b5/India-Eklingji.jpg/1280px-India-Eklingji.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/India-7398_-_Flickr_-_archer10_%28Dennis%29.jpg/1280px-India-7398_-_Flickr_-_archer10_%28Dennis%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5f/India-7407_-_Flickr_-_archer10_%28Dennis%29.jpg/1280px-India-7407_-_Flickr_-_archer10_%28Dennis%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/57/India-7410_-_Flickr_-_archer10_%28Dennis%29.jpg/1280px-India-7410_-_Flickr_-_archer10_%28Dennis%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Historic Shaiva complex about 22 km north of Udaipur; Eklingji (a '
         'four-faced Shiva lingam) is the kuldevata of Mewar, traditionally '
@@ -7333,12 +7834,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/shrinathji-temple-nathdwara/
   Temple(
     name: 'Shrinathji Temple',
     state: 'Rajasthan',
     city: 'Nathdwara',
     deity: 'Vishnu',
-    imageUrl: 'https://picsum.photos/seed/shrinathji-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Painter_at_work%2C_Nathdwara.jpg/1280px-Painter_at_work%2C_Nathdwara.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Painter_at_work%2C_Nathdwara.jpg/1280px-Painter_at_work%2C_Nathdwara.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://upload.wikimedia.org/wikipedia/commons/c/ca/Nathdwara_srinathji.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/33/Historic_heritage_sites_of_Rajasthan_with_GPS_coordinates.jpg/1280px-Historic_heritage_sites_of_Rajasthan_with_GPS_coordinates.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://upload.wikimedia.org/wikipedia/commons/b/bb/Maha_Daan_Leela.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+      'https://upload.wikimedia.org/wikipedia/commons/8/81/Shrinathji_Darshan%2C_Nathdwara_Kalam_of_Rajasthani_School_of_Art%2C_circa_1850-1900_CE%2C_INHCRF_Coin_Museum%2C_Nashik%2C_Maharashtra.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+    ],
     description:
         'Principal Pushtimarg haveli of Shrinathji — the seven-year-old '
         'Krishna lifting Govardhan — at Nathdwara; darshan is through '
@@ -7385,12 +7895,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/karni-mata-temple-deshnok/
   Temple(
     name: 'Karni Mata Temple',
     state: 'Rajasthan',
     city: 'Deshnok',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/karni-mata-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9b/Karni_Mata_Temple_Deshnok_Near_Bikaner_Rajasthan_India_2013-09-08_16-29.jpg/1280px-Karni_Mata_Temple_Deshnok_Near_Bikaner_Rajasthan_India_2013-09-08_16-29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9b/Karni_Mata_Temple_Deshnok_Near_Bikaner_Rajasthan_India_2013-09-08_16-29.jpg/1280px-Karni_Mata_Temple_Deshnok_Near_Bikaner_Rajasthan_India_2013-09-08_16-29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/29/Deshnok%2C_Karni_Mata_Temple_%286271597223%29.jpg/1280px-Deshnok%2C_Karni_Mata_Temple_%286271597223%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1f/Karni_Mata_Temple_at_Deshnoke-Lord_Ganesha.png/1280px-Karni_Mata_Temple_at_Deshnoke-Lord_Ganesha.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/84/Courtyard_of_the_Karni_Mata_temple_at_Deshnoke_near_Bikaner.jpg/1280px-Courtyard_of_the_Karni_Mata_temple_at_Deshnoke_near_Bikaner.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/91/Entrance_of_the_Karni_Mata_temple_at_Deshnoke_near_Bikaner.jpg/1280px-Entrance_of_the_Karni_Mata_temple_at_Deshnoke_near_Bikaner.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Famous Charan-community shrine of Karni Mata (revered as a form '
         'of Durga) at Deshnok, known worldwide for thousands of sacred '
@@ -7435,12 +7954,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/govind-dev-ji-temple-jaipur/
   Temple(
     name: 'Govind Dev Ji Temple',
     state: 'Rajasthan',
     city: 'Jaipur',
     deity: 'Vishnu',
-    imageUrl: 'https://picsum.photos/seed/govind-dev-ji-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e1/Shree_Govind_Dev_Ji_Temple_Jaipur_Rajasthan.jpg/1280px-Shree_Govind_Dev_Ji_Temple_Jaipur_Rajasthan.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e1/Shree_Govind_Dev_Ji_Temple_Jaipur_Rajasthan.jpg/1280px-Shree_Govind_Dev_Ji_Temple_Jaipur_Rajasthan.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/55/Govind_Dev_Ji_Temple%2C_Jaipur%2C_20191218_1059_9092.jpg/1280px-Govind_Dev_Ji_Temple%2C_Jaipur%2C_20191218_1059_9092.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/54/Govind_Dev_Ji_Temple%2C_Jaipur%2C_20191218_1059_9091.jpg/1280px-Govind_Dev_Ji_Temple%2C_Jaipur%2C_20191218_1059_9091.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://upload.wikimedia.org/wikipedia/commons/d/db/Pandit_Jasraj_at_Govind_Dev_Ji_Temple%2C_Jaipur_2011.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/66/Jaipur_City_Palace%2C_Rajasthan.jpg/1280px-Jaipur_City_Palace%2C_Rajasthan.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Jaipur’s aradhya Krishna temple of Radha–Govind Dev Ji inside the '
         'City Palace precinct; seven named daily jhankis structure darshan '
@@ -7486,12 +8014,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/birla-mandir-jaipur/
   Temple(
     name: 'Birla Mandir (Lakshmi Narayan Temple)',
     state: 'Rajasthan',
     city: 'Jaipur',
     deity: 'Vishnu',
-    imageUrl: 'https://picsum.photos/seed/birla-mandir-lakshmi-narayan-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/45/Jaipur%2C_Birla_Lakshmi_Narayan_Temple_%286272410552%29.jpg/1280px-Jaipur%2C_Birla_Lakshmi_Narayan_Temple_%286272410552%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/45/Jaipur%2C_Birla_Lakshmi_Narayan_Temple_%286272410552%29.jpg/1280px-Jaipur%2C_Birla_Lakshmi_Narayan_Temple_%286272410552%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/85/LakshmiNarayanTemple-Jaipur-Rajasthan-DSC001.jpg/1280px-LakshmiNarayanTemple-Jaipur-Rajasthan-DSC001.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/Laxmi_Narayan_Temple_Jaipur_%28Birla_Mandir%29.jpg/1280px-Laxmi_Narayan_Temple_Jaipur_%28Birla_Mandir%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1c/Lakshmi_Narayan_Temple%2C_Jaipur.jpg/1280px-Lakshmi_Narayan_Temple%2C_Jaipur.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ac/Birla_Temple-Jaipur-Rajasthan-001.jpg/1280px-Birla_Temple-Jaipur-Rajasthan-001.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Modern white-marble Lakshmi–Narayan temple built by the Birla '
         'family below Moti Dungri, with stained-glass panels, subsidiary '
@@ -7542,7 +8079,7 @@ const List<Temple> sampleTemples = [
     // KAN-77: verified Commons thumbs — tools/photo-packs/dilwara-temples/
     imageUrl:
         'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Dilwara_temple_in_mount_abu.jpg/1280px-Dilwara_temple_in_mount_abu.jpg',
-    images: const [
+    images: [
       'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Dilwara_temple_in_mount_abu.jpg/1280px-Dilwara_temple_in_mount_abu.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/DILWADA_TEMPLE.JPG/1280px-DILWADA_TEMPLE.JPG',
       'https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/Dilwara_Temple%2C_Mount_Abu%2C_Rajasthan.jpg/1280px-Dilwara_Temple%2C_Mount_Abu%2C_Rajasthan.jpg',
@@ -7595,12 +8132,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/salasar-balaji-temple/
   Temple(
     name: 'Salasar Balaji',
     state: 'Rajasthan',
     city: 'Salasar',
     deity: 'Hanuman',
-    imageUrl: 'https://picsum.photos/seed/salasar-balaji/800/600',
+    imageUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/c/c2/Salasar_Balaji.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+    images: [
+      'https://upload.wikimedia.org/wikipedia/commons/c/c2/Salasar_Balaji.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+      'https://upload.wikimedia.org/wikipedia/commons/a/a0/Salasar_balaji_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1c/Salasar%2C_rajisthan.jpg/1280px-Salasar%2C_rajisthan.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c2/Shree_Salasar_Hanumanji_Mandir%2C_Athgarh%2C_Dist.-Cuttack_%28Odisha%29_02.jpg/1280px-Shree_Salasar_Hanumanji_Mandir%2C_Athgarh%2C_Dist.-Cuttack_%28Odisha%29_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://upload.wikimedia.org/wikipedia/commons/b/bb/Shree_Salasar_Hanumanji_Mandir%2C_Athgarh%2C_Dist.-Cuttack_%28Odisha%29_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+    ],
     description:
         'Major Hanuman (Balaji) siddhpeeth at Salasar on the '
         'Jaipur–Bikaner highway, famed for a unique bearded murti and huge '
@@ -7649,12 +8195,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/khatushyam-temple/
   Temple(
     name: 'Khatushyam Temple',
     state: 'Rajasthan',
     city: 'Khatu',
     deity: 'Vishnu',
-    imageUrl: 'https://picsum.photos/seed/khatushyam-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b5/Khatushyam.jpg/1280px-Khatushyam.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b5/Khatushyam.jpg/1280px-Khatushyam.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Khatushyam_Ji_Temple.jpg/1280px-Khatushyam_Ji_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5a/Khatushyam_mandir.jpg/1280px-Khatushyam_mandir.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9d/Khatushyamji_Pad_Yatra_from_Kota.JPG/1280px-Khatushyamji_Pad_Yatra_from_Kota.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c1/Shree_Shree_Khatu_Shyam_Temple.jpg/1280px-Shree_Shree_Khatu_Shyam_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Major pilgrimage to Khatushyam Ji — Barbarika of the Mahabharata, '
         'worshipped as a Krishna/Vishnu form (Shyam) — at Khatu in Sikar; '
@@ -7700,12 +8255,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/mehandipur-balaji-temple/
   Temple(
     name: 'Mehandipur Balaji Temple',
     state: 'Rajasthan',
     city: 'Mehandipur (Dausa)',
     deity: 'Hanuman',
-    imageUrl: 'https://picsum.photos/seed/mehandipur-balaji-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fb/Mehandipur_balaji.jpg/1280px-Mehandipur_balaji.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fb/Mehandipur_balaji.jpg/1280px-Mehandipur_balaji.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://upload.wikimedia.org/wikipedia/commons/6/6c/Mehandipur_Balaji_idol.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+      'https://upload.wikimedia.org/wikipedia/commons/7/7f/Mehandipur-Balaji-Temple.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+      'https://upload.wikimedia.org/wikipedia/commons/c/cb/Mehandipur_Balaji_todabhim.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/Mehndipur_balaji%28hanuman_temple%29.jpg/1280px-Mehndipur_balaji%28hanuman_temple%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Hugely popular Balaji (child-form Hanuman) siddhpeeth on the '
         'Jaipur–Agra highway in Dausa, visited for relief from '
@@ -7760,12 +8324,21 @@ const List<Temple> sampleTemples = [
   // Belur Math stays in the Ramakrishna–Vedanta tradition; Mayapur
   // stays Gaudiya Vaishnava. Cover imageUrl values are picsum
   // placeholders. Commons candidates: docs/west-bengal-sample-research.md.
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/kalighat-kali-temple/
   Temple(
     name: 'Kalighat Kali Temple',
     state: 'West Bengal',
     city: 'Kolkata',
     deity: 'Devi (Kali)',
-    imageUrl: 'https://picsum.photos/seed/kalighat-kali-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a4/Kalighat_Kali_Temple.jpg/1280px-Kalighat_Kali_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a4/Kalighat_Kali_Temple.jpg/1280px-Kalighat_Kali_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/52/Kalighat_Kali_Temple_%40kolkata.jpg/1280px-Kalighat_Kali_Temple_%40kolkata.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/51/Kalighat_Temple_Kolkata_%2826551466799%29.jpg/1280px-Kalighat_Temple_Kolkata_%2826551466799%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7e/Kalighat_Temple_Kolkata_%2838270360026%29.jpg/1280px-Kalighat_Temple_Kolkata_%2838270360026%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/60/Kalighat_Temple_Kolkata_%2838270360546%29.jpg/1280px-Kalighat_Temple_Kolkata_%2838270360546%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Historic Kali shrine in south Kolkata and one of the best-known '
         'Shakti Peethas, centred on an ath-chala Bengal temple beside the '
@@ -7808,12 +8381,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/dakshineswar-kali-temple/
   Temple(
     name: 'Dakshineswar Kali Temple',
     state: 'West Bengal',
     city: 'Kolkata',
     deity: 'Devi (Bhavatarini Kali)',
-    imageUrl: 'https://picsum.photos/seed/dakshineswar-kali-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e9/Dakshineswar_Kali_Temple%2C_Dakshineswar%2C_Kolkata%2C_West_Bengal%2C_India_%282017%29.jpg/1280px-Dakshineswar_Kali_Temple%2C_Dakshineswar%2C_Kolkata%2C_West_Bengal%2C_India_%282017%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e9/Dakshineswar_Kali_Temple%2C_Dakshineswar%2C_Kolkata%2C_West_Bengal%2C_India_%282017%29.jpg/1280px-Dakshineswar_Kali_Temple%2C_Dakshineswar%2C_Kolkata%2C_West_Bengal%2C_India_%282017%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/Dakshineswar_Kali_temple%2C_Kolkata%2C_West_Bengal%2C_India.JPG/1280px-Dakshineswar_Kali_temple%2C_Kolkata%2C_West_Bengal%2C_India.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0f/Dakshineswar_Kali_Temple%2C_Dakshineswar%2C_Kolkata%2C_West_Bengal%2C_India_%282020%29.jpg/1280px-Dakshineswar_Kali_Temple%2C_Dakshineswar%2C_Kolkata%2C_West_Bengal%2C_India_%282020%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5b/Dakshineswar_Kali_Temple_%28Mandir%29%2C_Kolkata.jpg/1280px-Dakshineswar_Kali_Temple_%28Mandir%29%2C_Kolkata.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ca/Dakshineswar_Kali_Temple_Kolkata.jpg/1280px-Dakshineswar_Kali_Temple_Kolkata.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Rani Rashmoni\'s nine-spired riverfront temple of Bhavatarini '
         'Kali, consecrated in 1855 and inseparably associated with Sri '
@@ -7855,12 +8437,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/belur-math/
   Temple(
     name: 'Belur Math',
     state: 'West Bengal',
     city: 'Howrah',
     deity: 'Sri Ramakrishna (Ramakrishna–Vedanta tradition)',
-    imageUrl: 'https://picsum.photos/seed/belur-math/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/94/Front_view_of_the_Belur_Math_temple_in_Belur_Math%2C_Howrah%2C_West_Bengal.jpg/1280px-Front_view_of_the_Belur_Math_temple_in_Belur_Math%2C_Howrah%2C_West_Bengal.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/94/Front_view_of_the_Belur_Math_temple_in_Belur_Math%2C_Howrah%2C_West_Bengal.jpg/1280px-Front_view_of_the_Belur_Math_temple_in_Belur_Math%2C_Howrah%2C_West_Bengal.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/32/Belur_Math%2C_Howrah_08.jpg/1280px-Belur_Math%2C_Howrah_08.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2d/Belur_Math%2C_Howrah_09.jpg/1280px-Belur_Math%2C_Howrah_09.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/92/Belur_Math%2C_Howrah_10.jpg/1280px-Belur_Math%2C_Howrah_10.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f1/Belur_Math%2C_Howrah_11.jpg/1280px-Belur_Math%2C_Howrah_11.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'World headquarters of the Ramakrishna Math and Ramakrishna '
         'Mission on the Hooghly, centred on Sri Ramakrishna Temple and the '
@@ -7904,12 +8495,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/tarapith-temple/
   Temple(
     name: 'Tarapith Temple',
     state: 'West Bengal',
     city: 'Tarapith',
     deity: 'Devi (Tara)',
-    imageUrl: 'https://picsum.photos/seed/tarapith-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ac/Tarapith_Temple_04.jpg/1280px-Tarapith_Temple_04.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ac/Tarapith_Temple_04.jpg/1280px-Tarapith_Temple_04.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4c/Tarapith_Kali_temple_at_Tarapith_01.jpg/1280px-Tarapith_Kali_temple_at_Tarapith_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Tarapith_Kali_temple_at_Tarapith_02.jpg/1280px-Tarapith_Kali_temple_at_Tarapith_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0a/Tarapith_Kali_temple_at_Tarapith_03.jpg/1280px-Tarapith_Kali_temple_at_Tarapith_03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7b/Tarapith_Kali_temple_at_Tarapith_04.jpg/1280px-Tarapith_Kali_temple_at_Tarapith_04.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Tantric pilgrimage shrine of Maa Tara in Birbhum, paired with the '
         'nearby mahashmashan cremation ground and closely associated with '
@@ -7955,12 +8555,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/hangseshwari-temple/
   Temple(
     name: 'Hangseshwari Temple',
     state: 'West Bengal',
     city: 'Bansberia',
     deity: 'Devi (Hangseshwari Kali)',
-    imageUrl: 'https://picsum.photos/seed/hangseshwari-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/93/Hangseshwari_Temple%2C_Bansberia%2C_Hooghly_district%2C_West_Bengal.jpg/1280px-Hangseshwari_Temple%2C_Bansberia%2C_Hooghly_district%2C_West_Bengal.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/93/Hangseshwari_Temple%2C_Bansberia%2C_Hooghly_district%2C_West_Bengal.jpg/1280px-Hangseshwari_Temple%2C_Bansberia%2C_Hooghly_district%2C_West_Bengal.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/31/Hangseshwari_Temple%2C_Bansberia%2C_Hooghly%2C_West_Bengal%2C_2017.jpg/1280px-Hangseshwari_Temple%2C_Bansberia%2C_Hooghly%2C_West_Bengal%2C_2017.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/07/A_Tale_of_Hangseshwari_Temple%2C_Bansberia%2C_Hooghly_By_Alinda_Bardhan.jpg/1280px-A_Tale_of_Hangseshwari_Temple%2C_Bansberia%2C_Hooghly_By_Alinda_Bardhan.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/42/Hangseshwari_Mandir_at_Bansberia%2C_Hooghly_01.jpg/1280px-Hangseshwari_Mandir_at_Bansberia%2C_Hooghly_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b5/Hangseshwari_Mandir_at_Bansberia%2C_Hooghly_03.jpg/1280px-Hangseshwari_Mandir_at_Bansberia%2C_Hooghly_03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Early-19th-century Devi temple in Bansberia famed for thirteen '
         'lotus-bud ratnas and an interior conceived through Tantric '
@@ -7999,12 +8608,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/sri-mayapur-chandrodaya-mandir/
   Temple(
     name: 'Sri Mayapur Chandrodaya Mandir (ISKCON Mayapur)',
     state: 'West Bengal',
     city: 'Mayapur',
     deity: 'Radha-Madhava / Pancha-tattva (Gaudiya Vaishnavism)',
-    imageUrl: 'https://picsum.photos/seed/sri-mayapur-chandrodaya-mandir-iskcon-mayapur/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e5/Srila_Prabhupada_Pushpa_Samadhi_Mandir_with_Chandrodaya_temple_in_the_background_at_ISKCON%2C_Mayapur_01.jpg/1280px-Srila_Prabhupada_Pushpa_Samadhi_Mandir_with_Chandrodaya_temple_in_the_background_at_ISKCON%2C_Mayapur_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e5/Srila_Prabhupada_Pushpa_Samadhi_Mandir_with_Chandrodaya_temple_in_the_background_at_ISKCON%2C_Mayapur_01.jpg/1280px-Srila_Prabhupada_Pushpa_Samadhi_Mandir_with_Chandrodaya_temple_in_the_background_at_ISKCON%2C_Mayapur_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6c/Chandrodaya_Mandir_Under_Construction_-_Temple_Of_Vedic_Planetarium_-_ISKCON_Campus_-_Mayapur_-_Nadia_2017-08-15_1840.JPG/1280px-Chandrodaya_Mandir_Under_Construction_-_Temple_Of_Vedic_Planetarium_-_ISKCON_Campus_-_Mayapur_-_Nadia_2017-08-15_1840.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/89/Chandrodaya_Mandir_Under_Construction_-_Temple_Of_Vedic_Planetarium_-_ISKCON_Campus_-_Mayapur_-_Nadia_2017-08-15_1855.JPG/1280px-Chandrodaya_Mandir_Under_Construction_-_Temple_Of_Vedic_Planetarium_-_ISKCON_Campus_-_Mayapur_-_Nadia_2017-08-15_1855.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/Chandrodaya_Mandir_Under_Construction_-_Temple_Of_Vedic_Planetarium_-_ISKCON_Campus_-_Mayapur_-_Nadia_2017-08-15_1901.JPG/1280px-Chandrodaya_Mandir_Under_Construction_-_Temple_Of_Vedic_Planetarium_-_ISKCON_Campus_-_Mayapur_-_Nadia_2017-08-15_1901.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/28/Chandrodaya_Mandir_Under_Construction_-_Temple_Of_Vedic_Planetarium_-_ISKCON_Campus_-_Mayapur_-_Nadia_2017-08-15_1903.JPG/1280px-Chandrodaya_Mandir_Under_Construction_-_Temple_Of_Vedic_Planetarium_-_ISKCON_Campus_-_Mayapur_-_Nadia_2017-08-15_1903.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'ISKCON\'s international Gaudiya Vaishnava headquarters at '
         'Mayapur, with daily Radha-Madhava, Pancha-tattva, Jagannath and '
@@ -8048,12 +8666,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/taraknath-temple-tarakeswar/
   Temple(
     name: 'Taraknath Temple',
     state: 'West Bengal',
     city: 'Tarakeswar',
     deity: 'Shiva (Taraknath)',
-    imageUrl: 'https://picsum.photos/seed/taraknath-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/Devotees_of_Lord_Shiva_at_the_Tarakeswar_Shiva_Temple_in_Hooghly%2C_West_Bengal%2C_India%2C_photographed_by_Yogabrata_Chakraborty%2C_on_August_14%2C_2023_1.jpg/1280px-Devotees_of_Lord_Shiva_at_the_Tarakeswar_Shiva_Temple_in_Hooghly%2C_West_Bengal%2C_India%2C_photographed_by_Yogabrata_Chakraborty%2C_on_August_14%2C_2023_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/Devotees_of_Lord_Shiva_at_the_Tarakeswar_Shiva_Temple_in_Hooghly%2C_West_Bengal%2C_India%2C_photographed_by_Yogabrata_Chakraborty%2C_on_August_14%2C_2023_1.jpg/1280px-Devotees_of_Lord_Shiva_at_the_Tarakeswar_Shiva_Temple_in_Hooghly%2C_West_Bengal%2C_India%2C_photographed_by_Yogabrata_Chakraborty%2C_on_August_14%2C_2023_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d5/Devotees_of_Lord_Shiva_at_the_Tarakeswar_Shiva_Temple_in_Hooghly%2C_West_Bengal%2C_India%2C_photographed_by_Yogabrata_Chakraborty%2C_on_August_14%2C_2023_2.jpg/1280px-Devotees_of_Lord_Shiva_at_the_Tarakeswar_Shiva_Temple_in_Hooghly%2C_West_Bengal%2C_India%2C_photographed_by_Yogabrata_Chakraborty%2C_on_August_14%2C_2023_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/49/Entrance_gate_of_the_Tarakeswar_Shiva_Temple_in_Hooghly%2C_West_Bengal%2C_India%2C_photographed_by_Yogabrata_Chakraborty%2C_on_August_14%2C_2023.jpg/1280px-Entrance_gate_of_the_Tarakeswar_Shiva_Temple_in_Hooghly%2C_West_Bengal%2C_India%2C_photographed_by_Yogabrata_Chakraborty%2C_on_August_14%2C_2023.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/49/Babataraknathtemple.jpg/1280px-Babataraknathtemple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b5/Babataraknathtemple_%28cropped%29.jpg/1280px-Babataraknathtemple_%28cropped%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Major Bengal Shiva pilgrimage shrine at Tarakeswar, centred on '
         'the swayambhu Taraknath linga, an atchala temple, natmandir and '
@@ -8096,12 +8723,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/birla-mandir-kolkata/
   Temple(
     name: 'Birla Mandir',
     state: 'West Bengal',
     city: 'Kolkata',
     deity: 'Vishnu (Radha-Krishna / Lakshminarayan)',
-    imageUrl: 'https://picsum.photos/seed/birla-mandir/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d1/Birla_Mandir_in_Ballygunge%2C_Kolkata%2C_West_Bengal.jpg/1280px-Birla_Mandir_in_Ballygunge%2C_Kolkata%2C_West_Bengal.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d1/Birla_Mandir_in_Ballygunge%2C_Kolkata%2C_West_Bengal.jpg/1280px-Birla_Mandir_in_Ballygunge%2C_Kolkata%2C_West_Bengal.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/31/Birla_Mandir_in_Ballygunge%2C_Kolkata%2C_in_July_2022.jpg/1280px-Birla_Mandir_in_Ballygunge%2C_Kolkata%2C_in_July_2022.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/72/Kolkata_Birla_Mandir_IMG_20181214_085635.jpg/1280px-Kolkata_Birla_Mandir_IMG_20181214_085635.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d4/Kolkata_Birla_Mandir_IMG_20181214_085650.jpg/1280px-Kolkata_Birla_Mandir_IMG_20181214_085650.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/55/Kolkata_Birla_Mandir_IMG_20181214_085657.jpg/1280px-Kolkata_Birla_Mandir_IMG_20181214_085657.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'White-marble Birla family temple in Ballygunge, principally '
         'dedicated to Radha-Krishna and Lakshminarayan, with subsidiary '
@@ -8141,12 +8777,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/kiriteswari-temple/
   Temple(
     name: 'Kiriteswari Temple',
     state: 'West Bengal',
     city: 'Murshidabad',
     deity: 'Devi (Kiriteswari / Mahishamardini)',
-    imageUrl: 'https://picsum.photos/seed/kiriteswari-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fd/Kiriteshwari_main_temple_in_Murshidabad_district_01.jpg/1280px-Kiriteshwari_main_temple_in_Murshidabad_district_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fd/Kiriteshwari_main_temple_in_Murshidabad_district_01.jpg/1280px-Kiriteshwari_main_temple_in_Murshidabad_district_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1e/Kiriteshwari_main_temple_in_Murshidabad_district_02.jpg/1280px-Kiriteshwari_main_temple_in_Murshidabad_district_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/98/Kiriteshwari_main_temple_in_Murshidabad_district_05.jpg/1280px-Kiriteshwari_main_temple_in_Murshidabad_district_05.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dd/Kiriteshwari_main_temple_in_Murshidabad_district_04.jpg/1280px-Kiriteshwari_main_temple_in_Murshidabad_district_04.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3e/Kiriteshwari_main_temple_in_Murshidabad_district_07.jpg/1280px-Kiriteshwari_main_temple_in_Murshidabad_district_07.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Rural Shakti Peetha at Kiritkona in Murshidabad, where Sati\'s '
         'crown is traditionally believed to have fallen and the goddess is '
@@ -8190,12 +8835,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/kapil-muni-temple-gangasagar/
   Temple(
     name: 'Kapil Muni Temple',
     state: 'West Bengal',
     city: 'Gangasagar',
     deity: 'Kapil Muni',
-    imageUrl: 'https://picsum.photos/seed/kapil-muni-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c8/Kapil_Muni_Ashram_Gangasagar_West_Bengal.jpg/1280px-Kapil_Muni_Ashram_Gangasagar_West_Bengal.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c8/Kapil_Muni_Ashram_Gangasagar_West_Bengal.jpg/1280px-Kapil_Muni_Ashram_Gangasagar_West_Bengal.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/96/Kapil_Muni_Ashram_Gangasagar_West_Bengal_Guest_Places.jpg/1280px-Kapil_Muni_Ashram_Gangasagar_West_Bengal_Guest_Places.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/40/Kapil_Muni_Ashram_Gangasagar_West_Bengal_OutSide_View.jpg/1280px-Kapil_Muni_Ashram_Gangasagar_West_Bengal_OutSide_View.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/Kapil_Muni_Ashram_Gangasagar_West_Bengal_PIC.jpg/1280px-Kapil_Muni_Ashram_Gangasagar_West_Bengal_PIC.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/35/Kapil_Muni_Ashram_Gangasagar_West_Bengal_inner_side_view.jpg/1280px-Kapil_Muni_Ashram_Gangasagar_West_Bengal_inner_side_view.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Pilgrimage temple and ashram of sage Kapila near the Gangasagar '
         'confluence on Sagar Island, visited after the Makar Sankranti '
@@ -8247,12 +8901,20 @@ const List<Temple> sampleTemples = [
   // Kandariya Mahadeva and Lakshmana are ASI/UNESCO monuments, not
   // living pooja listings. Cover imageUrl values are picsum
   // placeholders. Commons candidates: docs/madhya-pradesh-sample-research.md.
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/mahakaleshwar-temple/
   Temple(
     name: 'Mahakaleshwar Temple',
     state: 'Madhya Pradesh',
     city: 'Ujjain',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/mahakaleshwar-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/75/Mahakaleshwar_Temple%2C_Ujjain.jpg/1280px-Mahakaleshwar_Temple%2C_Ujjain.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/75/Mahakaleshwar_Temple%2C_Ujjain.jpg/1280px-Mahakaleshwar_Temple%2C_Ujjain.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f0/Mahakaleshwar_Temple_in_Ujjain.jpg/1280px-Mahakaleshwar_Temple_in_Ujjain.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0c/Mahakaleshwar_ujjain.jpg/1280px-Mahakaleshwar_ujjain.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/43/Mahakaleshwar_Ujjain.jpeg/1280px-Mahakaleshwar_Ujjain.jpeg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'One of the twelve Jyotirlingas of Shiva, on the Rudra Sagar side '
         'of Ujjain; Mahakala is worshipped as the lord of time, with a '
@@ -8300,12 +8962,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/omkareshwar-temple/
   Temple(
     name: 'Omkareshwar Temple',
     state: 'Madhya Pradesh',
     city: 'Omkareshwar',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/omkareshwar-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/93/Wiki-voyage-header-omkareshwar.jpg/1280px-Wiki-voyage-header-omkareshwar.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/93/Wiki-voyage-header-omkareshwar.jpg/1280px-Wiki-voyage-header-omkareshwar.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8b/Gomukh_ghat%2C_Omkareshwar_02.jpg/1280px-Gomukh_ghat%2C_Omkareshwar_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6c/Omkareshwar%2C_kids_%289840711893%29.jpg/1280px-Omkareshwar%2C_kids_%289840711893%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/39/Omkareshwar_04.jpg/1280px-Omkareshwar_04.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/Omkareshwar_Temple_03.jpg/1280px-Omkareshwar_Temple_03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'One of the twelve Jyotirlingas, standing on Mandhata island in '
         'the Narmada; the sacred landscape also includes Mamleshwar on the '
@@ -8348,12 +9019,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/kandariya-mahadeva-temple/
   Temple(
     name: 'Kandariya Mahadeva Temple',
     state: 'Madhya Pradesh',
     city: 'Khajuraho',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/kandariya-mahadeva-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/37/Kandariya_Mahadeva_Temple%2C_Khajuraho%2C_Madhya_Pradesh.jpg/1280px-Kandariya_Mahadeva_Temple%2C_Khajuraho%2C_Madhya_Pradesh.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/37/Kandariya_Mahadeva_Temple%2C_Khajuraho%2C_Madhya_Pradesh.jpg/1280px-Kandariya_Mahadeva_Temple%2C_Khajuraho%2C_Madhya_Pradesh.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/The_Kandariya_Mahadeva_Temple%2C_Khajuraho%2C_Madhya_Pradesh.jpg/1280px-The_Kandariya_Mahadeva_Temple%2C_Khajuraho%2C_Madhya_Pradesh.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/55/Kandariya_Mahadeva_Temple_at_Khajuraho%2C_Madhya_Pradesh%2C_India_0001_04.jpg/1280px-Kandariya_Mahadeva_Temple_at_Khajuraho%2C_Madhya_Pradesh%2C_India_0001_04.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/55/Kandariya_Mahadeva_Temple%2C_Khajuraho%2C_Madhya_Pradesh%2C_India_001.jpg/1280px-Kandariya_Mahadeva_Temple%2C_Khajuraho%2C_Madhya_Pradesh%2C_India_001.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/79/Kandariya_Mahadeva_Temple_at_Khajuraho%2C_Madhya_Pradesh%2C_India_0001_01.jpg/1280px-Kandariya_Mahadeva_Temple_at_Khajuraho%2C_Madhya_Pradesh%2C_India_0001_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'The largest and grandest temple at Khajuraho, an '
         'early-11th-century Shiva monument in the ASI-managed Western '
@@ -8395,12 +9075,19 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/lakshmana-temple-khajuraho/
   Temple(
     name: 'Lakshmana Temple',
     state: 'Madhya Pradesh',
     city: 'Khajuraho',
     deity: 'Vishnu',
-    imageUrl: 'https://picsum.photos/seed/lakshmana-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a2/Lakshmana_temple_Khajuraho_Temple_complex%2C_UNESCO_WHS%2C_Madya_Pradesh.jpg/1280px-Lakshmana_temple_Khajuraho_Temple_complex%2C_UNESCO_WHS%2C_Madya_Pradesh.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a2/Lakshmana_temple_Khajuraho_Temple_complex%2C_UNESCO_WHS%2C_Madya_Pradesh.jpg/1280px-Lakshmana_temple_Khajuraho_Temple_complex%2C_UNESCO_WHS%2C_Madya_Pradesh.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/95/Khajuraho_-_Lakshmana_temple.jpg/1280px-Khajuraho_-_Lakshmana_temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c9/Lakshmana_Temple_Khajuraho.JPG/1280px-Lakshmana_Temple_Khajuraho.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'A remarkably complete 10th-century Chandella temple dedicated to '
         'Vaikuntha Vishnu, within Khajuraho’s ASI-managed Western Group '
@@ -8486,12 +9173,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/harsiddhi-temple-ujjain/
   Temple(
     name: 'Harsiddhi Temple',
     state: 'Madhya Pradesh',
     city: 'Ujjain',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/harsiddhi-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5e/Harsiddhi_temple_pillars_Ujjain.jpg/1280px-Harsiddhi_temple_pillars_Ujjain.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5e/Harsiddhi_temple_pillars_Ujjain.jpg/1280px-Harsiddhi_temple_pillars_Ujjain.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f8/Harsiddhi_Temple%2C_Ujjain_04.jpg/1280px-Harsiddhi_Temple%2C_Ujjain_04.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dc/Harsiddhi_Temple%2C_Ujjain_03.jpg/1280px-Harsiddhi_Temple%2C_Ujjain_03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f5/Harsiddhi_Marg%2C_Ujjain_01.jpg/1280px-Harsiddhi_Marg%2C_Ujjain_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/ff/Harsiddhi_Temple%2C_Ujjain_02.jpg/1280px-Harsiddhi_Temple%2C_Ujjain_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Ancient Devi shrine near Mahakaleshwar, renowned for twin '
         'multi-tiered deepstambhas that are illuminated during evening '
@@ -8578,12 +9274,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/pashupatinath-temple-mandsaur/
   Temple(
     name: 'Pashupatinath Temple',
     state: 'Madhya Pradesh',
     city: 'Mandsaur',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/pashupatinath-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/Pashupatinath_Temple_Mandsaur.jpg/1280px-Pashupatinath_Temple_Mandsaur.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/Pashupatinath_Temple_Mandsaur.jpg/1280px-Pashupatinath_Temple_Mandsaur.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://upload.wikimedia.org/wikipedia/commons/5/5a/0111321_Pasupatinath_temple%2C_Mandsaur_Madhya_Pradesh_008.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+      'https://upload.wikimedia.org/wikipedia/commons/7/72/0111321_Pasupatinath_temple%2C_Mandsaur_Madhya_Pradesh_014.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4b/The_Pashupatinath_Temple_27.jpg/1280px-The_Pashupatinath_Temple_27.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/40/Sadhu_Giving_Blessings_to_a_Devotee_During_Maha_Shivaratri_at_Pashupatinath_Temple%2C_Kathmandu%2C_Nepal-070A6924.jpg/1280px-Sadhu_Giving_Blessings_to_a_Devotee_During_Maha_Shivaratri_at_Pashupatinath_Temple%2C_Kathmandu%2C_Nepal-070A6924.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Major Mandsaur Shiva shrine on the Shivna River, centred on a '
         'rare monumental eight-faced linga generally dated to the 5th–6th '
@@ -8625,12 +9330,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/sharda-devi-temple-maihar/
   Temple(
     name: 'Sharda Devi Temple Maihar',
     state: 'Madhya Pradesh',
     city: 'Maihar',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/sharda-devi-temple-maihar/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/95/Maa_Sharda_Temple%2C_Maihar.jpg/1280px-Maa_Sharda_Temple%2C_Maihar.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/95/Maa_Sharda_Temple%2C_Maihar.jpg/1280px-Maa_Sharda_Temple%2C_Maihar.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/af/View_from_Sharda_temple_Maihar1.JPG/1280px-View_from_Sharda_temple_Maihar1.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/db/View_from_Sharda_temple_Maihar2.JPG/1280px-View_from_Sharda_temple_Maihar2.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/43/Ropeway_Post_at_Maihar%2C_Madhya_Pradesh.jpg/1280px-Ropeway_Post_at_Maihar%2C_Madhya_Pradesh.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/MAIHAR_TEMPLE.jpg/1280px-MAIHAR_TEMPLE.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Hilltop shrine of Maa Sharda above Maihar, reached by a long '
         'stair ascent or ropeway and especially crowded during Chaitra and '
@@ -8672,12 +9386,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/ram-raja-temple-orchha/
   Temple(
     name: 'Ram Raja Temple',
     state: 'Madhya Pradesh',
     city: 'Orchha',
     deity: 'Vishnu/Rama',
-    imageUrl: 'https://picsum.photos/seed/ram-raja-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6d/Ram_Raja_Temple%2C_Orchha%2C_Madhya_Pradesh%2C_India.jpg/1280px-Ram_Raja_Temple%2C_Orchha%2C_Madhya_Pradesh%2C_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6d/Ram_Raja_Temple%2C_Orchha%2C_Madhya_Pradesh%2C_India.jpg/1280px-Ram_Raja_Temple%2C_Orchha%2C_Madhya_Pradesh%2C_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a6/Ram_raja_temple%2C_Orchha.jpg/1280px-Ram_raja_temple%2C_Orchha.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b5/D%C3%A9vots_devant_le_Ram_Raja_Temple_%28Orchha%29_%288450516645%29.jpg/1280px-D%C3%A9vots_devant_le_Ram_Raja_Temple_%28Orchha%29_%288450516645%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a3/D%C3%A9vots_devant_le_Ram_Raja_Temple_%28Orchha%29_%288451604116%29.jpg/1280px-D%C3%A9vots_devant_le_Ram_Raja_Temple_%28Orchha%29_%288451604116%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/Devant_le_Ram_Raja_Temple_%28Orchha%29_%288451603428%29.jpg/1280px-Devant_le_Ram_Raja_Temple_%28Orchha%29_%288451603428%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Orchha’s living palace-temple where Rama is worshipped as a king, '
         'with a daily guard of honour and a distinctive Hindu-calendar '
@@ -8727,14 +9450,23 @@ const List<Temple> sampleTemples = [
   // ═══════════════════════════════════════════════════════════════════════════
   // Expansion batch 14 — new temples, not enrichments of existing rows.
   // Mahabodhi is a living Buddhist UNESCO site, not a Hindu temple.
-  // Cover imageUrl values are picsum placeholders. Commons candidates:
-  // docs/bihar-sample-research.md.
+  // Wave C packs use Wikimedia Commons thumbs. Temples without a pack
+  // still use picsum placeholders. Research notes: docs/bihar-sample-research.md.
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/mahavir-mandir-patna/
   Temple(
     name: 'Mahavir Mandir',
     state: 'Bihar',
     city: 'Patna',
     deity: 'Hanuman',
-    imageUrl: 'https://picsum.photos/seed/mahavir-mandir/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/24/Mahavir_Mandir_Patna%2C_Patna_Junction%2C_Bihar_INDIA.jpg/1280px-Mahavir_Mandir_Patna%2C_Patna_Junction%2C_Bihar_INDIA.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/24/Mahavir_Mandir_Patna%2C_Patna_Junction%2C_Bihar_INDIA.jpg/1280px-Mahavir_Mandir_Patna%2C_Patna_Junction%2C_Bihar_INDIA.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5f/Mahavir_Mandir%2C_patna.JPG/1280px-Mahavir_Mandir%2C_patna.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/eb/Patna_junction.jpg/1280px-Patna_junction.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bb/Patna_junction_front_view.jpg/1280px-Patna_junction_front_view.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d7/Mahavir_Mandir_-_55446610929.jpg/1280px-Mahavir_Mandir_-_55446610929.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Major Hanuman temple directly opposite Patna Junction, known for '
         'its two Hanuman images, Naivedyam laddoo prasad, and the '
@@ -8782,12 +9514,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/mundeshwari-devi-temple/
   Temple(
     name: 'Mundeshwari Devi Temple',
     state: 'Bihar',
     city: 'Bhabua',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/mundeshwari-devi-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f6/Bhabua_rd.jpg/1280px-Bhabua_rd.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f6/Bhabua_rd.jpg/1280px-Bhabua_rd.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6d/Maa_Mundeshwari_Devi.jpg/1280px-Maa_Mundeshwari_Devi.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/Historic_heritage_sites_of_Bihar_with_GPS_coordinates.jpg/1280px-Historic_heritage_sites_of_Bihar_with_GPS_coordinates.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3a/Maa_Mundeshawari.jpg/1280px-Maa_Mundeshawari.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2c/JPEG_20230925_194337_5077351085584693555.jpg/1280px-JPEG_20230925_194337_5077351085584693555.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Ancient octagonal stone temple on Mundeshwari Hill in Kaimur, '
         'dedicated to Shakti and Shiva and widely described as one of '
@@ -8834,12 +9575,20 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/vishnupad-temple/
   Temple(
     name: 'Vishnupad Temple',
     state: 'Bihar',
     city: 'Gaya',
     deity: 'Vishnu',
-    imageUrl: 'https://picsum.photos/seed/vishnupad-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ee/Vishnupad_temple_gaya_bihar.jpg/1280px-Vishnupad_temple_gaya_bihar.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ee/Vishnupad_temple_gaya_bihar.jpg/1280px-Vishnupad_temple_gaya_bihar.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/95/Vishnupad_temple_gaya.jpg/1280px-Vishnupad_temple_gaya.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/Vishnupad_temple_at_gaya.JPG/1280px-Vishnupad_temple_at_gaya.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/ff/Vishnupad_Temple%2CUpdated.jpg/1280px-Vishnupad_Temple%2CUpdated.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Principal Vishnu shrine of Gaya, centred on a footprint revered '
         'as Vishnu’s and closely linked to pind daan and shraddha rites '
@@ -8895,7 +9644,7 @@ const List<Temple> sampleTemples = [
     deity: 'Buddha',
     imageUrl:
         'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Mahabodhi_temple_at_Bodhgaya_in_Bihar_03.jpg/1280px-Mahabodhi_temple_at_Bodhgaya_in_Bihar_03.jpg',
-    images: const [
+    images: [
       'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Mahabodhi_temple_at_Bodhgaya_in_Bihar_03.jpg/1280px-Mahabodhi_temple_at_Bodhgaya_in_Bihar_03.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Mahabodhi_Temple_%2C_Bodh_Gaya.jpg/1280px-Mahabodhi_Temple_%2C_Bodh_Gaya.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mahabodhi_Temple_Complex_-_Bodh_Gaya_%281%29.jpg/1280px-Mahabodhi_Temple_Complex_-_Bodh_Gaya_%281%29.jpg',
@@ -8952,12 +9701,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/patan-devi-temple/
   Temple(
     name: 'Patan Devi Temple',
     state: 'Bihar',
     city: 'Patna',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/patan-devi-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c7/Patna_Devi_temple_alias_Chandika_Devi_temple%2C_Southwest_of_Chalisgaon%2C_Maharashtra%2C_India_01.jpg/1280px-Patna_Devi_temple_alias_Chandika_Devi_temple%2C_Southwest_of_Chalisgaon%2C_Maharashtra%2C_India_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c7/Patna_Devi_temple_alias_Chandika_Devi_temple%2C_Southwest_of_Chalisgaon%2C_Maharashtra%2C_India_01.jpg/1280px-Patna_Devi_temple_alias_Chandika_Devi_temple%2C_Southwest_of_Chalisgaon%2C_Maharashtra%2C_India_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/87/Patna_Devi_temple_alias_Chandika_Devi_temple%2C_Southwest_of_Chalisgaon%2C_Maharashtra%2C_India_02.jpg/1280px-Patna_Devi_temple_alias_Chandika_Devi_temple%2C_Southwest_of_Chalisgaon%2C_Maharashtra%2C_India_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c8/Patna_Devi_temple_alias_Chandika_Devi_temple%2C_Southwest_of_Chalisgaon%2C_Maharashtra%2C_India_03.jpg/1280px-Patna_Devi_temple_alias_Chandika_Devi_temple%2C_Southwest_of_Chalisgaon%2C_Maharashtra%2C_India_03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/71/Patna_Devi_temple_alias_Chandika_Devi_temple%2C_Southwest_of_Chalisgaon%2C_Maharashtra%2C_India_04.jpg/1280px-Patna_Devi_temple_alias_Chandika_Devi_temple%2C_Southwest_of_Chalisgaon%2C_Maharashtra%2C_India_04.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0d/Patna_Devi_temple_alias_Chandika_Devi_temple%2C_Southwest_of_Chalisgaon%2C_Maharashtra%2C_India_05.jpg/1280px-Patna_Devi_temple_alias_Chandika_Devi_temple%2C_Southwest_of_Chalisgaon%2C_Maharashtra%2C_India_05.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Historic Badi Patan Devi shrine in Patna City, revered as a '
         'Shakti Peetha and as one of the guardian-goddess temples '
@@ -9097,12 +9855,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/deo-sun-temple/
   Temple(
     name: 'Deo Sun Temple',
     state: 'Bihar',
     city: 'Deo',
     deity: 'Surya',
-    imageUrl: 'https://picsum.photos/seed/deo-sun-temple/800/600',
+    imageUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/2/26/Deo_Surya_Mandir%2C_Deo%2C_India_-_DPLA_-_161df5a4fc3c518102059a89ce64b5f3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+    images: [
+      'https://upload.wikimedia.org/wikipedia/commons/2/26/Deo_Surya_Mandir%2C_Deo%2C_India_-_DPLA_-_161df5a4fc3c518102059a89ce64b5f3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+      'https://upload.wikimedia.org/wikipedia/commons/2/2e/Deo_Surya_Mandir%2C_Deo%2C_India_-_DPLA_-_7ed1eb8cde6cbbb76c2bab3b0fbba82a.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d6/Oriental_Scenery_Part_5_Fig_5.jpg/1280px-Oriental_Scenery_Part_5_Fig_5.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a7/Oriental_Scenery_Part_5_Fig_6.jpg/1280px-Oriental_Scenery_Part_5_Fig_6.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1e/An_Iupiter_Ammon.jpg/1280px-An_Iupiter_Ammon.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Historic Surya temple at Deo in Aurangabad district, one of '
         'Bihar’s foremost Chhath pilgrimage centres, with worship focused '
@@ -9247,14 +10014,23 @@ const List<Temple> sampleTemples = [
   // Expansion batch 15 — new temples, not enrichments of existing rows.
   // Jwalamukhi keeps two conflicting official Kangra portal clocks.
   // Baijnath (Kangra) is not the canonical Vaidyanath Jyotirlinga.
-  // Cover imageUrl values are picsum placeholders. Commons candidates:
-  // docs/himachal-pradesh-sample-research.md.
+  // Wave C packs use Wikimedia Commons thumbs. Temples without a pack
+  // still use picsum placeholders. Research notes: docs/himachal-pradesh-sample-research.md.
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/jwalamukhi-temple/
   Temple(
     name: 'Jwalamukhi Temple',
     state: 'Himachal Pradesh',
     city: 'Jwalamukhi',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/jwalamukhi-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e3/0051223_Jwalamukhi_temple%2C_Jvala_ji_Himachal_Pradesh_002.jpg/1280px-0051223_Jwalamukhi_temple%2C_Jvala_ji_Himachal_Pradesh_002.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e3/0051223_Jwalamukhi_temple%2C_Jvala_ji_Himachal_Pradesh_002.jpg/1280px-0051223_Jwalamukhi_temple%2C_Jvala_ji_Himachal_Pradesh_002.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/75/0051223_Jwalamukhi_temple%2C_Jvala_ji_Himachal_Pradesh_011.jpg/1280px-0051223_Jwalamukhi_temple%2C_Jvala_ji_Himachal_Pradesh_011.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/01/0051223_Jwalamukhi_temple%2C_Jvala_ji_Himachal_Pradesh_024.jpg/1280px-0051223_Jwalamukhi_temple%2C_Jvala_ji_Himachal_Pradesh_024.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d3/0051223_Jwalamukhi_temple%2C_Jvala_ji_Himachal_Pradesh_033.jpg/1280px-0051223_Jwalamukhi_temple%2C_Jvala_ji_Himachal_Pradesh_033.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/0051223_Jwalamukhi_temple%2C_Jvala_ji_Himachal_Pradesh_047.jpg/1280px-0051223_Jwalamukhi_temple%2C_Jvala_ji_Himachal_Pradesh_047.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Major Kangra Shakti Peetha where Jwala Devi is worshipped as '
         'natural flames emerging from rock fissures rather than as a '
@@ -9309,12 +10085,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/naina-devi-temple-bilaspur/
   Temple(
     name: 'Naina Devi Temple',
     state: 'Himachal Pradesh',
     city: 'Naina Devi',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/naina-devi-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0a/Naina_Devi%2C_Himachal_Pardesh.jpg/1280px-Naina_Devi%2C_Himachal_Pardesh.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0a/Naina_Devi%2C_Himachal_Pardesh.jpg/1280px-Naina_Devi%2C_Himachal_Pardesh.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fe/Naina_Devi%2C_Himachal_Pardesh_%2803%29.jpg/1280px-Naina_Devi%2C_Himachal_Pardesh_%2803%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bf/Naina_Devi%2C_Himachal_Pardesh_%2804%29.jpg/1280px-Naina_Devi%2C_Himachal_Pardesh_%2804%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3d/Naina_Devi%2C_Himachal_Pardesh_%2805%29.jpg/1280px-Naina_Devi%2C_Himachal_Pardesh_%2805%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/21/Naina_Devi%2C_Himachal_Pardesh_%2807%29.jpg/1280px-Naina_Devi%2C_Himachal_Pardesh_%2807%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Hilltop Shakti Peetha in Bilaspur district, traditionally '
         'associated with Sati’s eyes and commanding broad views toward the '
@@ -9361,12 +10146,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/chintpurni-temple/
   Temple(
     name: 'Chintpurni Temple',
     state: 'Himachal Pradesh',
     city: 'Chintpurni',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/chintpurni-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/44/Jai_Mata_Di...Maa_Chintpurni%27s_Durbar_as_seen_from_the_ancient_havan_kund_on_left.jpg/1280px-Jai_Mata_Di...Maa_Chintpurni%27s_Durbar_as_seen_from_the_ancient_havan_kund_on_left.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/44/Jai_Mata_Di...Maa_Chintpurni%27s_Durbar_as_seen_from_the_ancient_havan_kund_on_left.jpg/1280px-Jai_Mata_Di...Maa_Chintpurni%27s_Durbar_as_seen_from_the_ancient_havan_kund_on_left.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0b/Praying_and_wanting_Maa%27s_Blessings_at_the_Maa_Chintpurni_Temple...Jai_Mata_Di.JPG/1280px-Praying_and_wanting_Maa%27s_Blessings_at_the_Maa_Chintpurni_Temple...Jai_Mata_Di.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d4/Chintpurni_Devi_%281%29.JPG/1280px-Chintpurni_Devi_%281%29.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2e/Chintpurni_Devi_%2810%29.JPG/1280px-Chintpurni_Devi_%2810%29.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d0/Chintpurni_Devi_%2811%29.JPG/1280px-Chintpurni_Devi_%2811%29.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Una district Shakta pilgrimage shrine of Mata Chintpurni, also '
         'revered as Chhinnamastika, where devotees seek freedom from worry '
@@ -9464,12 +10258,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/baijnath-temple-himachal/
   Temple(
     name: 'Baijnath Temple',
     state: 'Himachal Pradesh',
     city: 'Baijnath',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/baijnath-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/68/0051423_Baijnath_temple%2C_Vaidyanatha_mandir%2C_Baijnath_Himachal_Pradesh_186.jpg/1280px-0051423_Baijnath_temple%2C_Vaidyanatha_mandir%2C_Baijnath_Himachal_Pradesh_186.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/68/0051423_Baijnath_temple%2C_Vaidyanatha_mandir%2C_Baijnath_Himachal_Pradesh_186.jpg/1280px-0051423_Baijnath_temple%2C_Vaidyanatha_mandir%2C_Baijnath_Himachal_Pradesh_186.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/24/0051423_Baijnath_temple%2C_Vaidyanatha_mandir%2C_Baijnath_Himachal_Pradesh_195.jpg/1280px-0051423_Baijnath_temple%2C_Vaidyanatha_mandir%2C_Baijnath_Himachal_Pradesh_195.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d2/0051423_Baijnath_temple%2C_Vaidyanatha_mandir%2C_Baijnath_Himachal_Pradesh_203.jpg/1280px-0051423_Baijnath_temple%2C_Vaidyanatha_mandir%2C_Baijnath_Himachal_Pradesh_203.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/59/0051423_Baijnath_temple%2C_Vaidyanatha_mandir%2C_Baijnath_Himachal_Pradesh_231.jpg/1280px-0051423_Baijnath_temple%2C_Vaidyanatha_mandir%2C_Baijnath_Himachal_Pradesh_231.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/54/0051423_Baijnath_temple%2C_Vaidyanatha_mandir%2C_Baijnath_Himachal_Pradesh_245.jpg/1280px-0051423_Baijnath_temple%2C_Vaidyanatha_mandir%2C_Baijnath_Himachal_Pradesh_245.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'ASI-protected Nagara-style Shiva temple at Baijnath, built in '
         '1204 and dedicated to Vaidyanath, Shiva as the Lord of Physicians.',
@@ -9520,12 +10323,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/bhimakali-temple-sarahan/
   Temple(
     name: 'Bhimakali Temple',
     state: 'Himachal Pradesh',
     city: 'Sarahan',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/bhimakali-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/Bhimakali_Temple_Complex%2C_Sarahan%2C_Himachal_Pradesh.jpg/1280px-Bhimakali_Temple_Complex%2C_Sarahan%2C_Himachal_Pradesh.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/Bhimakali_Temple_Complex%2C_Sarahan%2C_Himachal_Pradesh.jpg/1280px-Bhimakali_Temple_Complex%2C_Sarahan%2C_Himachal_Pradesh.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4c/Sarahan-Bhimakali-06-gje.jpg/1280px-Sarahan-Bhimakali-06-gje.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ed/Sarahan-Bhimakali-01-2016-gje.jpg/1280px-Sarahan-Bhimakali-01-2016-gje.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/Sarahan-Bhimakali-02-gje.jpg/1280px-Sarahan-Bhimakali-02-gje.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/89/Sarahan-Bhimakali-04-gje.jpg/1280px-Sarahan-Bhimakali-04-gje.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Towering kath-kuni Devi complex at Sarahan, the historic kuldevi '
         'shrine of the Bushahr rulers and one of Himachal’s most '
@@ -9575,12 +10387,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/hadimba-devi-temple/
   Temple(
     name: 'Hadimba Devi Temple',
     state: 'Himachal Pradesh',
     city: 'Manali',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/hadimba-devi-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0c/Hadimba_Devi_Temple_-Manali_-Himachal_Pradhesh_-GOPR1352.jpg/1280px-Hadimba_Devi_Temple_-Manali_-Himachal_Pradhesh_-GOPR1352.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0c/Hadimba_Devi_Temple_-Manali_-Himachal_Pradhesh_-GOPR1352.jpg/1280px-Hadimba_Devi_Temple_-Manali_-Himachal_Pradhesh_-GOPR1352.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/28/Hadimba_Devi_Temple_Manali.jpg/1280px-Hadimba_Devi_Temple_Manali.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/10/Hadimba_Devi_Temple%2C_Hidimba_Devi_Temple_Dhungari_Temple_Manali_and_around_vrtmrgmpksk_%2810%29.jpg/1280px-Hadimba_Devi_Temple%2C_Hidimba_Devi_Temple_Dhungari_Temple_Manali_and_around_vrtmrgmpksk_%2810%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/21/Hadimba_Devi_Temple%2C_Hidimba_Devi_Temple_Dhungari_Temple_Manali_and_around_vrtmrgmpksk_%2811%29.jpg/1280px-Hadimba_Devi_Temple%2C_Hidimba_Devi_Temple_Dhungari_Temple_Manali_and_around_vrtmrgmpksk_%2811%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0b/Hadimba_Devi_Temple%2C_Hidimba_Devi_Temple_Dhungari_Temple_Manali_and_around_vrtmrgmpksk_%2812%29.jpg/1280px-Hadimba_Devi_Temple%2C_Hidimba_Devi_Temple_Dhungari_Temple_Manali_and_around_vrtmrgmpksk_%2812%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Four-tiered wooden pagoda temple in Manali’s cedar forest, '
         'dedicated to Hidimbi (Hadimba), Bhima’s wife and a powerful local '
@@ -9628,12 +10449,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/lakshmi-narayan-temple-chamba/
   Temple(
     name: 'Lakshmi Narayan Temple',
     state: 'Himachal Pradesh',
     city: 'Chamba',
     deity: 'Vishnu',
-    imageUrl: 'https://picsum.photos/seed/lakshmi-narayan-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a7/0051723_Lakshmi_Narayan_group_of_temples%2C_Chamba%2C_Himachal_Pradesh_589.jpg/1280px-0051723_Lakshmi_Narayan_group_of_temples%2C_Chamba%2C_Himachal_Pradesh_589.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a7/0051723_Lakshmi_Narayan_group_of_temples%2C_Chamba%2C_Himachal_Pradesh_589.jpg/1280px-0051723_Lakshmi_Narayan_group_of_temples%2C_Chamba%2C_Himachal_Pradesh_589.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/ba/0051723_Lakshmi_Narayan_group_of_temples%2C_Chamba%2C_Himachal_Pradesh_839.jpg/1280px-0051723_Lakshmi_Narayan_group_of_temples%2C_Chamba%2C_Himachal_Pradesh_839.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a1/0051723_Lakshmi_Narayan_group_of_temples%2C_Chamba%2C_Himachal_Pradesh_702.jpg/1280px-0051723_Lakshmi_Narayan_group_of_temples%2C_Chamba%2C_Himachal_Pradesh_702.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/0051723_Lakshmi_Narayan_group_of_temples%2C_Chamba%2C_Himachal_Pradesh_940.jpg/1280px-0051723_Lakshmi_Narayan_group_of_temples%2C_Chamba%2C_Himachal_Pradesh_940.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6c/0051723_Lakshmi_Narayan_group_of_temples%2C_Chamba%2C_Himachal_Pradesh_647.jpg/1280px-0051723_Lakshmi_Narayan_group_of_temples%2C_Chamba%2C_Himachal_Pradesh_647.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Chamba’s principal historic temple group: six early Nagara '
         'shrines aligned north–south, led by Lakshmi Narayan and divided '
@@ -9681,12 +10511,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/panchvaktra-temple-mandi/
   Temple(
     name: 'Panchvaktra Temple',
     state: 'Himachal Pradesh',
     city: 'Mandi',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/panchvaktra-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ec/Bhairava_at_panchvaktra_temple_mandi_himachal_pradesh.jpg/1280px-Bhairava_at_panchvaktra_temple_mandi_himachal_pradesh.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ec/Bhairava_at_panchvaktra_temple_mandi_himachal_pradesh.jpg/1280px-Bhairava_at_panchvaktra_temple_mandi_himachal_pradesh.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a4/Divine_sculpture_at_panchvaktra_temple_mandi_himachal_pradesh.jpg/1280px-Divine_sculpture_at_panchvaktra_temple_mandi_himachal_pradesh.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a0/Mahishasurmardini_sculpture_at_panchvaktra_temple_mandi_himachal_pradesh.jpg/1280px-Mahishasurmardini_sculpture_at_panchvaktra_temple_mandi_himachal_pradesh.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/81/Motif_art_at_panchvaktra_temple_mandi_himachal_pradesh.jpg/1280px-Motif_art_at_panchvaktra_temple_mandi_himachal_pradesh.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6c/Motifs_on_panchvaktra_temple_mandi_himachal_pradesh.jpg/1280px-Motifs_on_panchvaktra_temple_mandi_himachal_pradesh.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'ASI-protected Shikhara-style Shiva temple at the Beas–Suketi '
         'confluence in Mandi, centred on a five-faced Panchvaktra image.',
@@ -9731,12 +10570,21 @@ const List<Temple> sampleTemples = [
     ],
   ),
 
+  // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/manikaran-shiva-temple/
   Temple(
     name: 'Manikaran Shiva Temple',
     state: 'Himachal Pradesh',
     city: 'Manikaran',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/manikaran-shiva-temple/800/600',
+    imageUrl:
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/Manikaran_view_from_Shiva_Temple.jpg/1280px-Manikaran_view_from_Shiva_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/Manikaran_view_from_Shiva_Temple.jpg/1280px-Manikaran_view_from_Shiva_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/40/Panorama_Manikaran_Ram_temple_%2816746684003%29.jpg/1280px-Panorama_Manikaran_Ram_temple_%2816746684003%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6b/Manikaran_Temple.jpg/1280px-Manikaran_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/17/Gurdwara_Manikaran_Sahib.jpg/1280px-Gurdwara_Manikaran_Sahib.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/24/Inside_view_of_Gurdwara_Manikaran_Sahib.jpg/1280px-Inside_view_of_Gurdwara_Manikaran_Sahib.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+    ],
     description:
         'Shiva–Parvati pilgrimage precinct in Manikaran’s Parvati Valley, '
         'inseparable from geothermal hot springs, nearby Raghunath Temple, '

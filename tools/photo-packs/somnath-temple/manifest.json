@@ -1,0 +1,62 @@
+{
+  "temple_slug": "somnath-temple",
+  "temple_name": "Somnath Temple",
+  "doc_id_hint": "somnath-temple",
+  "city": "Somnath",
+  "state": "Gujarat",
+  "tradition_note": "Shiva",
+  "photos": [
+    {
+      "filename": "01_Somnath_temple_Gujarat_India.jpg",
+      "commons_title": "File:Somnath temple Gujarat India.jpg",
+      "author": "Narendralohiya",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3ASomnath_temple_Gujarat_India.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8c/Somnath_temple_Gujarat_India.jpg/1280px-Somnath_temple_Gujarat_India.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 257174,
+      "width": 1280,
+      "height": 853,
+      "notes": "Somnath is the holy place of the Aadi Jyotirling Shree Somnath Mahadev and the sacred soil where from Bhagvan Shri Krish"
+    },
+    {
+      "filename": "02_Ancient_Somnath_temple_Veraval_Gujarat.jpg",
+      "commons_title": "File:Ancient Somnath temple, Veraval Gujarat.jpg",
+      "author": "Ms Sarah Welch",
+      "license": "CC0 1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AAncient_Somnath_temple%2C_Veraval_Gujarat.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/78/Ancient_Somnath_temple%2C_Veraval_Gujarat.jpg/1280px-Ancient_Somnath_temple%2C_Veraval_Gujarat.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 271162,
+      "width": 1280,
+      "height": 1657,
+      "notes": "This is a JPEG format plan and architectural drawing of a historic Indian temple or monument. An alternate SVG format (s"
+    },
+    {
+      "filename": "03_Aerial_view_of_Somnath_temple_01_Prabhas_Patan_Gujarat.jpg",
+      "commons_title": "File:\"Aerial view of Somnath temple 01, Prabhas Patan Gujarat.jpg",
+      "author": "Ms Sarah Welch",
+      "license": "CC0 1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3A%22Aerial_view_of_Somnath_temple_01%2C_Prabhas_Patan_Gujarat.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7b/%22Aerial_view_of_Somnath_temple_01%2C_Prabhas_Patan_Gujarat.jpg/1280px-%22Aerial_view_of_Somnath_temple_01%2C_Prabhas_Patan_Gujarat.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 258698,
+      "width": 1280,
+      "height": 906,
+      "notes": "The 7th version of the Somnath Jyotirlinga temple along the coastline of Gujarat"
+    },
+    {
+      "filename": "04_Aerial_view_of_Somnath_temple_02_Prabhas_Patan_Gujarat.jpg",
+      "commons_title": "File:\"Aerial view of Somnath temple 02, Prabhas Patan Gujarat.jpg",
+      "author": "Ms Sarah Welch",
+      "license": "CC0 1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3A%22Aerial_view_of_Somnath_temple_02%2C_Prabhas_Patan_Gujarat.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/ba/%22Aerial_view_of_Somnath_temple_02%2C_Prabhas_Patan_Gujarat.jpg/1280px-%22Aerial_view_of_Somnath_temple_02%2C_Prabhas_Patan_Gujarat.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 227163,
+      "width": 1280,
+      "height": 785,
+      "notes": "The 7th version of the Somnath Jyotirlinga temple along the coastline of Gujarat"
+    }
+  ]
+}

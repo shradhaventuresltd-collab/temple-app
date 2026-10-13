@@ -1,0 +1,75 @@
+{
+  "temple_slug": "eklingji-temple",
+  "temple_name": "Eklingji Temple",
+  "doc_id_hint": "eklingji-temple",
+  "city": "Kailashpuri (near Udaipur)",
+  "state": "Rajasthan",
+  "tradition_note": "Shiva",
+  "photos": [
+    {
+      "filename": "01_EklingJi_Temple.jpg",
+      "commons_title": "File:EklingJi Temple.jpg",
+      "author": "Karora23",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AEklingJi_Temple.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/25/EklingJi_Temple.jpg/1280px-EklingJi_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 639809,
+      "width": 1280,
+      "height": 964,
+      "notes": "Marble Eklingji shrine at Kailashpuri, near Udaipur"
+    },
+    {
+      "filename": "02_India-Eklingji.jpg",
+      "commons_title": "File:India-Eklingji.jpg",
+      "author": "Dennis G. Jarvis",
+      "license": "CC BY-SA 2.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AIndia-Eklingji.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b5/India-Eklingji.jpg/1280px-India-Eklingji.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 416683,
+      "width": 1280,
+      "height": 960,
+      "notes": "Temple Eklingji with red flags, Kailashpuri"
+    },
+    {
+      "filename": "03_India-7398_Flickr_archer10_Dennis.jpg",
+      "commons_title": "File:India-7398 - Flickr - archer10 (Dennis).jpg",
+      "author": "Dennis G. Jarvis",
+      "license": "CC BY-SA 2.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AIndia-7398_-_Flickr_-_archer10_%28Dennis%29.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/India-7398_-_Flickr_-_archer10_%28Dennis%29.jpg/1280px-India-7398_-_Flickr_-_archer10_%28Dennis%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 824447,
+      "width": 1280,
+      "height": 1707,
+      "notes": "Temple interior at Eklingji"
+    },
+    {
+      "filename": "04_India-7407_Flickr_archer10_Dennis.jpg",
+      "commons_title": "File:India-7407 - Flickr - archer10 (Dennis).jpg",
+      "author": "Dennis G. Jarvis",
+      "license": "CC BY-SA 2.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AIndia-7407_-_Flickr_-_archer10_%28Dennis%29.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5f/India-7407_-_Flickr_-_archer10_%28Dennis%29.jpg/1280px-India-7407_-_Flickr_-_archer10_%28Dennis%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 527791,
+      "width": 1280,
+      "height": 960,
+      "notes": "Eklingji shrine courtyard with red flags"
+    },
+    {
+      "filename": "05_India-7410_Flickr_archer10_Dennis.jpg",
+      "commons_title": "File:India-7410 - Flickr - archer10 (Dennis).jpg",
+      "author": "Dennis G. Jarvis",
+      "license": "CC BY-SA 2.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AIndia-7410_-_Flickr_-_archer10_%28Dennis%29.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/57/India-7410_-_Flickr_-_archer10_%28Dennis%29.jpg/1280px-India-7410_-_Flickr_-_archer10_%28Dennis%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 741378,
+      "width": 1280,
+      "height": 1707,
+      "notes": "Pillared mandapa at Eklingji"
+    }
+  ]
+}
