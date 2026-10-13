@@ -27,7 +27,7 @@ India's temple heritage is one of the richest in the world — thousands of sacr
 Admin entry points (Seed, CMS, Upload) are compiled in for **debug** builds, and for any other build that passes `--dart-define=ENABLE_ADMIN_TOOLS=true`. Firebase sign-in and the `admin: true` custom claim are still required. **The Play AAB never takes that define.**
 
 - **Admin CMS** — After admin sign-in, create, edit, and delete temple documents in Firestore using the same fields the app already reads.
-- **Image Upload** — Pick and upload multiple images per temple to Firebase Storage with progress tracking. The file picker is **web-oriented** (native `<input type="file">`); field CRUD still works in mobile debug and demo builds.
+- **Image Upload** — In the temple editor, pick up to 10 photos at a time (12 per temple) with `image_picker`. Each photo needs a licence (CC-BY, CC-BY-SA, CC0, Own, or Permission) before Save. CC-BY and CC-BY-SA also need a credit. Uploads go to `temples/{docId}/{timestamp}.{ext}` with per-tile progress. The first photo is the cover. With no photos the temple stays Photo pending. Seed never writes picsum.
 - **Seed Data** — **Seed** control (Home + Admin) writes the 180 bundled sample temples. It is shown only for a signed-in admin. Re-running is idempotent (stable document IDs). Hidden when admin tools are off (release/profile without `ENABLE_ADMIN_TOOLS`).
 
 Demo APK (profile, arm64). A release demo APK uses the same define (`flutter build apk --release --dart-define=ENABLE_ADMIN_TOOLS=true`; never upload to Play). Do not pass it to the Play bundle.
@@ -78,7 +78,9 @@ lib/
 ├── config/
 │   └── build_flags.dart               # kAdminToolsEnabled (debug or ENABLE_ADMIN_TOOLS)
 ├── models/
-│   └── temple.dart                    # Temple data model
+│   ├── temple.dart                    # Temple data model
+│   ├── temple_photo.dart              # photos[] plus imageUrl/images mirrors
+│   └── photo_licence.dart             # CC-BY, CC-BY-SA, CC0, Own, Permission
 ├── data/
 │   ├── sample_data.dart               # 180 bundled sample temples (offline fallback; research-backed copy)
 │   └── heritage_content.dart          # Heritage write-up content sections
@@ -87,6 +89,7 @@ lib/
 │   ├── seed_service.dart              # Debug seed to Firestore (admin Auth required)
 │   ├── admin_auth.dart                # Firebase Auth session + admin custom claim
 │   ├── admin_temple_service.dart      # Debug Admin CMS create/update/delete
+│   ├── temple_photo_upload.dart       # Storage upload for editor photos
 │   ├── temple_form_validation.dart    # Admin form field validation
 │   ├── ad_helper.dart                 # AdMob unit IDs (test vs release, per platform)
 │   └── interstitial_ad_manager.dart   # Interstitial ad lifecycle management
@@ -103,14 +106,12 @@ lib/
 │   ├── seed_temples_control.dart      # Debug-only Seed control (idle/running/success/failure)
 │   ├── admin_auth_gate.dart           # Debug admin sign-in / not-admin states
 │   ├── debug_home_admin_actions.dart  # Home app-bar Seed vs Admin sign-in
+│   ├── admin_photo_grid.dart          # Editor photo grid, reorder, licence sheet
 │   └── temple_image_placeholder.dart  # Placeholder for missing images
 └── utils/
     ├── temple_search.dart              # Client-side directory search (name, city, state, deity, address)
     ├── directory_filters.dart          # Supported state/deity filter values
-    ├── image_picker_helper.dart       # Platform-aware image picker
-    ├── image_picker_web.dart          # Web image picker implementation
-    ├── image_picker_stub.dart         # Stub for non-web platforms
-    └── picked_file_data.dart          # Cross-platform picked file model
+    └── detail_honesty.dart             # Photo pending and listing honesty
 docs/
 ├── tamil-nadu-sample-research.md      # TN sample sources, caveats, Commons photo candidates
 ├── kerala-sample-research.md          # Kerala sample sources, caveats, Commons photo candidates
@@ -233,11 +234,11 @@ The original 10 Tamil Nadu, 10 Kerala, and 10 Karnataka sample temples carry res
 
 **Seed** is a one-shot debug action: it writes the 180 bundled sample temples with stable slug IDs. Use it to populate Firestore quickly. It does not provide a per-field editor.
 
-**Admin CMS** is the Admin panel form + list: a signed-in admin can create, edit, and delete individual `temples/{id}` documents. Fields match what the app already stores and reads — `name`, `state`, `city`, `deity`, `description`, `story`, `imageUrl`, `address` (the model’s location), `timings`, `specialities`, `images`, `latitude`, `longitude`. There is no separate admin schema.
+**Admin CMS** is the Admin panel form + list: a signed-in admin can create, edit, and delete individual `temples/{id}` documents. Fields match what the app already stores and reads — `name`, `state`, `city`, `deity`, `description`, `story`, `imageUrl`, `address` (the model’s location), `timings`, `specialities`, `images`, `photos`, `latitude`, `longitude`. `photos` is `[{url, credit, licence, order}]` (at most 12). `imageUrl` and `images` are mirrors of that list, written in the same save. There is no separate admin schema, and existing docs are not backfilled.
 
 **Delete** removes the Firestore document. Uploaded files under `temples/{docId}/` in Storage are deleted first; if that cleanup fails, the document is left in place so you can retry. Seeded cover photos that live on external hosts (for example picsum URLs) are not Storage objects and are left as-is.
 
-Image **file** picking is implemented for **web** only (`lib/utils/image_picker_web.dart`). On iOS/Android/desktop debug, you can still create/edit/delete temple fields and paste image URLs; choosing local image files is not implemented.
+Photo picking lives in the temple editor (`image_picker` `pickMultiImage`, up to 10 at once). Each tile needs a licence before Save; CC-BY and CC-BY-SA also need a credit. Long-press drags to reorder. The first tile is the cover. Files upload to `temples/{docId}/{timestamp}.{ext}`. The list **Upload** button opens that editor. Zero photos leaves the temple Photo pending. Seed does not inject picsum or stock photos, and it does not write `photos`.
 
 This CMS is not public user accounts, directory search, AdMob configuration, or store listing hygiene. Browse search is covered under [Search](#search).
 

@@ -2,6 +2,8 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from "fs";
 import { basename, dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 
+import { mapPhotoLicence, photoCredit } from "./photo_licence.js";
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "..");
 const defaultPacksRoot = resolve(repoRoot, "tools/photo-packs");
@@ -359,11 +361,15 @@ function resolvePhotos(packDir, manifest) {
     if (!existsSync(localPath)) {
       throw new Error(`Missing pack file listed in manifest: ${filename}`);
     }
+    const license = photo.license || "";
     resolved.push({
       filename,
       localPath,
       author: photo.author || "",
-      license: photo.license || "",
+      license,
+      // Enum value. CC0 and public domain both map to CC0 (KAN-49).
+      licence: mapPhotoLicence(license),
+      credit: photoCredit(photo.author || "", license),
       sourceUrl: photo.source_url || "",
       downloadedUrl: photo.downloaded_url || "",
     });
@@ -410,7 +416,9 @@ async function uploadFile(bucket, localPath, storagePath, filename) {
     destination: storagePath,
     metadata: {
       contentType: contentTypeFor(filename),
-      cacheControl: "public, max-age=86400",
+      // temples/{docId}/{filename} is overwritten in place. Do not mark it
+      // immutable. Timestamped admin uploads keep the one-year cache.
+      cacheControl: "public, max-age=3600",
     },
   });
   const file = bucket.file(storagePath);
@@ -466,7 +474,7 @@ async function processPack({
       console.log(`• ${photo.filename}`);
       console.log(`    → gs://${bucketName}/${storagePath}`);
       console.log(
-        `    license: ${photo.license || "(none)"} / ${photo.author || "(unknown)"}`
+        `    license: ${photo.license || "(none)"} → ${photo.licence || "(unmapped)"} / ${photo.credit || photo.author || "(unknown)"}`
       );
     }
     return {
@@ -528,6 +536,7 @@ async function processPack({
         "   Run debug Seed first, then re-run with --patch-firestore."
       );
     } else {
+      // imageUrl + images only. photos[] is not backfilled onto existing docs.
       await docRef.update({
         imageUrl: uploadedUrls[0],
         images: uploadedUrls,
@@ -671,6 +680,8 @@ async function main() {
           downloaded_url: p.downloadedUrl,
           author: p.author,
           license: p.license,
+          licence: p.licence || null,
+          credit: p.credit || "",
           source_url: p.sourceUrl,
         })),
       })),

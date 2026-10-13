@@ -1,3 +1,5 @@
+import 'package:temple_app/models/temple_photo.dart';
+
 class Temple {
   const Temple({
     required this.name,
@@ -14,6 +16,8 @@ class Temple {
     required this.longitude,
     this.id = '',
     this.images = const [],
+    this.photos = const [],
+    this.writePhotos = false,
   });
 
   final String id;
@@ -28,6 +32,16 @@ class Temple {
   final String timings;
   final List<String> specialities;
   final List<String> images;
+
+  /// Licensed photos. Empty when the document has not been through the
+  /// admin photo editor. Readers keep using [imageUrl] and [images].
+  final List<TemplePhoto> photos;
+
+  /// When true, [toFirestoreData] writes [photos] and mirrors [imageUrl]
+  /// plus [images] from that list in the same payload. Seed leaves this
+  /// false so existing docs are not backfilled.
+  final bool writePhotos;
+
   final double latitude;
   final double longitude;
 
@@ -57,6 +71,7 @@ class Temple {
       timings: data['timings'] as String? ?? '',
       specialities: _stringList(data['specialities']),
       images: _stringList(data['images']),
+      photos: _photoList(data['photos']),
       latitude: (data['latitude'] as num?)?.toDouble() ?? 0.0,
       longitude: (data['longitude'] as num?)?.toDouble() ?? 0.0,
     );
@@ -70,6 +85,15 @@ class Temple {
     bool includeImages = true,
   }) {
     final docId = documentId ?? id;
+    var cover = imageUrl;
+    var gallery = images.where((u) => u.trim().isNotEmpty).toList();
+    List<Map<String, dynamic>>? photosJson;
+    if (writePhotos) {
+      final mirror = deriveTemplePhotoMirror(photos);
+      cover = mirror.imageUrl;
+      gallery = mirror.images;
+      photosJson = [for (final photo in mirror.photos) photo.toJson()];
+    }
     final data = <String, dynamic>{
       if (docId.isNotEmpty) 'id': docId,
       'name': name,
@@ -78,7 +102,7 @@ class Temple {
       'deity': deity,
       'description': description,
       'story': story,
-      'imageUrl': imageUrl,
+      'imageUrl': cover,
       'address': location,
       'latitude': latitude,
       'longitude': longitude,
@@ -86,7 +110,10 @@ class Temple {
       'specialities': specialities,
     };
     if (includeImages) {
-      data['images'] = images.where((u) => u.trim().isNotEmpty).toList();
+      data['images'] = gallery;
+    }
+    if (photosJson != null) {
+      data['photos'] = photosJson;
     }
     return data;
   }
@@ -104,6 +131,8 @@ class Temple {
     String? timings,
     List<String>? specialities,
     List<String>? images,
+    List<TemplePhoto>? photos,
+    bool? writePhotos,
     double? latitude,
     double? longitude,
   }) {
@@ -120,9 +149,21 @@ class Temple {
       timings: timings ?? this.timings,
       specialities: specialities ?? this.specialities,
       images: images ?? this.images,
+      photos: photos ?? this.photos,
+      writePhotos: writePhotos ?? this.writePhotos,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
     );
+  }
+
+  static List<TemplePhoto> _photoList(dynamic value) {
+    if (value is! Iterable) return const [];
+    final photos = <TemplePhoto>[];
+    for (final item in value) {
+      if (item is! Map) continue;
+      photos.add(TemplePhoto.fromJson(Map<String, dynamic>.from(item)));
+    }
+    return photos;
   }
 
   static List<String> _stringList(dynamic value) {

@@ -46,6 +46,10 @@ adb shell settings put global transition_animation_scale 0 || true
 adb shell settings put global animator_duration_scale 0 || true
 
 echo "===== install apk ====="
+# The cached AVD keeps the previous install. Each runner signs the profile
+# APK with a new debug key, so replace-install fails until the old package
+# is removed.
+adb uninstall "$PKG" || true
 adb install -r "$APK"
 adb shell pm path "$PKG"
 
