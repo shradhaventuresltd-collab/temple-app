@@ -10,6 +10,8 @@ appId: com.shradhaventures.temple
 # clearState on every try wipes the local Terms acceptance, so the gate
 # is shown again. maxRetries 2 means two relaunches after the first 60s
 # wait misses the gate or the home anchor.
+# Tap the accept control by semantics id. Its accessibility text also
+# includes the hint, so a text match on "Accept & continue" misses it.
 - retry:
     maxRetries: 2
     label: Relaunch until the first Flutter frame is visible
