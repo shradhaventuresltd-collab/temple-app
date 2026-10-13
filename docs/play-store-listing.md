@@ -55,7 +55,7 @@ Answer the IARC questionnaire from the release app, not from the debug admin too
 - Audience: general. No sexual content, graphic violence, gambling, or drugs.
 - The app is religious and cultural reference material (temple history, mythology, and worship timings).
 - No chat, no public user posts, and no social graph. Visitors cannot create an account in the release app. The admin CMS (including sign-in) and seed tools are debug-only; release/profile builds do not present that UI.
-- No unrestricted web browser. Directions open Google Maps for a temple’s published coordinates. Terms and Privacy open two fixed hosted https pages.
+- No unrestricted web browser. Directions open Google Maps for a temple’s published coordinates. Terms and Privacy open two fixed hosted https pages in an in-app browser.
 - The app does not request device location.
 - Advertising: **yes**. Google AdMob on Android (banner on the temple list; interstitial every third temple detail), after the Terms and Privacy acceptance gate and a Google UMP consent check. Ads are disabled on web. No ads load before Terms are accepted.
 - Digital purchases: none in this repo (no in-app purchases or subscriptions).

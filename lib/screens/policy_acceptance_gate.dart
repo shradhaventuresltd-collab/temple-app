@@ -1,33 +1,51 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/config/policy_config.dart';
 import 'package:temple_app/services/policy_acceptance_store.dart';
 
 /// Copy for the acceptance gate.
 ///
-/// Frame A is [firstLaunchTitle]. Frame C is [updateTitle]. Figma for these
-/// frames could not be opened, so the layout follows the app's Material theme.
+/// Frame A is [firstLaunchTitle]. Frame C is [updateTitle]. Wording matches
+/// the Figma section for KAN-93.
 abstract final class PolicyGateCopy {
   static const String acceptButton = 'Accept & continue';
   static const String acceptHint =
       'Agrees to the Terms of Service and Privacy Policy';
   static const String termsLabel = 'Terms of Service';
+  static const String updateTermsLabel = 'Terms';
   static const String privacyLabel = 'Privacy Policy';
-  static const String linkHint = 'Opens in the browser';
-  static const String firstLaunchEyebrow = 'Terms and privacy';
-  static const String firstLaunchTitle = 'Before you continue';
+  static const String linkHint = 'Opens in the app';
+  static const String appName = 'Temple Directory India';
+
+  static const String firstLaunchTitle = 'Before you begin';
+  static const String firstLaunchLead =
+      'To use the app, please review and accept our ';
+  static const String firstLaunchTail = '.';
   static const String firstLaunchBody =
-      'Temple Directory India lists temples, timings, and directions. '
-      'Accept the Terms of Service and the Privacy Policy to continue. '
-      'The Terms state that the app is for people aged 13 and older.';
-  static const String updateEyebrow = 'Policy update';
-  static const String updateTitle = 'Policies updated';
+      'To use the app, please review and accept our Terms of Service and Privacy Policy.';
+
+  static const String updateTitle = "We've updated our terms";
+  static const String updateLead = 'Please review and accept the updated ';
+  static const String updateTail = ' to continue.';
   static const String updateBody =
-      'We updated the Terms of Service and the Privacy Policy. '
-      'Review them, then accept to keep using Temple Directory India.';
+      'Please review and accept the updated Terms and Privacy Policy to continue.';
+
   static const String saveFailed =
       'Could not save your acceptance on this device. Please try again.';
   static const String linkFailed = 'Could not open that link.';
+}
+
+/// Colours for the gate.
+///
+/// The app theme is seeded from saffron and has no navy token. Figma uses a
+/// navy header and a navy heading on the cream page, so this screen uses
+/// [navy] for both instead of the deep-saffron title colour used elsewhere.
+abstract final class PolicyGateColors {
+  static const Color saffron = Color(0xFFFF8F00);
+  static const Color cream = Color(0xFFFFFBF2);
+  static const Color navy = Color(0xFF0A2540);
+  static const Color body = Color(0xFF6D4C41);
 }
 
 /// Full-screen Terms and Privacy gate. Accept is the only action.
@@ -52,12 +70,6 @@ class PolicyAcceptanceGate extends StatefulWidget {
 }
 
 class _PolicyAcceptanceGateState extends State<PolicyAcceptanceGate> {
-  static const Color _saffron = Color(0xFFFF8F00);
-  static const Color _deepSaffron = Color(0xFFE65100);
-  static const Color _gold = Color(0xFFFFD54F);
-  static const Color _cream = Color(0xFFFFFBF2);
-  static const Color _card = Color(0xFFFFF8EE);
-
   bool _saving = false;
 
   bool get _update => widget.kind == PolicyGateKind.policyUpdate;
@@ -92,12 +104,15 @@ class _PolicyAcceptanceGateState extends State<PolicyAcceptanceGate> {
     final title = _update
         ? PolicyGateCopy.updateTitle
         : PolicyGateCopy.firstLaunchTitle;
-    final eyebrow = _update
-        ? PolicyGateCopy.updateEyebrow
-        : PolicyGateCopy.firstLaunchEyebrow;
-    final body = _update
-        ? PolicyGateCopy.updateBody
-        : PolicyGateCopy.firstLaunchBody;
+    final lead = _update
+        ? PolicyGateCopy.updateLead
+        : PolicyGateCopy.firstLaunchLead;
+    final tail = _update
+        ? PolicyGateCopy.updateTail
+        : PolicyGateCopy.firstLaunchTail;
+    final termsLabel = _update
+        ? PolicyGateCopy.updateTermsLabel
+        : PolicyGateCopy.termsLabel;
 
     return PopScope(
       canPop: false,
@@ -107,101 +122,122 @@ class _PolicyAcceptanceGateState extends State<PolicyAcceptanceGate> {
       },
       child: Scaffold(
         key: const Key('policy-acceptance-gate'),
-        backgroundColor: _cream,
-        body: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: (constraints.maxHeight - 36)
-                        .clamp(0, double.infinity)
-                        .toDouble(),
+        backgroundColor: PolicyGateColors.cream,
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const _BrandHeader(),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 28, 24, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Semantics(
+                      header: true,
+                      child: Text(
+                        title,
+                        style: GoogleFonts.lora(
+                          fontSize: 28,
+                          height: 1.2,
+                          fontWeight: FontWeight.w700,
+                          color: PolicyGateColors.navy,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text.rich(
+                      TextSpan(
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          height: 1.5,
+                          color: PolicyGateColors.body,
+                        ),
+                        children: [
+                          TextSpan(text: lead),
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.middle,
+                            child: _InlinePolicyLink(
+                              label: termsLabel,
+                              semanticsId: 'policy-terms-link',
+                              onPressed: _saving
+                                  ? null
+                                  : () => _open(PolicyConfig.termsOfServiceUri),
+                            ),
+                          ),
+                          const TextSpan(text: ' and '),
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.middle,
+                            child: _InlinePolicyLink(
+                              label: PolicyGateCopy.privacyLabel,
+                              semanticsId: 'policy-privacy-link',
+                              onPressed: _saving
+                                  ? null
+                                  : () => _open(PolicyConfig.privacyPolicyUri),
+                            ),
+                          ),
+                          TextSpan(text: tail),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                8,
+                20,
+                16 + MediaQuery.paddingOf(context).bottom,
+              ),
+              child: _AcceptButton(saving: _saving, onPressed: _accept),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BrandHeader extends StatelessWidget {
+  const _BrandHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final top = MediaQuery.paddingOf(context).top;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: ColoredBox(
+        color: PolicyGateColors.navy,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(16, top + 12, 16, 12),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 32),
+            child: Row(
+              children: [
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: const BoxDecoration(
+                    color: PolicyGateColors.saffron,
+                    shape: BoxShape.circle,
                   ),
-                  child: IntrinsicHeight(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const _TempleMark(),
-                        const SizedBox(height: 20),
-                        Text(
-                          eyebrow,
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.4,
-                            color: _saffron,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Semantics(
-                          header: true,
-                          child: Text(
-                            title,
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.lora(
-                              fontSize: 28,
-                              height: 1.2,
-                              fontWeight: FontWeight.w700,
-                              color: _deepSaffron,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          body,
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.poppins(
-                            fontSize: 16,
-                            height: 1.5,
-                            color: Colors.brown.shade700,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: _card,
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: _gold),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 4),
-                            child: Column(
-                              children: [
-                                _PolicyLink(
-                                  label: PolicyGateCopy.termsLabel,
-                                  semanticsId: 'policy-terms-link',
-                                  onPressed: _saving
-                                      ? null
-                                      : () => _open(
-                                          PolicyConfig.termsOfServiceUri,
-                                        ),
-                                ),
-                                Divider(height: 1, color: _gold.withAlpha(180)),
-                                _PolicyLink(
-                                  label: PolicyGateCopy.privacyLabel,
-                                  semanticsId: 'policy-privacy-link',
-                                  onPressed: _saving
-                                      ? null
-                                      : () => _open(
-                                          PolicyConfig.privacyPolicyUri,
-                                        ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 28),
-                        _AcceptButton(saving: _saving, onPressed: _accept),
-                      ],
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    PolicyGateCopy.appName,
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      height: 1.2,
+                      fontWeight: FontWeight.w600,
+                      color: PolicyGateColors.cream,
                     ),
                   ),
                 ),
-              );
-            },
+              ],
+            ),
           ),
         ),
       ),
@@ -209,35 +245,8 @@ class _PolicyAcceptanceGateState extends State<PolicyAcceptanceGate> {
   }
 }
 
-class _TempleMark extends StatelessWidget {
-  const _TempleMark();
-
-  static const Color _saffron = Color(0xFFFF8F00);
-  static const Color _gold = Color(0xFFFFD54F);
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        width: 72,
-        height: 72,
-        decoration: BoxDecoration(
-          color: _saffron,
-          shape: BoxShape.circle,
-          border: Border.all(color: _gold, width: 3),
-        ),
-        child: const Icon(
-          Icons.temple_hindu_rounded,
-          color: Colors.white,
-          size: 36,
-        ),
-      ),
-    );
-  }
-}
-
-class _PolicyLink extends StatelessWidget {
-  const _PolicyLink({
+class _InlinePolicyLink extends StatelessWidget {
+  const _InlinePolicyLink({
     required this.label,
     required this.semanticsId,
     required this.onPressed,
@@ -247,10 +256,16 @@ class _PolicyLink extends StatelessWidget {
   final String semanticsId;
   final VoidCallback? onPressed;
 
-  static const Color _deepSaffron = Color(0xFFE65100);
-
   @override
   Widget build(BuildContext context) {
+    final style = GoogleFonts.poppins(
+      fontSize: 16,
+      height: 1.3,
+      fontWeight: FontWeight.w600,
+      color: PolicyGateColors.saffron,
+      decoration: TextDecoration.underline,
+      decorationColor: PolicyGateColors.saffron,
+    );
     return Semantics(
       key: Key(semanticsId),
       identifier: semanticsId,
@@ -260,35 +275,15 @@ class _PolicyLink extends StatelessWidget {
       hint: PolicyGateCopy.linkHint,
       enabled: onPressed != null,
       child: ExcludeSemantics(
-        child: SizedBox(
-          width: double.infinity,
-          child: TextButton(
-            onPressed: onPressed,
-            style: TextButton.styleFrom(
-              minimumSize: const Size(48, 48),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              alignment: Alignment.centerLeft,
-              foregroundColor: _deepSaffron,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.article_outlined, size: 22),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: _deepSaffron,
-                    ),
-                  ),
-                ),
-                const Icon(Icons.open_in_new_rounded, size: 20),
-              ],
-            ),
+        child: TextButton(
+          onPressed: onPressed,
+          style: TextButton.styleFrom(
+            minimumSize: const Size(48, 48),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            foregroundColor: PolicyGateColors.saffron,
           ),
+          child: Text(label, style: style),
         ),
       ),
     );
@@ -300,8 +295,6 @@ class _AcceptButton extends StatelessWidget {
 
   final bool saving;
   final VoidCallback onPressed;
-
-  static const Color _saffron = Color(0xFFFF8F00);
 
   @override
   Widget build(BuildContext context) {
@@ -319,9 +312,9 @@ class _AcceptButton extends StatelessWidget {
           child: FilledButton(
             onPressed: saving ? null : onPressed,
             style: FilledButton.styleFrom(
-              backgroundColor: _saffron,
+              backgroundColor: PolicyGateColors.saffron,
               foregroundColor: Colors.white,
-              disabledBackgroundColor: _saffron.withAlpha(140),
+              disabledBackgroundColor: PolicyGateColors.saffron.withAlpha(140),
               disabledForegroundColor: Colors.white,
               minimumSize: const Size(48, 48),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -351,21 +344,22 @@ class PolicyStartupHold extends StatelessWidget {
 
   final String? message;
 
-  static const Color _saffron = Color(0xFFFF8F00);
-  static const Color _cream = Color(0xFFFFFBF2);
-
   @override
   Widget build(BuildContext context) {
     final message = this.message;
     return Scaffold(
-      backgroundColor: _cream,
+      backgroundColor: PolicyGateColors.cream,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.temple_hindu_rounded, size: 48, color: _saffron),
+              const Icon(
+                Icons.temple_hindu_rounded,
+                size: 48,
+                color: PolicyGateColors.saffron,
+              ),
               if (message != null) ...[
                 const SizedBox(height: 16),
                 Text(
@@ -374,7 +368,7 @@ class PolicyStartupHold extends StatelessWidget {
                   style: GoogleFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.brown.shade700,
+                    color: PolicyGateColors.body,
                   ),
                 ),
               ],

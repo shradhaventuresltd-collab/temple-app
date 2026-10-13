@@ -56,7 +56,7 @@ class TempleDirectoryApp extends StatefulWidget {
   /// System back on the gate. Defaults to leaving the app.
   final VoidCallback? onExitApp;
 
-  /// Opens a policy https URL in an external browser.
+  /// Opens a policy https URL in an in-app browser.
   final Future<bool> Function(Uri url)? launchPolicyUrl;
 
   @override

@@ -37,9 +37,29 @@ void main() {
 
       expect(find.byType(PolicyAcceptanceGate), findsOneWidget);
       expect(find.text(PolicyGateCopy.firstLaunchTitle), findsOneWidget);
-      expect(find.text(PolicyGateCopy.firstLaunchBody), findsOneWidget);
+      expect(
+        find.textContaining(PolicyGateCopy.firstLaunchLead),
+        findsOneWidget,
+      );
+      expect(find.text(PolicyGateCopy.termsLabel), findsOneWidget);
+      expect(find.text(PolicyGateCopy.privacyLabel), findsOneWidget);
       expect(find.text(PolicyGateCopy.acceptButton), findsOneWidget);
+      expect(find.text(PolicyGateCopy.appName), findsOneWidget);
       expect(find.text(PolicyGateCopy.updateTitle), findsNothing);
+      expect(find.text('Terms and privacy'), findsNothing);
+      expect(find.text('Policy update'), findsNothing);
+      expect(find.textContaining('13 and older'), findsNothing);
+      expect(find.byIcon(Icons.temple_hindu_rounded), findsNothing);
+
+      final title = tester.widget<Text>(
+        find.text(PolicyGateCopy.firstLaunchTitle),
+      );
+      expect(title.style?.color, PolicyGateColors.navy);
+      final termsText = tester.widget<Text>(
+        find.text(PolicyGateCopy.termsLabel),
+      );
+      expect(termsText.style?.decoration, TextDecoration.underline);
+      expect(termsText.style?.color, PolicyGateColors.saffron);
       expect(find.byType(HomeScreen), findsNothing);
       expect(find.byType(Checkbox), findsNothing);
       expect(find.text('Decline'), findsNothing);
@@ -150,8 +170,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text(PolicyGateCopy.updateTitle), findsOneWidget);
-    expect(find.text(PolicyGateCopy.updateBody), findsOneWidget);
+    expect(find.textContaining(PolicyGateCopy.updateLead), findsOneWidget);
+    expect(find.text(PolicyGateCopy.updateTermsLabel), findsOneWidget);
+    expect(find.text(PolicyGateCopy.privacyLabel), findsOneWidget);
+    expect(find.textContaining('to continue.'), findsOneWidget);
     expect(find.text(PolicyGateCopy.firstLaunchTitle), findsNothing);
+    final title = tester.widget<Text>(find.text(PolicyGateCopy.updateTitle));
+    expect(title.style?.color, PolicyGateColors.navy);
     expect(find.byType(HomeScreen), findsNothing);
     expect(adsCalls, 0);
 
@@ -238,6 +263,12 @@ void main() {
     expectTarget(const Key('policy-accept-button'));
     expectTarget(const Key('policy-terms-link'));
     expectTarget(const Key('policy-privacy-link'));
+
+    final accept = tester.getRect(
+      find.byKey(const Key('policy-accept-button')),
+    );
+    final view = tester.view.physicalSize / tester.view.devicePixelRatio;
+    expect(accept.bottom, greaterThan(view.height - 80));
     expect(tester.takeException(), isNull);
   });
 

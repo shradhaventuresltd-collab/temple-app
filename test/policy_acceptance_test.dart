@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:temple_app/config/policy_config.dart';
+import 'package:temple_app/screens/policy_acceptance_gate.dart';
 import 'package:temple_app/services/policy_acceptance_store.dart';
 import 'package:temple_app/services/policy_link_launcher.dart';
 import 'package:url_launcher_platform_interface/link.dart';
@@ -8,6 +9,31 @@ import 'package:url_launcher_platform_interface/url_launcher_platform_interface.
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  group('PolicyGateCopy', () {
+    test('frame A and frame C match the Figma sentences', () {
+      expect(PolicyGateCopy.firstLaunchTitle, 'Before you begin');
+      expect(
+        PolicyGateCopy.firstLaunchBody,
+        'To use the app, please review and accept our Terms of Service and Privacy Policy.',
+      );
+      expect(PolicyGateCopy.updateTitle, "We've updated our terms");
+      expect(
+        PolicyGateCopy.updateBody,
+        'Please review and accept the updated Terms and Privacy Policy to continue.',
+      );
+      expect(
+        '${PolicyGateCopy.firstLaunchLead}${PolicyGateCopy.termsLabel} and ${PolicyGateCopy.privacyLabel}${PolicyGateCopy.firstLaunchTail}',
+        PolicyGateCopy.firstLaunchBody,
+      );
+      expect(
+        '${PolicyGateCopy.updateLead}${PolicyGateCopy.updateTermsLabel} and ${PolicyGateCopy.privacyLabel}${PolicyGateCopy.updateTail}',
+        PolicyGateCopy.updateBody,
+      );
+      expect(PolicyGateCopy.linkHint, 'Opens in the app');
+      expect(PolicyGateCopy.firstLaunchBody.contains('13'), isFalse);
+    });
+  });
 
   group('policyGateKind', () {
     final stored = PolicyAcceptance(
@@ -115,7 +141,7 @@ void main() {
       UrlLauncherPlatform.instance = original;
     });
 
-    test('opens https in an external browser', () async {
+    test('opens https in an in-app browser', () async {
       final fake = _FakeUrlLauncher(result: true);
       UrlLauncherPlatform.instance = fake;
 
@@ -124,17 +150,17 @@ void main() {
       expect(opened, isTrue);
       expect(fake.calls, hasLength(1));
       expect(fake.calls.single.url, PolicyConfig.termsOfServiceUrl);
-      expect(fake.calls.single.mode, PreferredLaunchMode.externalApplication);
+      expect(fake.calls.single.mode, PreferredLaunchMode.inAppBrowserView);
     });
 
-    test('returns false when the external browser throws', () async {
+    test('returns false when the in-app browser throws', () async {
       final fake = _FakeUrlLauncher(result: true, throwOnLaunch: true);
       UrlLauncherPlatform.instance = fake;
 
       final opened = await openPolicyUrl(PolicyConfig.privacyPolicyUri);
 
       expect(opened, isFalse);
-      expect(fake.calls.single.mode, PreferredLaunchMode.externalApplication);
+      expect(fake.calls.single.mode, PreferredLaunchMode.inAppBrowserView);
     });
 
     test('does not launch a non-https url', () async {
