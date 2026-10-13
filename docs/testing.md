@@ -25,7 +25,7 @@ adb install -r build/app/outputs/flutter-apk/app-debug.apk
 maestro test .maestro
 ```
 
-`DEMO_BUILD=true` forces Google's test ad units. Debug builds already use those units; the define keeps a later release or profile smoke build on test units as well.
+`DEMO_BUILD=true` forces Google's test ad units. Debug builds already use those units; the define keeps a later release or profile smoke build on test units as well. CI builds a profile x86_64 APK so the emulator reaches the first Flutter frame sooner than a debug build.
 
 A profile build without admin tools is:
 

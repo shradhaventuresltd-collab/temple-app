@@ -42,9 +42,9 @@ jobs:
       - name: flutter pub get
         run: flutter pub get
 
-      # Debug is faster than profile. DEMO_BUILD forces test ad units even
-      # if this is later switched to a release build. Do not pass
-      # ENABLE_ADMIN_TOOLS. The Maestro flow never taps Seed or Admin.
+      # Profile starts much faster than debug on a cold emulator, and
+      # x86_64 matches the AVD. DEMO_BUILD forces test ad units. Do not
+      # pass ENABLE_ADMIN_TOOLS. The Maestro flow never taps Seed or Admin.
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
@@ -53,8 +53,8 @@ jobs:
             ~/.gradle/wrapper
           key: gradle-${{ hashFiles('pubspec.lock', 'android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
 
-      - name: Build debug APK
-        run: flutter build apk --debug --dart-define=DEMO_BUILD=true
+      - name: Build profile APK
+        run: flutter build apk --profile --target-platform android-x64 --dart-define=DEMO_BUILD=true
 
       - name: Install Maestro
         run: |

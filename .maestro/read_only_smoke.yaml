@@ -6,17 +6,16 @@ appId: com.shradhaventures.temple
 # CI https handoff stub. Staying on the button fails the flow.
 
 - launchApp
+# Profile still needs a long first-frame wait on a cold emulator.
+# Any of these means Flutter has drawn past the native splash.
 - extendedWaitUntil:
-    visible: "Temple Directory"
-    timeout: 90000
-- extendedWaitUntil:
-    visible: "Temple Directory"
-    timeout: 90000
+    visible: "Temple Directory|Loading temples|Browse "
+    timeout: 180000
 - scrollUntilVisible:
     element:
       id: "home-browse-temples"
     direction: DOWN
-    timeout: 30000
+    timeout: 90000
     speed: 40
     visibilityPercentage: 100
     centerElement: true
