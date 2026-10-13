@@ -6,6 +6,12 @@
     "notes": "local_file=01_Night_view_of_Srisailam_Temple_South_Gopuram.jpg"
   },
   {
+    "url": "https://commons.wikimedia.org/wiki/File:Gopuram_of_Mallikarjuna_Devasthanam,_SriSailam.jpeg",
+    "license": "CC BY-SA 3.0",
+    "attribution": "Guguly18",
+    "notes": "local_file=02_Gopuram_of_Mallikarjuna_Devasthanam_SriSailam.jpg; new_in_topup KAN-77"
+  },
+  {
     "url": "https://commons.wikimedia.org/wiki/File%3ASRISAILAM_TEMPLE%2CAP_-_panoramio.jpg",
     "license": "CC BY 3.0",
     "attribution": "rajaraman sundaram",
@@ -22,5 +28,11 @@
     "license": "Public Domain",
     "attribution": "Chintohere",
     "notes": "local_file=05_Srisailam-temple-entrance.jpg"
+  },
+  {
+    "url": "https://commons.wikimedia.org/wiki/File:Srisailam_Gopuram.jpg",
+    "license": "CC BY-SA 3.0",
+    "attribution": "Vedamurthy.j",
+    "notes": "local_file=06_Srisailam_Gopuram.jpg; new_in_topup KAN-77"
   }
 ]

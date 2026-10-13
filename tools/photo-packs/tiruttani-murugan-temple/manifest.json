@@ -59,6 +59,21 @@
       "notes": "The Arulmigu Subramaniya Swamy Temple is a Hindu temple, on the hill of Thiruttani, Tiruvallur district, Tamil Nadu, Ind"
     },
     {
+      "filename": "05_Thiruttani_Temple_Rajagopuram.jpg",
+      "commons_title": "File:Thiruttani Temple Rajagopuram.jpg",
+      "author": "Shivashanky",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Thiruttani_Temple_Rajagopuram.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e0/Thiruttani_Temple_Rajagopuram.jpg/1280px-Thiruttani_Temple_Rajagopuram.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 744917,
+      "width": 1280,
+      "height": 1707,
+      "original_width": 3000,
+      "notes": "Rajagopuram of Subramaniya Swamy Temple; cat Subramaniya Swamy Temple, Tiruttani",
+      "retrieved": "2026-10-13"
+    },
+    {
       "filename": "06_Thiruthani_Murugan_Temple.jpg",
       "commons_title": "File:Thiruthani Murugan Temple .jpg",
       "author": "Jayashree Subramanian",
@@ -72,11 +87,10 @@
       "notes": "Thiruthani Murugan Temple Steps"
     }
   ],
-  "dropped_frames": [
-    {
-      "filename": "05_Tiruthani_Murugan_Temple_parking_lot.jpg",
-      "commons_title": "File:Tiruthani Murugan Temple parking lot.jpg",
-      "reason": "Parking-lot frame of the Tiruttani temple. Dropped from the gallery. photo_candidates had no unused replacement, so the pack stays at five temple frames."
-    }
-  ]
+  "kan77_nits": {
+    "date": "2026-10-13",
+    "removed": [
+      "05_Tiruthani_Murugan_Temple_parking_lot.jpg"
+    ]
+  }
 }

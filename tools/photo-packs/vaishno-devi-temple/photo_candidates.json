@@ -6,10 +6,10 @@
     "notes": "local_file=01_Vaishno_devi_katra_jammu_n_kashmir.jpg"
   },
   {
-    "url": "https://commons.wikimedia.org/wiki/File%3AVaishno_Devi_temple_in_katra.jpg",
-    "license": "CC0 1.0",
-    "attribution": "02addicted",
-    "notes": "local_file=03_Vaishno_Devi_temple_in_katra.jpg"
+    "url": "https://commons.wikimedia.org/wiki/File:Shri_Mata_Vaishno_Devi_Bhawan,_Katra_Jammu_%26_Kashmir_INDIA.jpg",
+    "license": "CC BY 4.0",
+    "attribution": "KDhruv406",
+    "notes": "local_file=02_Shri_Mata_Vaishno_Devi_Bhawan_Katra_Jammu_Kashmir_INDIA.jpg; new_in_topup KAN-77"
   },
   {
     "url": "https://commons.wikimedia.org/wiki/File%3AKatra_Vaishno_Devi_temple_Seen1.jpg",
@@ -22,5 +22,11 @@
     "license": "CC BY-SA 4.0",
     "attribution": "Rajneesh kumar Thakur",
     "notes": "local_file=05_Vaishno_devi_katra.jpg"
+  },
+  {
+    "url": "https://commons.wikimedia.org/wiki/File:Vaishno_Devi_Bhabon_-_panoramio.jpg",
+    "license": "CC BY-SA 3.0",
+    "attribution": "Tapan Kumar Debn… (Panoramio user 4004470, name truncated as on Commons)",
+    "notes": "local_file=06_Vaishno_Devi_Bhabon_-_panoramio.jpg; new_in_topup KAN-77"
   }
 ]

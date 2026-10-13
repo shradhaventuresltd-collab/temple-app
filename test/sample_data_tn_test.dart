@@ -87,7 +87,8 @@ void main() {
           expect(temple.imageUrl, contains('Raja_Gopuram_at_Thiruchendur'));
         }
         if (slug == 'tiruttani-murugan-temple') {
-          expect(temple.images, hasLength(5));
+          expect(temple.images, hasLength(6));
+          expect(temple.images, contains(contains('Rajagopuram')));
           expect(
             temple.images.any((url) => url.contains('parking_lot')),
             isFalse,

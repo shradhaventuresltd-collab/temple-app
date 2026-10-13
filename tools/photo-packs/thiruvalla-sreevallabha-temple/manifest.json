@@ -17,20 +17,22 @@
       "bytes": 305080,
       "width": 1280,
       "height": 960,
-      "notes": "sreevallabha temple, thiruvalla Cover: temple gopuram. Kathakali frame kept in the gallery, not as cover."
+      "notes": "sreevallabha temple, thiruvalla"
     },
     {
-      "filename": "01_Kadhakali_-_Sreevallabha_Temple_Thiruvalla.jpg",
-      "commons_title": "File:Kadhakali - Sreevallabha Temple, Thiruvalla.jpg",
-      "author": "VJ Views",
+      "filename": "01_Sree_Vallabha_Temple_Thiruvalla.jpg",
+      "commons_title": "File:Sree Vallabha Temple Thiruvalla.jpg",
+      "author": "Getpraveennair",
       "license": "CC BY-SA 4.0",
       "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-      "source_url": "https://commons.wikimedia.org/wiki/File%3AKadhakali_-_Sreevallabha_Temple%2C_Thiruvalla.jpg",
-      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/33/Kadhakali_-_Sreevallabha_Temple%2C_Thiruvalla.jpg/1280px-Kadhakali_-_Sreevallabha_Temple%2C_Thiruvalla.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "bytes": 526147,
+      "source_url": "https://commons.wikimedia.org/wiki/File:Sree_Vallabha_Temple_Thiruvalla.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c8/Sree_Vallabha_Temple_Thiruvalla.jpg/1280px-Sree_Vallabha_Temple_Thiruvalla.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 141183,
       "width": 1280,
-      "height": 1920,
-      "notes": "The traditional themes of the Kathakali are folk stories, religious legends and spiritual ideas from the Hindu epics and"
+      "height": 619,
+      "original_width": 3067,
+      "notes": "Temple exterior (sreekovil roofs, flagstaff), coords 9.3737,76.5624 at temple; cat Sreevallabha Temple",
+      "retrieved": "2026-10-13"
     },
     {
       "filename": "02_Lakshmi_vilakku_sreevallabha_temple_thiruvalla.jpg",
@@ -84,5 +86,11 @@
       "height": 960,
       "notes": "The Sreevallabha temple of Thiruvalla is a pre-10th century Hindu temple complex dedicated to Vallabha (Maha Vishnu). Th"
     }
-  ]
+  ],
+  "kan77_nits": {
+    "date": "2026-10-13",
+    "removed": [
+      "01_Kadhakali_-_Sreevallabha_Temple_Thiruvalla.jpg"
+    ]
+  }
 }

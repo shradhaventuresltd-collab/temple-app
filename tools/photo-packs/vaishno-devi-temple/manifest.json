@@ -20,17 +20,19 @@
       "notes": "Vaishno devi main temple katra"
     },
     {
-      "filename": "03_Vaishno_Devi_temple_in_katra.jpg",
-      "commons_title": "File:Vaishno Devi temple in katra.jpg",
-      "author": "02addicted",
-      "license": "CC0 1.0",
-      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
-      "source_url": "https://commons.wikimedia.org/wiki/File%3AVaishno_Devi_temple_in_katra.jpg",
-      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e4/Vaishno_Devi_temple_in_katra.jpg/1280px-Vaishno_Devi_temple_in_katra.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "bytes": 373697,
+      "filename": "02_Shri_Mata_Vaishno_Devi_Bhawan_Katra_Jammu_Kashmir_INDIA.jpg",
+      "commons_title": "File:Shri Mata Vaishno Devi Bhawan, Katra Jammu & Kashmir INDIA.jpg",
+      "author": "KDhruv406",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Shri_Mata_Vaishno_Devi_Bhawan,_Katra_Jammu_%26_Kashmir_INDIA.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ef/Shri_Mata_Vaishno_Devi_Bhawan%2C_Katra_Jammu_%26_Kashmir_INDIA.jpg/1280px-Shri_Mata_Vaishno_Devi_Bhawan%2C_Katra_Jammu_%26_Kashmir_INDIA.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 433583,
       "width": 1280,
-      "height": 964,
-      "notes": "Vaishno Devi"
+      "height": 960,
+      "original_width": 8160,
+      "notes": "Bhawan (shrine complex) front view; coords 33.0276,74.9463",
+      "retrieved": "2026-10-13"
     },
     {
       "filename": "04_Katra_Vaishno_Devi_temple_Seen1.jpg",
@@ -57,6 +59,25 @@
       "width": 1280,
       "height": 960,
       "notes": "Vaishno Devi Temple in Jammu"
+    },
+    {
+      "filename": "06_Vaishno_Devi_Bhabon_-_panoramio.jpg",
+      "commons_title": "File:Vaishno Devi Bhabon - panoramio.jpg",
+      "author": "Tapan Kumar Debn… (Panoramio user 4004470, name truncated as on Commons)",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Vaishno_Devi_Bhabon_-_panoramio.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5b/Vaishno_Devi_Bhabon_-_panoramio.jpg/1280px-Vaishno_Devi_Bhabon_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 321103,
+      "width": 1280,
+      "height": 833,
+      "original_width": 1807,
+      "notes": "Bhawan shrine complex on Trikuta slope; coords 33.0308,74.9491",
+      "retrieved": "2026-10-13"
     }
-  ]
+  ],
+  "kan77_nits": {
+    "date": "2026-10-13",
+    "removed": []
+  }
 }

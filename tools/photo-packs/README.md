@@ -146,14 +146,18 @@ are wired in Wave D.
 | --- | --- | --- |
 | `subramanya-swamy-temple-thiruchendur` | first research set (6) | Those files were Elamkunnapuzha Subramanya Swamy Temple, Kerala. They were not downloaded. The pack is now the site-verified Tiruchendur set (8). |
 | `guruvayur-sri-krishna-temple` | `06_Sree_krishna_Mural_Painting_by_Sujith_Nair_Pattoor.jpg` | Mural dedicated to Ulanadu Sree Krishna Temple and categorized under several other Krishna temples. Five Guruvayur photographs remain. |
-| `tiruttani-murugan-temple` | `05_Tiruthani_Murugan_Temple_parking_lot.jpg` | Parking lot at the Tiruttani temple. No unused replacement was in `photo_candidates.json`, so the gallery is the other five frames. |
+| `tiruttani-murugan-temple` | `05_Tiruthani_Murugan_Temple_parking_lot.jpg` | Parking lot at the Tiruttani temple. KAN-77 top-up 2 replaced it with `05_Thiruttani_Temple_Rajagopuram.jpg` (6 frames). |
+| `thiruvalla-sreevallabha-temple` | `01_Kadhakali_-_Sreevallabha_Temple_Thiruvalla.jpg` | KAN-77 top-up 2: Kathakali performance frame replaced with temple exterior `01_Sree_Vallabha_Temple_Thiruvalla.jpg` (6 frames). |
+| `sabarimala-ayyappan-temple` | `01_Sabarimala.jpg` | KAN-77 top-up 2: forest/tree frame replaced with `01_Sreekovil_at_sabarimala.jpg` (5 frames). |
+| `manikaran-shiva-temple` | `02_Panorama_Manikaran_Ram_temple_16746684003.jpg` | KAN-77 top-up 2: Ram temple panorama, a different temple (5 frames). |
+| `vaishno-devi-temple` | `03_Vaishno_Devi_temple_in_katra.jpg` | KAN-77 top-up 2: Katra town, not the Bhawan (5 frames). |
 
 `sabarimala-ayyappan-temple` / `05_Sabarimala_5.jpg` had a placeholder
 `downloaded_url` in the research manifest (`(1280px Commons thumb)`). It was
 replaced with the Commons 1280px thumb for `File:Sabarimala 5.jpg` (Sabarimala
-temple complex). That temple-complex frame is the cover. The forest frame
-stays in the gallery. Thiruvalla’s cover is the gopuram already in
-`photo_candidates.json`; the Kathakali frame stays in the gallery.
+temple complex). That temple-complex frame is the cover. Top-up 2 removed the
+forest frame (Sreekovil added). Thiruvalla’s cover is the gopuram already in
+`photo_candidates.json`; top-up 2 removed the Kathakali frame.
 
 ## KAN-76 Wave C (all-India photo-pending)
 
