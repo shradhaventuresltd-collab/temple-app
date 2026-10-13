@@ -6,6 +6,7 @@
   "scripts": {
     "upload": "node upload_temple_images.js",
     "upload-pack": "node upload_research_pack.js",
+    "backfill-attribution": "node backfill_attribution.js",
     "grant-admin": "node grant_admin.js"
   },
   "dependencies": {

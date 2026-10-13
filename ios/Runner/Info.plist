@@ -66,6 +66,8 @@
 			<string>UIInterfaceOrientationLandscapeLeft</string>
 			<string>UIInterfaceOrientationLandscapeRight</string>
 		</array>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>Choose temple photographs to upload from the admin editor.</string>
 		<key>UIStatusBarHidden</key>
 		<false/>
 		<key>GADApplicationIdentifier</key>

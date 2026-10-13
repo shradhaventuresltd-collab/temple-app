@@ -21,6 +21,13 @@ service cloud.firestore {
     //   - timings: string (required, max 1000) - opening hours
     //   - specialities: list of strings (max 20 items, each max 200 chars)
     //   - images: list of strings (max 50 items, each max 2000 chars, URLs)
+    //   - photos: optional list (max 12) of {url, credit, licence, order}
+    //       url: string, max 2000
+    //       licence: CC-BY | CC-BY-SA | CC0 | Own | Permission
+    //       order: int (0 is the cover; clients write the list sorted)
+    //       credit: string, max 200, required for CC-BY and CC-BY-SA
+    //     imageUrl and images are mirrors of photos, written in the same
+    //     admin payload. Existing docs are not backfilled.
     //   - latitude: number (required, -90 to 90)
     //   - longitude: number (required, -180 to 180)
     //   - createdAt: timestamp (optional, immutable after creation)
@@ -87,6 +94,56 @@ service cloud.firestore {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
     }
 
+    function isPhotoLicence(value) {
+      return value in ['CC-BY', 'CC-BY-SA', 'CC0', 'Own', 'Permission'];
+    }
+
+    // credit is required (non-empty, max 200) for CC-BY and CC-BY-SA.
+    // For CC0, Own, and Permission it may be omitted or a string of at most 200.
+    function photoCreditOk(photo) {
+      let required = photo.licence == 'CC-BY' || photo.licence == 'CC-BY-SA';
+      let present = 'credit' in photo;
+      return required
+        ? present &&
+          photo.credit is string &&
+          photo.credit.size() > 0 &&
+          photo.credit.size() <= 200
+        : !present || (photo.credit is string && photo.credit.size() <= 200);
+    }
+
+    function isValidPhoto(photo) {
+      return photo is map &&
+        photo.keys().hasAll(['url', 'licence', 'order']) &&
+        photo.keys().hasOnly(['url', 'credit', 'licence', 'order']) &&
+        photo.url is string &&
+        photo.url.size() <= 2000 &&
+        isPhotoLicence(photo.licence) &&
+        photo.order is int &&
+        photoCreditOk(photo);
+    }
+
+    // Rules have no loops. Check each of the 12 possible slots.
+    function validPhotos(photos) {
+      return photos is list &&
+        photos.size() <= 12 &&
+        (photos.size() < 1 || isValidPhoto(photos[0])) &&
+        (photos.size() < 2 || isValidPhoto(photos[1])) &&
+        (photos.size() < 3 || isValidPhoto(photos[2])) &&
+        (photos.size() < 4 || isValidPhoto(photos[3])) &&
+        (photos.size() < 5 || isValidPhoto(photos[4])) &&
+        (photos.size() < 6 || isValidPhoto(photos[5])) &&
+        (photos.size() < 7 || isValidPhoto(photos[6])) &&
+        (photos.size() < 8 || isValidPhoto(photos[7])) &&
+        (photos.size() < 9 || isValidPhoto(photos[8])) &&
+        (photos.size() < 10 || isValidPhoto(photos[9])) &&
+        (photos.size() < 11 || isValidPhoto(photos[10])) &&
+        (photos.size() < 12 || isValidPhoto(photos[11]));
+    }
+
+    function optionalValidPhotos(data) {
+      return !('photos' in data) || validPhotos(data.photos);
+    }
+
     // ===============================================================
     // Domain Validators
     // ===============================================================
@@ -101,7 +158,7 @@ service cloud.firestore {
       let allowedFields = [
         'id', 'name', 'state', 'city', 'deity', 'imageUrl',
         'description', 'story', 'address', 'location', 'timings',
-        'specialities', 'images', 'latitude', 'longitude', 'createdAt'
+        'specialities', 'images', 'photos', 'latitude', 'longitude', 'createdAt'
       ];
 
       return hasRequiredFields(requiredFields) &&
@@ -118,6 +175,7 @@ service cloud.firestore {
         validStringLength('timings', 1, 1000) &&
         isValidList(data.specialities, 20) &&
         isValidList(data.images, 50) &&
+        optionalValidPhotos(data) &&
         data.latitude is number &&
         data.latitude >= -90 && data.latitude <= 90 &&
         data.longitude is number &&
@@ -131,7 +189,7 @@ service cloud.firestore {
       let allowedFields = [
         'id', 'name', 'state', 'city', 'deity', 'imageUrl',
         'description', 'story', 'address', 'location', 'timings',
-        'specialities', 'images', 'latitude', 'longitude', 'createdAt'
+        'specialities', 'images', 'photos', 'latitude', 'longitude', 'createdAt'
       ];
 
       return hasOnlyAllowedFields(allowedFields) &&
@@ -147,6 +205,7 @@ service cloud.firestore {
         optionalStringLength('timings', 1, 1000) &&
         optionalValidList('specialities', 20) &&
         optionalValidList('images', 50) &&
+        optionalValidPhotos(data) &&
         (!('latitude' in data) || (data.latitude is number && data.latitude >= -90 && data.latitude <= 90)) &&
         (!('longitude' in data) || (data.longitude is number && data.longitude >= -180 && data.longitude <= 180));
     }

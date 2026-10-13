@@ -31,6 +31,19 @@ void main() {
     expect(firestoreRules, contains('allow delete: if isAdmin()'));
     expect(firestoreRules, contains("validStringLength('timings', 1, 1000)"));
     expect(firestoreRules, contains('request.auth.token.admin == true'));
+    expect(firestoreRules, contains("'photos'"));
+    expect(firestoreRules, contains('photos.size() <= 12'));
+    expect(firestoreRules, contains('photo.url.size() <= 2000'));
+    expect(firestoreRules, contains('photo.credit.size() <= 200'));
+    expect(firestoreRules, contains('photo.order is int'));
+    expect(
+      firestoreRules,
+      contains("'CC-BY', 'CC-BY-SA', 'CC0', 'Own', 'Permission'"),
+    );
+    expect(firestoreRules, contains("photo.licence == 'CC-BY'"));
+    expect(firestoreRules, contains("photo.licence == 'CC-BY-SA'"));
+    expect(firestoreRules, contains('optionalValidPhotos(data)'));
+    expect(firestoreRules, contains('function isValidPhoto(photo)'));
     expect(firestoreRules, isNot(contains('allow write: if true')));
     expect(
       firestoreRules,

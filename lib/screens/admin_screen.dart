@@ -1,6 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/config/build_flags.dart';
@@ -8,7 +6,6 @@ import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/admin_temple_form_screen.dart';
 import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/services/admin_temple_service.dart';
-import 'package:temple_app/utils/image_picker_helper.dart';
 import 'package:temple_app/widgets/admin_auth_gate.dart';
 import 'package:temple_app/widgets/seed_temples_control.dart';
 
@@ -48,10 +45,8 @@ class _AdminScreenState extends State<AdminScreen> {
   Future<void> _openForm({Temple? existing}) async {
     await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => AdminTempleFormScreen(
-          adminTemples: _temples,
-          existing: existing,
-        ),
+        builder: (_) =>
+            AdminTempleFormScreen(adminTemples: _temples, existing: existing),
       ),
     );
   }
@@ -134,15 +129,12 @@ class _AdminScreenState extends State<AdminScreen> {
           body: !session.isSignedIn
               ? AdminSignInPanel(auth: _auth)
               : !session.isAdmin
-                  ? AdminNotAuthorizedPanel(
-                      auth: _auth,
-                      session: session,
-                    )
-                  : _AdminTemplesBody(
-                      adminTemples: _temples,
-                      onCreate: () => _openForm(),
-                      onEdit: (temple) => _openForm(existing: temple),
-                    ),
+              ? AdminNotAuthorizedPanel(auth: _auth, session: session)
+              : _AdminTemplesBody(
+                  adminTemples: _temples,
+                  onCreate: () => _openForm(),
+                  onEdit: (temple) => _openForm(existing: temple),
+                ),
         );
       },
     );
@@ -211,9 +203,7 @@ class _AdminTemplesBody extends StatelessWidget {
                   const SizedBox(height: 20),
                   Text(
                     'or',
-                    style: GoogleFonts.poppins(
-                      color: Colors.brown.shade400,
-                    ),
+                    style: GoogleFonts.poppins(color: Colors.brown.shade400),
                   ),
                   const SizedBox(height: 12),
                   FilledButton.icon(
@@ -291,11 +281,7 @@ class _AdminTempleCardState extends State<_AdminTempleCard> {
   static const Color _deepSaffron = Color(0xFFE65100);
   static const Color _gold = Color(0xFFFFD54F);
 
-  bool _uploading = false;
   bool _deleting = false;
-  double _progress = 0;
-  int _uploaded = 0;
-  int _total = 0;
 
   Temple get temple => widget.temple;
 
@@ -306,84 +292,16 @@ class _AdminTempleCardState extends State<_AdminTempleCard> {
       ..showSnackBar(
         SnackBar(
           content: Text(text, style: GoogleFonts.poppins()),
-          backgroundColor:
-              isError ? Colors.red.shade700 : const Color(0xFF2E7D32),
+          backgroundColor: isError
+              ? Colors.red.shade700
+              : const Color(0xFF2E7D32),
           behavior: SnackBarBehavior.floating,
         ),
       );
   }
 
-  Future<void> _pickAndUpload() async {
-    final isAdmin = await AdminAuth.instance.isCurrentUserAdmin();
-    if (!isAdmin) {
-      _snack(
-        'Uploads require a signed-in admin (custom claim admin: true).',
-        isError: true,
-      );
-      return;
-    }
-
-    final files = await pickImageFiles();
-    if (files.isEmpty) return;
-
-    setState(() {
-      _uploading = true;
-      _progress = 0;
-      _uploaded = 0;
-      _total = files.length;
-    });
-
-    final storage = FirebaseStorage.instance;
-    final newUrls = <String>[];
-
-    try {
-      for (final file in files) {
-        final ts = DateTime.now().millisecondsSinceEpoch;
-        final ext = file.extension;
-        final ref = storage.ref('temples/${temple.id}/$ts.$ext');
-
-        final uploadTask = ref.putData(
-          Uint8List.fromList(file.bytes),
-          SettableMetadata(contentType: 'image/$ext'),
-        );
-
-        uploadTask.snapshotEvents.listen((event) {
-          if (!mounted) return;
-          final fileProgress = event.bytesTransferred / event.totalBytes;
-          setState(() {
-            _progress = (_uploaded + fileProgress) / _total;
-          });
-        });
-
-        await uploadTask;
-        final url = await ref.getDownloadURL();
-        newUrls.add(url);
-
-        _uploaded++;
-        if (mounted) {
-          setState(() => _progress = _uploaded / _total);
-        }
-      }
-
-      // Full temple payload — not images-only update/arrayUnion — so
-      // Firestore rules that validate request.resource.data can succeed.
-      await widget.adminTemples.appendTempleImages(temple, newUrls);
-
-      if (!mounted) return;
-      setState(() => _uploading = false);
-      _snack(
-        '${newUrls.length} image(s) uploaded for ${temple.name}',
-        isError: false,
-      );
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _uploading = false);
-      _snack('Upload failed: ${adminWriteErrorMessage(e)}', isError: true);
-    }
-  }
-
   Future<void> _confirmDelete() async {
-    if (_deleting || _uploading) return;
+    if (_deleting) return;
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -437,7 +355,7 @@ class _AdminTempleCardState extends State<_AdminTempleCard> {
   @override
   Widget build(BuildContext context) {
     final imageUrl = temple.imageUrl;
-    final busy = _uploading || _deleting;
+    final busy = _deleting;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -521,24 +439,6 @@ class _AdminTempleCardState extends State<_AdminTempleCard> {
                           color: Colors.brown.shade400,
                         ),
                       ),
-                      if (_uploading) ...[
-                        const SizedBox(height: 6),
-                        LinearProgressIndicator(
-                          value: _progress,
-                          backgroundColor: const Color(0xFFFFE0B2),
-                          color: _saffron,
-                          minHeight: 4,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '$_uploaded / $_total uploaded',
-                          style: GoogleFonts.poppins(
-                            fontSize: 11,
-                            color: Colors.brown.shade400,
-                          ),
-                        ),
-                      ],
                       if (_deleting) ...[
                         const SizedBox(height: 6),
                         Text(
@@ -558,10 +458,11 @@ class _AdminTempleCardState extends State<_AdminTempleCard> {
             Row(
               children: [
                 ElevatedButton.icon(
-                  onPressed: busy ? null : _pickAndUpload,
+                  key: Key('admin-upload-temple-${temple.id}'),
+                  onPressed: busy ? null : widget.onEdit,
                   icon: const Icon(Icons.add_photo_alternate_rounded, size: 18),
                   label: Text(
-                    _uploading ? 'Uploading' : 'Upload',
+                    'Upload',
                     style: GoogleFonts.poppins(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
@@ -570,8 +471,12 @@ class _AdminTempleCardState extends State<_AdminTempleCard> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _saffron,
                     foregroundColor: Colors.white,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    minimumSize: const Size(48, 48),
+                    tapTargetSize: MaterialTapTargetSize.padded,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
