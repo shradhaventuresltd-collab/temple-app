@@ -1,0 +1,88 @@
+name: android-smoke
+
+on:
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.7'
+          cache: true
+
+      - name: flutter pub get
+        run: flutter pub get
+
+      # Profile starts much faster than debug on a cold emulator, and
+      # x86_64 matches the AVD. DEMO_BUILD forces test ad units. Do not
+      # pass ENABLE_ADMIN_TOOLS. The Maestro flow never taps Seed or Admin.
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('pubspec.lock', 'android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
+
+      - name: Build profile APK
+        run: flutter build apk --profile --target-platform android-x64 --dart-define=DEMO_BUILD=true
+
+      - name: Install Maestro
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Cache AVD
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-34-x86_64-google_apis-pixel6
+
+      - name: Maestro smoke
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          avd-name: temple-smoke-34-pixel6
+          force-avd-creation: false
+          disable-animations: true
+          # Deterministic software GPU: no snapshot, no boot animation.
+          # The smoke script also waits for sys.boot_completed and
+          # installs the APK with adb before Maestro.
+          emulator-options: -no-snapshot-save -no-boot-anim -gpu swiftshader_indirect -no-window -noaudio -camera-back none -camera-front none
+          # One dash-safe command. The action runs this with /usr/bin/sh.
+          script: bash scripts/ci/run_android_smoke.sh

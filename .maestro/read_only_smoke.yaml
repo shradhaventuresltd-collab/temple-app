@@ -1,0 +1,62 @@
+appId: com.shradhaventures.temple
+---
+# Read-only smoke against prod Firebase (or the bundled sample fallback).
+# Never taps Seed, Admin sign-in, or Admin Panel.
+# Get Directions must leave this app: Maps, a browser, a chooser, or the
+# CI https handoff stub. Staying on the button, or the in-app snackbar,
+# fails the flow.
+
+# clearState on every try. maxRetries 2 means two relaunches after the
+# first 60s wait misses the splash / home anchor.
+- retry:
+    maxRetries: 2
+    label: Relaunch until the first Flutter frame is visible
+    commands:
+      - launchApp:
+          clearState: true
+      - extendedWaitUntil:
+          visible: "Temple Directory|Loading temples|Browse "
+          timeout: 60000
+- scrollUntilVisible:
+    element:
+      id: "home-browse-temples"
+    direction: DOWN
+    timeout: 90000
+    speed: 40
+    visibilityPercentage: 100
+    centerElement: true
+- tapOn:
+    id: "home-browse-temples"
+- extendedWaitUntil:
+    visible:
+      id: "temple-browse-card"
+    timeout: 30000
+- assertVisible:
+    id: "temple-list-search-field"
+- tapOn:
+    id: "temple-list-search-field"
+- inputText: "Meenakshi"
+# The card's accessibility text is the name plus place and deity, so a
+# bare name match does not see it. The filtered count is its own node
+# ("1 temple", or "N temples" if more than one name matches).
+- hideKeyboard
+- extendedWaitUntil:
+    visible: "\\d+ temples?"
+    timeout: 45000
+- tapOn:
+    id: "temple-browse-card"
+- scrollUntilVisible:
+    element:
+      id: "get-directions-button"
+    direction: DOWN
+    timeout: 40000
+    speed: 60
+    visibilityPercentage: 100
+    centerElement: true
+- tapOn:
+    id: "get-directions-button"
+- extendedWaitUntil:
+    notVisible:
+      id: "get-directions-button"
+    timeout: 30000
+- assertNotVisible: "Couldn't open directions on this device."

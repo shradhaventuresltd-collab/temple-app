@@ -842,41 +842,44 @@ class _DirectorySearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      onChanged: onChanged,
-      onSubmitted: onSubmitted,
-      textInputAction: TextInputAction.search,
-      autocorrect: false,
-      enableSuggestions: false,
-      style: GoogleFonts.poppins(fontSize: 14, color: Colors.brown.shade800),
-      decoration: InputDecoration(
-        hintText: 'Name, city, state, deity, or address',
-        hintStyle: GoogleFonts.poppins(
-          fontSize: 13,
-          color: Colors.brown.shade300,
+    return Semantics(
+      identifier: 'temple-list-search-field',
+      child: TextField(
+        controller: controller,
+        onChanged: onChanged,
+        onSubmitted: onSubmitted,
+        textInputAction: TextInputAction.search,
+        autocorrect: false,
+        enableSuggestions: false,
+        style: GoogleFonts.poppins(fontSize: 14, color: Colors.brown.shade800),
+        decoration: InputDecoration(
+          hintText: 'Name, city, state, deity, or address',
+          hintStyle: GoogleFonts.poppins(
+            fontSize: 13,
+            color: Colors.brown.shade300,
+          ),
+          prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFFFF8F00)),
+          suffixIcon: showClear
+              ? IconButton(
+                  tooltip: 'Clear search',
+                  onPressed: onClear,
+                  icon: Icon(Icons.close_rounded, color: Colors.brown.shade400),
+                )
+              : null,
+          filled: true,
+          fillColor: Colors.white,
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Color(0xFFFFD54F)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Color(0xFFFF8F00), width: 1.5),
+          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
         ),
-        prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFFFF8F00)),
-        suffixIcon: showClear
-            ? IconButton(
-                tooltip: 'Clear search',
-                onPressed: onClear,
-                icon: Icon(Icons.close_rounded, color: Colors.brown.shade400),
-              )
-            : null,
-        filled: true,
-        fillColor: Colors.white,
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(vertical: 12),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFFFD54F)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFFF8F00), width: 1.5),
-        ),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
       ),
     );
   }

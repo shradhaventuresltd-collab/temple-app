@@ -346,21 +346,24 @@ class _BrowseTemplesCta extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          ElevatedButton.icon(
-            key: const Key('home-browse-temples'),
-            onPressed: onPressed,
-            icon: const Icon(Icons.temple_hindu_rounded),
-            label: Text(label),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _saffron,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              textStyle: GoogleFonts.poppins(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
+          Semantics(
+            identifier: 'home-browse-temples',
+            child: ElevatedButton.icon(
+              key: const Key('home-browse-temples'),
+              onPressed: onPressed,
+              icon: const Icon(Icons.temple_hindu_rounded),
+              label: Text(label),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _saffron,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                textStyle: GoogleFonts.poppins(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),
