@@ -42,3 +42,14 @@ Do not pass `ENABLE_ADMIN_TOOLS` for this flow.
 iOS unit ids follow the same Dart rule. The iOS application id in `ios/Runner/Info.plist` stays the production value.
 
 `scripts/build_play_aab.sh` refuses `DEMO_BUILD` and `ENABLE_ADMIN_TOOLS`, and it refuses a bundle signed with `CN=Android Debug`. CI does not have the Play upload key, so `analyze-test` runs `scripts/test_play_aab_guard.sh` instead of building an AAB. Signing setup is in [android-play-internal-test.md](android-play-internal-test.md).
+
+## GitHub Pages legal pages
+
+Pages is configured as **Deploy from a branch: `main`, `/docs`**. There is no Pages workflow. `docs/.nojekyll` is in the folder so GitHub Pages serves the files as static HTML and does not run Jekyll.
+
+The existing `docs/*.md` notes stay in place. None of them use Jekyll front matter or Liquid tags, and none is named `index.md`, `privacy-policy.md`, or `terms-of-service.md`, so they do not replace `index.html`, `privacy-policy.html`, or `terms-of-service.html`.
+
+The app has no policy-URL constant yet. KAN-93 can use:
+
+- Privacy Policy: https://shradhaventuresltd-collab.github.io/temple-app/privacy-policy.html
+- Terms of Service: https://shradhaventuresltd-collab.github.io/temple-app/terms-of-service.html
