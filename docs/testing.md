@@ -10,11 +10,12 @@ The flow in [`.maestro/read_only_smoke.yaml`](../.maestro/read_only_smoke.yaml) 
 
 What it checks:
 
-1. The app draws past the native saffron splash (`Temple Directory` is on screen).
-2. Browse opens a list that shows temple cards.
-3. Search for `Meenakshi` shows Meenakshi Amman Temple.
-4. Opening that card reaches temple detail.
-5. **Get Directions** leaves the app. Maps, a browser, or an Android chooser all count. The button still being on screen fails the flow.
+1. A fresh launch (`clearState`) shows the Terms and Privacy gate. The flow taps **Accept & continue** before Home. Back is not used; that exits the app.
+2. The app then draws Home (`Temple Directory` is on screen).
+3. Browse opens a list that shows temple cards.
+4. Search for `Meenakshi` shows Meenakshi Amman Temple.
+5. Opening that card reaches temple detail.
+6. **Get Directions** leaves the app. Maps, a browser, or an Android chooser all count. The button still being on screen fails the flow.
 
 Install [Maestro](https://maestro.mobile.dev/) and start an Android emulator (API 30 or newer; CI uses API 34 `google_apis` x86_64). The emulator needs something that can open `https://www.google.com/maps/...` (Chrome or the Maps app). Without that, Get Directions stays in the app and shows "Couldn't open directions on this device."
 
@@ -25,7 +26,7 @@ adb install -r build/app/outputs/flutter-apk/app-debug.apk
 maestro test .maestro
 ```
 
-`DEMO_BUILD=true` forces Google's test ad units. Debug builds already use those units; the define keeps a later release or profile smoke build on test units as well. CI builds a profile x86_64 APK so the emulator reaches the first Flutter frame sooner than a debug build. That profile manifest turns Impeller off; release builds keep it. The emulator uses `-no-snapshot-save -no-boot-anim -gpu swiftshader_indirect` with animations disabled. The smoke script waits for `sys.boot_completed`, installs the APK with adb, and Maestro relaunches up to twice if `Temple Directory` is not visible within 60 seconds.
+`DEMO_BUILD=true` forces Google's test ad units. Debug builds already use those units; the define keeps a later release or profile smoke build on test units as well. CI builds a profile x86_64 APK so the emulator reaches the first Flutter frame sooner than a debug build. That profile manifest turns Impeller off; release builds keep it. The emulator uses `-no-snapshot-save -no-boot-anim -gpu swiftshader_indirect` with animations disabled. The smoke script waits for `sys.boot_completed`, installs the APK with adb, and Maestro relaunches up to twice if **Accept & continue** or `Temple Directory` is not visible within 60 seconds. Each relaunch clears app data, so the flow accepts the Terms and Privacy gate again before it looks for Home.
 
 A profile build without admin tools is:
 

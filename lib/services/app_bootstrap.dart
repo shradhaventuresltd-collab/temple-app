@@ -60,8 +60,9 @@ class AppBootstrap {
 
   /// UMP consent, then AdMob, without throwing.
   ///
-  /// Call after the first frame only. A timeout or error still unblocks ad
-  /// widgets with non-personalized requests so startup cannot hang.
+  /// Call only after Terms and Privacy have been accepted (KAN-93), and only
+  /// after the first frame. A timeout or error still unblocks ad widgets with
+  /// non-personalized requests so startup cannot hang.
   static Future<void> initializeAdsSafely({
     Future<void> Function()? initialize,
     Duration timeout = adsStartupTimeout,

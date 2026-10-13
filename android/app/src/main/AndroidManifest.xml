@@ -42,7 +42,8 @@
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="${admobAppId}" />
         <!-- Do not start ad measurement before MobileAds.initialize, which
-             runs only after the UMP consent pass (KAN-69). -->
+             runs only after Terms acceptance and the UMP consent pass
+             (KAN-93, KAN-69). -->
         <meta-data
             android:name="com.google.android.gms.ads.DELAY_APP_MEASUREMENT_INIT"
             android:value="true"/>

@@ -1,21 +1,63 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:temple_app/config/policy_config.dart';
+import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/home_screen.dart';
+import 'package:temple_app/screens/policy_acceptance_gate.dart';
+import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/services/app_bootstrap.dart';
+import 'package:temple_app/services/policy_acceptance_store.dart';
+import 'package:temple_app/services/policy_link_launcher.dart';
 import 'package:temple_app/services/temple_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Paint Flutter UI immediately. Native splash is solid saffron (#FF8F00);
   // awaiting Ads/Firebase here made that orange linger for several seconds
-  // (KAN-75). Firebase + Ads start from [TempleDirectoryApp] instead.
+  // (KAN-75). The first Flutter frame is the Terms gate or a cream hold.
+  // UMP starts only after Terms are accepted (KAN-93).
   runApp(const TempleDirectoryApp());
 }
 
+enum _StartupPhase { checking, gate, consent, home }
+
 class TempleDirectoryApp extends StatefulWidget {
-  const TempleDirectoryApp({super.key});
+  const TempleDirectoryApp({
+    super.key,
+    this.acceptanceStore,
+    this.currentPolicyVersion = PolicyConfig.currentVersion,
+    this.initializeFirebase,
+    this.initializeAds,
+    this.templesLoader,
+    this.adminAuth,
+    this.adminToolsEnabled,
+    this.now,
+    this.onExitApp,
+    this.launchPolicyUrl,
+  });
+
+  /// Defaults to shared preferences. Tests pass an in-memory store.
+  final PolicyAcceptanceStore? acceptanceStore;
+
+  /// Defaults to [PolicyConfig.currentVersion]. Tests pass a higher value
+  /// to simulate a policy bump.
+  final int currentPolicyVersion;
+
+  final Future<bool> Function()? initializeFirebase;
+  final Future<void> Function()? initializeAds;
+  final Future<List<Temple>> Function()? templesLoader;
+  final AdminAuth? adminAuth;
+  final bool? adminToolsEnabled;
+  final DateTime Function()? now;
+
+  /// System back on the gate. Defaults to leaving the app.
+  final VoidCallback? onExitApp;
+
+  /// Opens a policy https URL. Defaults to an in-app browser.
+  final Future<bool> Function(Uri url)? launchPolicyUrl;
 
   @override
   State<TempleDirectoryApp> createState() => _TempleDirectoryAppState();
@@ -23,17 +65,103 @@ class TempleDirectoryApp extends StatefulWidget {
 
 class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
   late final Future<bool> _firebaseReady;
+  late final PolicyAcceptanceStore _store;
+  _StartupPhase _phase = _StartupPhase.checking;
+  PolicyGateKind _gateKind = PolicyGateKind.firstLaunch;
 
   @override
   void initState() {
     super.initState();
-    _firebaseReady = AppBootstrap.initializeFirebase();
-    // UMP, then MobileAds.initialize, after the first frame. Consent must
-    // not run before runApp — that brought back the saffron splash hang
-    // (KAN-75). A slow form overlays Home; it does not block startup.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(AppBootstrap.initializeAdsSafely());
-    });
+    final startFirebase =
+        widget.initializeFirebase ?? AppBootstrap.initializeFirebase;
+    _firebaseReady = startFirebase();
+    _store = widget.acceptanceStore ?? SharedPreferencesPolicyAcceptanceStore();
+    unawaited(_loadAcceptance());
+  }
+
+  Future<void> _loadAcceptance() async {
+    PolicyAcceptance? stored;
+    try {
+      stored = await _store.read();
+    } catch (e, st) {
+      debugPrint('Policy acceptance read failed: $e\n$st');
+    }
+    if (!mounted) return;
+    final kind = policyGateKind(
+      stored: stored,
+      currentVersion: widget.currentPolicyVersion,
+    );
+    if (kind != null) {
+      setState(() {
+        _gateKind = kind;
+        _phase = _StartupPhase.gate;
+      });
+      return;
+    }
+    await _continueAfterAcceptance();
+  }
+
+  Future<void> _accept() async {
+    final clock = widget.now ?? DateTime.now;
+    await _store.write(
+      PolicyAcceptance(
+        version: widget.currentPolicyVersion,
+        acceptedAt: clock().toUtc(),
+      ),
+    );
+    await _continueAfterAcceptance();
+  }
+
+  /// UMP and Mobile Ads run here, and only here, then Home is shown.
+  Future<void> _continueAfterAcceptance() async {
+    if (!mounted) return;
+    setState(() => _phase = _StartupPhase.consent);
+    final startAds = widget.initializeAds ?? AppBootstrap.initializeAdsSafely;
+    try {
+      await startAds();
+    } catch (e, st) {
+      debugPrint('Ad startup after policy acceptance failed: $e\n$st');
+    }
+    if (!mounted) return;
+    setState(() => _phase = _StartupPhase.home);
+  }
+
+  void _exitApp() {
+    final exit = widget.onExitApp;
+    if (exit != null) {
+      exit();
+      return;
+    }
+    SystemNavigator.pop();
+  }
+
+  Future<List<Temple>> _loadTemples() async {
+    final loader = widget.templesLoader;
+    if (loader != null) return loader();
+    await _firebaseReady;
+    return TempleService().getTemples();
+  }
+
+  Widget _body() {
+    switch (_phase) {
+      case _StartupPhase.checking:
+        return const PolicyStartupHold();
+      case _StartupPhase.consent:
+        return const PolicyStartupHold(message: PolicyGateCopy.consentWait);
+      case _StartupPhase.gate:
+        return PolicyAcceptanceGate(
+          kind: _gateKind,
+          onAccept: _accept,
+          onOpenUrl: widget.launchPolicyUrl ?? openPolicyUrl,
+          onExit: _exitApp,
+        );
+      case _StartupPhase.home:
+        return HomeScreen(
+          adminAuth: widget.adminAuth,
+          templesLoader: _loadTemples,
+          adminToolsEnabled: widget.adminToolsEnabled,
+        );
+    }
   }
 
   @override
@@ -54,14 +182,7 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
         textTheme: GoogleFonts.poppinsTextTheme(),
         scaffoldBackgroundColor: const Color(0xFFFFFBF2),
       ),
-      home: HomeScreen(
-        // Cream Home shell paints first; temple fetch waits for Firebase
-        // (or its short timeout) then uses Firestore / sample fallback.
-        templesLoader: () async {
-          await _firebaseReady;
-          return TempleService().getTemples();
-        },
-      ),
+      home: _body(),
     );
   }
 }

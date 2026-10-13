@@ -1,19 +1,25 @@
 appId: com.shradhaventures.temple
 ---
 # Read-only smoke against prod Firebase (or the bundled sample fallback).
-# Never taps Seed, Admin sign-in, or Admin Panel.
+# Fresh state stops on the Terms and Privacy gate; Accept is required
+# before Home. Never taps Seed, Admin sign-in, or Admin Panel.
 # Get Directions must leave this app: Maps, a browser, a chooser, or the
 # CI https handoff stub. Staying on the button, or the in-app snackbar,
 # fails the flow.
 
-# clearState on every try. maxRetries 2 means two relaunches after the
-# first 60s wait misses the splash / home anchor.
+# clearState on every try wipes the local Terms acceptance, so the gate
+# is shown again. maxRetries 2 means two relaunches after the first 60s
+# wait misses the gate or the home anchor.
 - retry:
     maxRetries: 2
     label: Relaunch until the first Flutter frame is visible
     commands:
       - launchApp:
           clearState: true
+      - extendedWaitUntil:
+          visible: "Accept & continue"
+          timeout: 60000
+      - tapOn: "Accept & continue"
       - extendedWaitUntil:
           visible: "Temple Directory|Loading temples|Browse "
           timeout: 60000
