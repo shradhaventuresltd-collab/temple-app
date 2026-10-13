@@ -16,6 +16,14 @@
 # checked with apksigner (when present) and keytool. A cert whose subject
 # contains CN=Android Debug is refused. An unreadable cert is refused too.
 #
+# Before Gradle runs, scripts/check_android_smoke_gate.sh refuses the build
+# unless the android-smoke job has succeeded on this exact HEAD SHA, and it
+# refuses a dirty working tree. Only SMOKE_GATE_OVERRIDE=1 bypasses the
+# green-smoke check: it prints a loud warning and continues. Other values,
+# including 0, do not. The override does not bypass a dirty tree. Do not set
+# it for a Play upload unless you accept an unsmoked commit. --verify-signing
+# checks a bundle you already built and does not run the smoke gate.
+#
 #   ./scripts/build_play_aab.sh
 #   ./scripts/build_play_aab.sh --build-name=1.2.0 --build-number=3
 #   ./scripts/build_play_aab.sh --verify-signing path/to/app.aab
@@ -138,6 +146,8 @@ if [[ "${1:-}" == "--verify-signing" ]]; then
 fi
 
 check_blocked_defines "$@"
+
+scripts/check_android_smoke_gate.sh
 
 flutter build appbundle --release "$@"
 assert_not_debug_signed "build/app/outputs/bundle/release/app-release.aab"
