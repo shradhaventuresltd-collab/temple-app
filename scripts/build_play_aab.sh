@@ -17,10 +17,11 @@
 # contains CN=Android Debug is refused. An unreadable cert is refused too.
 #
 # Before Gradle runs, scripts/check_android_smoke_gate.sh refuses the build
-# unless the android-smoke job has succeeded on this exact HEAD SHA.
-# SMOKE_GATE_OVERRIDE set to any non-empty value (use SMOKE_GATE_OVERRIDE=1)
-# is the only bypass: it prints a loud warning and continues. Do not set it
-# for a Play upload unless you accept an unsmoked commit. --verify-signing
+# unless the android-smoke job has succeeded on this exact HEAD SHA, and it
+# refuses a dirty working tree. Only SMOKE_GATE_OVERRIDE=1 bypasses the
+# green-smoke check: it prints a loud warning and continues. Other values,
+# including 0, do not. The override does not bypass a dirty tree. Do not set
+# it for a Play upload unless you accept an unsmoked commit. --verify-signing
 # checks a bundle you already built and does not run the smoke gate.
 #
 #   ./scripts/build_play_aab.sh

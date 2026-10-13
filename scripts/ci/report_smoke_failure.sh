@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Open or update the single open issue labelled smoke-failure.
-# Lists commits between the last green android-smoke SHA and this failure.
+# Open one issue labelled smoke-failure, or comment on the open one.
+# Does not rewrite an existing issue body. Lists commits between the last
+# green android-smoke SHA and this failure.
 set -euo pipefail
 
 repo="${GITHUB_REPOSITORY:?}"
@@ -59,6 +60,6 @@ title="android-smoke failed at ${failing:0:7}"
 if [[ -z "$existing" || "$existing" == "null" ]]; then
   gh issue create --repo "$repo" --label smoke-failure --title "$title" --body-file "$body_file"
 else
-  gh issue edit "$existing" --repo "$repo" --title "$title" --body-file "$body_file"
-  echo "Updated issue #${existing}."
+  gh issue comment "$existing" --repo "$repo" --body-file "$body_file"
+  echo "Commented on issue #${existing}."
 fi

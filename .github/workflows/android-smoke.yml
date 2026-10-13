@@ -5,10 +5,11 @@ name: android-smoke
 #
 # Schedule is 10:00, 17:00, 22:00, and 05:00 IST (UTC+5:30):
 #   30 4,11,16,23 * * *
-# workflow_dispatch runs even when main HEAD is already green.
+# workflow_dispatch always runs the emulator.
 # A scheduled run is skipped when main HEAD equals the last successful
-# android-smoke job. The optional "run after 3 merges" push trigger was
-# not added.
+# android-smoke job on main, or the last failed attempt on main, so a red
+# SHA is not retried every slot. The optional "run after 3 merges" push
+# trigger was not added.
 
 on:
   schedule:
@@ -17,9 +18,6 @@ on:
 
 permissions:
   contents: read
-  # Gradle, AVD, system-image, and Flutter caches, plus the Maestro debug artifact.
-  actions: write
-  issues: write
 
 # This workflow does not run on pull requests. cancel-in-progress stays
 # limited to pull_request so a later PR trigger cannot cancel a main batch,
@@ -30,6 +28,9 @@ concurrency:
 
 jobs:
   skip-if-unchanged:
+    permissions:
+      contents: read
+      actions: read
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -46,6 +47,10 @@ jobs:
   android-smoke:
     needs: skip-if-unchanged
     if: needs.skip-if-unchanged.outputs.should_run == 'true'
+    permissions:
+      contents: read
+      # Gradle, AVD, system-image, and Flutter caches, plus the Maestro debug artifact.
+      actions: write
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -159,14 +164,25 @@ jobs:
 
   report-failure:
     needs: [skip-if-unchanged, android-smoke]
-    if: always() && needs.android-smoke.result == 'failure'
+    if: >-
+      always() && (
+        needs.android-smoke.result == 'failure' ||
+        needs.android-smoke.result == 'cancelled' ||
+        needs.android-smoke.result == 'timed_out' ||
+        needs.skip-if-unchanged.result == 'failure' ||
+        needs.skip-if-unchanged.result == 'cancelled' ||
+        needs.skip-if-unchanged.result == 'timed_out'
+      )
+    permissions:
+      contents: read
+      issues: write
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
-      - name: Open or update the smoke-failure issue
+      - name: Open or comment on the smoke-failure issue
         env:
           GH_TOKEN: ${{ github.token }}
           LAST_GREEN_SHA: ${{ needs.skip-if-unchanged.outputs.last_green_sha }}

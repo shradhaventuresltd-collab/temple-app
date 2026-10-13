@@ -50,7 +50,7 @@ expect_fail "ENABLE_ADMIN_TOOLS env" \
   env ENABLE_ADMIN_TOOLS=true ./scripts/build_play_aab.sh
 
 defines_dir="$(mktemp -d)"
-trap 'rm -rf "$defines_dir" "${isolated_home:-}"' EXIT
+trap 'rm -rf "$defines_dir" "${isolated_home:-}" scripts/ci/SMOKE_GATE_DIRTY_TEST' EXIT
 printf '%s\n' '{"ENABLE_ADMIN_TOOLS": true}' >"$defines_dir/admin.json"
 
 expect_fail "dart-define-from-file equals form" \
@@ -144,25 +144,68 @@ expect_fail "smoke gate without a token" \
     XDG_CONFIG_HOME="$isolated_home" \
     ./scripts/build_play_aab.sh
 
+override_status=0
 override_out="$(env -u GH_TOKEN -u GITHUB_TOKEN \
   HOME="$isolated_home" \
   GH_CONFIG_DIR="$isolated_home" \
   SMOKE_GATE_OVERRIDE=1 \
-  ./scripts/check_android_smoke_gate.sh 2>&1)"
-if ! grep -q 'SMOKE_GATE_OVERRIDE is set' <<<"$override_out"; then
-  echo "FAIL: SMOKE_GATE_OVERRIDE did not print the loud warning" >&2
+  ./scripts/check_android_smoke_gate.sh 2>&1)" || override_status=$?
+if [[ "$override_status" -ne 0 ]]; then
+  echo "FAIL: SMOKE_GATE_OVERRIDE=1 exited ${override_status}" >&2
   printf '%s\n' "$override_out" >&2
   exit 1
 fi
-echo "ok: SMOKE_GATE_OVERRIDE bypasses the smoke gate loudly"
+if ! grep -q 'SMOKE_GATE_OVERRIDE=1 is set' <<<"$override_out"; then
+  echo "FAIL: SMOKE_GATE_OVERRIDE=1 did not print the loud warning" >&2
+  printf '%s\n' "$override_out" >&2
+  exit 1
+fi
+echo "ok: SMOKE_GATE_OVERRIDE=1 bypasses the smoke gate loudly"
 
-expect_fail "empty SMOKE_GATE_OVERRIDE is not a bypass" \
-  "android-smoke gate" \
-  env -u GH_TOKEN -u GITHUB_TOKEN \
+expect_not_bypass() {
+  local desc="$1"
+  local value="$2"
+  local out status
+  set +e
+  out="$(env -u GH_TOKEN -u GITHUB_TOKEN \
     HOME="$isolated_home" \
     GH_CONFIG_DIR="$isolated_home" \
     XDG_CONFIG_HOME="$isolated_home" \
-    SMOKE_GATE_OVERRIDE= \
-    ./scripts/build_play_aab.sh
+    SMOKE_GATE_OVERRIDE="$value" \
+    ./scripts/check_android_smoke_gate.sh 2>&1)"
+  status=$?
+  set -e
+  if [[ "$status" -eq 0 ]]; then
+    echo "FAIL: $desc exited 0" >&2
+    printf '%s\n' "$out" >&2
+    exit 1
+  fi
+  if grep -q 'SMOKE_GATE_OVERRIDE=1 is set' <<<"$out"; then
+    echo "FAIL: $desc printed the override bypass" >&2
+    printf '%s\n' "$out" >&2
+    exit 1
+  fi
+  if ! grep -q 'android-smoke gate' <<<"$out"; then
+    echo "FAIL: $desc output did not contain: android-smoke gate" >&2
+    printf '%s\n' "$out" >&2
+    exit 1
+  fi
+  echo "ok: $desc"
+}
+
+expect_not_bypass "empty SMOKE_GATE_OVERRIDE is not a bypass" ""
+expect_not_bypass "SMOKE_GATE_OVERRIDE=0 is not a bypass" "0"
+expect_not_bypass "SMOKE_GATE_OVERRIDE=yes is not a bypass" "yes"
+
+printf 'dirty\n' > scripts/ci/SMOKE_GATE_DIRTY_TEST
+expect_fail "dirty tree is refused" \
+  "working tree is dirty" \
+  env -u GH_TOKEN -u GITHUB_TOKEN \
+    HOME="$isolated_home" \
+    GH_CONFIG_DIR="$isolated_home" \
+    SMOKE_GATE_OVERRIDE=1 \
+    ./scripts/check_android_smoke_gate.sh
+rm -f scripts/ci/SMOKE_GATE_DIRTY_TEST
+echo "ok: dirty tree removed"
 
 echo "Play AAB guard checks passed."

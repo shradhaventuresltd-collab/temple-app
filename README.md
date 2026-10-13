@@ -36,7 +36,7 @@ Demo APK (profile, arm64). A release demo APK uses the same define (`flutter bui
 flutter build apk --profile --target-platform=android-arm64 --dart-define=ENABLE_ADMIN_TOOLS=true
 ```
 
-Play Store bundles go through [`scripts/build_play_aab.sh`](scripts/build_play_aab.sh). That script runs `flutter build appbundle --release` and exits with an error if `ENABLE_ADMIN_TOOLS=true` is set in the environment or in the arguments (including `--dart-define=ENABLE_ADMIN_TOOLS=true`), or if `--dart-define-from-file` is passed (`--dart-define-from-file=file` or `--dart-define-from-file file`). It also refuses unless `android-smoke` has succeeded on that exact commit. `SMOKE_GATE_OVERRIDE=1` is the only bypass, and it prints a loud warning.
+Play Store bundles go through [`scripts/build_play_aab.sh`](scripts/build_play_aab.sh). That script runs `flutter build appbundle --release` and exits with an error if `ENABLE_ADMIN_TOOLS=true` is set in the environment or in the arguments (including `--dart-define=ENABLE_ADMIN_TOOLS=true`), or if `--dart-define-from-file` is passed (`--dart-define-from-file=file` or `--dart-define-from-file file`). It also refuses unless `android-smoke` has succeeded on that exact commit, and it refuses a dirty working tree. Exactly `SMOKE_GATE_OVERRIDE=1` bypasses only the green-smoke check, and it prints a loud warning.
 
 `flutter test` runs without the define, so `kEnableAdminToolsDefine` is false. To confirm the define is read, run the same suite with it set. `test/build_flags_test.dart` asserts `kEnableAdminToolsDefine` matches `bool.fromEnvironment('ENABLE_ADMIN_TOOLS')`, so the test passes in both runs.
 

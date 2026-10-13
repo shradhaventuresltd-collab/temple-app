@@ -63,7 +63,8 @@ Build the Play bundle with `scripts/build_play_aab.sh`. It runs `flutter build a
 - `ENABLE_ADMIN_TOOLS` in `--dart-define=...` (`=` form), `--dart-define ...` (space form), the environment, or a `--dart-define-from-file` (equals or space form) whose file contains that name
 - `DEMO_BUILD` in those same forms (that define forces AdMob test units)
 - a signing cert whose subject contains `CN=Android Debug`
-- a HEAD SHA that does not have a successful `android-smoke` job. The script checks with `gh api` or `curl` using `GH_TOKEN`, `GITHUB_TOKEN`, or `gh auth token`. The only bypass is a non-empty `SMOKE_GATE_OVERRIDE` (use `SMOKE_GATE_OVERRIDE=1`). That prints a loud warning and continues. Do not set it for a Play upload unless you accept an unsmoked commit. There is no separate release workflow; this script is the release gate. `--verify-signing` does not run the smoke gate.
+- a HEAD SHA that does not have a successful `android-smoke` job. The script checks with `gh api` or `curl` using `GH_TOKEN`, `GITHUB_TOKEN`, or `gh auth token`. The only bypass of that check is exactly `SMOKE_GATE_OVERRIDE=1`. That prints a loud warning and continues. `SMOKE_GATE_OVERRIDE=0` and any other value do not bypass it. Do not set it for a Play upload unless you accept an unsmoked commit.
+- a dirty working tree (`git status --porcelain` is non-empty). `SMOKE_GATE_OVERRIDE` does not bypass that. There is no separate release workflow; this script is the release gate. `--verify-signing` does not run the smoke gate.
 
 Seed, CMS, and Upload stay out of the Play AAB, and a release bundle cannot ship signed with the Android debug key. Demo APKs pass their defines on their own `flutter build apk` command; do not use the Play script for those, and never upload a demo APK to Play. CI has no upload key, so it runs `scripts/test_play_aab_guard.sh` instead of producing an AAB. Local Maestro steps are in [testing.md](testing.md).
 

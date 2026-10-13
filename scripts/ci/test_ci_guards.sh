@@ -21,10 +21,14 @@ expect_eq() {
 
 expect_eq "dispatch runs even when main is already green" \
   "$(smoke_should_run workflow_dispatch abc abc)" true
+expect_eq "dispatch runs even when main HEAD is the last failed SHA" \
+  "$(smoke_should_run workflow_dispatch abc "" abc)" true
 expect_eq "schedule skips when main HEAD is the last green SHA" \
   "$(smoke_should_run schedule abc abc)" false
+expect_eq "schedule skips when main HEAD is the last failed SHA" \
+  "$(smoke_should_run schedule abc "" abc)" false
 expect_eq "schedule runs when main moved" \
-  "$(smoke_should_run schedule abc def)" true
+  "$(smoke_should_run schedule abc def failed)" true
 expect_eq "schedule runs when nothing has ever gone green" \
   "$(smoke_should_run schedule abc "")" true
 

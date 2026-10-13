@@ -2,8 +2,11 @@
 # Refuse a Play release unless the android-smoke job succeeded on this exact HEAD.
 #
 # Token: GH_TOKEN or GITHUB_TOKEN, or `gh auth token` when gh is already logged in.
-# The only bypass is a non-empty SMOKE_GATE_OVERRIDE. That prints a loud warning
-# and continues. Do not set it for a Play upload unless you accept an unsmoked SHA.
+# The only bypass of the green-smoke check is SMOKE_GATE_OVERRIDE=1. That prints
+# a loud warning and continues. Any other value, including 0, is not a bypass.
+# A dirty working tree is always refused, including when the override is set,
+# because the bytes being built are not that HEAD SHA.
+# Do not set the override for a Play upload unless you accept an unsmoked SHA.
 #
 # There is no release workflow in this repo. scripts/build_play_aab.sh calls
 # this script. Any future release workflow must call it too, before it builds.
@@ -13,10 +16,16 @@ cd "$(dirname "$0")/.."
 
 sha="$(git rev-parse HEAD)"
 
-if [[ -n "${SMOKE_GATE_OVERRIDE:-}" ]]; then
+if [[ -n "$(git status --porcelain)" ]]; then
+  echo "error: android-smoke gate: working tree is dirty (git status --porcelain is not empty)." >&2
+  echo "Commit or stash changes before building a Play bundle. SMOKE_GATE_OVERRIDE does not bypass a dirty tree." >&2
+  exit 1
+fi
+
+if [[ "${SMOKE_GATE_OVERRIDE:-}" == "1" ]]; then
   cat >&2 <<EOF
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!! SMOKE_GATE_OVERRIDE is set.
+!!! SMOKE_GATE_OVERRIDE=1 is set.
 !!! This Play bundle is NOT gated on a successful android-smoke run.
 !!! SHA: ${sha}
 !!! Do not use this for a Play upload unless you accept that risk.
