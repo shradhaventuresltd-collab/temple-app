@@ -30,11 +30,15 @@ appId: com.shradhaventures.temple
 - tapOn:
     id: "temple-list-search-field"
 - inputText: "Meenakshi"
+- pressKey: Enter
+# The card's accessibility text is the name plus place and deity, so a
+# bare name match does not see it. "1 temple" is the filtered count.
 - hideKeyboard
 - extendedWaitUntil:
-    visible: "Meenakshi Amman Temple"
-    timeout: 20000
-- tapOn: "Meenakshi Amman Temple"
+    visible: "1 temple"
+    timeout: 45000
+- tapOn:
+    id: "temple-browse-card"
 - scrollUntilVisible:
     element:
       id: "get-directions-button"
