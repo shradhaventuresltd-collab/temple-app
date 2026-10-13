@@ -37,7 +37,7 @@ Do not pass `ENABLE_ADMIN_TOOLS` for this flow.
 
 ## Demo ads (`DEMO_BUILD`)
 
-`--dart-define=DEMO_BUILD=true` makes `AdHelper` banner and interstitial ids the official Google test units in every mode, including release. The Android AdMob application id becomes Google's test app id `ca-app-pub-3940256099942544~3347511713` when Gradle sees that define (Flutter passes it as `-Pdart-defines`). Otherwise the manifest keeps the production Android app id. Test units still show the Test Ad label with the production app id; that is the same pairing debug builds already use.
+`--dart-define=DEMO_BUILD=true` makes `AdHelper` banner and interstitial ids the official Google test units in every mode, including release. KAN-89 is this `DEMO_BUILD` define. There is no `USE_TEST_ADS` define. The Android AdMob application id becomes Google's test app id `ca-app-pub-3940256099942544~3347511713` when Gradle sees `DEMO_BUILD` (Flutter passes it as `-Pdart-defines`). Otherwise Gradle supplies the production Android app id. The main manifest does not hard-code either id: `android/app/src/main/AndroidManifest.xml` sets `com.google.android.gms.ads.APPLICATION_ID` to `${admobAppId}`, and `manifestPlaceholders.admobAppId` in `android/app/build.gradle.kts` fills that placeholder. Test units still show the Test Ad label with the production app id; that is the same pairing debug builds already use.
 
 iOS unit ids follow the same Dart rule. The iOS application id in `ios/Runner/Info.plist` stays the production value.
 

@@ -9,6 +9,10 @@ export MAESTRO_CLI_NO_ANALYTICS=1
 
 PKG=com.shradhaventures.temple
 APK=build/app/outputs/flutter-apk/app-profile.apk
+# Each Maestro attempt keeps its own debug directory. The workflow uploads
+# this tree with actions/upload-artifact, including failed attempts.
+DEBUG_ROOT="${MAESTRO_DEBUG_ROOT:-${GITHUB_WORKSPACE:-/tmp}/maestro-debug}"
+mkdir -p "$DEBUG_ROOT"
 
 echo "===== wait for boot ====="
 adb wait-for-device
@@ -50,18 +54,32 @@ echo "===== maps handler ====="
 adb shell pm resolve-activity -a android.intent.action.VIEW \
   -d "https://www.google.com/maps/search/?api=1&query=9.9195,78.1193" || true
 
+# Log tag only. `io.flutter` in ActivityManager lines is the activity
+# class name and appears before the engine has drawn anything.
+flutter_engine_logged() {
+  adb logcat -d -t 400 \
+    | grep -E -q '[VDIWEF][/ ](flutter|FlutterJNI)([^[:alnum:]_]|$)'
+}
+
+warn() {
+  echo "::warning::$*"
+}
+
 # Prove the process can draw before Maestro. A cold profile start on
 # swiftshader sometimes never attaches; two relaunches cover that.
 echo "===== warm launch ====="
 drawn=0
 for attempt in 1 2 3; do
+  if [[ "$attempt" -gt 1 ]]; then
+    warn "Warm launch relaunch ${attempt} was needed; the Flutter engine had not logged yet"
+  fi
   echo "warm launch ${attempt}"
   adb logcat -c || true
   adb shell am force-stop "$PKG" || true
   adb shell am start -W -n "${PKG}/.MainActivity" || true
   for _ in $(seq 1 30); do
-    if adb logcat -d -t 400 | grep -E -q "flutter"; then
-      echo "Flutter log seen on warm launch ${attempt}"
+    if flutter_engine_logged; then
+      echo "Flutter engine log seen on warm launch ${attempt}"
       drawn=1
       break
     fi
@@ -70,14 +88,15 @@ for attempt in 1 2 3; do
   if [[ "$drawn" -eq 1 ]]; then
     break
   fi
-  echo "no Flutter log on warm launch ${attempt}"
+  echo "no Flutter engine log on warm launch ${attempt}"
 done
 if [[ "$drawn" -ne 1 ]]; then
-  echo "warning: warm launch never logged Flutter; Maestro will retry the launch"
+  warn "Warm launch never logged the Flutter engine after 3 attempts; Maestro will retry the launch"
 fi
 adb shell am force-stop "$PKG" || true
 
 dump_failure() {
+  local attempt_dir="$1"
   echo "===== foreground activity ====="
   adb shell dumpsys activity activities \
     | grep -E "topResumedActivity|mResumedActivity|ResumedActivity" \
@@ -88,23 +107,36 @@ dump_failure() {
   maestro hierarchy || true
   echo "===== logcat ====="
   adb logcat -d -t 250 || true
-  if [[ -d /tmp/maestro-debug ]]; then
-    find /tmp/maestro-debug -type f -name '*.log' -print -exec tail -n 80 {} \;
+  if [[ -d "$attempt_dir" ]]; then
+    find "$attempt_dir" -type f -name '*.log' -print -exec tail -n 80 {} \;
+  fi
+}
+
+warn_if_flow_retried() {
+  local log="$1"
+  local attempt="$2"
+  if [[ -f "$log" ]] && grep -E -q 'Retrying the commands|failed for retry command' "$log"; then
+    warn "Maestro flow relaunch or retry ran during attempt ${attempt}"
   fi
 }
 
 status=1
 for attempt in 1 2; do
+  if [[ "$attempt" -gt 1 ]]; then
+    warn "Maestro smoke retry was needed after attempt 1 failed"
+  fi
   echo "===== maestro attempt ${attempt} ====="
-  rm -rf /tmp/maestro-debug
+  out="${DEBUG_ROOT}/attempt-${attempt}"
+  mkdir -p "$out"
   set +e
-  maestro test --debug-output /tmp/maestro-debug .maestro
+  maestro test --debug-output "$out" .maestro 2>&1 | tee "${out}/maestro-stdout.log"
   status=$?
   set -e
+  warn_if_flow_retried "${out}/maestro-stdout.log" "$attempt"
   if [[ "$status" -eq 0 ]]; then
     exit 0
   fi
-  dump_failure
+  dump_failure "$out"
   if [[ "$attempt" -eq 1 ]]; then
     echo "maestro failed; one more full attempt"
     adb shell am force-stop "$PKG" || true
