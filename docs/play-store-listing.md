@@ -1,6 +1,6 @@
 # Play Store listing (draft)
 
-**Draft for Sanu/Deployer to paste into Play Console.** This file is not a store submission. It does not add screenshots, a privacy-policy URL, or AdMob ID changes.
+**Draft for Sanu/Deployer to paste into Play Console.** This file is not a store submission. It does not add screenshots or AdMob ID changes.
 
 App name and Android package already match the release identity:
 
@@ -80,7 +80,9 @@ When filling Play Console, declare SDKs that the scan reports (including Auth/St
 
 ## Privacy policy
 
-**URL: TBD by Sanu.** Leave this as a placeholder until a public HTTPS page exists. Enter that same URL in Play Console. Do not invent a URL here.
+**URL:** https://temple-directory-india.web.app/privacy-policy.html
+
+Enter that URL in Play Console. Terms of Service: https://temple-directory-india.web.app/terms-of-service.html. Deployer publishes both with `firebase deploy --only hosting --project temple-directory-india`.
 
 The page should cover public temple data in Cloud Firestore and Firebase Storage, AdMob on Android (including the UMP consent form where Google requires it, non-personalized ads when UMP fails, and no ad request when a required form is dismissed without consent), the fact that `firebase_auth` / `firebase_storage` may ship in the release binary while visitors are never asked to sign in, upload photos, or share device location, and a contact for Shradha Ventures Pvt Ltd. This file is not the policy.
 

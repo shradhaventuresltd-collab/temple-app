@@ -2,24 +2,19 @@ name: analyze-test
 
 on:
   pull_request:
-    paths-ignore:
-      - 'docs/**'
-      - '*.md'
   push:
     branches:
       - main
-    paths-ignore:
-      - 'docs/**'
-      - '*.md'
 
 permissions:
   contents: read
   # Flutter's action cache saves the SDK. contents stays read-only.
   actions: write
 
+# Cancel superseded PR runs only. Pushes to main are not cancelled.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   analyze-test:
@@ -35,7 +30,9 @@ jobs:
 
       # No upload key in CI. This exercises the guard, not a signed AAB.
       - name: Play AAB guard
-        run: bash scripts/test_play_aab_guard.sh
+        run: |
+          bash scripts/test_play_aab_guard.sh
+          bash scripts/ci/test_ci_guards.sh
 
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:

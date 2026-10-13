@@ -36,7 +36,7 @@ Demo APK (profile, arm64). A release demo APK uses the same define (`flutter bui
 flutter build apk --profile --target-platform=android-arm64 --dart-define=ENABLE_ADMIN_TOOLS=true
 ```
 
-Play Store bundles go through [`scripts/build_play_aab.sh`](scripts/build_play_aab.sh). That script runs `flutter build appbundle --release` and exits with an error if `ENABLE_ADMIN_TOOLS=true` is set in the environment or in the arguments (including `--dart-define=ENABLE_ADMIN_TOOLS=true`), or if `--dart-define-from-file` is passed (`--dart-define-from-file=file` or `--dart-define-from-file file`).
+Play Store bundles go through [`scripts/build_play_aab.sh`](scripts/build_play_aab.sh). That script runs `flutter build appbundle --release` and exits with an error if `ENABLE_ADMIN_TOOLS=true` is set in the environment or in the arguments (including `--dart-define=ENABLE_ADMIN_TOOLS=true`), or if `--dart-define-from-file` is passed (`--dart-define-from-file=file` or `--dart-define-from-file file`). It also refuses unless `android-smoke` has succeeded on that exact commit, and it refuses a dirty working tree. Exactly `SMOKE_GATE_OVERRIDE=1` bypasses only the green-smoke check, and it prints a loud warning.
 
 `flutter test` runs without the define, so `kEnableAdminToolsDefine` is false. To confirm the define is read, run the same suite with it set. `test/build_flags_test.dart` asserts `kEnableAdminToolsDefine` matches `bool.fromEnvironment('ENABLE_ADMIN_TOOLS')`, so the test passes in both runs.
 
@@ -186,6 +186,14 @@ The app comes pre-configured with our Firebase project. If you want to use your 
 
    There is no `allow write: if true`. Production clients cannot seed or upload without admin Auth.
 
+   **Legal pages (Firebase Hosting).** `firebase.json` serves `hosting/` with `cleanUrls` false, so the `.html` URLs stay. The same HTML is also under `docs/` for the existing GitHub Pages copies. Deployer is the only one who publishes Hosting. Do not deploy from CI.
+
+   ```bash
+   firebase deploy --only hosting --project temple-directory-india
+   ```
+
+   After that deploy: https://temple-directory-india.web.app/index.html, https://temple-directory-india.web.app/privacy-policy.html, and https://temple-directory-india.web.app/terms-of-service.html.
+
 ### 4. Create a debug admin and seed data
 
 Production / release browsing does **not** require signing in. Seed and Admin writes are **debug + Auth**.
@@ -324,4 +332,4 @@ This project is maintained by Shradha Ventures. For contributions, please open a
 
 ## License
 
-This project is proprietary software owned by Shradha Ventures Ltd. All rights reserved.
+Copyright (c) 2026 Shradha Ventures Pvt Ltd. All rights reserved. See [LICENSE](LICENSE). No permission is granted to use, copy, modify, or distribute this software without prior written permission.
