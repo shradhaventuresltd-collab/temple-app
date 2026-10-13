@@ -10,9 +10,16 @@ appId: com.shradhaventures.temple
     visible: "Temple Directory"
     timeout: 90000
 - extendedWaitUntil:
-    visible:
-      id: "home-browse-temples"
+    visible: "Temple Directory"
     timeout: 90000
+- scrollUntilVisible:
+    element:
+      id: "home-browse-temples"
+    direction: DOWN
+    timeout: 30000
+    speed: 40
+    visibilityPercentage: 100
+    centerElement: true
 - tapOn:
     id: "home-browse-temples"
 - extendedWaitUntil:

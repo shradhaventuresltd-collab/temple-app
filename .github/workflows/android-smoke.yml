@@ -68,7 +68,7 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-34-x86_64-google_apis
+          key: avd-34-x86_64-google_apis-pixel6
 
       - name: Maestro smoke
         uses: reactivecircus/android-emulator-runner@v2
@@ -76,13 +76,10 @@ jobs:
           api-level: 34
           arch: x86_64
           target: google_apis
-          avd-name: temple-smoke-34
+          profile: pixel_6
+          avd-name: temple-smoke-34-pixel6
           force-avd-creation: false
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
-          script: |
-            set -euo pipefail
-            export PATH="$PATH:$HOME/.maestro/bin"
-            bash scripts/ci/install_https_handoff.sh
-            adb install -r build/app/outputs/flutter-apk/app-debug.apk
-            maestro test .maestro
+          # One dash-safe command. The action runs this with /usr/bin/sh.
+          script: bash scripts/ci/run_android_smoke.sh
