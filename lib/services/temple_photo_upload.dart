@@ -39,7 +39,11 @@ class FirebaseTemplePhotoUploader implements TemplePhotoUploader {
     final ref = _storage.ref(path);
     final task = ref.putData(
       bytes,
-      SettableMetadata(contentType: contentTypeForPhotoExtension(extension)),
+      SettableMetadata(
+        contentType: contentTypeForPhotoExtension(extension),
+        // Timestamped names never change (KAN-49).
+        cacheControl: 'public, max-age=31536000, immutable',
+      ),
     );
     final subscription = task.snapshotEvents.listen((event) {
       final total = event.totalBytes;

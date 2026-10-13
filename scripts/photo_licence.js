@@ -3,14 +3,16 @@
  *
  * Wire values: CC-BY | CC-BY-SA | CC0 | Own | Permission.
  *
- * CC0 (Creative Commons Zero), including "CC0 1.0" and
- * creativecommons.org/publicdomain/zero URLs, maps to "CC0".
- * A generic "Public domain" / PD string does not. CC0 is a specific
- * dedication; public-domain-style wording maps to CC0 only when the
- * source licence itself is CC0.
+ * CC0 (Creative Commons Zero) and public-domain sources map to "CC0"
+ * (KAN-49). There is no separate PD value. CC0 matches only as a whole
+ * token, so "cc0.5" does not.
+ *
+ * CC BY-NC, CC BY-NC-SA, CC BY-ND, and CC BY-NC-ND are rejected. They are
+ * not stored as CC-BY.
  *
  * @param {unknown} raw
  * @returns {"CC-BY"|"CC-BY-SA"|"CC0"|"Own"|"Permission"|null}
+ * @throws {Error} when the source is an NC or ND Creative Commons licence.
  */
 export function mapPhotoLicence(raw) {
   const text = String(raw ?? "")
@@ -20,7 +22,14 @@ export function mapPhotoLicence(raw) {
     .replace(/\s+/g, " ");
   if (!text) return null;
 
-  if (isCc0Source(text)) return "CC0";
+  const restricted = restrictedLicence(text);
+  if (restricted) {
+    throw new Error(
+      `Rejected licence ${restricted}: "${raw}". NC and ND licences are not accepted.`,
+    );
+  }
+
+  if (isCc0Source(text) || isPublicDomain(text)) return "CC0";
 
   if (isCcBySa(text)) return "CC-BY-SA";
   if (isCcBy(text)) return "CC-BY";
@@ -30,21 +39,63 @@ export function mapPhotoLicence(raw) {
   return null;
 }
 
-function isCc0Source(text) {
-  if (text === "cc0" || text.startsWith("cc0 ") || text.startsWith("cc0-")) {
-    return true;
+/**
+ * Credit stored on a photo. CC-BY and CC-BY-SA keep the Commons version
+ * in the credit string ("Author · CC BY-SA 3.0"). Other licences keep the
+ * author. No licenceUrl field is added.
+ *
+ * @param {unknown} author
+ * @param {unknown} licenseRaw
+ * @returns {string}
+ */
+export function photoCredit(author, licenseRaw) {
+  const name = String(author ?? "").trim();
+  const licence = mapPhotoLicence(licenseRaw);
+  if (licence !== "CC-BY" && licence !== "CC-BY-SA") return name;
+  const label = ccVersionLabel(licence, licenseRaw);
+  return name ? `${name} · ${label}` : label;
+}
+
+function ccVersionLabel(licence, licenseRaw) {
+  const base = licence === "CC-BY-SA" ? "CC BY-SA" : "CC BY";
+  const version = String(licenseRaw ?? "").match(/(\d+\.\d+)/);
+  return version ? `${base} ${version[1]}` : base;
+}
+
+/** Longer NC/ND names first so "by-nc-sa" is not reported as "by-nc". */
+function restrictedLicence(text) {
+  const checks = [
+    ["CC BY-NC-ND", [/\bby-nc-nd\b/, /\bby nc nd\b/]],
+    ["CC BY-NC-SA", [/\bby-nc-sa\b/, /\bby nc sa\b/]],
+    ["CC BY-ND", [/\bby-nd\b/, /\bby nd\b/]],
+    ["CC BY-NC", [/\bby-nc\b/, /\bby nc\b/]],
+  ];
+  for (const [label, patterns] of checks) {
+    if (patterns.some((pattern) => pattern.test(text))) return label;
   }
+  return null;
+}
+
+function hasCc0Token(text) {
+  // A dot after the token is not a boundary, so "cc0.5" does not match.
+  return /(?:^|[^a-z0-9])cc0(?=$|[^a-z0-9.])/.test(text);
+}
+
+function isCc0Source(text) {
+  if (hasCc0Token(text)) return true;
   if (text.includes("creative commons zero") || text.includes("cc-zero")) {
     return true;
   }
-  if (
-    text.includes("publicdomain/zero") ||
-    text.includes("public-domain/zero")
-  ) {
-    return true;
-  }
-  // "CC0 1.0 Universal (Public Domain Dedication)" names CC0 first.
-  return text.includes("cc0");
+  return (
+    text.includes("publicdomain/zero") || text.includes("public-domain/zero")
+  );
+}
+
+function isPublicDomain(text) {
+  const spaced = text.replace(/-/g, " ").replace(/\s+/g, " ").trim();
+  if (spaced === "pd" || spaced === "pdm") return true;
+  if (spaced.startsWith("pd ") || spaced.startsWith("pdm ")) return true;
+  return spaced === "public domain" || spaced.startsWith("public domain ");
 }
 
 function isCcBySa(text) {
@@ -62,17 +113,17 @@ function isCcBy(text) {
     text.includes("cc-by") ||
     text.includes("cc by") ||
     text.includes("creativecommons.org/licenses/by/") ||
-    text.includes("creativecommons.org/licenses/by ") ||
-    /^by\b/.test(text)
+    text.includes("creativecommons.org/licenses/by ")
   );
 }
 
 /**
  * Parse `**License:**` / `**Author:**` rows from an ATTRIBUTION.md file.
- * Does not write Firestore. Callers map [license] with [mapPhotoLicence].
+ * Does not write Firestore. [licence] is the enum value; [credit] carries
+ * the CC version for CC-BY and CC-BY-SA.
  *
  * @param {string} markdown
- * @returns {{file: string, author: string, license: string, licence: string|null}[]}
+ * @returns {{file: string, author: string, license: string, licence: string|null, credit: string}[]}
  */
 export function parseAttributionLicences(markdown) {
   const entries = [];
@@ -94,5 +145,6 @@ export function parseAttributionLicences(markdown) {
   return entries.map((entry) => ({
     ...entry,
     licence: mapPhotoLicence(entry.license),
+    credit: photoCredit(entry.author, entry.license),
   }));
 }

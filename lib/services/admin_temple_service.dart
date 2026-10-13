@@ -565,9 +565,9 @@ void _requirePhotos(Object? raw) {
       throw StateError('Temple photo ${i + 1} must be a map.');
     }
     final url = item['url'];
-    if (url is! String || url.length > 2000) {
+    if (url is! String || url.length > 2000 || !url.startsWith('https://')) {
       throw StateError(
-        'Temple photo ${i + 1} url must be a string of at most 2000 characters.',
+        'Temple photo ${i + 1} url must be an https string of at most 2000 characters.',
       );
     }
     final licence = item['licence'];
@@ -577,8 +577,10 @@ void _requirePhotos(Object? raw) {
       );
     }
     final order = item['order'];
-    if (order is! int) {
-      throw StateError('Temple photo ${i + 1} order must be an integer.');
+    if (order is! int || order < 0 || order > 11) {
+      throw StateError(
+        'Temple photo ${i + 1} order must be an integer from 0 to 11.',
+      );
     }
     final credit = item['credit'];
     if (credit != null && (credit is! String || credit.length > 200)) {

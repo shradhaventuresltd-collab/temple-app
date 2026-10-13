@@ -1,8 +1,8 @@
 /// Licence stored on each `temples/{id}.photos[]` entry.
 ///
 /// Wire values are exact: `CC-BY`, `CC-BY-SA`, `CC0`, `Own`, `Permission`.
-/// `CC0` is only the Creative Commons Zero dedication. Generic public-domain
-/// text is not this value.
+/// `CC0` is Creative Commons Zero and also the stored value for public-domain
+/// sources (KAN-49). There is no separate PD value.
 enum PhotoLicence {
   ccBy('CC-BY'),
   ccBySa('CC-BY-SA'),

@@ -72,6 +72,12 @@ String? templePhotoValidationError(TemplePhoto photo) {
   if (url.length > kMaxPhotoUrlLength) {
     return 'Photo URL must be $kMaxPhotoUrlLength characters or fewer.';
   }
+  if (!url.startsWith('https://')) {
+    return 'Photo URL must start with https://.';
+  }
+  if (photo.order < 0 || photo.order > 11) {
+    return 'Photo order must be between 0 and 11.';
+  }
   final chosen = photo.licence;
   if (chosen == null) return 'Each photo needs a licence.';
   if (photo.credit.length > kMaxPhotoCreditLength) {

@@ -3,7 +3,8 @@
  * CC-BY | CC-BY-SA | CC0 | Own | Permission.
  *
  * CC0 sources ("CC0", "CC0 1.0", Creative Commons Zero) map to CC0.
- * "Public domain" does not.
+ * Public domain / PD also maps to CC0 (KAN-49). CC-BY and CC-BY-SA credits
+ * include the licence version.
  *
  * This does not write Firestore and does not backfill existing temple
  * documents. It only prints the mapping so operators can review it.
@@ -48,7 +49,10 @@ function main() {
       counts[label] = (counts[label] || 0) + 1;
       if (entry.licence === "CC0") cc0 += 1;
       if (!entry.licence) unmapped += 1;
-      console.log(`  ${entry.file}: ${entry.license || "(none)"} → ${label}`);
+      const credit = entry.credit ? ` | ${entry.credit}` : "";
+      console.log(
+        `  ${entry.file}: ${entry.license || "(none)"} → ${label}${credit}`,
+      );
     }
   }
 
@@ -57,7 +61,7 @@ function main() {
     console.log(`  ${label}: ${count}`);
   }
   console.log(`  CC0 accepted: ${cc0}`);
-  console.log(`  unmapped (includes Public domain): ${unmapped}`);
+  console.log(`  unmapped: ${unmapped}`);
 }
 
 main();

@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from "fs";
 import { basename, dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 
-import { mapPhotoLicence } from "./photo_licence.js";
+import { mapPhotoLicence, photoCredit } from "./photo_licence.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "..");
@@ -367,8 +367,9 @@ function resolvePhotos(packDir, manifest) {
       localPath,
       author: photo.author || "",
       license,
-      // Enum value. CC0 sources map to CC0. Public domain stays unmapped.
+      // Enum value. CC0 and public domain both map to CC0 (KAN-49).
       licence: mapPhotoLicence(license),
+      credit: photoCredit(photo.author || "", license),
       sourceUrl: photo.source_url || "",
       downloadedUrl: photo.downloaded_url || "",
     });
@@ -415,7 +416,7 @@ async function uploadFile(bucket, localPath, storagePath, filename) {
     destination: storagePath,
     metadata: {
       contentType: contentTypeFor(filename),
-      cacheControl: "public, max-age=86400",
+      cacheControl: "public, max-age=31536000, immutable",
     },
   });
   const file = bucket.file(storagePath);
@@ -471,7 +472,7 @@ async function processPack({
       console.log(`• ${photo.filename}`);
       console.log(`    → gs://${bucketName}/${storagePath}`);
       console.log(
-        `    license: ${photo.license || "(none)"} → ${photo.licence || "(unmapped)"} / ${photo.author || "(unknown)"}`
+        `    license: ${photo.license || "(none)"} → ${photo.licence || "(unmapped)"} / ${photo.credit || photo.author || "(unknown)"}`
       );
     }
     return {
@@ -678,6 +679,7 @@ async function main() {
           author: p.author,
           license: p.license,
           licence: p.licence || null,
+          credit: p.credit || "",
           source_url: p.sourceUrl,
         })),
       })),

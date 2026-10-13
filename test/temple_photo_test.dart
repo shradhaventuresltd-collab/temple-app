@@ -121,6 +121,18 @@ void main() {
     );
     expect(
       templePhotoValidationError(
+        _photo(url: 'http://example.com/a.jpg', order: 0),
+      ),
+      'Photo URL must start with https://.',
+    );
+    expect(
+      templePhotoValidationError(
+        _photo(url: 'https://example.com/a.jpg', order: 12),
+      ),
+      'Photo order must be between 0 and 11.',
+    );
+    expect(
+      templePhotoValidationError(
         _photo(
           url: 'https://example.com/a.jpg',
           order: 0,
