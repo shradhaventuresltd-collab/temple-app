@@ -1,0 +1,88 @@
+name: android-smoke
+
+on:
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.7'
+          cache: true
+
+      - name: flutter pub get
+        run: flutter pub get
+
+      # Debug is faster than profile. DEMO_BUILD forces test ad units even
+      # if this is later switched to a release build. Do not pass
+      # ENABLE_ADMIN_TOOLS. The Maestro flow never taps Seed or Admin.
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('pubspec.lock', 'android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
+
+      - name: Build debug APK
+        run: flutter build apk --debug --dart-define=DEMO_BUILD=true
+
+      - name: Install Maestro
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Cache AVD
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-34-x86_64-google_apis
+
+      - name: Maestro smoke
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          avd-name: temple-smoke-34
+          force-avd-creation: false
+          disable-animations: true
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
+          script: |
+            set -euo pipefail
+            export PATH="$PATH:$HOME/.maestro/bin"
+            bash scripts/ci/install_https_handoff.sh
+            adb install -r build/app/outputs/flutter-apk/app-debug.apk
+            maestro test .maestro

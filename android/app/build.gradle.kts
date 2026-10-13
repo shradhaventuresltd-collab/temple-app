@@ -1,3 +1,4 @@
+import java.util.Base64
 import java.util.Properties
 
 plugins {
@@ -32,6 +33,27 @@ val releaseStoreFile = releaseStoreFilePath?.let { file(it) }
 val hasReleaseKeystore = keystorePropertiesFile.isFile &&
     missingSigningKeys.isEmpty() &&
     releaseStoreFile?.isFile == true
+
+// Flutter passes `--dart-define` as comma-separated base64 `-Pdart-defines`.
+// DEMO_BUILD=true selects Google's test AdMob app id (KAN-89). Unit ids are
+// chosen in Dart (`lib/services/ad_unit_ids.dart`); keep the two app id
+// strings below in sync with that file.
+fun dartDefines(): Map<String, String> {
+    val raw = (findProperty("dart-defines") as? String)?.trim().orEmpty()
+    if (raw.isEmpty()) return emptyMap()
+    val out = linkedMapOf<String, String>()
+    for (encoded in raw.split(',')) {
+        val decoded = runCatching {
+            String(Base64.getDecoder().decode(encoded.trim()), Charsets.UTF_8)
+        }.getOrNull() ?: continue
+        val eq = decoded.indexOf('=')
+        if (eq <= 0) continue
+        out[decoded.substring(0, eq)] = decoded.substring(eq + 1)
+    }
+    return out
+}
+
+val demoBuild = dartDefines()["DEMO_BUILD"] == "true"
 
 fun releaseSigningError(): String {
     val problem = when {
@@ -82,6 +104,11 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["admobAppId"] = if (demoBuild) {
+            "ca-app-pub-3940256099942544~3347511713"
+        } else {
+            "ca-app-pub-7782159535499045~4640625144"
+        }
     }
 
     buildTypes {

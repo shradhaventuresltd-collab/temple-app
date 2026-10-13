@@ -127,7 +127,8 @@ docs/
 ├── madhya-pradesh-sample-research.md  # Madhya Pradesh expansion sources, caveats, Commons photo candidates
 ├── bihar-sample-research.md           # Bihar expansion sources, caveats, Commons photo candidates
 ├── himachal-pradesh-sample-research.md # Himachal Pradesh expansion sources, caveats, Commons photo candidates
-└── android-play-internal-test.md      # Android application id, upload key, Firebase package follow-up
+├── android-play-internal-test.md      # Android application id, upload key, Firebase package follow-up
+└── testing.md                         # Unit tests and local Maestro smoke
 ```
 
 ## Prerequisites

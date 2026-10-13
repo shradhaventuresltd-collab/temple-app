@@ -3,7 +3,9 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:temple_app/config/build_flags.dart';
 import 'package:temple_app/services/ad_consent.dart';
+import 'package:temple_app/services/ad_unit_ids.dart';
 
 /// AdMob unit ids and the UMP-then-initialize startup path.
 ///
@@ -100,9 +102,7 @@ class AdHelper {
     try {
       final error = await ump.showPrivacyOptionsForm();
       if (error != null) {
-        debugPrint(
-          'UMP privacy options: ${error.errorCode}: ${error.message}',
-        );
+        debugPrint('UMP privacy options: ${error.errorCode}: ${error.message}');
       }
       gate.resolve(await _decisionFromClient(ump));
     } catch (e, st) {
@@ -148,9 +148,7 @@ class AdHelper {
             // Startup has already opened the gate. Refresh later loads.
             if (gate.isReady) gate.resolve(decided);
           } catch (lateError, lateStack) {
-            debugPrint(
-              'UMP late consent read failed: $lateError\n$lateStack',
-            );
+            debugPrint('UMP late consent read failed: $lateError\n$lateStack');
           }
         }),
       );
@@ -203,26 +201,20 @@ class AdHelper {
 
   static String get bannerAdUnitId {
     assert(!kIsWeb, 'AdHelper should not be used on web');
-    if (!kReleaseMode) {
-      return Platform.isAndroid
-          ? 'ca-app-pub-3940256099942544/6300978111'
-          : 'ca-app-pub-3940256099942544/2934735716';
-    }
-    return Platform.isAndroid
-        ? 'ca-app-pub-7782159535499045/8504682685'
-        : 'ca-app-pub-7782159535499045/9654826832';
+    return bannerAdUnitIdFor(
+      releaseMode: kReleaseMode,
+      demoBuild: kDemoBuild,
+      android: Platform.isAndroid,
+    );
   }
 
   static String get interstitialAdUnitId {
     assert(!kIsWeb, 'AdHelper should not be used on web');
-    if (!kReleaseMode) {
-      return Platform.isAndroid
-          ? 'ca-app-pub-3940256099942544/1033173712'
-          : 'ca-app-pub-3940256099942544/4411468910';
-    }
-    return Platform.isAndroid
-        ? 'ca-app-pub-7782159535499045/8118383886'
-        : 'ca-app-pub-7782159535499045/1552975530';
+    return interstitialAdUnitIdFor(
+      releaseMode: kReleaseMode,
+      demoBuild: kDemoBuild,
+      android: Platform.isAndroid,
+    );
   }
 }
 
@@ -279,8 +271,8 @@ class GoogleUmpClient implements UmpClient {
 
   @override
   Future<bool> privacyOptionsRequired() async {
-    final status =
-        await ConsentInformation.instance.getPrivacyOptionsRequirementStatus();
+    final status = await ConsentInformation.instance
+        .getPrivacyOptionsRequirementStatus();
     return status == PrivacyOptionsRequirementStatus.required;
   }
 }

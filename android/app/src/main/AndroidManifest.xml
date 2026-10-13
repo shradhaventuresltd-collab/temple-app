@@ -36,9 +36,11 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Production id, or Google's test app id when DEMO_BUILD=true.
+             The value is manifestPlaceholders.admobAppId in build.gradle.kts. -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-7782159535499045~4640625144" />
+            android:value="${admobAppId}" />
         <!-- Do not start ad measurement before MobileAds.initialize, which
              runs only after the UMP consent pass (KAN-69). -->
         <meta-data

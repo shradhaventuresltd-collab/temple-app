@@ -58,7 +58,13 @@ Debug builds (`flutter run`, `flutter build apk --debug`) do not need the upload
 
 A release build reports that signing error before it packages an artifact. Debug builds do not need the upload key. The Google Services plugin can match `com.shradhaventures.temple` from the checked-in `google-services.json`.
 
-Build the Play bundle with `scripts/build_play_aab.sh`. It runs `flutter build appbundle --release` and refuses `ENABLE_ADMIN_TOOLS` (environment variable or `--dart-define=ENABLE_ADMIN_TOOLS=true`) and `--dart-define-from-file` (equals or space form), so Seed, CMS, and Upload stay out of the Play AAB. Demo APKs pass that define on their own `flutter build apk` command; do not use the Play script for those, and never upload a demo APK to Play.
+Build the Play bundle with `scripts/build_play_aab.sh`. It runs `flutter build appbundle --release` and then checks the bundle certificate with `apksigner` or `keytool`. The script refuses:
+
+- `ENABLE_ADMIN_TOOLS` in `--dart-define=...` (`=` form), `--dart-define ...` (space form), the environment, or a `--dart-define-from-file` (equals or space form) whose file contains that name
+- `DEMO_BUILD` in those same forms (that define forces AdMob test units)
+- a signing cert whose subject contains `CN=Android Debug`
+
+Seed, CMS, and Upload stay out of the Play AAB, and a release bundle cannot ship signed with the Android debug key. Demo APKs pass their defines on their own `flutter build apk` command; do not use the Play script for those, and never upload a demo APK to Play. CI has no upload key, so it runs `scripts/test_play_aab_guard.sh` instead of producing an AAB. Local Maestro steps are in [testing.md](testing.md).
 
 ```bash
 ./scripts/build_play_aab.sh

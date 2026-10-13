@@ -1,0 +1,45 @@
+appId: com.shradhaventures.temple
+---
+# Read-only smoke against prod Firebase (or the bundled sample fallback).
+# Never taps Seed, Admin sign-in, or Admin Panel.
+# Get Directions must leave this app: Maps, a browser, a chooser, or the
+# CI https handoff stub. Staying on the button fails the flow.
+
+- launchApp
+- extendedWaitUntil:
+    visible: "Temple Directory"
+    timeout: 90000
+- extendedWaitUntil:
+    visible:
+      id: "home-browse-temples"
+    timeout: 90000
+- tapOn:
+    id: "home-browse-temples"
+- extendedWaitUntil:
+    visible:
+      id: "temple-browse-card"
+    timeout: 30000
+- assertVisible:
+    id: "temple-list-search-field"
+- tapOn:
+    id: "temple-list-search-field"
+- inputText: "Meenakshi"
+- hideKeyboard
+- extendedWaitUntil:
+    visible: "Meenakshi Amman Temple"
+    timeout: 20000
+- tapOn: "Meenakshi Amman Temple"
+- scrollUntilVisible:
+    element:
+      id: "get-directions-button"
+    direction: DOWN
+    timeout: 40000
+    speed: 60
+    visibilityPercentage: 100
+    centerElement: true
+- tapOn:
+    id: "get-directions-button"
+- extendedWaitUntil:
+    notVisible:
+      id: "get-directions-button"
+    timeout: 20000

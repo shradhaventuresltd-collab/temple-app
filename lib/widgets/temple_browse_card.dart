@@ -55,7 +55,9 @@ class TempleBrowseCard extends StatelessWidget {
     final deity = temple.deity.trim();
     final honestyLabels = templeBrowseHonestyLabels(temple);
 
-    return DecoratedBox(
+    return Semantics(
+      identifier: 'temple-browse-card',
+      child: DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
@@ -169,6 +171,7 @@ class TempleBrowseCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }

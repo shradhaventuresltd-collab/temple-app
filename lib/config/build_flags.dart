@@ -4,6 +4,10 @@ import 'package:flutter/foundation.dart';
 /// The Play AAB is built without it (`scripts/build_play_aab.sh` refuses the define).
 const bool kEnableAdminToolsDefine = bool.fromEnvironment('ENABLE_ADMIN_TOOLS');
 
+/// `--dart-define=DEMO_BUILD=true` forces Google test ad units (KAN-89).
+/// It does not enable Seed or the admin CMS. The Play script refuses it.
+const bool kDemoBuild = bool.fromEnvironment('DEMO_BUILD');
+
 /// Pure gating rule (testable): debug builds, or any build with the define.
 ///
 /// [kAdminToolsEnabled] is this call as a const:

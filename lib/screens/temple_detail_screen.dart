@@ -493,27 +493,30 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
                       const SizedBox(height: 14),
                       SizedBox(
                         width: double.infinity,
-                        child: ElevatedButton.icon(
-                          key: const Key('get-directions-button'),
-                          onPressed: _openGoogleMaps,
-                          icon: const Icon(
-                            Icons.directions_rounded,
-                            color: Colors.white,
-                          ),
-                          label: Text(
-                            'Get Directions',
-                            style: GoogleFonts.poppins(
+                        child: Semantics(
+                          identifier: 'get-directions-button',
+                          child: ElevatedButton.icon(
+                            key: const Key('get-directions-button'),
+                            onPressed: _openGoogleMaps,
+                            icon: const Icon(
+                              Icons.directions_rounded,
                               color: Colors.white,
-                              fontWeight: FontWeight.w600,
                             ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _deepSaffron,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                            label: Text(
+                              'Get Directions',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                            elevation: 0,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _deepSaffron,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
+                            ),
                           ),
                         ),
                       ),
