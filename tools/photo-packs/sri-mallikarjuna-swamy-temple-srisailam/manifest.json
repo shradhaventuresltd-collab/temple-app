@@ -20,6 +20,21 @@
       "notes": "Night view of Srisailam Temple south gopuram"
     },
     {
+      "filename": "02_Gopuram_of_Mallikarjuna_Devasthanam_SriSailam.jpg",
+      "commons_title": "File:Gopuram of Mallikarjuna Devasthanam, SriSailam.jpeg",
+      "author": "Guguly18",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Gopuram_of_Mallikarjuna_Devasthanam,_SriSailam.jpeg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5e/Gopuram_of_Mallikarjuna_Devasthanam%2C_SriSailam.jpeg/1280px-Gopuram_of_Mallikarjuna_Devasthanam%2C_SriSailam.jpeg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 385088,
+      "width": 1280,
+      "height": 1715,
+      "original_width": 2368,
+      "notes": "Main vimana/shikhara of Mallikarjuna temple; coords 16.0732,78.8673",
+      "retrieved": "2026-10-13"
+    },
+    {
       "filename": "03_SRISAILAM_TEMPLE_AP_-_panoramio.jpg",
       "commons_title": "File:SRISAILAM TEMPLE,AP - panoramio.jpg",
       "author": "rajaraman sundaram",
@@ -57,6 +72,25 @@
       "width": 1280,
       "height": 960,
       "notes": "Srisailam devastanam temple entrance"
+    },
+    {
+      "filename": "06_Srisailam_Gopuram.jpg",
+      "commons_title": "File:Srisailam Gopuram.jpg",
+      "author": "Vedamurthy.j",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Srisailam_Gopuram.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/75/Srisailam_Gopuram.jpg/1280px-Srisailam_Gopuram.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 383472,
+      "width": 1280,
+      "height": 1707,
+      "original_width": 1536,
+      "notes": "Gopuram close-up from base; coords 16.0741,78.8688",
+      "retrieved": "2026-10-13"
     }
-  ]
+  ],
+  "kan77_nits": {
+    "date": "2026-10-13",
+    "removed": []
+  }
 }

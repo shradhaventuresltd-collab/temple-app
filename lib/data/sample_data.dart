@@ -1052,6 +1052,7 @@ const List<Temple> sampleTemples = [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/35/Arulmigu_Subramaniya_Swami_Temple%2C_Tiruttani_2.jpg/1280px-Arulmigu_Subramaniya_Swami_Temple%2C_Tiruttani_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/Arulmigu_Subramaniya_Swami_Temple%2C_Tiruttani.jpg/1280px-Arulmigu_Subramaniya_Swami_Temple%2C_Tiruttani.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e2/Subramaniya_Swamy_Temple%2C_Tiruttani.jpg/1280px-Subramaniya_Swamy_Temple%2C_Tiruttani.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e0/Thiruttani_Temple_Rajagopuram.jpg/1280px-Thiruttani_Temple_Rajagopuram.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/75/Thiruthani_Murugan_Temple_.jpg/1280px-Thiruthani_Murugan_Temple_.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     ],
     description:
@@ -1237,7 +1238,7 @@ const List<Temple> sampleTemples = [
         'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Sabarimala_5.jpg/1280px-Sabarimala_5.jpg',
     images: [
       'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Sabarimala_5.jpg/1280px-Sabarimala_5.jpg',
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/05/Sabarimala.jpg/1280px-Sabarimala.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/40/Sreekovil_at_sabarimala.jpg/1280px-Sreekovil_at_sabarimala.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/Sabarimala_Garbhagudi.jpg/1280px-Sabarimala_Garbhagudi.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5e/Sabarimala_3.jpg/1280px-Sabarimala_3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Sabarimala_4.jpg/1280px-Sabarimala_4.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -2167,7 +2168,7 @@ const List<Temple> sampleTemples = [
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1d/Sreevallabha_temple%2C_thiruvalla.JPG/1280px-Sreevallabha_temple%2C_thiruvalla.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1d/Sreevallabha_temple%2C_thiruvalla.JPG/1280px-Sreevallabha_temple%2C_thiruvalla.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/33/Kadhakali_-_Sreevallabha_Temple%2C_Thiruvalla.jpg/1280px-Kadhakali_-_Sreevallabha_Temple%2C_Thiruvalla.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c8/Sree_Vallabha_Temple_Thiruvalla.jpg/1280px-Sree_Vallabha_Temple_Thiruvalla.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2f/Lakshmi_vilakku_sreevallabha_temple%2C_thiruvalla.JPG/1280px-Lakshmi_vilakku_sreevallabha_temple%2C_thiruvalla.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/33/Nammalvar_phalakam_at_sreevallabha_temple%2C_thiruvalla.JPG/1280px-Nammalvar_phalakam_at_sreevallabha_temple%2C_thiruvalla.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7b/Shangh_sreevallabha_temple%2C_thiruvalla.JPG/1280px-Shangh_sreevallabha_temple%2C_thiruvalla.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -3669,9 +3670,11 @@ const List<Temple> sampleTemples = [
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1f/Night_view_of_Srisailam_Temple_South_Gopuram.jpg/1280px-Night_view_of_Srisailam_Temple_South_Gopuram.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1f/Night_view_of_Srisailam_Temple_South_Gopuram.jpg/1280px-Night_view_of_Srisailam_Temple_South_Gopuram.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5e/Gopuram_of_Mallikarjuna_Devasthanam%2C_SriSailam.jpeg/1280px-Gopuram_of_Mallikarjuna_Devasthanam%2C_SriSailam.jpeg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1f/SRISAILAM_TEMPLE%2CAP_-_panoramio.jpg/1280px-SRISAILAM_TEMPLE%2CAP_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/82/2025_West_Gopuram_and_Bhramaramba_Devi_temple_view_in_Srisailam.jpg/1280px-2025_West_Gopuram_and_Bhramaramba_Devi_temple_view_in_Srisailam.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b0/Srisailam-temple-entrance.jpg/1280px-Srisailam-temple-entrance.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/75/Srisailam_Gopuram.jpg/1280px-Srisailam_Gopuram.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     ],
     description:
         'One of the twelve Jyotirlingas and a major Shakti Peetha, where Shiva '
@@ -6240,6 +6243,8 @@ const List<Temple> sampleTemples = [
       'https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Banke_Bihari_Mandir_Vrindavan_-_Phool_Bangla_Darshan.jpg/1280px-Banke_Bihari_Mandir_Vrindavan_-_Phool_Bangla_Darshan.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Phool_Bangla_floral_chandelier_at_Banke_Bihari_Temple%2C_Vrindavan.jpg/1280px-Phool_Bangla_floral_chandelier_at_Banke_Bihari_Temple%2C_Vrindavan.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Bankebihari_temple_main_gate_Vrindavan.JPG/1280px-Bankebihari_temple_main_gate_Vrindavan.JPG',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e3/Banke_Bihari_Vrindavan.jpg/1280px-Banke_Bihari_Vrindavan.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/18/Banke_bihari_%2810%29.JPG/1280px-Banke_bihari_%2810%29.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     ],
     description:
         'Beloved Vrindavan temple of Thakur Banke Bihariji — a charming '
@@ -6644,12 +6649,13 @@ const List<Temple> sampleTemples = [
     city: 'Katra',
     deity: 'Devi',
     imageUrl:
-        'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/71/Vaishno_devi_katra_jammu_n_kashmir.jpg/1280px-Vaishno_devi_katra_jammu_n_kashmir.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ef/Shri_Mata_Vaishno_Devi_Bhawan%2C_Katra_Jammu_%26_Kashmir_INDIA.jpg/1280px-Shri_Mata_Vaishno_Devi_Bhawan%2C_Katra_Jammu_%26_Kashmir_INDIA.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ef/Shri_Mata_Vaishno_Devi_Bhawan%2C_Katra_Jammu_%26_Kashmir_INDIA.jpg/1280px-Shri_Mata_Vaishno_Devi_Bhawan%2C_Katra_Jammu_%26_Kashmir_INDIA.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/71/Vaishno_devi_katra_jammu_n_kashmir.jpg/1280px-Vaishno_devi_katra_jammu_n_kashmir.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e4/Vaishno_Devi_temple_in_katra.jpg/1280px-Vaishno_Devi_temple_in_katra.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7e/Katra_Vaishno_Devi_temple_Seen1.jpg/1280px-Katra_Vaishno_Devi_temple_Seen1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f2/Vaishno_devi_katra.jpg/1280px-Vaishno_devi_katra.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5b/Vaishno_Devi_Bhabon_-_panoramio.jpg/1280px-Vaishno_Devi_Bhabon_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     ],
     description:
         'Major Shakti pilgrimage cave shrine of Mata Vaishno Devi on Trikuta '
@@ -7719,9 +7725,11 @@ const List<Temple> sampleTemples = [
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c9/Jejuri_khandoba.JPG/1280px-Jejuri_khandoba.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c9/Jejuri_khandoba.JPG/1280px-Jejuri_khandoba.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/30/Khandoba_jejuri_temple_front.jpg/1280px-Khandoba_jejuri_temple_front.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/44/Khandoba%2C_Jejuri_-_panoramio.jpg/1280px-Khandoba%2C_Jejuri_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9c/JEJURI%2C_KHANDOBA_TEMPLE.jpg/1280px-JEJURI%2C_KHANDOBA_TEMPLE.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/97/Jejuri_khandoba_temple_Longshot.jpg/1280px-Jejuri_khandoba_temple_Longshot.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e3/Jejuri_gadkot.jpg/1280px-Jejuri_gadkot.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     ],
     description:
         'Hilltop Martand / Khandoba temple at Jejuri (Sonyachi Jejuri), '
@@ -10756,8 +10764,9 @@ const List<Temple> sampleTemples = [
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6b/Manikaran_Temple.jpg/1280px-Manikaran_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6b/Manikaran_Temple.jpg/1280px-Manikaran_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/Manikaran_view_from_Shiva_Temple.jpg/1280px-Manikaran_view_from_Shiva_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/40/Panorama_Manikaran_Ram_temple_%2816746684003%29.jpg/1280px-Panorama_Manikaran_Ram_temple_%2816746684003%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1a/Shiva_Temple%2C_Manikarn.jpg/1280px-Shiva_Temple%2C_Manikarn.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/04/Parvati_River_at_Manikaran.jpg/1280px-Parvati_River_at_Manikaran.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b7/Interior_view_of_Shiva_Temple_at_Manikarn.jpg/1280px-Interior_view_of_Shiva_Temple_at_Manikarn.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     ],
     description:
         'Shiva–Parvati pilgrimage precinct in Manikaran’s Parvati Valley, '

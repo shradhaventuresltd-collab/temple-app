@@ -7,7 +7,7 @@
   "tradition_note": "Sabarimala Ayyappa pilgrimage temple",
   "photos": [
     {
-      "filename": "05_Sabarimala_5.jpg",
+      "filename": "01_Sabarimala_5.jpg",
       "commons_title": "File:Sabarimala_5.jpg",
       "author": "Dhinakar01",
       "license": "CC BY-SA 4.0",
@@ -17,23 +17,25 @@
       "bytes": 445051,
       "width": 1280,
       "height": 960,
-      "notes": "Sabarimala Ayyappa pilgrimage temple Manifest downloaded_url was the placeholder '(1280px Commons thumb)'; replaced with the Commons 1280px thumb. Cover: Sabarimala temple complex. Forest/tree frame kept in the gallery, not as cover."
-    },
-    {
-      "filename": "01_Sabarimala.jpg",
-      "commons_title": "File:Sabarimala.jpg",
-      "author": "Tmppn",
-      "license": "CC BY-SA 4.0",
-      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-      "source_url": "https://commons.wikimedia.org/wiki/File%3ASabarimala.jpg",
-      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/05/Sabarimala.jpg/1280px-Sabarimala.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "bytes": 547399,
-      "width": 1280,
-      "height": 956,
       "notes": "Sabarimala Ayyappa pilgrimage temple"
     },
     {
-      "filename": "02_Sabarimala_1.jpg",
+      "filename": "02_Sreekovil_at_sabarimala.jpg",
+      "commons_title": "File:Sreekovil at sabarimala.jpg",
+      "author": "Sailesh",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Sreekovil_at_sabarimala.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/40/Sreekovil_at_sabarimala.jpg/1280px-Sreekovil_at_sabarimala.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 274058,
+      "width": 1280,
+      "height": 786,
+      "original_width": 2437,
+      "notes": "Golden sreekovil (main shrine) at Sannidhanam; cats Sabarimala temple complex, Sreekovils",
+      "retrieved": "2026-10-13"
+    },
+    {
+      "filename": "03_Sabarimala_1.jpg",
       "commons_title": "File:Sabarimala 1.jpg",
       "author": "Saisumanth532",
       "license": "CC BY-SA 4.0",
@@ -46,7 +48,7 @@
       "notes": "Sabarimala Ayyappa pilgrimage temple"
     },
     {
-      "filename": "03_Sabarimala_3.jpg",
+      "filename": "04_Sabarimala_3.jpg",
       "commons_title": "File:Sabarimala 3.jpg",
       "author": "Dhinakar01",
       "license": "CC BY-SA 4.0",
@@ -59,7 +61,7 @@
       "notes": "Sabarimala Ayyappa pilgrimage temple"
     },
     {
-      "filename": "04_Sabarimala_4.jpg",
+      "filename": "05_Sabarimala_4.jpg",
       "commons_title": "File:Sabarimala 4.jpg",
       "author": "Dhinakar01",
       "license": "CC BY-SA 4.0",
@@ -71,5 +73,11 @@
       "height": 960,
       "notes": "Sabarimala Ayyappa pilgrimage temple"
     }
-  ]
+  ],
+  "kan77_nits": {
+    "date": "2026-10-13",
+    "removed": [
+      "01_Sabarimala.jpg"
+    ]
+  }
 }

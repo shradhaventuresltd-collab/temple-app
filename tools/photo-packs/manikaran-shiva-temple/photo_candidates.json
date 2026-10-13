@@ -3,18 +3,24 @@
     "url": "https://commons.wikimedia.org/wiki/File%3AManikaran_Temple.jpg",
     "license": "CC BY-SA 4.0",
     "attribution": "Prachurjya Biswas",
-    "notes": "local_file=03_Manikaran_Temple.jpg; cover"
+    "notes": "local_file=01_Manikaran_Temple.jpg"
   },
   {
-    "url": "https://commons.wikimedia.org/wiki/File%3AManikaran_view_from_Shiva_Temple.jpg",
+    "url": "https://commons.wikimedia.org/wiki/File:Shiva_Temple,_Manikarn.jpg",
     "license": "CC BY-SA 4.0",
-    "attribution": "Consequoia",
-    "notes": "local_file=01_Manikaran_view_from_Shiva_Temple.jpg"
+    "attribution": "TheSlumPanda",
+    "notes": "local_file=02_Shiva_Temple_Manikarn.jpg; new_in_topup KAN-77"
   },
   {
-    "url": "https://commons.wikimedia.org/wiki/File%3APanorama_Manikaran_Ram_temple_%2816746684003%29.jpg",
-    "license": "CC BY 2.0",
-    "attribution": "Ashish Gupta from Noida, India",
-    "notes": "local_file=02_Panorama_Manikaran_Ram_temple_16746684003.jpg"
+    "url": "https://commons.wikimedia.org/wiki/File:Parvati_River_at_Manikaran.jpg",
+    "license": "CC BY-SA 4.0",
+    "attribution": "Raahul95",
+    "notes": "local_file=03_Parvati_River_at_Manikaran.jpg; new_in_topup KAN-77"
+  },
+  {
+    "url": "https://commons.wikimedia.org/wiki/File:Interior_view_of_Shiva_Temple_at_Manikarn.jpg",
+    "license": "CC BY-SA 4.0",
+    "attribution": "TheSlumPanda",
+    "notes": "local_file=04_Interior_view_of_Shiva_Temple_at_Manikarn.jpg; new_in_topup KAN-77"
   }
 ]

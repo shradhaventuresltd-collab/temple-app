@@ -6,6 +6,12 @@
     "notes": "local_file=01_Jejuri_khandoba.jpg"
   },
   {
+    "url": "https://commons.wikimedia.org/wiki/File:Khandoba_jejuri_temple_front.jpg",
+    "license": "CC BY-SA 3.0",
+    "attribution": "Ashishbagate13",
+    "notes": "local_file=02_Khandoba_jejuri_temple_front.jpg; new_in_topup KAN-77"
+  },
+  {
     "url": "https://commons.wikimedia.org/wiki/File%3AKhandoba%2C_Jejuri_-_panoramio.jpg",
     "license": "CC BY-SA 3.0",
     "attribution": "Amey_A",
@@ -22,5 +28,11 @@
     "license": "CC BY-SA 4.0",
     "attribution": "Nahushraj",
     "notes": "local_file=05_Jejuri_khandoba_temple_Longshot.jpg"
+  },
+  {
+    "url": "https://commons.wikimedia.org/wiki/File:Jejuri_gadkot.jpg",
+    "license": "CC BY 2.0",
+    "attribution": "Anant Rohankar",
+    "notes": "local_file=06_Jejuri_gadkot.jpg; new_in_topup KAN-77"
   }
 ]

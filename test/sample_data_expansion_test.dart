@@ -495,6 +495,11 @@ void main() {
           },
         );
       }
+      if (id == 'vaishno-devi-temple') {
+        expect(temple.images, hasLength(5));
+        expect(temple.imageUrl, contains('Vaishno_Devi_Bhawan'));
+        expect(temple.imageUrl, temple.images.first);
+      }
       expect(temple.imageUrl.contains('firebasestorage'), isFalse);
       final map = temple.toFirestoreData(documentId: id);
       expect(map['id'], id);

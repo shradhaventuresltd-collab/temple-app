@@ -479,6 +479,14 @@ void main() {
         id,
         stillPicsum: const {},
       );
+      if (id == 'manikaran-shiva-temple') {
+        expect(temple.images, hasLength(4));
+        expect(
+          temple.images.any((url) => url.contains('view_from_Shiva_Temple')),
+          isFalse,
+        );
+        expect(temple.imageUrl, contains('Manikaran_Temple.jpg'));
+      }
 
       final map = temple.toFirestoreData(documentId: id);
       expect(map['id'], id);
