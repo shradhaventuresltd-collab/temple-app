@@ -9,6 +9,7 @@ cd "$(dirname "$0")/.."
 
 unset ENABLE_ADMIN_TOOLS || true
 unset DEMO_BUILD || true
+unset SMOKE_GATE_OVERRIDE || true
 
 expect_fail() {
   local desc="$1"
@@ -49,7 +50,7 @@ expect_fail "ENABLE_ADMIN_TOOLS env" \
   env ENABLE_ADMIN_TOOLS=true ./scripts/build_play_aab.sh
 
 defines_dir="$(mktemp -d)"
-trap 'rm -rf "$defines_dir"' EXIT
+trap 'rm -rf "$defines_dir" "${isolated_home:-}"' EXIT
 printf '%s\n' '{"ENABLE_ADMIN_TOOLS": true}' >"$defines_dir/admin.json"
 
 expect_fail "dart-define-from-file equals form" \
@@ -133,5 +134,35 @@ echo "ok: upload cert is not the Android debug cert"
 expect_fail "unreadable signing cert" \
   "could not read a signing certificate" \
   ./scripts/build_play_aab.sh --verify-signing "$defines_dir/bundle.zip"
+
+isolated_home="$(mktemp -d)"
+expect_fail "smoke gate without a token" \
+  "android-smoke gate" \
+  env -u GH_TOKEN -u GITHUB_TOKEN -u SMOKE_GATE_OVERRIDE \
+    HOME="$isolated_home" \
+    GH_CONFIG_DIR="$isolated_home" \
+    XDG_CONFIG_HOME="$isolated_home" \
+    ./scripts/build_play_aab.sh
+
+override_out="$(env -u GH_TOKEN -u GITHUB_TOKEN \
+  HOME="$isolated_home" \
+  GH_CONFIG_DIR="$isolated_home" \
+  SMOKE_GATE_OVERRIDE=1 \
+  ./scripts/check_android_smoke_gate.sh 2>&1)"
+if ! grep -q 'SMOKE_GATE_OVERRIDE is set' <<<"$override_out"; then
+  echo "FAIL: SMOKE_GATE_OVERRIDE did not print the loud warning" >&2
+  printf '%s\n' "$override_out" >&2
+  exit 1
+fi
+echo "ok: SMOKE_GATE_OVERRIDE bypasses the smoke gate loudly"
+
+expect_fail "empty SMOKE_GATE_OVERRIDE is not a bypass" \
+  "android-smoke gate" \
+  env -u GH_TOKEN -u GITHUB_TOKEN \
+    HOME="$isolated_home" \
+    GH_CONFIG_DIR="$isolated_home" \
+    XDG_CONFIG_HOME="$isolated_home" \
+    SMOKE_GATE_OVERRIDE= \
+    ./scripts/build_play_aab.sh
 
 echo "Play AAB guard checks passed."

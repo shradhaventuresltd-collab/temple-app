@@ -1,0 +1,37 @@
+name: actions-minutes
+
+# Weekly check against the 2,000 free private Actions minutes.
+# Alerts at or above 75% (1,500 minutes). See scripts/ci/check_actions_minutes.sh.
+#
+# Secret Sanu adds (optional): BILLING_TOKEN
+#   Fine-grained PAT from the owner of this user-owned account.
+#   Account permission: Plan, Read-only.
+#   GITHUB_TOKEN cannot read billing here. Without BILLING_TOKEN the
+#   workflow estimates from this repository's run timings for the month,
+#   which misses minutes used by other private repositories.
+
+on:
+  schedule:
+    - cron: '20 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Check Actions minutes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BILLING_TOKEN: ${{ secrets.BILLING_TOKEN }}
+        run: bash scripts/ci/check_actions_minutes.sh

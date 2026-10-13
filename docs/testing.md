@@ -1,6 +1,23 @@
 # Testing
 
-Unit and widget tests run with `flutter test`. GitHub Actions workflow `analyze-test` runs `flutter pub get`, `flutter analyze`, and `flutter test` on pull requests and on pushes to `main`. Workflow `android-smoke` runs the Maestro flow below on an Android emulator. Both skip `docs/**` and root `*.md` changes. Neither workflow signs a Play bundle or uploads to App Distribution.
+Unit and widget tests run with `flutter test`. GitHub Actions workflow `analyze-test` runs on every pull request (no path filter) and on pushes to `main`. It runs `flutter pub get`, `flutter analyze`, and `flutter test`. **KAN-90 required checks are `analyze-test` only.**
+
+Workflow `android-smoke` does not run on pull requests and has no `push` trigger. A push trigger that would run smoke after three merges was not added. Smoke runs at 10:00, 17:00, 22:00, and 05:00 IST (`30 4,11,16,23 * * *` UTC) and via `workflow_dispatch`. The first job reads the Actions API for the last successful `android-smoke` job and skips the emulator when that job's `head_sha` is already `main` HEAD, unless the run was dispatched. The emulator job timeout is 15 minutes. Gradle is cached with `actions/cache`. The pub cache is cached by `subosito/flutter-action` (`cache: true`). The AVD snapshot and the API 34 Google APIs x86_64 system image are cached with `actions/cache`, following the reactivecircus/android-emulator-runner pattern: on an AVD cache miss, boot once to save a snapshot, then run smoke with `-no-snapshot-save`.
+
+Concurrency uses `group: ${{ github.workflow }}-${{ github.ref }}` and cancels an in-progress run only for pull requests. Pushes to `main`, the smoke schedule, and manual dispatches are not cancelled.
+
+On failure, smoke opens or updates the single open issue labelled `smoke-failure`, with the commits between the last green SHA and the failing SHA, plus links to the run and the `maestro-debug` artifact.
+
+Public legal pages, after Deployer runs `firebase deploy --only hosting --project temple-directory-india`:
+
+- https://temple-directory-india.web.app/privacy-policy.html
+- https://temple-directory-india.web.app/terms-of-service.html
+
+Neither workflow signs a Play bundle or uploads to App Distribution.
+
+A weekly workflow, `actions-minutes`, compares usage with the 2,000 minute private-repo budget and opens or updates an issue labelled `actions-minutes` when usage is at or above 1,500 minutes (75%). It reads the optional repository secret `BILLING_TOKEN`: a fine-grained personal access token created by the owner of this user-owned account, with account permission **Plan: Read-only**. `GITHUB_TOKEN` cannot read billing here. If `BILLING_TOKEN` is missing or rejected, the workflow sums this repository's Actions run timings for the current month. That estimate does not include other private repositories on the account.
+
+`scripts/build_play_aab.sh` refuses to build unless the `android-smoke` job has succeeded on that exact HEAD SHA (`GH_TOKEN`, `GITHUB_TOKEN`, or `gh auth token`). The only bypass is a non-empty `SMOKE_GATE_OVERRIDE` (use `SMOKE_GATE_OVERRIDE=1`), which prints a loud warning and continues. There is no release workflow; the script is the release gate. Do not set the override for a Play upload unless you accept an unsmoked commit.
 
 CI uses Flutter **3.47.7**. Local runs can use the same SDK.
 
@@ -41,4 +58,4 @@ Do not pass `ENABLE_ADMIN_TOOLS` for this flow.
 
 iOS unit ids follow the same Dart rule. The iOS application id in `ios/Runner/Info.plist` stays the production value.
 
-`scripts/build_play_aab.sh` refuses `DEMO_BUILD` and `ENABLE_ADMIN_TOOLS`, and it refuses a bundle signed with `CN=Android Debug`. CI does not have the Play upload key, so `analyze-test` runs `scripts/test_play_aab_guard.sh` instead of building an AAB. Signing setup is in [android-play-internal-test.md](android-play-internal-test.md).
+`scripts/build_play_aab.sh` refuses `DEMO_BUILD` and `ENABLE_ADMIN_TOOLS`, a bundle signed with `CN=Android Debug`, and a HEAD SHA that does not have a successful `android-smoke` job. `SMOKE_GATE_OVERRIDE=1` bypasses only that smoke check, and it prints a loud warning. CI does not have the Play upload key, so `analyze-test` runs `scripts/test_play_aab_guard.sh` instead of building an AAB. Signing setup is in [android-play-internal-test.md](android-play-internal-test.md).

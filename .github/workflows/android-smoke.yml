@@ -1,30 +1,53 @@
 name: android-smoke
 
+# Main batch only. Pull requests run analyze-test (KAN-90's required check).
+# There is no pull_request trigger and no push trigger.
+#
+# Schedule is 10:00, 17:00, 22:00, and 05:00 IST (UTC+5:30):
+#   30 4,11,16,23 * * *
+# workflow_dispatch runs even when main HEAD is already green.
+# A scheduled run is skipped when main HEAD equals the last successful
+# android-smoke job. The optional "run after 3 merges" push trigger was
+# not added.
+
 on:
-  pull_request:
-    paths-ignore:
-      - 'docs/**'
-      - '*.md'
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - 'docs/**'
-      - '*.md'
+  schedule:
+    - cron: '30 4,11,16,23 * * *'
+  workflow_dispatch:
 
 permissions:
   contents: read
-  # Gradle, AVD, and Flutter caches, plus the Maestro debug artifact.
+  # Gradle, AVD, system-image, and Flutter caches, plus the Maestro debug artifact.
   actions: write
+  issues: write
 
+# This workflow does not run on pull requests. cancel-in-progress stays
+# limited to pull_request so a later PR trigger cannot cancel a main batch,
+# and scheduled or dispatched runs are not cancelled by the next one.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  android-smoke:
+  skip-if-unchanged:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
+    outputs:
+      should_run: ${{ steps.decide.outputs.should_run }}
+      last_green_sha: ${{ steps.decide.outputs.last_green_sha }}
+      head_sha: ${{ steps.decide.outputs.head_sha }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/ci/android_smoke_plan.sh
+
+  android-smoke:
+    needs: skip-if-unchanged
+    if: needs.skip-if-unchanged.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -39,6 +62,7 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      # Pub cache: subosito/flutter-action cache: true.
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           flutter-version: '3.47.7'
@@ -75,6 +99,16 @@ jobs:
           echo "${HOME}/.maestro/bin" >> "$GITHUB_PATH"
           "${HOME}/.maestro/bin/maestro" --version
 
+      # System image the emulator runner installs under ANDROID_SDK_ROOT.
+      - name: Cache emulator system image
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: /usr/local/lib/android/sdk/system-images
+          key: system-image-android-34-google_apis-x86_64
+
+      # reactivecircus/android-emulator-runner snapshot pattern: cache the
+      # AVD, boot once without -no-snapshot-save on a miss, then smoke with
+      # -no-snapshot-save so the cached snapshot is not rewritten.
       - name: Cache AVD
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         id: avd-cache
@@ -82,7 +116,21 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-34-x86_64-google_apis-pixel6
+          key: avd-34-x86_64-google_apis-pixel6-snapshot
+
+      - name: Create AVD snapshot for caching
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          avd-name: temple-smoke-34-pixel6
+          force-avd-creation: false
+          disable-animations: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
+          script: echo "Generated AVD snapshot for caching."
 
       - name: Maestro smoke
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
@@ -94,7 +142,7 @@ jobs:
           avd-name: temple-smoke-34-pixel6
           force-avd-creation: false
           disable-animations: true
-          # Deterministic software GPU: no snapshot, no boot animation.
+          # Deterministic software GPU: no snapshot save, no boot animation.
           # The smoke script also waits for sys.boot_completed and
           # installs the APK with adb before Maestro.
           emulator-options: -no-snapshot-save -no-boot-anim -gpu swiftshader_indirect -no-window -noaudio -camera-back none -camera-front none
@@ -108,3 +156,20 @@ jobs:
           name: maestro-debug
           path: maestro-debug
           if-no-files-found: ignore
+
+  report-failure:
+    needs: [skip-if-unchanged, android-smoke]
+    if: always() && needs.android-smoke.result == 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+      - name: Open or update the smoke-failure issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LAST_GREEN_SHA: ${{ needs.skip-if-unchanged.outputs.last_green_sha }}
+          FAILING_SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: bash scripts/ci/report_smoke_failure.sh
