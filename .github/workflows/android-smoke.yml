@@ -80,6 +80,9 @@ jobs:
           avd-name: temple-smoke-34-pixel6
           force-avd-creation: false
           disable-animations: true
-          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
+          # Deterministic software GPU: no snapshot, no boot animation.
+          # The smoke script also waits for sys.boot_completed and
+          # installs the APK with adb before Maestro.
+          emulator-options: -no-snapshot-save -no-boot-anim -gpu swiftshader_indirect -no-window -noaudio -camera-back none -camera-front none
           # One dash-safe command. The action runs this with /usr/bin/sh.
           script: bash scripts/ci/run_android_smoke.sh
