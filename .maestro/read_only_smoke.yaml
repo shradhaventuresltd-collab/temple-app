@@ -17,9 +17,11 @@ appId: com.shradhaventures.temple
       - launchApp:
           clearState: true
       - extendedWaitUntil:
-          visible: "Accept & continue"
+          visible:
+            id: "policy-accept-button"
           timeout: 60000
-      - tapOn: "Accept & continue"
+      - tapOn:
+          id: "policy-accept-button"
       - extendedWaitUntil:
           visible: "Temple Directory|Loading temples|Browse "
           timeout: 60000

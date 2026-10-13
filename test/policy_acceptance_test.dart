@@ -115,8 +115,8 @@ void main() {
       UrlLauncherPlatform.instance = original;
     });
 
-    test('opens https in an in-app browser', () async {
-      final fake = _FakeUrlLauncher(inAppResult: true);
+    test('opens https in an external browser', () async {
+      final fake = _FakeUrlLauncher(result: true);
       UrlLauncherPlatform.instance = fake;
 
       final opened = await openPolicyUrl(PolicyConfig.termsOfServiceUri);
@@ -124,44 +124,21 @@ void main() {
       expect(opened, isTrue);
       expect(fake.calls, hasLength(1));
       expect(fake.calls.single.url, PolicyConfig.termsOfServiceUrl);
-      expect(fake.calls.single.mode, PreferredLaunchMode.inAppBrowserView);
+      expect(fake.calls.single.mode, PreferredLaunchMode.externalApplication);
     });
 
-    test(
-      'falls back to an external browser when the in-app view fails',
-      () async {
-        final fake = _FakeUrlLauncher(inAppResult: false, externalResult: true);
-        UrlLauncherPlatform.instance = fake;
-
-        final opened = await openPolicyUrl(PolicyConfig.privacyPolicyUri);
-
-        expect(opened, isTrue);
-        expect(fake.calls.map((call) => call.mode), [
-          PreferredLaunchMode.inAppBrowserView,
-          PreferredLaunchMode.externalApplication,
-        ]);
-      },
-    );
-
-    test('falls back when the in-app browser throws', () async {
-      final fake = _FakeUrlLauncher(
-        inAppResult: true,
-        externalResult: true,
-        throwInApp: true,
-      );
+    test('returns false when the external browser throws', () async {
+      final fake = _FakeUrlLauncher(result: true, throwOnLaunch: true);
       UrlLauncherPlatform.instance = fake;
 
       final opened = await openPolicyUrl(PolicyConfig.privacyPolicyUri);
 
-      expect(opened, isTrue);
-      expect(fake.calls.map((call) => call.mode), [
-        PreferredLaunchMode.inAppBrowserView,
-        PreferredLaunchMode.externalApplication,
-      ]);
+      expect(opened, isFalse);
+      expect(fake.calls.single.mode, PreferredLaunchMode.externalApplication);
     });
 
     test('does not launch a non-https url', () async {
-      final fake = _FakeUrlLauncher(inAppResult: true);
+      final fake = _FakeUrlLauncher(result: true);
       UrlLauncherPlatform.instance = fake;
 
       expect(
@@ -181,15 +158,10 @@ class _LaunchCall {
 }
 
 class _FakeUrlLauncher extends UrlLauncherPlatform {
-  _FakeUrlLauncher({
-    required this.inAppResult,
-    this.externalResult = false,
-    this.throwInApp = false,
-  });
+  _FakeUrlLauncher({required this.result, this.throwOnLaunch = false});
 
-  final bool inAppResult;
-  final bool externalResult;
-  final bool throwInApp;
+  final bool result;
+  final bool throwOnLaunch;
   final List<_LaunchCall> calls = [];
 
   @override
@@ -198,10 +170,7 @@ class _FakeUrlLauncher extends UrlLauncherPlatform {
   @override
   Future<bool> launchUrl(String url, LaunchOptions options) async {
     calls.add(_LaunchCall(url, options.mode));
-    if (options.mode == PreferredLaunchMode.inAppBrowserView) {
-      if (throwInApp) throw Exception('in-app browser unavailable');
-      return inAppResult;
-    }
-    return externalResult;
+    if (throwOnLaunch) throw Exception('browser unavailable');
+    return result;
   }
 }

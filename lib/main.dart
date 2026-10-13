@@ -22,7 +22,7 @@ Future<void> main() async {
   runApp(const TempleDirectoryApp());
 }
 
-enum _StartupPhase { checking, gate, consent, home }
+enum _StartupPhase { checking, gate, home }
 
 class TempleDirectoryApp extends StatefulWidget {
   const TempleDirectoryApp({
@@ -56,7 +56,7 @@ class TempleDirectoryApp extends StatefulWidget {
   /// System back on the gate. Defaults to leaving the app.
   final VoidCallback? onExitApp;
 
-  /// Opens a policy https URL. Defaults to an in-app browser.
+  /// Opens a policy https URL in an external browser.
   final Future<bool> Function(Uri url)? launchPolicyUrl;
 
   @override
@@ -98,7 +98,7 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
       });
       return;
     }
-    await _continueAfterAcceptance();
+    _openHomeAndStartAds();
   }
 
   Future<void> _accept() async {
@@ -109,21 +109,25 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
         acceptedAt: clock().toUtc(),
       ),
     );
-    await _continueAfterAcceptance();
+    _openHomeAndStartAds();
   }
 
-  /// UMP and Mobile Ads run here, and only here, then Home is shown.
-  Future<void> _continueAfterAcceptance() async {
+  /// Home is shown immediately. UMP and Mobile Ads start in the background
+  /// and must not block the first Home frame (KAN-75). Ad widgets still wait
+  /// until consent resolves, and this is the only place ads are started.
+  void _openHomeAndStartAds() {
     if (!mounted) return;
-    setState(() => _phase = _StartupPhase.consent);
+    setState(() => _phase = _StartupPhase.home);
     final startAds = widget.initializeAds ?? AppBootstrap.initializeAdsSafely;
+    unawaited(_startAdsInBackground(startAds));
+  }
+
+  Future<void> _startAdsInBackground(Future<void> Function() startAds) async {
     try {
       await startAds();
     } catch (e, st) {
       debugPrint('Ad startup after policy acceptance failed: $e\n$st');
     }
-    if (!mounted) return;
-    setState(() => _phase = _StartupPhase.home);
   }
 
   void _exitApp() {
@@ -146,8 +150,6 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
     switch (_phase) {
       case _StartupPhase.checking:
         return const PolicyStartupHold();
-      case _StartupPhase.consent:
-        return const PolicyStartupHold(message: PolicyGateCopy.consentWait);
       case _StartupPhase.gate:
         return PolicyAcceptanceGate(
           kind: _gateKind,

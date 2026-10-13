@@ -25,7 +25,6 @@ abstract final class PolicyGateCopy {
   static const String updateBody =
       'We updated the Terms of Service and the Privacy Policy. '
       'Review them, then accept to keep using Temple Directory India.';
-  static const String consentWait = 'One moment';
   static const String saveFailed =
       'Could not save your acceptance on this device. Please try again.';
   static const String linkFailed = 'Could not open that link.';
@@ -307,6 +306,7 @@ class _AcceptButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
+      // Widget tests and the Maestro smoke flow both use this id.
       key: const Key('policy-accept-button'),
       identifier: 'policy-accept-button',
       button: true,

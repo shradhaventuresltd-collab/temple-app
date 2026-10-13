@@ -100,15 +100,9 @@ void main() {
     await tester.tap(find.byKey(const Key('policy-accept-button')));
     await tester.pumpAndSettle();
 
+    expect(ads.isCompleted, isFalse);
     expect(adsCalls, 1);
     expect(store.writes, 1);
-    expect(find.byType(HomeScreen), findsNothing);
-    expect(find.text(PolicyGateCopy.consentWait), findsOneWidget);
-    expect(find.byType(PolicyAcceptanceGate), findsNothing);
-
-    ads.complete();
-    await tester.pumpAndSettle();
-
     expect(find.byType(HomeScreen), findsOneWidget);
     expect(find.text('Temple Directory'), findsOneWidget);
     expect(find.byType(PolicyAcceptanceGate), findsNothing);
@@ -246,6 +240,66 @@ void main() {
     expectTarget(const Key('policy-privacy-link'));
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('Home is built while ads init is still pending', (tester) async {
+    final store = _MemoryPolicyAcceptanceStore();
+    final ads = Completer<void>();
+    var adsCalls = 0;
+
+    await tester.pumpWidget(
+      _app(
+        store: store,
+        initializeAds: () {
+          adsCalls++;
+          return ads.future;
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(HomeScreen), findsNothing);
+    expect(adsCalls, 0);
+
+    await tester.tap(find.byKey(const Key('policy-accept-button')));
+    await tester.pumpAndSettle();
+
+    expect(ads.isCompleted, isFalse);
+    expect(adsCalls, 1);
+    expect(find.byType(HomeScreen), findsOneWidget);
+    expect(find.text('Temple Directory'), findsOneWidget);
+
+    final returningAds = Completer<void>();
+    var returningCalls = 0;
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpWidget(
+      _app(
+        store: store,
+        initializeAds: () {
+          returningCalls++;
+          return returningAds.future;
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(returningAds.isCompleted, isFalse);
+    expect(returningCalls, 1);
+    expect(find.byType(PolicyAcceptanceGate), findsNothing);
+    expect(find.byType(HomeScreen), findsOneWidget);
+  });
+
+  testWidgets('Accept stays on screen at text scale 2.0', (tester) async {
+    await _expectAcceptReachable(
+      tester,
+      size: const Size(360, 800),
+      textScale: 2,
+    );
+  });
+
+  testWidgets('Accept stays on screen in a 640x360 landscape layout', (
+    tester,
+  ) async {
+    await _expectAcceptReachable(tester, size: const Size(640, 360));
+  });
 }
 
 class _MemoryPolicyAcceptanceStore implements PolicyAcceptanceStore {
@@ -260,6 +314,46 @@ class _MemoryPolicyAcceptanceStore implements PolicyAcceptanceStore {
     writes++;
     value = acceptance;
   }
+}
+
+Future<void> _expectAcceptReachable(
+  WidgetTester tester, {
+  required Size size,
+  double textScale = 1,
+}) async {
+  tester.view.physicalSize = size;
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+  if (textScale != 1) {
+    tester.platformDispatcher.textScaleFactorTestValue = textScale;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+  }
+
+  await tester.pumpWidget(_app(store: _MemoryPolicyAcceptanceStore()));
+  await tester.pumpAndSettle();
+  expect(tester.takeException(), isNull);
+
+  final accept = find.byKey(const Key('policy-accept-button'));
+  await tester.ensureVisible(accept);
+  await tester.pumpAndSettle();
+
+  expect(accept, findsOneWidget);
+  final rect = tester.getRect(accept);
+  final viewport = Offset.zero & size;
+  expect(
+    viewport.contains(rect.center),
+    isTrue,
+    reason: 'Accept center $rect is outside $viewport',
+  );
+  expect(rect.width, greaterThanOrEqualTo(48));
+  expect(rect.height, greaterThanOrEqualTo(48));
+  expect(tester.takeException(), isNull);
+
+  await tester.tap(accept);
+  await tester.pumpAndSettle();
+  expect(find.byType(HomeScreen), findsOneWidget);
+  expect(find.text(PolicyGateCopy.acceptButton), findsNothing);
 }
 
 Widget _app({
