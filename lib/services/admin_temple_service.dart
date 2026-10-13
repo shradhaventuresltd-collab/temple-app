@@ -13,11 +13,7 @@ abstract class TempleWriteStore {
   /// Current `temples/{id}` map, or `null` if the document is missing.
   Future<Map<String, dynamic>?> get(String id);
 
-  Future<void> set(
-    String id,
-    Map<String, dynamic> data, {
-    required bool isNew,
-  });
+  Future<void> set(String id, Map<String, dynamic> data, {required bool isNew});
 
   Future<void> deleteDocument(String id);
 
@@ -31,8 +27,8 @@ class FirebaseTempleWriteStore implements TempleWriteStore {
   FirebaseTempleWriteStore({
     FirebaseFirestore? firestore,
     FirebaseStorage? storage,
-  })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _storage = storage ?? FirebaseStorage.instance;
+  }) : _firestore = firestore ?? FirebaseFirestore.instance,
+       _storage = storage ?? FirebaseStorage.instance;
 
   final FirebaseFirestore _firestore;
   final FirebaseStorage _storage;
@@ -193,15 +189,13 @@ class AdminTempleService implements AdminTempleApi {
     Future<bool> Function()? isAdmin,
     bool? isDebug,
     Stream<List<Temple>> Function()? watch,
-  })  : _firestore = firestore,
-        _store = store ??
-            FirebaseTempleWriteStore(
-              firestore: firestore,
-              storage: storage,
-            ),
-        _isAdmin = isAdmin ?? AdminAuth.instance.isCurrentUserAdmin,
-        _isDebug = isDebug ?? kAdminToolsEnabled,
-        _watch = watch;
+  }) : _firestore = firestore,
+       _store =
+           store ??
+           FirebaseTempleWriteStore(firestore: firestore, storage: storage),
+       _isAdmin = isAdmin ?? AdminAuth.instance.isCurrentUserAdmin,
+       _isDebug = isDebug ?? kAdminToolsEnabled,
+       _watch = watch;
 
   final FirebaseFirestore? _firestore;
   final TempleWriteStore _store;
@@ -220,14 +214,14 @@ class AdminTempleService implements AdminTempleApi {
     final stream = customWatch != null
         ? customWatch()
         : (_firestore ?? FirebaseFirestore.instance)
-            .collection('temples')
-            .orderBy('name')
-            .snapshots()
-            .map(
-              (snap) => snap.docs
-                  .map((doc) => Temple.fromMap(doc.id, doc.data()))
-                  .toList(),
-            );
+              .collection('temples')
+              .orderBy('name')
+              .snapshots()
+              .map(
+                (snap) => snap.docs
+                    .map((doc) => Temple.fromMap(doc.id, doc.data()))
+                    .toList(),
+              );
     _cachedWatch = stream;
     return stream;
   }
@@ -252,7 +246,9 @@ class AdminTempleService implements AdminTempleApi {
     }
 
     final data = _payload(temple, id);
-    if ((data['images'] as List).isEmpty) {
+    // Photo-editor writes already mirrored imageUrl/images from photos[].
+    // Do not invent a gallery from a stale cover, and do not backfill photos.
+    if (!temple.writePhotos && (data['images'] as List).isEmpty) {
       final cover = temple.imageUrl.trim();
       if (cover.isNotEmpty) data['images'] = [cover];
     }
@@ -273,7 +269,9 @@ class AdminTempleService implements AdminTempleApi {
       throw StateError('Name is required.');
     }
     if (!await _store.exists(id)) {
-      throw StateError('Temple was not found. It may have already been deleted.');
+      throw StateError(
+        'Temple was not found. It may have already been deleted.',
+      );
     }
 
     await _store.set(id, _payload(temple, id), isNew: false);
@@ -401,16 +399,18 @@ const kTempleFirestoreAllowedFields = {
   'timings',
   'specialities',
   'images',
+  'photos',
   'latitude',
   'longitude',
   'createdAt',
 };
 
 void _assertNoDisallowedFirestoreKeys(Map<String, dynamic> stored) {
-  final extra = stored.keys
-      .where((k) => !kTempleFirestoreAllowedFields.contains(k))
-      .toList()
-    ..sort();
+  final extra =
+      stored.keys
+          .where((k) => !kTempleFirestoreAllowedFields.contains(k))
+          .toList()
+        ..sort();
   if (extra.isEmpty) return;
   throw StateError(
     'This temple document has extra fields (${extra.join(', ')}) that '
@@ -465,10 +465,11 @@ Temple templeWithAppendedImages(Temple temple, Iterable<String> newUrls) {
 /// Client-side check matching `isValidTempleUpdate` when a full payload is
 /// written, so Admin gets a field-level error instead of permission-denied.
 void assertTemplePayloadValidForRules(Map<String, dynamic> data) {
-  final extra = data.keys
-      .where((k) => !kTempleFirestoreAllowedFields.contains(k))
-      .toList()
-    ..sort();
+  final extra =
+      data.keys
+          .where((k) => !kTempleFirestoreAllowedFields.contains(k))
+          .toList()
+        ..sort();
   if (extra.isNotEmpty) {
     throw StateError(
       'Temple payload has fields Firestore rules do not allow: '
@@ -532,18 +533,65 @@ void assertTemplePayloadValidForRules(Map<String, dynamic> data) {
 
   requireList('specialities', 20);
   requireList('images', 50);
+  _requirePhotos(data['photos']);
 
   final lat = data['latitude'];
   final lng = data['longitude'];
   if (lat is! num || lat < -90 || lat > 90) {
-    throw StateError(
-      'Temple "latitude" must be a number between -90 and 90.',
-    );
+    throw StateError('Temple "latitude" must be a number between -90 and 90.');
   }
   if (lng is! num || lng < -180 || lng > 180) {
     throw StateError(
       'Temple "longitude" must be a number between -180 and 180.',
     );
+  }
+}
+
+const _photoLicences = {'CC-BY', 'CC-BY-SA', 'CC0', 'Own', 'Permission'};
+
+void _requirePhotos(Object? raw) {
+  if (raw == null) return;
+  if (raw is! List) {
+    throw StateError('Temple "photos" must be a list.');
+  }
+  if (raw.length > 12) {
+    throw StateError(
+      'Temple "photos" has ${raw.length} items; Firestore rules allow at most 12.',
+    );
+  }
+  for (var i = 0; i < raw.length; i++) {
+    final item = raw[i];
+    if (item is! Map) {
+      throw StateError('Temple photo ${i + 1} must be a map.');
+    }
+    final url = item['url'];
+    if (url is! String || url.length > 2000 || !url.startsWith('https://')) {
+      throw StateError(
+        'Temple photo ${i + 1} url must be an https string of at most 2000 characters.',
+      );
+    }
+    final licence = item['licence'];
+    if (licence is! String || !_photoLicences.contains(licence)) {
+      throw StateError(
+        'Temple photo ${i + 1} licence must be CC-BY, CC-BY-SA, CC0, Own, or Permission.',
+      );
+    }
+    final order = item['order'];
+    if (order is! int || order < 0 || order > 11) {
+      throw StateError(
+        'Temple photo ${i + 1} order must be an integer from 0 to 11.',
+      );
+    }
+    final credit = item['credit'];
+    if (credit != null && (credit is! String || credit.length > 200)) {
+      throw StateError(
+        'Temple photo ${i + 1} credit must be a string of at most 200 characters.',
+      );
+    }
+    final needsCredit = licence == 'CC-BY' || licence == 'CC-BY-SA';
+    if (needsCredit && (credit is! String || credit.trim().isEmpty)) {
+      throw StateError('Credit is required for $licence.');
+    }
   }
 }
 
