@@ -7,7 +7,7 @@
   "tradition_note": "Shiva",
   "photos": [
     {
-      "filename": "03_Manikaran_Temple.jpg",
+      "filename": "01_Manikaran_Temple.jpg",
       "commons_title": "File:Manikaran Temple.jpg",
       "author": "Prachurjya Biswas",
       "license": "CC BY-SA 4.0",
@@ -20,20 +20,7 @@
       "notes": "Cover. The Famous Shiv Parvati Temple at Manikaran, Himachal Pradesh. The temple has a natural hot spring and is connected to t"
     },
     {
-      "filename": "01_Manikaran_view_from_Shiva_Temple.jpg",
-      "commons_title": "File:Manikaran view from Shiva Temple.jpg",
-      "author": "Consequoia",
-      "license": "CC BY-SA 4.0",
-      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
-      "source_url": "https://commons.wikimedia.org/wiki/File%3AManikaran_view_from_Shiva_Temple.jpg",
-      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/Manikaran_view_from_Shiva_Temple.jpg/1280px-Manikaran_view_from_Shiva_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "bytes": 374398,
-      "width": 1280,
-      "height": 1920,
-      "notes": "Manikaran view from adjacent Shiva Temple"
-    },
-    {
-      "filename": "04_Shiva_Temple_Manikarn.jpg",
+      "filename": "02_Shiva_Temple_Manikarn.jpg",
       "commons_title": "File:Shiva Temple, Manikarn.jpg",
       "author": "TheSlumPanda",
       "license": "CC BY-SA 4.0",
@@ -48,7 +35,7 @@
       "retrieved": "2026-10-13"
     },
     {
-      "filename": "05_Parvati_River_at_Manikaran.jpg",
+      "filename": "03_Parvati_River_at_Manikaran.jpg",
       "commons_title": "File:Parvati River at Manikaran.jpg",
       "author": "Raahul95",
       "license": "CC BY-SA 4.0",
@@ -63,7 +50,7 @@
       "retrieved": "2026-10-13"
     },
     {
-      "filename": "06_Interior_view_of_Shiva_Temple_at_Manikarn.jpg",
+      "filename": "04_Interior_view_of_Shiva_Temple_at_Manikarn.jpg",
       "commons_title": "File:Interior view of Shiva Temple at Manikarn.jpg",
       "author": "TheSlumPanda",
       "license": "CC BY-SA 4.0",
@@ -80,6 +67,8 @@
   ],
   "kan77_nits": {
     "date": "2026-10-13",
-    "removed": []
+    "removed": [
+      "01_Manikaran_view_from_Shiva_Temple.jpg"
+    ]
   }
 }

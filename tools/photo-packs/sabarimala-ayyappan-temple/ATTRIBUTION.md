@@ -6,9 +6,9 @@ License verification: Commons extmetadata / file page.
 Updated: 2026-10-13 (IST) — KAN-77 reviewer nits
 Do NOT set live imageUrl — eng upload only (KAN-77).
 
-Cover is `05_Sabarimala_5.jpg`.
+Cover is `01_Sabarimala_5.jpg`.
 
-## 05_Sabarimala_5.jpg
+## 01_Sabarimala_5.jpg
 - **Commons File:** File:Sabarimala_5.jpg
 - **Author:** Dhinakar01
 - **License:** CC BY-SA 4.0
@@ -18,7 +18,7 @@ Cover is `05_Sabarimala_5.jpg`.
 - **Retrieved date (IST):** 2026-09-22
 - **Dimensions (file on disk):** 1280×960
 
-## 01_Sreekovil_at_sabarimala.jpg
+## 02_Sreekovil_at_sabarimala.jpg
 - **Commons File:** File:Sreekovil at sabarimala.jpg
 - **Author:** Sailesh
 - **License:** CC BY-SA 3.0
@@ -28,7 +28,7 @@ Cover is `05_Sabarimala_5.jpg`.
 - **Retrieved date (IST):** 2026-10-13
 - **Dimensions (file on disk):** 1280×786
 
-## 02_Sabarimala_1.jpg
+## 03_Sabarimala_1.jpg
 - **Commons File:** File:Sabarimala 1.jpg
 - **Author:** Saisumanth532
 - **License:** CC BY-SA 4.0
@@ -38,7 +38,7 @@ Cover is `05_Sabarimala_5.jpg`.
 - **Retrieved date (IST):** 2026-09-22
 - **Dimensions (file on disk):** 1280×720
 
-## 03_Sabarimala_3.jpg
+## 04_Sabarimala_3.jpg
 - **Commons File:** File:Sabarimala 3.jpg
 - **Author:** Dhinakar01
 - **License:** CC BY-SA 4.0
@@ -48,7 +48,7 @@ Cover is `05_Sabarimala_5.jpg`.
 - **Retrieved date (IST):** 2026-09-22
 - **Dimensions (file on disk):** 1280×960
 
-## 04_Sabarimala_4.jpg
+## 05_Sabarimala_4.jpg
 - **Commons File:** File:Sabarimala 4.jpg
 - **Author:** Dhinakar01
 - **License:** CC BY-SA 4.0

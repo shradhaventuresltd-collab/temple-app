@@ -6649,10 +6649,10 @@ const List<Temple> sampleTemples = [
     city: 'Katra',
     deity: 'Devi',
     imageUrl:
-        'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/71/Vaishno_devi_katra_jammu_n_kashmir.jpg/1280px-Vaishno_devi_katra_jammu_n_kashmir.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ef/Shri_Mata_Vaishno_Devi_Bhawan%2C_Katra_Jammu_%26_Kashmir_INDIA.jpg/1280px-Shri_Mata_Vaishno_Devi_Bhawan%2C_Katra_Jammu_%26_Kashmir_INDIA.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/71/Vaishno_devi_katra_jammu_n_kashmir.jpg/1280px-Vaishno_devi_katra_jammu_n_kashmir.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ef/Shri_Mata_Vaishno_Devi_Bhawan%2C_Katra_Jammu_%26_Kashmir_INDIA.jpg/1280px-Shri_Mata_Vaishno_Devi_Bhawan%2C_Katra_Jammu_%26_Kashmir_INDIA.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/71/Vaishno_devi_katra_jammu_n_kashmir.jpg/1280px-Vaishno_devi_katra_jammu_n_kashmir.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7e/Katra_Vaishno_Devi_temple_Seen1.jpg/1280px-Katra_Vaishno_Devi_temple_Seen1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f2/Vaishno_devi_katra.jpg/1280px-Vaishno_devi_katra.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5b/Vaishno_Devi_Bhabon_-_panoramio.jpg/1280px-Vaishno_Devi_Bhabon_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
@@ -10764,7 +10764,6 @@ const List<Temple> sampleTemples = [
         'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6b/Manikaran_Temple.jpg/1280px-Manikaran_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
     images: [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6b/Manikaran_Temple.jpg/1280px-Manikaran_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
-      'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/Manikaran_view_from_Shiva_Temple.jpg/1280px-Manikaran_view_from_Shiva_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1a/Shiva_Temple%2C_Manikarn.jpg/1280px-Shiva_Temple%2C_Manikarn.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/04/Parvati_River_at_Manikaran.jpg/1280px-Parvati_River_at_Manikaran.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b7/Interior_view_of_Shiva_Temple_at_Manikarn.jpg/1280px-Interior_view_of_Shiva_Temple_at_Manikarn.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',

@@ -6,9 +6,9 @@ License verification: Commons extmetadata / file page.
 Updated: 2026-10-13 (IST) — KAN-77 reviewer nits
 Do NOT set live imageUrl — eng upload only (KAN-77).
 
-Cover is `03_Manikaran_Temple.jpg`.
+Cover is `01_Manikaran_Temple.jpg`.
 
-## 03_Manikaran_Temple.jpg
+## 01_Manikaran_Temple.jpg
 - **Commons File:** File:Manikaran Temple.jpg
 - **Author:** Prachurjya Biswas
 - **License:** CC BY-SA 4.0
@@ -18,17 +18,7 @@ Cover is `03_Manikaran_Temple.jpg`.
 - **Retrieved date (IST):** 2026-09-22
 - **Dimensions (file on disk):** 1280×2276
 
-## 01_Manikaran_view_from_Shiva_Temple.jpg
-- **Commons File:** File:Manikaran view from Shiva Temple.jpg
-- **Author:** Consequoia
-- **License:** CC BY-SA 4.0
-- **License URL:** https://creativecommons.org/licenses/by-sa/4.0/
-- **Source page URL:** https://commons.wikimedia.org/wiki/File%3AManikaran_view_from_Shiva_Temple.jpg
-- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/Manikaran_view_from_Shiva_Temple.jpg/1280px-Manikaran_view_from_Shiva_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
-- **Retrieved date (IST):** 2026-09-22
-- **Dimensions (file on disk):** 1280×1920
-
-## 04_Shiva_Temple_Manikarn.jpg
+## 02_Shiva_Temple_Manikarn.jpg
 - **Commons File:** File:Shiva Temple, Manikarn.jpg
 - **Author:** TheSlumPanda
 - **License:** CC BY-SA 4.0
@@ -38,7 +28,7 @@ Cover is `03_Manikaran_Temple.jpg`.
 - **Retrieved date (IST):** 2026-10-13
 - **Dimensions (file on disk):** 1280×1707
 
-## 05_Parvati_River_at_Manikaran.jpg
+## 03_Parvati_River_at_Manikaran.jpg
 - **Commons File:** File:Parvati River at Manikaran.jpg
 - **Author:** Raahul95
 - **License:** CC BY-SA 4.0
@@ -48,7 +38,7 @@ Cover is `03_Manikaran_Temple.jpg`.
 - **Retrieved date (IST):** 2026-10-13
 - **Dimensions (file on disk):** 1280×960
 
-## 06_Interior_view_of_Shiva_Temple_at_Manikarn.jpg
+## 04_Interior_view_of_Shiva_Temple_at_Manikarn.jpg
 - **Commons File:** File:Interior view of Shiva Temple at Manikarn.jpg
 - **Author:** TheSlumPanda
 - **License:** CC BY-SA 4.0

@@ -6,9 +6,9 @@ License verification: Commons extmetadata / file page.
 Updated: 2026-10-13 (IST) — KAN-77 reviewer nits
 Do NOT set live imageUrl — eng upload only (KAN-77).
 
-Cover is `05_Sreevallabha_temple_thiruvalla.jpg`.
+Cover is `01_Sreevallabha_temple_thiruvalla.jpg`.
 
-## 05_Sreevallabha_temple_thiruvalla.jpg
+## 01_Sreevallabha_temple_thiruvalla.jpg
 - **Commons File:** File:Sreevallabha temple, thiruvalla.JPG
 - **Author:** Dvellakat
 - **License:** CC BY-SA 4.0
@@ -18,7 +18,7 @@ Cover is `05_Sreevallabha_temple_thiruvalla.jpg`.
 - **Retrieved date (IST):** 2026-09-22
 - **Dimensions (file on disk):** 1280×960
 
-## 01_Sree_Vallabha_Temple_Thiruvalla.jpg
+## 02_Sree_Vallabha_Temple_Thiruvalla.jpg
 - **Commons File:** File:Sree Vallabha Temple Thiruvalla.jpg
 - **Author:** Getpraveennair
 - **License:** CC BY-SA 4.0
@@ -28,7 +28,7 @@ Cover is `05_Sreevallabha_temple_thiruvalla.jpg`.
 - **Retrieved date (IST):** 2026-10-13
 - **Dimensions (file on disk):** 1280×619
 
-## 02_Lakshmi_vilakku_sreevallabha_temple_thiruvalla.jpg
+## 03_Lakshmi_vilakku_sreevallabha_temple_thiruvalla.jpg
 - **Commons File:** File:Lakshmi vilakku sreevallabha temple, thiruvalla.JPG
 - **Author:** Dvellakat
 - **License:** CC BY-SA 4.0
@@ -38,7 +38,7 @@ Cover is `05_Sreevallabha_temple_thiruvalla.jpg`.
 - **Retrieved date (IST):** 2026-09-22
 - **Dimensions (file on disk):** 1280×960
 
-## 03_Nammalvar_phalakam_at_sreevallabha_temple_thiruvalla.jpg
+## 04_Nammalvar_phalakam_at_sreevallabha_temple_thiruvalla.jpg
 - **Commons File:** File:Nammalvar phalakam at sreevallabha temple, thiruvalla.JPG
 - **Author:** Dvellakat
 - **License:** CC BY-SA 4.0
@@ -48,7 +48,7 @@ Cover is `05_Sreevallabha_temple_thiruvalla.jpg`.
 - **Retrieved date (IST):** 2026-09-22
 - **Dimensions (file on disk):** 1280×1707
 
-## 04_Shangh_sreevallabha_temple_thiruvalla.jpg
+## 05_Shangh_sreevallabha_temple_thiruvalla.jpg
 - **Commons File:** File:Shangh sreevallabha temple, thiruvalla.JPG
 - **Author:** Dvellakat
 - **License:** CC BY-SA 4.0

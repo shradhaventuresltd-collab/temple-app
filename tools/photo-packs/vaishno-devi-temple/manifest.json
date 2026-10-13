@@ -7,20 +7,7 @@
   "tradition_note": "Devi",
   "photos": [
     {
-      "filename": "01_Vaishno_devi_katra_jammu_n_kashmir.jpg",
-      "commons_title": "File:Vaishno devi katra jammu n kashmir.jpg",
-      "author": "Bittudubeyji",
-      "license": "CC BY-SA 4.0",
-      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
-      "source_url": "https://commons.wikimedia.org/wiki/File%3AVaishno_devi_katra_jammu_n_kashmir.jpg",
-      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/71/Vaishno_devi_katra_jammu_n_kashmir.jpg/1280px-Vaishno_devi_katra_jammu_n_kashmir.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "bytes": 346972,
-      "width": 1280,
-      "height": 719,
-      "notes": "Vaishno devi main temple katra"
-    },
-    {
-      "filename": "02_Shri_Mata_Vaishno_Devi_Bhawan_Katra_Jammu_Kashmir_INDIA.jpg",
+      "filename": "01_Shri_Mata_Vaishno_Devi_Bhawan_Katra_Jammu_Kashmir_INDIA.jpg",
       "commons_title": "File:Shri Mata Vaishno Devi Bhawan, Katra Jammu & Kashmir INDIA.jpg",
       "author": "KDhruv406",
       "license": "CC BY 4.0",
@@ -35,7 +22,20 @@
       "retrieved": "2026-10-13"
     },
     {
-      "filename": "04_Katra_Vaishno_Devi_temple_Seen1.jpg",
+      "filename": "02_Vaishno_devi_katra_jammu_n_kashmir.jpg",
+      "commons_title": "File:Vaishno devi katra jammu n kashmir.jpg",
+      "author": "Bittudubeyji",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source_url": "https://commons.wikimedia.org/wiki/File%3AVaishno_devi_katra_jammu_n_kashmir.jpg",
+      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/71/Vaishno_devi_katra_jammu_n_kashmir.jpg/1280px-Vaishno_devi_katra_jammu_n_kashmir.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "bytes": 346972,
+      "width": 1280,
+      "height": 719,
+      "notes": "Vaishno devi main temple katra"
+    },
+    {
+      "filename": "03_Katra_Vaishno_Devi_temple_Seen1.jpg",
       "commons_title": "File:Katra Vaishno Devi temple Seen1.jpg",
       "author": "Maheshkumarrathi",
       "license": "CC BY-SA 4.0",
@@ -48,7 +48,7 @@
       "notes": "PHOTO IS OF JAMMU AND KASHMIR (KATRA, Vaishno Devi temple)"
     },
     {
-      "filename": "05_Vaishno_devi_katra.jpg",
+      "filename": "04_Vaishno_devi_katra.jpg",
       "commons_title": "File:Vaishno devi katra.jpg",
       "author": "Rajneesh kumar Thakur",
       "license": "CC BY-SA 4.0",
@@ -61,7 +61,7 @@
       "notes": "Vaishno Devi Temple in Jammu"
     },
     {
-      "filename": "06_Vaishno_Devi_Bhabon_-_panoramio.jpg",
+      "filename": "05_Vaishno_Devi_Bhabon_-_panoramio.jpg",
       "commons_title": "File:Vaishno Devi Bhabon - panoramio.jpg",
       "author": "Tapan Kumar Debn… (Panoramio user 4004470, name truncated as on Commons)",
       "license": "CC BY-SA 3.0",
