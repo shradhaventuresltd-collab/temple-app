@@ -5,8 +5,10 @@
 # workflow_dispatch always runs. A scheduled run is skipped when main HEAD
 # is the head_sha of the last successful android-smoke job on main, or of
 # the last job whose conclusion is exactly "failure". A cancelled run does
-# not count, so it does not block the next scheduled retry. A job timeout
-# is a failure conclusion. A red failure SHA is not retried every slot.
+# not count, so it does not block the next scheduled retry. GitHub concludes
+# a job that hits timeout-minutes as cancelled, not failure. The smoke script
+# is wrapped in a shorter shell timeout so a hang exits non-zero and the job
+# concludes failure instead. A red failure SHA is not retried every slot.
 
 # Echoes the SHA only when conclusion is "failure". Cancelled and every
 # other conclusion echo nothing.

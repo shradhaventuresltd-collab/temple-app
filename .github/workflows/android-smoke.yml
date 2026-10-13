@@ -152,7 +152,10 @@ jobs:
           # installs the APK with adb before Maestro.
           emulator-options: -no-snapshot-save -no-boot-anim -gpu swiftshader_indirect -no-window -noaudio -camera-back none -camera-front none
           # One dash-safe command. The action runs this with /usr/bin/sh.
-          script: bash scripts/ci/run_android_smoke.sh
+          # 12m is under the 15-minute job limit. GNU timeout exits non-zero
+          # on a hang, so the job concludes failure. timeout-minutes itself
+          # concludes cancelled.
+          script: timeout 12m bash scripts/ci/run_android_smoke.sh
 
       - name: Upload Maestro debug output
         if: always()
@@ -167,7 +170,13 @@ jobs:
     if: >-
       always() && (
         needs.android-smoke.result == 'failure' ||
-        needs.skip-if-unchanged.result == 'failure'
+        needs.skip-if-unchanged.result == 'failure' ||
+        (
+          github.event_name == 'schedule' && (
+            needs.android-smoke.result == 'cancelled' ||
+            needs.skip-if-unchanged.result == 'cancelled'
+          )
+        )
       )
     permissions:
       contents: read
