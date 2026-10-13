@@ -3,10 +3,11 @@
 # to GITHUB_OUTPUT.
 #
 # A scheduled run skips the emulator when main HEAD equals the last successful
-# android-smoke job on main, or the last job on main whose conclusion is
-# exactly "failure" (a red SHA is not retried every slot). Cancelled runs do
-# not count. workflow_dispatch always runs. Lookups pass branch=main. If the
-# Actions API cannot be read, the emulator runs.
+# android-smoke job on main, or the last failed attempt (a red SHA is not
+# retried every slot). A failure conclusion counts. A cancelled conclusion
+# counts only when that run's event is schedule. A workflow_dispatch cancel
+# does not count. workflow_dispatch always runs. Lookups pass branch=main.
+# If the Actions API cannot be read, the emulator runs.
 set -euo pipefail
 
 if [[ -z "${GITHUB_OUTPUT:-}" ]]; then
@@ -23,21 +24,24 @@ source "$(dirname "$0")/smoke_should_run.sh"
 # newest-first. A quiet main produces skipped schedule runs, so look back
 # far enough to reach a real green or failed attempt.
 find_main_smoke_shas() {
-  local page id row conclusion sha remembered
+  local page id row conclusion sha remembered run_event line
   local sha_green="" sha_failed=""
   for page in 1 2 3 4 5 6 7 8; do
-    local ids
-    if ! ids="$(gh api "repos/${repo}/actions/workflows/android-smoke.yml/runs?branch=main&per_page=20&page=${page}" --jq '.workflow_runs[].id' 2>/dev/null)"; then
+    local runs
+    if ! runs="$(gh api "repos/${repo}/actions/workflows/android-smoke.yml/runs?branch=main&per_page=20&page=${page}" --jq '.workflow_runs[] | "\(.id) \(.event)"' 2>/dev/null)"; then
       echo "warning: could not list android-smoke runs on main (page ${page})." >&2
       if [[ "$page" -eq 1 ]]; then
         return 1
       fi
       break
     fi
-    if [[ -z "$ids" ]]; then
+    if [[ -z "$runs" ]]; then
       break
     fi
-    for id in $ids; do
+    while IFS= read -r line; do
+      [[ -z "$line" ]] && continue
+      id="${line%% *}"
+      run_event="${line#* }"
       row="$(gh api "repos/${repo}/actions/runs/${id}/jobs" --jq 'first(.jobs[] | select(.name=="android-smoke") | "\(.conclusion) \(.head_sha)")' 2>/dev/null || true)"
       conclusion="${row%% *}"
       sha="${row#* }"
@@ -49,7 +53,7 @@ find_main_smoke_shas() {
           sha_green="$sha"
         fi
       else
-        remembered="$(failed_attempt_sha "$conclusion" "$sha")"
+        remembered="$(failed_attempt_sha "$conclusion" "$sha" "$run_event")"
         if [[ -n "$remembered" && -z "$sha_failed" ]]; then
           sha_failed="$remembered"
         fi
@@ -57,7 +61,7 @@ find_main_smoke_shas() {
       if [[ -n "$sha_green" && -n "$sha_failed" ]]; then
         break
       fi
-    done
+    done <<< "$runs"
     if [[ -n "$sha_green" && -n "$sha_failed" ]]; then
       break
     fi

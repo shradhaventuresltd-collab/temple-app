@@ -7,8 +7,9 @@ name: android-smoke
 #   30 4,11,16,23 * * *
 # workflow_dispatch always runs the emulator.
 # A scheduled run is skipped when main HEAD equals the last successful
-# android-smoke job on main, or the last job whose conclusion is failure,
-# so a red SHA is not retried every slot. A cancelled run does not count.
+# android-smoke job on main, or the last failed attempt, so a red SHA is
+# not retried every slot. A schedule-triggered cancelled job counts as
+# failed. A workflow_dispatch cancel does not.
 # The optional "run after 3 merges" push trigger was not added.
 
 on:
@@ -152,10 +153,10 @@ jobs:
           # installs the APK with adb before Maestro.
           emulator-options: -no-snapshot-save -no-boot-anim -gpu swiftshader_indirect -no-window -noaudio -camera-back none -camera-front none
           # One dash-safe command. The action runs this with /usr/bin/sh.
-          # 12m is under the 15-minute job limit. GNU timeout exits non-zero
-          # on a hang, so the job concludes failure. timeout-minutes itself
-          # concludes cancelled.
-          script: timeout 12m bash scripts/ci/run_android_smoke.sh
+          # 12m is under the 15-minute job limit. --kill-after sends SIGKILL
+          # if SIGTERM is ignored, so a hang exits non-zero and the job
+          # concludes failure. timeout-minutes itself concludes cancelled.
+          script: timeout --kill-after=30s 12m bash scripts/ci/run_android_smoke.sh
 
       - name: Upload Maestro debug output
         if: always()

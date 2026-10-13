@@ -27,8 +27,10 @@ expect_eq "schedule skips when main HEAD is the last green SHA" \
   "$(smoke_should_run schedule abc abc)" false
 expect_eq "schedule skips when main HEAD is the last failed SHA" \
   "$(smoke_should_run schedule abc "" abc)" false
-expect_eq "cancelled run does not block a scheduled retry" \
-  "$(smoke_should_run schedule abc "" "$(failed_attempt_sha cancelled abc)")" true
+expect_eq "schedule cancel blocks a scheduled retry" \
+  "$(smoke_should_run schedule abc "" "$(failed_attempt_sha cancelled abc schedule)")" false
+expect_eq "dispatch cancel does not block a scheduled retry" \
+  "$(smoke_should_run schedule abc "" "$(failed_attempt_sha cancelled abc workflow_dispatch)")" true
 expect_eq "failure conclusion still blocks a scheduled retry" \
   "$(smoke_should_run schedule abc "" "$(failed_attempt_sha failure abc)")" false
 expect_eq "schedule runs when main moved" \

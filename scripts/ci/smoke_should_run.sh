@@ -4,18 +4,25 @@
 #
 # workflow_dispatch always runs. A scheduled run is skipped when main HEAD
 # is the head_sha of the last successful android-smoke job on main, or of
-# the last job whose conclusion is exactly "failure". A cancelled run does
-# not count, so it does not block the next scheduled retry. GitHub concludes
-# a job that hits timeout-minutes as cancelled, not failure. The smoke script
-# is wrapped in a shorter shell timeout so a hang exits non-zero and the job
-# concludes failure instead. A red failure SHA is not retried every slot.
+# the last failed attempt. A failure conclusion counts. A cancelled
+# conclusion counts only when that run was triggered by schedule, because
+# GitHub concludes a job that hits timeout-minutes as cancelled. A
+# workflow_dispatch cancel does not count and does not block the next
+# scheduled retry. The smoke script is wrapped in
+# `timeout --kill-after=30s 12m` so a hang is killed and the step exits
+# non-zero before the 15-minute job limit. A red SHA is not retried every slot.
 
-# Echoes the SHA only when conclusion is "failure". Cancelled and every
-# other conclusion echo nothing.
+# Echoes the SHA for conclusion "failure", and for "cancelled" when the
+# triggering event is "schedule". A workflow_dispatch cancel echoes nothing.
 failed_attempt_sha() {
   local conclusion="$1"
   local sha="$2"
+  local event="${3:-}"
   if [[ "$conclusion" == "failure" ]]; then
+    printf '%s' "$sha"
+    return 0
+  fi
+  if [[ "$conclusion" == "cancelled" && "$event" == "schedule" ]]; then
     printf '%s' "$sha"
   fi
 }
