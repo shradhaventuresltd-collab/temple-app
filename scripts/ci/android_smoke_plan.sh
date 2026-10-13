@@ -3,9 +3,10 @@
 # to GITHUB_OUTPUT.
 #
 # A scheduled run skips the emulator when main HEAD equals the last successful
-# android-smoke job on main, or the last failed attempt on main (a red SHA is
-# not retried every slot). workflow_dispatch always runs. Lookups pass
-# branch=main. If the Actions API cannot be read, the emulator runs.
+# android-smoke job on main, or the last job on main whose conclusion is
+# exactly "failure" (a red SHA is not retried every slot). Cancelled runs do
+# not count. workflow_dispatch always runs. Lookups pass branch=main. If the
+# Actions API cannot be read, the emulator runs.
 set -euo pipefail
 
 if [[ -z "${GITHUB_OUTPUT:-}" ]]; then
@@ -22,7 +23,7 @@ source "$(dirname "$0")/smoke_should_run.sh"
 # newest-first. A quiet main produces skipped schedule runs, so look back
 # far enough to reach a real green or failed attempt.
 find_main_smoke_shas() {
-  local page id row conclusion sha
+  local page id row conclusion sha remembered
   local sha_green="" sha_failed=""
   for page in 1 2 3 4 5 6 7 8; do
     local ids
@@ -43,18 +44,16 @@ find_main_smoke_shas() {
       if [[ -z "$row" || "$conclusion" == "null" || -z "$sha" || "$sha" == "$conclusion" || "$sha" == "null" ]]; then
         continue
       fi
-      case "$conclusion" in
-        success)
-          if [[ -z "$sha_green" ]]; then
-            sha_green="$sha"
-          fi
-          ;;
-        failure|cancelled|timed_out)
-          if [[ -z "$sha_failed" ]]; then
-            sha_failed="$sha"
-          fi
-          ;;
-      esac
+      if [[ "$conclusion" == "success" ]]; then
+        if [[ -z "$sha_green" ]]; then
+          sha_green="$sha"
+        fi
+      else
+        remembered="$(failed_attempt_sha "$conclusion" "$sha")"
+        if [[ -n "$remembered" && -z "$sha_failed" ]]; then
+          sha_failed="$remembered"
+        fi
+      fi
       if [[ -n "$sha_green" && -n "$sha_failed" ]]; then
         break
       fi

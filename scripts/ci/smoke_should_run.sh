@@ -4,8 +4,19 @@
 #
 # workflow_dispatch always runs. A scheduled run is skipped when main HEAD
 # is the head_sha of the last successful android-smoke job on main, or of
-# the last failed attempt (failure, cancelled, or timed_out) on main.
-# A red main is not retried on every schedule slot.
+# the last job whose conclusion is exactly "failure". A cancelled run does
+# not count, so it does not block the next scheduled retry. A job timeout
+# is a failure conclusion. A red failure SHA is not retried every slot.
+
+# Echoes the SHA only when conclusion is "failure". Cancelled and every
+# other conclusion echo nothing.
+failed_attempt_sha() {
+  local conclusion="$1"
+  local sha="$2"
+  if [[ "$conclusion" == "failure" ]]; then
+    printf '%s' "$sha"
+  fi
+}
 
 smoke_should_run() {
   local event="$1"

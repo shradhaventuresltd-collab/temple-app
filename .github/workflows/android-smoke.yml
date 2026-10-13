@@ -7,9 +7,9 @@ name: android-smoke
 #   30 4,11,16,23 * * *
 # workflow_dispatch always runs the emulator.
 # A scheduled run is skipped when main HEAD equals the last successful
-# android-smoke job on main, or the last failed attempt on main, so a red
-# SHA is not retried every slot. The optional "run after 3 merges" push
-# trigger was not added.
+# android-smoke job on main, or the last job whose conclusion is failure,
+# so a red SHA is not retried every slot. A cancelled run does not count.
+# The optional "run after 3 merges" push trigger was not added.
 
 on:
   schedule:
@@ -167,11 +167,7 @@ jobs:
     if: >-
       always() && (
         needs.android-smoke.result == 'failure' ||
-        needs.android-smoke.result == 'cancelled' ||
-        needs.android-smoke.result == 'timed_out' ||
-        needs.skip-if-unchanged.result == 'failure' ||
-        needs.skip-if-unchanged.result == 'cancelled' ||
-        needs.skip-if-unchanged.result == 'timed_out'
+        needs.skip-if-unchanged.result == 'failure'
       )
     permissions:
       contents: read
