@@ -17,17 +17,6 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Dimensions (file on disk):** 1280×1707
 - **Bytes:** 567739
 
-## 02_View_of_Jejuri_city_from_Khandoba_Temple.jpg
-- **Commons File:** File:View of Jejuri city from Khandoba Temple.jpg
-- **Author:** Phoenixhit
-- **License:** CC BY-SA 4.0
-- **License URL:** https://creativecommons.org/licenses/by-sa/4.0/
-- **Source page URL:** https://commons.wikimedia.org/wiki/File%3AView_of_Jejuri_city_from_Khandoba_Temple.jpg
-- **Download URL used:** https://thumb.wikimedia.org/wikipedia/commons/thumb/4/43/View_of_Jejuri_city_from_Khandoba_Temple.jpg/1280px-View_of_Jejuri_city_from_Khandoba_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail
-- **Retrieved date (IST):** 2026-09-22
-- **Dimensions (file on disk):** 1280×720
-- **Bytes:** 373202
-
 ## 03_Khandoba_Jejuri_-_panoramio.jpg
 - **Commons File:** File:Khandoba, Jejuri - panoramio.jpg
 - **Author:** Amey_A

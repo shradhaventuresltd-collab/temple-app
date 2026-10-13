@@ -49,3 +49,17 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Retrieved date (IST):** 2026-09-22
 - **Dimensions (file on disk):** 1280×856
 - **Bytes:** 292628
+
+## 05_Vishnupad_Temple-_Front_end.jpg
+- **Commons File:** File:Vishnupad Temple- Front end.JPG
+- **Author:** Keymaker31
+- **License:** CC BY-SA 3.0
+- **License URL:** https://creativecommons.org/licenses/by-sa/3.0
+- **Source page URL:** https://commons.wikimedia.org/wiki/File:Vishnupad_Temple-_Front_end.JPG
+
+## 06_Vishnupad_Temple_Gaya_Bihar.jpg
+- **Commons File:** File:Vishnupad Temple, Gaya, Bihar.JPG
+- **Author:** Wikirapra
+- **License:** CC BY-SA 3.0
+- **License URL:** https://creativecommons.org/licenses/by-sa/3.0
+- **Source page URL:** https://commons.wikimedia.org/wiki/File:Vishnupad_Temple,_Gaya,_Bihar.JPG

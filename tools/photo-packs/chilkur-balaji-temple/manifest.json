@@ -13,7 +13,7 @@
       "license": "CC BY-SA 4.0",
       "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
       "source_url": "https://commons.wikimedia.org/wiki/File%3ABalaji_temple%2C_chilkoor.jpg",
-      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cf/Balaji_temple%2C_chilkoor.jpg/1280px-Balaji_temple%2C_chilkoor.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/Balaji_temple%2C_chilkoor.jpg/1280px-Balaji_temple%2C_chilkoor.jpg",
       "bytes": 684916,
       "width": 1280,
       "height": 2305,
@@ -26,7 +26,7 @@
       "license": "CC BY-SA 3.0",
       "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
       "source_url": "https://commons.wikimedia.org/wiki/File%3AChilukuru_temple.jpg",
-      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/21/Chilukuru_temple.jpg/1280px-Chilukuru_temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Chilukuru_temple.jpg/1280px-Chilukuru_temple.jpg",
       "bytes": 293632,
       "width": 1280,
       "height": 960,
@@ -39,11 +39,25 @@
       "license": "CC BY-SA 3.0",
       "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
       "source_url": "https://commons.wikimedia.org/wiki/File%3AKotta_Chilkur_Anjaneya_Swamy_Temple.JPG",
-      "downloaded_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/Kotta_Chilkur_Anjaneya_Swamy_Temple.JPG/1280px-Kotta_Chilkur_Anjaneya_Swamy_Temple.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/Kotta_Chilkur_Anjaneya_Swamy_Temple.JPG/1280px-Kotta_Chilkur_Anjaneya_Swamy_Temple.JPG",
       "bytes": 256749,
       "width": 1280,
       "height": 960,
       "notes": "Kotta Chilkur Anjaneya Swamy Temple situated in the village entrance."
+    },
+    {
+      "filename": "04_Gopuram_at_Chilkur_Temple1.jpg",
+      "commons_title": "File:Gopuram at Chilkur Temple1.jpg",
+      "author": "Adityamadhav83",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Gopuram_at_Chilkur_Temple1.jpg",
+      "downloaded_url": "https://upload.wikimedia.org/wikipedia/commons/d/de/Gopuram_at_Chilkur_Temple1.jpg",
+      "bytes": 72818,
+      "width": 640,
+      "height": 480,
+      "notes": "Gopuram at Chilkur Temple",
+      "retrieved": "2026-10-12"
     }
   ]
 }

@@ -80,7 +80,6 @@ void main() {
         const stillPicsum = {
           // KAN-77 shortfalls: no READY pack. Picsum stays; Seed still drops it.
           'anjengo-sree-durga-devi-temple',
-          'mannarsala-sree-nagaraja-temple',
         };
         if (stillPicsum.contains(slug)) {
           expect(temple.images, isEmpty, reason: slug);

@@ -49,3 +49,25 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Retrieved date (IST):** 2026-09-22
 - **Dimensions (file on disk):** 1280×1707
 - **Bytes:** 576104
+
+## 05_Mahakal_Temple_Ujjain.jpg
+- **Commons File:** File:Mahakal Temple Ujjain.JPG
+- **Author:** LRBurdak
+- **License:** CC BY-SA 3.0
+- **License URL:** http://creativecommons.org/licenses/by-sa/3.0/
+- **Source page URL:** https://commons.wikimedia.org/wiki/File:Mahakal_Temple_Ujjain.JPG
+- **Bytes:** 603977
+
+## 06_Mahakal_Temple_Ujjain_India.jpg
+- **Commons File:** File:Mahakal Temple, Ujjain, India.jpg
+- **Author:** Hardanddeeps
+- **License:** CC BY-SA 4.0
+- **License URL:** https://creativecommons.org/licenses/by-sa/4.0
+- **Source page URL:** https://commons.wikimedia.org/wiki/File:Mahakal_Temple,_Ujjain,_India.jpg
+
+## 07_Shri_Mahakaleshwar_Temple_Ujjain_-_panoramio_2.jpg
+- **Commons File:** File:Shri Mahakaleshwar Temple Ujjain - panoramio (2).jpg
+- **Author:** Gyanendra_Singh_Chau…
+- **License:** CC BY 3.0
+- **License URL:** https://creativecommons.org/licenses/by/3.0
+- **Source page URL:** https://commons.wikimedia.org/wiki/File:Shri_Mahakaleshwar_Temple_Ujjain_-_panoramio_(2).jpg

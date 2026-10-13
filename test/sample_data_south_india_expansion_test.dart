@@ -54,9 +54,7 @@ void main() {
       expectedMeta: expectedMeta,
       latRange: (8.0, 14.0),
       lngRange: (76.0, 81.0),
-      commonsSlugs: expected.keys
-          .where((id) => id != 'kanyakumari-bhagavathi-amman-temple')
-          .toSet(),
+      commonsSlugs: expected.keys.toSet(),
     );
   });
 

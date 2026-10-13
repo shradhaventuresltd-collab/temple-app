@@ -136,8 +136,9 @@ Pack folders keep the research tar names. Storage and Firestore ids are Seed
 Six folders differ from Seed because the sample name has no city. The upload
 script maps them. `manifest.json` also records `seed_document_id`.
 
-Skipped shortfalls (no pack): Kanyakumari Bhagavathi Amman Temple,
-Anjengo Sree Durga Devi Temple, Mannarsala Sree Nagaraja Temple.
+Skipped shortfalls (no pack): Anjengo Sree Durga Devi Temple.
+Kanyakumari Bhagavathi Amman Temple and Mannarsala Sree Nagaraja Temple
+are wired in Wave D.
 
 ## Wrong-site frames dropped
 
@@ -161,6 +162,13 @@ Pack folders keep the research names. Storage and Firestore ids are Seed
 
 Photo counts below 5 are packs that lost off-topic or unsuitable frames
 in review. Research still needs to add licensed temple photos there.
+The optional Wave C pass also drops the Srisailam town-zoom frame, the
+Jejuri city view, the Vaishno Devi Katra panorama, and the Manikaran
+gurdwara interior. A later review also drops the Manikaran Gurdwara
+exterior and makes `03_Manikaran_Temple.jpg` the cover (pack is 3), and
+drops the 434px Banke Bihari frame (pack is 4). Taraknath’s cover is the
+temple-front `File:Tarakeshwar temple entrance.jpg` (CC BY-SA 4.0,
+K.vishnupranay).
 
 | Pack folder | Seed `templeDocumentId` | Temple | State | Photos |
 | --- | --- | --- | --- | --- |
@@ -178,7 +186,7 @@ in review. Research still needs to add licensed temple photos there.
 | `birla-mandir-jaipur` | `birla-mandir-lakshmi-narayan-temple` | Birla Mandir (Lakshmi Narayan Temple) | Rajasthan | 5 |
 | `birla-mandir-kolkata` | `birla-mandir` | Birla Mandir | West Bengal | 5 |
 | `brahma-temple-pushkar` | `brahma-temple` | Brahma Temple | Rajasthan | 5 |
-| `chilkur-balaji-temple` | same | Chilkur Balaji Temple | Telangana | 3 |
+| `chilkur-balaji-temple` | same | Chilkur Balaji Temple | Telangana | 4 |
 | `chintpurni-temple` | same | Chintpurni Temple | Himachal Pradesh | 5 |
 | `chotila-chamunda-mata-temple` | same | Chotila Chamunda Mata Temple | Gujarat | 5 |
 | `cuttack-chandi-temple` | same | Cuttack Chandi Temple | Odisha | 5 |
@@ -194,11 +202,11 @@ in review. Research still needs to add licensed temple photos there.
 | `hangseshwari-temple` | same | Hangseshwari Temple | West Bengal | 5 |
 | `harsiddhi-temple-ujjain` | `harsiddhi-temple` | Harsiddhi Temple | Madhya Pradesh | 5 |
 | `jagannath-temple-puri` | `jagannath-temple` | Jagannath Temple | Odisha | 5 |
-| `jejuri-khandoba-temple` | same | Jejuri Khandoba Temple | Maharashtra | 5 |
+| `jejuri-khandoba-temple` | same | Jejuri Khandoba Temple | Maharashtra | 4 |
 | `jogulamba-temple-alampur` | `jogulamba-temple` | Jogulamba Temple | Telangana | 5 |
 | `jwalamukhi-temple` | same | Jwalamukhi Temple | Himachal Pradesh | 5 |
 | `kalighat-kali-temple` | same | Kalighat Kali Temple | West Bengal | 5 |
-| `kalika-mata-temple-pavagadh` | `kalika-mata-temple` | Kalika Mata Temple | Gujarat | 4 |
+| `kalika-mata-temple-pavagadh` | `kalika-mata-temple` | Kalika Mata Temple | Gujarat | 6 |
 | `kandariya-mahadeva-temple` | same | Kandariya Mahadeva Temple | Madhya Pradesh | 5 |
 | `kapil-muni-temple-gangasagar` | `kapil-muni-temple` | Kapil Muni Temple | West Bengal | 5 |
 | `karni-mata-temple-deshnok` | `karni-mata-temple` | Karni Mata Temple | Rajasthan | 5 |
@@ -206,16 +214,16 @@ in review. Research still needs to add licensed temple photos there.
 | `kheer-bhawani-temple` | same | Kheer Bhawani Temple | Jammu and Kashmir | 5 |
 | `kiriteswari-temple` | same | Kiriteswari Temple | West Bengal | 5 |
 | `konark-sun-temple` | same | Konark Sun Temple | Odisha | 5 |
-| `lakshmana-temple-khajuraho` | `lakshmana-temple` | Lakshmana Temple | Madhya Pradesh | 3 |
+| `lakshmana-temple-khajuraho` | `lakshmana-temple` | Lakshmana Temple | Madhya Pradesh | 6 |
 | `lakshmi-narayan-temple-chamba` | `lakshmi-narayan-temple` | Lakshmi Narayan Temple | Himachal Pradesh | 5 |
 | `lingaraj-temple` | same | Lingaraj Temple | Odisha | 5 |
-| `mahakaleshwar-temple` | same | Mahakaleshwar Temple | Madhya Pradesh | 4 |
+| `mahakaleshwar-temple` | same | Mahakaleshwar Temple | Madhya Pradesh | 7 |
 | `mahalakshmi-temple-mumbai` | `mahalakshmi-temple` | Mahalakshmi Temple | Maharashtra | 5 |
 | `mahavir-mandir-patna` | `mahavir-mandir` | Mahavir Mandir | Bihar | 5 |
-| `manikaran-shiva-temple` | same | Manikaran Shiva Temple | Himachal Pradesh | 5 |
+| `manikaran-shiva-temple` | same | Manikaran Shiva Temple | Himachal Pradesh | 3 |
 | `mehandipur-balaji-temple` | same | Mehandipur Balaji Temple | Rajasthan | 5 |
 | `modhera-sun-temple` | same | Modhera Sun Temple | Gujarat | 5 |
-| `morgaon-mayureshwar-temple` | same | Morgaon Mayureshwar Temple | Maharashtra | 4 |
+| `morgaon-mayureshwar-temple` | same | Morgaon Mayureshwar Temple | Maharashtra | 5 |
 | `mukteshwar-temple` | same | Mukteshwar Temple | Odisha | 5 |
 | `mumba-devi-temple` | same | Mumba Devi Temple | Maharashtra | 5 |
 | `mundeshwari-devi-temple` | same | Mundeshwari Devi Temple | Bihar | 5 |
@@ -233,27 +241,72 @@ in review. Research still needs to add licensed temple photos there.
 | `ramappa-temple` | `ramappa-temple-rudreshwara` | Ramappa Temple (Rudreshwara) | Telangana | 5 |
 | `salasar-balaji-temple` | `salasar-balaji` | Salasar Balaji | Rajasthan | 5 |
 | `sankat-mochan-hanuman-temple` | same | Sankat Mochan Hanuman Temple | Uttar Pradesh | 5 |
-| `satyanarayana-swamy-temple-annavaram` | `satyanarayana-swamy-temple` | Satyanarayana Swamy Temple | Andhra Pradesh | 3 |
+| `satyanarayana-swamy-temple-annavaram` | `satyanarayana-swamy-temple` | Satyanarayana Swamy Temple | Andhra Pradesh | 6 |
 | `shankaracharya-temple` | same | Shankaracharya Temple | Jammu and Kashmir | 5 |
 | `sharda-devi-temple-maihar` | same | Sharda Devi Temple Maihar | Madhya Pradesh | 5 |
 | `shree-saibaba-samadhi-mandir` | same | Shree Saibaba Samadhi Mandir | Maharashtra | 6 |
 | `shrinathji-temple-nathdwara` | `shrinathji-temple` | Shrinathji Temple | Rajasthan | 5 |
 | `siddhivinayak-temple-mumbai` | `siddhivinayak-temple` | Siddhivinayak Temple | Maharashtra | 5 |
 | `sita-ramachandra-swamy-bhadrachalam` | `sita-ramachandra-swamy-temple` | Sita Ramachandra Swamy Temple | Telangana | 5 |
-| `somnath-temple` | same | Somnath Temple | Gujarat | 4 |
+| `somnath-temple` | same | Somnath Temple | Gujarat | 5 |
 | `sri-lakshmi-narasimha-swamy-yadagirigutta` | `sri-lakshmi-narasimha-swamy-temple` | Sri Lakshmi Narasimha Swamy Temple | Telangana | 5 |
-| `sri-mallikarjuna-swamy-temple-srisailam` | `sri-mallikarjuna-swamy-temple` | Sri Mallikarjuna Swamy Temple | Andhra Pradesh | 5 |
+| `sri-mallikarjuna-swamy-temple-srisailam` | `sri-mallikarjuna-swamy-temple` | Sri Mallikarjuna Swamy Temple | Andhra Pradesh | 4 |
 | `sri-mayapur-chandrodaya-mandir` | `sri-mayapur-chandrodaya-mandir-iskcon-mayapur` | Sri Mayapur Chandrodaya Mandir (ISKCON Mayapur) | West Bengal | 5 |
-| `taraknath-temple-tarakeswar` | `taraknath-temple` | Taraknath Temple | West Bengal | 5 |
+| `taraknath-temple-tarakeswar` | `taraknath-temple` | Taraknath Temple | West Bengal | 6 |
 | `tarapith-temple` | same | Tarapith Temple | West Bengal | 5 |
 | `thousand-pillar-temple` | same | Thousand Pillar Temple | Telangana | 5 |
 | `tirumala-venkateswara-temple` | same | Tirumala Venkateswara Temple | Andhra Pradesh | 5 |
-| `trimbakeshwar-temple` | same | Trimbakeshwar Temple | Maharashtra | 4 |
-| `vaishno-devi-temple` | same | Vaishno Devi Temple | Jammu and Kashmir | 5 |
+| `trimbakeshwar-temple` | same | Trimbakeshwar Temple | Maharashtra | 6 |
+| `vaishno-devi-temple` | same | Vaishno Devi Temple | Jammu and Kashmir | 4 |
 | `varaha-lakshmi-narasimha-temple-simhachalam` | `varaha-lakshmi-narasimha-temple` | Varaha Lakshmi Narasimha Temple | Andhra Pradesh | 5 |
 | `varasidhi-vinayaka-temple-kanipakam` | `varasidhi-vinayaka-temple` | Varasidhi Vinayaka Temple | Andhra Pradesh | 5 |
 | `veerabhadra-temple-lepakshi` | `veerabhadra-temple` | Veerabhadra Temple | Andhra Pradesh | 5 |
 | `vindhyavasini-temple` | same | Vindhyavasini Temple | Uttar Pradesh | 5 |
-| `vishnupad-temple` | same | Vishnupad Temple | Bihar | 4 |
+| `vishnupad-temple` | same | Vishnupad Temple | Bihar | 6 |
 | `vitthal-rukmini-temple-pandharpur` | `vitthal-rukmini-temple` | Vitthal Rukmini Temple | Maharashtra | 5 |
 | `yaganti-uma-maheswara-temple` | same | Yaganti Uma Maheswara Temple | Andhra Pradesh | 5 |
+
+## KAN-76 Wave D
+
+Built on Wave C (#25). Fresh Research manifests; URLs are Commons
+`upload.wikimedia.org` 1280px thumbs (or the original when it is narrower than
+1280px). Storage and Firestore ids are Seed `templeDocumentId(name)`.
+
+| Pack folder | Seed `templeDocumentId` | Temple | State | Photos |
+| --- | --- | --- | --- | --- |
+| `ajgaibinath-temple` | same | Ajgaibinath Temple | Bihar | 5 |
+| `amarnath-cave-temple` | same | Amarnath Cave Temple | Jammu and Kashmir | 7 |
+| `bade-hanuman-ji-temple-prayagraj` | `bade-hanuman-ji-temple-lete-hanuman` | Bade Hanuman Ji Temple (Lete Hanuman) | Uttar Pradesh | 7 |
+| `chamunda-devi-temple-kangra` | `chamunda-devi-temple` | Chamunda Devi Temple | Himachal Pradesh | 6 |
+| `hanuman-garhi-ayodhya` | `hanuman-garhi` | Hanuman Garhi | Uttar Pradesh | 6 |
+| `kanaka-durga-temple` | same | Kanaka Durga Temple | Andhra Pradesh | 6 |
+| `kanyakumari-bhagavathi-amman-temple` | same | Kanyakumari Bhagavathi Amman Temple | Tamil Nadu | 6 |
+| `kashi-vishwanath-temple` | same | Kashi Vishwanath Temple | Uttar Pradesh | 6 |
+| `keesaragutta-temple` | same | Keesaragutta Temple | Telangana | 6 |
+| `krishna-janmabhoomi-temple` | same | Krishna Janmabhoomi Temple | Uttar Pradesh | 5 |
+| `maa-taratarini-temple` | same | Maa Taratarini Temple | Odisha | 6 |
+| `mannarsala-sree-nagaraja-temple` | same | Mannarsala Sree Nagaraja Temple | Kerala | 5 |
+| `matangeshwar-temple` | same | Matangeshwar Temple | Madhya Pradesh | 6 |
+| `padmavathi-temple-tiruchanur` | `padmavathi-temple` | Padmavathi Temple | Andhra Pradesh | 7 |
+| `ranchhodraiji-temple-dakor` | `ranchhodraiji-temple` | Ranchhodraiji Temple | Gujarat | 7 |
+| `sakshi-gopal-temple` | same | Sakshi Gopal Temple | Odisha | 6 |
+
+Dropped in review: `krishna-janmabhoomi-temple` / `05_*` (`File:Krishnajanmabhoomi 1988A.jpg`) shows the adjoining Shahi Idgah, not the temple.
+Kashi Vishwanath’s cover is `File:Kashi Vishwanath Temple in 2025.jpg` (CC BY 4.0, Pradum Shukla, own work). The original is 1153px wide, so the pack keeps the unscaled file.
+
+## KAN-76 top-up (Research new_in_topup frames)
+
+| Pack | Photos | Change |
+| --- | --- | --- |
+| `hanuman-garhi-ayodhya` | 6 | dropped 05 `(60)` and 06 `Ancient Temple Ayodhya` (not site-verified), added 08; 04 confirmed by Research (श्री हनुमानगढ़ी signboard visible) |
+| `krishna-janmabhoomi-temple` | 5 | added Research top-up frames |
+| `lakshmana-temple-khajuraho` | 6 | added Research top-up frames |
+| `satyanarayana-swamy-temple-annavaram` | 6 | added Research top-up frames |
+| `kalika-mata-temple-pavagadh` | 6 | added Research top-up frames |
+| `trimbakeshwar-temple` | 6 | added Research top-up frames |
+| `mahakaleshwar-temple` | 7 | added Research top-up frames |
+| `vishnupad-temple` | 6 | added Research top-up frames |
+| `somnath-temple` | 5 | dropped 02 floor-plan drawing and 03 night aerial (near-duplicate of 04), added 05–07 |
+| `banke-bihari-temple` | 4 | added Research top-up frames, then dropped the 434px `05_Banke-Bihari-Mandir-Vrindavan.jpg` |
+| `morgaon-mayureshwar-temple` | 5 | added Research top-up frames |
+| `chilkur-balaji-temple` | 4 | added Research top-up frames |

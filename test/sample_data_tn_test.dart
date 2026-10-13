@@ -70,10 +70,8 @@ void main() {
       expect(temple.latitude, inInclusiveRange(8.0, 14.0));
       expect(temple.longitude, inInclusiveRange(76.0, 81.0));
       final slug = templeDocumentId(temple.name);
-      const heldOrShortfall = {
-        // KAN-77 shortfall: no READY pack.
-        'kanyakumari-bhagavathi-amman-temple',
-      };
+      // KAN-76 Wave D wired the last TN shortfall (Kanyakumari).
+      const heldOrShortfall = <String>{};
       if (heldOrShortfall.contains(slug)) {
         expect(temple.images, isEmpty, reason: slug);
         expect(temple.imageUrl, isEmpty, reason: slug);

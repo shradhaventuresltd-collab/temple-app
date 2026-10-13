@@ -89,7 +89,7 @@ void main() {
     (tester) async {
       const names = [
         'Anjengo Sree Durga Devi Temple',
-        'Mannarsala Sree Nagaraja Temple',
+        // Mannarsala moved to a Commons pack in KAN-76 Wave D.
       ];
 
       for (final name in names) {

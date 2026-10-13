@@ -49,3 +49,17 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 - **Retrieved date (IST):** 2026-09-22
 - **Dimensions (file on disk):** 1280×2276
 - **Bytes:** 910885
+
+## 05_Mukha_Mandapa_and_Garbha_Griha.jpg
+- **Commons File:** File:Mukha Mandapa and Garbha Griha.jpg
+- **Author:** Satish Madhiwalla
+- **License:** CC0
+- **License URL:** http://creativecommons.org/publicdomain/zero/1.0/deed.en
+- **Source page URL:** https://commons.wikimedia.org/wiki/File:Mukha_Mandapa_and_Garbha_Griha.jpg
+
+## 06_Shikhara_of_the_Temple.jpg
+- **Commons File:** File:Shikhara of the Temple.jpg
+- **Author:** Satish Madhiwalla
+- **License:** CC0
+- **License URL:** http://creativecommons.org/publicdomain/zero/1.0/deed.en
+- **Source page URL:** https://commons.wikimedia.org/wiki/File:Shikhara_of_the_Temple.jpg
