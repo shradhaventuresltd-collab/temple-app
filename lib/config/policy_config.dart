@@ -8,10 +8,10 @@ abstract final class PolicyConfig {
   static const int currentVersion = 1;
 
   static const String termsOfServiceUrl =
-      'https://shradhaventuresltd-collab.github.io/temple-app/terms-of-service.html';
+      'https://temple-directory-india.web.app/terms-of-service.html';
 
   static const String privacyPolicyUrl =
-      'https://shradhaventuresltd-collab.github.io/temple-app/privacy-policy.html';
+      'https://temple-directory-india.web.app/privacy-policy.html';
 
   static Uri get termsOfServiceUri => Uri.parse(termsOfServiceUrl);
 

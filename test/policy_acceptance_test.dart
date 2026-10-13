@@ -67,11 +67,11 @@ void main() {
     test('uses the hosted Terms and Privacy pages', () {
       expect(
         PolicyConfig.termsOfServiceUrl,
-        'https://shradhaventuresltd-collab.github.io/temple-app/terms-of-service.html',
+        'https://temple-directory-india.web.app/terms-of-service.html',
       );
       expect(
         PolicyConfig.privacyPolicyUrl,
-        'https://shradhaventuresltd-collab.github.io/temple-app/privacy-policy.html',
+        'https://temple-directory-india.web.app/privacy-policy.html',
       );
       expect(PolicyConfig.termsOfServiceUri.scheme, 'https');
       expect(PolicyConfig.privacyPolicyUri.scheme, 'https');
