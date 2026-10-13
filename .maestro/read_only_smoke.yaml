@@ -18,6 +18,14 @@ appId: com.shradhaventures.temple
     commands:
       - launchApp:
           clearState: true
+      # A launcher ANR dialog hides the home text. Wait keeps the process;
+      # Close app is the other button. Both are absent on a healthy boot.
+      - tapOn:
+          text: "Wait"
+          optional: true
+      - tapOn:
+          text: "Close app"
+          optional: true
       - extendedWaitUntil:
           visible:
             id: "policy-accept-button"

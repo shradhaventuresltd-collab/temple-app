@@ -1,0 +1,299 @@
+appId: com.shradhaventures.temple
+---
+# Read-only screenshots. Never taps Seed, Admin, or Get Directions.
+# Every block is optional so a miss does not fail the smoke gate.
+# The shell also ignores this flow's exit code.
+
+- launchApp
+- extendedWaitUntil:
+    visible: "Temple Directory"
+    timeout: 90000
+    optional: true
+- extendedWaitUntil:
+    visible: "India's Sacred Temples"
+    timeout: 60000
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 8000
+    optional: true
+- runFlow:
+    when:
+      visible: "India's Sacred Temples"
+    optional: true
+    commands:
+      - takeScreenshot:
+          path: 01-home
+
+- scrollUntilVisible:
+    element:
+      id: "home-browse-temples"
+    direction: DOWN
+    timeout: 60000
+    speed: 40
+    visibilityPercentage: 100
+    centerElement: true
+    optional: true
+- tapOn:
+    id: "home-browse-temples"
+    optional: true
+- extendedWaitUntil:
+    visible: "\\d+ temples?"
+    timeout: 30000
+    optional: true
+- takeScreenshot:
+    path: 02-browse
+    optional: true
+
+- tapOn:
+    id: "filter-chip-state"
+    optional: true
+- extendedWaitUntil:
+    visible: "Filters"
+    timeout: 15000
+    optional: true
+- takeScreenshot:
+    path: 03-filters
+    optional: true
+- back:
+    optional: true
+
+# Search by name, shoot the top of detail, scroll once, go back.
+- runFlow:
+    optional: true
+    commands:
+      - tapOn:
+          id: "temple-list-search-field"
+      - eraseText:
+          optional: true
+      - inputText: "Dilwara"
+      - hideKeyboard:
+          optional: true
+      - extendedWaitUntil:
+          visible: "\\d+ temples?"
+          timeout: 30000
+      - tapOn:
+          id: "temple-browse-card"
+      # Every third open shows a test interstitial. Dismiss it before the shot.
+      - extendedWaitUntil:
+          visible: "Test mode|Get Directions"
+          timeout: 4000
+          optional: true
+      - runFlow:
+          when:
+            visible: "Test mode"
+          optional: true
+          commands:
+            - tapOn:
+                point: "92%,7%"
+            - tapOn:
+                text: "Close"
+                optional: true
+      - extendedWaitUntil:
+          visible: ".*Dilwara.*"
+          timeout: 25000
+      - takeScreenshot:
+          path: 04-detail-dilwara
+      - scroll
+      - takeScreenshot:
+          path: 05-detail-dilwara-scrolled
+      - back
+- runFlow:
+    optional: true
+    commands:
+      - tapOn:
+          id: "temple-list-search-field"
+      - eraseText:
+          optional: true
+      - inputText: "Mahabodhi"
+      - hideKeyboard:
+          optional: true
+      - extendedWaitUntil:
+          visible: "\\d+ temples?"
+          timeout: 30000
+      - tapOn:
+          id: "temple-browse-card"
+      - extendedWaitUntil:
+          visible: "Test mode|Get Directions"
+          timeout: 4000
+          optional: true
+      - runFlow:
+          when:
+            visible: "Test mode"
+          optional: true
+          commands:
+            - tapOn:
+                point: "92%,7%"
+            - tapOn:
+                text: "Close"
+                optional: true
+      - extendedWaitUntil:
+          visible: ".*Mahabodhi.*"
+          timeout: 25000
+      - takeScreenshot:
+          path: 06-detail-mahabodhi
+      - scroll
+      - takeScreenshot:
+          path: 07-detail-mahabodhi-scrolled
+      - back
+- runFlow:
+    optional: true
+    commands:
+      # The list counts opens in memory and shows a test interstitial
+      # on every third tap. Home pops back to the first route so the
+      # next list starts at 0. System back only clears search focus.
+      - tapOn:
+          id: "temple-list-home"
+      - scrollUntilVisible:
+          element:
+            id: "home-browse-temples"
+          direction: DOWN
+          timeout: 30000
+          speed: 40
+          visibilityPercentage: 100
+          centerElement: true
+      - tapOn:
+          id: "home-browse-temples"
+      - extendedWaitUntil:
+          visible: "\\d+ temples?"
+          timeout: 30000
+      - tapOn:
+          id: "temple-list-search-field"
+      - eraseText:
+          optional: true
+      - inputText: "Martand"
+      - hideKeyboard:
+          optional: true
+      - extendedWaitUntil:
+          visible: "\\d+ temples?"
+          timeout: 30000
+      - tapOn:
+          id: "temple-browse-card"
+      - extendedWaitUntil:
+          visible: "Test mode|Get Directions"
+          timeout: 4000
+          optional: true
+      - runFlow:
+          when:
+            visible: "Test mode"
+          optional: true
+          commands:
+            - tapOn:
+                point: "92%,7%"
+            - tapOn:
+                text: "Close"
+                optional: true
+      - extendedWaitUntil:
+          visible: ".*Martand.*"
+          timeout: 25000
+      - takeScreenshot:
+          path: 08-detail-martand
+      - scroll
+      - takeScreenshot:
+          path: 09-detail-martand-scrolled
+      - back
+- runFlow:
+    optional: true
+    commands:
+      - tapOn:
+          id: "temple-list-home"
+      - scrollUntilVisible:
+          element:
+            id: "home-browse-temples"
+          direction: DOWN
+          timeout: 30000
+          speed: 40
+          visibilityPercentage: 100
+          centerElement: true
+      - tapOn:
+          id: "home-browse-temples"
+      - extendedWaitUntil:
+          visible: "\\d+ temples?"
+          timeout: 30000
+      - tapOn:
+          id: "temple-list-search-field"
+      - eraseText:
+          optional: true
+      - inputText: "Shore Temple"
+      - hideKeyboard:
+          optional: true
+      - extendedWaitUntil:
+          visible: "\\d+ temples?"
+          timeout: 30000
+      - tapOn:
+          id: "temple-browse-card"
+      - extendedWaitUntil:
+          visible: "Test mode|Get Directions"
+          timeout: 4000
+          optional: true
+      - runFlow:
+          when:
+            visible: "Test mode"
+          optional: true
+          commands:
+            - tapOn:
+                point: "92%,7%"
+            - tapOn:
+                text: "Close"
+                optional: true
+      - extendedWaitUntil:
+          visible: ".*Shore Temple.*"
+          timeout: 25000
+      - takeScreenshot:
+          path: 10-detail-shore-temple
+      - scroll
+      - takeScreenshot:
+          path: 11-detail-shore-temple-scrolled
+      - back
+- runFlow:
+    optional: true
+    commands:
+      - tapOn:
+          id: "temple-list-home"
+      - scrollUntilVisible:
+          element:
+            id: "home-browse-temples"
+          direction: DOWN
+          timeout: 30000
+          speed: 40
+          visibilityPercentage: 100
+          centerElement: true
+      - tapOn:
+          id: "home-browse-temples"
+      - extendedWaitUntil:
+          visible: "\\d+ temples?"
+          timeout: 30000
+      - tapOn:
+          id: "temple-list-search-field"
+      - eraseText:
+          optional: true
+      - inputText: "Meenakshi"
+      - hideKeyboard:
+          optional: true
+      - extendedWaitUntil:
+          visible: "\\d+ temples?"
+          timeout: 30000
+      - tapOn:
+          id: "temple-browse-card"
+      - extendedWaitUntil:
+          visible: "Test mode|Get Directions"
+          timeout: 4000
+          optional: true
+      - runFlow:
+          when:
+            visible: "Test mode"
+          optional: true
+          commands:
+            - tapOn:
+                point: "92%,7%"
+            - tapOn:
+                text: "Close"
+                optional: true
+      - extendedWaitUntil:
+          visible: ".*Meenakshi.*"
+          timeout: 25000
+      - takeScreenshot:
+          path: 12-detail-meenakshi
+      - scroll
+      - takeScreenshot:
+          path: 13-detail-meenakshi-scrolled
+      - back

@@ -529,11 +529,15 @@ class _TempleListScreenState extends State<TempleListScreen> {
         ),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.home_rounded),
-            tooltip: 'Home',
-            onPressed: () =>
-                Navigator.popUntil(context, (route) => route.isFirst),
+          Semantics(
+            identifier: 'temple-list-home',
+            button: true,
+            child: IconButton(
+              icon: const Icon(Icons.home_rounded),
+              tooltip: 'Home',
+              onPressed: () =>
+                  Navigator.popUntil(context, (route) => route.isFirst),
+            ),
           ),
         ],
       ),
@@ -747,7 +751,7 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
                   onChanged: _setFilters,
                 ),
               ),
-            if ((query.isNotEmpty || filtersActive) && visible.isNotEmpty)
+            if (visible.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
                 child: Align(
