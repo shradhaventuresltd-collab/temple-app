@@ -9,6 +9,9 @@ import 'package:temple_app/widgets/app_drawer.dart';
 import 'package:temple_app/widgets/temple_image_placeholder.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+const Color _saffron = Color(0xFFFF8F00);
+const Color _gold = Color(0xFFFFD54F);
+
 class TempleDetailScreen extends StatelessWidget {
   const TempleDetailScreen({super.key, required this.temple});
 
@@ -36,9 +39,7 @@ class TempleDetailBody extends StatefulWidget {
 }
 
 class _TempleDetailBodyState extends State<TempleDetailBody> {
-  static const Color _saffron = Color(0xFFFF8F00);
   static const Color _deepSaffron = Color(0xFFE65100);
-  static const Color _gold = Color(0xFFFFD54F);
   static const _autoAdvanceInterval = Duration(seconds: 5);
   static const double _imageHeight = 450;
 
@@ -633,8 +634,6 @@ class _SpecialityPill extends StatelessWidget {
 
   final String label;
 
-  static const Color _saffron = Color(0xFFFF8F00);
-  static const Color _gold = Color(0xFFFFD54F);
   static const Color _cream = Color(0xFFFFF9E3);
 
   @override

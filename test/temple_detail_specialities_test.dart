@@ -123,7 +123,7 @@ void main() {
     },
   );
 
-  for (final textScale in const [1.0, 1.3]) {
+  for (final textScale in const [1.0, 1.3, 2.0]) {
     testWidgets(
       'longest specialities wrap at 360dp with text scale $textScale',
       (tester) async {
