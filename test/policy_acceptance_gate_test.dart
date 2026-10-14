@@ -318,6 +318,50 @@ void main() {
     expect(find.byType(HomeScreen), findsOneWidget);
   });
 
+  testWidgets('Home still shows when ads init throws', (tester) async {
+    final store = _MemoryPolicyAcceptanceStore();
+    var adsCalls = 0;
+
+    await tester.pumpWidget(
+      _app(
+        store: store,
+        initializeAds: () async {
+          adsCalls++;
+          throw StateError('ads failed');
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(HomeScreen), findsNothing);
+    expect(adsCalls, 0);
+
+    await tester.tap(find.byKey(const Key('policy-accept-button')));
+    await tester.pumpAndSettle();
+
+    expect(adsCalls, 1);
+    expect(find.byType(HomeScreen), findsOneWidget);
+    expect(find.text('Temple Directory'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    var returningCalls = 0;
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpWidget(
+      _app(
+        store: store,
+        initializeAds: () async {
+          returningCalls++;
+          throw StateError('ads failed again');
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(returningCalls, 1);
+    expect(find.byType(PolicyAcceptanceGate), findsNothing);
+    expect(find.byType(HomeScreen), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Accept stays on screen at text scale 2.0', (tester) async {
     await _expectAcceptReachable(
       tester,

@@ -39,9 +39,6 @@ done
 
 adb shell input keyevent KEYCODE_WAKEUP || true
 adb shell wm dismiss-keyguard || true
-# Pixel Launcher ANRs on a cold SwiftShader boot and the "isn't responding"
-# dialog covers the temple app, so Maestro never sees the Terms gate.
-adb shell settings put global hide_error_dialogs 1 || true
 # The runner also disables animations. Set them again after boot so a
 # late settings restart cannot leave window animations on.
 adb shell settings put global window_animation_scale 0 || true
@@ -127,37 +124,7 @@ warn_if_flow_retried() {
   fi
 }
 
-# Tap Wait (or Close app) on an ANR dialog that is already showing.
-dismiss_anr_dialog() {
-  adb shell uiautomator dump /sdcard/uidump.xml >/dev/null 2>&1 || return 0
-  local xml
-  xml="$(adb exec-out cat /sdcard/uidump.xml 2>/dev/null || true)"
-  if ! grep -q "isn't responding\|has stopped" <<<"$xml"; then
-    return 0
-  fi
-  warn "Dismissing a system isn't-responding dialog before Maestro"
-  local point
-  point="$(python3 -c '
-import re, sys
-xml = sys.stdin.read()
-for label in ("Wait", "Close app"):
-    m = re.search(r"text=\"" + label + r"\"[^>]*bounds=\"\[(\d+),(\d+)\]\[(\d+),(\d+)\]\"", xml)
-    if not m:
-        m = re.search(r"bounds=\"\[(\d+),(\d+)\]\[(\d+),(\d+)\]\"[^>]*text=\"" + label + r"\"", xml)
-    if m:
-        x1, y1, x2, y2 = map(int, m.groups())
-        print((x1 + x2) // 2, (y1 + y2) // 2)
-        break
-' <<<"$xml" || true)"
-  if [[ -n "$point" ]]; then
-    # shellcheck disable=SC2086
-    adb shell input tap $point || true
-    sleep 1
-  fi
-}
-
 status=1
-dismiss_anr_dialog || true
 for attempt in 1 2; do
   if [[ "$attempt" -gt 1 ]]; then
     warn "Maestro smoke retry was needed after attempt 1 failed"
@@ -173,7 +140,6 @@ for attempt in 1 2; do
   if [[ "$status" -eq 0 ]]; then
     exit 0
   fi
-  dismiss_anr_dialog || true
   dump_failure "$out"
   if [[ "$attempt" -eq 1 ]]; then
     echo "maestro failed; one more full attempt"
