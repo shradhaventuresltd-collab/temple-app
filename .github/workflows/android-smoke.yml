@@ -205,6 +205,7 @@ jobs:
         with:
           name: screenshots
           path: screenshots
+          retention-days: 14
           if-no-files-found: ignore
 
   report-failure:

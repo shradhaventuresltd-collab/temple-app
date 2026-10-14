@@ -751,7 +751,7 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
                   onChanged: _setFilters,
                 ),
               ),
-            if (visible.isNotEmpty)
+            if ((query.isNotEmpty || filtersActive) && visible.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
                 child: Align(

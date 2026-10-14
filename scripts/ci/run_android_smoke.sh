@@ -39,10 +39,9 @@ done
 
 adb shell input keyevent KEYCODE_WAKEUP || true
 adb shell wm dismiss-keyguard || true
-# Pixel Launcher ANRs on a cold SwiftShader boot and the "isn't responding"
-# dialog covers the temple app, so Maestro never sees Temple Directory.
-# Hide those dialogs, and dismiss one if it is already up.
-adb shell settings put global hide_error_dialogs 1 || true
+# A Pixel Launcher ANR covers the temple app. Do not set
+# hide_error_dialogs: that flag hides every ANR, including one from
+# com.shradhaventures.temple. Only a Pixel Launcher dialog is dismissed.
 # The runner also disables animations. Set them again after boot so a
 # late settings restart cannot leave window animations on.
 adb shell settings put global window_animation_scale 0 || true
@@ -128,15 +127,16 @@ warn_if_flow_retried() {
   fi
 }
 
-# Tap Wait (or Close app) on an ANR dialog that is already showing.
+# Tap Wait (or Close app) only on the Pixel Launcher ANR dialog.
+# An ANR from this app ("Temple Directory India isn't responding") stays up.
 dismiss_anr_dialog() {
   adb shell uiautomator dump /sdcard/uidump.xml >/dev/null 2>&1 || return 0
   local xml
   xml="$(adb exec-out cat /sdcard/uidump.xml 2>/dev/null || true)"
-  if ! grep -q "isn't responding\|has stopped" <<<"$xml"; then
+  if ! grep -q "Pixel Launcher isn't responding" <<<"$xml"; then
     return 0
   fi
-  warn "Dismissing a system isn't-responding dialog before Maestro"
+  warn "Dismissing the Pixel Launcher isn't-responding dialog before Maestro"
   local point
   point="$(python3 -c '
 import re, sys
@@ -197,7 +197,20 @@ for attempt in 1 2; do
   set -e
   warn_if_flow_retried "${out}/maestro-stdout.log" "$attempt"
   if [[ "$status" -eq 0 ]]; then
-    capture_screenshots || warn "Screenshot capture failed; the smoke gate ignores it"
+    # The workflow kills this script at 12 minutes. Screenshots get their
+    # own 3-minute cap, and they are skipped once the script is already
+    # near 10 minutes so a slow gate still exits 0.
+    if (( SECONDS >= 600 )); then
+      warn "Skipping screenshots; smoke script already used ${SECONDS}s"
+    else
+      set +e
+      timeout --kill-after=10s 3m bash -c "$(declare -f warn capture_screenshots); capture_screenshots"
+      shot_rc=$?
+      set -e
+      if (( shot_rc != 0 )); then
+        warn "Screenshot capture ended with status ${shot_rc}; the smoke gate ignores it"
+      fi
+    fi
     exit 0
   fi
   dismiss_anr_dialog || true
