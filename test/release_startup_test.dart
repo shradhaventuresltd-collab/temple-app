@@ -36,6 +36,75 @@ void main() {
     }
   });
 
+  test('kDebugMode shows the exception text and stack', () {
+    expectDetailedErrorBranch(debug: true, demoBuild: false, adminTools: false);
+  });
+
+  test('DEMO_BUILD shows the exception text and stack', () {
+    expectDetailedErrorBranch(debug: false, demoBuild: true, adminTools: false);
+  });
+
+  test('ENABLE_ADMIN_TOOLS shows the exception text and stack', () {
+    expectDetailedErrorBranch(debug: false, demoBuild: false, adminTools: true);
+  });
+
+  testWidgets('production AAB shows a branded screen with no stack and logs', (
+    tester,
+  ) async {
+    final previousBuilder = ErrorWidget.builder;
+    try {
+      expect(
+        showDetailedReleaseError(
+          debug: false,
+          demoBuild: false,
+          adminTools: false,
+        ),
+        isFalse,
+      );
+      installReleaseErrorWidget(
+        debug: false,
+        demoBuild: false,
+        adminTools: false,
+      );
+      expect(ErrorWidget.builder, same(productionReleaseErrorWidget));
+
+      final reported = <FlutterErrorDetails>[];
+      final printed = <String>[];
+      final previousOnError = FlutterError.onError;
+      final previousDebugPrint = debugPrint;
+      FlutterError.onError = reported.add;
+      debugPrint = (String? message, {int? wrapWidth}) {
+        printed.add(message ?? '');
+      };
+      late final Widget screen;
+      try {
+        screen = ErrorWidget.builder(_boomDetails());
+      } finally {
+        FlutterError.onError = previousOnError;
+        debugPrint = previousDebugPrint;
+      }
+
+      await tester.pumpWidget(screen);
+
+      expect(find.byType(BrandedReleaseErrorScreen), findsOneWidget);
+      expect(find.byType(ErrorWidget), findsNothing);
+      expect(find.text(BrandedReleaseErrorScreen.message), findsOneWidget);
+      expect(find.text(BrandedReleaseErrorScreen.appName), findsOneWidget);
+      expect(find.textContaining('boom-marker'), findsNothing);
+      expect(find.textContaining('#0 gate'), findsNothing);
+      expect(find.textContaining('Exception'), findsNothing);
+
+      expect(reported, hasLength(1));
+      expect(reported.single.exceptionAsString(), contains('boom-marker'));
+      expect(reported.single.stack.toString(), contains('#0 gate'));
+      final log = printed.join('\n');
+      expect(log, contains('boom-marker'));
+      expect(log, contains('#0 gate'));
+    } finally {
+      ErrorWidget.builder = previousBuilder;
+    }
+  });
+
   testWidgets('gate paints when runtime font fetching is off', (tester) async {
     final previousFetching = GoogleFonts.config.allowRuntimeFetching;
     addTearDown(
@@ -68,6 +137,46 @@ void main() {
     expect(find.byType(PolicyAcceptanceGate), findsOneWidget);
     expect(find.text(PolicyGateCopy.firstLaunchTitle), findsOneWidget);
   });
+}
+
+FlutterErrorDetails _boomDetails() {
+  return FlutterErrorDetails(
+    exception: Exception('boom-marker'),
+    stack: StackTrace.fromString('#0 gate\n#1 main\n'),
+  );
+}
+
+void expectDetailedErrorBranch({
+  required bool debug,
+  required bool demoBuild,
+  required bool adminTools,
+}) {
+  final previous = ErrorWidget.builder;
+  try {
+    expect(
+      showDetailedReleaseError(
+        debug: debug,
+        demoBuild: demoBuild,
+        adminTools: adminTools,
+      ),
+      isTrue,
+    );
+    installReleaseErrorWidget(
+      debug: debug,
+      demoBuild: demoBuild,
+      adminTools: adminTools,
+    );
+    expect(ErrorWidget.builder, same(releaseErrorWidget));
+    final widget = ErrorWidget.builder(_boomDetails());
+    expect(widget, isA<ErrorWidget>());
+    final message = (widget as ErrorWidget).message;
+    expect(message, contains('boom-marker'));
+    expect(message, contains('#0 gate'));
+    expect(message, isNot(contains('See also:')));
+    expect(message, isNot(contains(BrandedReleaseErrorScreen.message)));
+  } finally {
+    ErrorWidget.builder = previous;
+  }
 }
 
 class _Store implements PolicyAcceptanceStore {
