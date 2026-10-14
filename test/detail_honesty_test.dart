@@ -153,7 +153,9 @@ void main() {
       expect(dilwara.photoPending, isFalse);
       expect(dilwara.verifiedImages, hasLength(6));
       expect(dilwara.tradition, SiteTradition.jain);
-      expect(dilwara.framing, SiteFraming.livingTemple);
+      // "Active Jain tirtha" is a legacy living phrase. Tradition still wins,
+      // so the listing is not framed as a living temple.
+      expect(dilwara.framing, SiteFraming.neutral);
 
       final martand = DetailHonesty.of(_named('Martand Sun Temple'));
       expect(_named('Martand Sun Temple').imageUrl.contains('picsum'), isFalse);
@@ -341,40 +343,39 @@ void main() {
     expect(jainDarshan.framingLabel, isNull);
   });
 
-  test(
-    'negated worship phrases stay neutral, including past 48 characters',
-    () {
-      const negated = <String>[
-        'The old puja discontinued after the shrine closed.',
-        'Puja has been discontinued and the sanctum is empty.',
-        'This courtyard was once worshipped.',
+  test('negated worship phrases stay neutral, including past 48 characters', () {
+    const negated = <String>[
+      'The old puja discontinued after the shrine closed.',
+      'Puja has been discontinued and the sanctum is empty.',
+      'This courtyard was once worshipped.',
       'This courtyard was once widely worshipped.',
-        'A historic puja is all the notes record.',
-        'A historical aarti is mentioned only as a past custom.',
-        'The former puja is no longer held.',
-        'There is no surviving inscription, priestly lineage, or local memory of a daily puja on this site.',
-      ];
-      for (final description in negated) {
-        final honesty = DetailHonesty.of(
-          _draft(
-            description: description,
-            timings: 'Open daily 6:00 AM–8:00 PM.',
-          ),
-        );
-        expect(honesty.framing, SiteFraming.neutral, reason: description);
-        expect(honesty.framingLabel, isNull, reason: description);
-      }
-
-      final living = DetailHonesty.of(
+      'A historic puja is all the notes record.',
+      'A historical aarti is mentioned only as a past custom.',
+      'The former puja is no longer held.',
+      // The "no" sits more than three tokens back, but it is the same claim:
+      // "and" / "but" never starts a new one. That still denies the puja.
+      'There is no surviving inscription, priestly lineage, or local memory of a daily puja on this site.',
+    ];
+    for (final description in negated) {
+      final honesty = DetailHonesty.of(
         _draft(
-          description: 'Darshan begins after dawn and the puja is current.',
+          description: description,
           timings: 'Open daily 6:00 AM–8:00 PM.',
         ),
       );
-      expect(living.framing, SiteFraming.livingTemple);
-      expect(living.framingLabel, 'Living temple');
-    },
-  );
+      expect(honesty.framing, SiteFraming.neutral, reason: description);
+      expect(honesty.framingLabel, isNull, reason: description);
+    }
+
+    final living = DetailHonesty.of(
+      _draft(
+        description: 'Darshan begins after dawn and the puja is current.',
+        timings: 'Open daily 6:00 AM–8:00 PM.',
+      ),
+    );
+    expect(living.framing, SiteFraming.livingTemple);
+    expect(living.framingLabel, 'Living temple');
+  });
 
   test('worship words are whole words, so Darshana is not darshan', () {
     final darshana = DetailHonesty.of(
@@ -432,12 +433,121 @@ void main() {
     expect(sikh.framingLabel, isNull);
   });
 
+  test('KAN-103 comment 10395 tightens living-worship claims', () {
+    final noVip = DetailHonesty.of(
+      _draft(
+        description: 'No-VIP darshan for all.',
+        timings: 'Open daily 6:00 AM–8:00 PM.',
+      ),
+    );
+    expect(noVip.framing, SiteFraming.livingTemple, reason: 'No-VIP darshan');
+    expect(noVip.framingLabel, 'Living temple');
+
+    final semicolon = DetailHonesty.of(
+      _draft(
+        description: 'No photography; darshan 6am to noon.',
+        timings: 'Open daily 6:00 AM–8:00 PM.',
+      ),
+    );
+    expect(
+      semicolon.framing,
+      SiteFraming.livingTemple,
+      reason: 'semicolon starts a new clause',
+    );
+
+    final unrelatedNot = DetailHonesty.of(
+      _draft(
+        description: 'Not crowded on weekdays and darshan runs till 9pm.',
+        timings: 'Open daily 6:00 AM–8:00 PM.',
+      ),
+    );
+    expect(
+      unrelatedNot.framing,
+      SiteFraming.livingTemple,
+      reason: 'not before and does not cancel darshan',
+    );
+
+    final traditionCases = <(String, String)>[
+      ('A Buddhist temple with daily puja.', 'Shiva'),
+      ('A Jain temple with daily puja.', 'Shiva'),
+      ('A gurdwara with daily puja.', 'Guru Nanak'),
+    ];
+    for (final (description, deity) in traditionCases) {
+      final honesty = DetailHonesty.of(
+        _draft(
+          deity: deity,
+          description: description,
+          timings: 'Open daily 6:00 AM–8:00 PM.',
+        ),
+      );
+      expect(honesty.framing, SiteFraming.neutral, reason: description);
+      expect(honesty.framingLabel, isNull, reason: description);
+    }
+
+    final asiRuin = DetailHonesty.of(
+      _draft(
+        description: 'ASI protected ruin where puja happens.',
+        timings: 'Open daily 6:00 AM–8:00 PM.',
+      ),
+    );
+    expect(asiRuin.framing, SiteFraming.monumentVisit);
+    expect(asiRuin.framingLabel, 'Heritage visit');
+
+    final protectedMonument = DetailHonesty.of(
+      _draft(
+        description: 'A protected monument where puja happens.',
+        timings: 'Open daily 6:00 AM–8:00 PM.',
+      ),
+    );
+    expect(protectedMonument.framing, SiteFraming.monumentVisit);
+    expect(protectedMonument.framingLabel, 'Heritage visit');
+
+    for (final description in const [
+      'No St. darshan is offered.',
+      'No A.D. puja is recorded.',
+      'No 5.30 darshan slot is published.',
+    ]) {
+      final honesty = DetailHonesty.of(
+        _draft(
+          description: description,
+          timings: 'Open daily 6:00 AM–8:00 PM.',
+        ),
+      );
+      expect(honesty.framing, SiteFraming.neutral, reason: description);
+    }
+
+    final afterAbbreviation = DetailHonesty.of(
+      _draft(
+        description: 'Closed in A.D. 800. Darshan begins at dawn.',
+        timings: 'Open daily 6:00 AM–8:00 PM.',
+      ),
+    );
+    expect(afterAbbreviation.framing, SiteFraming.livingTemple);
+
+    // Kiriteswari is a living Shakti Peetha, but the heuristic misses it.
+    // "worshipped" is not a worship-word hit, and Durga Puja / Kali Puja are
+    // festival titles in the "No official daily clock" timings. That miss is
+    // not a regression. Do not special-case this temple by name.
+    final kiriteswari = DetailHonesty.of(_named('Kiriteswari Temple'));
+    expect(kiriteswari.framing, SiteFraming.neutral);
+    expect(kiriteswari.framingLabel, isNull);
+
+    expect(
+      DetailHonesty.of(_named('Martand Sun Temple')).framing,
+      SiteFraming.monumentVisit,
+    );
+    expect(
+      DetailHonesty.of(_named('Shore Temple')).framing,
+      SiteFraming.monumentVisit,
+    );
+  });
+
   test('Jain and Buddhist sites are labeled without a Hindu-only chip', () {
     final dilwara = DetailHonesty.of(_named('Dilwara Temples'));
     expect(dilwara.tradition, SiteTradition.jain);
     expect(dilwara.traditionLabel, 'Jain');
     expect(dilwara.framingLabel, isNull);
-    expect(dilwara.framing, SiteFraming.livingTemple);
+    expect(dilwara.framing, SiteFraming.neutral);
     expect(dilwara.storyHeading, 'About this place');
     expect(dilwara.framingNote, contains('Jain pilgrimage site'));
 
