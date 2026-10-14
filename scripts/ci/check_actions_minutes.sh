@@ -2,17 +2,16 @@
 # Compare GitHub Actions usage with the 2,000 minute private-repo budget.
 # Opens or updates one issue labelled actions-minutes at or above 75% (1,500).
 #
-# Secret Sanu adds on the repository (optional, account-wide figure):
-#   Name: BILLING_TOKEN
-#   Fine-grained personal access token created by the owner of this
-#   user-owned account (GITHUB_TOKEN cannot read billing here).
-#   Account permission: Plan, Read-only.
-#   Repository access: this repository is enough; Plan is an account permission.
-#
 # The total compared with 1,500 is analyze-test minutes plus android-smoke
-# minutes for this repository. Other workflows are not included. BILLING_TOKEN,
-# when it works, is recorded as an account-wide note and does not replace
-# that total. Other private repositories are not in the total.
+# minutes for this repository. Each job that ran is timed from started_at to
+# completed_at on /actions/runs/<id>/jobs, rounded up to a whole minute, with
+# a 1-minute minimum. Skipped jobs are not counted. The run timing API is not
+# used. An Actions API error fails the check, and so does a workflow that has
+# runs but a minute total of 0.
+#
+# /settings/billing/usage is not called. That report mixes products and unit
+# types (quantity on one route, grossQuantity on the summary), and it is not
+# a reliable Actions-minute total for this user-owned account.
 set -euo pipefail
 
 budget_minutes=2000
@@ -37,75 +36,91 @@ minutes_over_budget_action() {
   printf '%s\n' "Change the android-smoke cron to two runs a day, 10 AM and 10 PM IST (cron '30 4,16 * * *')."
 }
 
+# Whole minutes for one job. Skipped jobs print 0. A job that ran is at
+# least 1 minute, rounded up. Missing timestamps on a job that ran fail.
+job_billable_minutes() {
+  local conclusion="$1"
+  local started="$2"
+  local completed="$3"
+  local start_epoch end_epoch seconds
+  if [[ "$conclusion" == "skipped" ]]; then
+    printf '0\n'
+    return 0
+  fi
+  if [[ -z "$started" || "$started" == "null" || -z "$completed" || "$completed" == "null" ]]; then
+    echo "error: a job with conclusion '${conclusion}' is missing started_at or completed_at." >&2
+    return 1
+  fi
+  start_epoch="$(date -u -d "$started" +%s)" || return 1
+  end_epoch="$(date -u -d "$completed" +%s)" || return 1
+  if [[ "$end_epoch" -lt "$start_epoch" ]]; then
+    echo "error: completed_at ${completed} is before started_at ${started}." >&2
+    return 1
+  fi
+  seconds=$((end_epoch - start_epoch))
+  awk -v s="$seconds" 'BEGIN { m = int((s + 59) / 60); if (m < 1) m = 1; printf "%d\n", m }'
+}
+
+# Fail when runs were listed and the computed minute total is 0.
+require_minutes_if_runs() {
+  local run_count="$1"
+  local minutes="$2"
+  local label="$3"
+  if [[ "$run_count" -gt 0 && "$minutes" -eq 0 ]]; then
+    echo "error: ${label} has ${run_count} runs but the minute total is 0." >&2
+    return 1
+  fi
+}
+
 if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
   return 0 2>/dev/null || exit 0
 fi
 
 repo="${GITHUB_REPOSITORY:?}"
-owner="${repo%%/*}"
 source_label=""
 used=""
-included_note=""
-billing_note=""
 month_start="$(date -u +%Y-%m-01)"
 today="$(date -u +%Y-%m-%d)"
 
-# Billable minutes for one workflow file during the current calendar month.
+# Whole minutes for one workflow file during the current calendar month.
+# API errors propagate. A listed run with no measurable jobs fails.
 workflow_minutes() {
   local workflow_file="$1"
-  local ids id ms total_ms=0
-  ids="$(gh api --paginate "repos/${repo}/actions/workflows/${workflow_file}/runs?created=${month_start}..${today}&per_page=100" --jq '.workflow_runs[].id')"
-  if [[ -n "$ids" ]]; then
-    while IFS= read -r id; do
-      [[ -z "$id" ]] && continue
-      ms="$(gh api "repos/${repo}/actions/runs/${id}/timing" --jq '[(.billable // {}) | to_entries[].value.total_ms] | add // 0' 2>/dev/null || echo 0)"
-      case "$ms" in
-        ''|null|*[!0-9]*) ms=0 ;;
-      esac
-      total_ms=$((total_ms + ms))
-    done <<<"$ids"
-  fi
-  awk -v ms="$total_ms" 'BEGIN { printf "%.2f", ms / 60000 }'
-}
-
-try_billing() {
-  local url="$1"
-  local body http
-  body="$(curl -sS -H "Authorization: Bearer ${BILLING_TOKEN}" \
-    -H "Accept: application/vnd.github+json" \
-    -H "X-GitHub-Api-Version: 2022-11-28" \
-    -w $'\n%{http_code}' \
-    "$url" || true)"
-  http="${body##*$'\n'}"
-  body="${body%$'\n'*}"
-  if [[ "$http" != "200" ]]; then
-    echo "billing ${url} returned HTTP ${http}." >&2
+  local ids id jobs conclusion started completed job_minutes
+  local total=0 run_count=0
+  if ! ids="$(gh api --paginate "repos/${repo}/actions/workflows/${workflow_file}/runs?created=${month_start}..${today}&per_page=100" --jq '.workflow_runs[].id')"; then
+    echo "error: could not list ${workflow_file} runs." >&2
     return 1
   fi
-  billing_used="$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["total_minutes_used"])' <<<"$body")"
-  local included
-  included="$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("included_minutes", ""))' <<<"$body")"
-  if [[ -n "$included" ]]; then
-    included_note="Billing reported included_minutes=${included}. This check still uses the ${budget_minutes} free private-minute budget."
+  if [[ -z "$ids" ]]; then
+    printf '0\n'
+    return 0
   fi
+  while IFS= read -r id; do
+    [[ -z "$id" ]] && continue
+    run_count=$((run_count + 1))
+    if ! jobs="$(gh api --paginate "repos/${repo}/actions/runs/${id}/jobs" --jq '.jobs[] | [.conclusion // "null", .started_at // "null", .completed_at // "null"] | @tsv')"; then
+      echo "error: could not list jobs for ${workflow_file} run ${id}." >&2
+      return 1
+    fi
+    if [[ -z "$jobs" ]]; then
+      echo "error: ${workflow_file} run ${id} returned no jobs." >&2
+      return 1
+    fi
+    while IFS=$'\t' read -r conclusion started completed; do
+      [[ -z "${conclusion}${started}${completed}" ]] && continue
+      job_minutes="$(job_billable_minutes "$conclusion" "$started" "$completed")" || return 1
+      total=$((total + job_minutes))
+    done <<<"$jobs"
+  done <<<"$ids"
+  require_minutes_if_runs "$run_count" "$total" "$workflow_file" || return 1
+  printf '%s\n' "$total"
 }
 
 analyze_minutes="$(workflow_minutes ci.yml)"
 smoke_minutes="$(workflow_minutes android-smoke.yml)"
-used="$(sum_minutes "$analyze_minutes" "$smoke_minutes")"
-source_label="Sum of billable Actions minutes for analyze-test (ci.yml) and android-smoke (android-smoke.yml) in ${repo} from ${month_start} through ${today} UTC."
-
-if [[ -n "${BILLING_TOKEN:-}" ]]; then
-  billing_used=""
-  if try_billing "https://api.github.com/users/${owner}/settings/billing/actions" \
-    || try_billing "https://api.github.com/orgs/${owner}/settings/billing/actions"; then
-    billing_note="Account-wide billing reported ${billing_used} minutes. The 1,500 check uses analyze-test plus android-smoke (${used} minutes), not the account-wide figure."
-  else
-    echo "BILLING_TOKEN could not read plan billing. The 1,500 check uses analyze-test plus android-smoke only." >&2
-  fi
-else
-  echo "BILLING_TOKEN is not set. Counting analyze-test and android-smoke minutes for this repository." >&2
-fi
+used="$((analyze_minutes + smoke_minutes))"
+source_label="Sum of job minutes for analyze-test (ci.yml) and android-smoke (android-smoke.yml) in ${repo} from ${month_start} through ${today} UTC. Each job that ran is rounded up from started_at to completed_at, with a 1-minute minimum. Skipped jobs are not counted."
 
 echo "Actions minutes used: ${used} / ${budget_minutes} (${source_label})"
 
@@ -125,12 +140,6 @@ action="$(minutes_over_budget_action)"
   echo "- Budget: ${budget_minutes} minutes"
   echo "- Threshold: ${threshold_minutes} minutes (75%)"
   echo "- Source: ${source_label}"
-  if [[ -n "$billing_note" ]]; then
-    echo "- ${billing_note}"
-  fi
-  if [[ -n "$included_note" ]]; then
-    echo "- ${included_note}"
-  fi
   echo
   echo "${action}"
   echo

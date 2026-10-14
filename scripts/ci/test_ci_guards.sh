@@ -64,4 +64,41 @@ expect_eq "1,500 alert says to cut smoke to 10 AM and 10 PM IST" \
   "$(minutes_over_budget_action)" \
   "Change the android-smoke cron to two runs a day, 10 AM and 10 PM IST (cron '30 4,16 * * *')."
 
+expect_eq "skipped job does not count" \
+  "$(job_billable_minutes skipped 2026-10-01T00:00:00Z 2026-10-01T00:05:00Z)" 0
+expect_eq "skipped job with no timestamps does not count" \
+  "$(job_billable_minutes skipped null null)" 0
+expect_eq "a job that ran is at least 1 minute" \
+  "$(job_billable_minutes success 2026-10-01T00:00:00Z 2026-10-01T00:00:00Z)" 1
+expect_eq "30 seconds rounds up to 1 minute" \
+  "$(job_billable_minutes success 2026-10-01T00:00:00Z 2026-10-01T00:00:30Z)" 1
+expect_eq "60 seconds is 1 minute" \
+  "$(job_billable_minutes success 2026-10-01T00:00:00Z 2026-10-01T00:01:00Z)" 1
+expect_eq "61 seconds rounds up to 2 minutes" \
+  "$(job_billable_minutes success 2026-10-01T00:00:00Z 2026-10-01T00:01:01Z)" 2
+expect_eq "cancelled job still counts" \
+  "$(job_billable_minutes cancelled 2026-10-01T00:00:00Z 2026-10-01T00:01:30Z)" 2
+
+if job_billable_minutes failure null null >/dev/null 2>&1; then
+  echo "FAIL: a job that ran without timestamps should fail" >&2
+  exit 1
+fi
+echo "ok: a job that ran without timestamps fails"
+
+if job_billable_minutes success 2026-10-01T00:02:00Z 2026-10-01T00:01:00Z >/dev/null 2>&1; then
+  echo "FAIL: completed_at before started_at should fail" >&2
+  exit 1
+fi
+echo "ok: completed_at before started_at fails"
+
+require_minutes_if_runs 0 0 ci.yml
+echo "ok: no runs and 0 minutes is allowed"
+if require_minutes_if_runs 2 0 android-smoke.yml >/dev/null 2>&1; then
+  echo "FAIL: runs with a 0 minute total should fail" >&2
+  exit 1
+fi
+echo "ok: runs with a 0 minute total fails"
+require_minutes_if_runs 2 5 android-smoke.yml
+echo "ok: runs with measured minutes pass"
+
 echo "CI guard checks passed."

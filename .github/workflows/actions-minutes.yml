@@ -6,12 +6,9 @@ name: actions-minutes
 # cron '30 4,16 * * *' (10:00 and 22:00 IST). The smoke schedule
 # itself stays four runs a day. See scripts/ci/check_actions_minutes.sh.
 #
-# Secret Sanu adds (optional): BILLING_TOKEN
-#   Fine-grained PAT from the owner of this user-owned account.
-#   Account permission: Plan, Read-only.
-#   GITHUB_TOKEN cannot read billing here. The 1,500 check always
-#   adds analyze-test and android-smoke for this repository. When
-#   BILLING_TOKEN works, the issue also records the account-wide figure.
+# Minutes come from each job's started_at and completed_at. The run
+# timing API and /settings/billing/usage are not called. An API error
+# fails the job, as does a workflow that has runs but totals 0 minutes.
 
 on:
   schedule:
@@ -36,5 +33,4 @@ jobs:
       - name: Check Actions minutes
         env:
           GH_TOKEN: ${{ github.token }}
-          BILLING_TOKEN: ${{ secrets.BILLING_TOKEN }}
         run: bash scripts/ci/check_actions_minutes.sh
