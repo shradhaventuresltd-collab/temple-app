@@ -178,13 +178,69 @@ bool isPlaceholderImageUrl(String raw) {
 }
 
 String _corpus(Temple temple) {
-  return [
-    temple.description,
-    temple.story,
-    temple.timings,
-    temple.specialities.join('\n'),
-  ].join('\n').toLowerCase().replaceAll(RegExp(r'[-–—]'), ' ');
+  return _normalizeHonestyText(
+    [
+      temple.description,
+      temple.story,
+      temple.timings,
+      temple.specialities.join('\n'),
+    ].join('\n'),
+  );
 }
+
+/// Lowercase copy for phrase checks.
+///
+/// En dashes and em dashes become spaces. An ASCII hyphen inside a word stays
+/// put, so "No-VIP" is one token and is not the denial word "no".
+String _normalizeHonestyText(String raw) {
+  return raw
+      .toLowerCase()
+      .replaceAll('’', "'")
+      .replaceAll('‘', "'")
+      .replaceAll(RegExp(r'[–—]'), ' ');
+}
+
+const _livingPhrases = <String>[
+  'living temple',
+  'living shrine',
+  'living pilgrimage',
+  'living monument',
+  'living asi',
+  'living pooja',
+  'living cult',
+  'living peetha',
+  'daily worship',
+  'daily pooja',
+  'daily puja',
+  'daily darshan',
+  'daily aarti',
+  'daily observance',
+  'six pooja',
+  'active ritual',
+  'active worship',
+  'active jain',
+  'worship continues',
+  'pooja continues',
+  'hr&ce',
+  'hrce',
+  'devaswom',
+  'endowments',
+];
+
+final _ruinWord = RegExp(r'\b(?:ruined|ruins?)\b');
+
+/// Nearby words that mean the ruin is not this shrine: a fort, an excavation
+/// find, or a neighboring site.
+const _incidentalRuinWords = <String>{
+  'above',
+  'around',
+  'beside',
+  'excavated',
+  'excavation',
+  'excavations',
+  'fort',
+  'revealed',
+};
 
 SiteFraming _framing(Temple temple, String corpus, SiteTradition tradition) {
   const monumentPhrases = <String>[
@@ -205,68 +261,98 @@ SiteFraming _framing(Temple temple, String corpus, SiteTradition tradition) {
     'not a typical hr&ce',
     'not a typical darshan',
   ];
-  // Heritage, ASI, and ruin wording still wins over worship words.
-  if (monumentPhrases.any(corpus.contains)) {
+  // Fixed heritage phrases win over every living path, including "living temple".
+  // The phrase has to end on a word boundary, so "monument visiting" is not
+  // "monument visit". Jogulamba's Navabrahma note uses the longer word, and
+  // its restored "living Peetha" worship stays a living claim.
+  if (monumentPhrases.any((phrase) => _hasBoundedPhrase(corpus, phrase))) {
     return SiteFraming.monumentVisit;
   }
-  const livingPhrases = <String>[
-    'living temple',
-    'living shrine',
-    'living pilgrimage',
-    'living monument',
-    'living asi',
-    'living pooja',
-    'living cult',
-    'daily worship',
-    'daily pooja',
-    'daily puja',
-    'daily darshan',
-    'daily aarti',
-    'daily observance',
-    'six pooja',
-    'active ritual',
-    'active worship',
-    'active jain',
-    'worship continues',
-    'pooja continues',
-    'hr&ce',
-    'hrce',
-    'devaswom',
-    'endowments',
-  ];
-  if (_anyAffirmative(corpus, livingPhrases)) {
-    return SiteFraming.livingTemple;
+  final presentWorship =
+      _anyAffirmative(corpus, _livingPhrases) || _affirmativeWorship(temple);
+  // "asi", "ruin(s)", and "protected monument" do not force heritage on
+  // their own. Present-tense darshan or puja wins. Heritage from ruins
+  // requires a ruined shrine, ceased or past-tense worship, and no
+  // present-tense evidence. Protected or ASI status alone stays neutral.
+  if (!presentWorship &&
+      _shrineIsRuin(corpus) &&
+      _ceasedOrPastWorship(corpus)) {
+    return SiteFraming.monumentVisit;
   }
-  // Jain, Buddhist, and Sikh keep their tradition chip. Worship words
-  // do not reclassify those listings.
+  // Jain, Buddhist, and Sikh keep the tradition chip on every path. Legacy
+  // phrases such as "daily puja" or "active jain" do not add living-temple
+  // framing.
   if (tradition != SiteTradition.unspecified) {
     return SiteFraming.neutral;
   }
-  if (_affirmativeWorship(temple)) {
+  if (presentWorship) {
     return SiteFraming.livingTemple;
   }
   return SiteFraming.neutral;
+}
+
+final _ceasedOrPastWorshipPattern = RegExp(
+  r'\b(?:once|historic|historical|formerly|former|erstwhile|discontinued|ceased|stopped|ended|abandoned|abolished)\b',
+);
+
+bool _ceasedOrPastWorship(String corpus) {
+  return _ceasedOrPastWorshipPattern.hasMatch(corpus);
+}
+
+/// True when ruin wording describes this shrine, not a fort or a dig.
+bool _shrineIsRuin(String corpus) {
+  for (final match in _ruinWord.allMatches(corpus)) {
+    final before = corpus.substring(
+      _clauseStart(corpus, match.start),
+      match.start,
+    );
+    final after = corpus.substring(match.end, _clauseEnd(corpus, match.end));
+    final beforeWords = _words(before);
+    final afterWords = _words(after);
+    final tail = beforeWords.length <= 8
+        ? beforeWords
+        : beforeWords.sublist(beforeWords.length - 8);
+    final head = afterWords.length <= 4 ? afterWords : afterWords.sublist(0, 4);
+    final around = [...tail, ...head];
+    if (around.any(_incidentalRuinWords.contains)) continue;
+    return true;
+  }
+  return false;
 }
 
 /// Worship words in the timings text or the description.
 ///
 /// A clock by itself is not darshan. Story and specialities are not read.
 /// Matches are whole words, so a name such as Darshana is not darshan.
-/// Denial is the whole sentence, not a 48-character lookback, and it also
-/// reads the words after the hit. "puja discontinued", "once worshipped",
-/// and "historic puja" do not count.
+/// "puja discontinued", "once worshipped", and "historic puja" do not count.
+///
+/// Festival titles "Durga Puja" and "Kali Puja" are not a worship schedule.
+/// Kiriteswari Temple stays neutral on those titles beside "No official daily
+/// clock". That miss is not a regression, and the temple is not special-cased
+/// by name.
 bool _affirmativeWorship(Temple temple) {
-  final text = [
-    temple.description,
-    temple.timings,
-  ].join('\n').toLowerCase().replaceAll(RegExp(r'[-–—]'), ' ');
+  final text = _normalizeHonestyText(
+    [temple.description, temple.timings].join('\n'),
+  );
   final pattern = RegExp(
     r'\b(?:widely worshipped|darshan time|darshans?|aartis?|artis?|poojas?|pujas?|abhisheks?)\b',
   );
   for (final match in pattern.allMatches(text)) {
+    final word = match.group(0)!;
+    if ((word == 'puja' || word == 'pujas') &&
+        _festivalPujaTitle(text, match.start)) {
+      continue;
+    }
     if (_matchIsAffirmative(text, match.start, match.end)) return true;
   }
   return false;
+}
+
+bool _festivalPujaTitle(String text, int pujaStart) {
+  final previous = _words(text.substring(0, pujaStart));
+  if (previous.isEmpty) return false;
+  final title = previous.last;
+  return title == 'durga' || title == 'kali';
 }
 
 /// Tradition named by a deity string alone.
@@ -316,45 +402,118 @@ bool _anyAffirmative(String text, List<String> phrases) {
   return false;
 }
 
-/// True when [phrase] appears without a denial in the same sentence.
+/// True when [phrase] appears without a nearby denial.
+///
+/// Spaces in [phrase] also match a hyphen, so "living-temple" still counts
+/// as "living temple". The hyphen is not turned into a space first, which
+/// would split "No-VIP" into the denial word "no".
 bool _affirmative(String text, String phrase) {
-  final pattern = RegExp(RegExp.escape(phrase));
+  final pattern = RegExp(_phrasePattern(phrase));
   for (final match in pattern.allMatches(text)) {
     if (_matchIsAffirmative(text, match.start, match.end)) return true;
   }
   return false;
 }
 
-final _denialBefore = RegExp(r'\b(no|not|without|never|unlike|rather than)\b');
+String _phrasePattern(String phrase) {
+  return phrase.split(RegExp(r'\s+')).map(RegExp.escape).join(r'[\s-]+');
+}
+
+const _denialWords = <String>{'no', 'not', 'without', 'never', 'unlike'};
 
 final _qualifierBefore = RegExp(
   r'\b(once|historic|historical|formerly|former|erstwhile)\b',
 );
 
 final _ceasedAfter = RegExp(
-  r'\b(discontinued|ceased|stopped|ended|abandoned|abolished)\b',
+  r'\b(?:discontinued|ceased|stopped|ended|abandoned|abolished)\b'
+  r'|\bno more\b'
+  r'|\bno longer\b'
+  r'|\bonce worshipped\b'
+  r'|\b(?:was|were)\b(?:\s+\w+){0,4}\s+once\b',
 );
 
-/// A hit counts only when the sentence does not take it back.
+/// A denial that follows the hit, as in "darshan not allowed".
 ///
-/// The lookback is the sentence, capped at 240 characters, so a "no" or
-/// "not" further than 48 characters away still denies the hit. Qualifiers
-/// have to sit next to the word ("historic puja", "once worshipped").
-/// Words after the hit count too ("puja discontinued").
+/// "not" has to attach to a word that takes the worship back. A later "not"
+/// in "not spelled out" or "not a ticket" stays outside this pattern.
+final _deniedAfter = RegExp(
+  r'\b(?:not|never|no)\b(?:\s+\w+){0,2}\s+(?:allowed|permitted|offered|held|performed|available|conducted)\b',
+);
+
+/// How many tokens before a hit can carry "no" / "not" / "without".
+///
+/// An unrelated earlier "not", as in "Not crowded on weekdays and darshan",
+/// is outside this window. "and" and "but" also start a new claim, so a
+/// denial before them does not cross. Inside one claim, a "no" further than
+/// three tokens away still denies ("no ... daily puja"), because missing a
+/// living claim is better than inventing one.
+const _denialTokenWindow = 3;
+
+/// A hit counts only when the clause does not take it back.
+///
+/// Qualifiers have to sit next to the word ("historic puja", "once worshipped").
+/// Words after the hit count too ("puja discontinued", "puja was once
+/// performed", "puja site no more", "darshan not allowed").
 bool _matchIsAffirmative(String text, int start, int end) {
   final before = text.substring(_clauseStart(text, start), start);
   final after = text.substring(end, _clauseEnd(text, end));
-  if (_denialBefore.hasMatch(before)) return false;
+  if (_deniedBefore(before)) return false;
   if (_qualifierBefore.hasMatch(_tailWords(before, 4))) return false;
-  if (_ceasedAfter.hasMatch(_headWords(after, 6))) return false;
+  final afterHead = _headWords(after, 6);
+  if (_ceasedAfter.hasMatch(afterHead)) return false;
+  if (_deniedAfter.hasMatch(afterHead)) return false;
   return true;
+}
+
+bool _hasBoundedPhrase(String corpus, String phrase) {
+  return RegExp('${RegExp.escape(phrase)}(?![a-z0-9])').hasMatch(corpus);
+}
+
+bool _deniedBefore(String before) {
+  final words = _words(before);
+  if (words.isEmpty) return false;
+  final windowStart = words.length <= _denialTokenWindow
+      ? 0
+      : words.length - _denialTokenWindow;
+  if (_containsDenial(words, windowStart, words.length)) return true;
+  var conjunctStart = 0;
+  for (var i = 0; i < words.length; i++) {
+    if (words[i] == 'and' || words[i] == 'but') conjunctStart = i + 1;
+  }
+  if (conjunctStart >= words.length) return false;
+  return _containsDenial(words, conjunctStart, words.length);
+}
+
+bool _containsDenial(List<String> words, int start, int end) {
+  if (start > 0 &&
+      words[start - 1] == 'rather' &&
+      start < end &&
+      words[start] == 'than') {
+    return true;
+  }
+  for (var i = start; i < end; i++) {
+    if (_denialWords.contains(words[i])) return true;
+    if (words[i] == 'rather' && i + 1 < end && words[i + 1] == 'than') {
+      return true;
+    }
+  }
+  return false;
+}
+
+List<String> _words(String text) {
+  final words = <String>[];
+  for (final part in text.split(RegExp(r"[^a-z0-9.'’-]+"))) {
+    final word = part.replaceAll(RegExp(r"^[.'’-]+|[.'’-]+$"), '');
+    if (word.isNotEmpty) words.add(word);
+  }
+  return words;
 }
 
 int _clauseStart(String text, int index) {
   final floor = index - 240 < 0 ? 0 : index - 240;
   for (var i = index - 1; i >= floor; i--) {
-    final ch = text[i];
-    if (ch == '\n' || ch == '!' || ch == '?' || ch == '.') return i + 1;
+    if (_isClauseBreak(text, i)) return i + 1;
   }
   return floor;
 }
@@ -363,10 +522,117 @@ int _clauseEnd(String text, int index) {
   final cap = index + 120;
   final limit = cap > text.length ? text.length : cap;
   for (var i = index; i < limit; i++) {
-    final ch = text[i];
-    if (ch == '\n' || ch == '!' || ch == '?' || ch == '.') return i;
+    if (_isClauseBreak(text, i)) return i;
   }
   return limit;
+}
+
+/// Semicolons and commas break clauses, so "No entry fee, 5.30 am darshan"
+/// keeps the darshan. A comma inside a list does not: "No darshan, puja or
+/// aarti" stays one denial. "St.", "A.D.", and decimals such as "5.30" do not
+/// split a sentence.
+bool _isClauseBreak(String text, int index) {
+  final ch = text[index];
+  if (ch == ',') return !_commaContinuesList(text, index);
+  if (ch == '\n' || ch == '!' || ch == '?' || ch == ';') return true;
+  if (ch != '.') return false;
+  if (_isDecimalDot(text, index) || _isAbbreviationDot(text, index)) {
+    return false;
+  }
+  return true;
+}
+
+/// True when [commaIndex] joins list items ("puja or aarti", ", or puja").
+///
+/// "No entry fee, 5.30 am darshan" has no coordinator after the comma, so
+/// that comma still starts a new clause. ", and darshan begins" does too.
+bool _commaContinuesList(String text, int commaIndex) {
+  var i = commaIndex + 1;
+  final limit = i + 80 > text.length ? text.length : i + 80;
+  final buffer = StringBuffer();
+  for (; i < limit; i++) {
+    final ch = text[i];
+    if (ch == '.' && _isDecimalDot(text, i)) {
+      buffer.write(ch);
+      continue;
+    }
+    if (ch == ',' ||
+        ch == '.' ||
+        ch == '!' ||
+        ch == '?' ||
+        ch == ';' ||
+        ch == '\n') {
+      break;
+    }
+    buffer.write(ch);
+  }
+  final words = _words(buffer.toString());
+  if (words.isEmpty) return false;
+  if (words.first == 'or') return true;
+  if (words.first == 'and' || words.first == 'but') return false;
+  final coord = words.indexWhere((word) => word == 'or' || word == 'and');
+  if (coord <= 0 || coord > 3 || coord + 1 >= words.length) return false;
+  const itemVerbs = <String>{
+    'is',
+    'are',
+    'was',
+    'were',
+    'be',
+    'been',
+    'has',
+    'have',
+    'had',
+    'do',
+    'does',
+    'did',
+    'held',
+    'holds',
+    'begins',
+    'runs',
+    'starts',
+  };
+  for (var n = 0; n < coord; n++) {
+    if (itemVerbs.contains(words[n])) return false;
+  }
+  return true;
+}
+
+bool _isDecimalDot(String text, int index) {
+  if (index == 0 || index + 1 >= text.length) return false;
+  return _isDigit(text[index - 1]) && _isDigit(text[index + 1]);
+}
+
+bool _isAbbreviationDot(String text, int index) {
+  if (_wordImmediatelyBefore(text, index, 'st')) return true;
+  final firstOfAd =
+      _wordImmediatelyBefore(text, index, 'a') &&
+      index + 2 < text.length &&
+      text[index + 1] == 'd' &&
+      text[index + 2] == '.';
+  if (firstOfAd) return true;
+  return index >= 2 &&
+      text[index - 1] == 'd' &&
+      text[index - 2] == '.' &&
+      _wordImmediatelyBefore(text, index - 2, 'a');
+}
+
+bool _wordImmediatelyBefore(String text, int dotIndex, String word) {
+  final start = dotIndex - word.length;
+  if (start < 0) return false;
+  if (text.substring(start, dotIndex) != word) return false;
+  if (start == 0) return true;
+  final prev = text[start - 1];
+  return !_isWordChar(prev);
+}
+
+bool _isDigit(String ch) {
+  final code = ch.codeUnitAt(0);
+  return code >= 48 && code <= 57;
+}
+
+bool _isWordChar(String ch) {
+  final code = ch.codeUnitAt(0);
+  return (code >= 48 && code <= 57) || (code >= 97 && code <= 122);
 }
 
 String _tailWords(String text, int count) {
