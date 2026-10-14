@@ -5,9 +5,13 @@
 # The total compared with 1,500 is analyze-test minutes plus android-smoke
 # minutes for this repository. Each job that ran is timed from started_at to
 # completed_at on /actions/runs/<id>/jobs, rounded up to a whole minute, with
-# a 1-minute minimum. Skipped jobs are not counted. The run timing API is not
-# used. An Actions API error fails the check, and so does a workflow that has
-# runs but a minute total of 0.
+# a 1-minute minimum. Skipped jobs are not counted. Only completed runs are
+# listed, and a job with no completed_at is skipped, so an in-progress run
+# does not fail the check. Re-run attempts are included (jobs?filter=all).
+# The run timing API is not used. An Actions API error fails the check. A
+# minute total of 0 fails only when a non-skipped job actually finished.
+# Workflows whose runs were all skipped, such as unlabelled pull-request
+# smoke, are not an error.
 #
 # /settings/billing/usage is not called. That report mixes products and unit
 # types (quantity on one route, grossQuantity on the summary), and it is not
@@ -36,8 +40,8 @@ minutes_over_budget_action() {
   printf '%s\n' "Change the android-smoke cron to two runs a day, 10 AM and 10 PM IST (cron '30 4,16 * * *')."
 }
 
-# Whole minutes for one job. Skipped jobs print 0. A job that ran is at
-# least 1 minute, rounded up. Missing timestamps on a job that ran fail.
+# Whole minutes for one job. Skipped jobs, and any job with no completed_at,
+# print 0. A job that finished is at least 1 minute, rounded up.
 job_billable_minutes() {
   local conclusion="$1"
   local started="$2"
@@ -47,8 +51,12 @@ job_billable_minutes() {
     printf '0\n'
     return 0
   fi
-  if [[ -z "$started" || "$started" == "null" || -z "$completed" || "$completed" == "null" ]]; then
-    echo "error: a job with conclusion '${conclusion}' is missing started_at or completed_at." >&2
+  if [[ -z "$completed" || "$completed" == "null" ]]; then
+    printf '0\n'
+    return 0
+  fi
+  if [[ -z "$started" || "$started" == "null" ]]; then
+    echo "error: a finished job with conclusion '${conclusion}' is missing started_at." >&2
     return 1
   fi
   start_epoch="$(date -u -d "$started" +%s)" || return 1
@@ -61,13 +69,16 @@ job_billable_minutes() {
   awk -v s="$seconds" 'BEGIN { m = int((s + 59) / 60); if (m < 1) m = 1; printf "%d\n", m }'
 }
 
-# Fail when runs were listed and the computed minute total is 0.
+# Fail when a non-skipped job finished and the minute total is still 0.
+# run_count is unused except to keep the call obvious. All-skipped workflows
+# pass finished_jobs=0 and are not an error.
 require_minutes_if_runs() {
   local run_count="$1"
   local minutes="$2"
-  local label="$3"
-  if [[ "$run_count" -gt 0 && "$minutes" -eq 0 ]]; then
-    echo "error: ${label} has ${run_count} runs but the minute total is 0." >&2
+  local finished_jobs="$3"
+  local label="$4"
+  if [[ "$run_count" -gt 0 && "$finished_jobs" -gt 0 && "$minutes" -eq 0 ]]; then
+    echo "error: ${label} has ${finished_jobs} finished jobs across ${run_count} runs but the minute total is 0." >&2
     return 1
   fi
 }
@@ -83,12 +94,14 @@ month_start="$(date -u +%Y-%m-01)"
 today="$(date -u +%Y-%m-%d)"
 
 # Whole minutes for one workflow file during the current calendar month.
-# API errors propagate. A listed run with no measurable jobs fails.
+# Only status=completed runs are listed. Jobs use filter=all and per_page=100
+# so re-run attempts are included. A job with no completed_at is skipped.
+# API errors propagate. A listed run that returns no jobs fails.
 workflow_minutes() {
   local workflow_file="$1"
   local ids id jobs conclusion started completed job_minutes
-  local total=0 run_count=0
-  if ! ids="$(gh api --paginate "repos/${repo}/actions/workflows/${workflow_file}/runs?created=${month_start}..${today}&per_page=100" --jq '.workflow_runs[].id')"; then
+  local total=0 run_count=0 finished_jobs=0
+  if ! ids="$(gh api --paginate "repos/${repo}/actions/workflows/${workflow_file}/runs?status=completed&created=${month_start}..${today}&per_page=100" --jq '.workflow_runs[].id')"; then
     echo "error: could not list ${workflow_file} runs." >&2
     return 1
   fi
@@ -99,7 +112,7 @@ workflow_minutes() {
   while IFS= read -r id; do
     [[ -z "$id" ]] && continue
     run_count=$((run_count + 1))
-    if ! jobs="$(gh api --paginate "repos/${repo}/actions/runs/${id}/jobs" --jq '.jobs[] | [.conclusion // "null", .started_at // "null", .completed_at // "null"] | @tsv')"; then
+    if ! jobs="$(gh api --paginate "repos/${repo}/actions/runs/${id}/jobs?filter=all&per_page=100" --jq '.jobs[] | [.conclusion // "null", .started_at // "null", .completed_at // "null"] | @tsv')"; then
       echo "error: could not list jobs for ${workflow_file} run ${id}." >&2
       return 1
     fi
@@ -109,11 +122,14 @@ workflow_minutes() {
     fi
     while IFS=$'\t' read -r conclusion started completed; do
       [[ -z "${conclusion}${started}${completed}" ]] && continue
+      if [[ "$conclusion" != "skipped" && -n "$completed" && "$completed" != "null" ]]; then
+        finished_jobs=$((finished_jobs + 1))
+      fi
       job_minutes="$(job_billable_minutes "$conclusion" "$started" "$completed")" || return 1
       total=$((total + job_minutes))
     done <<<"$jobs"
   done <<<"$ids"
-  require_minutes_if_runs "$run_count" "$total" "$workflow_file" || return 1
+  require_minutes_if_runs "$run_count" "$total" "$finished_jobs" "$workflow_file" || return 1
   printf '%s\n' "$total"
 }
 
