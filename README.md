@@ -6,7 +6,7 @@ A beautifully crafted Flutter application that serves as a comprehensive directo
 
 India's temple heritage is one of the richest in the world — thousands of sacred sites spanning millennia of history, architecture, and devotion. Yet there's no single, well-designed mobile resource that brings together the essential information a pilgrim or traveler needs: location, timings, stories, specialities, and directions — all in one place.
 
-**Temple Directory India** was created by [Shradha Ventures](https://github.com/shradhaventuresltd-collab) to solve this. Our goals are:
+**Temple Directory India** was created by [Sanu Vimal](https://github.com/shradhaventuresltd-collab) to solve this. Our goals are:
 
 - **Preserve and share heritage** — Detailed write-ups on temple history, mythology, and architectural significance so this knowledge reaches a wider audience.
 - **Help pilgrims and tourists** — One-tap Google Maps directions, opening timings, and photo galleries so visitors can plan their trips with ease.
@@ -328,8 +328,8 @@ Draft Play Console listing copy is in [`docs/play-store-listing.md`](docs/play-s
 
 ## Contributing
 
-This project is maintained by Shradha Ventures. For contributions, please open a pull request or file an issue on the repository.
+This project is maintained by Sanu Vimal. For contributions, please open a pull request or file an issue on the repository.
 
 ## License
 
-Copyright (c) 2026 Shradha Ventures Pvt Ltd. All rights reserved. See [LICENSE](LICENSE). No permission is granted to use, copy, modify, or distribute this software without prior written permission.
+Copyright (c) 2026 Sanu Vimal. All rights reserved. See [LICENSE](LICENSE). No permission is granted to use, copy, modify, or distribute this software without prior written permission.
