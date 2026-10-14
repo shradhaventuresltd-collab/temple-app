@@ -37,6 +37,51 @@ expect_eq "schedule runs when main moved" \
   "$(smoke_should_run schedule abc def failed)" true
 expect_eq "schedule runs when nothing has ever gone green" \
   "$(smoke_should_run schedule abc "")" true
+expect_eq "pull_request runs even when that SHA is already green" \
+  "$(smoke_should_run pull_request abc abc abc)" true
+expect_eq "pull_request runs even when that SHA is the last failed SHA" \
+  "$(smoke_should_run pull_request abc "" abc)" true
+
+if gate_accepts_smoke_run pull_request; then
+  echo "FAIL: a pull_request smoke run must not satisfy the Play gate" >&2
+  exit 1
+fi
+echo "ok: pull_request smoke does not satisfy the Play gate"
+if ! gate_accepts_smoke_run schedule; then
+  echo "FAIL: a schedule run on the exact SHA must satisfy the Play gate" >&2
+  exit 1
+fi
+echo "ok: schedule smoke can satisfy the Play gate"
+if ! gate_accepts_smoke_run workflow_dispatch; then
+  echo "FAIL: a workflow_dispatch run on the exact SHA must satisfy the Play gate" >&2
+  exit 1
+fi
+echo "ok: workflow_dispatch smoke can satisfy the Play gate"
+
+pr_report="$(GITHUB_EVENT_NAME=pull_request bash scripts/ci/report_smoke_failure.sh)"
+expect_eq "pull_request does not file a smoke-failure issue" \
+  "$pr_report" "Not filing a smoke-failure issue for a pull_request run."
+
+plan_dir="$(mktemp -d)"
+fake_bin="$(mktemp -d)"
+cat >"$fake_bin/gh" <<'EOF'
+#!/bin/sh
+echo "gh should not be called for a pull_request plan" >&2
+exit 1
+EOF
+chmod +x "$fake_bin/gh"
+PATH="$fake_bin:/usr/bin:/bin" \
+  GITHUB_OUTPUT="$plan_dir/out" \
+  GITHUB_EVENT_NAME=pull_request \
+  GITHUB_SHA=merge-ref \
+  PR_HEAD_SHA=pr-head \
+  GITHUB_REPOSITORY=example/repo \
+  bash scripts/ci/android_smoke_plan.sh >/dev/null
+expect_eq "pull_request plan should_run" \
+  "$(grep '^should_run=' "$plan_dir/out" | cut -d= -f2-)" true
+expect_eq "pull_request plan records the PR head, not the merge ref" \
+  "$(grep '^head_sha=' "$plan_dir/out" | cut -d= -f2-)" pr-head
+rm -rf "$plan_dir" "$fake_bin"
 
 if minutes_at_or_over_threshold 1499.9; then
   echo "FAIL: 1499.9 should be under the 75% threshold" >&2
