@@ -2,14 +2,15 @@
 # Decision for the android-smoke schedule. Sourced by the workflow script
 # and by scripts/ci/test_ci_guards.sh. Prints "true" or "false".
 #
-# workflow_dispatch always runs. A scheduled run is skipped when main HEAD
-# is the head_sha of the last successful android-smoke job on main, or of
-# the last failed attempt. A failure conclusion counts. A cancelled
-# conclusion counts only when that run was triggered by schedule, because
-# GitHub concludes a job that hits timeout-minutes as cancelled. A
-# workflow_dispatch cancel does not count and does not block the next
-# scheduled retry. The smoke script is wrapped in
-# `timeout --kill-after=30s 12m` so a hang is killed and the step exits
+# workflow_dispatch always runs. pull_request always runs: the plan job
+# must not apply the green/failed SHA skip to a labelled PR. A scheduled
+# run is skipped when main HEAD is the head_sha of the last successful
+# android-smoke job on main, or of the last failed attempt. A failure
+# conclusion counts. A cancelled conclusion counts only when that run was
+# triggered by schedule, because GitHub concludes a job that hits
+# timeout-minutes as cancelled. A workflow_dispatch cancel does not count
+# and does not block the next scheduled retry. The smoke script is wrapped
+# in `timeout --kill-after=30s 12m` so a hang is killed and the step exits
 # non-zero before the 15-minute job limit. A red SHA is not retried every slot.
 
 # Echoes the SHA for conclusion "failure", and for "cancelled" when the
@@ -27,12 +28,21 @@ failed_attempt_sha() {
   fi
 }
 
+# Play release gate. pull_request runs are ignored: GitHub records them
+# against the PR merge ref, so a green PR smoke must not unlock a bundle
+# of that ref or of the PR head. Schedule and workflow_dispatch runs on
+# the exact SHA still count, including a dispatch whose branch is not main.
+gate_accepts_smoke_run() {
+  local event="$1"
+  [[ "$event" != "pull_request" ]]
+}
+
 smoke_should_run() {
   local event="$1"
   local main_sha="$2"
   local last_green="$3"
   local last_failed="${4:-}"
-  if [[ "$event" == "workflow_dispatch" ]]; then
+  if [[ "$event" == "workflow_dispatch" || "$event" == "pull_request" ]]; then
     echo true
     return 0
   fi

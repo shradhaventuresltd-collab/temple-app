@@ -6,8 +6,10 @@
 # android-smoke job on main, or the last failed attempt (a red SHA is not
 # retried every slot). A failure conclusion counts. A cancelled conclusion
 # counts only when that run's event is schedule. A workflow_dispatch cancel
-# does not count. workflow_dispatch always runs. Lookups pass branch=main.
-# If the Actions API cannot be read, the emulator runs.
+# does not count. workflow_dispatch always runs. A pull_request run always
+# runs and does not consult the green/failed SHA skip. Lookups for the
+# schedule pass branch=main. If the Actions API cannot be read, the emulator
+# runs.
 set -euo pipefail
 
 if [[ -z "${GITHUB_OUTPUT:-}" ]]; then
@@ -19,6 +21,20 @@ repo="${GITHUB_REPOSITORY:?}"
 event="${GITHUB_EVENT_NAME:-}"
 # shellcheck source=smoke_should_run.sh
 source "$(dirname "$0")/smoke_should_run.sh"
+
+# Labelled PR smoke always runs the emulator. Do not read main's green or
+# failed SHA, and do not skip when that SHA matches.
+if [[ "$event" == "pull_request" ]]; then
+  head_sha="${PR_HEAD_SHA:-${GITHUB_SHA:?}}"
+  should_run="$(smoke_should_run "$event" "$head_sha" "" "")"
+  echo "android-smoke will run (event=pull_request, head=${head_sha}; green/failed SHA skip does not apply)."
+  {
+    echo "should_run=${should_run}"
+    echo "last_green_sha="
+    echo "head_sha=${head_sha}"
+  } >>"$GITHUB_OUTPUT"
+  exit 0
+fi
 
 # Newest android-smoke jobs on main. Skipped jobs do not count. Pages are
 # newest-first. A quiet main produces skipped schedule runs, so look back

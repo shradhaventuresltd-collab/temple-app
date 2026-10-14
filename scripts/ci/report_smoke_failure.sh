@@ -2,7 +2,13 @@
 # Open one issue labelled smoke-failure, or comment on the open one.
 # Does not rewrite an existing issue body. Lists commits between the last
 # green android-smoke SHA and this failure.
+# pull_request runs must not open or comment. Schedule and workflow_dispatch only.
 set -euo pipefail
+
+if [[ "${GITHUB_EVENT_NAME:-}" == "pull_request" ]]; then
+  echo "Not filing a smoke-failure issue for a pull_request run."
+  exit 0
+fi
 
 repo="${GITHUB_REPOSITORY:?}"
 failing="${FAILING_SHA:?}"
