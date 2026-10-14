@@ -169,7 +169,27 @@ else
 fi
 
 screenshot final
+
+# Second launch with the radios off. Bundled fonts must still paint the
+# gate. pm clear drops any acceptance from the online pass. Do not tap Seed.
+echo "===== offline relaunch ====="
+adb logcat -d -v time >"$OUT/logcat-online.txt" 2>/dev/null || true
+adb shell svc wifi disable || true
+adb shell svc data disable || true
+adb shell pm clear "$PKG" || true
+adb logcat -c || true
+adb shell am start -W -n "${PKG}/.MainActivity" || true
+if ! wait_for "Before you begin" 20; then
+  echo "Terms gate did not appear with the network disabled"
+  status=1
+else
+  screenshot offline
+fi
+adb shell svc wifi enable || true
+adb shell svc data enable || true
+
 dump_logcat
+cp "$OUT/logcat.txt" "$OUT/logcat-offline.txt" 2>/dev/null || true
 if [[ "$status" -ne 0 ]]; then
   echo "demo-seed launch failed; see $OUT/logcat.txt" >&2
 fi
