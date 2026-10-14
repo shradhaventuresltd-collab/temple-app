@@ -19,7 +19,12 @@ name: android-smoke
 # A labeled event also requires github.event.label.name == 'run-smoke',
 # so adding any other label does not start smoke. synchronize runs only
 # while that label is already present. The plan job does not apply the
-# green/failed SHA skip on pull_request.
+# green/failed SHA skip on pull_request. After a green pull_request
+# android-smoke job, remove-run-smoke-label deletes run-smoke so a later
+# push does not start another run. That job's only permission is
+# pull-requests: write. If the token cannot delete the label, the job
+# warns and exits 0; remove it with:
+#   gh pr edit <number> --remove-label run-smoke
 
 on:
   schedule:
@@ -89,6 +94,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      # $SECONDS inside the smoke script starts when that script starts, after
+      # the APK build. Screenshot decisions use this job clock instead.
+      - name: Record job start
+        run: echo "JOB_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
+
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Enable KVM
@@ -186,9 +196,10 @@ jobs:
           force-avd-creation: false
           disable-animations: true
           # Deterministic software GPU: no snapshot save, no boot animation.
-          # The smoke script also waits for sys.boot_completed and
-          # installs the APK with adb before Maestro.
-          emulator-options: -no-snapshot-save -no-boot-anim -gpu swiftshader_indirect -no-window -noaudio -camera-back none -camera-front none
+          # -no-snapshot-load avoids the Pixel Launcher ANR that covered
+          # the app when a snapshot booted. The smoke script also waits
+          # for sys.boot_completed and installs the APK with adb.
+          emulator-options: -no-snapshot-save -no-snapshot-load -no-boot-anim -gpu swiftshader_indirect -no-window -noaudio -camera-back none -camera-front none
           # One dash-safe command. The action runs this with /usr/bin/sh.
           # Setup usually takes about 6 to 7 minutes, so the 15-minute job
           # limit fires before this 12-minute shell timeout and the job
@@ -202,6 +213,15 @@ jobs:
         with:
           name: maestro-debug
           path: maestro-debug
+          if-no-files-found: ignore
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: screenshots
+          path: screenshots
+          retention-days: 14
           if-no-files-found: ignore
 
   report-failure:
@@ -236,3 +256,40 @@ jobs:
           FAILING_SHA: ${{ github.sha }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: bash scripts/ci/report_smoke_failure.sh
+
+  # Runs only after a green pull_request smoke. Removing the label stops a
+  # later synchronize event from starting another emulator. unlabeled is not
+  # a workflow trigger, so this delete does not start a new run. A failed
+  # smoke keeps the label so the next push can retry.
+  remove-run-smoke-label:
+    needs: android-smoke
+    if: >-
+      github.event_name == 'pull_request' &&
+      needs.android-smoke.result == 'success'
+    permissions:
+      pull-requests: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Remove the run-smoke label
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set +e
+          err="$(gh api --method DELETE \
+            "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/labels/run-smoke" \
+            2>&1)"
+          rc=$?
+          set -e
+          if [[ "$rc" -eq 0 ]]; then
+            echo "Removed run-smoke from pull request ${PR_NUMBER}."
+            exit 0
+          fi
+          if printf '%s' "$err" | grep -Eq '404|Not Found'; then
+            echo "run-smoke is already absent from pull request ${PR_NUMBER}."
+            exit 0
+          fi
+          echo "::warning::Could not remove the run-smoke label from pull request ${PR_NUMBER}. The token may lack pull-requests: write. Remove it manually so the next push does not start smoke: gh pr edit ${PR_NUMBER} --remove-label run-smoke"
+          printf '%s\n' "$err"
+          exit 0

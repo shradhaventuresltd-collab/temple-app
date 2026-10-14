@@ -435,7 +435,6 @@ class _HeritageWriteUp extends StatelessWidget {
             style: GoogleFonts.poppins(
               fontSize: 12.5,
               color: Colors.brown.shade500,
-              fontStyle: FontStyle.italic,
             ),
           ),
           const SizedBox(height: 18),

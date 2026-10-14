@@ -47,7 +47,10 @@ find_main_smoke_shas() {
   local sha_green="" sha_failed=""
   for page in 1 2 3 4 5 6 7 8; do
     local runs
-    if ! runs="$(gh api "repos/${repo}/actions/workflows/android-smoke.yml/runs?branch=main&per_page=20&page=${page}" --jq '.workflow_runs[] | "\(.id) \(.event)"' 2>/dev/null)"; then
+    # Last green and last failed both come from this list. A pull_request
+    # run carries the PR head SHA, so it must not become main's last green
+    # or last failed SHA.
+    if ! runs="$(gh api "repos/${repo}/actions/workflows/android-smoke.yml/runs?branch=main&per_page=20&page=${page}" --jq '.workflow_runs[] | select(.event != "pull_request") | "\(.id) \(.event)"' 2>/dev/null)"; then
       echo "warning: could not list android-smoke runs on main (page ${page})." >&2
       if [[ "$page" -eq 1 ]]; then
         return 1

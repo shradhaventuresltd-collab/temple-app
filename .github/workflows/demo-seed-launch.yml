@@ -1,0 +1,145 @@
+name: demo-seed-launch
+
+# Release demo APK: DEMO_BUILD + ENABLE_ADMIN_TOOLS, the build Sanu installs.
+# Opt-in on pull requests with the run-smoke label, same gate as android-smoke.
+# Schedule is unchanged. This job does not replace that profile smoke.
+#
+# The Play upload key is not in CI. The job writes an ephemeral keystore
+# and android/key.properties (both gitignored) so Gradle will sign a
+# release APK. Release mode still runs AOT with Impeller on.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [labeled, synchronize]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  demo-seed-launch:
+    if: >-
+      github.event_name != 'pull_request' ||
+      (
+        contains(github.event.pull_request.labels.*.name, 'run-smoke') &&
+        (
+          github.event.action != 'labeled' ||
+          github.event.label.name == 'run-smoke'
+        )
+      )
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version: '3.47.7'
+          cache: true
+
+      - name: flutter pub get
+        run: flutter pub get
+
+      - name: Cache Gradle
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('pubspec.lock', 'android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
+
+      # Ephemeral release key. Not the Play upload key. key.properties and
+      # *.jks are gitignored.
+      - name: Ephemeral release keystore
+        run: |
+          keytool -genkeypair -keystore android/ci-demo-keystore.jks \
+            -storepass android -keypass android -alias upload \
+            -keyalg RSA -keysize 2048 -validity 1 \
+            -dname "CN=CI Demo, OU=CI, O=Shradha Ventures, L=Bengaluru, ST=KA, C=IN"
+          cat > android/key.properties <<'EOF'
+          storePassword=android
+          keyPassword=android
+          keyAlias=upload
+          storeFile=../ci-demo-keystore.jks
+          EOF
+
+      - name: Build demo-seed release APK
+        run: |
+          flutter build apk --release \
+            --dart-define=DEMO_BUILD=true \
+            --dart-define=ENABLE_ADMIN_TOOLS=true
+
+      - name: Cache emulator system image
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: /usr/local/lib/android/sdk/system-images
+          key: system-image-android-34-google_apis-x86_64
+
+      - name: Cache AVD
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-34-x86_64-google_apis-pixel6-snapshot
+
+      - name: Create AVD snapshot for caching
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          avd-name: temple-smoke-34-pixel6
+          force-avd-creation: false
+          disable-animations: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
+          script: echo "Generated AVD snapshot for caching."
+
+      - name: Launch demo-seed APK
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          avd-name: temple-smoke-34-pixel6
+          force-avd-creation: false
+          disable-animations: true
+          emulator-options: -no-snapshot-save -no-boot-anim -gpu swiftshader_indirect -no-window -noaudio -camera-back none -camera-front none
+          script: timeout --kill-after=30s 18m bash scripts/ci/run_demo_seed_launch.sh
+
+      - name: Upload demo-seed logcat and screenshots
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: demo-seed-launch
+          path: demo-seed-launch
+          if-no-files-found: ignore
+
+      - name: Upload demo-seed APK
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: demo-seed-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: ignore

@@ -63,6 +63,34 @@ void main() {
     expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
   });
 
+  testWidgets(
+    'heritage subtitle uses regular Poppins, not italic',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: HomeScreen(
+            adminAuth: FakeAdminAuth(),
+            templesLoader: () async => [sampleTemple()],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      const subtitle =
+          'A comprehensive exploration of India\'s sacred architectural legacy';
+      await tester.scrollUntilVisible(find.text(subtitle), 400);
+      await tester.pumpAndSettle();
+
+      expect(find.text(subtitle), findsOneWidget);
+      expect(
+        tester.widget<Text>(find.text(subtitle)).style?.fontStyle,
+        isNot(FontStyle.italic),
+      );
+      await tester.runAsync(() => GoogleFonts.pendingFonts());
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('Home still renders honest empty state when load is empty', (
     tester,
   ) async {
