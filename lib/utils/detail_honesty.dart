@@ -33,8 +33,8 @@ class DetailHonesty {
 
   factory DetailHonesty.of(Temple temple) {
     final corpus = _corpus(temple);
-    final framing = _framing(corpus);
     final tradition = _tradition(temple);
+    final framing = _framing(temple, corpus, tradition);
     final timings = temple.timings;
     final caveat = _timingsCaveat(timings);
     return DetailHonesty(
@@ -144,9 +144,7 @@ String? verifiedCoverUrl(Temple temple) {
 ///
 /// Placeholder hosts are dropped so mosaic tiles never bind stock art.
 List<String> verifiedMosaicUrls(Iterable<Temple> temples) {
-  return [
-    for (final temple in temples) ...verifiedGalleryUrls(temple),
-  ];
+  return [for (final temple in temples) ...verifiedGalleryUrls(temple)];
 }
 
 /// True for empty values and known stock/placeholder image URLs.
@@ -188,7 +186,7 @@ String _corpus(Temple temple) {
   ].join('\n').toLowerCase().replaceAll(RegExp(r'[-–—]'), ' ');
 }
 
-SiteFraming _framing(String corpus) {
+SiteFraming _framing(Temple temple, String corpus, SiteTradition tradition) {
   const monumentPhrases = <String>[
     'not a living',
     'no living',
@@ -207,6 +205,7 @@ SiteFraming _framing(String corpus) {
     'not a typical hr&ce',
     'not a typical darshan',
   ];
+  // Heritage, ASI, and ruin wording still wins over worship words.
   if (monumentPhrases.any(corpus.contains)) {
     return SiteFraming.monumentVisit;
   }
@@ -238,7 +237,36 @@ SiteFraming _framing(String corpus) {
   if (_anyAffirmative(corpus, livingPhrases)) {
     return SiteFraming.livingTemple;
   }
+  // Jain, Buddhist, and Sikh keep their tradition chip. Worship words
+  // do not reclassify those listings.
+  if (tradition != SiteTradition.unspecified) {
+    return SiteFraming.neutral;
+  }
+  if (_affirmativeWorship(temple)) {
+    return SiteFraming.livingTemple;
+  }
   return SiteFraming.neutral;
+}
+
+/// Worship words in the timings text or the description.
+///
+/// A clock by itself is not darshan. Story and specialities are not read.
+/// Matches are whole words, so a name such as Darshana is not darshan.
+/// Denial is the whole sentence, not a 48-character lookback, and it also
+/// reads the words after the hit. "puja discontinued", "once worshipped",
+/// and "historic puja" do not count.
+bool _affirmativeWorship(Temple temple) {
+  final text = [
+    temple.description,
+    temple.timings,
+  ].join('\n').toLowerCase().replaceAll(RegExp(r'[-–—]'), ' ');
+  final pattern = RegExp(
+    r'\b(?:widely worshipped|darshan time|darshans?|aartis?|artis?|poojas?|pujas?|abhisheks?)\b',
+  );
+  for (final match in pattern.allMatches(text)) {
+    if (_matchIsAffirmative(text, match.start, match.end)) return true;
+  }
+  return false;
 }
 
 /// Tradition named by a deity string alone.
@@ -288,20 +316,77 @@ bool _anyAffirmative(String text, List<String> phrases) {
   return false;
 }
 
-/// True when [phrase] appears without a nearby denial such as "not" or "no".
+/// True when [phrase] appears without a denial in the same sentence.
 bool _affirmative(String text, String phrase) {
   final pattern = RegExp(RegExp.escape(phrase));
   for (final match in pattern.allMatches(text)) {
-    final start = match.start - 48;
-    final prefix = text.substring(start < 0 ? 0 : start, match.start);
-    if (RegExp(
-      r'\b(no|not|without|never|unlike|rather than)\b',
-    ).hasMatch(prefix)) {
-      continue;
-    }
-    return true;
+    if (_matchIsAffirmative(text, match.start, match.end)) return true;
   }
   return false;
+}
+
+final _denialBefore = RegExp(r'\b(no|not|without|never|unlike|rather than)\b');
+
+final _qualifierBefore = RegExp(
+  r'\b(once|historic|historical|formerly|former|erstwhile)\b',
+);
+
+final _ceasedAfter = RegExp(
+  r'\b(discontinued|ceased|stopped|ended|abandoned|abolished)\b',
+);
+
+/// A hit counts only when the sentence does not take it back.
+///
+/// The lookback is the sentence, capped at 240 characters, so a "no" or
+/// "not" further than 48 characters away still denies the hit. Qualifiers
+/// have to sit next to the word ("historic puja", "once worshipped").
+/// Words after the hit count too ("puja discontinued").
+bool _matchIsAffirmative(String text, int start, int end) {
+  final before = text.substring(_clauseStart(text, start), start);
+  final after = text.substring(end, _clauseEnd(text, end));
+  if (_denialBefore.hasMatch(before)) return false;
+  if (_qualifierBefore.hasMatch(_tailWords(before, 4))) return false;
+  if (_ceasedAfter.hasMatch(_headWords(after, 6))) return false;
+  return true;
+}
+
+int _clauseStart(String text, int index) {
+  final floor = index - 240 < 0 ? 0 : index - 240;
+  for (var i = index - 1; i >= floor; i--) {
+    final ch = text[i];
+    if (ch == '\n' || ch == '!' || ch == '?' || ch == '.') return i + 1;
+  }
+  return floor;
+}
+
+int _clauseEnd(String text, int index) {
+  final cap = index + 120;
+  final limit = cap > text.length ? text.length : cap;
+  for (var i = index; i < limit; i++) {
+    final ch = text[i];
+    if (ch == '\n' || ch == '!' || ch == '?' || ch == '.') return i;
+  }
+  return limit;
+}
+
+String _tailWords(String text, int count) {
+  final words = text
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((word) => word.isNotEmpty)
+      .toList();
+  if (words.length <= count) return words.join(' ');
+  return words.sublist(words.length - count).join(' ');
+}
+
+String _headWords(String text, int count) {
+  final words = text
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((word) => word.isNotEmpty)
+      .toList();
+  if (words.length <= count) return words.join(' ');
+  return words.sublist(0, count).join(' ');
 }
 
 final _seasonalPattern = RegExp(

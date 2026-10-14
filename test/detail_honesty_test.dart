@@ -139,82 +139,86 @@ void main() {
     ]);
   });
 
-  test('KAN-77 verified Commons packs clear Photo pending and keep framing', () {
-    final mahabodhi = DetailHonesty.of(_named('Mahabodhi Temple'));
-    expect(_named('Mahabodhi Temple').imageUrl.contains('picsum'), isFalse);
-    expect(mahabodhi.photoPending, isFalse);
-    expect(mahabodhi.verifiedImages, hasLength(7));
-    expect(mahabodhi.tradition, SiteTradition.buddhist);
+  test(
+    'KAN-77 verified Commons packs clear Photo pending and keep framing',
+    () {
+      final mahabodhi = DetailHonesty.of(_named('Mahabodhi Temple'));
+      expect(_named('Mahabodhi Temple').imageUrl.contains('picsum'), isFalse);
+      expect(mahabodhi.photoPending, isFalse);
+      expect(mahabodhi.verifiedImages, hasLength(7));
+      expect(mahabodhi.tradition, SiteTradition.buddhist);
 
-    final dilwara = DetailHonesty.of(_named('Dilwara Temples'));
-    expect(_named('Dilwara Temples').imageUrl.contains('picsum'), isFalse);
-    expect(dilwara.photoPending, isFalse);
-    expect(dilwara.verifiedImages, hasLength(6));
-    expect(dilwara.tradition, SiteTradition.jain);
-    expect(dilwara.framing, SiteFraming.livingTemple);
+      final dilwara = DetailHonesty.of(_named('Dilwara Temples'));
+      expect(_named('Dilwara Temples').imageUrl.contains('picsum'), isFalse);
+      expect(dilwara.photoPending, isFalse);
+      expect(dilwara.verifiedImages, hasLength(6));
+      expect(dilwara.tradition, SiteTradition.jain);
+      expect(dilwara.framing, SiteFraming.livingTemple);
 
-    final martand = DetailHonesty.of(_named('Martand Sun Temple'));
-    expect(_named('Martand Sun Temple').imageUrl.contains('picsum'), isFalse);
-    expect(martand.photoPending, isFalse);
-    expect(martand.verifiedImages, hasLength(6));
-    expect(martand.framing, SiteFraming.monumentVisit);
-    expect(martand.framingLabel, 'Heritage visit');
+      final martand = DetailHonesty.of(_named('Martand Sun Temple'));
+      expect(_named('Martand Sun Temple').imageUrl.contains('picsum'), isFalse);
+      expect(martand.photoPending, isFalse);
+      expect(martand.verifiedImages, hasLength(6));
+      expect(martand.framing, SiteFraming.monumentVisit);
+      expect(martand.framingLabel, 'Heritage visit');
 
-    final shore = DetailHonesty.of(_named('Shore Temple'));
-    expect(_named('Shore Temple').imageUrl.contains('picsum'), isFalse);
-    expect(shore.photoPending, isFalse);
-    expect(shore.verifiedImages, hasLength(6));
-    expect(shore.framing, SiteFraming.monumentVisit);
+      final shore = DetailHonesty.of(_named('Shore Temple'));
+      expect(_named('Shore Temple').imageUrl.contains('picsum'), isFalse);
+      expect(shore.photoPending, isFalse);
+      expect(shore.verifiedImages, hasLength(6));
+      expect(shore.framing, SiteFraming.monumentVisit);
 
-    final meenakshi = DetailHonesty.of(_named('Meenakshi Amman Temple'));
-    expect(
-      _named('Meenakshi Amman Temple').imageUrl.contains('picsum'),
-      isFalse,
-    );
-    expect(meenakshi.photoPending, isFalse);
-    expect(meenakshi.verifiedImages, hasLength(6));
-    expect(meenakshi.framing, SiteFraming.livingTemple);
-    expect(meenakshi.tradition, SiteTradition.unspecified);
+      final meenakshi = DetailHonesty.of(_named('Meenakshi Amman Temple'));
+      expect(
+        _named('Meenakshi Amman Temple').imageUrl.contains('picsum'),
+        isFalse,
+      );
+      expect(meenakshi.photoPending, isFalse);
+      expect(meenakshi.verifiedImages, hasLength(6));
+      expect(meenakshi.framing, SiteFraming.livingTemple);
+      expect(meenakshi.tradition, SiteTradition.unspecified);
 
-    final sabarimala = DetailHonesty.of(_named('Sabarimala Ayyappan Temple'));
-    expect(
-      _named('Sabarimala Ayyappan Temple').imageUrl.contains('picsum'),
-      isFalse,
-    );
-    expect(sabarimala.photoPending, isFalse);
-    expect(sabarimala.verifiedImages, hasLength(5));
-    expect(sabarimala.framing, SiteFraming.livingTemple);
-    expect(sabarimala.framingLabel, 'Living temple');
-    expect(sabarimala.tradition, SiteTradition.unspecified);
-    expect(sabarimala.timingsCaveat, TimingsCaveatKind.seasonal);
+      final sabarimala = DetailHonesty.of(_named('Sabarimala Ayyappan Temple'));
+      expect(
+        _named('Sabarimala Ayyappan Temple').imageUrl.contains('picsum'),
+        isFalse,
+      );
+      expect(sabarimala.photoPending, isFalse);
+      expect(sabarimala.verifiedImages, hasLength(5));
+      expect(sabarimala.framing, SiteFraming.livingTemple);
+      expect(sabarimala.framingLabel, 'Living temple');
+      expect(sabarimala.tradition, SiteTradition.unspecified);
+      expect(sabarimala.timingsCaveat, TimingsCaveatKind.seasonal);
 
-    final padmanabha = DetailHonesty.of(_named('Sree Padmanabhaswamy Temple'));
-    expect(
-      _named('Sree Padmanabhaswamy Temple').imageUrl.contains('picsum'),
-      isFalse,
-    );
-    expect(padmanabha.photoPending, isFalse);
-    expect(padmanabha.verifiedImages, hasLength(6));
-    // Existing copy stays neutral: "not audited" sits beside "Daily worship",
-    // so the living-temple chip does not appear. Heritage visit does not either.
-    expect(padmanabha.framing, SiteFraming.neutral);
-    expect(padmanabha.framingLabel, isNull);
+      final padmanabha = DetailHonesty.of(
+        _named('Sree Padmanabhaswamy Temple'),
+      );
+      expect(
+        _named('Sree Padmanabhaswamy Temple').imageUrl.contains('picsum'),
+        isFalse,
+      );
+      expect(padmanabha.photoPending, isFalse);
+      expect(padmanabha.verifiedImages, hasLength(6));
+      // Official timings name darshan windows, so this is a living temple.
+      expect(padmanabha.framing, SiteFraming.livingTemple);
+      expect(padmanabha.framingLabel, 'Living temple');
 
-    final brihad = DetailHonesty.of(_named('Brihadeeswarar Temple'));
-    expect(brihad.photoPending, isFalse);
-    expect(brihad.verifiedImages, hasLength(6));
-    expect(brihad.framing, SiteFraming.livingTemple);
-    expect(brihad.framingLabel, 'Living temple');
+      final brihad = DetailHonesty.of(_named('Brihadeeswarar Temple'));
+      expect(brihad.photoPending, isFalse);
+      expect(brihad.verifiedImages, hasLength(6));
+      expect(brihad.framing, SiteFraming.livingTemple);
+      expect(brihad.framingLabel, 'Living temple');
 
-    final thiruchendur = DetailHonesty.of(_named('Subramanya Swamy Temple'));
-    expect(thiruchendur.photoPending, isFalse);
-    expect(
-      _named('Subramanya Swamy Temple').imageUrl,
-      contains('wikimedia.org'),
-    );
-    expect(thiruchendur.verifiedImages, hasLength(8));
-    expect(thiruchendur.framing, SiteFraming.livingTemple);
-  });
+      final thiruchendur = DetailHonesty.of(_named('Subramanya Swamy Temple'));
+      expect(thiruchendur.photoPending, isFalse);
+      expect(
+        _named('Subramanya Swamy Temple').imageUrl,
+        contains('wikimedia.org'),
+      );
+      expect(thiruchendur.verifiedImages, hasLength(8));
+      expect(thiruchendur.framing, SiteFraming.livingTemple);
+    },
+  );
 
   test(
     'timings stay free text and flag thin, seasonal, or multi-window notes',
@@ -283,6 +287,149 @@ void main() {
     expect(unsure.tradition, SiteTradition.unspecified);
     expect(unsure.storyHeading, 'Background');
     expect(unsure.framingNote, contains('do not say clearly'));
+  });
+
+  test('KAN-103 worship words mark living temples and heritage still wins', () {
+    final jejuri = DetailHonesty.of(_named('Jejuri Khandoba Temple'));
+    expect(jejuri.tradition, SiteTradition.unspecified);
+    expect(jejuri.traditionLabel, isNull);
+    expect(jejuri.framing, SiteFraming.livingTemple);
+    expect(jejuri.framingLabel, 'Living temple');
+    expect(
+      jejuri.framingLabel,
+      DetailHonesty.of(_named('Meenakshi Amman Temple')).framingLabel,
+    );
+    expect(jejuri.storyHeading, 'Temple story');
+    expect(jejuri.framingNote, contains('living temple'));
+
+    final shoreTemple = _named('Shore Temple');
+    final shore = DetailHonesty.of(shoreTemple);
+    expect(shoreTemple.timings.toLowerCase(), contains('darshan'));
+    expect(shoreTemple.timings.toLowerCase(), contains('pooja'));
+    expect(shore.framing, SiteFraming.monumentVisit);
+    expect(shore.framingLabel, 'Heritage visit');
+    expect(shore.timingsHeading, 'Visiting hours');
+
+    final martandTemple = _named('Martand Sun Temple');
+    final martand = DetailHonesty.of(martandTemple);
+    expect(martandTemple.timings.toLowerCase(), contains('darshan'));
+    expect(martandTemple.timings.toLowerCase(), contains('aarti'));
+    expect(martand.framing, SiteFraming.monumentVisit);
+    expect(martand.framingLabel, 'Heritage visit');
+
+    final hoursOnly = DetailHonesty.of(
+      _draft(
+        description: 'A stone temple in the directory.',
+        story: 'Visitors walk the courtyard.',
+        timings: 'Open daily 6:00 AM–8:00 PM.',
+        specialities: const ['Stone gateway'],
+      ),
+    );
+    expect(hoursOnly.framing, SiteFraming.neutral);
+    expect(hoursOnly.framingLabel, isNull);
+
+    final jainDarshan = DetailHonesty.of(
+      _draft(
+        deity: 'Jain Tirthankara',
+        description: 'A Jain pilgrimage site.',
+        timings: 'Darshan time 6:00 AM–8:00 PM.',
+      ),
+    );
+    expect(jainDarshan.tradition, SiteTradition.jain);
+    expect(jainDarshan.traditionLabel, 'Jain');
+    expect(jainDarshan.framing, SiteFraming.neutral);
+    expect(jainDarshan.framingLabel, isNull);
+  });
+
+  test(
+    'negated worship phrases stay neutral, including past 48 characters',
+    () {
+      const negated = <String>[
+        'The old puja discontinued after the shrine closed.',
+        'Puja has been discontinued and the sanctum is empty.',
+        'This courtyard was once worshipped.',
+      'This courtyard was once widely worshipped.',
+        'A historic puja is all the notes record.',
+        'A historical aarti is mentioned only as a past custom.',
+        'The former puja is no longer held.',
+        'There is no surviving inscription, priestly lineage, or local memory of a daily puja on this site.',
+      ];
+      for (final description in negated) {
+        final honesty = DetailHonesty.of(
+          _draft(
+            description: description,
+            timings: 'Open daily 6:00 AM–8:00 PM.',
+          ),
+        );
+        expect(honesty.framing, SiteFraming.neutral, reason: description);
+        expect(honesty.framingLabel, isNull, reason: description);
+      }
+
+      final living = DetailHonesty.of(
+        _draft(
+          description: 'Darshan begins after dawn and the puja is current.',
+          timings: 'Open daily 6:00 AM–8:00 PM.',
+        ),
+      );
+      expect(living.framing, SiteFraming.livingTemple);
+      expect(living.framingLabel, 'Living temple');
+    },
+  );
+
+  test('worship words are whole words, so Darshana is not darshan', () {
+    final darshana = DetailHonesty.of(
+      _draft(
+        deity: 'Darshana',
+        description:
+            'The listing uses the name Darshana and no worship schedule.',
+        timings: 'Open daily 6:00 AM–8:00 PM.',
+      ),
+    );
+    expect(darshana.framing, SiteFraming.neutral);
+    expect(darshana.framingLabel, isNull);
+
+    final pujari = DetailHonesty.of(
+      _draft(
+        description: 'Pujari families live on the street beside the gate.',
+        timings: 'Open daily 6:00 AM–8:00 PM.',
+      ),
+    );
+    expect(pujari.framing, SiteFraming.neutral);
+
+    final artisanal = DetailHonesty.of(
+      _draft(
+        description: 'Artisanal stonework covers the doorway.',
+        timings: 'Open daily 6:00 AM–8:00 PM.',
+      ),
+    );
+    expect(artisanal.framing, SiteFraming.neutral);
+  });
+
+  test('Buddhist and Sikh tradition wins over worship words', () {
+    final buddhist = DetailHonesty.of(
+      _draft(
+        deity: 'Buddha',
+        description: 'A Buddhist pilgrimage shrine.',
+        timings: 'Darshan time 8:00 AM–5:00 PM.',
+      ),
+    );
+    expect(buddhist.tradition, SiteTradition.buddhist);
+    expect(buddhist.traditionLabel, 'Buddhist');
+    expect(buddhist.framing, SiteFraming.neutral);
+    expect(buddhist.framingLabel, isNull);
+
+    final sikh = DetailHonesty.of(
+      _draft(
+        name: 'Example Gurdwara',
+        deity: 'Guru Nanak',
+        description: 'A gurdwara listed in the directory.',
+        timings: 'Darshan time 4:00 AM–10:00 PM.',
+      ),
+    );
+    expect(sikh.tradition, SiteTradition.sikh);
+    expect(sikh.traditionLabel, 'Sikh');
+    expect(sikh.framing, SiteFraming.neutral);
+    expect(sikh.framingLabel, isNull);
   });
 
   test('Jain and Buddhist sites are labeled without a Hindu-only chip', () {
@@ -412,6 +559,43 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('scrolled detail title stays behind the status-bar scrim', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 800);
+    tester.view.devicePixelRatio = 1;
+    tester.view.padding = const FakeViewPadding(top: 48);
+    tester.view.viewPadding = const FakeViewPadding(top: 48);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPadding);
+    addTearDown(tester.view.resetViewPadding);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TempleDetailBody(temple: _named('Martand Sun Temple')),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final scrim = find.byKey(const Key('detail-status-bar-scrim'));
+    expect(scrim, findsOneWidget);
+    expect(tester.getRect(scrim), const Rect.fromLTWH(0, 0, 390, 48));
+
+    await tester.drag(
+      find.byType(SingleChildScrollView),
+      const Offset(0, -520),
+    );
+    await tester.pump();
+
+    final titleTop = tester.getRect(find.text('Martand Sun Temple')).top;
+    expect(titleTop, lessThan(48));
+    expect(tester.getRect(scrim).bottom, greaterThan(titleTop));
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('a single stated window does not add a timings caveat', (
     tester,

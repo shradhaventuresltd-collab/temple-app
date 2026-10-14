@@ -77,6 +77,7 @@ class DirectoryFilterBar extends StatelessWidget {
         children: [
           _TriggerChip(
             chipKey: const Key('filter-chip-state'),
+            semanticsId: 'filter-chip-state',
             clearKey: const Key('filter-chip-state-clear'),
             icon: Icons.place_rounded,
             label: selectedState ?? 'State',
@@ -459,6 +460,7 @@ class _OptionChip extends StatelessWidget {
 class _TriggerChip extends StatelessWidget {
   const _TriggerChip({
     required this.chipKey,
+    this.semanticsId,
     required this.clearKey,
     required this.icon,
     required this.label,
@@ -470,6 +472,7 @@ class _TriggerChip extends StatelessWidget {
   });
 
   final Key chipKey;
+  final String? semanticsId;
   final Key clearKey;
   final IconData icon;
   final String label;
@@ -493,44 +496,50 @@ class _TriggerChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          InkWell(
-            key: chipKey,
-            onTap: onOpen,
-            child: Tooltip(
-              message: openTooltip,
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(12, 8, selected ? 4 : 10, 8),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      icon,
-                      size: 16,
-                      color: selected ? Colors.white : TempleBrowseCard.saffron,
-                    ),
-                    const SizedBox(width: 6),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 180),
-                      child: Text(
-                        label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: foreground,
+          Semantics(
+            identifier: semanticsId,
+            button: semanticsId != null,
+            child: InkWell(
+              key: chipKey,
+              onTap: onOpen,
+              child: Tooltip(
+                message: openTooltip,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(12, 8, selected ? 4 : 10, 8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        icon,
+                        size: 16,
+                        color: selected
+                            ? Colors.white
+                            : TempleBrowseCard.saffron,
+                      ),
+                      const SizedBox(width: 6),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 180),
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: foreground,
+                          ),
                         ),
                       ),
-                    ),
-                    if (!selected) ...[
-                      const SizedBox(width: 2),
-                      Icon(
-                        Icons.expand_more_rounded,
-                        size: 18,
-                        color: Colors.brown.shade400,
-                      ),
+                      if (!selected) ...[
+                        const SizedBox(width: 2),
+                        Icon(
+                          Icons.expand_more_rounded,
+                          size: 18,
+                          color: Colors.brown.shade400,
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),

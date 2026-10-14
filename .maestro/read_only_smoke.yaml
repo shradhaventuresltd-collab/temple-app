@@ -18,6 +18,19 @@ appId: com.shradhaventures.temple
     commands:
       - launchApp:
           clearState: true
+      # Only the Pixel Launcher ANR. Wait/Close on this app's own
+      # "isn't responding" dialog must not be tapped.
+      - runFlow:
+          when:
+            visible: "Pixel Launcher isn't responding"
+          optional: true
+          commands:
+            - tapOn:
+                text: "Wait"
+                optional: true
+            - tapOn:
+                text: "Close app"
+                optional: true
       - extendedWaitUntil:
           visible:
             id: "policy-accept-button"
