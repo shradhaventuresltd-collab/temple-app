@@ -44,15 +44,11 @@ Widget releaseErrorWidget(FlutterErrorDetails details) {
 }
 
 /// Branded fallback for the production AAB. No exception text and no stack.
+///
+/// Flutter reports the error once before it builds this widget. Reporting
+/// again here would log the same failure a second time.
 Widget productionReleaseErrorWidget(FlutterErrorDetails details) {
-  logProductionReleaseError(details);
   return const BrandedReleaseErrorScreen();
-}
-
-/// Logs a production build failure. The screen itself has no exception text.
-void logProductionReleaseError(FlutterErrorDetails details) {
-  FlutterError.reportError(details);
-  debugPrint(releaseErrorMessage(details));
 }
 
 /// Exception text plus a short stack, safe to paint from [ErrorWidget].

@@ -48,62 +48,64 @@ void main() {
     expectDetailedErrorBranch(debug: false, demoBuild: false, adminTools: true);
   });
 
-  testWidgets('production AAB shows a branded screen with no stack and logs', (
-    tester,
-  ) async {
-    final previousBuilder = ErrorWidget.builder;
-    try {
-      expect(
-        showDetailedReleaseError(
+  testWidgets(
+    'production AAB shows a branded screen and does not report twice',
+    (tester) async {
+      final previousBuilder = ErrorWidget.builder;
+      try {
+        expect(
+          showDetailedReleaseError(
+            debug: false,
+            demoBuild: false,
+            adminTools: false,
+          ),
+          isFalse,
+        );
+        installReleaseErrorWidget(
           debug: false,
           demoBuild: false,
           adminTools: false,
-        ),
-        isFalse,
-      );
-      installReleaseErrorWidget(
-        debug: false,
-        demoBuild: false,
-        adminTools: false,
-      );
-      expect(ErrorWidget.builder, same(productionReleaseErrorWidget));
+        );
+        expect(ErrorWidget.builder, same(productionReleaseErrorWidget));
 
-      final reported = <FlutterErrorDetails>[];
-      final printed = <String>[];
-      final previousOnError = FlutterError.onError;
-      final previousDebugPrint = debugPrint;
-      FlutterError.onError = reported.add;
-      debugPrint = (String? message, {int? wrapWidth}) {
-        printed.add(message ?? '');
-      };
-      late final Widget screen;
-      try {
-        screen = ErrorWidget.builder(_boomDetails());
+        final reported = <FlutterErrorDetails>[];
+        final printed = <String>[];
+        final previousOnError = FlutterError.onError;
+        final previousDebugPrint = debugPrint;
+        FlutterError.onError = reported.add;
+        debugPrint = (String? message, {int? wrapWidth}) {
+          printed.add(message ?? '');
+        };
+        final details = _boomDetails();
+        late final Widget screen;
+        try {
+          // The framework reports once, then builds the fallback.
+          FlutterError.reportError(details);
+          screen = ErrorWidget.builder(details);
+        } finally {
+          FlutterError.onError = previousOnError;
+          debugPrint = previousDebugPrint;
+        }
+
+        await tester.pumpWidget(screen);
+
+        expect(find.byType(BrandedReleaseErrorScreen), findsOneWidget);
+        expect(find.byType(ErrorWidget), findsNothing);
+        expect(find.text(BrandedReleaseErrorScreen.message), findsOneWidget);
+        expect(find.text(BrandedReleaseErrorScreen.appName), findsOneWidget);
+        expect(find.textContaining('boom-marker'), findsNothing);
+        expect(find.textContaining('#0 gate'), findsNothing);
+        expect(find.textContaining('Exception'), findsNothing);
+
+        expect(reported, hasLength(1));
+        expect(reported.single.exceptionAsString(), contains('boom-marker'));
+        expect(reported.single.stack.toString(), contains('#0 gate'));
+        expect(printed, isEmpty);
       } finally {
-        FlutterError.onError = previousOnError;
-        debugPrint = previousDebugPrint;
+        ErrorWidget.builder = previousBuilder;
       }
-
-      await tester.pumpWidget(screen);
-
-      expect(find.byType(BrandedReleaseErrorScreen), findsOneWidget);
-      expect(find.byType(ErrorWidget), findsNothing);
-      expect(find.text(BrandedReleaseErrorScreen.message), findsOneWidget);
-      expect(find.text(BrandedReleaseErrorScreen.appName), findsOneWidget);
-      expect(find.textContaining('boom-marker'), findsNothing);
-      expect(find.textContaining('#0 gate'), findsNothing);
-      expect(find.textContaining('Exception'), findsNothing);
-
-      expect(reported, hasLength(1));
-      expect(reported.single.exceptionAsString(), contains('boom-marker'));
-      expect(reported.single.stack.toString(), contains('#0 gate'));
-      final log = printed.join('\n');
-      expect(log, contains('boom-marker'));
-      expect(log, contains('#0 gate'));
-    } finally {
-      ErrorWidget.builder = previousBuilder;
-    }
-  });
+    },
+  );
 
   testWidgets('gate paints when runtime font fetching is off', (tester) async {
     final previousFetching = GoogleFonts.config.allowRuntimeFetching;

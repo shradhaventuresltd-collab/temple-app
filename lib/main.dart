@@ -18,7 +18,8 @@ import 'package:temple_app/services/temple_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Detailed text only for debug, DEMO_BUILD, or ENABLE_ADMIN_TOOLS.
-  // The Play AAB gets a branded screen and a log line, with no stack.
+  // The Play AAB gets a branded screen with no stack. Flutter already
+  // reports that error once before the fallback is built.
   installReleaseErrorWidget();
   // Poppins and Lora ship in assets/google_fonts. google_fonts otherwise
   // downloads fonts.gstatic.com from the first frame. loadFontIfNecessary
