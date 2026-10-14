@@ -10,9 +10,17 @@
 #
 # There is no release workflow in this repo. scripts/build_play_aab.sh calls
 # this script. Any future release workflow must call it too, before it builds.
+#
+# A successful pull_request android-smoke run does not count. Those runs are
+# recorded on the PR merge ref, so accepting them would let a PR smoke unlock
+# a bundle of that ref. Schedule and workflow_dispatch runs on this exact SHA
+# still count, whether or not the branch is main.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
+
+# shellcheck source=ci/smoke_should_run.sh
+source "$(dirname "$0")/ci/smoke_should_run.sh"
 
 sha="$(git rev-parse HEAD)"
 
@@ -119,12 +127,17 @@ except json.JSONDecodeError:
 if "workflow_runs" not in data:
     sys.stderr.write(data.get("message","unexpected Actions response")+"\n")
     sys.exit(3)
-print("\n".join(str(run["id"]) for run in data["workflow_runs"]))' <<<"$payload")" || refuse "could not parse android-smoke runs for ${sha}."
+print("\n".join(str(run["id"]) + " " + str(run.get("event") or "") for run in data["workflow_runs"]))' <<<"$payload")" || refuse "could not parse android-smoke runs for ${sha}."
   if [[ -z "$ids" ]]; then
     break
   fi
-  while IFS= read -r id; do
-    [[ -z "$id" ]] && continue
+  while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    id="${line%% *}"
+    run_event="${line#* }"
+    if ! gate_accepts_smoke_run "$run_event"; then
+      continue
+    fi
     if ! jobs="$(api_get "repos/${repo}/actions/runs/${id}/jobs")"; then
       refuse "could not read jobs for Actions run ${id}."
     fi
