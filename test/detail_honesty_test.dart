@@ -490,6 +490,46 @@ void main() {
     );
     expect(comma.framing, SiteFraming.livingTemple, reason: 'comma clause');
 
+    for (final description in const [
+      'No darshan, puja or aarti today.',
+      'No aarti, darshan or puja is held.',
+    ]) {
+      final listed = DetailHonesty.of(
+        _draft(
+          description: description,
+          timings: 'Open daily 6:00 AM–8:00 PM.',
+        ),
+      );
+      expect(listed.framing, SiteFraming.neutral, reason: description);
+      expect(listed.framingLabel, isNull, reason: description);
+    }
+
+    final wasOnce = DetailHonesty.of(
+      _draft(
+        description: 'Ruined temple where puja was once performed.',
+        timings: 'Open daily 6:00 AM–8:00 PM.',
+      ),
+    );
+    expect(wasOnce.framing, SiteFraming.monumentVisit, reason: 'was once');
+
+    final noMore = DetailHonesty.of(
+      _draft(
+        description:
+            'Ruins of a temple, once worshipped, now a puja site no more.',
+        timings: 'Open daily 6:00 AM–8:00 PM.',
+      ),
+    );
+    expect(noMore.framing, SiteFraming.monumentVisit, reason: 'no more');
+
+    final deniedAfter = DetailHonesty.of(
+      _draft(
+        description: 'Closed to worship, darshan not allowed.',
+        timings: 'Open daily 6:00 AM–8:00 PM.',
+      ),
+    );
+    expect(deniedAfter.framing, SiteFraming.neutral, reason: 'not allowed');
+    expect(deniedAfter.framingLabel, isNull);
+
     final ruinedCeased = DetailHonesty.of(
       _draft(
         description: 'The shrine is in ruins. The former puja discontinued.',
@@ -576,6 +616,14 @@ void main() {
     // "Daily worship continues" is present tense even when the clock is
     // provisional. ASI protection alone does not force heritage.
     final honesty = DetailHonesty.of(_named('Panchvaktra Temple'));
+    expect(honesty.framing, SiteFraming.livingTemple);
+    expect(honesty.framingLabel, 'Living temple');
+  });
+
+  test('Jogulamba stays living on restored Peetha worship', () {
+    // "monument visiting" is the Navabrahma note, not "monument visit".
+    // "living Peetha" is the restored worship.
+    final honesty = DetailHonesty.of(_named('Jogulamba Temple'));
     expect(honesty.framing, SiteFraming.livingTemple);
     expect(honesty.framingLabel, 'Living temple');
   });

@@ -208,6 +208,7 @@ const _livingPhrases = <String>[
   'living asi',
   'living pooja',
   'living cult',
+  'living peetha',
   'daily worship',
   'daily pooja',
   'daily puja',
@@ -261,7 +262,10 @@ SiteFraming _framing(Temple temple, String corpus, SiteTradition tradition) {
     'not a typical darshan',
   ];
   // Fixed heritage phrases win over every living path, including "living temple".
-  if (monumentPhrases.any(corpus.contains)) {
+  // The phrase has to end on a word boundary, so "monument visiting" is not
+  // "monument visit". Jogulamba's Navabrahma note uses the longer word, and
+  // its restored "living Peetha" worship stays a living claim.
+  if (monumentPhrases.any((phrase) => _hasBoundedPhrase(corpus, phrase))) {
     return SiteFraming.monumentVisit;
   }
   final presentWorship =
@@ -422,7 +426,19 @@ final _qualifierBefore = RegExp(
 );
 
 final _ceasedAfter = RegExp(
-  r'\b(discontinued|ceased|stopped|ended|abandoned|abolished)\b',
+  r'\b(?:discontinued|ceased|stopped|ended|abandoned|abolished)\b'
+  r'|\bno more\b'
+  r'|\bno longer\b'
+  r'|\bonce worshipped\b'
+  r'|\b(?:was|were)\b(?:\s+\w+){0,4}\s+once\b',
+);
+
+/// A denial that follows the hit, as in "darshan not allowed".
+///
+/// "not" has to attach to a word that takes the worship back. A later "not"
+/// in "not spelled out" or "not a ticket" stays outside this pattern.
+final _deniedAfter = RegExp(
+  r'\b(?:not|never|no)\b(?:\s+\w+){0,2}\s+(?:allowed|permitted|offered|held|performed|available|conducted)\b',
 );
 
 /// How many tokens before a hit can carry "no" / "not" / "without".
@@ -437,14 +453,21 @@ const _denialTokenWindow = 3;
 /// A hit counts only when the clause does not take it back.
 ///
 /// Qualifiers have to sit next to the word ("historic puja", "once worshipped").
-/// Words after the hit count too ("puja discontinued").
+/// Words after the hit count too ("puja discontinued", "puja was once
+/// performed", "puja site no more", "darshan not allowed").
 bool _matchIsAffirmative(String text, int start, int end) {
   final before = text.substring(_clauseStart(text, start), start);
   final after = text.substring(end, _clauseEnd(text, end));
   if (_deniedBefore(before)) return false;
   if (_qualifierBefore.hasMatch(_tailWords(before, 4))) return false;
-  if (_ceasedAfter.hasMatch(_headWords(after, 6))) return false;
+  final afterHead = _headWords(after, 6);
+  if (_ceasedAfter.hasMatch(afterHead)) return false;
+  if (_deniedAfter.hasMatch(afterHead)) return false;
   return true;
+}
+
+bool _hasBoundedPhrase(String corpus, String phrase) {
+  return RegExp('${RegExp.escape(phrase)}(?![a-z0-9])').hasMatch(corpus);
 }
 
 bool _deniedBefore(String before) {
@@ -505,15 +528,71 @@ int _clauseEnd(String text, int index) {
 }
 
 /// Semicolons and commas break clauses, so "No entry fee, 5.30 am darshan"
-/// keeps the darshan. "St.", "A.D.", and decimals such as "5.30" do not.
+/// keeps the darshan. A comma inside a list does not: "No darshan, puja or
+/// aarti" stays one denial. "St.", "A.D.", and decimals such as "5.30" do not
+/// split a sentence.
 bool _isClauseBreak(String text, int index) {
   final ch = text[index];
-  if (ch == '\n' || ch == '!' || ch == '?' || ch == ';' || ch == ',') {
-    return true;
-  }
+  if (ch == ',') return !_commaContinuesList(text, index);
+  if (ch == '\n' || ch == '!' || ch == '?' || ch == ';') return true;
   if (ch != '.') return false;
   if (_isDecimalDot(text, index) || _isAbbreviationDot(text, index)) {
     return false;
+  }
+  return true;
+}
+
+/// True when [commaIndex] joins list items ("puja or aarti", ", or puja").
+///
+/// "No entry fee, 5.30 am darshan" has no coordinator after the comma, so
+/// that comma still starts a new clause. ", and darshan begins" does too.
+bool _commaContinuesList(String text, int commaIndex) {
+  var i = commaIndex + 1;
+  final limit = i + 80 > text.length ? text.length : i + 80;
+  final buffer = StringBuffer();
+  for (; i < limit; i++) {
+    final ch = text[i];
+    if (ch == '.' && _isDecimalDot(text, i)) {
+      buffer.write(ch);
+      continue;
+    }
+    if (ch == ',' ||
+        ch == '.' ||
+        ch == '!' ||
+        ch == '?' ||
+        ch == ';' ||
+        ch == '\n') {
+      break;
+    }
+    buffer.write(ch);
+  }
+  final words = _words(buffer.toString());
+  if (words.isEmpty) return false;
+  if (words.first == 'or') return true;
+  if (words.first == 'and' || words.first == 'but') return false;
+  final coord = words.indexWhere((word) => word == 'or' || word == 'and');
+  if (coord <= 0 || coord > 3 || coord + 1 >= words.length) return false;
+  const itemVerbs = <String>{
+    'is',
+    'are',
+    'was',
+    'were',
+    'be',
+    'been',
+    'has',
+    'have',
+    'had',
+    'do',
+    'does',
+    'did',
+    'held',
+    'holds',
+    'begins',
+    'runs',
+    'starts',
+  };
+  for (var n = 0; n < coord; n++) {
+    if (itemVerbs.contains(words[n])) return false;
   }
   return true;
 }
