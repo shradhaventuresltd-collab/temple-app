@@ -56,4 +56,12 @@ if ! minutes_at_or_over_threshold 2000; then
 fi
 echo "ok: 2000 meets 75%"
 
+expect_eq "analyze-test and android-smoke share one total" \
+  "$(sum_minutes 12.50 7.25)" "19.75"
+expect_eq "minutes total is analyze-test plus android-smoke" \
+  "$(minutes_workflows)" $'ci.yml\nandroid-smoke.yml'
+expect_eq "1,500 alert says to cut smoke to 10 AM and 10 PM IST" \
+  "$(minutes_over_budget_action)" \
+  "Change the android-smoke cron to two runs a day, 10 AM and 10 PM IST (cron '30 4,16 * * *')."
+
 echo "CI guard checks passed."

@@ -9,9 +9,10 @@
 #   Account permission: Plan, Read-only.
 #   Repository access: this repository is enough; Plan is an account permission.
 #
-# Without a usable BILLING_TOKEN, this script sums Actions run timings for
-# this repository for the current calendar month. That estimate misses
-# minutes used by other private repositories on the same account.
+# The total compared with 1,500 is analyze-test minutes plus android-smoke
+# minutes for this repository. Other workflows are not included. BILLING_TOKEN,
+# when it works, is recorded as an account-wide note and does not replace
+# that total. Other private repositories are not in the total.
 set -euo pipefail
 
 budget_minutes=2000
@@ -20,6 +21,20 @@ threshold_minutes=1500
 # Exit 0 when usage is at or above 75% of the 2,000 minute budget.
 minutes_at_or_over_threshold() {
   awk -v used="$1" -v limit="$threshold_minutes" 'BEGIN { exit !(used + 0 >= limit) }'
+}
+
+# Workflow files whose billable minutes share one total.
+minutes_workflows() {
+  printf '%s\n' "ci.yml" "android-smoke.yml"
+}
+
+sum_minutes() {
+  awk -v a="$1" -v b="$2" 'BEGIN { printf "%.2f", (a + 0) + (b + 0) }'
+}
+
+# Exact instruction written to the actions-minutes issue at 1,500 minutes.
+minutes_over_budget_action() {
+  printf '%s\n' "Change the android-smoke cron to two runs a day, 10 AM and 10 PM IST (cron '30 4,16 * * *')."
 }
 
 if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
@@ -31,6 +46,27 @@ owner="${repo%%/*}"
 source_label=""
 used=""
 included_note=""
+billing_note=""
+month_start="$(date -u +%Y-%m-01)"
+today="$(date -u +%Y-%m-%d)"
+
+# Billable minutes for one workflow file during the current calendar month.
+workflow_minutes() {
+  local workflow_file="$1"
+  local ids id ms total_ms=0
+  ids="$(gh api --paginate "repos/${repo}/actions/workflows/${workflow_file}/runs?created=${month_start}..${today}&per_page=100" --jq '.workflow_runs[].id')"
+  if [[ -n "$ids" ]]; then
+    while IFS= read -r id; do
+      [[ -z "$id" ]] && continue
+      ms="$(gh api "repos/${repo}/actions/runs/${id}/timing" --jq '[(.billable // {}) | to_entries[].value.total_ms] | add // 0' 2>/dev/null || echo 0)"
+      case "$ms" in
+        ''|null|*[!0-9]*) ms=0 ;;
+      esac
+      total_ms=$((total_ms + ms))
+    done <<<"$ids"
+  fi
+  awk -v ms="$total_ms" 'BEGIN { printf "%.2f", ms / 60000 }'
+}
 
 try_billing() {
   local url="$1"
@@ -46,45 +82,29 @@ try_billing() {
     echo "billing ${url} returned HTTP ${http}." >&2
     return 1
   fi
-  used="$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["total_minutes_used"])' <<<"$body")"
+  billing_used="$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["total_minutes_used"])' <<<"$body")"
   local included
   included="$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("included_minutes", ""))' <<<"$body")"
   if [[ -n "$included" ]]; then
     included_note="Billing reported included_minutes=${included}. This check still uses the ${budget_minutes} free private-minute budget."
   fi
-  source_label="GitHub billing API via BILLING_TOKEN (account-wide)."
 }
 
+analyze_minutes="$(workflow_minutes ci.yml)"
+smoke_minutes="$(workflow_minutes android-smoke.yml)"
+used="$(sum_minutes "$analyze_minutes" "$smoke_minutes")"
+source_label="Sum of billable Actions minutes for analyze-test (ci.yml) and android-smoke (android-smoke.yml) in ${repo} from ${month_start} through ${today} UTC."
+
 if [[ -n "${BILLING_TOKEN:-}" ]]; then
-  if try_billing "https://api.github.com/users/${owner}/settings/billing/actions"; then
-    :
-  elif try_billing "https://api.github.com/orgs/${owner}/settings/billing/actions"; then
-    :
+  billing_used=""
+  if try_billing "https://api.github.com/users/${owner}/settings/billing/actions" \
+    || try_billing "https://api.github.com/orgs/${owner}/settings/billing/actions"; then
+    billing_note="Account-wide billing reported ${billing_used} minutes. The 1,500 check uses analyze-test plus android-smoke (${used} minutes), not the account-wide figure."
   else
-    echo "BILLING_TOKEN could not read plan billing. Falling back to a repo timing estimate." >&2
-    used=""
+    echo "BILLING_TOKEN could not read plan billing. The 1,500 check uses analyze-test plus android-smoke only." >&2
   fi
 else
-  echo "BILLING_TOKEN is not set. Estimating from this repository's Actions timings." >&2
-fi
-
-if [[ -z "$used" ]]; then
-  month_start="$(date -u +%Y-%m-01)"
-  today="$(date -u +%Y-%m-%d)"
-  ids="$(gh api --paginate "repos/${repo}/actions/runs?created=${month_start}..${today}&per_page=100" --jq '.workflow_runs[].id')"
-  total_ms=0
-  if [[ -n "$ids" ]]; then
-    while IFS= read -r id; do
-      [[ -z "$id" ]] && continue
-      ms="$(gh api "repos/${repo}/actions/runs/${id}/timing" --jq '[(.billable // {}) | to_entries[].value.total_ms] | add // 0' 2>/dev/null || echo 0)"
-      case "$ms" in
-        ''|null) ms=0 ;;
-      esac
-      total_ms=$((total_ms + ms))
-    done <<<"$ids"
-  fi
-  used="$(awk -v ms="$total_ms" 'BEGIN { printf "%.2f", ms / 60000 }')"
-  source_label="Estimate: sum of Actions run timings for ${repo} from ${month_start} through ${today} UTC. Other private repositories on the account are not included. Add repository secret BILLING_TOKEN (fine-grained PAT, account permission Plan: Read-only) for the account-wide number."
+  echo "BILLING_TOKEN is not set. Counting analyze-test and android-smoke minutes for this repository." >&2
 fi
 
 echo "Actions minutes used: ${used} / ${budget_minutes} (${source_label})"
@@ -95,19 +115,30 @@ if ! minutes_at_or_over_threshold "$used"; then
 fi
 
 body_file="$(mktemp)"
+action="$(minutes_over_budget_action)"
 {
-  echo "Actions usage is at or above 75% of the 2,000 free private minutes."
+  echo "Actions usage is at or above 1,500 of 2,000 free private minutes."
   echo
-  echo "- Used: ${used} minutes"
+  echo "- analyze-test: ${analyze_minutes} minutes"
+  echo "- android-smoke: ${smoke_minutes} minutes"
+  echo "- Total: ${used} minutes (analyze-test and android-smoke together)"
   echo "- Budget: ${budget_minutes} minutes"
   echo "- Threshold: ${threshold_minutes} minutes (75%)"
   echo "- Source: ${source_label}"
+  if [[ -n "$billing_note" ]]; then
+    echo "- ${billing_note}"
+  fi
   if [[ -n "$included_note" ]]; then
     echo "- ${included_note}"
   fi
   echo
-  echo "Checked at ${today:-$(date -u +%Y-%m-%d)} UTC by the actions-minutes workflow."
+  echo "${action}"
+  echo
+  echo "The android-smoke schedule stays four runs a day until that cron is changed."
+  echo
+  echo "Checked at ${today} UTC by the actions-minutes workflow."
 } >"$body_file"
+echo "${action}"
 
 gh label create actions-minutes \
   --repo "$repo" \

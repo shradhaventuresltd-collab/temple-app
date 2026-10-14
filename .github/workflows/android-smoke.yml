@@ -108,12 +108,15 @@ jobs:
           "${HOME}/.maestro/bin/maestro" --version
 
       # System image the emulator runner installs under ANDROID_SDK_ROOT.
+      # Already cached. Key is API level 34, ABI x86_64, image google_apis.
       - name: Cache emulator system image
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: /usr/local/lib/android/sdk/system-images
           key: system-image-android-34-google_apis-x86_64
 
+      # Already cached. Key is API level 34, ABI x86_64, image google_apis
+      # (pixel_6 snapshot). A hit keeps the run near 8 minutes.
       # reactivecircus/android-emulator-runner snapshot pattern: cache the
       # AVD, boot once without -no-snapshot-save on a miss, then smoke with
       # -no-snapshot-save so the cached snapshot is not rewritten.

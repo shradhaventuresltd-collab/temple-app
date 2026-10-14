@@ -1,14 +1,17 @@
 name: actions-minutes
 
 # Weekly check against the 2,000 free private Actions minutes.
-# Alerts at or above 75% (1,500 minutes). See scripts/ci/check_actions_minutes.sh.
+# The total is analyze-test minutes plus android-smoke minutes.
+# At or above 1,500 the issue says to change android-smoke to
+# cron '30 4,16 * * *' (10:00 and 22:00 IST). The smoke schedule
+# itself stays four runs a day. See scripts/ci/check_actions_minutes.sh.
 #
 # Secret Sanu adds (optional): BILLING_TOKEN
 #   Fine-grained PAT from the owner of this user-owned account.
 #   Account permission: Plan, Read-only.
-#   GITHUB_TOKEN cannot read billing here. Without BILLING_TOKEN the
-#   workflow estimates from this repository's run timings for the month,
-#   which misses minutes used by other private repositories.
+#   GITHUB_TOKEN cannot read billing here. The 1,500 check always
+#   adds analyze-test and android-smoke for this repository. When
+#   BILLING_TOKEN works, the issue also records the account-wide figure.
 
 on:
   schedule:
