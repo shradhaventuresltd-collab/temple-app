@@ -176,13 +176,22 @@ capture_screenshots() {
     .maestro/screenshots.yaml
   local shot_status=$?
   set -e
-  find "$shot_raw" -name '[0-9][0-9]-*.png' -exec cp --update=none {} "$shot_dir/" \;
-  local count
-  count="$(find "$shot_dir" -name '*.png' | wc -l | tr -d ' ')"
-  echo "copied ${count} screenshot(s)"
   if [[ "$shot_status" -ne 0 ]]; then
     warn "Screenshot flow failed; the smoke gate ignores it"
   fi
+  return "$shot_status"
+}
+
+# Maestro writes PNGs during the flow. Copy them in the parent so a
+# timeout still uploads the shots that already completed.
+copy_screenshots() {
+  local shot_raw="${GITHUB_WORKSPACE:-/tmp}/screenshots-raw"
+  local shot_dir="${GITHUB_WORKSPACE:-/tmp}/screenshots"
+  local count
+  mkdir -p "$shot_raw" "$shot_dir"
+  find "$shot_raw" -name '[0-9][0-9]-*.png' -exec cp --update=none {} "$shot_dir/" \;
+  count="$(find "$shot_dir" -name '*.png' | wc -l | tr -d ' ')"
+  echo "copied ${count} screenshot(s)"
   if [[ "$count" -eq 0 ]]; then
     warn "Screenshot flow produced no PNGs"
   fi
@@ -226,6 +235,7 @@ for attempt in 1 2; do
       if (( shot_rc != 0 )); then
         warn "Screenshot capture ended with status ${shot_rc}; the smoke gate ignores it"
       fi
+      copy_screenshots
     fi
     exit 0
   fi

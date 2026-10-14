@@ -79,6 +79,134 @@ appId: com.shradhaventures.temple
 - back:
     optional: true
 
+# Martand and Jejuri are the KAN-91 shots. They run before the other
+# detail pages so a 3-minute cap still keeps both.
+- runFlow:
+    optional: true
+    commands:
+      - tapOn:
+          id: "temple-list-home"
+          optional: true
+      - scrollUntilVisible:
+          element:
+            id: "home-browse-temples"
+          direction: DOWN
+          timeout: 8000
+          speed: 40
+          visibilityPercentage: 100
+          centerElement: true
+          optional: true
+      - tapOn:
+          id: "home-browse-temples"
+          optional: true
+      - extendedWaitUntil:
+          visible:
+            id: "temple-list-search-field"
+          timeout: 8000
+          optional: true
+      - tapOn:
+          id: "temple-list-search-field"
+      - eraseText:
+          optional: true
+      - inputText: "Martand Sun Temple"
+      - hideKeyboard:
+          optional: true
+      # "Martand" also matches Jejuri Khandoba: its address is
+      # "Shri Martand Dev Sansthan...". The full name matches one
+      # temple, and the count node is then exactly "1 temple".
+      # The card merges name, place, and deity, so a bare-name tap
+      # does not select it.
+      - extendedWaitUntil:
+          visible: "1 temple"
+          timeout: 8000
+      - tapOn:
+          id: "temple-browse-card"
+      - extendedWaitUntil:
+          visible: "Test mode|Get Directions"
+          timeout: 2000
+          optional: true
+      - runFlow:
+          when:
+            visible: "Test mode"
+          optional: true
+          commands:
+            - tapOn:
+                point: "92%,7%"
+            - tapOn:
+                text: "Close"
+                optional: true
+      - extendedWaitUntil:
+          notVisible:
+            id: "temple-list-search-field"
+          timeout: 8000
+      - extendedWaitUntil:
+          visible: "Martand Sun Temple"
+          timeout: 8000
+      - takeScreenshot:
+          path: 08-detail-martand
+      - scroll
+      - takeScreenshot:
+          path: 09-detail-martand-scrolled
+      - back
+- runFlow:
+    optional: true
+    commands:
+      - tapOn:
+          id: "temple-list-home"
+      - scrollUntilVisible:
+          element:
+            id: "home-browse-temples"
+          direction: DOWN
+          timeout: 8000
+          speed: 40
+          visibilityPercentage: 100
+          centerElement: true
+      - tapOn:
+          id: "home-browse-temples"
+      - extendedWaitUntil:
+          visible:
+            id: "temple-list-search-field"
+          timeout: 8000
+      - tapOn:
+          id: "temple-list-search-field"
+      - eraseText:
+          optional: true
+      - inputText: "Jejuri Khandoba Temple"
+      - hideKeyboard:
+          optional: true
+      - extendedWaitUntil:
+          visible: "1 temple"
+          timeout: 8000
+      - tapOn:
+          id: "temple-browse-card"
+      - extendedWaitUntil:
+          visible: "Test mode|Get Directions"
+          timeout: 2000
+          optional: true
+      - runFlow:
+          when:
+            visible: "Test mode"
+          optional: true
+          commands:
+            - tapOn:
+                point: "92%,7%"
+            - tapOn:
+                text: "Close"
+                optional: true
+      - extendedWaitUntil:
+          notVisible:
+            id: "temple-list-search-field"
+          timeout: 8000
+      - extendedWaitUntil:
+          visible: "Jejuri Khandoba Temple"
+          timeout: 8000
+      - takeScreenshot:
+          path: 14-detail-jejuri
+      - scroll
+      - takeScreenshot:
+          path: 15-detail-jejuri-scrolled
+      - back
+
 # Search by name, shoot the top of detail, scroll once, go back.
 - runFlow:
     optional: true
@@ -156,72 +284,6 @@ appId: com.shradhaventures.temple
       - scroll
       - takeScreenshot:
           path: 07-detail-mahabodhi-scrolled
-      - back
-- runFlow:
-    optional: true
-    commands:
-      # The list counts opens in memory and shows a test interstitial
-      # on every third tap. Home pops back to the first route so the
-      # next list starts at 0. System back only clears search focus.
-      - tapOn:
-          id: "temple-list-home"
-      - scrollUntilVisible:
-          element:
-            id: "home-browse-temples"
-          direction: DOWN
-          timeout: 8000
-          speed: 40
-          visibilityPercentage: 100
-          centerElement: true
-      - tapOn:
-          id: "home-browse-temples"
-      - extendedWaitUntil:
-          visible:
-            id: "temple-list-search-field"
-          timeout: 8000
-      - tapOn:
-          id: "temple-list-search-field"
-      - eraseText:
-          optional: true
-      - inputText: "Martand Sun Temple"
-      - hideKeyboard:
-          optional: true
-      # "Martand" also matches Jejuri Khandoba: its address is
-      # "Shri Martand Dev Sansthan...". The full name matches one
-      # temple, and the count node is then exactly "1 temple".
-      # The card merges name, place, and deity, so a bare-name tap
-      # does not select it.
-      - extendedWaitUntil:
-          visible: "1 temple"
-          timeout: 8000
-      - tapOn:
-          id: "temple-browse-card"
-      - extendedWaitUntil:
-          visible: "Test mode|Get Directions"
-          timeout: 2000
-          optional: true
-      - runFlow:
-          when:
-            visible: "Test mode"
-          optional: true
-          commands:
-            - tapOn:
-                point: "92%,7%"
-            - tapOn:
-                text: "Close"
-                optional: true
-      - extendedWaitUntil:
-          notVisible:
-            id: "temple-list-search-field"
-          timeout: 8000
-      - extendedWaitUntil:
-          visible: "Martand Sun Temple"
-          timeout: 8000
-      - takeScreenshot:
-          path: 08-detail-martand
-      - scroll
-      - takeScreenshot:
-          path: 09-detail-martand-scrolled
       - back
 - runFlow:
     optional: true
