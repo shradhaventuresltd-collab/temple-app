@@ -341,6 +341,97 @@ void main() {
     expect(jainDarshan.framingLabel, isNull);
   });
 
+  test(
+    'negated worship phrases stay neutral, including past 48 characters',
+    () {
+      const negated = <String>[
+        'The old puja discontinued after the shrine closed.',
+        'Puja has been discontinued and the sanctum is empty.',
+        'This courtyard was once worshipped.',
+      'This courtyard was once widely worshipped.',
+        'A historic puja is all the notes record.',
+        'A historical aarti is mentioned only as a past custom.',
+        'The former puja is no longer held.',
+        'There is no surviving inscription, priestly lineage, or local memory of a daily puja on this site.',
+      ];
+      for (final description in negated) {
+        final honesty = DetailHonesty.of(
+          _draft(
+            description: description,
+            timings: 'Open daily 6:00 AM–8:00 PM.',
+          ),
+        );
+        expect(honesty.framing, SiteFraming.neutral, reason: description);
+        expect(honesty.framingLabel, isNull, reason: description);
+      }
+
+      final living = DetailHonesty.of(
+        _draft(
+          description: 'Darshan begins after dawn and the puja is current.',
+          timings: 'Open daily 6:00 AM–8:00 PM.',
+        ),
+      );
+      expect(living.framing, SiteFraming.livingTemple);
+      expect(living.framingLabel, 'Living temple');
+    },
+  );
+
+  test('worship words are whole words, so Darshana is not darshan', () {
+    final darshana = DetailHonesty.of(
+      _draft(
+        deity: 'Darshana',
+        description:
+            'The listing uses the name Darshana and no worship schedule.',
+        timings: 'Open daily 6:00 AM–8:00 PM.',
+      ),
+    );
+    expect(darshana.framing, SiteFraming.neutral);
+    expect(darshana.framingLabel, isNull);
+
+    final pujari = DetailHonesty.of(
+      _draft(
+        description: 'Pujari families live on the street beside the gate.',
+        timings: 'Open daily 6:00 AM–8:00 PM.',
+      ),
+    );
+    expect(pujari.framing, SiteFraming.neutral);
+
+    final artisanal = DetailHonesty.of(
+      _draft(
+        description: 'Artisanal stonework covers the doorway.',
+        timings: 'Open daily 6:00 AM–8:00 PM.',
+      ),
+    );
+    expect(artisanal.framing, SiteFraming.neutral);
+  });
+
+  test('Buddhist and Sikh tradition wins over worship words', () {
+    final buddhist = DetailHonesty.of(
+      _draft(
+        deity: 'Buddha',
+        description: 'A Buddhist pilgrimage shrine.',
+        timings: 'Darshan time 8:00 AM–5:00 PM.',
+      ),
+    );
+    expect(buddhist.tradition, SiteTradition.buddhist);
+    expect(buddhist.traditionLabel, 'Buddhist');
+    expect(buddhist.framing, SiteFraming.neutral);
+    expect(buddhist.framingLabel, isNull);
+
+    final sikh = DetailHonesty.of(
+      _draft(
+        name: 'Example Gurdwara',
+        deity: 'Guru Nanak',
+        description: 'A gurdwara listed in the directory.',
+        timings: 'Darshan time 4:00 AM–10:00 PM.',
+      ),
+    );
+    expect(sikh.tradition, SiteTradition.sikh);
+    expect(sikh.traditionLabel, 'Sikh');
+    expect(sikh.framing, SiteFraming.neutral);
+    expect(sikh.framingLabel, isNull);
+  });
+
   test('Jain and Buddhist sites are labeled without a Hindu-only chip', () {
     final dilwara = DetailHonesty.of(_named('Dilwara Temples'));
     expect(dilwara.tradition, SiteTradition.jain);

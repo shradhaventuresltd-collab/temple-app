@@ -251,7 +251,10 @@ SiteFraming _framing(Temple temple, String corpus, SiteTradition tradition) {
 /// Worship words in the timings text or the description.
 ///
 /// A clock by itself is not darshan. Story and specialities are not read.
-/// A nearby "no" or "not" keeps the match from counting.
+/// Matches are whole words, so a name such as Darshana is not darshan.
+/// Denial is the whole sentence, not a 48-character lookback, and it also
+/// reads the words after the hit. "puja discontinued", "once worshipped",
+/// and "historic puja" do not count.
 bool _affirmativeWorship(Temple temple) {
   final text = [
     temple.description,
@@ -261,14 +264,7 @@ bool _affirmativeWorship(Temple temple) {
     r'\b(?:widely worshipped|darshan time|darshans?|aartis?|artis?|poojas?|pujas?|abhisheks?)\b',
   );
   for (final match in pattern.allMatches(text)) {
-    final start = match.start - 48;
-    final prefix = text.substring(start < 0 ? 0 : start, match.start);
-    if (RegExp(
-      r'\b(no|not|without|never|unlike|rather than)\b',
-    ).hasMatch(prefix)) {
-      continue;
-    }
-    return true;
+    if (_matchIsAffirmative(text, match.start, match.end)) return true;
   }
   return false;
 }
@@ -320,20 +316,77 @@ bool _anyAffirmative(String text, List<String> phrases) {
   return false;
 }
 
-/// True when [phrase] appears without a nearby denial such as "not" or "no".
+/// True when [phrase] appears without a denial in the same sentence.
 bool _affirmative(String text, String phrase) {
   final pattern = RegExp(RegExp.escape(phrase));
   for (final match in pattern.allMatches(text)) {
-    final start = match.start - 48;
-    final prefix = text.substring(start < 0 ? 0 : start, match.start);
-    if (RegExp(
-      r'\b(no|not|without|never|unlike|rather than)\b',
-    ).hasMatch(prefix)) {
-      continue;
-    }
-    return true;
+    if (_matchIsAffirmative(text, match.start, match.end)) return true;
   }
   return false;
+}
+
+final _denialBefore = RegExp(r'\b(no|not|without|never|unlike|rather than)\b');
+
+final _qualifierBefore = RegExp(
+  r'\b(once|historic|historical|formerly|former|erstwhile)\b',
+);
+
+final _ceasedAfter = RegExp(
+  r'\b(discontinued|ceased|stopped|ended|abandoned|abolished)\b',
+);
+
+/// A hit counts only when the sentence does not take it back.
+///
+/// The lookback is the sentence, capped at 240 characters, so a "no" or
+/// "not" further than 48 characters away still denies the hit. Qualifiers
+/// have to sit next to the word ("historic puja", "once worshipped").
+/// Words after the hit count too ("puja discontinued").
+bool _matchIsAffirmative(String text, int start, int end) {
+  final before = text.substring(_clauseStart(text, start), start);
+  final after = text.substring(end, _clauseEnd(text, end));
+  if (_denialBefore.hasMatch(before)) return false;
+  if (_qualifierBefore.hasMatch(_tailWords(before, 4))) return false;
+  if (_ceasedAfter.hasMatch(_headWords(after, 6))) return false;
+  return true;
+}
+
+int _clauseStart(String text, int index) {
+  final floor = index - 240 < 0 ? 0 : index - 240;
+  for (var i = index - 1; i >= floor; i--) {
+    final ch = text[i];
+    if (ch == '\n' || ch == '!' || ch == '?' || ch == '.') return i + 1;
+  }
+  return floor;
+}
+
+int _clauseEnd(String text, int index) {
+  final cap = index + 120;
+  final limit = cap > text.length ? text.length : cap;
+  for (var i = index; i < limit; i++) {
+    final ch = text[i];
+    if (ch == '\n' || ch == '!' || ch == '?' || ch == '.') return i;
+  }
+  return limit;
+}
+
+String _tailWords(String text, int count) {
+  final words = text
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((word) => word.isNotEmpty)
+      .toList();
+  if (words.length <= count) return words.join(' ');
+  return words.sublist(words.length - count).join(' ');
+}
+
+String _headWords(String text, int count) {
+  final words = text
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((word) => word.isNotEmpty)
+      .toList();
+  if (words.length <= count) return words.join(' ');
+  return words.sublist(0, count).join(' ');
 }
 
 final _seasonalPattern = RegExp(
