@@ -33,8 +33,8 @@ class DetailHonesty {
 
   factory DetailHonesty.of(Temple temple) {
     final corpus = _corpus(temple);
-    final framing = _framing(corpus);
     final tradition = _tradition(temple);
+    final framing = _framing(temple, corpus, tradition);
     final timings = temple.timings;
     final caveat = _timingsCaveat(timings);
     return DetailHonesty(
@@ -144,9 +144,7 @@ String? verifiedCoverUrl(Temple temple) {
 ///
 /// Placeholder hosts are dropped so mosaic tiles never bind stock art.
 List<String> verifiedMosaicUrls(Iterable<Temple> temples) {
-  return [
-    for (final temple in temples) ...verifiedGalleryUrls(temple),
-  ];
+  return [for (final temple in temples) ...verifiedGalleryUrls(temple)];
 }
 
 /// True for empty values and known stock/placeholder image URLs.
@@ -188,7 +186,7 @@ String _corpus(Temple temple) {
   ].join('\n').toLowerCase().replaceAll(RegExp(r'[-–—]'), ' ');
 }
 
-SiteFraming _framing(String corpus) {
+SiteFraming _framing(Temple temple, String corpus, SiteTradition tradition) {
   const monumentPhrases = <String>[
     'not a living',
     'no living',
@@ -207,6 +205,7 @@ SiteFraming _framing(String corpus) {
     'not a typical hr&ce',
     'not a typical darshan',
   ];
+  // Heritage, ASI, and ruin wording still wins over worship words.
   if (monumentPhrases.any(corpus.contains)) {
     return SiteFraming.monumentVisit;
   }
@@ -238,7 +237,40 @@ SiteFraming _framing(String corpus) {
   if (_anyAffirmative(corpus, livingPhrases)) {
     return SiteFraming.livingTemple;
   }
+  // Jain, Buddhist, and Sikh keep their tradition chip. Worship words
+  // do not reclassify those listings.
+  if (tradition != SiteTradition.unspecified) {
+    return SiteFraming.neutral;
+  }
+  if (_affirmativeWorship(temple)) {
+    return SiteFraming.livingTemple;
+  }
   return SiteFraming.neutral;
+}
+
+/// Worship words in the timings text or the description.
+///
+/// A clock by itself is not darshan. Story and specialities are not read.
+/// A nearby "no" or "not" keeps the match from counting.
+bool _affirmativeWorship(Temple temple) {
+  final text = [
+    temple.description,
+    temple.timings,
+  ].join('\n').toLowerCase().replaceAll(RegExp(r'[-–—]'), ' ');
+  final pattern = RegExp(
+    r'\b(?:widely worshipped|darshan time|darshans?|aartis?|artis?|poojas?|pujas?|abhisheks?)\b',
+  );
+  for (final match in pattern.allMatches(text)) {
+    final start = match.start - 48;
+    final prefix = text.substring(start < 0 ? 0 : start, match.start);
+    if (RegExp(
+      r'\b(no|not|without|never|unlike|rather than)\b',
+    ).hasMatch(prefix)) {
+      continue;
+    }
+    return true;
+  }
+  return false;
 }
 
 /// Tradition named by a deity string alone.
