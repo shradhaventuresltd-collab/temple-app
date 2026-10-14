@@ -4,6 +4,12 @@
 # calls this file instead of inlining bash options.
 set -euo pipefail
 
+# Used only when the workflow did not record JOB_START_EPOCH.
+SCRIPT_START_EPOCH="$(date +%s)"
+
+# shellcheck source=screenshot_budget.sh
+source "$(dirname "$0")/screenshot_budget.sh"
+
 export PATH="${PATH}:${HOME}/.maestro/bin"
 export MAESTRO_CLI_NO_ANALYTICS=1
 
@@ -197,14 +203,24 @@ for attempt in 1 2; do
   set -e
   warn_if_flow_retried "${out}/maestro-stdout.log" "$attempt"
   if [[ "$status" -eq 0 ]]; then
-    # The workflow kills this script at 12 minutes. Screenshots get their
-    # own 3-minute cap, and they are skipped once the script is already
-    # near 10 minutes so a slow gate still exits 0.
-    if (( SECONDS >= 600 )); then
-      warn "Skipping screenshots; smoke script already used ${SECONDS}s"
+    # The workflow kills this script at 12 minutes. The screenshot budget
+    # is measured from JOB_START_EPOCH (the job's first step), not from
+    # $SECONDS, which only starts when this script starts. Skip once 600s
+    # have passed since job start. Otherwise the timeout is
+    # min(180, 780 - elapsed) seconds so the shots cannot run past 13
+    # minutes of job time. A non-zero status does not fail the gate.
+    job_start="${JOB_START_EPOCH:-}"
+    if [[ -z "$job_start" ]]; then
+      job_start="${SCRIPT_START_EPOCH}"
+      warn "JOB_START_EPOCH is unset; screenshot budget counts from script start"
+    fi
+    elapsed=$(( $(date +%s) - job_start ))
+    cap="$(screenshot_run_seconds "$elapsed")"
+    if [[ -z "$cap" ]]; then
+      warn "Skipping screenshots; ${elapsed}s have passed since the job started"
     else
       set +e
-      timeout --kill-after=10s 3m bash -c "$(declare -f warn capture_screenshots); capture_screenshots"
+      timeout --kill-after=10s "${cap}s" bash -c "$(declare -f warn capture_screenshots); capture_screenshots"
       shot_rc=$?
       set -e
       if (( shot_rc != 0 )); then

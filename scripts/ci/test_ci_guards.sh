@@ -101,6 +101,33 @@ if ! grep -q 'needs.android-smoke.result == '"'"'success'"'"'' .github/workflows
 fi
 echo "ok: run-smoke is removed only after a green pull_request smoke"
 
+if ! grep -q 'JOB_START_EPOCH=$(date +%s)' .github/workflows/android-smoke.yml; then
+  echo "FAIL: the smoke job must record JOB_START_EPOCH in its first step" >&2
+  exit 1
+fi
+echo "ok: the smoke job records JOB_START_EPOCH"
+if grep -q 'SECONDS >= 600' scripts/ci/run_android_smoke.sh; then
+  echo "FAIL: screenshot skip must use job start, not \$SECONDS" >&2
+  exit 1
+fi
+# shellcheck source=screenshot_budget.sh
+source scripts/ci/screenshot_budget.sh
+expect_eq "screenshot cap at job start is 180s" \
+  "$(screenshot_timeout_cap 0)" 180
+expect_eq "screenshot cap just under 10 minutes stays 180s" \
+  "$(screenshot_timeout_cap 599)" 180
+expect_eq "screenshot cap at 700s is the time left before 780s" \
+  "$(screenshot_timeout_cap 700)" 80
+expect_eq "screenshot cap at 780s is 0" \
+  "$(screenshot_timeout_cap 780)" 0
+expect_eq "screenshots run for 180s near the start" \
+  "$(screenshot_run_seconds 0)" 180
+expect_eq "screenshots are skipped once 600s have passed" \
+  "$(screenshot_run_seconds 600)" ""
+expect_eq "screenshots are skipped at 700s even though 80s remain" \
+  "$(screenshot_run_seconds 700)" ""
+echo "ok: screenshot budget uses job start and the 780s cap"
+
 if minutes_at_or_over_threshold 1499.9; then
   echo "FAIL: 1499.9 should be under the 75% threshold" >&2
   exit 1
