@@ -1,17 +1,21 @@
 #!/usr/bin/env bash
-# Compare GitHub Actions usage with the 2,000 minute private-repo budget.
+# Compare this repository's Actions minutes with the 2,000 free private
+# minutes. Those 2,000 minutes are shared across the account. Other
+# repositories use the same quota and are not included in this total.
 # Opens or updates one issue labelled actions-minutes at or above 75% (1,500).
 #
-# The total compared with 1,500 is analyze-test minutes plus android-smoke
-# minutes for this repository. Each job that ran is timed from started_at to
-# completed_at on /actions/runs/<id>/jobs, rounded up to a whole minute, with
-# a 1-minute minimum. Skipped jobs are not counted. Only completed runs are
-# listed, and a job with no completed_at is skipped, so an in-progress run
-# does not fail the check. Re-run attempts are included (jobs?filter=all).
-# The run timing API is not used. An Actions API error fails the check. A
-# minute total of 0 fails only when a non-skipped job actually finished.
-# Workflows whose runs were all skipped, such as unlabelled pull-request
-# smoke, are not an error.
+# The total is every workflow the Actions workflows API returns, including
+# demo-seed-launch.yml and actions-minutes.yml. Disabled and deleted
+# workflows stay in the list so a workflow removed later in the month is
+# not dropped. Each job that ran is timed from started_at to completed_at
+# on /actions/runs/<id>/jobs, rounded up to a whole minute, with a 1-minute
+# minimum. Skipped jobs are not counted. Only completed runs are listed, and
+# a job with no completed_at is skipped, so an in-progress run does not fail
+# the check. Re-run attempts are included (jobs?filter=all). The run timing
+# API is not used. An Actions API error fails the check, as does an empty
+# workflow list. A minute total of 0 fails only when a non-skipped job
+# actually finished. Workflows whose runs were all skipped, such as
+# unlabelled pull-request smoke, are not an error.
 #
 # /settings/billing/usage is not called. That report mixes products and unit
 # types (quantity on one route, grossQuantity on the summary), and it is not
@@ -26,13 +30,49 @@ minutes_at_or_over_threshold() {
   awk -v used="$1" -v limit="$threshold_minutes" 'BEGIN { exit !(used + 0 >= limit) }'
 }
 
-# Workflow files whose billable minutes share one total.
-minutes_workflows() {
-  printf '%s\n' "ci.yml" "android-smoke.yml"
+# One "id<TAB>filename" row per workflow from Actions API TSV
+# ("id<TAB>path" per line). Every state is kept. An empty list is an error
+# so the 1,500 alert cannot silently undercount.
+workflow_rows_from_api_tsv() {
+  local rows
+  rows="$(awk -F '\t' '
+    NF < 2 || $1 == "" || $1 == "null" || $2 == "" { next }
+    {
+      n = split($2, parts, "/")
+      file = parts[n]
+      if (file == "" || seen[$1]++) next
+      print $1 "\t" file
+    }
+  ' | sort -t $'\t' -k2,2)" || return 1
+  if [[ -z "$rows" ]]; then
+    echo "error: no workflows to count." >&2
+    return 1
+  fi
+  printf '%s\n' "$rows"
 }
 
-sum_minutes() {
-  awk -v a="$1" -v b="$2" 'BEGIN { printf "%.2f", (a + 0) + (b + 0) }'
+# Every workflow in this repository, from the Actions workflows API.
+# Not a hardcoded file list.
+minutes_workflows() {
+  local rows
+  if ! rows="$(gh api --paginate "repos/${repo}/actions/workflows?per_page=100" --jq '.workflows[] | [.id, .path] | @tsv')"; then
+    echo "error: could not list workflows in ${repo}." >&2
+    return 1
+  fi
+  printf '%s\n' "$rows" | workflow_rows_from_api_tsv
+}
+
+sum_workflow_minutes() {
+  local total=0 minutes
+  for minutes in "$@"; do
+    total=$((total + minutes))
+  done
+  printf '%s\n' "$total"
+}
+
+# Opening paragraph of the actions-minutes issue.
+minutes_issue_opening() {
+  printf '%s\n' "This repository's Actions minutes are at or above 1,500 of 2,000 free private minutes. Those 2,000 minutes are shared across the account. Other repositories on the account use the same quota and are not included in this total."
 }
 
 # Exact instruction written to the actions-minutes issue at 1,500 minutes.
@@ -93,15 +133,18 @@ used=""
 month_start="$(date -u +%Y-%m-01)"
 today="$(date -u +%Y-%m-%d)"
 
-# Whole minutes for one workflow file during the current calendar month.
-# Only status=completed runs are listed. Jobs use filter=all and per_page=100
-# so re-run attempts are included. A job with no completed_at is skipped.
-# API errors propagate. A listed run that returns no jobs fails.
+# Whole minutes for one workflow during the current calendar month.
+# workflow_id is the numeric id from the workflows API. workflow_file is
+# only the label in errors and the issue. Only status=completed runs are
+# listed. Jobs use filter=all and per_page=100 so re-run attempts are
+# included. A job with no completed_at is skipped. API errors propagate.
+# A listed run that returns no jobs fails.
 workflow_minutes() {
-  local workflow_file="$1"
+  local workflow_id="$1"
+  local workflow_file="$2"
   local ids id jobs conclusion started completed job_minutes
   local total=0 run_count=0 finished_jobs=0
-  if ! ids="$(gh api --paginate "repos/${repo}/actions/workflows/${workflow_file}/runs?status=completed&created=${month_start}..${today}&per_page=100" --jq '.workflow_runs[].id')"; then
+  if ! ids="$(gh api --paginate "repos/${repo}/actions/workflows/${workflow_id}/runs?status=completed&created=${month_start}..${today}&per_page=100" --jq '.workflow_runs[].id')"; then
     echo "error: could not list ${workflow_file} runs." >&2
     return 1
   fi
@@ -133,12 +176,18 @@ workflow_minutes() {
   printf '%s\n' "$total"
 }
 
-analyze_minutes="$(workflow_minutes ci.yml)"
-smoke_minutes="$(workflow_minutes android-smoke.yml)"
-used="$((analyze_minutes + smoke_minutes))"
-source_label="Sum of job minutes for analyze-test (ci.yml) and android-smoke (android-smoke.yml) in ${repo} from ${month_start} through ${today} UTC. Each job that ran is rounded up from started_at to completed_at, with a 1-minute minimum. Skipped jobs are not counted."
+workflow_rows="$(minutes_workflows)" || exit 1
+used=0
+breakdown=""
+while IFS=$'\t' read -r workflow_id workflow_file; do
+  [[ -z "$workflow_id" ]] && continue
+  workflow_total="$(workflow_minutes "$workflow_id" "$workflow_file")" || exit 1
+  used="$(sum_workflow_minutes "$used" "$workflow_total")"
+  breakdown+="- ${workflow_file}: ${workflow_total} minutes"$'\n'
+done <<<"$workflow_rows"
+source_label="Sum of job minutes for every workflow in ${repo} from ${month_start} through ${today} UTC. This is this repository's minutes. The ${budget_minutes} free minutes are shared across the account; other repositories are not included. Each job that ran is rounded up from started_at to completed_at, with a 1-minute minimum. Skipped jobs are not counted."
 
-echo "Actions minutes used: ${used} / ${budget_minutes} (${source_label})"
+echo "This repository's minutes: ${used} / ${budget_minutes} (${source_label})"
 
 if ! minutes_at_or_over_threshold "$used"; then
   echo "Under 75% (${threshold_minutes} minutes). No issue."
@@ -148,12 +197,11 @@ fi
 body_file="$(mktemp)"
 action="$(minutes_over_budget_action)"
 {
-  echo "Actions usage is at or above 1,500 of 2,000 free private minutes."
+  minutes_issue_opening
   echo
-  echo "- analyze-test: ${analyze_minutes} minutes"
-  echo "- android-smoke: ${smoke_minutes} minutes"
-  echo "- Total: ${used} minutes (analyze-test and android-smoke together)"
-  echo "- Budget: ${budget_minutes} minutes"
+  printf '%s' "$breakdown"
+  echo "- Total: ${used} minutes (this repository's minutes)"
+  echo "- Budget: ${budget_minutes} free minutes, shared across the account"
   echo "- Threshold: ${threshold_minutes} minutes (75%)"
   echo "- Source: ${source_label}"
   echo
@@ -172,7 +220,7 @@ gh label create actions-minutes \
   >/dev/null 2>&1 || true
 
 existing="$(gh issue list --repo "$repo" --state open --label actions-minutes --limit 1 --json number --jq '.[0].number')"
-title="Actions minutes passed 75% of 2,000"
+title="This repository's Actions minutes passed 75% of 2,000"
 if [[ -z "$existing" || "$existing" == "null" ]]; then
   gh issue create --repo "$repo" --label actions-minutes --title "$title" --body-file "$body_file"
 else

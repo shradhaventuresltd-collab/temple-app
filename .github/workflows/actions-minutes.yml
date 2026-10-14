@@ -1,7 +1,10 @@
 name: actions-minutes
 
-# Weekly check against the 2,000 free private Actions minutes.
-# The total is analyze-test minutes plus android-smoke minutes.
+# Weekly check of this repository's minutes against the 2,000 free
+# private Actions minutes. Those 2,000 minutes are shared across the
+# account. Other repositories use the same quota and are not included.
+# The total is every workflow the Actions API lists, including
+# demo-seed-launch.yml and this workflow.
 # At or above 1,500 the issue says to change android-smoke to
 # cron '30 4,16 * * *' (10:00 and 22:00 IST). The smoke schedule
 # itself stays four runs a day. See scripts/ci/check_actions_minutes.sh.
