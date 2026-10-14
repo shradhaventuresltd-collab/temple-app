@@ -560,6 +560,43 @@ void main() {
     },
   );
 
+  testWidgets('scrolled detail title stays behind the status-bar scrim', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 800);
+    tester.view.devicePixelRatio = 1;
+    tester.view.padding = const FakeViewPadding(top: 48);
+    tester.view.viewPadding = const FakeViewPadding(top: 48);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPadding);
+    addTearDown(tester.view.resetViewPadding);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TempleDetailBody(temple: _named('Martand Sun Temple')),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final scrim = find.byKey(const Key('detail-status-bar-scrim'));
+    expect(scrim, findsOneWidget);
+    expect(tester.getRect(scrim), const Rect.fromLTWH(0, 0, 390, 48));
+
+    await tester.drag(
+      find.byType(SingleChildScrollView),
+      const Offset(0, -520),
+    );
+    await tester.pump();
+
+    final titleTop = tester.getRect(find.text('Martand Sun Temple')).top;
+    expect(titleTop, lessThan(48));
+    expect(tester.getRect(scrim).bottom, greaterThan(titleTop));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('a single stated window does not add a timings caveat', (
     tester,
   ) async {

@@ -11,10 +11,10 @@
 # There is no release workflow in this repo. scripts/build_play_aab.sh calls
 # this script. Any future release workflow must call it too, before it builds.
 #
-# A successful pull_request android-smoke run does not count. Those runs are
-# recorded on the PR merge ref, so accepting them would let a PR smoke unlock
-# a bundle of that ref. Schedule and workflow_dispatch runs on this exact SHA
-# still count, whether or not the branch is main.
+# A successful pull_request android-smoke run does not count. Those runs
+# carry the PR head SHA, not the merge ref, so a labelled PR smoke must
+# not unlock a Play bundle of that head. Schedule and workflow_dispatch
+# runs on this exact SHA still count, whether or not the branch is main.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
