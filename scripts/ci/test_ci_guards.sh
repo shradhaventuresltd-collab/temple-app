@@ -83,6 +83,24 @@ expect_eq "pull_request plan records the PR head, not the merge ref" \
   "$(grep '^head_sha=' "$plan_dir/out" | cut -d= -f2-)" pr-head
 rm -rf "$plan_dir" "$fake_bin"
 
+if ! grep -q 'select(.event != "pull_request")' scripts/ci/android_smoke_plan.sh; then
+  echo "FAIL: last-green and last-failed lookups must ignore pull_request runs" >&2
+  exit 1
+fi
+echo "ok: schedule lookups ignore pull_request runs"
+
+perm_jobs="$(awk '
+  /^  [a-z0-9-]+:$/ { job=$1; sub(/:$/, "", job) }
+  /^      pull-requests: write$/ { print job }
+' .github/workflows/android-smoke.yml)"
+expect_eq "pull-requests: write is only on the label-removal job" \
+  "$perm_jobs" "remove-run-smoke-label"
+if ! grep -q 'needs.android-smoke.result == '"'"'success'"'"'' .github/workflows/android-smoke.yml; then
+  echo "FAIL: run-smoke is removed only after a green pull_request smoke" >&2
+  exit 1
+fi
+echo "ok: run-smoke is removed only after a green pull_request smoke"
+
 if minutes_at_or_over_threshold 1499.9; then
   echo "FAIL: 1499.9 should be under the 75% threshold" >&2
   exit 1

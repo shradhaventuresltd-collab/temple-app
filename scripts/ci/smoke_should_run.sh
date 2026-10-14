@@ -28,10 +28,10 @@ failed_attempt_sha() {
   fi
 }
 
-# Play release gate. pull_request runs are ignored: GitHub records them
-# against the PR merge ref, so a green PR smoke must not unlock a bundle
-# of that ref or of the PR head. Schedule and workflow_dispatch runs on
-# the exact SHA still count, including a dispatch whose branch is not main.
+# Play release gate. pull_request runs are ignored. They carry the PR
+# head SHA, not the merge ref, and a labelled PR smoke must not unlock a
+# Play bundle. Schedule and workflow_dispatch runs on the exact SHA still
+# count, including a dispatch whose branch is not main.
 gate_accepts_smoke_run() {
   local event="$1"
   [[ "$event" != "pull_request" ]]

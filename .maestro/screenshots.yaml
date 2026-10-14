@@ -5,6 +5,27 @@ appId: com.shradhaventures.temple
 # The shell also ignores this flow's exit code.
 
 - launchApp
+# The smoke gate accepts Terms on a clearState launch. This launch keeps
+# that acceptance. If the gate is still up, accept it before Home.
+- runFlow:
+    when:
+      visible: "Pixel Launcher isn't responding"
+    optional: true
+    commands:
+      - tapOn:
+          text: "Wait"
+          optional: true
+      - tapOn:
+          text: "Close app"
+          optional: true
+- extendedWaitUntil:
+    visible:
+      id: "policy-accept-button"
+    timeout: 20000
+    optional: true
+- tapOn:
+    id: "policy-accept-button"
+    optional: true
 - extendedWaitUntil:
     visible: "Temple Directory"
     timeout: 20000

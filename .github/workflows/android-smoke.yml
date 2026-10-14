@@ -17,7 +17,12 @@ name: android-smoke
 # A labeled event also requires github.event.label.name == 'run-smoke',
 # so adding any other label does not start smoke. synchronize runs only
 # while that label is already present. The plan job does not apply the
-# green/failed SHA skip on pull_request.
+# green/failed SHA skip on pull_request. After a green pull_request
+# android-smoke job, remove-run-smoke-label deletes run-smoke so a later
+# push does not start another run. That job's only permission is
+# pull-requests: write. If the token cannot delete the label, the job
+# warns and exits 0; remove it with:
+#   gh pr edit <number> --remove-label run-smoke
 
 on:
   schedule:
@@ -240,3 +245,40 @@ jobs:
           FAILING_SHA: ${{ github.sha }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: bash scripts/ci/report_smoke_failure.sh
+
+  # Runs only after a green pull_request smoke. Removing the label stops a
+  # later synchronize event from starting another emulator. unlabeled is not
+  # a workflow trigger, so this delete does not start a new run. A failed
+  # smoke keeps the label so the next push can retry.
+  remove-run-smoke-label:
+    needs: android-smoke
+    if: >-
+      github.event_name == 'pull_request' &&
+      needs.android-smoke.result == 'success'
+    permissions:
+      pull-requests: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Remove the run-smoke label
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set +e
+          err="$(gh api --method DELETE \
+            "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/labels/run-smoke" \
+            2>&1)"
+          rc=$?
+          set -e
+          if [[ "$rc" -eq 0 ]]; then
+            echo "Removed run-smoke from pull request ${PR_NUMBER}."
+            exit 0
+          fi
+          if printf '%s' "$err" | grep -Eq '404|Not Found'; then
+            echo "run-smoke is already absent from pull request ${PR_NUMBER}."
+            exit 0
+          fi
+          echo "::warning::Could not remove the run-smoke label from pull request ${PR_NUMBER}. The token may lack pull-requests: write. Remove it manually so the next push does not start smoke: gh pr edit ${PR_NUMBER} --remove-label run-smoke"
+          printf '%s\n' "$err"
+          exit 0
