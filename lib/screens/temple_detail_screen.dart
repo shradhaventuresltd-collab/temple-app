@@ -9,6 +9,9 @@ import 'package:temple_app/widgets/app_drawer.dart';
 import 'package:temple_app/widgets/temple_image_placeholder.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+const Color _saffron = Color(0xFFFF8F00);
+const Color _gold = Color(0xFFFFD54F);
+
 class TempleDetailScreen extends StatelessWidget {
   const TempleDetailScreen({super.key, required this.temple});
 
@@ -36,9 +39,7 @@ class TempleDetailBody extends StatefulWidget {
 }
 
 class _TempleDetailBodyState extends State<TempleDetailBody> {
-  static const Color _saffron = Color(0xFFFF8F00);
   static const Color _deepSaffron = Color(0xFFE65100);
-  static const Color _gold = Color(0xFFFFD54F);
   static const _autoAdvanceInterval = Duration(seconds: 5);
   static const double _imageHeight = 450;
 
@@ -588,23 +589,20 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: temple.specialities
-                          .map(
-                            (item) => Chip(
-                              avatar: const Icon(
-                                Icons.auto_awesome_rounded,
-                                size: 18,
-                                color: _saffron,
-                              ),
-                              label: Text(item, style: GoogleFonts.poppins()),
-                              side: const BorderSide(color: _gold),
-                              backgroundColor: const Color(0xFFFFF9E3),
-                            ),
-                          )
-                          .toList(),
+                    // Chip locks the label to one line and fades the rest
+                    // (maxLines: 1, softWrap: false, TextOverflow.fade).
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (
+                          var i = 0;
+                          i < temple.specialities.length;
+                          i++
+                        ) ...[
+                          if (i > 0) const SizedBox(height: 8),
+                          _SpecialityPill(label: temple.specialities[i]),
+                        ],
+                      ],
                     ),
                   ],
                 ),
@@ -626,6 +624,49 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// Full-width speciality pill. The label wraps to as many lines as it needs.
+class _SpecialityPill extends StatelessWidget {
+  const _SpecialityPill({required this.label});
+
+  final String label;
+
+  static const Color _cream = Color(0xFFFFF9E3);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: _cream,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _gold),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.auto_awesome_rounded, size: 18, color: _saffron),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              softWrap: true,
+              overflow: TextOverflow.visible,
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 0.1,
+                height: 1.43,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
