@@ -200,16 +200,6 @@ String _normalizeHonestyText(String raw) {
       .replaceAll(RegExp(r'[–—]'), ' ');
 }
 
-const _explicitLivingPhrases = <String>[
-  'living temple',
-  'living shrine',
-  'living pilgrimage',
-  'living monument',
-  'living asi',
-  'living pooja',
-  'living cult',
-];
-
 const _livingPhrases = <String>[
   'living temple',
   'living shrine',
@@ -236,7 +226,20 @@ const _livingPhrases = <String>[
   'endowments',
 ];
 
-final _heritageToken = RegExp(r'\b(?:asi|ruins?)\b|\bprotected monument\b');
+final _ruinWord = RegExp(r'\b(?:ruined|ruins?)\b');
+
+/// Nearby words that mean the ruin is not this shrine: a fort, an excavation
+/// find, or a neighboring site.
+const _incidentalRuinWords = <String>{
+  'above',
+  'around',
+  'beside',
+  'excavated',
+  'excavation',
+  'excavations',
+  'fort',
+  'revealed',
+};
 
 SiteFraming _framing(Temple temple, String corpus, SiteTradition tradition) {
   const monumentPhrases = <String>[
@@ -261,16 +264,15 @@ SiteFraming _framing(Temple temple, String corpus, SiteTradition tradition) {
   if (monumentPhrases.any(corpus.contains)) {
     return SiteFraming.monumentVisit;
   }
-  final explicitLiving = _anyAffirmative(corpus, _explicitLivingPhrases);
-  final legacyLiving = _anyAffirmative(corpus, _livingPhrases);
-  final worshipLiving = _affirmativeWorship(temple);
-  // "asi", "ruin(s)", and "protected monument" are heritage too. They beat
-  // "daily puja" and other worship words. An explicit "living temple" or
-  // "living asi" claim can still stand. A nearby fort ruin does not, by
-  // itself, turn a listing that never claimed worship into a heritage visit.
-  if (_heritageToken.hasMatch(corpus) &&
-      (legacyLiving || worshipLiving) &&
-      !explicitLiving) {
+  final presentWorship =
+      _anyAffirmative(corpus, _livingPhrases) || _affirmativeWorship(temple);
+  // "asi", "ruin(s)", and "protected monument" do not force heritage on
+  // their own. Present-tense darshan or puja wins. Heritage from ruins
+  // requires a ruined shrine, ceased or past-tense worship, and no
+  // present-tense evidence. Protected or ASI status alone stays neutral.
+  if (!presentWorship &&
+      _shrineIsRuin(corpus) &&
+      _ceasedOrPastWorship(corpus)) {
     return SiteFraming.monumentVisit;
   }
   // Jain, Buddhist, and Sikh keep the tradition chip on every path. Legacy
@@ -279,10 +281,39 @@ SiteFraming _framing(Temple temple, String corpus, SiteTradition tradition) {
   if (tradition != SiteTradition.unspecified) {
     return SiteFraming.neutral;
   }
-  if (legacyLiving || worshipLiving) {
+  if (presentWorship) {
     return SiteFraming.livingTemple;
   }
   return SiteFraming.neutral;
+}
+
+final _ceasedOrPastWorshipPattern = RegExp(
+  r'\b(?:once|historic|historical|formerly|former|erstwhile|discontinued|ceased|stopped|ended|abandoned|abolished)\b',
+);
+
+bool _ceasedOrPastWorship(String corpus) {
+  return _ceasedOrPastWorshipPattern.hasMatch(corpus);
+}
+
+/// True when ruin wording describes this shrine, not a fort or a dig.
+bool _shrineIsRuin(String corpus) {
+  for (final match in _ruinWord.allMatches(corpus)) {
+    final before = corpus.substring(
+      _clauseStart(corpus, match.start),
+      match.start,
+    );
+    final after = corpus.substring(match.end, _clauseEnd(corpus, match.end));
+    final beforeWords = _words(before);
+    final afterWords = _words(after);
+    final tail = beforeWords.length <= 8
+        ? beforeWords
+        : beforeWords.sublist(beforeWords.length - 8);
+    final head = afterWords.length <= 4 ? afterWords : afterWords.sublist(0, 4);
+    final around = [...tail, ...head];
+    if (around.any(_incidentalRuinWords.contains)) continue;
+    return true;
+  }
+  return false;
 }
 
 /// Worship words in the timings text or the description.
@@ -473,10 +504,13 @@ int _clauseEnd(String text, int index) {
   return limit;
 }
 
-/// Semicolons break clauses. "St.", "A.D.", and decimals such as "5.30" do not.
+/// Semicolons and commas break clauses, so "No entry fee, 5.30 am darshan"
+/// keeps the darshan. "St.", "A.D.", and decimals such as "5.30" do not.
 bool _isClauseBreak(String text, int index) {
   final ch = text[index];
-  if (ch == '\n' || ch == '!' || ch == '?' || ch == ';') return true;
+  if (ch == '\n' || ch == '!' || ch == '?' || ch == ';' || ch == ',') {
+    return true;
+  }
   if (ch != '.') return false;
   if (_isDecimalDot(text, index) || _isAbbreviationDot(text, index)) {
     return false;
