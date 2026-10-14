@@ -11,4 +11,4 @@ PRODUCT_NAME = TempleDirectory
 PRODUCT_BUNDLE_IDENTIFIER = com.example.templeApp
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 Shradha Ventures Ltd. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 Sanu Vimal. All rights reserved.

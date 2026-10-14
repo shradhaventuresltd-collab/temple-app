@@ -89,11 +89,11 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "Shradha Ventures Ltd" "\0"
+            VALUE "CompanyName", "Sanu Vimal" "\0"
             VALUE "FileDescription", "Temple Directory India" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "temple_app" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 Shradha Ventures Ltd. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Sanu Vimal. All rights reserved." "\0"
             VALUE "OriginalFilename", "temple_app.exe" "\0"
             VALUE "ProductName", "Temple Directory India" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
