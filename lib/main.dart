@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:temple_app/bundled_fonts.dart';
 import 'package:temple_app/config/policy_config.dart';
+import 'package:temple_app/release_error_widget.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/home_screen.dart';
 import 'package:temple_app/screens/policy_acceptance_gate.dart';
@@ -15,6 +17,17 @@ import 'package:temple_app/services/temple_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Detailed text only for debug, DEMO_BUILD, or ENABLE_ADMIN_TOOLS.
+  // The Play AAB gets a branded screen with no stack. Flutter already
+  // reports that error once before the fallback is built.
+  installReleaseErrorWidget();
+  // Poppins and Lora ship in assets/google_fonts. google_fonts otherwise
+  // downloads fonts.gstatic.com from the first frame. loadFontIfNecessary
+  // is started with .then and no catchError, so a missing file is an
+  // unhandled async error. onError logs that future.
+  installFontLoadErrorLogging();
+  registerBundledFontLicenses();
+  GoogleFonts.config.allowRuntimeFetching = false;
   // Paint Flutter UI immediately. Native splash is solid saffron (#FF8F00);
   // awaiting Ads/Firebase here made that orange linger for several seconds
   // (KAN-75). The first Flutter frame is the Terms gate or a cream hold.

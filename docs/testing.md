@@ -55,6 +55,18 @@ flutter build apk --profile --dart-define=DEMO_BUILD=true
 
 Do not pass `ENABLE_ADMIN_TOOLS` for this flow.
 
+## Demo-seed release launch
+
+Workflow `demo-seed-launch` builds the APK Sanu installs:
+
+```bash
+flutter build apk --release \
+  --dart-define=DEMO_BUILD=true \
+  --dart-define=ENABLE_ADMIN_TOOLS=true
+```
+
+It uses the same `run-smoke` label gate as `android-smoke` (`pull_request` types `labeled` and `synchronize`, plus `workflow_dispatch`). The job signs with an ephemeral keystore (`android/key.properties` and `*.jks` stay gitignored). It is not the Play upload key. The script installs that release APK on the API 34 emulator, expects the Terms gate, taps Accept, opens the Admin sign-in panel, and never taps Seed. It then turns the radios off, clears app data, and expects the gate again. Artifacts are `demo-seed-launch` (logcat and screenshots) and `demo-seed-apk`.
+
 ## Demo ads (`DEMO_BUILD`)
 
 `--dart-define=DEMO_BUILD=true` makes `AdHelper` banner and interstitial ids the official Google test units in every mode, including release. KAN-89 is this `DEMO_BUILD` define. There is no `USE_TEST_ADS` define. The Android AdMob application id becomes Google's test app id `ca-app-pub-3940256099942544~3347511713` when Gradle sees `DEMO_BUILD` (Flutter passes it as `-Pdart-defines`). Otherwise Gradle supplies the production Android app id. The main manifest does not hard-code either id: `android/app/src/main/AndroidManifest.xml` sets `com.google.android.gms.ads.APPLICATION_ID` to `${admobAppId}`, and `manifestPlaceholders.admobAppId` in `android/app/build.gradle.kts` fills that placeholder. Test units still show the Test Ad label with the production app id; that is the same pairing debug builds already use.
