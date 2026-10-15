@@ -296,38 +296,70 @@ class _AcceptButton extends StatelessWidget {
   final bool saving;
   final VoidCallback onPressed;
 
+  static const Color _pressed = Color(0xFFE65100);
+
   @override
   Widget build(BuildContext context) {
+    final enabled = !saving;
+    final activate = enabled ? onPressed : null;
     return Semantics(
       // Widget tests and the Maestro smoke flow both use this id.
+      // onTap is the accessibility action. A button node without it takes
+      // the first tap and only activates the child on the second.
       key: const Key('policy-accept-button'),
       identifier: 'policy-accept-button',
       button: true,
       label: PolicyGateCopy.acceptButton,
       hint: PolicyGateCopy.acceptHint,
-      enabled: !saving,
+      enabled: enabled,
+      onTap: activate,
       child: ExcludeSemantics(
         child: SizedBox(
           width: double.infinity,
           child: FilledButton(
-            onPressed: saving ? null : onPressed,
-            style: FilledButton.styleFrom(
-              backgroundColor: PolicyGateColors.saffron,
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: PolicyGateColors.saffron.withAlpha(140),
-              disabledForegroundColor: Colors.white,
-              minimumSize: const Size(48, 48),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              textStyle: GoogleFonts.poppins(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            child: const Text(PolicyGateCopy.acceptButton),
+            onPressed: activate,
+            style:
+                FilledButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  disabledForegroundColor: Colors.white,
+                  minimumSize: const Size(48, 48),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  // InkSparkle (Material 3 on Android) can drop the first press
+                  // and draw no splash. InkRipple plus a pressed fill keeps one
+                  // tap visible.
+                  splashFactory: InkRipple.splashFactory,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  textStyle: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ).copyWith(
+                  backgroundColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.disabled)) {
+                      return PolicyGateColors.saffron.withAlpha(140);
+                    }
+                    if (states.contains(WidgetState.pressed)) return _pressed;
+                    return PolicyGateColors.saffron;
+                  }),
+                  overlayColor: const WidgetStatePropertyAll(Color(0x52FFFFFF)),
+                ),
+            child: saving
+                ? const SizedBox(
+                    key: Key('policy-accept-progress'),
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text(PolicyGateCopy.acceptButton),
           ),
         ),
       ),

@@ -5,6 +5,7 @@ import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/services/client_cache.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
+import 'package:temple_app/widgets/mosaic_tile_placeholder.dart';
 import 'package:temple_app/widgets/temple_image_placeholder.dart';
 
 /// Home hero subtitle for the directory size.
@@ -196,12 +197,7 @@ class _MosaicTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isDisallowedImageUrl(url)) {
-      return const ColoredBox(
-        color: Color(0xFFFFE0B2),
-        child: Center(
-          child: Icon(Icons.photo_outlined, color: Color(0xFF8D6E63), size: 28),
-        ),
-      );
+      return const MosaicTilePlaceholder();
     }
 
     return LayoutBuilder(
@@ -230,15 +226,8 @@ class _MosaicTile extends StatelessWidget {
               memCacheWidth: decode.width,
               memCacheHeight: decode.height,
               fadeInDuration: const Duration(milliseconds: 400),
-              placeholder: ColoredBox(color: Colors.brown.shade100),
-              error: ColoredBox(
-                color: Colors.brown.shade200,
-                child: const Icon(
-                  Icons.photo_outlined,
-                  color: Colors.white54,
-                  size: 28,
-                ),
-              ),
+              placeholder: const MosaicTilePlaceholder(),
+              error: const MosaicTilePlaceholder(),
             ),
             if (caption != null)
               Positioned(

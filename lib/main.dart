@@ -33,11 +33,13 @@ Future<void> main() async {
   // Cap decoded bitmaps before the first list paints full-size covers.
   ClientCache.installImageMemoryLimits();
   DirectoryLink.listen(directoryConnectivity());
-  // Paint Flutter UI immediately. Native splash is solid saffron (#FF8F00);
-  // awaiting Ads/Firebase here made that orange linger for several seconds
-  // (KAN-75). The first Flutter frame is the Terms gate or a cream hold.
-  // UMP starts only after Terms are accepted (KAN-93).
-  runApp(const TempleDirectoryApp());
+  // Firebase before the first frame, on every flavour (Play, demo
+  // distribution, and demo-seed). The 4s cap keeps a hung init from
+  // holding the saffron splash (KAN-75). A timeout or a bad config still
+  // launches; Home then reads cache or the bundled sample. Ads stay after
+  // Terms (KAN-93) and are not awaited here.
+  final firebaseReady = await AppBootstrap.initializeFirebase();
+  runApp(TempleDirectoryApp(firebaseReady: firebaseReady));
 }
 
 enum _StartupPhase { checking, gate, home }
@@ -48,6 +50,7 @@ class TempleDirectoryApp extends StatefulWidget {
     this.acceptanceStore,
     this.currentPolicyVersion = PolicyConfig.currentVersion,
     this.initializeFirebase,
+    this.firebaseReady,
     this.initializeAds,
     this.templesLoader,
     this.adminAuth,
@@ -65,6 +68,11 @@ class TempleDirectoryApp extends StatefulWidget {
   final int currentPolicyVersion;
 
   final Future<bool> Function()? initializeFirebase;
+
+  /// Result when [main] already awaited [AppBootstrap.initializeFirebase].
+  /// Tests leave this null and pass [initializeFirebase] instead.
+  final bool? firebaseReady;
+
   final Future<void> Function()? initializeAds;
   final Future<List<Temple>> Function()? templesLoader;
   final AdminAuth? adminAuth;
@@ -90,9 +98,15 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
   @override
   void initState() {
     super.initState();
-    final startFirebase =
-        widget.initializeFirebase ?? AppBootstrap.initializeFirebase;
-    _firebaseReady = startFirebase();
+    final override = widget.initializeFirebase;
+    final already = widget.firebaseReady;
+    if (override != null) {
+      _firebaseReady = override();
+    } else if (already != null) {
+      _firebaseReady = Future<bool>.value(already);
+    } else {
+      _firebaseReady = AppBootstrap.initializeFirebase();
+    }
     _store = widget.acceptanceStore ?? SharedPreferencesPolicyAcceptanceStore();
     unawaited(_loadAcceptance());
   }

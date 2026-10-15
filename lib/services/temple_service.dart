@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:temple_app/data/sample_data.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_index.dart';
+import 'package:temple_app/services/firebase_ready.dart';
 import 'package:temple_app/services/firestore_read_log.dart';
 import 'package:temple_app/services/index_stamp_store.dart';
 import 'package:temple_app/services/temple_directory_client.dart';
@@ -49,6 +51,14 @@ class TempleService {
   /// instance, used by tests, does not touch it.
   static Future<List<Temple>>? _session;
 
+  @visibleForTesting
+  static void resetSessionForTest() => _session = null;
+
+  /// Injected clients are used as-is. Otherwise a missing default app must
+  /// not touch [FirebaseFirestore.instance] (that throws core/no-app).
+  bool get _canUseFirestore =>
+      _directory != null || _firestore != null || firebaseAppsReady();
+
   TempleDirectoryClient get _client => _directory ?? _ownedClient;
 
   IndexStampStore get _stampStore => _stamps ?? _ownedStamps;
@@ -73,6 +83,7 @@ class TempleService {
   /// error reads the cache and [TempleDetailLoad.fromCache] is true. This
   /// read is not part of the launch total.
   Future<TempleDetailLoad> getTemple(String id) async {
+    if (!_canUseFirestore) return _sampleDetail(id);
     DirectoryDoc snap;
     var fromCache = false;
     try {
@@ -91,6 +102,7 @@ class TempleService {
 
   Future<List<Temple>> _load() async {
     _readLog.startLoad();
+    if (!_canUseFirestore) return _bundledSample();
     final index = await _loadFromServerMeta();
     if (index.confirmedMissing) return _loadCollectionOrRescue();
     final rows = index.temples;
@@ -294,6 +306,22 @@ class TempleService {
     } catch (_) {
       return _rescueFromAppliedCache();
     }
+  }
+
+  List<Temple> _bundledSample() {
+    _readLog.noteOfflineSample();
+    _readLog.recordFallback('sample');
+    _readLog.finishLaunch('sample');
+    return sampleTemples;
+  }
+
+  TempleDetailLoad _sampleDetail(String id) {
+    for (final temple in sampleTemples) {
+      if (temple.id == id) {
+        return TempleDetailLoad(temple: temple, fromCache: true);
+      }
+    }
+    return const TempleDetailLoad();
   }
 
   Future<List<Temple>> _rescueFromAppliedCache() async {

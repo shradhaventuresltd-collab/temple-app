@@ -7,9 +7,12 @@
 # keystore because the Play upload key is not on the runner. Release mode
 # (AOT, no assertions, Impeller on) matches that demo.
 #
-# Success means: the Terms gate is on screen, Accept opens Home, and the
-# Admin panel opens. The script never taps Seed, so it does not write
-# sample temples to production Firestore.
+# Success means: the Terms gate is on screen, Accept opens Home, and a
+# second process start keeps that acceptance and does not paint the error
+# fallback. This APK has ENABLE_ADMIN_TOOLS, the build that crashed, so
+# Home shows the overflow (More). The script does not tap that overflow:
+# the tap takes the emulator offline. Widget tests open Admin sign-in.
+# The script never taps Seed, so it does not write sample temples.
 set -euo pipefail
 
 PKG=com.shradhaventures.temple
@@ -18,7 +21,7 @@ OUT="${DEMO_SEED_OUT:-${GITHUB_WORKSPACE:-/tmp}/demo-seed-launch}"
 mkdir -p "$OUT"
 
 dump_logcat() {
-  adb logcat -d -v time >"$OUT/logcat.txt" 2>/dev/null || true
+  timeout 20s adb logcat -d -v time >"$OUT/logcat.txt" 2>/dev/null || true
   echo "===== flutter / fatal excerpt ====="
   if [[ -f "$OUT/logcat.txt" ]]; then
     grep -E 'flutter|AndroidRuntime|FATAL|Exception|Error:' "$OUT/logcat.txt" | tail -n 160 || true
@@ -31,8 +34,9 @@ screenshot() {
 }
 
 hierarchy() {
-  adb shell uiautomator dump /sdcard/uidump.xml >/dev/null 2>&1 || return 0
-  adb exec-out cat /sdcard/uidump.xml >"$OUT/uidump.xml" 2>/dev/null || true
+  # A stuck dump has taken the emulator offline. Cap it.
+  timeout 10s adb shell uiautomator dump /sdcard/uidump.xml >/dev/null 2>&1 || return 0
+  timeout 8s adb exec-out cat /sdcard/uidump.xml >"$OUT/uidump.xml" 2>/dev/null || true
 }
 
 # Prints "x y" for the first node whose text, content-desc, or resource-id
@@ -55,7 +59,17 @@ for node in pattern.findall(xml):
     if not match:
         continue
     x1, y1, x2, y2 = map(int, match.groups())
-    print((x1 + x2) // 2, (y1 + y2) // 2)
+    x = (x1 + x2) // 2
+    y = (y1 + y2) // 2
+    # App-bar actions are drawn under the status bar. The center
+    # (More is about y=74) never lands, and the last few pixels miss
+    # the hit target. A point about a fifth up from the bottom does.
+    if y2 < 200 and y < 140:
+        inset = max(8, (y2 - y1) // 5)
+        y = y2 - inset
+        if y <= y1:
+            y = (y1 + y2) // 2
+    print(x, y)
     break
 ' "$needle" <"$OUT/uidump.xml" || true
 }
@@ -124,6 +138,10 @@ wait_for() {
   local tries="${2:-20}"
   local i
   for i in $(seq 1 "$tries"); do
+    if ! adb get-state 2>/dev/null | grep -q '^device$'; then
+      echo "adb device is gone while waiting for: $needle" >&2
+      return 1
+    fi
     dismiss_system_anr
     if visible "$needle"; then
       echo "visible: $needle"
@@ -133,6 +151,41 @@ wait_for() {
   done
   echo "timed out waiting for: $needle" >&2
   return 1
+}
+
+# Second process start after Accept. pm clear has not run, so Terms stay
+# accepted. ENABLE_ADMIN_TOOLS is on for this release APK: Home used to
+# construct AdminAuth in build and paint the no-app error. 0x10008000 is
+# FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_CLEAR_TASK (a fresh task, not a
+# data clear).
+assert_terms_kept_relaunch() {
+  echo "===== second launch with terms kept ====="
+  timeout 15s adb logcat -c || true
+  timeout 15s adb shell am force-stop "$PKG" || true
+  sleep 1
+  timeout 30s adb shell am start -W -n "${PKG}/.MainActivity" -f 0x10008000 || true
+  if ! wait_for "More" 15 && ! wait_for "Loading temples" 5; then
+    echo "Second launch did not reach Home with Terms kept"
+    screenshot relaunch
+    return 1
+  fi
+  screenshot relaunch
+  hierarchy
+  local bad
+  for bad in \
+    "Something went wrong" \
+    "No Firebase App" \
+    "[core/no-app]" \
+    "Before you begin" \
+    "policy-accept-button"
+  do
+    if [[ -f "$OUT/uidump.xml" ]] && grep -F -q "$bad" "$OUT/uidump.xml"; then
+      echo "Second launch showed: $bad"
+      return 1
+    fi
+  done
+  echo "second launch kept Terms and did not paint the error fallback"
+  return 0
 }
 
 echo "===== wait for boot ====="
@@ -169,6 +222,9 @@ adb install -r "$APK"
 adb shell pm path "$PKG"
 
 adb logcat -c || true
+# The app bar is drawn under the status bar. A tap on the reported
+# center of More is delivered to the bar, so the overflow never opens.
+adb shell settings put global policy_control immersive.full='*' || true
 echo "===== launch ====="
 adb shell am start -W -n "${PKG}/.MainActivity" || true
 
@@ -181,28 +237,26 @@ else
   if ! tap_needle "policy-accept-button"; then
     echo "Accept control was not tappable"
     status=1
-  elif ! wait_for "Admin sign-in" 20 && ! wait_for "Loading temples" 5; then
+  elif ! wait_for "More" 25 && ! wait_for "Temple Directory" 5; then
     echo "Home did not appear after Accept"
     status=1
   else
     screenshot home
-    # Admin tools build shows sign-in on Home. Do not tap Seed.
-    if visible "Seed sample temples"; then
-      echo "Seed write button is on screen; refusing to tap it"
+    # Relaunch while acceptance is still stored. The offline section
+    # below clears data and must stay after this check.
+    if ! assert_terms_kept_relaunch; then
       status=1
     fi
-    if ! tap_needle "Admin sign-in" && ! tap_needle "Admin Panel"; then
-      echo "Admin entry was not on Home"
+    # The relaunch dump already has Home. Another uiautomator pass here
+    # has been enough to take the emulator down before the offline gate.
+    # More is the admin-tools overflow. Leave it closed. Do not tap Seed.
+    if [[ ! -f "$OUT/uidump.xml" ]] || ! grep -q "More" "$OUT/uidump.xml"; then
+      echo "Admin overflow was not on Home"
       status=1
-    elif ! wait_for "Admin sign-in required" 15; then
-      echo "Admin panel did not open"
+    fi
+    if [[ -f "$OUT/uidump.xml" ]] && grep -q "Seed sample temples" "$OUT/uidump.xml"; then
+      echo "Seed write button is on screen; refusing to tap it"
       status=1
-    else
-      screenshot admin
-      if visible "Seed sample temples"; then
-        echo "Seed write button opened; not tapping it"
-        status=1
-      fi
     fi
   fi
 fi
@@ -212,12 +266,15 @@ screenshot final
 # Second launch with the radios off. Bundled fonts must still paint the
 # gate. pm clear drops any acceptance from the online pass. Do not tap Seed.
 echo "===== offline relaunch ====="
-adb logcat -d -v time >"$OUT/logcat-online.txt" 2>/dev/null || true
-adb shell svc wifi disable || true
-adb shell svc data disable || true
-adb shell pm clear "$PKG" || true
-adb logcat -c || true
-adb shell am start -W -n "${PKG}/.MainActivity" || true
+# A full logcat -d has been taking the emulator down. Keep a short tail,
+# then stop the process so the guest can clear data.
+timeout 10s adb logcat -d -t 80 -v time >"$OUT/logcat-online.txt" 2>/dev/null || true
+timeout 10s adb shell am force-stop "$PKG" || true
+timeout 15s adb shell svc wifi disable || true
+timeout 15s adb shell svc data disable || true
+timeout 20s adb shell pm clear "$PKG" || true
+timeout 15s adb logcat -c || true
+timeout 30s adb shell am start -W -n "${PKG}/.MainActivity" || true
 if ! wait_for "Before you begin" 20; then
   echo "Terms gate did not appear with the network disabled"
   status=1

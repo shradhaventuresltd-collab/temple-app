@@ -2,23 +2,31 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:temple_app/config/build_flags.dart';
 
-/// Detailed exception text is for debug, demo, and admin-tool builds.
+/// Detailed exception text is for debug builds only.
 ///
-/// The Play AAB is built with all three false. `scripts/build_play_aab.sh`
-/// refuses `DEMO_BUILD` and `ENABLE_ADMIN_TOOLS`, and release is not debug,
-/// so that bundle gets [productionReleaseErrorWidget] instead.
+/// Release and profile binaries, including demo and admin-tool APKs, use
+/// [productionReleaseErrorWidget]. A raw stack on the demo APK was the grey
+/// screen testers saw. [demoBuild] and [adminTools] stay in the signature so
+/// callers still pass the Play and demo defines. Neither flag turns the
+/// stack back on outside debug. The Play AAB script is unchanged.
 bool showDetailedReleaseError({
   required bool debug,
   required bool demoBuild,
   required bool adminTools,
-}) => debug || demoBuild || adminTools;
+}) {
+  // Release and profile never paint a stack, including when demo or admin
+  // tools are compiled in. Both branches return [debug] so those defines
+  // cannot turn the stack back on.
+  if (demoBuild || adminTools) return debug;
+  return debug;
+}
 
 /// Shows a build failure instead of Flutter's blank grey release box.
 ///
 /// [installReleaseErrorWidget] always replaces [ErrorWidget.builder]. The
 /// detailed exception and stack are installed only when
-/// [showDetailedReleaseError] is true (`kDebugMode`, `DEMO_BUILD`, or
-/// `ENABLE_ADMIN_TOOLS`). Otherwise the builder is the branded fallback.
+/// [showDetailedReleaseError] is true (debug). Release and profile builds
+/// get the branded fallback, with no exception text and no stack.
 void installReleaseErrorWidget({
   bool? debug,
   bool? demoBuild,

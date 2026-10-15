@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:temple_app/services/ad_consent.dart';
 import 'package:temple_app/services/app_bootstrap.dart';
@@ -19,6 +20,51 @@ void main() {
         initialize: () async => throw Exception('firebase unavailable'),
       );
       expect(ok, isFalse);
+    });
+
+    test('demo distribution passes no Dart options', () {
+      const configured = FirebaseOptions(
+        apiKey: 'key',
+        appId: 'app',
+        messagingSenderId: 'sender',
+        projectId: 'project',
+      );
+      expect(
+        startupFirebaseOptions(
+          demoAppIdSuffix: true,
+          isWeb: false,
+          isAndroid: true,
+          configured: configured,
+        ),
+        isNull,
+      );
+    });
+
+    test('seed and Play flavours pass the configured options', () {
+      const configured = FirebaseOptions(
+        apiKey: 'key',
+        appId: 'app',
+        messagingSenderId: 'sender',
+        projectId: 'project',
+      );
+      expect(
+        startupFirebaseOptions(
+          demoAppIdSuffix: false,
+          isWeb: false,
+          isAndroid: true,
+          configured: configured,
+        ),
+        same(configured),
+      );
+      expect(
+        startupFirebaseOptions(
+          demoAppIdSuffix: true,
+          isWeb: true,
+          isAndroid: false,
+          configured: configured,
+        ),
+        same(configured),
+      );
     });
 
     test('returns true when initialize completes', () async {

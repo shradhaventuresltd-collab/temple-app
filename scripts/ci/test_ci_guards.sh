@@ -128,6 +128,70 @@ expect_eq "screenshots are skipped at 700s even though 80s remain" \
   "$(screenshot_run_seconds 700)" ""
 echo "ok: screenshot budget uses job start and the 780s cap"
 
+if ! grep -q 'second_launch_home.yaml' scripts/ci/run_android_smoke.sh; then
+  echo "FAIL: android smoke must run the second launch after Terms" >&2
+  exit 1
+fi
+if ! grep -q 'clearState: false' .maestro/second_launch_home.yaml; then
+  echo "FAIL: the second launch must keep Terms acceptance" >&2
+  exit 1
+fi
+if ! grep -q 'Something went wrong' .maestro/second_launch_home.yaml; then
+  echo "FAIL: the second launch must assert the error fallback is absent" >&2
+  exit 1
+fi
+if ! grep -q 'No Firebase App' .maestro/second_launch_home.yaml; then
+  echo "FAIL: the second launch must assert the Firebase no-app text is absent" >&2
+  exit 1
+fi
+if ! grep -q 'stopApp: false' .maestro/second_launch_home.yaml; then
+  echo "FAIL: the second launch must not stop the process Maestro is asserting" >&2
+  exit 1
+fi
+if ! grep -F -q '\\[core/no-app\\]' .maestro/second_launch_home.yaml; then
+  echo "FAIL: the Maestro no-app selector must escape brackets (it is a regex)" >&2
+  exit 1
+fi
+if grep -F -q 'assertNotVisible: "[core/no-app]"' .maestro/second_launch_home.yaml; then
+  echo "FAIL: an unescaped [core/no-app] selector is a character class" >&2
+  exit 1
+fi
+if ! grep -q 'com.android.fakesystemapp' scripts/ci/run_android_smoke.sh; then
+  echo "FAIL: the smoke script must leave the directions stub before the second launch" >&2
+  exit 1
+fi
+if ! grep -q '0x10008000' scripts/ci/run_android_smoke.sh; then
+  echo "FAIL: the smoke relaunch must start MainActivity in a fresh task" >&2
+  exit 1
+fi
+if ! grep -q 'wait_for "More"' scripts/ci/run_demo_seed_launch.sh; then
+  echo "FAIL: demo-seed must see the admin overflow on the admin-tools APK" >&2
+  exit 1
+fi
+if ! grep -q 'logcat -d -t 80' scripts/ci/run_demo_seed_launch.sh; then
+  echo "FAIL: demo-seed must not dump the full logcat before the offline relaunch" >&2
+  exit 1
+fi
+if grep -q 'tap_needle "More"' scripts/ci/run_demo_seed_launch.sh; then
+  echo "FAIL: demo-seed must not tap the overflow; that tap takes the emulator offline" >&2
+  exit 1
+fi
+if ! grep -q 'second launch with terms kept' scripts/ci/run_demo_seed_launch.sh; then
+  echo "FAIL: demo-seed must relaunch with Terms kept on the admin-tools APK" >&2
+  exit 1
+fi
+if ! grep -q 'Something went wrong' scripts/ci/run_demo_seed_launch.sh; then
+  echo "FAIL: demo-seed relaunch must reject the release error fallback" >&2
+  exit 1
+fi
+second_at="$(grep -n 'assert_terms_kept_relaunch' scripts/ci/run_demo_seed_launch.sh | tail -1 | cut -d: -f1)"
+clear_at="$(grep -n 'adb shell pm clear' scripts/ci/run_demo_seed_launch.sh | head -1 | cut -d: -f1)"
+if [[ -z "$second_at" || -z "$clear_at" || "$second_at" -ge "$clear_at" ]]; then
+  echo "FAIL: demo-seed must relaunch with Terms kept before pm clear" >&2
+  exit 1
+fi
+echo "ok: second launch keeps acceptance and rejects the error fallback"
+
 if minutes_at_or_over_threshold 1499.9; then
   echo "FAIL: 1499.9 should be under the 75% threshold" >&2
   exit 1

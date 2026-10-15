@@ -9,7 +9,6 @@ import 'package:temple_app/screens/admin_screen.dart';
 import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/services/temple_service.dart';
 import 'package:temple_app/widgets/app_drawer.dart';
-import 'package:temple_app/widgets/debug_home_admin_actions.dart';
 import 'package:temple_app/services/firestore_read_log.dart';
 import 'package:temple_app/services/offline_link.dart';
 import 'package:temple_app/widgets/home_mosaic_collage.dart';
@@ -28,7 +27,8 @@ class HomeScreen extends StatefulWidget {
     this.adminToolsEnabled,
   });
 
-  /// Injected in tests. Defaults to [AdminAuth.instance].
+  /// Injected in tests. Production reads [AdminAuth.instance] only when
+  /// Admin sign-in is opened, never while [build] paints Home.
   final AdminAuth? adminAuth;
 
   /// Injected in tests. Defaults to [TempleService.getTemples].
@@ -89,18 +89,15 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _templesFuture = _loadTemples(refresh: true));
   }
 
-  AdminAuth get _auth => widget.adminAuth ?? AdminAuth.instance;
-
   bool get _showAdminTools => widget.adminToolsEnabled ?? kAdminToolsEnabled;
 
   Future<void> _openAdmin() async {
+    final auth = widget.adminAuth ?? AdminAuth.instance;
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AdminScreen(
-          adminAuth: widget.adminAuth,
-          adminToolsEnabled: _showAdminTools,
-        ),
+        builder: (_) =>
+            AdminScreen(adminAuth: auth, adminToolsEnabled: _showAdminTools),
       ),
     );
     if (mounted) _reloadTemples();
@@ -124,12 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          if (_showAdminTools)
-            DebugHomeAdminActions(
-              auth: _auth,
-              onOpenAdmin: _openAdmin,
-              onSeedSuccess: _reloadTemples,
-            ),
+          if (_showAdminTools) _HomeAdminOverflow(onOpenAdmin: _openAdmin),
         ],
       ),
       body: Column(
@@ -185,6 +177,75 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 /// Cream loading state so users see Home chrome instead of solid orange splash.
+/// Admin sign-in lives in the overflow so the title is not clipped to
+/// "Temple Dire…". The menu does not read [AdminAuth] until it is tapped.
+class _HomeAdminOverflow extends StatefulWidget {
+  const _HomeAdminOverflow({required this.onOpenAdmin});
+
+  final VoidCallback onOpenAdmin;
+
+  @override
+  State<_HomeAdminOverflow> createState() => _HomeAdminOverflowState();
+}
+
+class _HomeAdminOverflowState extends State<_HomeAdminOverflow> {
+  OverlayEntry? _entry;
+
+  @override
+  void dispose() {
+    _close();
+    super.dispose();
+  }
+
+  void _close() {
+    _entry?.remove();
+    _entry = null;
+  }
+
+  void _toggle() {
+    if (_entry != null) {
+      _close();
+      return;
+    }
+    // In the same Flutter view, with no modal barrier. A dialog or
+    // popup menu puts a full-screen dismiss target over the item, and
+    // the emulator dies while accessibility dumps that target.
+    _entry = OverlayEntry(
+      builder: (overlayContext) {
+        final top = MediaQuery.paddingOf(overlayContext).top + kToolbarHeight;
+        return Positioned(
+          top: top,
+          right: 8,
+          child: Material(
+            color: Colors.white,
+            elevation: 6,
+            borderRadius: BorderRadius.circular(8),
+            child: TextButton(
+              key: const Key('home-admin-sign-in'),
+              onPressed: () {
+                _close();
+                widget.onOpenAdmin();
+              },
+              child: const Text('Admin sign-in'),
+            ),
+          ),
+        );
+      },
+    );
+    Overlay.of(context).insert(_entry!);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      key: const Key('home-admin-menu'),
+      tooltip: 'More',
+      onPressed: _toggle,
+      icon: const Icon(Icons.more_vert),
+    );
+  }
+}
+
 class _HomeLoadingBody extends StatelessWidget {
   const _HomeLoadingBody();
 

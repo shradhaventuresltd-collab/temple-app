@@ -16,6 +16,24 @@ final _oldStamp = DateTime.utc(2026, 1, 2).millisecondsSinceEpoch;
 final _newStamp = DateTime.utc(2026, 2, 2).millisecondsSinceEpoch;
 
 void main() {
+  test('a missing Firebase app serves the bundled sample', () async {
+    TempleService.resetSessionForTest();
+    addTearDown(TempleService.resetSessionForTest);
+    final log = FirestoreReadLog();
+    final service = TempleService(stamps: _MemoryStamps({}), readLog: log);
+
+    final rows = await service.getTemples();
+    final detail = await service.getTemple(sampleTemples.first.id);
+
+    expect(rows, same(sampleTemples));
+    expect(log.fallbacks, ['sample']);
+    expect(log.offlineSample, isTrue);
+    expect(log.source, 'sample');
+    expect(detail.temple, isNotNull);
+    expect(detail.fromCache, isTrue);
+    expect(log.serverReads, 0);
+  });
+
   test('cold, warm, and one changed shard count server reads', () async {
     final cold = _harness(stamps: {});
     final coldRows = await cold.service.getTemples();
