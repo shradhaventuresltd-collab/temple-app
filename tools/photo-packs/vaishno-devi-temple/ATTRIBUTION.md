@@ -50,7 +50,7 @@ Cover is `01_Shri_Mata_Vaishno_Devi_Bhawan_Katra_Jammu_Kashmir_INDIA.jpg`.
 
 ## 05_Vaishno_Devi_Bhabon_-_panoramio.jpg
 - **Commons File:** File:Vaishno Devi Bhabon - panoramio.jpg
-- **Author:** Tapan Kumar Debn… (Panoramio user 4004470, name truncated as on Commons)
+- **Author:** Tapan Kumar Debnath
 - **License:** CC BY-SA 3.0
 - **License URL:** https://creativecommons.org/licenses/by-sa/3.0
 - **Source page URL:** https://commons.wikimedia.org/wiki/File:Vaishno_Devi_Bhabon_-_panoramio.jpg

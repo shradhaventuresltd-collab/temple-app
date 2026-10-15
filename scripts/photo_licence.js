@@ -87,6 +87,7 @@ function clampCredit(value) {
 /**
  * Keep the person named in a Commons author field and drop the usage note
  * and any bracketed note, such as "(talk)" or a Panoramio user id.
+ * A leading `User:` prefix is dropped, so User:Shyam is Shyam.
  * @param {unknown} author
  * @returns {string}
  */
@@ -97,15 +98,23 @@ export function cleanAuthor(author) {
   const takenBy = name.match(
     /^(?:this (?:photo|image) was taken by|taken by)\s+(.+)$/i,
   );
-  if (takenBy) name = takenBy[1].trim();
+      if (takenBy) name = takenBy[1].trim();
 
-  const note = name.search(
+      const wikiUser = name.match(/^user:\s*(.+)$/i);
+      if (wikiUser) name = wikiUser[1].trim();
+
+      const note = name.search(
     /\.\s+(?:feel free|please\b|i would|otherwise|you may|for my information|contact me|do not)\b/i,
   );
   if (note !== -1) name = name.slice(0, note);
 
   name = name.replace(/\s*\([^)]*\)/g, " ").replace(/\s+/g, " ").trim();
-  return name.replace(/[.,;:\s]+$/g, "").trim();
+  name = name.replace(/[,;:\s]+$/g, "").trim();
+  // A final dot on an initial ("Chaitra. B. H.") is part of the name.
+  if (/\.$/.test(name) && !/(?:^|\s)[A-Za-z]\.$/.test(name)) {
+    name = name.replace(/\.+$/g, "").trim();
+  }
+  return name;
 }
 
 function ccVersionLabel(licence, licenseRaw) {

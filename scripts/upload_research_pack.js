@@ -10,7 +10,7 @@ const defaultPacksRoot = resolve(repoRoot, "tools/photo-packs");
 
 // KAN-77 Wave B. --all-packs uploads every manifest under tools/photo-packs,
 // and fails if any of these Karnataka packs are missing.
-const WAVE_B_KARNATAKA_PACKS = [
+export const WAVE_B_KARNATAKA_PACKS = [
   "anegudde-vinayaka-temple",
   "annapoorneshwari-temple-horanadu",
   "banashankari-temple-bengaluru",
@@ -35,7 +35,7 @@ const WAVE_B_KARNATAKA_PACKS = [
 
 // KAN-77 Wave A (Tamil Nadu + Kerala). --all-packs uploads every manifest
 // under tools/photo-packs, and fails if any of these folders are missing.
-const WAVE_A_TN_KL_PACKS = [
+export const WAVE_A_TN_KL_PACKS = [
   "ambalappuzha-sri-krishna-temple",
   "arunachaleswarar-temple",
   "attukal-bhagavathy-temple",
