@@ -18,27 +18,43 @@ void main() {
 
   tearDown(DirectoryLink.resetForTest);
 
-  test('a lost connection shows the banner and a return clears it', () async {
-    final events = StreamController<bool>();
-    addTearDown(events.close);
-    final before = DirectoryReconnect.tick.value;
-    DirectoryLink.listen(events.stream);
+  testWidgets(
+    'a lost connection shows the banner and a return refreshes after 5s',
+    (tester) async {
+      final events = StreamController<bool>();
+      addTearDown(events.close);
+      final before = DirectoryReconnect.tick.value;
+      DirectoryLink.listen(events.stream);
 
-    events.add(true);
-    await _flush();
-    expect(DirectoryLink.offline.value, isFalse);
-    expect(DirectoryReconnect.tick.value, before);
+      events.add(true);
+      await tester.pump();
+      expect(DirectoryLink.offline.value, isFalse);
+      expect(DirectoryReconnect.tick.value, before);
 
-    events.add(false);
-    await _flush();
-    expect(DirectoryLink.offline.value, isTrue);
-    expect(DirectoryReconnect.tick.value, before);
+      events.add(false);
+      await tester.pump();
+      expect(DirectoryLink.offline.value, isTrue);
+      expect(DirectoryReconnect.tick.value, before);
 
-    events.add(true);
-    await _flush();
-    expect(DirectoryLink.offline.value, isFalse);
-    expect(DirectoryReconnect.tick.value, before + 1);
-  });
+      events.add(true);
+      await tester.pump();
+      expect(DirectoryLink.offline.value, isFalse);
+      expect(DirectoryReconnect.tick.value, before);
+      await tester.pump(const Duration(seconds: 4));
+      expect(DirectoryReconnect.tick.value, before);
+
+      events.add(false);
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 5));
+      expect(DirectoryReconnect.tick.value, before);
+
+      events.add(true);
+      await tester.pump();
+      await tester.pump(DirectoryLink.reconnectDelay);
+      expect(DirectoryLink.offline.value, isFalse);
+      expect(DirectoryReconnect.tick.value, before + 1);
+    },
+  );
 
   test('none is offline and any other transport is online', () {
     expect(connectivityIsOnline(const []), isFalse);
@@ -100,11 +116,6 @@ void main() {
     expect(calls, 2);
     expect(find.text('1 temples across India'), findsOneWidget);
   });
-}
-
-Future<void> _flush() async {
-  await Future<void>.delayed(Duration.zero);
-  await Future<void>.delayed(Duration.zero);
 }
 
 Temple _temple() {

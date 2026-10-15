@@ -38,7 +38,7 @@ class CoverNetworkImage extends StatelessWidget {
   final int? memCacheWidth;
   final int? memCacheHeight;
 
-  /// Disk cache. Defaults to the shared directory cache (1,000 objects).
+  /// Disk cache. Defaults to the shared thumb cache (2,000 objects).
   final BaseCacheManager? cacheManager;
   final Duration fadeInDuration;
 

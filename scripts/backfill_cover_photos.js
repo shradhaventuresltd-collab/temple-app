@@ -7,7 +7,9 @@
  *
  *   node scripts/backfill_cover_photos.js --project temple-directory-india
  *
- * The new entry is `{ url: imageUrl, credit, licence, order: 0 }`. Credit
+ * The new entry is `{ url: imageUrl, credit, licence, order: 0 }`, and every
+ * photo's `order` is then the array index, so the old cover is 1 rather
+ * than a second 0. Credit
  * and licence are copied from image fields already on that document:
  * objects in `photos` or `images` that already store both. A real credit is
  * a non-empty string of at most 200 characters. Licence must already be
@@ -17,8 +19,9 @@
  * skipped and listed with the reason.
  *
  * Apply re-reads each document in its own transaction, skips it when the
- * cover plan no longer matches, and writes `photos` plus that temple's
- * index entry from the fresh document. imageUrl and images are not changed.
+ * cover plan no longer matches, and writes `photos`. The index entry is
+ * rewritten from the fresh document, and meta is bumped, only when that
+ * entry changed. imageUrl and images are not changed.
  *
  *   node scripts/backfill_cover_photos.js --apply --project temple-directory-india
  *
@@ -29,7 +32,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard.js";
-import { entryFromTemple, stateSlug, storageObjectFromUrl } from "./temple_index.js";
+import { changedFields, entryFromTemple, stateSlug, storageObjectFromUrl } from "./temple_index.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -183,13 +186,14 @@ export function planCoverPhoto(temple) {
   if (photos.length >= MAX_PHOTOS) return { id, action: "skip", reason: "photos-full", imageUrl };
   const copied = attribution(temple);
   if (!copied.ok) return { id, action: "skip", reason: copied.reason, imageUrl };
-  const photo = { url: imageUrl, credit: copied.credit, licence: copied.licence, order: 0 };
+  const cover = { url: imageUrl, credit: copied.credit, licence: copied.licence };
+  const nextPhotos = [cover, ...photos].map((item, order) => ({ ...item, order }));
   return {
     id,
     action: "add",
     imageUrl,
-    photo,
-    photos: [photo, ...photos],
+    photo: nextPhotos[0],
+    photos: nextPhotos,
     plannedState: temple?.state,
     temple,
   };
@@ -228,7 +232,7 @@ export function formatCoverPhotoReport(rows, { apply = false } = {}) {
   lines.push(`skipped: ${skipped.length}`);
   for (const row of skipped) lines.push(`skip ${row.id} ${row.reason}`);
   if (!apply) lines.push("Dry-run only. No Firestore writes.");
-  else lines.push("photos[0] plus that temple's index entry. Rules were not deployed.");
+  else lines.push("photos, and the index entry when it changed. Rules were not deployed.");
   return lines.join("\n");
 }
 
@@ -253,40 +257,49 @@ export async function persistCoverPhoto(db, plan, deps = {}) {
       typeof plannedState === "string" && plannedState !== "" ? stateSlug(plannedState) : null;
     const indexRef = db.collection("temple_index").doc(shard);
     const metaRef = db.collection("meta").doc("temple_index");
-    await tx.get(indexRef);
+    const indexSnap = await tx.get(indexRef);
     const metaSnap = await tx.get(metaRef);
     const oldRef = previous && previous !== shard ? db.collection("temple_index").doc(previous) : null;
     const oldSnap = oldRef ? await tx.get(oldRef) : null;
     tx.update(templeRef, { photos: committed.photos });
-    const entry = {
-      ...entryFromTemple(committed.temple),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    };
-    tx.set(
-      indexRef,
-      { entries: { [id]: entry } },
-      { mergeFields: [new admin.firestore.FieldPath("entries", id)] },
-    );
-    if (oldRef && oldSnap?.exists) {
+    const expected = entryFromTemple(committed.temple);
+    const stored = indexSnap.exists ? indexSnap.data()?.entries?.[id] : undefined;
+    const entryChanged = changedFields(stored, expected).length > 0;
+    const moved = Boolean(oldRef && oldSnap?.exists);
+    let entry = null;
+    if (entryChanged) {
+      entry = {
+        ...expected,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      };
+      tx.set(
+        indexRef,
+        { entries: { [id]: entry } },
+        { mergeFields: [new admin.firestore.FieldPath("entries", id)] },
+      );
+    }
+    if (moved) {
       tx.update(
         oldRef,
         new admin.firestore.FieldPath("entries", id),
         admin.firestore.FieldValue.delete(),
       );
     }
-    const touched = oldRef && oldSnap?.exists ? [shard, previous] : [shard];
-    if (!metaSnap.exists) {
-      const stamps = {};
-      for (const name of touched) stamps[name] = admin.firestore.FieldValue.serverTimestamp();
-      tx.set(metaRef, { indexVersion: 1, shards: stamps }, { merge: true });
-    } else {
-      const patch = { indexVersion: admin.firestore.FieldValue.increment(1) };
-      for (const name of touched) {
-        patch[`shards.${name}`] = admin.firestore.FieldValue.serverTimestamp();
+    if (entryChanged || moved) {
+      const touched = moved ? [shard, previous] : [shard];
+      if (!metaSnap.exists) {
+        const stamps = {};
+        for (const name of touched) stamps[name] = admin.firestore.FieldValue.serverTimestamp();
+        tx.set(metaRef, { indexVersion: 1, shards: stamps }, { merge: true });
+      } else {
+        const patch = { indexVersion: admin.firestore.FieldValue.increment(1) };
+        for (const name of touched) {
+          patch[`shards.${name}`] = admin.firestore.FieldValue.serverTimestamp();
+        }
+        tx.update(metaRef, patch);
       }
-      tx.update(metaRef, patch);
     }
-    return { ...committed, shard, entry };
+    return { ...committed, shard, entry, entryChanged };
   });
 }
 

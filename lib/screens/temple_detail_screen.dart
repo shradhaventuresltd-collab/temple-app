@@ -248,7 +248,7 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
                                 // decode at about 480px; this hero does not.
                                 child: CachedNetworkImage(
                                   imageUrl: gallery[index],
-                                  cacheManager: ClientCache.images,
+                                  cacheManager: ClientCache.detailImages,
                                   fit: BoxFit.contain,
                                   width: double.infinity,
                                   height: _imageHeight,

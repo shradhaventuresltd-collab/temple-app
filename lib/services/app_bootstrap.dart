@@ -44,7 +44,9 @@ class AppBootstrap {
   ///
   /// On success, Firestore settings are applied before this future
   /// completes. Directory reads await it, so persistence and the 100 MiB
-  /// cache are in place before the first query.
+  /// cache are in place before the first query. A settings failure is
+  /// logged and still counts Firebase as ready, so the directory does not
+  /// fall back to the bundled sample.
   static Future<bool> initializeFirebase({
     Future<void> Function()? initialize,
     void Function()? configureFirestore,
@@ -64,11 +66,6 @@ class AppBootstrap {
                 : DefaultFirebaseOptions.currentPlatform,
           );
       await start().timeout(timeout);
-      final configure =
-          configureFirestore ??
-          (initialize == null ? _configureLiveFirestore : null);
-      configure?.call();
-      return true;
     } on TimeoutException catch (e) {
       debugPrint('Firebase.initializeApp timed out: $e');
       return false;
@@ -76,6 +73,15 @@ class AppBootstrap {
       debugPrint('Firebase.initializeApp failed: $e\n$st');
       return false;
     }
+    try {
+      final configure =
+          configureFirestore ??
+          (initialize == null ? _configureLiveFirestore : null);
+      configure?.call();
+    } catch (e, st) {
+      debugPrint('Firestore settings failed: $e\n$st');
+    }
+    return true;
   }
 
   static void _configureLiveFirestore() {

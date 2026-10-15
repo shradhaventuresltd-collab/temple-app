@@ -26,13 +26,18 @@ class ClientCache {
   /// Decoded bitmap bytes. Flutter's default is 100 MiB; this pins it.
   static const int imageMemoryBytes = 100 * 1024 * 1024;
 
-  /// Disk objects for network images. The default cache keeps 200 objects
-  /// for 30 days, which churns once covers pass a few hundred temples.
-  /// 1,000 objects of a 480px thumb (about 50–150 KB) stay near 150 MB.
-  /// flutter_cache_manager caps by object count, not by bytes.
-  static const int imageDiskObjects = 1000;
+  /// Disk objects for list and mosaic thumbs. The default cache keeps 200
+  /// objects for 30 days, which churns once covers pass a few hundred
+  /// temples. flutter_cache_manager caps by object count, not by bytes.
+  static const int imageDiskObjects = 2000;
 
   static const Duration imageDiskStalePeriod = Duration(days: 90);
+
+  /// Full-size detail photos. Kept apart from the thumb cache so a gallery
+  /// visit does not evict browse covers.
+  static const int detailDiskObjects = 150;
+
+  static const Duration detailDiskStalePeriod = Duration(days: 30);
 
   /// Longest side of a list or mosaic decode, in pixels.
   static const int listDecodePx = 480;
@@ -42,11 +47,21 @@ class ClientCache {
 
   static const String imageDiskKey = 'templeImageCache';
 
+  static const String detailDiskKey = 'templeDetailCache';
+
   static final CacheManager images = CacheManager(
     Config(
       imageDiskKey,
       stalePeriod: imageDiskStalePeriod,
       maxNrOfCacheObjects: imageDiskObjects,
+    ),
+  );
+
+  static final CacheManager detailImages = CacheManager(
+    Config(
+      detailDiskKey,
+      stalePeriod: detailDiskStalePeriod,
+      maxNrOfCacheObjects: detailDiskObjects,
     ),
   );
 

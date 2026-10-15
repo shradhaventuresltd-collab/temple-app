@@ -36,10 +36,13 @@ void main() {
     expect(web.cacheSizeBytes, 100 * 1024 * 1024);
   });
 
-  test('disk image cache keeps 1000 objects for 90 days', () {
-    expect(ClientCache.imageDiskObjects, 1000);
+  test('thumb cache keeps 2000 objects and detail keeps its own 150', () {
+    expect(ClientCache.imageDiskObjects, 2000);
     expect(ClientCache.imageDiskStalePeriod, const Duration(days: 90));
     expect(ClientCache.imageDiskKey, 'templeImageCache');
+    expect(ClientCache.detailDiskObjects, 150);
+    expect(ClientCache.detailDiskStalePeriod, const Duration(days: 30));
+    expect(ClientCache.detailDiskKey, 'templeDetailCache');
   });
 
   test('a phone list card decodes about five times smaller', () {
@@ -80,7 +83,7 @@ void main() {
     expect(bootstrap, contains('configureDirectoryFirestore'));
   });
 
-  testWidgets('detail keeps the full image in the shared disk cache', (
+  testWidgets('detail keeps the full image in its own disk cache', (
     tester,
   ) async {
     const cover =
@@ -115,6 +118,6 @@ void main() {
     expect(image.imageUrl, cover);
     expect(image.memCacheWidth, isNull);
     expect(image.memCacheHeight, isNull);
-    expect(image.cacheManager, same(ClientCache.images));
+    expect(image.cacheManager, same(ClientCache.detailImages));
   });
 }

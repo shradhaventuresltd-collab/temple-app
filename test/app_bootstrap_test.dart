@@ -49,6 +49,14 @@ void main() {
       expect(failed, isFalse);
       expect(configured, isFalse);
     });
+
+    test('a Firestore settings failure still counts Firebase as ready', () async {
+      final ok = await AppBootstrap.initializeFirebase(
+        initialize: () async {},
+        configureFirestore: () => throw Exception('settings unavailable'),
+      );
+      expect(ok, isTrue);
+    });
   });
 
   group('AppBootstrap.initializeAdsSafely', () {

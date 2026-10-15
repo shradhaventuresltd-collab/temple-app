@@ -15,6 +15,7 @@ import {
   persistCoverPhoto,
   planCoverPhoto,
 } from "./backfill_cover_photos.js";
+import { entryFromTemple } from "./temple_index.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "..");
@@ -93,8 +94,36 @@ test("a storage cover copies the credit and licence already on the doc", () => {
   });
   assert.equal(plan.photos[0], plan.photo);
   assert.equal(plan.photos[1].url, temple().photos[0].url);
-  assert.equal(plan.photos[1].order, 0);
+  assert.equal(plan.photos[1].order, 1);
   assert.equal(plan.photos.length, 2);
+});
+
+test("a prepended cover renumbers every photo from the array index", () => {
+  const plan = planCoverPhoto(
+    temple({
+      photos: [
+        {
+          url: wiki,
+          credit: "Arjun Dharne · CC BY-SA 4.0",
+          licence: "CC-BY-SA",
+          order: 0,
+        },
+        {
+          url: `${wiki}?2`,
+          credit: "Arjun Dharne · CC BY-SA 4.0",
+          licence: "CC-BY-SA",
+          order: 4,
+        },
+      ],
+    }),
+  );
+  assert.equal(plan.action, "add");
+  assert.deepEqual(
+    plan.photos.map((photo) => photo.order),
+    [0, 1, 2],
+  );
+  assert.equal(plan.photos[0].url, storage);
+  assert.equal(plan.photos[2].url, `${wiki}?2`);
 });
 
 test("CC0 is already an allowed licence and is copied when the credit is real", () => {
@@ -272,6 +301,41 @@ test("apply writes photos and the index from the fresh doc, and skips a changed 
   assert.equal(skipped.reason, "changed");
   assert.equal(moved.ops.length, 0);
   assert.equal(commitCoverPhoto({ ...fresh, photos: [{ url: storage, credit: "A", licence: "CC0", order: 0 }] }, plan).reason, "already");
+});
+
+test("apply leaves meta alone when the index entry did not change", async () => {
+  const fresh = temple({ name: "Fresh Name" });
+  const plan = planCoverPhoto(temple());
+  const committed = commitCoverPhoto(fresh, plan);
+  assert.equal(committed.ok, true);
+  const expected = entryFromTemple(committed.temple);
+  const db = memoryDb((ref) => {
+    if (ref.collection === "temples") {
+      return { exists: true, id: ref.id, data: () => structuredClone(fresh) };
+    }
+    if (ref.collection === "temple_index") {
+      return {
+        exists: true,
+        id: ref.id,
+        data: () => ({ entries: { [fresh.id]: { ...expected, updatedAt: "OLD" } } }),
+      };
+    }
+    if (ref.collection === "meta") {
+      return { exists: true, id: ref.id, data: () => ({ indexVersion: 4, shards: {} }) };
+    }
+    return { exists: false, id: ref.id, data: () => undefined };
+  });
+  const written = await persistCoverPhoto(db, plan, { admin: indexAdmin });
+  assert.equal(written.ok, true);
+  assert.equal(written.entryChanged, false);
+  const [writes] = db.ops;
+  assert.equal(writes.some((write) => write.path.startsWith("meta/")), false);
+  assert.equal(writes.some((write) => write.path.startsWith("temple_index/")), false);
+  const photos = writes.find((write) => write.path === "temples/virupaksha-temple");
+  assert.deepEqual(
+    photos.args[0].photos.map((photo) => photo.order),
+    [0, 1],
+  );
 });
 
 test("prod apply is refused in CI and without a project", async () => {
