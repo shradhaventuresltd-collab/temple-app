@@ -13,8 +13,9 @@ const int kTempleIndexEntryVersion = 1;
 
 /// Rules reject a shard whose `entries` key set grows past this.
 ///
-/// 400 summaries stay well under the 1 MiB document cap at the size of one
-/// browse entry. The directory target is about 50 temples per state.
+/// 400 trimmed summaries stay under Firestore's 1 MiB document cap. A state
+/// that outgrows the cap is not written. Splitting one state across more
+/// than one shard is a later change; do not raise this to fit a larger state.
 const int kTempleIndexMaxEntries = 400;
 
 /// States and union territories, plus a little room for `unknown`.
@@ -26,8 +27,32 @@ const int kTempleIndexShortAddressMax = 120;
 /// `coverThumb` is a URL, capped so a shard of summaries stays small.
 const int kTempleIndexCoverThumbMax = 500;
 
+/// Trimmed so 400 entries stay under 1 MiB. Ids are not trimmed; they are
+/// the map key and already limited to 200 characters.
+const int kTempleIndexNameMax = 80;
+const int kTempleIndexCityMax = 40;
+const int kTempleIndexStateMax = 40;
+const int kTempleIndexDeityMax = 60;
+
 const int kTempleIndexAltNameMax = 8;
 const int kTempleIndexAltNameLength = 80;
+
+/// Firestore's per-document limit, in bytes.
+const int kTempleIndexDocumentByteLimit = 1048576;
+
+/// Readable admin error when a save would be the 401st entry in a state.
+///
+/// The save is not written. Splitting that state across shards comes later.
+String templeIndexShardFullMessage({
+  required String state,
+  required int count,
+}) {
+  final label = state.trim().isEmpty ? 'This state' : state.trim();
+  return '$label already has $count temples in the browse index '
+      '(the cap is $kTempleIndexMaxEntries). '
+      'This save was not written. '
+      'Splitting one state across more than one shard is a later change.';
+}
 
 final RegExp _indexIdPattern = RegExp(r'^[A-Za-z0-9_-]{1,200}$');
 
@@ -192,7 +217,8 @@ bool _httpUrl(String trimmed) {
 }
 
 /// `lat`/`lng` for an index entry. Missing numbers and the (0, 0) placeholder
-/// are null. A real zero on only one axis is kept.
+/// are null. A real zero on only one axis is kept. Both axes are doubles,
+/// including a whole-degree longitude.
 ({double? lat, double? lng}) templeIndexCoordinates(Map<String, dynamic> data) {
   final lat = data['latitude'];
   final lng = data['longitude'];
@@ -221,6 +247,12 @@ List<String>? _altNames(Object? raw) {
 
 String _text(Object? value) => value is String ? value.trim() : '';
 
+String _clip(Object? value, int max) {
+  final collapsed = _text(value).replaceAll(RegExp(r'\s+'), ' ');
+  if (collapsed.length <= max) return collapsed;
+  return collapsed.substring(0, max).trimRight();
+}
+
 /// Lean `entries.{id}` value. `updatedAt` is null here; the writer stamps it.
 ///
 /// [data] is the temple document (or the merged admin payload). Descriptions,
@@ -244,10 +276,10 @@ Map<String, dynamic> templeIndexEntryFromMap(
   final entry = <String, dynamic>{
     'id': id,
     'slug': id,
-    'name': _text(data['name']),
-    'city': _text(data['city']),
-    'state': _text(data['state']),
-    'deity': _text(data['deity']),
+    'name': _clip(data['name'], kTempleIndexNameMax),
+    'city': _clip(data['city'], kTempleIndexCityMax),
+    'state': _clip(data['state'], kTempleIndexStateMax),
+    'deity': _clip(data['deity'], kTempleIndexDeityMax),
     'address': address,
     'coverThumb': coverThumbFor(data),
     'lat': coords.lat,
@@ -339,4 +371,43 @@ TempleIndexPlan planTempleIndex({
     removeShard: removeShard,
     metaShards: [shard, ?removeShard],
   );
+}
+
+int _stringBytes(String value) => value.length + 1;
+
+/// Upper bound, in bytes, of a shard holding [entryCount] max-size entries.
+///
+/// 400 must stay under [kTempleIndexDocumentByteLimit].
+int estimateTempleIndexShardBytes([int entryCount = kTempleIndexMaxEntries]) {
+  const strings = <String, int>{
+    'id': 200,
+    'slug': 200,
+    'name': kTempleIndexNameMax,
+    'city': kTempleIndexCityMax,
+    'state': kTempleIndexStateMax,
+    'deity': kTempleIndexDeityMax,
+    'address': kTempleIndexShortAddressMax,
+    'coverThumb': kTempleIndexCoverThumbMax,
+    'tradition': 11,
+    'framing': 8,
+  };
+  var entry = 32;
+  for (final field in strings.entries) {
+    entry += _stringBytes(field.key) + field.value + 1;
+  }
+  for (final name in ['lat', 'lng', 'v', 'updatedAt']) {
+    entry += _stringBytes(name) + 8;
+  }
+  for (final name in ['living', 'published', 'hidden']) {
+    entry += _stringBytes(name) + 1;
+  }
+  entry += _stringBytes('altNames') + 32;
+  entry += kTempleIndexAltNameMax * (kTempleIndexAltNameLength + 1);
+  entry += 201;
+  final overhead =
+      _stringBytes('temple_index') +
+      _stringBytes('x' * 80) +
+      _stringBytes('entries') +
+      32;
+  return overhead + entry * entryCount;
 }

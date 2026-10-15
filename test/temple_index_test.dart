@@ -2,9 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:temple_app/data/sample_data.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_index.dart';
 import 'package:temple_app/services/admin_temple_service.dart';
+import 'package:temple_app/services/seed_service.dart';
 
 Temple _temple({
   String id = '',
@@ -406,14 +408,167 @@ void main() {
     ).readAsStringSync();
     expect(source, contains('batch.commit()'));
     expect(source, contains("FieldPath(['entries', id])"));
-    expect(source, contains('current is int ? current + 1 : 1'));
+    expect(source, contains('FieldValue.increment(1)'));
+    expect(source, contains('SetOptions(merge: true)'));
     expect(source, contains('FieldValue.delete()'));
     expect(source, contains('mergeFields'));
     expect(source, contains('collection(kTempleIndexCollection)'));
     expect(source, contains('kTempleIndexMetaDocId'));
     expect(source, contains('oldSnap.exists'));
     expect(source, isNot(contains('oldSnap.data()')));
-    expect(source, isNot(contains('FieldValue.increment')));
+  });
+
+  test('a whole-degree longitude is a double and text fields are trimmed', () {
+    final entry = templeIndexEntryFromMap('whole-degree', {
+      'name': 'N' * 200,
+      'state': 'Tamil Nadu',
+      'city': 'C' * 80,
+      'deity': 'D' * 90,
+      'address': 'Mahabalipuram, Tamil Nadu',
+      'latitude': 12,
+      'longitude': 80,
+    });
+    expect(entry['lng'], isA<double>());
+    expect(entry['lat'], isA<double>());
+    expect(entry['lng'], 80.0);
+    expect(entry['lat'], 12.0);
+    expect((entry['name'] as String).length, kTempleIndexNameMax);
+    expect((entry['city'] as String).length, kTempleIndexCityMax);
+    expect((entry['deity'] as String).length, kTempleIndexDeityMax);
+    expect(
+      estimateTempleIndexShardBytes(),
+      lessThan(kTempleIndexDocumentByteLimit),
+    );
+  });
+
+  test(
+    'the 401st temple in a state is refused with a readable error',
+    () async {
+      final store = MemoryTempleWriteStore();
+      final shard = <String, Map<String, dynamic>>{};
+      for (var i = 0; i < kTempleIndexMaxEntries; i++) {
+        shard['temple-$i'] = {'id': 'temple-$i'};
+      }
+      store.shards['tamil-nadu'] = shard;
+      final service = AdminTempleService(
+        store: store,
+        isAdmin: () async => true,
+        isDebug: true,
+      );
+      await expectLater(
+        () => service.createTemple(_temple(name: 'One More Temple')),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            contains('This save was not written'),
+          ),
+        ),
+      );
+      expect(store.docs, isEmpty);
+      expect(
+        templeIndexShardFullMessage(state: 'Tamil Nadu', count: 400),
+        contains(
+          'Splitting one state across more than one shard is a later change',
+        ),
+      );
+    },
+  );
+
+  test('a living shrine beside fort ruins is not a monument', () {
+    final flags = templeIndexFlagsFor(
+      Temple(
+        name: 'Fort Side Shrine',
+        state: 'Kerala',
+        city: 'Anchuthengu',
+        deity: 'Devi',
+        imageUrl: '',
+        description:
+            'Daily puja at the shrine beside the fort ruins. The former factory ceased.',
+        story: 'Historic fort ruins stand next to the temple.',
+        location: 'Anchuthengu',
+        timings: '5:00 AM – 8:00 PM',
+        specialities: const [],
+        latitude: 8.6,
+        longitude: 76.7,
+      ),
+    );
+    expect(flags.framing, 'living');
+    expect(flags.living, isTrue);
+  });
+
+  test('Dart and JS index entries agree for every sample temple', () async {
+    final payload = [
+      for (final temple in sampleTemples)
+        {
+          'id': templeDocumentId(temple.name),
+          'name': temple.name,
+          'state': temple.state,
+          'city': temple.city,
+          'deity': temple.deity,
+          'description': temple.description,
+          'story': temple.story,
+          'timings': temple.timings,
+          'specialities': temple.specialities,
+          'imageUrl': temple.imageUrl,
+          'images': temple.images,
+          'address': temple.location,
+          'latitude': temple.latitude,
+          'longitude': temple.longitude,
+        },
+    ];
+    final dir = await Directory.systemTemp.createTemp('temple-index-parity');
+    final file = File('${dir.path}/temples.json');
+    await file.writeAsString(jsonEncode(payload));
+    final result = await Process.run('node', [
+      'scripts/index_parity.js',
+      file.path,
+    ]);
+    expect(result.exitCode, 0, reason: '${result.stderr}');
+    final jsRows = jsonDecode(result.stdout as String) as List<dynamic>;
+    expect(jsRows, hasLength(sampleTemples.length));
+    for (var i = 0; i < sampleTemples.length; i++) {
+      final id = payload[i]['id'] as String;
+      final dartEntry = templeIndexEntryFromMap(id, payload[i]);
+      final js = Map<String, dynamic>.from(jsRows[i] as Map);
+      expect(js['id'], id, reason: id);
+      expect(js['framing'], dartEntry['framing'], reason: id);
+      expect(js['tradition'], dartEntry['tradition'], reason: id);
+      expect(js['living'], dartEntry['living'], reason: id);
+      expect(js['name'], dartEntry['name'], reason: id);
+      expect(js['city'], dartEntry['city'], reason: id);
+      expect(js['state'], dartEntry['state'], reason: id);
+      expect(js['deity'], dartEntry['deity'], reason: id);
+      expect(js['address'], dartEntry['address'], reason: id);
+      expect(js['coverThumb'], dartEntry['coverThumb'], reason: id);
+      final lng = dartEntry['lng'];
+      final lat = dartEntry['lat'];
+      expect(lng == null || lng is double, isTrue, reason: id);
+      expect(lat == null || lat is double, isTrue, reason: id);
+      expect(lng, isNot(isA<int>()), reason: id);
+      expect(lat, isNot(isA<int>()), reason: id);
+      if (lng == null) {
+        expect(js['lng'], isNull, reason: id);
+      } else {
+        expect((js['lng'] as num).toDouble(), lng, reason: id);
+      }
+      if (lat == null) {
+        expect(js['lat'], isNull, reason: id);
+      } else {
+        expect((js['lat'] as num).toDouble(), lat, reason: id);
+      }
+      if (dartEntry['living'] == true) {
+        expect(dartEntry['framing'], 'living', reason: id);
+      }
+    }
+    final anjengo = templeIndexEntryFromMap(
+      'anjengo-sree-durga-devi-temple',
+      payload.firstWhere(
+        (row) => row['id'] == 'anjengo-sree-durga-devi-temple',
+      ),
+    );
+    expect(anjengo['framing'], 'neutral');
+    await dir.delete(recursive: true);
   });
 
   test('browse still reads temples, not the index', () {

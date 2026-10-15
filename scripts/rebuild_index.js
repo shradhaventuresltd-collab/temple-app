@@ -50,7 +50,8 @@ demo-temple-index when --project is omitted.
 
 Deploy firestore.rules before applying. This repairs drift and backfills
 temples that were written before the index existed. It does not switch
-the app read path. --apply re-reads each shard immediately before writing it.
+the app read path. --apply plans from a read taken immediately before the writes, then
+re-reads each shard again immediately before staging that shard.
 `);
 }
 
@@ -221,22 +222,21 @@ export async function applyPlan(db, report, deps = {}) {
       written += 1;
     }
     if (touched.length === 0) continue;
-    const stamps = {};
+    const metaRef = db.collection("meta").doc("temple_index");
+    const metaSnap = await metaRef.get();
+    const existing = metaSnap.exists ? (metaSnap.data()?.shards ?? {}) : {};
+    const stamps = { ...existing };
     for (const shard of touched) {
       stamps[shard] = admin.firestore.FieldValue.serverTimestamp();
     }
+    // merge: true. mergeFields + increment resets indexVersion.
     batch.set(
-      db.collection("meta").doc("temple_index"),
+      metaRef,
       {
         indexVersion: admin.firestore.FieldValue.increment(1),
         shards: stamps,
       },
-      {
-        mergeFields: [
-          "indexVersion",
-          ...touched.map((shard) => new admin.firestore.FieldPath("shards", shard)),
-        ],
-      },
+      { merge: true },
     );
     await batch.commit();
   }
@@ -266,18 +266,28 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     await authorizeApply(project, env, { confirm: deps.confirm });
   }
   const load = deps.load ?? loadTemplesAndIndex;
-  const snapshot = await load(project, env);
-  const temples = snapshot.temples ?? [];
-  const report = diffIndex(temples, snapshot.shards ?? {});
-  log(formatReport(report, { apply: opts.apply }));
-  if (!opts.apply) return report;
-  if (report.capViolations.length > 0) {
-    assertShardCaps(temples);
+  if (!opts.apply) {
+    const snapshot = await load(project, env);
+    const report = diffIndex(snapshot.temples ?? [], snapshot.shards ?? {});
+    log(formatReport(report, { apply: false }));
+    return report;
   }
-  const apply = deps.apply ?? (async (id, planned, applyEnv) => {
-    const { db } = await loadTemplesAndIndex(id, applyEnv);
-    return applyPlan(db, planned);
-  });
+  // The dry-run snapshot is not the plan. Read again immediately before
+  // diffing, then applyPlan reads each shard once more before its write.
+  const fresh = await load(project, env);
+  const report = diffIndex(fresh.temples ?? [], fresh.shards ?? {});
+  log(formatReport(report, { apply: true }));
+  if (report.capViolations.length > 0) {
+    assertShardCaps(fresh.temples ?? []);
+  }
+  const apply =
+    deps.apply ??
+    (async (_id, planned) => {
+      if (!fresh.db) {
+        throw new Error("Apply needs the Firestore handle from the fresh read.");
+      }
+      return applyPlan(fresh.db, planned);
+    });
   const count = await apply(project, report, env);
   log(`Applied ${count} index field writes to ${project}.`);
   return report;

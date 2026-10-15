@@ -128,6 +128,12 @@ class FirebaseTempleWriteStore implements TempleWriteStore {
     }
 
     if (plan.upsertShard != null && plan.entry != null) {
+      final state = data?['state'];
+      await _rejectFullShard(
+        plan.upsertShard!,
+        id,
+        state: state is String ? state : '',
+      );
       final entry = Map<String, dynamic>.from(plan.entry!);
       entry['updatedAt'] = FieldValue.serverTimestamp();
       batch.set(
@@ -150,29 +156,44 @@ class FirebaseTempleWriteStore implements TempleWriteStore {
       final metaRef = _firestore
           .collection(kTempleIndexMetaCollection)
           .doc(kTempleIndexMetaDocId);
-      // Literal +1. Rules compare the stored integer; a field transform
-      // does not satisfy that check. The read is the version only.
       final metaSnap = await metaRef.get();
-      final current = metaSnap.data()?['indexVersion'];
-      final next = current is int ? current + 1 : 1;
-      batch.set(
-        metaRef,
-        {
-          'indexVersion': next,
-          'shards': {
-            for (final slug in plan.metaShards)
-              slug: FieldValue.serverTimestamp(),
-          },
-        },
-        SetOptions(
-          mergeFields: [
-            'indexVersion',
-            for (final slug in plan.metaShards) FieldPath(['shards', slug]),
-          ],
-        ),
-      );
+      // mergeFields + increment resets indexVersion in the emulator's web
+      // SDK, and the rules then deny the whole batch. merge: true keeps the
+      // +1. Copy sibling shard stamps so the replaced map does not drop them.
+      final stamps = <String, dynamic>{};
+      final existing = metaSnap.data()?['shards'];
+      if (existing is Map) {
+        for (final entry in existing.entries) {
+          stamps[entry.key.toString()] = entry.value;
+        }
+      }
+      for (final slug in plan.metaShards) {
+        stamps[slug] = FieldValue.serverTimestamp();
+      }
+      batch.set(metaRef, {
+        'indexVersion': metaSnap.exists ? FieldValue.increment(1) : 1,
+        'shards': stamps,
+      }, SetOptions(merge: true));
     }
     await batch.commit();
+  }
+
+  /// Reads the shard only to count keys. The entries map is not rewritten.
+  Future<void> _rejectFullShard(
+    String shard,
+    String id, {
+    required String state,
+  }) async {
+    final snap = await _firestore
+        .collection(kTempleIndexCollection)
+        .doc(shard)
+        .get();
+    final entries = snap.data()?['entries'];
+    final count = entries is Map ? entries.length : 0;
+    final already = entries is Map && entries.containsKey(id);
+    if (!already && count >= kTempleIndexMaxEntries) {
+      throw StateError(templeIndexShardFullMessage(state: state, count: count));
+    }
   }
 
   @override
@@ -242,6 +263,7 @@ class MemoryTempleWriteStore implements TempleWriteStore {
         : (previous ??
               (docs[id] == null ? null : Map<String, dynamic>.from(docs[id]!)));
     final plan = planTempleIndex(id: id, next: data, previous: prior);
+    _rejectFullShardMemory(plan, data['state']);
     final payload = Map<String, dynamic>.from(data);
     if (isNew) {
       payload['createdAt'] = 'server';
@@ -264,6 +286,18 @@ class MemoryTempleWriteStore implements TempleWriteStore {
     final plan = planTempleIndex(id: id, next: null, previous: prior);
     docs.remove(id);
     _applyIndexPlan(plan);
+  }
+
+  void _rejectFullShardMemory(TempleIndexPlan plan, Object? state) {
+    final shard = plan.upsertShard;
+    if (shard == null) return;
+    final current = shards[shard];
+    final count = current?.length ?? 0;
+    final already = current?.containsKey(plan.id) ?? false;
+    if (!already && count >= kTempleIndexMaxEntries) {
+      final label = state is String ? state : '';
+      throw StateError(templeIndexShardFullMessage(state: label, count: count));
+    }
   }
 
   void _applyIndexPlan(TempleIndexPlan plan) {

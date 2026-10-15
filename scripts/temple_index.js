@@ -10,7 +10,15 @@ export const MAX_ENTRIES = 400;
 export const MAX_SHARDS = 48;
 export const SHORT_ADDRESS_MAX = 120;
 export const COVER_THUMB_MAX = 500;
+export const NAME_MAX = 80;
+export const CITY_MAX = 40;
+export const STATE_MAX = 40;
+export const DEITY_MAX = 60;
+export const ALT_NAME_MAX = 8;
+export const ALT_NAME_LENGTH = 80;
 export const FIRESTORE_BATCH_LIMIT = 500;
+/** Firestore's per-document limit. A full shard must stay under this. */
+export const DOCUMENT_BYTE_LIMIT = 1048576;
 
 const INDEX_ID = /^[A-Za-z0-9_-]{1,200}$/;
 
@@ -210,18 +218,37 @@ export function entryListed(entry) {
   return true;
 }
 
+/**
+ * `lat` / `lng` for an index entry. Missing numbers and (0, 0) are null.
+ * Longitude is always a finite number here (never a string). Whole degrees
+ * stay numeric; the Dart writer stores the same magnitude as a double.
+ */
 export function coordinates(data) {
   const lat = data?.latitude;
   const lng = data?.longitude;
   if (typeof lat !== "number" || typeof lng !== "number") {
     return { lat: null, lng: null };
   }
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return { lat: null, lng: null };
+  }
   if (lat === 0 && lng === 0) return { lat: null, lng: null };
-  return { lat, lng };
+  return { lat: storedDouble(lat), lng: storedDouble(lng) };
+}
+
+function storedDouble(value) {
+  if (Object.is(value, -0)) return 0;
+  return value;
 }
 
 function text(value) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function clip(value, max) {
+  const collapsed = text(value).replace(/\s+/g, " ");
+  if (collapsed.length <= max) return collapsed;
+  return collapsed.slice(0, max).trimEnd();
 }
 
 function normalize(raw) {
@@ -244,14 +271,111 @@ function words(value) {
   return found;
 }
 
+function isDigit(ch) {
+  const code = ch.charCodeAt(0);
+  return code >= 48 && code <= 57;
+}
+
+function isWordChar(ch) {
+  const code = ch.charCodeAt(0);
+  return (code >= 48 && code <= 57) || (code >= 97 && code <= 122);
+}
+
+function isDecimalDot(text, index) {
+  if (index === 0 || index + 1 >= text.length) return false;
+  return isDigit(text[index - 1]) && isDigit(text[index + 1]);
+}
+
+function wordImmediatelyBefore(text, dotIndex, word) {
+  const start = dotIndex - word.length;
+  if (start < 0) return false;
+  if (text.slice(start, dotIndex) !== word) return false;
+  if (start === 0) return true;
+  return !isWordChar(text[start - 1]);
+}
+
+function isAbbreviationDot(text, index) {
+  if (wordImmediatelyBefore(text, index, "st")) return true;
+  const firstOfAd =
+    wordImmediatelyBefore(text, index, "a") &&
+    index + 2 < text.length &&
+    text[index + 1] === "d" &&
+    text[index + 2] === ".";
+  if (firstOfAd) return true;
+  return (
+    index >= 2 &&
+    text[index - 1] === "d" &&
+    text[index - 2] === "." &&
+    wordImmediatelyBefore(text, index - 2, "a")
+  );
+}
+
+const ITEM_VERBS = new Set([
+  "is",
+  "are",
+  "was",
+  "were",
+  "be",
+  "been",
+  "has",
+  "have",
+  "had",
+  "do",
+  "does",
+  "did",
+  "held",
+  "holds",
+  "begins",
+  "runs",
+  "starts",
+]);
+
+function commaContinuesList(text, commaIndex) {
+  let i = commaIndex + 1;
+  const limit = Math.min(text.length, i + 80);
+  let buffer = "";
+  for (; i < limit; i += 1) {
+    const ch = text[i];
+    if (ch === "." && isDecimalDot(text, i)) {
+      buffer += ch;
+      continue;
+    }
+    if (ch === "," || ch === "." || ch === "!" || ch === "?" || ch === ";" || ch === "\n") {
+      break;
+    }
+    buffer += ch;
+  }
+  const list = words(buffer);
+  if (list.length === 0) return false;
+  if (list[0] === "or") return true;
+  if (list[0] === "and" || list[0] === "but") return false;
+  let coord = -1;
+  for (let n = 0; n < list.length; n += 1) {
+    if (list[n] === "or" || list[n] === "and") {
+      coord = n;
+      break;
+    }
+  }
+  if (coord <= 0 || coord > 3 || coord + 1 >= list.length) return false;
+  for (let n = 0; n < coord; n += 1) {
+    if (ITEM_VERBS.has(list[n])) return false;
+  }
+  return true;
+}
+
+function isClauseBreak(text, index) {
+  const ch = text[index];
+  if (ch === ",") return !commaContinuesList(text, index);
+  if (ch === "\n" || ch === "!" || ch === "?" || ch === ";") return true;
+  if (ch !== ".") return false;
+  if (isDecimalDot(text, index) || isAbbreviationDot(text, index)) return false;
+  return true;
+}
+
 function clauseStart(corpus, index) {
   const floor = Math.max(0, index - 240);
   for (let i = index - 1; i >= floor; i -= 1) {
-    const ch = corpus[i];
-    if (ch === "\n" || ch === "!" || ch === "?" || ch === ";" || ch === ".") {
-      return i + 1;
-    }
-    if (ch === ",") return i + 1;
+    if (isClauseBreak(corpus, i)) return i + 1;
   }
   return floor;
 }
@@ -259,12 +383,42 @@ function clauseStart(corpus, index) {
 function clauseEnd(corpus, index) {
   const limit = Math.min(corpus.length, index + 120);
   for (let i = index; i < limit; i += 1) {
-    const ch = corpus[i];
-    if (ch === "\n" || ch === "!" || ch === "?" || ch === ";" || ch === "." || ch === ",") {
-      return i;
-    }
+    if (isClauseBreak(corpus, i)) return i;
   }
   return limit;
+}
+
+const INCIDENTAL_RUIN = new Set([
+  "above",
+  "around",
+  "beside",
+  "excavated",
+  "excavation",
+  "excavations",
+  "fort",
+  "revealed",
+]);
+
+/**
+ * True when ruin wording describes this shrine. A fort, an excavation, or a
+ * neighbouring site does not make the shrine a monument.
+ */
+function shrineIsRuin(corpus) {
+  const ruinWord = /\b(?:ruined|ruins?)\b/g;
+  for (const match of corpus.matchAll(ruinWord)) {
+    const before = corpus.slice(clauseStart(corpus, match.index), match.index);
+    const after = corpus.slice(
+      match.index + match[0].length,
+      clauseEnd(corpus, match.index + match[0].length),
+    );
+    const beforeWords = words(before);
+    const afterWords = words(after);
+    const tail = beforeWords.length <= 8 ? beforeWords : beforeWords.slice(-8);
+    const head = afterWords.length <= 4 ? afterWords : afterWords.slice(0, 4);
+    if ([...tail, ...head].some((word) => INCIDENTAL_RUIN.has(word))) continue;
+    return true;
+  }
+  return false;
 }
 
 function containsDenial(list) {
@@ -377,13 +531,16 @@ export function framingOf(data) {
   const worship =
     LIVING_PHRASES.some((phrase) => hasAffirmativePhrase(corpus, phrase)) ||
     affirmativeWorship(data, corpus);
-  const ruined = /\b(?:ruined|ruins?)\b/.test(corpus);
+  const tradition = traditionOf(data);
+  // A living shrine is never a monument. Fort ruins and ceased-worship
+  // wording in the same story do not override present worship.
+  if (worship && tradition === "unspecified") return "living";
   const ceased =
     /\b(?:once|historic|historical|formerly|former|erstwhile|discontinued|ceased|stopped|ended|abandoned|abolished)\b/.test(
       corpus,
     );
-  if (!worship && ruined && ceased) return "monument";
-  if (traditionOf(data) !== "unspecified") return "neutral";
+  if (!worship && shrineIsRuin(corpus) && ceased) return "monument";
+  if (tradition !== "unspecified") return "neutral";
   if (worship) return "living";
   return "neutral";
 }
@@ -405,8 +562,8 @@ function altNames(data) {
     if (typeof item !== "string") continue;
     const trimmed = item.trim();
     if (!trimmed) continue;
-    names.push(trimmed.length <= 80 ? trimmed : trimmed.slice(0, 80));
-    if (names.length === 8) break;
+    names.push(clip(trimmed, ALT_NAME_LENGTH));
+    if (names.length === ALT_NAME_MAX) break;
   }
   return names.length === 0 ? undefined : names;
 }
@@ -425,10 +582,10 @@ export function entryFromTemple(data) {
   const entry = {
     id,
     slug: id,
-    name: text(data.name),
-    city: text(data.city),
-    state: text(data.state),
-    deity: text(data.deity),
+    name: clip(data.name, NAME_MAX),
+    city: clip(data.city, CITY_MAX),
+    state: clip(data.state, STATE_MAX),
+    deity: clip(data.deity, DEITY_MAX),
     address,
     coverThumb: coverThumb(data),
     lat: point.lat,
@@ -573,6 +730,45 @@ export function assertShardCaps(temples) {
   throw new Error(
     `Shard cap ${MAX_ENTRIES} exceeded (${detail}). No write. Split the state before applying.`,
   );
+}
+
+function stringBytes(value) {
+  return Buffer.byteLength(String(value), "utf8") + 1;
+}
+
+/**
+ * Upper bound on a `temple_index` shard of [entryCount] max-size entries.
+ * Field names, a 200-character id, and the trimmed text caps are included.
+ * 400 of those must stay under Firestore's 1 MiB document limit.
+ */
+export function estimateShardBytes(entryCount = MAX_ENTRIES) {
+  const strings = {
+    id: 200,
+    slug: 200,
+    name: NAME_MAX,
+    city: CITY_MAX,
+    state: STATE_MAX,
+    deity: DEITY_MAX,
+    address: SHORT_ADDRESS_MAX,
+    coverThumb: COVER_THUMB_MAX,
+    tradition: "unspecified".length,
+    framing: "monument".length,
+  };
+  let entry = 32;
+  for (const [name, len] of Object.entries(strings)) {
+    entry += stringBytes(name) + len + 1;
+  }
+  for (const name of ["lat", "lng", "v", "updatedAt"]) {
+    entry += stringBytes(name) + 8;
+  }
+  for (const name of ["living", "published", "hidden"]) {
+    entry += stringBytes(name) + 1;
+  }
+  entry += stringBytes("altNames") + 32;
+  for (let i = 0; i < ALT_NAME_MAX; i += 1) entry += ALT_NAME_LENGTH + 1;
+  entry += 200 + 1;
+  const overhead = stringBytes("temple_index") + stringBytes("x".repeat(80)) + stringBytes("entries") + 32;
+  return overhead + entry * entryCount;
 }
 
 /**

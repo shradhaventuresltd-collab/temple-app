@@ -261,15 +261,21 @@ async function commitTemple(db, { id, data, isNew, previous, deleteTemple = fals
   if (metaShards.length > 0) {
     const metaRef = at(db, "meta/temple_index");
     const metaSnap = await getDoc(metaRef);
-    const current = metaSnap.exists() ? (metaSnap.data()?.indexVersion ?? 0) : 0;
     const stamps = {};
+    if (metaSnap.exists()) {
+      const existing = metaSnap.data()?.shards ?? {};
+      for (const [key, value] of Object.entries(existing)) stamps[key] = value;
+    }
     for (const name of metaShards) stamps[name] = serverTimestamp();
+    // merge: true. increment under mergeFields resets indexVersion in this
+    // SDK, and the rules then deny the batch on the next edit.
     batch.set(
       metaRef,
-      { indexVersion: current + 1, shards: stamps },
       {
-        mergeFields: ["indexVersion", ...metaShards.map((name) => new FieldPath("shards", name))],
+        indexVersion: metaSnap.exists() ? increment(1) : 1,
+        shards: stamps,
       },
+      { merge: true },
     );
   }
   await batch.commit();
@@ -339,4 +345,31 @@ test("create, update, state move, and delete keep the entry and meta", async () 
   assert.equal(afterDelete.data().entries[id], undefined);
   meta = await getDoc(at(db, "meta/temple_index"));
   assert.equal(meta.data().indexVersion, 4);
+});
+
+test("a batch against an existing meta doc increments and keeps sibling shards", async () => {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(at(context.firestore(), "meta/temple_index"), {
+      indexVersion: 2,
+      shards: { bihar: new Date("2020-01-01T00:00:00Z") },
+    });
+  });
+  const db = adminDb("admin-existing-meta");
+  const id = "shore-temple";
+  const created = templePayload(id, { longitude: 80 });
+  await commitTemple(db, { id, data: created, isNew: true });
+  let meta = await getDoc(at(db, "meta/temple_index"));
+  assert.equal(meta.data().indexVersion, 3);
+  assert.ok(meta.data().shards.bihar);
+  assert.ok(meta.data().shards["tamil-nadu"]);
+  const stored = await getDoc(at(db, "temple_index/tamil-nadu"));
+  assert.equal(stored.data().entries[id].lng, 80);
+  assert.equal(typeof stored.data().entries[id].lng, "number");
+
+  const updated = templePayload(id, { city: "Mamallapuram", longitude: 80 });
+  await commitTemple(db, { id, data: updated, isNew: false, previous: created });
+  meta = await getDoc(at(db, "meta/temple_index"));
+  assert.equal(meta.data().indexVersion, 4);
+  assert.ok(meta.data().shards.bihar);
+  assert.ok(meta.data().shards["tamil-nadu"]);
 });

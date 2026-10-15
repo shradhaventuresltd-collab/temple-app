@@ -17,9 +17,12 @@ import {
 import {
   batchRounds,
   coverThumb,
+  DOCUMENT_BYTE_LIMIT,
   diffIndex,
   entryFromTemple,
   entryListed,
+  estimateShardBytes,
+  framingOf,
   indexFlags,
   planOps,
   planSeedIndexBatches,
@@ -150,6 +153,51 @@ test("state slugs match the shared fixture", () => {
   for (const row of rows) {
     assert.equal(stateSlug(row.state), row.slug, row.state);
   }
+});
+
+test("fort ruins do not label a living shrine as a monument", () => {
+  const living = {
+    name: "Fort Side Shrine",
+    deity: "Devi",
+    description:
+      "Daily puja at the shrine beside the fort ruins. The former factory ceased.",
+    story: "Historic fort ruins stand next to the temple.",
+    timings: "5:00 AM – 8:00 PM",
+    specialities: [],
+  };
+  assert.equal(framingOf(living), "living");
+  const anjengo = {
+    name: "Anjengo Sree Durga Devi Temple",
+    deity: "Devi",
+    description:
+      "Local Durga Devi shrine at historic Anchuthengu (Anjengo), set beside the ruins of Anjengo Fort.",
+    story:
+      "The surviving laterite fort ruins still define the settlement. Unlike the major Devaswom-board pilgrimage temples, it remains a neighbourhood shrine.",
+    timings: "5:00 AM – 12:00 PM",
+    specialities: [],
+  };
+  assert.equal(framingOf(anjengo), "neutral");
+});
+
+test("longitude is numeric and a full shard stays under 1 MiB", () => {
+  const entry = entryFromTemple({
+    id: "whole-degree",
+    name: "N".repeat(200),
+    state: "S".repeat(80),
+    city: "C".repeat(80),
+    deity: "D".repeat(90),
+    address: "Patna, Bihar",
+    latitude: 12,
+    longitude: 80,
+  });
+  assert.equal(typeof entry.lng, "number");
+  assert.equal(entry.lng, 80);
+  assert.equal(typeof entry.lat, "number");
+  assert.equal(entry.name.length, 80);
+  assert.equal(entry.city.length, 40);
+  assert.equal(entry.state.length, 40);
+  assert.equal(entry.deity.length, 60);
+  assert.ok(estimateShardBytes(400) < DOCUMENT_BYTE_LIMIT);
 });
 
 test("hidden and published flags filter an index entry", () => {
@@ -486,7 +534,8 @@ test("apply re-reads each shard before writing and skips a fresh match", async (
   };
   const count = await applyPlan(db(), report, { admin });
   assert.equal(count, 1);
-  assert.deepEqual(gets, ["temple_index/bihar"]);
+  assert.deepEqual(gets, ["temple_index/bihar", "meta/temple_index"]);
+  assert.deepEqual(commits[0][1].opts, { merge: true });
   assert.equal(commits.length, 1);
   assert.equal(commits[0][0].path, "temple_index/bihar");
   assert.deepEqual(commits[0][0].opts.mergeFields[0].parts, ["entries", "patan-devi-temple"]);
@@ -501,6 +550,32 @@ test("apply re-reads each shard before writing and skips a fresh match", async (
   assert.equal(commits.length, 0);
   assert.equal(writeNeeded({ op: "delete", id: "gone" }, shards.bihar), false);
   assert.equal(writeNeeded({ op: "delete", id: "patan-devi-temple" }, shards.bihar), true);
+});
+
+test("apply plans from the read taken immediately before writing", async () => {
+  const seen = [];
+  await main(["--apply", "--project", "demo"], {
+    env: { FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080" },
+    load: async () => ({
+      temples: [
+        {
+          id: "fresh-temple",
+          name: "Fresh Temple",
+          state: "Bihar",
+          city: "Patna",
+          deity: "Devi",
+        },
+      ],
+      shards: {},
+      db: {},
+    }),
+    apply: async (_id, planned) => {
+      seen.push(...planned.missing.map((item) => item.id));
+      return planned.missing.length;
+    },
+    log: () => {},
+  });
+  assert.deepEqual(seen, ["fresh-temple"]);
 });
 
 test("CI workflow runs the unit test and never the apply tool", () => {

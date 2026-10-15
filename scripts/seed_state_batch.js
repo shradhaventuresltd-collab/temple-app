@@ -199,18 +199,18 @@ async function applyToFirestore(project, temples) {
       });
       metaExists = true;
     } else {
+      // merge: true, not mergeFields. mergeFields + increment resets
+      // indexVersion. Copy stamps already written so the map replace
+      // does not drop earlier shards in this file.
+      const snap = await meta.get();
+      const existing = snap.exists ? (snap.data()?.shards ?? {}) : {};
       batch.set(
         meta,
         {
           indexVersion: admin.firestore.FieldValue.increment(1),
-          shards: { [round.shard]: stamp },
+          shards: { ...existing, [round.shard]: stamp },
         },
-        {
-          mergeFields: [
-            "indexVersion",
-            new admin.firestore.FieldPath("shards", round.shard),
-          ],
-        },
+        { merge: true },
       );
     }
     await batch.commit();
