@@ -75,16 +75,17 @@ Workflow `demo-app-distribution` builds the tester APK on every push to `main` a
 gh workflow run demo-app-distribution.yml --ref main
 ```
 
-The build is the same release defines as `demo-seed-launch`:
+The build is the same release defines as `demo-seed-launch`, plus `DEMO_APP_ID_SUFFIX`:
 
 ```bash
 flutter build apk --release \
   --target-platform android-arm,android-arm64,android-x64 \
   --dart-define=DEMO_BUILD=true \
-  --dart-define=ENABLE_ADMIN_TOOLS=true
+  --dart-define=ENABLE_ADMIN_TOOLS=true \
+  --dart-define=DEMO_APP_ID_SUFFIX=true
 ```
 
-`DEMO_BUILD` sets `applicationIdSuffix` `.demo`, so the installed package is `com.shradhaventures.temple.demo`, and the launcher label is `Temple Directory India Demo`. A build without `DEMO_BUILD`, including the Play AAB, keeps `com.shradhaventures.temple` and `Temple Directory India`. The same suffix applies to any other `DEMO_BUILD` APK (`android-smoke`, `demo-seed-launch`). On Android, a demo build initializes Firebase from the `google-services.json` client for that package instead of the Play app id in `firebase_options.dart`.
+`DEMO_APP_ID_SUFFIX` (or Gradle `-Pdemo_suffix=true`) sets `applicationIdSuffix` `.demo`, so the installed package is `com.shradhaventures.temple.demo`, and the launcher label is `Temple Directory India Demo`. Only this workflow sets that flag. `DEMO_BUILD` alone does not. `android-smoke`, `demo-seed-launch`, and the Play AAB stay on `com.shradhaventures.temple` and `Temple Directory India`. On Android, a build with the suffix initializes Firebase from the `google-services.json` client for `com.shradhaventures.temple.demo`. Smoke and seed-launch keep the Play app id in `firebase_options.dart`.
 
 That is a universal APK (armeabi-v7a, arm64-v8a, and x86_64). The job logs the file size. If the universal APK is over 60 MiB (62914560 bytes) it builds again with `--split-per-abi` and distributes those APKs instead. This command is `flutter build apk`. It does not call `scripts/build_play_aab.sh`, and those defines never go into the Play bundle.
 
@@ -102,7 +103,7 @@ Testers install it from App Distribution:
 4. Sign in to App Tester with the invited Google account.
 5. Open Temple Directory India, choose the latest build, and install it. Android may ask for permission to install from App Tester.
 
-The service account in `FIREBASE_APP_DISTRIBUTION_SA_JSON` needs the **Firebase App Distribution Admin** role (`roles/firebaseappdistro.admin`) on `temple-directory-india`, and the Firebase App Distribution API must be enabled. It does not need Firestore access. `FIREBASE_ANDROID_APP_ID` is `1:109314154382:android:856cbde1eb92ba234ccedf`, the Firebase Android app id for `com.shradhaventures.temple.demo`. That is not the Play app id in [android-play-internal-test.md](android-play-internal-test.md). `analyze-test` runs `scripts/ci/test_demo_distribution_guard.sh` and still runs `scripts/test_play_aab_guard.sh`.
+The service account in `FIREBASE_APP_DISTRIBUTION_SA_JSON` needs the **Firebase App Distribution Admin** role (`roles/firebaseappdistro.admin`) on `temple-directory-india`, and the Firebase App Distribution API must be enabled. It does not need Firestore access. `FIREBASE_ANDROID_APP_ID` is `1:109314154382:android:856cbde1eb92ba234ccedf`, the Firebase Android app id for `com.shradhaventures.temple.demo`. That is not the Play app id in [android-play-internal-test.md](android-play-internal-test.md). Before distribution, the workflow compares the secret to that id and fails without printing the secret if they differ. `analyze-test` runs `scripts/ci/test_demo_distribution_guard.sh` and still runs `scripts/test_play_aab_guard.sh`.
 
 `android/app/google-services.json` includes that `.demo` client next to the Play client (`com.shradhaventures.temple`) and the legacy `com.example.temple_app` client. `scripts/ci/check_demo_google_services.sh` fails the demo build if the `.demo` client is removed or its `mobilesdk_app_id` or `api_key.current_key` is empty. Leave the Play client in place.
 

@@ -51,7 +51,7 @@ if demo is None:
         "error: google-services.json has no client for "
         f"{demo_package}.\n"
         "\n"
-        "The demo application id is already applied when DEMO_BUILD is set.\n"
+        "The demo application id is applied only when DEMO_APP_ID_SUFFIX is set.\n"
         "The only remaining Firebase config step is to add that client:\n"
         "\n"
         "1. In Firebase project temple-directory-india, register an Android\n"

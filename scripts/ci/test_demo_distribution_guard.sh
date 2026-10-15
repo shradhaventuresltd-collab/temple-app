@@ -110,6 +110,8 @@ expect_eq "both apk builds pass DEMO_BUILD" \
   "$(grep -c -- '--dart-define=DEMO_BUILD=true' "$workflow")" 2
 expect_eq "both apk builds pass ENABLE_ADMIN_TOOLS" \
   "$(grep -c -- '--dart-define=ENABLE_ADMIN_TOOLS=true' "$workflow")" 2
+expect_eq "both apk builds pass DEMO_APP_ID_SUFFIX" \
+  "$(grep -c -- '--dart-define=DEMO_APP_ID_SUFFIX=true' "$workflow")" 2
 expect_eq "both apk builds request arm, arm64, and x86_64" \
   "$(grep -c -- '--target-platform android-arm,android-arm64,android-x64' "$workflow")" 2
 expect_eq "split-per-abi is only the over-60MiB fallback" \
@@ -132,6 +134,8 @@ require "workflow distributes with the helper script" \
   'distribute_demo_apk.sh' "$workflow"
 require "workflow checks the demo google-services client" \
   'check_demo_google_services.sh' "$workflow"
+require "workflow checks the registered Firebase app id" \
+  'check_firebase_android_app_id.sh' "$workflow"
 require "workflow installs the pinned CLI with npm ci" 'npm ci' "$workflow"
 forbid "workflow does not use npx" 'npx' "$workflow"
 if ! grep -F -q 'if: always()' "$workflow"; then
@@ -178,16 +182,55 @@ require "demo label includes Demo" \
   'Temple Directory India Demo' android/app/build.gradle.kts
 require "manifest label is the gradle placeholder" \
   'android:label="\$\{appLabel\}"' android/app/src/main/AndroidManifest.xml
-if ! awk '
+if awk '
   /if \(demoBuild\)/ { demo=1; next }
   demo && /applicationIdSuffix/ { found=1 }
   demo && /^        \}/ { demo=0 }
   END { exit found ? 0 : 1 }
 ' android/app/build.gradle.kts; then
-  echo "FAIL: applicationIdSuffix is not inside the DEMO_BUILD branch" >&2
+  echo "FAIL: applicationIdSuffix must not follow DEMO_BUILD" >&2
   exit 1
 fi
-echo "ok: applicationIdSuffix is only applied for DEMO_BUILD"
+echo "ok: DEMO_BUILD does not change the application id"
+if ! awk '
+  /if \(demoAppIdSuffix\)/ { suffix=1; next }
+  suffix && /applicationIdSuffix/ { found=1 }
+  suffix && /^        \}/ { suffix=0 }
+  END { exit found ? 0 : 1 }
+' android/app/build.gradle.kts; then
+  echo "FAIL: applicationIdSuffix is not inside the demoAppIdSuffix branch" >&2
+  exit 1
+fi
+echo "ok: applicationIdSuffix is only applied for DEMO_APP_ID_SUFFIX"
+if ! awk '
+  /if \(demoAppIdSuffix\)/ { suffix=1; next }
+  suffix && /Temple Directory India Demo/ { found=1 }
+  suffix && /^    buildTypes/ { suffix=0 }
+  END { exit found ? 0 : 1 }
+' android/app/build.gradle.kts; then
+  echo "FAIL: Demo label is not tied to demoAppIdSuffix" >&2
+  exit 1
+fi
+echo "ok: Demo label is only applied with the application id suffix"
+for untouched in \
+  .github/workflows/android-smoke.yml \
+  .github/workflows/demo-seed-launch.yml \
+  scripts/build_play_aab.sh
+do
+  if grep -q 'DEMO_APP_ID_SUFFIX\|demo_suffix' "$untouched"; then
+    echo "FAIL: ${untouched} sets the demo application id suffix" >&2
+    exit 1
+  fi
+done
+echo "ok: smoke, seed-launch, and the Play script do not set the suffix"
+require "smoke still launches the Play package" \
+  'PKG=com.shradhaventures.temple' scripts/ci/run_android_smoke.sh
+require "seed-launch still launches the Play package" \
+  'PKG=com.shradhaventures.temple' scripts/ci/run_demo_seed_launch.sh
+require "read-only Maestro flow still uses the Play package" \
+  'appId: com.shradhaventures.temple' .maestro/read_only_smoke.yaml
+require "screenshot Maestro flow still uses the Play package" \
+  'appId: com.shradhaventures.temple' .maestro/screenshots.yaml
 if grep -F -q 'applicationIdSuffix' scripts/build_play_aab.sh; then
   echo "FAIL: Play script must not set an application id suffix" >&2
   exit 1
@@ -692,6 +735,42 @@ if find "$tmp/distro" -type f | grep -q .; then
   exit 1
 fi
 echo "ok: invalid service account JSON leaves no temp file"
+
+# FIREBASE_ANDROID_APP_ID must match the registered demo app. The secret
+# value is never printed.
+app_id="1:109314154382:android:856cbde1eb92ba234ccedf"
+wrong_app_id="wrong-firebase-app-id-should-stay-hidden"
+set +e
+bad_app_out="$(FIREBASE_ANDROID_APP_ID="$wrong_app_id" bash scripts/ci/check_firebase_android_app_id.sh 2>&1)"
+bad_app_status=$?
+set -e
+if [[ "$bad_app_status" -eq 0 ]]; then
+  echo "FAIL: wrong FIREBASE_ANDROID_APP_ID exited 0" >&2
+  exit 1
+fi
+if ! grep -q "$app_id" <<<"$bad_app_out"; then
+  echo "FAIL: wrong app id did not name the registered demo app" >&2
+  exit 1
+fi
+if grep -q "$wrong_app_id" <<<"$bad_app_out"; then
+  echo "FAIL: wrong app id check printed the secret" >&2
+  exit 1
+fi
+echo "ok: wrong Firebase app id fails without printing the secret"
+good_app_out="$(FIREBASE_ANDROID_APP_ID="$app_id" bash scripts/ci/check_firebase_android_app_id.sh 2>&1)"
+if ! grep -q 'registered demo Android app' <<<"$good_app_out"; then
+  echo "FAIL: registered Firebase app id was rejected" >&2
+  exit 1
+fi
+if grep -q "$app_id" <<<"$good_app_out"; then
+  echo "FAIL: matching app id check printed the secret" >&2
+  exit 1
+fi
+echo "ok: registered Firebase app id passes without printing the secret"
+# shellcheck disable=SC2016
+forbid "app id check does not echo the secret" \
+  'echo .*\$FIREBASE_ANDROID_APP_ID|printf .*\$FIREBASE_ANDROID_APP_ID' \
+  scripts/ci/check_firebase_android_app_id.sh
 
 # google-services.json: Play and legacy clients stay. The .demo client
 # is the registered Firebase app; a placeholder must not be committed.

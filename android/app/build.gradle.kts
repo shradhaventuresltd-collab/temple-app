@@ -57,6 +57,11 @@ fun dartDefines(): Map<String, String> {
 }
 
 val demoBuild = dartDefines()["DEMO_BUILD"] == "true"
+// Separate from DEMO_BUILD. android-smoke and demo-seed-launch pass
+// DEMO_BUILD and must keep com.shradhaventures.temple. Only
+// demo-app-distribution sets DEMO_APP_ID_SUFFIX (or -Pdemo_suffix=true).
+val demoAppIdSuffix = dartDefines()["DEMO_APP_ID_SUFFIX"] == "true" ||
+    (findProperty("demo_suffix") as? String) == "true"
 
 fun releaseSigningError(): String {
     val problem = when {
@@ -106,16 +111,16 @@ android {
 
     defaultConfig {
         applicationId = "com.shradhaventures.temple"
-        // Tester builds must not install as the Play app. The Play AAB is
-        // built without DEMO_BUILD, so it keeps this id and the Play label.
-        if (demoBuild) {
+        // The distributed tester APK must not install as the Play app.
+        // Smoke, seed-launch, and the Play AAB do not set this flag.
+        if (demoAppIdSuffix) {
             applicationIdSuffix = ".demo"
         }
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        manifestPlaceholders["appLabel"] = if (demoBuild) {
+        manifestPlaceholders["appLabel"] = if (demoAppIdSuffix) {
             "Temple Directory India Demo"
         } else {
             "Temple Directory India"

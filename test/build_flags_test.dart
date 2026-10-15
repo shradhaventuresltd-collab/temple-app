@@ -23,30 +23,30 @@ void main() {
   });
 
   group('androidDemoUsesGoogleServices', () {
-    test('demo Android reads the .demo google-services client', () {
+    test('distribution Android reads the .demo google-services client', () {
       expect(
         androidDemoUsesGoogleServices(
-          demoBuild: true,
+          demoAppIdSuffix: true,
           isWeb: false,
           isAndroid: true,
         ),
         isTrue,
       );
     });
-    test('Play Android keeps firebase_options.dart', () {
+    test('DEMO_BUILD without the suffix keeps firebase_options.dart', () {
       expect(
         androidDemoUsesGoogleServices(
-          demoBuild: false,
+          demoAppIdSuffix: false,
           isWeb: false,
           isAndroid: true,
         ),
         isFalse,
       );
     });
-    test('demo web and non-Android keep firebase_options.dart', () {
+    test('suffix on web and non-Android keeps firebase_options.dart', () {
       expect(
         androidDemoUsesGoogleServices(
-          demoBuild: true,
+          demoAppIdSuffix: true,
           isWeb: true,
           isAndroid: true,
         ),
@@ -54,7 +54,7 @@ void main() {
       );
       expect(
         androidDemoUsesGoogleServices(
-          demoBuild: true,
+          demoAppIdSuffix: true,
           isWeb: false,
           isAndroid: false,
         ),

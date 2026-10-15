@@ -45,7 +45,7 @@ class AppBootstrap {
   }) async {
     try {
       final demoAndroid = androidDemoUsesGoogleServices(
-        demoBuild: kDemoBuild,
+        demoAppIdSuffix: kDemoAppIdSuffix,
         isWeb: kIsWeb,
         isAndroid: !kIsWeb && defaultTargetPlatform == TargetPlatform.android,
       );

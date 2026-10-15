@@ -1,7 +1,9 @@
 name: demo-app-distribution
 
 # Tester release APK for Firebase App Distribution. Not a Play upload.
-# Defines match demo-seed-launch: DEMO_BUILD and ENABLE_ADMIN_TOOLS.
+# Defines match demo-seed-launch (DEMO_BUILD and ENABLE_ADMIN_TOOLS)
+# plus DEMO_APP_ID_SUFFIX, which only this workflow sets. Smoke and
+# seed-launch stay on com.shradhaventures.temple.
 # The job calls flutter build apk. It does not build a Play app bundle,
 # does not install the APK, and does not run Seed or write to Firestore.
 #
@@ -98,7 +100,8 @@ jobs:
           flutter build apk --release \
             --target-platform android-arm,android-arm64,android-x64 \
             --dart-define=DEMO_BUILD=true \
-            --dart-define=ENABLE_ADMIN_TOOLS=true
+            --dart-define=ENABLE_ADMIN_TOOLS=true \
+            --dart-define=DEMO_APP_ID_SUFFIX=true
           apk="build/app/outputs/flutter-apk/app-release.apk"
           size="$(stat -c%s "$apk")"
           echo "Universal demo APK size: ${size} bytes"
@@ -109,7 +112,8 @@ jobs:
             flutter build apk --release --split-per-abi \
               --target-platform android-arm,android-arm64,android-x64 \
               --dart-define=DEMO_BUILD=true \
-              --dart-define=ENABLE_ADMIN_TOOLS=true
+              --dart-define=ENABLE_ADMIN_TOOLS=true \
+              --dart-define=DEMO_APP_ID_SUFFIX=true
             rm -f "$apk"
           fi
 
@@ -125,6 +129,12 @@ jobs:
           path: build/app/outputs/flutter-apk/*release.apk
           retention-days: 7
           if-no-files-found: error
+
+      - name: Require the registered demo Firebase app id
+        if: steps.plan.outputs.distribute == 'true' && steps.build.outcome == 'success'
+        env:
+          FIREBASE_ANDROID_APP_ID: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
+        run: bash scripts/ci/check_firebase_android_app_id.sh
 
       - name: Install pinned Firebase CLI
         if: steps.plan.outputs.distribute == 'true' && steps.build.outcome == 'success'
