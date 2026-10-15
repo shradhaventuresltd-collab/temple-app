@@ -277,6 +277,26 @@ if grep -q 'timeout-minutes: 30' .github/workflows/android-smoke.yml; then
 fi
 require "android-smoke job limit stays 15 minutes" \
   'timeout-minutes: 15' .github/workflows/android-smoke.yml
+require "committed Gradle heap stays 8G for local builds" \
+  '^org\.gradle\.jvmargs=-Xmx8G ' android/gradle.properties
+for heap_workflow in \
+  .github/workflows/android-smoke.yml \
+  .github/workflows/demo-seed-launch.yml
+do
+  require "workflow caps the hosted Gradle heap" \
+    'org.gradle.jvmargs=-Xmx3g' "$heap_workflow"
+  require "workflow caps the Kotlin daemon" \
+    'kotlin.daemon.jvmargs=-Xmx1g' "$heap_workflow"
+done
+if ! grep -F -q 'labels=$'"'"'Wait'"'"'' scripts/ci/run_android_smoke.sh; then
+  echo "FAIL: smoke must tap Wait only on the system ANR dialog" >&2
+  exit 1
+fi
+echo "ok: smoke taps Wait only on the system ANR dialog"
+require "seed launch taps Wait on the system ANR" \
+  'tap_needle "Wait"' scripts/ci/run_demo_seed_launch.sh
+require "Maestro smoke dismisses the system ANR with Wait" \
+  'Process system isn'"'"'t responding' .maestro/read_only_smoke.yaml
 if grep -q '/usr/local/lib/android/sdk/system-images' scripts/ci/free_runner_disk.sh; then
   echo "FAIL: disk script must not delete the emulator system images" >&2
   exit 1

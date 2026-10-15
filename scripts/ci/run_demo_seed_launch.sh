@@ -81,11 +81,23 @@ tap_needle() {
   adb shell input tap $point
 }
 
+# Wait only. Close app on this dialog kills system_server.
+dismiss_system_anr() {
+  hierarchy
+  [[ -f "$OUT/uidump.xml" ]] || return 0
+  if ! grep -q "Process system isn't responding" "$OUT/uidump.xml"; then
+    return 0
+  fi
+  echo "Dismissing Process system isn't responding"
+  tap_needle "Wait" || true
+}
+
 wait_for() {
   local needle="$1"
   local tries="${2:-20}"
   local i
   for i in $(seq 1 "$tries"); do
+    dismiss_system_anr
     if visible "$needle"; then
       echo "visible: $needle"
       return 0

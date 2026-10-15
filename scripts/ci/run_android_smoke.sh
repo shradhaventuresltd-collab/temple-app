@@ -133,24 +133,38 @@ warn_if_flow_retried() {
   fi
 }
 
-# Tap Wait (or Close app) only on the Pixel Launcher ANR dialog.
-# An ANR from this app ("Temple Directory India isn't responding") stays up.
+# Tap Wait, then Close app, only on the Pixel Launcher ANR dialog.
+# Tap Wait only on "Process system isn't responding". Close app there
+# kills system_server. An ANR from this app stays up.
 dismiss_anr_dialog() {
   adb shell uiautomator dump /sdcard/uidump.xml >/dev/null 2>&1 || return 0
-  local xml
+  local xml labels
   xml="$(adb exec-out cat /sdcard/uidump.xml 2>/dev/null || true)"
-  if ! grep -q "Pixel Launcher isn't responding" <<<"$xml"; then
+  if grep -q "Process system isn't responding" <<<"$xml"; then
+    warn "Dismissing the system isn't-responding dialog before Maestro"
+    labels=$'Wait'
+  elif grep -q "Pixel Launcher isn't responding" <<<"$xml"; then
+    warn "Dismissing the Pixel Launcher isn't-responding dialog before Maestro"
+    labels=$'Wait\nClose app'
+  else
     return 0
   fi
-  warn "Dismissing the Pixel Launcher isn't-responding dialog before Maestro"
   local point
-  point="$(python3 -c '
-import re, sys
+  point="$(ANR_LABELS="$labels" python3 -c '
+import os, re, sys
 xml = sys.stdin.read()
-for label in ("Wait", "Close app"):
-    m = re.search(r"text=\"" + label + r"\"[^>]*bounds=\"\[(\d+),(\d+)\]\[(\d+),(\d+)\]\"", xml)
+for label in os.environ["ANR_LABELS"].splitlines():
+    if not label:
+        continue
+    m = re.search(
+        r"text=\"" + re.escape(label) + r"\"[^>]*bounds=\"\[(\d+),(\d+)\]\[(\d+),(\d+)\]\"",
+        xml,
+    )
     if not m:
-        m = re.search(r"bounds=\"\[(\d+),(\d+)\]\[(\d+),(\d+)\]\"[^>]*text=\"" + label + r"\"", xml)
+        m = re.search(
+            r"bounds=\"\[(\d+),(\d+)\]\[(\d+),(\d+)\]\"[^>]*text=\"" + re.escape(label) + r"\"",
+            xml,
+        )
     if m:
         x1, y1, x2, y2 = map(int, m.groups())
         print((x1 + x2) // 2, (y1 + y2) // 2)
