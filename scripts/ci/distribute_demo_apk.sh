@@ -13,8 +13,6 @@ set -euo pipefail
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$root"
 
-FIREBASE_TOOLS_VERSION=15.34.0
-
 if [[ "${GITHUB_EVENT_NAME:-}" == "pull_request" ]]; then
   echo "Skipping distribution on a pull_request run."
   exit 0
@@ -96,8 +94,14 @@ printf '%s %s\n%s\n' "$short" "$subject" "$run_url" > "$notes"
 
 export GOOGLE_APPLICATION_CREDENTIALS="$sa"
 
+firebase_cli="${DEMO_FIREBASE_CLI:-$root/scripts/ci/firebase-cli/node_modules/.bin/firebase}"
+if [[ ! -x "$firebase_cli" ]]; then
+  echo "error: pinned firebase CLI is missing. Run npm ci in scripts/ci/firebase-cli." >&2
+  exit 1
+fi
+
 for apk in "$@"; do
-  npx --yes "firebase-tools@${FIREBASE_TOOLS_VERSION}" appdistribution:distribute "$apk" \
+  "$firebase_cli" appdistribution:distribute "$apk" \
     --app "$FIREBASE_ANDROID_APP_ID" \
     --groups core-testers \
     --release-notes-file "$notes"

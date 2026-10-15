@@ -60,6 +60,19 @@ if ! grep -q -- '- main' <<<"$on_block"; then
   exit 1
 fi
 echo "ok: push to main trigger"
+for path_filter in \
+  'lib/**' \
+  'android/**' \
+  'assets/**' \
+  'pubspec.*' \
+  '.github/workflows/demo-app-distribution.yml'
+do
+  if ! grep -F -q "$path_filter" <<<"$on_block"; then
+    echo "FAIL: push paths filter missing ${path_filter}" >&2
+    exit 1
+  fi
+done
+echo "ok: push paths filter"
 if grep -q 'pull_request' <<<"$on_block"; then
   echo "FAIL: pull_request must not trigger this workflow" >&2
   exit 1
@@ -117,6 +130,69 @@ require "workflow chooses universal vs split from the file size" \
   'demo_apk_layout.sh' "$workflow"
 require "workflow distributes with the helper script" \
   'distribute_demo_apk.sh' "$workflow"
+require "workflow checks the demo google-services client" \
+  'check_demo_google_services.sh' "$workflow"
+require "workflow installs the pinned CLI with npm ci" 'npm ci' "$workflow"
+forbid "workflow does not use npx" 'npx' "$workflow"
+if ! grep -F -q 'if: always()' "$workflow"; then
+  echo "FAIL: cleanup step must use if: always()" >&2
+  exit 1
+fi
+echo "ok: cleanup step uses if: always()"
+if grep -F -q 'always() &&' "$workflow"; then
+  echo "FAIL: cleanup must not be gated on another condition" >&2
+  exit 1
+fi
+echo "ok: cleanup is not gated on the plan result"
+
+plan_step="$(awk '
+  /^      - name: Plan signing and distribution$/ { capture=1 }
+  capture && /^      - name:/ && !/^      - name: Plan signing/ { exit }
+  capture { print }
+' "$workflow")"
+for secret_name in \
+  DEMO_KEYSTORE_B64 \
+  DEMO_KEYSTORE_PASSWORD \
+  DEMO_KEY_ALIAS \
+  DEMO_KEY_PASSWORD \
+  FIREBASE_ANDROID_APP_ID \
+  FIREBASE_APP_DISTRIBUTION_SA_JSON
+do
+  if ! grep -F -q "secrets.${secret_name} != ''" <<<"$plan_step"; then
+    echo "FAIL: plan step does not pass a presence flag for ${secret_name}" >&2
+    exit 1
+  fi
+done
+echo "ok: plan step receives secret presence flags"
+if grep -E -q "secrets\\.[A-Z0-9_]+[[:space:]]*}}" <<<"$plan_step"; then
+  echo "FAIL: plan step receives a secret value" >&2
+  exit 1
+fi
+echo "ok: plan step does not receive secret values"
+
+require "demo builds use the .demo application id suffix" \
+  'applicationIdSuffix = "\.demo"' android/app/build.gradle.kts
+require "Play application id stays the base id" \
+  'applicationId = "com.shradhaventures.temple"' android/app/build.gradle.kts
+require "demo label includes Demo" \
+  'Temple Directory India Demo' android/app/build.gradle.kts
+require "manifest label is the gradle placeholder" \
+  'android:label="\$\{appLabel\}"' android/app/src/main/AndroidManifest.xml
+if ! awk '
+  /if \(demoBuild\)/ { demo=1; next }
+  demo && /applicationIdSuffix/ { found=1 }
+  demo && /^        \}/ { demo=0 }
+  END { exit found ? 0 : 1 }
+' android/app/build.gradle.kts; then
+  echo "FAIL: applicationIdSuffix is not inside the DEMO_BUILD branch" >&2
+  exit 1
+fi
+echo "ok: applicationIdSuffix is only applied for DEMO_BUILD"
+if grep -F -q 'applicationIdSuffix' scripts/build_play_aab.sh; then
+  echo "FAIL: Play script must not set an application id suffix" >&2
+  exit 1
+fi
+echo "ok: Play script does not set an application id suffix"
 
 require "Play signing still does not require storeType" \
   'val missingSigningKeys = listOf\("storeFile", "storePassword", "keyAlias", "keyPassword"\)' \
@@ -141,8 +217,11 @@ require "distribute targets core-testers" \
   '--groups core-testers' scripts/ci/distribute_demo_apk.sh
 require "distribute uses GOOGLE_APPLICATION_CREDENTIALS" \
   'GOOGLE_APPLICATION_CREDENTIALS=' scripts/ci/distribute_demo_apk.sh
-require "firebase-tools is pinned" \
-  'FIREBASE_TOOLS_VERSION=15\.34\.0' scripts/ci/distribute_demo_apk.sh
+require "firebase-tools is pinned in package.json" \
+  '"firebase-tools": "15.34.0"' scripts/ci/firebase-cli/package.json
+require "firebase-tools lockfile exists" \
+  '"node_modules/firebase-tools"' scripts/ci/firebase-cli/package-lock.json
+forbid "distribute script does not use npx" 'npx' scripts/ci/distribute_demo_apk.sh
 forbid "distribute script does not trace commands" 'set -x' scripts/ci/distribute_demo_apk.sh
 # shellcheck disable=SC2016 # grep pattern, not a shell expansion
 forbid "distribute script does not echo the service account" \
@@ -159,18 +238,20 @@ expect_eq "a small APK stays universal" \
   "$(bash scripts/ci/demo_apk_layout.sh 0)" universal
 
 fill_signing() {
-  export DEMO_KEYSTORE_B64="e30="
-  export DEMO_KEYSTORE_PASSWORD="store-secret"
-  export DEMO_KEY_ALIAS="demo"
-  export DEMO_KEY_PASSWORD="key-secret"
+  export HAS_DEMO_KEYSTORE_B64=true
+  export HAS_DEMO_KEYSTORE_PASSWORD=true
+  export HAS_DEMO_KEY_ALIAS=true
+  export HAS_DEMO_KEY_PASSWORD=true
 }
 
 fill_firebase() {
-  export FIREBASE_ANDROID_APP_ID="1:123:android:abc"
-  export FIREBASE_APP_DISTRIBUTION_SA_JSON='{"type":"service_account"}'
+  export HAS_FIREBASE_ANDROID_APP_ID=true
+  export HAS_FIREBASE_APP_DISTRIBUTION_SA_JSON=true
 }
 
 clear_demo_env() {
+  unset HAS_DEMO_KEYSTORE_B64 HAS_DEMO_KEYSTORE_PASSWORD HAS_DEMO_KEY_ALIAS HAS_DEMO_KEY_PASSWORD
+  unset HAS_FIREBASE_ANDROID_APP_ID HAS_FIREBASE_APP_DISTRIBUTION_SA_JSON
   unset DEMO_KEYSTORE_B64 DEMO_KEYSTORE_PASSWORD DEMO_KEY_ALIAS DEMO_KEY_PASSWORD
   unset FIREBASE_ANDROID_APP_ID FIREBASE_APP_DISTRIBUTION_SA_JSON
   unset DEMO_KEYSTORE_PATH GOOGLE_APPLICATION_CREDENTIALS RUNNER_TEMP
@@ -185,6 +266,7 @@ run_plan() {
 clear_demo_env
 fill_signing
 fill_firebase
+export DEMO_KEYSTORE_PASSWORD=store-secret
 plan="$(run_plan push)"
 expect_eq "push with secrets signs" "$(grep '^sign=' <<<"$plan" | cut -d= -f2-)" true
 expect_eq "push with secrets distributes" "$(grep '^distribute=' <<<"$plan" | cut -d= -f2-)" true
@@ -216,8 +298,9 @@ echo "ok: pull_request skip is reported"
 
 clear_demo_env
 fill_signing
-export FIREBASE_ANDROID_APP_ID=""
-export FIREBASE_APP_DISTRIBUTION_SA_JSON='{"type":"service_account"}'
+export HAS_FIREBASE_ANDROID_APP_ID=false
+export HAS_FIREBASE_APP_DISTRIBUTION_SA_JSON=true
+export FIREBASE_ANDROID_APP_ID="should-not-be-read"
 plan="$(run_plan push)"
 expect_eq "missing app id still signs" "$(grep '^sign=' <<<"$plan" | cut -d= -f2-)" true
 expect_eq "missing app id skips distribution" \
@@ -226,14 +309,19 @@ if ! grep -q 'FIREBASE_ANDROID_APP_ID' <<<"$plan"; then
   echo "FAIL: missing app id was not named" >&2
   exit 1
 fi
+if grep -q 'should-not-be-read' <<<"$plan"; then
+  echo "FAIL: plan output included a secret value" >&2
+  exit 1
+fi
 echo "ok: missing app id is named"
 
 clear_demo_env
 fill_firebase
-export DEMO_KEYSTORE_B64=""
+export HAS_DEMO_KEYSTORE_B64=false
+export HAS_DEMO_KEYSTORE_PASSWORD=true
+export HAS_DEMO_KEY_ALIAS=true
+export HAS_DEMO_KEY_PASSWORD=true
 export DEMO_KEYSTORE_PASSWORD="store-secret"
-export DEMO_KEY_ALIAS="demo"
-export DEMO_KEY_PASSWORD="key-secret"
 plan="$(run_plan push)"
 expect_eq "missing keystore skips signing" "$(grep '^sign=' <<<"$plan" | cut -d= -f2-)" false
 expect_eq "missing keystore skips distribution" \
@@ -401,7 +489,7 @@ echo "ok: invalid prepare deletes the partial keystore"
 fake_bin="$(mktemp -d)"
 record="$tmp/npx-record"
 mkdir -p "$record"
-cat >"$fake_bin/npx" <<'EOF'
+cat >"$fake_bin/firebase" <<'EOF'
 #!/bin/bash
 set -euo pipefail
 printf '%s\n' "$@" >"$FAKE_RECORD/args"
@@ -436,7 +524,7 @@ if [[ "${FAKE_NPX_STATUS:-0}" -ne 0 ]]; then
 fi
 exit 0
 EOF
-chmod +x "$fake_bin/npx"
+chmod +x "$fake_bin/firebase"
 
 apk="$tmp/app-release.apk"
 printf 'apk-bytes' >"$apk"
@@ -445,6 +533,7 @@ sa_json='{"type":"service_account","private_key":"fake-key","client_email":"dist
 
 run_distribute() {
   PATH="$fake_bin:$PATH" \
+    DEMO_FIREBASE_CLI="$fake_bin/firebase" \
     TMPDIR="$tmp/distro" \
     FAKE_RECORD="$record" \
     GITHUB_SHA="abcdef1234567890abcdef1234567890abcdef12" \
@@ -468,7 +557,7 @@ if ! grep -q 'Skipping distribution on a pull_request run.' <<<"$dist_out"; then
   exit 1
 fi
 if [[ -f "$record/args" ]]; then
-  echo "FAIL: pull_request called npx" >&2
+  echo "FAIL: pull_request called the firebase CLI" >&2
   exit 1
 fi
 echo "ok: pull_request distribute skips before the CLI"
@@ -502,7 +591,7 @@ if ! grep -q 'FIREBASE_ANDROID_APP_ID' <<<"$dist_out"; then
   exit 1
 fi
 if [[ -f "$record/args" ]]; then
-  echo "FAIL: missing app id called npx" >&2
+  echo "FAIL: missing app id called the firebase CLI" >&2
   exit 1
 fi
 echo "ok: missing Firebase secret skips distribution"
@@ -519,10 +608,8 @@ if grep -q 'fake-key' "$tmp/dist.err" || grep -q 'fake-key' <<<"$dist_out"; then
   exit 1
 fi
 echo "ok: distribute output does not include the service account key"
-expect_eq "firebase-tools pin" \
-  "$(sed -n '2p' "$record/args")" "firebase-tools@15.34.0"
-expect_eq "CLI command" "$(sed -n '3p' "$record/args")" "appdistribution:distribute"
-expect_eq "distributed APK" "$(sed -n '4p' "$record/args")" "$apk"
+expect_eq "CLI command" "$(sed -n '1p' "$record/args")" "appdistribution:distribute"
+expect_eq "distributed APK" "$(sed -n '2p' "$record/args")" "$apk"
 if ! grep -q -- '--groups' "$record/args" || ! grep -q -- 'core-testers' "$record/args"; then
   echo "FAIL: distribute args missed --groups core-testers" >&2
   exit 1
@@ -605,6 +692,97 @@ if find "$tmp/distro" -type f | grep -q .; then
   exit 1
 fi
 echo "ok: invalid service account JSON leaves no temp file"
+
+# google-services.json: Play client stays. The demo client is added by
+# Deployer; a placeholder must not be committed.
+python3 - <<'PY'
+import json
+import sys
+
+data = json.load(open("android/app/google-services.json", encoding="utf-8"))
+packages = []
+for client in data["client"]:
+    package = client["client_info"]["android_client_info"]["package_name"]
+    packages.append(package)
+    if package != "com.shradhaventures.temple.demo":
+        continue
+    app_id = (client["client_info"].get("mobilesdk_app_id") or "").strip()
+    key = ((client.get("api_key") or [{}])[0].get("current_key") or "").strip()
+    if not app_id or not key or app_id.startswith(("REPLACE", "TODO")) or key.startswith(("REPLACE", "TODO")):
+        sys.stderr.write("demo client is a placeholder\n")
+        sys.exit(1)
+if "com.shradhaventures.temple" not in packages:
+    sys.stderr.write("Play client missing\n")
+    sys.exit(1)
+PY
+echo "ok: Play google-services client remains"
+
+missing_json="$tmp/services-missing.json"
+python3 - "$missing_json" <<'PY'
+import json, sys
+json.dump({"client": [{
+    "client_info": {"mobilesdk_app_id": "play-app", "android_client_info": {"package_name": "com.shradhaventures.temple"}},
+    "api_key": [{"current_key": "play-key"}],
+}]}, open(sys.argv[1], "w"))
+PY
+set +e
+missing_out="$(bash scripts/ci/check_demo_google_services.sh "$missing_json" 2>&1)"
+missing_status=$?
+set -e
+if [[ "$missing_status" -eq 0 ]]; then
+  echo "FAIL: missing demo client exited 0" >&2
+  exit 1
+fi
+if ! grep -q 'com.shradhaventures.temple.demo' <<<"$missing_out"; then
+  echo "FAIL: missing demo client did not name the package" >&2
+  exit 1
+fi
+if ! grep -q 'mobilesdk_app_id' <<<"$missing_out" || ! grep -q 'current_key' <<<"$missing_out"; then
+  echo "FAIL: missing demo client did not name the console fields" >&2
+  exit 1
+fi
+if grep -q 'play-key' <<<"$missing_out" || grep -q 'play-app' <<<"$missing_out"; then
+  echo "FAIL: google-services check printed an app id or key" >&2
+  exit 1
+fi
+echo "ok: missing demo client fails without printing ids or keys"
+
+present_json="$tmp/services-present.json"
+python3 - "$present_json" <<'PY'
+import json, sys
+json.dump({"client": [
+    {"client_info": {"mobilesdk_app_id": "play-app", "android_client_info": {"package_name": "com.shradhaventures.temple"}}, "api_key": [{"current_key": "play-key"}]},
+    {"client_info": {"mobilesdk_app_id": "demo-app", "android_client_info": {"package_name": "com.shradhaventures.temple.demo"}}, "api_key": [{"current_key": "demo-key"}]},
+]}, open(sys.argv[1], "w"))
+PY
+present_out="$(bash scripts/ci/check_demo_google_services.sh "$present_json" 2>&1)"
+if ! grep -q 'demo google-services client is present' <<<"$present_out"; then
+  echo "FAIL: present demo client was rejected" >&2
+  exit 1
+fi
+if grep -q 'demo-key' <<<"$present_out" || grep -q 'demo-app' <<<"$present_out"; then
+  echo "FAIL: present demo client printed an app id or key" >&2
+  exit 1
+fi
+echo "ok: a real demo client passes without printing ids or keys"
+
+runner="$(mktemp -d)"
+printf 'store' >"$runner/demo-keystore.abc.p12"
+printf 'sa' >"$runner/firebase-app-distro-sa.abc.json"
+printf 'notes' >"$runner/demo-release-notes.abc.txt"
+props_keep="$tmp/keep.properties"
+printf 'keep\n' >"$props_keep"
+RUNNER_TEMP="$runner" bash scripts/ci/cleanup_demo_signing.sh "" "$props_keep"
+if [[ -e "$runner/demo-keystore.abc.p12" || -e "$runner/firebase-app-distro-sa.abc.json" || -e "$runner/demo-release-notes.abc.txt" ]]; then
+  echo "FAIL: always-cleanup left a keystore or service account file" >&2
+  exit 1
+fi
+if [[ -e "$props_keep" ]]; then
+  echo "FAIL: cleanup left key.properties" >&2
+  exit 1
+fi
+echo "ok: cleanup deletes keystore and service account files under RUNNER_TEMP"
+rm -rf "$runner"
 
 rm -rf "$tmp" "$fake_bin"
 echo "Demo distribution guard checks passed."

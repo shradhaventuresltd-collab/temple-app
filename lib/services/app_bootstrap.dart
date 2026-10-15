@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
+import 'package:temple_app/config/build_flags.dart';
 import 'package:temple_app/firebase_options.dart';
 import 'package:temple_app/services/ad_consent.dart';
 import 'package:temple_app/services/ad_helper.dart';
@@ -43,9 +44,16 @@ class AppBootstrap {
     Duration timeout = firebaseTimeout,
   }) async {
     try {
+      final demoAndroid = androidDemoUsesGoogleServices(
+        demoBuild: kDemoBuild,
+        isWeb: kIsWeb,
+        isAndroid: !kIsWeb && defaultTargetPlatform == TargetPlatform.android,
+      );
       final start = initialize ??
           () => Firebase.initializeApp(
-                options: DefaultFirebaseOptions.currentPlatform,
+                options: demoAndroid
+                    ? null
+                    : DefaultFirebaseOptions.currentPlatform,
               );
       await start().timeout(timeout);
       return true;

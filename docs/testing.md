@@ -84,7 +84,11 @@ flutter build apk --release \
   --dart-define=ENABLE_ADMIN_TOOLS=true
 ```
 
+`DEMO_BUILD` sets `applicationIdSuffix` `.demo`, so the installed package is `com.shradhaventures.temple.demo`, and the launcher label is `Temple Directory India Demo`. A build without `DEMO_BUILD`, including the Play AAB, keeps `com.shradhaventures.temple` and `Temple Directory India`. The same suffix applies to any other `DEMO_BUILD` APK (`android-smoke`, `demo-seed-launch`). On Android, a demo build initializes Firebase from the `google-services.json` client for that package instead of the Play app id in `firebase_options.dart`.
+
 That is a universal APK (armeabi-v7a, arm64-v8a, and x86_64). The job logs the file size. If the universal APK is over 60 MiB (62914560 bytes) it builds again with `--split-per-abi` and distributes those APKs instead. This command is `flutter build apk`. It does not call `scripts/build_play_aab.sh`, and those defines never go into the Play bundle.
+
+A push to `main` starts the workflow only when it touches `lib/**`, `android/**`, `assets/**`, `pubspec.*`, or `.github/workflows/demo-app-distribution.yml`. `workflow_dispatch` still runs on any commit.
 
 The job signs with the demo keystore from `DEMO_KEYSTORE_B64` (PKCS12, `storeType=PKCS12` in the gitignored `android/key.properties`). That key is not the Play upload key. The workflow decodes it to a temp file, and deletes the file and `android/key.properties` after the build. A device that already has a Play-signed install must uninstall that install first; Android will not replace it with a build signed by the demo key.
 
@@ -98,7 +102,9 @@ Testers install it from App Distribution:
 4. Sign in to App Tester with the invited Google account.
 5. Open Temple Directory India, choose the latest build, and install it. Android may ask for permission to install from App Tester.
 
-The service account in `FIREBASE_APP_DISTRIBUTION_SA_JSON` needs the **Firebase App Distribution Admin** role (`roles/firebaseappdistro.admin`) on `temple-directory-india`, and the Firebase App Distribution API must be enabled. It does not need Firestore access. `FIREBASE_ANDROID_APP_ID` is the Android app id for `com.shradhaventures.temple` (`1:109314154382:android:d34e6caea62c14124ccedf` in [android-play-internal-test.md](android-play-internal-test.md)). `analyze-test` runs `scripts/ci/test_demo_distribution_guard.sh` and still runs `scripts/test_play_aab_guard.sh`.
+The service account in `FIREBASE_APP_DISTRIBUTION_SA_JSON` needs the **Firebase App Distribution Admin** role (`roles/firebaseappdistro.admin`) on `temple-directory-india`, and the Firebase App Distribution API must be enabled. It does not need Firestore access. `FIREBASE_ANDROID_APP_ID` is the Firebase Android app id for `com.shradhaventures.temple.demo`, not the Play app id in [android-play-internal-test.md](android-play-internal-test.md). `analyze-test` runs `scripts/ci/test_demo_distribution_guard.sh` and still runs `scripts/test_play_aab_guard.sh`.
+
+`android/app/google-services.json` still needs a client whose `package_name` is `com.shradhaventures.temple.demo`. Until that object is pasted in from the Firebase console download, `scripts/ci/check_demo_google_services.sh` fails the demo build and names the fields to copy (`mobilesdk_app_id`, `package_name`, `api_key.current_key`). Do not invent those values, and do not remove the Play client. After that client is added, and `FIREBASE_ANDROID_APP_ID` is set to its `mobilesdk_app_id`, no other code change is required.
 
 ## Demo ads (`DEMO_BUILD`)
 

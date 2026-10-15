@@ -1,0 +1,8 @@
+{
+  "name": "demo-app-distribution-cli",
+  "private": true,
+  "description": "Pinned Firebase CLI for demo App Distribution. Install with npm ci.",
+  "dependencies": {
+    "firebase-tools": "15.34.0"
+  }
+}

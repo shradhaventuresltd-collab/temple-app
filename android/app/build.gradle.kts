@@ -106,10 +106,20 @@ android {
 
     defaultConfig {
         applicationId = "com.shradhaventures.temple"
+        // Tester builds must not install as the Play app. The Play AAB is
+        // built without DEMO_BUILD, so it keeps this id and the Play label.
+        if (demoBuild) {
+            applicationIdSuffix = ".demo"
+        }
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["appLabel"] = if (demoBuild) {
+            "Temple Directory India Demo"
+        } else {
+            "Temple Directory India"
+        }
         manifestPlaceholders["admobAppId"] = if (demoBuild) {
             "ca-app-pub-3940256099942544~3347511713"
         } else {

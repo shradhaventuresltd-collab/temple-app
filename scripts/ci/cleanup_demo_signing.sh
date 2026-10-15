@@ -38,3 +38,20 @@ if [[ -n "${DEMO_KEYSTORE_PATH:-}" && "${DEMO_KEYSTORE_PATH}" != "$keystore" ]];
   delete_keystore "$DEMO_KEYSTORE_PATH"
 fi
 rm -f -- "$props"
+
+# Backstop for a cancelled step. prepare and distribute create these names
+# under RUNNER_TEMP. Only that directory is globbed.
+if [[ -n "${RUNNER_TEMP:-}" && -d "${RUNNER_TEMP}" ]]; then
+  runner_temp="${RUNNER_TEMP%/}"
+  shopt -s nullglob
+  runner_files=(
+    "$runner_temp"/demo-keystore.*
+    "$runner_temp"/firebase-app-distro-sa.*
+    "$runner_temp"/demo-release-notes.*
+    "$runner_temp"/key.properties.*
+  )
+  shopt -u nullglob
+  if ((${#runner_files[@]})); then
+    rm -f -- "${runner_files[@]}"
+  fi
+fi
