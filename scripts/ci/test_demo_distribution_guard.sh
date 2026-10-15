@@ -231,6 +231,37 @@ require "read-only Maestro flow still uses the Play package" \
   'appId: com.shradhaventures.temple' .maestro/read_only_smoke.yaml
 require "screenshot Maestro flow still uses the Play package" \
   'appId: com.shradhaventures.temple' .maestro/screenshots.yaml
+for smoke_workflow in \
+  .github/workflows/android-smoke.yml \
+  .github/workflows/demo-seed-launch.yml
+do
+  require "smoke workflow frees disk" \
+    'scripts/ci/free_runner_disk.sh' "$smoke_workflow"
+  if grep -E -q 'npm ci|firebase-cli|firebase-tools|setup-node' "$smoke_workflow"; then
+    echo "FAIL: ${smoke_workflow} installs npm or firebase-tools" >&2
+    exit 1
+  fi
+done
+echo "ok: smoke workflows free disk and do not install firebase-tools"
+require "distribution workflow frees disk" \
+  'scripts/ci/free_runner_disk.sh' "$workflow"
+require "distribution workflow reinstalls Node after the toolcache wipe" \
+  'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1' "$workflow"
+require "disk script prints df before" '===== disk before =====' scripts/ci/free_runner_disk.sh
+require "disk script prints df after" '===== disk after =====' scripts/ci/free_runner_disk.sh
+require "disk script removes dotnet" '/usr/share/dotnet' scripts/ci/free_runner_disk.sh
+require "disk script removes ghc" '/opt/ghc' scripts/ci/free_runner_disk.sh
+require "disk script removes the preinstalled NDK" \
+  '/usr/local/lib/android/sdk/ndk' scripts/ci/free_runner_disk.sh
+require "disk script removes the hosted toolcache" \
+  '/opt/hostedtoolcache' scripts/ci/free_runner_disk.sh
+if grep -q '/usr/local/lib/android/sdk/system-images' scripts/ci/free_runner_disk.sh; then
+  echo "FAIL: disk script must not delete the emulator system images" >&2
+  exit 1
+fi
+echo "ok: disk script leaves the emulator system images"
+forbid "disk script does not install npm" 'npm |firebase-tools|firebase-cli' \
+  scripts/ci/free_runner_disk.sh
 if grep -F -q 'applicationIdSuffix' scripts/build_play_aab.sh; then
   echo "FAIL: Play script must not set an application id suffix" >&2
   exit 1

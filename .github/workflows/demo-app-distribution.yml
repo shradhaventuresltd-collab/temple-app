@@ -41,6 +41,9 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
+      - name: Free disk space
+        run: bash scripts/ci/free_runner_disk.sh
+
       - name: Plan signing and distribution
         id: plan
         env:
@@ -135,6 +138,12 @@ jobs:
         env:
           FIREBASE_ANDROID_APP_ID: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
         run: bash scripts/ci/check_firebase_android_app_id.sh
+
+      - name: Install Node for the pinned Firebase CLI
+        if: steps.plan.outputs.distribute == 'true' && steps.build.outcome == 'success'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
 
       - name: Install pinned Firebase CLI
         if: steps.plan.outputs.distribute == 'true' && steps.build.outcome == 'success'
