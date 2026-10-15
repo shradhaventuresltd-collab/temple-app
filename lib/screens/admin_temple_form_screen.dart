@@ -123,7 +123,7 @@ class _AdminTempleFormScreenState extends State<AdminTempleFormScreen> {
       return AdminPhotoDraft.fromTemplePhotos(temple.photos);
     }
     final urls = temple.galleryImages
-        .where((url) => url.trim().isNotEmpty && !isPlaceholderImageUrl(url))
+        .where((url) => url.trim().isNotEmpty && !isDisallowedImageUrl(url))
         .take(kMaxTemplePhotos)
         .toList();
     return [

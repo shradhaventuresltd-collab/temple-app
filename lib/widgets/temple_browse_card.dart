@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/screens/temple_detail_screen.dart';
+import 'package:temple_app/services/client_cache.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
 import 'package:temple_app/widgets/temple_image_placeholder.dart';
 
@@ -35,9 +36,9 @@ List<String> templeBrowseHonestyLabels(Temple temple) {
 /// Browse card: cover, name, place, and deity chip.
 ///
 /// Cover uses [verifiedCoverUrl] — the same honesty as the detail hero.
-/// Placeholder hosts (picsum, placehold, and the rest of
-/// [isPlaceholderImageUrl]) render as [TempleImagePlaceholder] so stock
-/// images are not presented as photographs. Outlier sites also show the
+/// Placeholder hosts and unlicensed stock hosts ([isDisallowedImageUrl])
+/// render as [TempleImagePlaceholder] so those URLs are not presented as
+/// photographs. Outlier sites also show the
 /// honesty chip from [templeBrowseHonestyLabels]. Story, gallery, and
 /// timings stay off the card.
 class TempleBrowseCard extends StatelessWidget {
@@ -183,7 +184,7 @@ String? _storedFullCover(Temple temple, String displayed) {
   final image = temple.imageUrl.trim();
   if (image.startsWith('https://') &&
       image != displayed &&
-      !isPlaceholderImageUrl(image)) {
+      !isDisallowedImageUrl(image)) {
     return image;
   }
   for (final photo in temple.photos) {
@@ -192,7 +193,7 @@ String? _storedFullCover(Temple temple, String displayed) {
     if (thumb == displayed &&
         url.startsWith('https://') &&
         url != displayed &&
-        !isPlaceholderImageUrl(url)) {
+        !isDisallowedImageUrl(url)) {
       return url;
     }
   }
@@ -218,6 +219,11 @@ class _BrowseCover extends StatelessWidget {
         final width = constraints.maxWidth.isFinite && constraints.maxWidth > 0
             ? constraints.maxWidth
             : MediaQuery.sizeOf(context).width;
+        final decode = listImageDecodeSize(
+          logicalWidth: width,
+          logicalHeight: TempleBrowseCard.coverHeight,
+          devicePixelRatio: dpr,
+        );
         final caption =
             temple.coverCaption ??
             historicalCoverCaption(temple.photos, coverUrl);
@@ -229,10 +235,8 @@ class _BrowseCover extends StatelessWidget {
               height: TempleBrowseCard.coverHeight,
               width: double.infinity,
               fit: BoxFit.cover,
-              memCacheWidth: (width * dpr).round().clamp(1, 1600),
-              memCacheHeight: (TempleBrowseCard.coverHeight * dpr)
-                  .round()
-                  .clamp(1, 1200),
+              memCacheWidth: decode.width,
+              memCacheHeight: decode.height,
               fadeInDuration: const Duration(milliseconds: 300),
               placeholder: const ColoredBox(
                 color: Color(0xFFFFF8EE),

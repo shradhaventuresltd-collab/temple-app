@@ -77,17 +77,13 @@ void main() {
         expect(temple.latitude, inInclusiveRange(8.0, 12.5));
         expect(temple.longitude, inInclusiveRange(74.5, 78.0));
         final slug = templeDocumentId(temple.name);
-        const stillPicsum = {
-          // KAN-77 shortfalls: no READY pack. Picsum stays; Seed still drops it.
+        const photoPending = {
+          // No READY pack. The cover is empty so the card shows Photo pending.
           'anjengo-sree-durga-devi-temple',
         };
-        if (stillPicsum.contains(slug)) {
+        if (photoPending.contains(slug)) {
           expect(temple.images, isEmpty, reason: slug);
-          expect(
-            temple.imageUrl,
-            startsWith('https://picsum.photos/seed/'),
-            reason: slug,
-          );
+          expect(temple.imageUrl, isEmpty, reason: slug);
         } else {
           // KAN-77 Wave A: Commons downloaded_url thumbs until Storage upload.
           expect(temple.imageUrl.contains('picsum'), isFalse, reason: slug);

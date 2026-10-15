@@ -13,6 +13,7 @@ import 'package:temple_app/utils/temple_search.dart';
 import 'package:temple_app/widgets/banner_ad_widget.dart';
 import 'package:temple_app/widgets/directory_filter_bar.dart';
 import 'package:temple_app/widgets/home_mosaic_collage.dart';
+import 'package:temple_app/widgets/offline_banner.dart';
 import 'package:temple_app/widgets/temple_browse_card.dart';
 import 'package:temple_app/widgets/unavailable_states_notice.dart';
 
@@ -542,7 +543,12 @@ class _TempleListScreenState extends State<TempleListScreen> {
         ],
       ),
       drawer: const AppDrawer(),
-      body: _buildBody(),
+      body: Column(
+        children: [
+          const OfflineBanner(),
+          Expanded(child: _buildBody()),
+        ],
+      ),
     );
   }
 

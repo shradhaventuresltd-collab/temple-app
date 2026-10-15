@@ -1,10 +1,10 @@
 [
   {
-    "name": "wikimedia wide thumb becomes 480px",
+    "name": "a 1280px commons thumb becomes 500px for the list cover",
     "data": {
       "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/1280px-File.jpg"
     },
-    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/480px-File.jpg"
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/500px-File.jpg"
   },
   {
     "name": "firebase storage full object stays the full url until thumbUrl is stored",
@@ -116,5 +116,216 @@
       "imageUrl": "https://picsum.photos/seed/temple/800/600"
     },
     "expect": null
+  },
+  {
+    "name": "commons original becomes a 500px thumb from the md5 path",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a1/Keesara_gutta_main_temple_gate.jpg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/500px-Keesara_gutta_main_temple_gate.jpg"
+  },
+  {
+    "name": "commons original without hash segments uses the md5 path",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/Keesara_gutta_main_temple_gate.jpg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/500px-Keesara_gutta_main_temple_gate.jpg"
+  },
+  {
+    "name": "commons original with a comma uses the underscored md5 name",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a5/Biraja_Temple%2C_Jajpur%2C_Odisha%2C_India%2C_13th_century.jpg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Biraja_Temple,_Jajpur,_Odisha,_India,_13th_century.jpg/500px-Biraja_Temple,_Jajpur,_Odisha,_India,_13th_century.jpg"
+  },
+  {
+    "name": "commons original with spaces is underscored before the md5",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/My%20File.jpg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/My_File.jpg/500px-My_File.jpg"
+  },
+  {
+    "name": "commons svg original appends png on the thumb",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/8/84/Example.svg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Example.svg/500px-Example.svg.png"
+  },
+  {
+    "name": "commons original with a hash path that is not the md5 stays full size",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg"
+  },
+  {
+    "name": "commons tif original becomes a jpeg thumb",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/Example.tif"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/Example.tif/500px-Example.tif.jpg"
+  },
+  {
+    "name": "commons tiff original becomes a jpeg thumb",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/Example.tiff"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/Example.tiff/500px-Example.tiff.jpg"
+  },
+  {
+    "name": "commons pdf original stays the full url",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/Example.pdf"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/Example.pdf"
+  },
+  {
+    "name": "commons djvu original stays the full url",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/Example.djvu"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/Example.djvu"
+  },
+  {
+    "name": "commons webm original stays the full url",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/Example.webm"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/Example.webm"
+  },
+  {
+    "name": "commons ogv original stays the full url",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/Example.ogv"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/Example.ogv"
+  },
+  {
+    "name": "a 330px commons thumb stays 330px",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/330px-File.jpg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/330px-File.jpg"
+  },
+  {
+    "name": "a 480px commons thumb becomes 500px",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/480px-File.jpg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/500px-File.jpg"
+  },
+  {
+    "name": "a non-standard 400px commons thumb becomes 330px",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/400px-File.jpg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/330px-File.jpg"
+  },
+  {
+    "name": "a non-standard 800px commons thumb becomes 500px",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/800px-File.jpg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/500px-File.jpg"
+  },
+  {
+    "name": "a 960px commons thumb becomes 500px for the list cover",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/960px-File.jpg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/500px-File.jpg"
+  },
+  {
+    "name": "a listed 250px commons thumb stays 250px",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/250px-File.jpg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/250px-File.jpg"
+  },
+  {
+    "name": "a 500px commons thumb stays 500px",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/500px-File.jpg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/500px-File.jpg"
+  },
+  {
+    "name": "a commons file named Placeholder_temple is still a cover",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/x/xx/Placeholder_temple.jpg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/x/xx/Placeholder_temple.jpg"
+  },
+  {
+    "name": "a storage object named placeholder-x is still a cover",
+    "data": {
+      "imageUrl": "https://storage.googleapis.com/bucket/temples/placeholder-x.jpg"
+    },
+    "expect": "https://storage.googleapis.com/bucket/temples/placeholder-x.jpg"
+  },
+  {
+    "name": "images.unsplash.com is still a cover",
+    "data": {
+      "imageUrl": "https://images.unsplash.com/photo-1"
+    },
+    "expect": "https://images.unsplash.com/photo-1"
+  },
+  {
+    "name": "fastly.picsum.photos is not a cover",
+    "data": {
+      "imageUrl": "https://fastly.picsum.photos/id/1/800/600"
+    },
+    "expect": null
+  },
+  {
+    "name": "i.picsum.photos is not a cover",
+    "data": {
+      "imageUrl": "https://i.picsum.photos/id/1/800/600"
+    },
+    "expect": null
+  },
+  {
+    "name": "a shutterstock host is not a cover",
+    "data": {
+      "imageUrl": "https://www.shutterstock.com/image-photo/temple"
+    },
+    "expect": null
+  },
+  {
+    "name": "loremflickr.com is not a cover",
+    "data": {
+      "imageUrl": "https://loremflickr.com/800/600"
+    },
+    "expect": null
+  },
+  {
+    "name": "a 1920px commons thumb becomes 500px for the list cover",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/1920px-File.jpg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/500px-File.jpg"
+  },
+  {
+    "name": "a 3840px commons thumb becomes 500px for the list cover",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/3840px-File.jpg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/500px-File.jpg"
+  },
+  {
+    "name": "a stored 1280px commons thumbUrl snaps to 500px",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg",
+      "photos": [
+        {
+          "url": "https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg",
+          "thumbUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/1280px-File.jpg",
+          "licence": "CC0",
+          "order": 0
+        }
+      ]
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/500px-File.jpg"
   }
 ]

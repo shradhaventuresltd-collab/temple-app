@@ -111,4 +111,54 @@ void main() {
       'https://example.com/b.jpg',
     ]);
   });
+
+  test('placeholder hosts are rejected on the cover and the gallery', () {
+    final cover = validateTempleDraft(
+      draft(imageUrl: 'https://picsum.photos/seed/anjengo/800/600'),
+    );
+    expect(cover.isValid, isFalse);
+    expect(cover.temple, isNull);
+    expect(
+      cover.errors['imageUrl'],
+      'Use a photograph URL. Placeholder hosts are not saved.',
+    );
+
+    final gallery = validateTempleDraft(
+      draft(
+        imageUrl: 'https://example.com/cover.jpg',
+        imagesText:
+            'https://example.com/cover.jpg\nhttps://source.unsplash.com/random\nhttps://dummyimage.com/600x400',
+      ),
+    );
+    expect(gallery.isValid, isFalse);
+    expect(
+      gallery.errors['images'],
+      'Use photograph URLs. Placeholder hosts are not saved.',
+    );
+
+    final stock = validateTempleDraft(
+      draft(imageUrl: 'https://www.shutterstock.com/image-photo/temple'),
+    );
+    expect(stock.isValid, isFalse);
+    expect(
+      stock.errors['imageUrl'],
+      'Use a photograph URL. Unlicensed stock hosts are not saved.',
+    );
+
+    final unsplash = validateTempleDraft(
+      draft(imageUrl: 'https://images.unsplash.com/photo-1'),
+    );
+    expect(unsplash.isValid, isTrue);
+    expect(unsplash.temple!.imageUrl, 'https://images.unsplash.com/photo-1');
+
+    final adobe = validateTempleDraft(
+      draft(imageUrl: 'https://www.adobe.com/image/temple.jpg'),
+    );
+    expect(adobe.isValid, isTrue);
+
+    final pending = validateTempleDraft(draft(imageUrl: '', imagesText: ''));
+    expect(pending.isValid, isTrue);
+    expect(pending.temple!.imageUrl, isEmpty);
+    expect(pending.temple!.images, isEmpty);
+  });
 }

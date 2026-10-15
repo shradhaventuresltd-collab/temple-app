@@ -117,10 +117,10 @@ test("cover thumb matches the first verified gallery image and caps at 500", () 
     "https://example.com/gallery.jpg",
   );
   const wide =
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/1280px-File.jpg";
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/800px-File.jpg";
   assert.equal(
     coverThumb({ imageUrl: wide }),
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/480px-File.jpg",
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/500px-File.jpg",
   );
   assert.equal(coverThumb({ imageUrl: full }), full);
   assert.equal(
@@ -624,4 +624,20 @@ test("CI workflow runs the unit test and never the apply tool", () => {
   assert.match(source, /confirmProject/);
   assert.match(source, /assertNotCi/);
   assert.match(source, /FIRESTORE_EMULATOR_HOST/);
+  const policy =
+    "prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI";
+  for (const file of [
+    "scripts/rebuild_index.js",
+    "scripts/resize_cover_thumbs.js",
+    "scripts/audit_coords.js",
+    "scripts/patch_image_url_mirror.js",
+    "scripts/apply_field_patches.js",
+    "scripts/seed_state_batch.js",
+    "scripts/backfill_cover_photos.js",
+    "scripts/clear_placeholder_covers.js",
+  ]) {
+    const text = readFileSync(resolve(repoRoot, file), "utf8");
+    assert.ok(text.includes(policy), file);
+    assert.doesNotMatch(text, /from an agent/);
+  }
 });

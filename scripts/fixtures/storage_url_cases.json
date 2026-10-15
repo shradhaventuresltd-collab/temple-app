@@ -1,0 +1,51 @@
+[
+  {
+    "name": "firebase download url with token",
+    "url": "https://firebasestorage.googleapis.com/v0/b/temple-directory-india.firebasestorage.app/o/temples%2Fshore-temple%2F01.jpg?alt=media&token=abc",
+    "kind": "firebase",
+    "bucket": "temple-directory-india.firebasestorage.app",
+    "objectPath": "temples/shore-temple/01.jpg"
+  },
+  {
+    "name": "bucket host with the v0 download path",
+    "url": "https://temple-directory-india.firebasestorage.app/v0/b/temple-directory-india.firebasestorage.app/o/temples%2Fshore-temple%2F01.jpg?alt=media&token=abc",
+    "kind": "firebase",
+    "bucket": "temple-directory-india.firebasestorage.app",
+    "objectPath": "temples/shore-temple/01.jpg"
+  },
+  {
+    "name": "bucket host with one encoded object segment",
+    "url": "https://temple-directory-india.firebasestorage.app/o/temples%2Fshore-temple%2F01.jpg?alt=media&token=abc",
+    "kind": "firebase",
+    "bucket": "temple-directory-india.firebasestorage.app",
+    "objectPath": "temples/shore-temple/01.jpg"
+  },
+  {
+    "name": "bucket host with an unencoded /o/ path",
+    "url": "https://temple-directory-india.firebasestorage.app/o/temples/shore-temple/01.jpg",
+    "kind": "firebase",
+    "bucket": "temple-directory-india.firebasestorage.app",
+    "objectPath": "temples/shore-temple/01.jpg"
+  },
+  {
+    "name": "bucket host with a public object path",
+    "url": "https://temple-directory-india.firebasestorage.app/temples/shore-temple/01.jpg",
+    "kind": "firebase",
+    "bucket": "temple-directory-india.firebasestorage.app",
+    "objectPath": "temples/shore-temple/01.jpg"
+  },
+  {
+    "name": "gs uri",
+    "url": "gs://temple-directory-india.firebasestorage.app/temples/shore-temple/01.jpg",
+    "kind": "gcs",
+    "bucket": "temple-directory-india.firebasestorage.app",
+    "objectPath": "temples/shore-temple/01.jpg"
+  },
+  {
+    "name": "storage.googleapis.com path",
+    "url": "https://storage.googleapis.com/temple-directory-india.firebasestorage.app/temples/shore-temple/01.jpg",
+    "kind": "gcs",
+    "bucket": "temple-directory-india.firebasestorage.app",
+    "objectPath": "temples/shore-temple/01.jpg"
+  }
+]

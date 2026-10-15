@@ -585,7 +585,7 @@ void main() {
   });
 }
 
-/// Temples without a Wave C pack stay on picsum. The rest use Commons thumbs.
+/// Temples without a Wave C pack have an empty cover. The rest use Commons thumbs.
 void _expectWaveCOrPicsum(
   Temple temple,
   String id, {
@@ -593,11 +593,7 @@ void _expectWaveCOrPicsum(
 }) {
   expect(temple.imageUrl.contains('firebasestorage'), isFalse, reason: id);
   if (stillPicsum.contains(id)) {
-    expect(
-      temple.imageUrl,
-      'https://picsum.photos/seed/$id/800/600',
-      reason: id,
-    );
+    expect(temple.imageUrl, isEmpty, reason: id);
     expect(temple.images, isEmpty, reason: id);
     return;
   }

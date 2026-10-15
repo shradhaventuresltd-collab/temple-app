@@ -3,6 +3,7 @@ import 'package:temple_app/widgets/cover_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_photo.dart';
+import 'package:temple_app/services/client_cache.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
 import 'package:temple_app/widgets/temple_image_placeholder.dart';
 
@@ -194,7 +195,7 @@ class _MosaicTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (isPlaceholderImageUrl(url)) {
+    if (isDisallowedImageUrl(url)) {
       return const ColoredBox(
         color: Color(0xFFFFE0B2),
         child: Center(
@@ -203,50 +204,72 @@ class _MosaicTile extends StatelessWidget {
       );
     }
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        CoverNetworkImage(
-          url: url,
-          fit: BoxFit.cover,
-          width: double.infinity,
-          height: double.infinity,
-          fadeInDuration: const Duration(milliseconds: 400),
-          placeholder: ColoredBox(color: Colors.brown.shade100),
-          error: ColoredBox(
-            color: Colors.brown.shade200,
-            child: const Icon(
-              Icons.photo_outlined,
-              color: Colors.white54,
-              size: 28,
-            ),
-          ),
-        ),
-        if (caption != null)
-          Positioned(
-            left: 4,
-            bottom: 4,
-            child: DecoratedBox(
-              key: const Key('cover-caption'),
-              decoration: BoxDecoration(
-                color: const Color(0xF2FFF8EE),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                child: Text(
-                  caption!,
-                  style: GoogleFonts.poppins(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF6D4C41),
-                    height: 1.1,
-                  ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final logicalWidth =
+            constraints.maxWidth.isFinite && constraints.maxWidth > 0
+            ? constraints.maxWidth
+            : MediaQuery.sizeOf(context).width;
+        final logicalHeight =
+            constraints.maxHeight.isFinite && constraints.maxHeight > 0
+            ? constraints.maxHeight
+            : logicalWidth;
+        final decode = listImageDecodeSize(
+          logicalWidth: logicalWidth,
+          logicalHeight: logicalHeight,
+          devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
+        );
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            CoverNetworkImage(
+              url: url,
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: double.infinity,
+              memCacheWidth: decode.width,
+              memCacheHeight: decode.height,
+              fadeInDuration: const Duration(milliseconds: 400),
+              placeholder: ColoredBox(color: Colors.brown.shade100),
+              error: ColoredBox(
+                color: Colors.brown.shade200,
+                child: const Icon(
+                  Icons.photo_outlined,
+                  color: Colors.white54,
+                  size: 28,
                 ),
               ),
             ),
-          ),
-      ],
+            if (caption != null)
+              Positioned(
+                left: 4,
+                bottom: 4,
+                child: DecoratedBox(
+                  key: const Key('cover-caption'),
+                  decoration: BoxDecoration(
+                    color: const Color(0xF2FFF8EE),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    child: Text(
+                      caption!,
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF6D4C41),
+                        height: 1.1,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }

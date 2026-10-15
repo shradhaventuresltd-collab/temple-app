@@ -31,6 +31,32 @@ void main() {
       expect(ok, isTrue);
       expect(called, isTrue);
     });
+
+    test('configures Firestore after init and not when init fails', () async {
+      var configured = false;
+      final ok = await AppBootstrap.initializeFirebase(
+        initialize: () async {},
+        configureFirestore: () => configured = true,
+      );
+      expect(ok, isTrue);
+      expect(configured, isTrue);
+
+      configured = false;
+      final failed = await AppBootstrap.initializeFirebase(
+        initialize: () async => throw Exception('firebase unavailable'),
+        configureFirestore: () => configured = true,
+      );
+      expect(failed, isFalse);
+      expect(configured, isFalse);
+    });
+
+    test('a Firestore settings failure still counts Firebase as ready', () async {
+      final ok = await AppBootstrap.initializeFirebase(
+        initialize: () async {},
+        configureFirestore: () => throw Exception('settings unavailable'),
+      );
+      expect(ok, isTrue);
+    });
   });
 
   group('AppBootstrap.initializeAdsSafely', () {
@@ -50,28 +76,28 @@ void main() {
         initialize: () async => throw Exception('ads unavailable'),
       );
       expect(AdConsentController.instance.isReady, isTrue);
-      expect(
-        AdConsentController.instance.mode,
-        AdConsentMode.nonPersonalized,
-      );
+      expect(AdConsentController.instance.mode, AdConsentMode.nonPersonalized);
       expect(
         adRequestForMode(AdConsentController.instance.mode).nonPersonalizedAds,
         isTrue,
       );
     });
 
-    test('completes when initialize times out and unblocks ads as NPA', () async {
-      final hung = Completer<void>();
-      await AppBootstrap.initializeAdsSafely(
-        initialize: () => hung.future,
-        timeout: const Duration(milliseconds: 40),
-      );
-      expect(AdConsentController.instance.isReady, isTrue);
-      expect(
-        AdConsentController.instance.mode,
-        AdConsentMode.nonPersonalized,
-      );
-    });
+    test(
+      'completes when initialize times out and unblocks ads as NPA',
+      () async {
+        final hung = Completer<void>();
+        await AppBootstrap.initializeAdsSafely(
+          initialize: () => hung.future,
+          timeout: const Duration(milliseconds: 40),
+        );
+        expect(AdConsentController.instance.isReady, isTrue);
+        expect(
+          AdConsentController.instance.mode,
+          AdConsentMode.nonPersonalized,
+        );
+      },
+    );
 
     test('completes when initialize succeeds', () async {
       var called = false;
