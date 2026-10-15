@@ -837,7 +837,9 @@ test("apply omits image fields and refuses to overwrite an existing document", (
   assert.match(source, /assertIdsAbsent/);
   assert.doesNotMatch(source, /collection\("temples"\)[\s\S]{0,80}\.set\(/);
   assert.doesNotMatch(source, /collection\("temples"\)[\s\S]{0,80}\.update\(/);
+  // `.update(` stays. It is narrowed to the meta patch; temple docs use create().
   assert.match(source, /batch\.update\(metaRef, patch\)/);
+  assert.deepEqual(source.match(/\.update\(/g), [".update("]);
   assert.doesNotMatch(source, /--update/);
   assert.equal(Object.hasOwn(parseArgs(["batch.json"]), "update"), false);
   assert.throws(() => parseArgs(["batch.json", "--update"]), /Unknown argument/);

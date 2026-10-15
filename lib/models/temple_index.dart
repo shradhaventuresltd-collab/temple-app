@@ -373,28 +373,27 @@ class IndexShardRead {
 
   final String slug;
 
-  /// True when the cached shard is still the server stamp.
+  /// True when this device already applied the server stamp.
   final bool fromCache;
 }
 
-/// Shards to read after a cache meta and a server meta.
+/// Shards to read after the server meta.
 ///
-/// A shard comes from cache only when its server `updatedAt` matches the
-/// cached meta and that shard document is already cached. Anything else is
+/// A shard comes from the local cache only when the stamp this device last
+/// applied matches the server meta stamp. The cached meta document is not
+/// consulted: a failed shard fetch must not look applied. Anything else is
 /// a server read. Slugs are sorted so the browse order does not depend on
 /// map order.
 List<IndexShardRead> planIndexShardReads({
-  required Map<String, Object?> cachedStamps,
+  required Map<String, int> appliedStamps,
   required Map<String, Object?> serverStamps,
-  required Set<String> shardsInCache,
 }) {
   final slugs = serverStamps.keys.toList()..sort();
   return [
     for (final slug in slugs)
       IndexShardRead(
         slug: slug,
-        fromCache: shardsInCache.contains(slug) &&
-            sameIndexStamp(cachedStamps[slug], serverStamps[slug]),
+        fromCache: sameIndexStamp(appliedStamps[slug], serverStamps[slug]),
       ),
   ];
 }

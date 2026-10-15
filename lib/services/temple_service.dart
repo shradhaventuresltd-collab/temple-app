@@ -5,212 +5,277 @@ import 'package:temple_app/data/sample_data.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_index.dart';
 import 'package:temple_app/services/firestore_read_log.dart';
+import 'package:temple_app/services/index_stamp_store.dart';
+import 'package:temple_app/services/temple_directory_client.dart';
 
+/// Browse, search, and home lists, plus the detail document.
+///
+/// The list reads server `meta/temple_index`, then each shard whose server
+/// stamp differs from the stamp this device last applied. `collection('temples')`
+/// runs only when that server read confirms the meta document is absent or
+/// its shard map is empty. A timeout or other error serves the applied shards
+/// from the local cache when they exist, otherwise the bundled sample, and
+/// the next launch tries the server again.
+///
+/// Web launches are always cold. The web Firestore cache is memory-only, so
+/// a new page load has no shard documents even when [IndexStampStore] still
+/// holds the applied stamps. Each cache read misses and the shard is fetched
+/// from the server.
 class TempleService {
   TempleService({
     FirebaseFirestore? firestore,
+    TempleDirectoryClient? directory,
+    IndexStampStore? stamps,
     FirestoreReadLog? readLog,
     this.fetchTimeout = const Duration(seconds: 12),
   }) : _firestore = firestore,
+       _directory = directory,
+       _stamps = stamps,
        _readLog = readLog ?? FirestoreReadLog.instance;
 
   final FirebaseFirestore? _firestore;
+  final TempleDirectoryClient? _directory;
+  final IndexStampStore? _stamps;
   final FirestoreReadLog _readLog;
   final Duration fetchTimeout;
 
   /// In-memory result for this process. Home and the drawer share it so a
-  /// launch does not read the index twice. Injected Firestore instances used
-  /// by tests do not touch it.
+  /// launch does not read the index twice. An injected client or Firestore
+  /// instance, used by tests, does not touch it.
   static Future<List<Temple>>? _session;
 
-  FirebaseFirestore get _db => _firestore ?? FirebaseFirestore.instance;
+  TempleDirectoryClient get _client => _directory ?? _ownedClient;
+
+  IndexStampStore get _stampStore => _stamps ?? _ownedStamps;
+
+  late final TempleDirectoryClient _ownedClient = FirestoreTempleDirectoryClient(
+    _firestore ?? FirebaseFirestore.instance,
+  );
+
+  late final IndexStampStore _ownedStamps = SharedPreferencesIndexStampStore();
+
+  bool get _usesSharedSession => _directory == null && _firestore == null;
 
   /// Browse, search, and home lists.
-  ///
-  /// Reads `meta/temple_index` from cache, then from the server, and fetches
-  /// only shards whose `updatedAt` changed. A missing meta document or an
-  /// index with no shard documents falls back to `temples`. Timeout and
-  /// other errors use the index cache when it has rows, then the bundled
-  /// sample.
   Future<List<Temple>> getTemples({bool refresh = false}) {
-    if (_firestore != null) return _load();
+    if (!_usesSharedSession) return _load();
     if (refresh) _session = null;
     return _session ??= _load();
   }
 
   /// Full `temples/{id}` document for the detail screen.
+  ///
+  /// Uses the default Firestore source, with a timeout. A timeout or other
+  /// error reads the cache. This read is not part of the launch total.
   Future<Temple?> getTemple(String id) async {
-    final snap = await _db.collection('temples').doc(id).get(
-      const GetOptions(source: Source.server),
-    );
+    DirectoryDoc snap;
+    try {
+      snap = await _client.getDoc('temples', id).timeout(fetchTimeout);
+    } catch (_) {
+      snap = await _client.getDoc('temples', id, source: Source.cache);
+    }
     _readLog.detailRead(id);
     if (!snap.exists) return null;
-    return Temple.fromMap(snap.id, snap.data() ?? {});
+    return Temple.fromMap(snap.id, snap.data ?? {});
   }
 
   Future<List<Temple>> _load() async {
     _readLog.startLoad();
-    try {
-      final indexed = await _loadIndex();
-      if (indexed != null) {
-        _readLog.finishLaunch('index');
-        return indexed;
-      }
-    } catch (_) {
-      final cached = await _loadIndex(cacheOnly: true);
-      if (cached != null && cached.isNotEmpty) {
-        _readLog.finishLaunch('index-cache');
-        return cached;
-      }
-    }
-    try {
-      final rows = await _loadCollection();
-      _readLog.finishLaunch(rows == sampleTemples ? 'sample' : 'temples');
+    final index = await _loadFromServerMeta();
+    if (index.confirmedMissing) return _loadCollectionOrRescue();
+    final rows = index.temples;
+    if (rows != null) {
+      if (index.servedStale) _readLog.recordFallback('index-cache');
+      _readLog.finishLaunch(
+        index.servedStale && !index.servedFresh ? 'index-cache' : 'index',
+      );
       return rows;
-    } catch (_) {
-      final cached = await _loadIndex(cacheOnly: true);
-      if (cached != null && cached.isNotEmpty) {
-        _readLog.finishLaunch('index-cache');
-        return cached;
-      }
-      _readLog.finishLaunch('sample');
-      return sampleTemples;
     }
+    return _rescueFromAppliedCache();
   }
 
-  Future<List<Temple>?> _loadIndex({bool cacheOnly = false}) async {
-    final metaRef = _db
-        .collection(kTempleIndexMetaCollection)
-        .doc(kTempleIndexMetaDocId);
-    DocumentSnapshot<Map<String, dynamic>>? cachedMeta;
+  /// Server meta, then the shards [planIndexShardReads] selects.
+  ///
+  /// [confirmedMissing] is the only result that may read `temples`.
+  Future<_ServerIndex> _loadFromServerMeta() async {
+    final DirectoryDoc serverMeta;
     try {
-      cachedMeta = await metaRef.get(const GetOptions(source: Source.cache));
-      _readLog.cacheHit();
-    } catch (_) {
-      cachedMeta = null;
-    }
-
-    if (cacheOnly) {
-      if (cachedMeta == null || !cachedMeta.exists) return null;
-      return _templesFromStamps(
-        _stampMap(cachedMeta.data()?['shards']),
-        cachedOnly: true,
-      );
-    }
-
-    late final DocumentSnapshot<Map<String, dynamic>> serverMeta;
-    try {
-      serverMeta = await metaRef
-          .get(const GetOptions(source: Source.server))
+      serverMeta = await _client
+          .getDoc(
+            kTempleIndexMetaCollection,
+            kTempleIndexMetaDocId,
+            source: Source.server,
+          )
           .timeout(fetchTimeout);
       _readLog.serverRead();
     } catch (_) {
-      if (cachedMeta != null && cachedMeta.exists) {
-        return _templesFromStamps(
-          _stampMap(cachedMeta.data()?['shards']),
-          cachedOnly: true,
-        );
-      }
-      rethrow;
+      return const _ServerIndex.unavailable();
     }
 
-    if (!serverMeta.exists) return null;
-    final serverStamps = _stampMap(serverMeta.data()?['shards']);
-    if (serverStamps.isEmpty) return null;
+    if (!serverMeta.exists) return const _ServerIndex.confirmedMissing();
+    final serverStamps = _stampMap(serverMeta.data?['shards']);
+    if (serverStamps.isEmpty) return const _ServerIndex.confirmedMissing();
 
-    final cachedStamps = cachedMeta != null && cachedMeta.exists
-        ? _stampMap(cachedMeta.data()?['shards'])
-        : const <String, Object?>{};
-    final inCache = <String>{};
-    if (cachedMeta != null && cachedMeta.exists) {
-      for (final slug in cachedStamps.keys) {
-        final ref = _db.collection(kTempleIndexCollection).doc(slug);
-        try {
-          final snap = await ref.get(const GetOptions(source: Source.cache));
-          if (snap.exists) inCache.add(slug);
-        } catch (_) {}
-      }
-    }
-
+    final applied = await _stampStore.readApplied();
     final plan = planIndexShardReads(
-      cachedStamps: cachedStamps,
+      appliedStamps: applied,
       serverStamps: serverStamps,
-      shardsInCache: inCache,
     );
     final temples = <Temple>[];
-    var anyShard = false;
+    var anyDoc = false;
+    var servedFresh = false;
+    var servedStale = false;
     for (final read in plan) {
-      final ref = _db.collection(kTempleIndexCollection).doc(read.slug);
-      DocumentSnapshot<Map<String, dynamic>> snap;
-      if (read.fromCache) {
-        snap = await ref.get(const GetOptions(source: Source.cache));
-        _readLog.cacheHit();
-      } else {
-        try {
-          snap = await ref
-              .get(const GetOptions(source: Source.server))
-              .timeout(fetchTimeout);
-          _readLog.serverRead();
-        } catch (_) {
-          try {
-            snap = await ref.get(const GetOptions(source: Source.cache));
-            _readLog.cacheHit();
-          } catch (_) {
-            continue;
-          }
-        }
-      }
-      if (!snap.exists) continue;
-      anyShard = true;
-      temples.addAll(templesFromIndexShard(snap.data()));
+      final loaded = await _readPlannedShard(read, serverStamps[read.slug]);
+      if (loaded == null) continue;
+      anyDoc = true;
+      servedFresh = servedFresh || loaded.fresh;
+      servedStale = servedStale || loaded.stale;
+      temples.addAll(loaded.temples);
     }
-    if (!anyShard) return null;
+    if (!anyDoc) return const _ServerIndex.unavailable();
     temples.sort((a, b) => a.id.compareTo(b.id));
-    return temples;
+    return _ServerIndex.rows(
+      temples,
+      servedFresh: servedFresh,
+      servedStale: servedStale,
+    );
   }
 
-  Future<List<Temple>?> _templesFromStamps(
-    Map<String, Object?> stamps, {
-    required bool cachedOnly,
-  }) async {
-    if (stamps.isEmpty) return null;
+  /// One cache read when the applied stamp matches. A cache miss fetches the
+  /// server once and does not read the cache again. A changed shard is read
+  /// from the server; the cache is a display fallback and does not become
+  /// the applied stamp.
+  Future<_ShardRows?> _readPlannedShard(IndexShardRead read, Object? stamp) async {
+    if (read.fromCache) {
+      final cached = await _cachedShard(read.slug, stale: false);
+      if (cached != null) return cached;
+      return _serverShard(read.slug, stamp);
+    }
+    final fresh = await _serverShard(read.slug, stamp);
+    if (fresh != null) return fresh;
+    return _cachedShard(read.slug, stale: true);
+  }
+
+  Future<_ShardRows?> _serverShard(String slug, Object? stamp) async {
+    try {
+      final snap = await _client
+          .getDoc(kTempleIndexCollection, slug, source: Source.server)
+          .timeout(fetchTimeout);
+      _readLog.serverRead();
+      if (!snap.exists) return null;
+      final millis = indexStampMillis(stamp);
+      if (millis != null) await _stampStore.writeApplied(slug, millis);
+      return _ShardRows(
+        templesFromIndexShard(snap.data),
+        fresh: true,
+        stale: false,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<_ShardRows?> _cachedShard(String slug, {required bool stale}) async {
+    try {
+      final snap = await _client.getDoc(
+        kTempleIndexCollection,
+        slug,
+        source: Source.cache,
+      );
+      if (!snap.exists) return null;
+      _readLog.cacheHit();
+      return _ShardRows(
+        templesFromIndexShard(snap.data),
+        fresh: !stale,
+        stale: stale,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<List<Temple>> _loadCollectionOrRescue() async {
+    try {
+      final rows = await _loadCollection();
+      _readLog.finishLaunch(identical(rows, sampleTemples) ? 'sample' : 'temples');
+      return rows;
+    } catch (_) {
+      return _rescueFromAppliedCache();
+    }
+  }
+
+  Future<List<Temple>> _rescueFromAppliedCache() async {
+    final cached = await _templesFromAppliedCache();
+    if (cached.isNotEmpty) {
+      _readLog.recordFallback('index-cache');
+      _readLog.finishLaunch('index-cache');
+      return cached;
+    }
+    _readLog.recordFallback('sample');
+    _readLog.finishLaunch('sample');
+    return sampleTemples;
+  }
+
+  Future<List<Temple>> _templesFromAppliedCache() async {
+    final applied = await _stampStore.readApplied();
+    final slugs = applied.keys.toList()..sort();
     final temples = <Temple>[];
-    var anyShard = false;
-    for (final slug in stamps.keys) {
-      final ref = _db.collection(kTempleIndexCollection).doc(slug);
-      try {
-        final snap = await ref.get(
-          GetOptions(source: cachedOnly ? Source.cache : Source.server),
-        );
-        if (cachedOnly) {
-          _readLog.cacheHit();
-        } else {
-          _readLog.serverRead();
-        }
-        if (!snap.exists) continue;
-        anyShard = true;
-        temples.addAll(templesFromIndexShard(snap.data()));
-      } catch (_) {}
+    for (final slug in slugs) {
+      final cached = await _cachedShard(slug, stale: true);
+      if (cached == null) continue;
+      temples.addAll(cached.temples);
     }
-    if (!anyShard) return null;
     temples.sort((a, b) => a.id.compareTo(b.id));
     return temples;
   }
 
-  /// `temples` collection. Empty or unavailable data becomes [sampleTemples].
+  /// `temples` collection. An empty result becomes [sampleTemples].
   Future<List<Temple>> _loadCollection() async {
-    final snapshot = await _db
-        .collection('temples')
-        .get(const GetOptions(source: Source.server))
+    final docs = await _client
+        .getDocs('temples', source: Source.server)
         .timeout(fetchTimeout);
-    _readLog.serverRead(snapshot.docs.isEmpty ? 1 : snapshot.docs.length);
-    if (snapshot.docs.isEmpty) return sampleTemples;
-    final temples = snapshot.docs
-        .map((doc) => Temple.fromMap(doc.id, doc.data()))
-        .toList();
+    _readLog.serverRead(docs.isEmpty ? 1 : docs.length);
+    if (docs.isEmpty) return sampleTemples;
+    final temples = [
+      for (final doc in docs) Temple.fromMap(doc.id, doc.data ?? {}),
+    ];
     temples.sort((a, b) => a.id.compareTo(b.id));
     return temples;
   }
+}
+
+class _ServerIndex {
+  const _ServerIndex.confirmedMissing()
+    : confirmedMissing = true,
+      temples = null,
+      servedFresh = false,
+      servedStale = false;
+
+  const _ServerIndex.unavailable()
+    : confirmedMissing = false,
+      temples = null,
+      servedFresh = false,
+      servedStale = false;
+
+  const _ServerIndex.rows(
+    this.temples, {
+    required this.servedFresh,
+    required this.servedStale,
+  }) : confirmedMissing = false;
+
+  final bool confirmedMissing;
+  final List<Temple>? temples;
+  final bool servedFresh;
+  final bool servedStale;
+}
+
+class _ShardRows {
+  const _ShardRows(this.temples, {required this.fresh, required this.stale});
+
+  final List<Temple> temples;
+  final bool fresh;
+  final bool stale;
 }
 
 Map<String, Object?> _stampMap(Object? raw) {

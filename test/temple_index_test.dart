@@ -597,12 +597,14 @@ void main() {
     expect(temple.coverCaption, 'Lithograph, 1847');
   });
 
-  test('unchanged shard stamps stay on cache and a new stamp is fetched', () {
+  test('unchanged applied stamps stay on cache and a new stamp is fetched', () {
     final stamp = DateTime.utc(2026, 1, 2);
     final plan = planIndexShardReads(
-      cachedStamps: {'bihar': stamp, 'kerala': stamp},
+      appliedStamps: {
+        'bihar': stamp.millisecondsSinceEpoch,
+        'kerala': stamp.millisecondsSinceEpoch,
+      },
       serverStamps: {'kerala': stamp, 'bihar': DateTime.utc(2026, 2, 2)},
-      shardsInCache: {'bihar', 'kerala'},
     );
     expect(plan.map((read) => read.slug), ['bihar', 'kerala']);
     expect(plan[0].fromCache, isFalse);
