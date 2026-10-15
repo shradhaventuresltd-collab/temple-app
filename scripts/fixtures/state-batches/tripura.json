@@ -40,7 +40,7 @@
         "count": 0
       },
       "review": {
-        "status": "ready_for_review",
+        "status": "approved",
         "reviewer": "Research Pavi",
         "notes": ""
       }
@@ -80,9 +80,9 @@
         "count": 0
       },
       "review": {
-        "status": "ready_for_review",
+        "status": "rejected",
         "reviewer": "Research Pavi",
-        "notes": ""
+        "notes": "Rejected in review. Not for seeding."
       }
     }
   ]

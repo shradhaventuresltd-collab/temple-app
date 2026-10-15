@@ -10,7 +10,7 @@ class Temple {
     required this.description,
     required this.story,
     required this.location,
-    required this.timings,
+    required String? timings,
     required this.specialities,
     required this.latitude,
     required this.longitude,
@@ -18,7 +18,7 @@ class Temple {
     this.images = const [],
     this.photos = const [],
     this.writePhotos = false,
-  });
+  }) : _timings = timings;
 
   final String id;
   final String name;
@@ -29,7 +29,15 @@ class Temple {
   final String description;
   final String story;
   final String location;
-  final String timings;
+
+  /// Published hours from the source file or Firestore.
+  ///
+  /// Null means no official timings were published. Seed data and Firestore
+  /// keep that null. [timings] is the text the screens read (empty when null).
+  final String? _timings;
+
+  String get timings => _timings ?? '';
+
   final List<String> specialities;
   final List<String> images;
 
@@ -68,7 +76,7 @@ class Temple {
       description: data['description'] as String? ?? '',
       story: data['story'] as String? ?? '',
       location: data['address'] as String? ?? data['location'] as String? ?? '',
-      timings: data['timings'] as String? ?? '',
+      timings: data['timings'] is String ? data['timings'] as String : null,
       specialities: _stringList(data['specialities']),
       images: _stringList(data['images']),
       photos: _photoList(data['photos']),
@@ -106,7 +114,7 @@ class Temple {
       'address': location,
       'latitude': latitude,
       'longitude': longitude,
-      'timings': timings,
+      'timings': _timings,
       'specialities': specialities,
     };
     if (includeImages) {
@@ -146,7 +154,7 @@ class Temple {
       description: description ?? this.description,
       story: story ?? this.story,
       location: location ?? this.location,
-      timings: timings ?? this.timings,
+      timings: timings ?? _timings,
       specialities: specialities ?? this.specialities,
       images: images ?? this.images,
       photos: photos ?? this.photos,

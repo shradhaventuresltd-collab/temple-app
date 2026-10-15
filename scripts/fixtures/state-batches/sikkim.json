@@ -39,7 +39,7 @@
         "count": 0
       },
       "review": {
-        "status": "ready_for_review",
+        "status": "approved",
         "reviewer": "Research Pavi",
         "notes": ""
       }
@@ -79,9 +79,9 @@
         "count": 0
       },
       "review": {
-        "status": "ready_for_review",
+        "status": "rejected",
         "reviewer": "Research Pavi",
-        "notes": "Non-Hindu (Buddhist gompa) per Pavi ruling 2026-10-15."
+        "notes": "Non-Hindu: Buddhist monastery (Karma Kagyu), not a Hindu temple. Per Pavi ruling 2026-10-15."
       }
     }
   ]

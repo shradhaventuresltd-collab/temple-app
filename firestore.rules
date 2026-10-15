@@ -18,7 +18,7 @@ service cloud.firestore {
     //   - description: string (required, max 10000) - temple description
     //   - story: string (required, max 20000) - temple story/legend
     //   - address: string (required, max 500) - physical address
-    //   - timings: string (required, max 1000) - opening hours
+    //   - timings: string (max 1000) or null when no official hours were published
     //   - specialities: list of strings (max 20 items, each max 200 chars)
     //   - images: list of strings (max 50 items, each max 2000 chars, URLs)
     //   - photos: optional list (max 12) of {url, credit, licence, order}
@@ -78,6 +78,19 @@ service cloud.firestore {
         (request.resource.data[field] is string &&
          request.resource.data[field].size() >= minLen &&
          request.resource.data[field].size() <= maxLen);
+    }
+
+    // Null timings are the honest unpublished state. A string still has to
+    // be 1..1000 characters. Empty strings are not accepted.
+    function validTimings() {
+      return request.resource.data.timings == null ||
+        validStringLength('timings', 1, 1000);
+    }
+
+    function optionalTimings() {
+      return !('timings' in request.resource.data) ||
+        request.resource.data.timings == null ||
+        validStringLength('timings', 1, 1000);
     }
 
     function isValidList(list, maxSize) {
@@ -175,7 +188,7 @@ service cloud.firestore {
         validStringLength('description', 1, 10000) &&
         validStringLength('story', 1, 20000) &&
         validStringLength('address', 1, 500) &&
-        validStringLength('timings', 1, 1000) &&
+        validTimings() &&
         isValidList(data.specialities, 20) &&
         isValidList(data.images, 50) &&
         optionalValidPhotos(data) &&
@@ -205,7 +218,7 @@ service cloud.firestore {
         optionalStringLength('description', 1, 10000) &&
         optionalStringLength('story', 1, 20000) &&
         optionalStringLength('address', 1, 500) &&
-        optionalStringLength('timings', 1, 1000) &&
+        optionalTimings() &&
         optionalValidList('specialities', 20) &&
         optionalValidList('images', 50) &&
         optionalValidPhotos(data) &&

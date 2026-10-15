@@ -125,6 +125,9 @@ function parseCallBody(source, openIndex) {
 
 function readValue(source, i) {
   const start = i;
+  if (source.startsWith("const", i) && !/[A-Za-z0-9_]/.test(source[i + 5] ?? "")) {
+    i = skipTrivia(source, i + 5);
+  }
   if (source[i] === "'" || source[i] === '"') {
     return readConcatenatedString(source, i);
   }
@@ -133,6 +136,9 @@ function readValue(source, i) {
     return readNumber(source, i);
   }
   const ident = readDotted(source, i);
+  if (ident.value === "null") {
+    return { start, end: ident.end, value: null };
+  }
   if (source[ident.end] === "(" || source[skipTrivia(source, ident.end)] === "(") {
     const open = source.indexOf("(", ident.end);
     const body = parseCallBody(source, open);
@@ -309,7 +315,7 @@ function dartTemple(temple) {
     `${pad}description: ${dartQuote(temple.description)},`,
     `${pad}story: ${dartQuote(temple.story)},`,
     `${pad}location: ${dartQuote(temple.location)},`,
-    `${pad}timings: ${dartQuote(temple.timings)},`,
+    `${pad}timings: ${temple.timings == null ? "null" : dartQuote(temple.timings)},`,
     `${pad}latitude: ${temple.latitude},`,
     `${pad}longitude: ${temple.longitude},`,
     `${pad}specialities: ${dartStringList(temple.specialities, pad)},`,
@@ -433,6 +439,7 @@ function dartFieldValue(key, value) {
   }
   if (key === "photos") return dartPhotos(value ?? [], "    ");
   if (key === "latitude" || key === "longitude") return String(value);
+  if (key === "timings" && value == null) return "null";
   return dartQuote(value ?? "");
 }
 

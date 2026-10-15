@@ -5,8 +5,13 @@
  * Schema of record: the state-expansion README (Hybrid C).
  * Seeded fields: name, city, state, deity, latitude, longitude, timings,
  * description, specialities. Research-only keys, never written as their own
- * Firestore fields: slug, sources, timings_note, photo_pack, review.
+ * Firestore fields: slug, sources, timings_note, photo_pack, review, dedupe.
+ * When timings is null, the seeded timings value is null. timings_note is
+ * never copied into timings or written as a field.
  * story, location, festivals, pooja_schedule, and trip_planning are forbidden.
+ * A slug that already exists (case-insensitive) is rejected. Pass
+ * { update: true } for a field-limited update; that flag is off by default.
+ * Only review.status "approved" is seedable. Other statuses are skipped.
  */
 import { changedKeys, templeDocumentId } from "./temple_seed.js";
 
@@ -19,46 +24,53 @@ export const LONGITUDE_RANGE = Object.freeze({ min: 68, max: 97.5 });
 
 /**
  * State and union-territory bounding boxes (latMin, latMax, lngMin, lngMax).
- * Boxes contain the directory's seeded temples and the state's own extent.
- * Delhi (about 28.6, 77.2) is outside Bihar.
+ *
+ * Built from OpenStreetMap extents (Nominatim bounding boxes, 2026-10-15)
+ * and expanded 0.1° outward. Dadra and Nagar Haveli and Daman and Diu is the
+ * union of those three territories, so Diu (Gangeshwar 20.7135, 70.9264) is
+ * inside. Puducherry is the union-territory relation (Pondicherry, Karaikal,
+ * Mahe, Yanam). Boxes are coarse and overlap at some borders (Ballia can sit
+ * in both Uttar Pradesh and Bihar; a point in eastern Assam can also sit in
+ * Arunachal Pradesh). A point outside its box is a warning plus a review
+ * note, not a hard reject. Delhi (28.6139, 77.2090) stays outside Bihar.
  */
 export const STATE_BOUNDS = Object.freeze({
-  "Andaman and Nicobar Islands": box(6.7, 13.7, 92.2, 94.3),
-  "Andhra Pradesh": box(12.6, 19.2, 76.7, 84.8),
-  "Arunachal Pradesh": box(26.5, 29.5, 91.5, 97.5),
-  Assam: box(24.0, 28.3, 89.6, 96.2),
-  Bihar: box(24.2, 27.7, 83.3, 88.3),
-  Chandigarh: box(30.6, 30.85, 76.65, 76.9),
-  Chhattisgarh: box(17.7, 24.2, 80.2, 84.5),
-  "Dadra and Nagar Haveli and Daman and Diu": box(20.0, 20.8, 72.7, 73.2),
-  Delhi: box(28.4, 28.9, 76.8, 77.4),
-  Goa: box(14.8, 15.9, 73.6, 74.4),
-  Gujarat: box(20.1, 24.7, 68.2, 74.5),
-  Haryana: box(27.6, 30.9, 74.4, 77.6),
-  "Himachal Pradesh": box(30.3, 33.3, 75.5, 79.1),
-  "Jammu and Kashmir": box(32.2, 34.8, 73.7, 76.8),
-  Jharkhand: box(21.9, 25.4, 83.3, 87.9),
-  Karnataka: box(11.5, 18.5, 74.0, 78.6),
-  Kerala: box(8.2, 12.8, 74.8, 77.5),
-  Ladakh: box(32.2, 36.0, 75.5, 80.0),
-  Lakshadweep: box(8.2, 12.4, 71.6, 74.2),
-  "Madhya Pradesh": box(21.0, 26.9, 74.0, 82.9),
-  Maharashtra: box(15.6, 22.1, 72.6, 80.9),
-  Manipur: box(23.8, 25.7, 93.0, 94.8),
-  Meghalaya: box(25.0, 26.2, 89.7, 92.8),
-  Mizoram: box(21.9, 24.6, 92.1, 93.5),
-  Nagaland: box(25.1, 27.1, 93.2, 95.3),
-  Odisha: box(17.7, 22.6, 81.3, 87.5),
-  Puducherry: box(10.8, 16.8, 75.4, 82.3),
-  Punjab: box(29.5, 32.6, 73.8, 76.9),
-  Rajasthan: box(23.0, 30.2, 69.4, 78.3),
-  Sikkim: box(27.0, 28.2, 88.0, 88.95),
-  "Tamil Nadu": box(8.0, 13.6, 76.2, 80.4),
-  Telangana: box(15.8, 19.9, 77.2, 81.4),
-  Tripura: box(22.9, 24.6, 91.1, 92.4),
-  "Uttar Pradesh": box(23.8, 30.5, 77.0, 84.7),
-  Uttarakhand: box(28.7, 31.5, 77.5, 81.1),
-  "West Bengal": box(21.5, 27.3, 85.8, 89.9),
+  "Andaman and Nicobar Islands": box(6.65, 13.78, 92.1, 94.38),
+  "Andhra Pradesh": box(12.52, 19.27, 76.66, 84.87),
+  "Arunachal Pradesh": box(26.55, 29.48, 91.46, 97.5),
+  Assam: box(24.03, 28.08, 89.59, 96.12),
+  Bihar: box(24.18, 27.63, 83.22, 88.4),
+  Chandigarh: box(30.47, 31, 76.51, 77.04),
+  Chhattisgarh: box(17.68, 24.21, 80.14, 84.5),
+  "Dadra and Nagar Haveli and Daman and Diu": box(19.94, 20.86, 70.84, 73.32),
+  Delhi: box(28.3, 28.99, 76.73, 77.45),
+  Goa: box(14.65, 15.91, 73.57, 74.44),
+  Gujarat: box(20.01, 24.82, 68.07, 74.58),
+  Haryana: box(27.55, 31.03, 74.37, 77.71),
+  "Himachal Pradesh": box(30.27, 33.36, 75.49, 79.12),
+  "Jammu and Kashmir": box(32.17, 34.89, 73.65, 76.89),
+  Jharkhand: box(21.87, 25.45, 83.22, 88.07),
+  Karnataka: box(11.49, 18.58, 73.95, 78.69),
+  Kerala: box(8.19, 12.9, 74.76, 77.52),
+  Ladakh: box(32.23, 35.78, 75.22, 79.57),
+  Lakshadweep: box(7.96, 12.71, 71.41, 74.01),
+  "Madhya Pradesh": box(20.97, 26.97, 73.92, 82.92),
+  Maharashtra: box(15.5, 22.14, 72.55, 81),
+  Manipur: box(23.73, 25.8, 92.87, 94.85),
+  Meghalaya: box(24.93, 26.22, 89.71, 92.91),
+  Mizoram: box(21.84, 24.63, 92.16, 93.54),
+  Nagaland: box(25.09, 27.14, 93.22, 95.35),
+  Odisha: box(17.71, 22.67, 81.28, 87.59),
+  Puducherry: box(10.72, 16.87, 75.42, 82.42),
+  Punjab: box(29.44, 32.62, 73.77, 77.04),
+  Rajasthan: box(22.95, 30.3, 69.38, 78.38),
+  Sikkim: box(26.97, 28.23, 87.91, 89.03),
+  "Tamil Nadu": box(7.97, 13.67, 76.13, 80.46),
+  Telangana: box(15.73, 20.02, 77.13, 81.43),
+  Tripura: box(22.83, 24.64, 91.05, 92.44),
+  "Uttar Pradesh": box(23.77, 30.51, 76.98, 84.74),
+  Uttarakhand: box(28.62, 31.56, 77.47, 81.15),
+  "West Bengal": box(21.44, 27.33, 85.71, 89.99),
 });
 
 const BATCH_KEYS = [
@@ -68,6 +80,8 @@ const BATCH_KEYS = [
   "existing_in_prod",
   "target",
   "temples",
+  "added",
+  "shortfall_note",
 ];
 
 const TEMPLE_KEYS = [
@@ -85,6 +99,7 @@ const TEMPLE_KEYS = [
   "sources",
   "photo_pack",
   "review",
+  "dedupe",
 ];
 
 const FORBIDDEN = [
@@ -116,6 +131,7 @@ const PLACEHOLDER_HOSTS = [
   "dreamstime.com",
   "123rf.com",
   "depositphotos.com",
+  "lorempixel.com",
 ];
 
 function box(latMin, latMax, lngMin, lngMax) {
@@ -125,9 +141,14 @@ function box(latMin, latMax, lngMin, lngMax) {
 /**
  * @param {unknown} batch
  * @param {object[]} existing parsed seed temples ({id, name, latitude, ...})
+ * @param {{ update?: boolean }} [options] update is off by default. When set,
+ *   an existing slug may change city, deity, description, timings,
+ *   specialities, latitude, and longitude. Name, state, and galleries stay.
  */
-export function validateStateBatch(batch, existing = []) {
+export function validateStateBatch(batch, existing = [], options = {}) {
+  const update = options.update === true;
   const errors = [];
+  const warnings = [];
   if (!batch || typeof batch !== "object" || Array.isArray(batch)) {
     return fail(["Batch must be a JSON object with state and temples."]);
   }
@@ -167,10 +188,13 @@ export function validateStateBatch(batch, existing = []) {
     );
   }
 
-  const existingById = new Map(existing.map((temple) => [temple.id, temple]));
+  const existingById = new Map(
+    existing.map((temple) => [String(temple.id).toLowerCase(), temple]),
+  );
   const seenIds = new Set();
   const temples = [];
   const located = [];
+  const skipped = [];
 
   batch.temples.forEach((raw, index) => {
     const label = `temples[${index}]`;
@@ -189,7 +213,8 @@ export function validateStateBatch(batch, existing = []) {
       errors.push(`${label}.slug is required.`);
       return;
     }
-    const id = raw.slug.trim();
+    const slug = raw.slug.trim();
+    const id = slug.toLowerCase();
     const name = requireString(raw.name, `${label}.name`, errors);
     const templeState = requireString(raw.state, `${label}.state`, errors);
     if (typeof state === "string" && templeState && templeState !== state) {
@@ -197,11 +222,25 @@ export function validateStateBatch(batch, existing = []) {
     }
     if (name && id !== templeDocumentId(name)) {
       errors.push(
-        `${label}.slug is "${id}" but the name slug is "${templeDocumentId(name)}".`,
+        `${label}.slug is "${slug}" but the name slug is "${templeDocumentId(name)}".`,
       );
     }
-    if (seenIds.has(id)) errors.push(`${label}.slug "${id}" is duplicated in this batch.`);
+    if (seenIds.has(id)) errors.push(`${label}.slug "${slug}" is duplicated in this batch.`);
     seenIds.add(id);
+    const prior = existingById.get(id);
+    if (prior && !update) {
+      errors.push(
+        `${label}.slug "${slug}" already exists in the directory and will not be overwritten or renamed.`,
+      );
+    } else if (prior && update && name && prior.name !== name) {
+      errors.push(
+        `${label}.slug "${slug}" would rename "${prior.name}" to "${name}". Refusing.`,
+      );
+    } else if (prior && update && templeState && prior.state && prior.state !== templeState) {
+      errors.push(
+        `${label}.slug "${slug}" would move from ${prior.state} to ${templeState}. Refusing.`,
+      );
+    }
 
     requireString(raw.city, `${label}.city`, errors);
     requireString(raw.deity, `${label}.deity`, errors);
@@ -214,7 +253,7 @@ export function validateStateBatch(batch, existing = []) {
         );
       }
     }
-    const timings = readTimings(raw, label, errors);
+    const timingsResult = readTimings(raw, label, errors);
     const specialities = requireStringList(
       raw.specialities,
       `${label}.specialities`,
@@ -231,19 +270,19 @@ export function validateStateBatch(batch, existing = []) {
 
     const sources = readSources(raw.sources, label, errors);
     readPhotoPack(raw.photo_pack, id, label, errors);
-    readReview(raw.review, label, errors);
+    const reviewStatus = readReview(raw.review, label, errors);
     rejectPlaceholderUrls(raw, label, errors);
 
     const latitude = requireNumber(raw.latitude, `${label}.latitude`, errors);
     const longitude = requireNumber(raw.longitude, `${label}.longitude`, errors);
-    if (latitude != null && decimalPlaces(latitude) !== 4) {
+    if (latitude != null && decimalPlaces(latitude) > 4) {
       errors.push(
-        `${label}.latitude ${latitude} must be rounded to 4 decimal places.`,
+        `${label}.latitude ${latitude} must have at most 4 decimal places.`,
       );
     }
-    if (longitude != null && decimalPlaces(longitude) !== 4) {
+    if (longitude != null && decimalPlaces(longitude) > 4) {
       errors.push(
-        `${label}.longitude ${longitude} must be rounded to 4 decimal places.`,
+        `${label}.longitude ${longitude} must have at most 4 decimal places.`,
       );
     }
     if (latitude != null && (latitude < LATITUDE_RANGE.min || latitude > LATITUDE_RANGE.max)) {
@@ -264,52 +303,64 @@ export function validateStateBatch(batch, existing = []) {
       if (!bounds) {
         errors.push(`${label}.state "${templeState}" has no bounding box.`);
       } else if (!insideBox(latitude, longitude, bounds)) {
-        errors.push(
+        const message =
           `${label} coordinates ${latitude}, ${longitude} are outside the ${templeState} bounding box ` +
-            `(latitude ${bounds.latMin}..${bounds.latMax}, longitude ${bounds.lngMin}..${bounds.lngMax}).`,
-        );
+          `(latitude ${bounds.latMin}..${bounds.latMax}, longitude ${bounds.lngMin}..${bounds.lngMax}).`;
+        const reviewNote =
+          `Map spot-check: ${latitude}, ${longitude} falls outside the ${templeState} bounding box. ` +
+          `Confirm the state on a map before sign-off. Boxes overlap at some borders and this is not a hard reject.`;
+        warnings.push({ id, message, reviewNote });
       }
     }
 
     if (name && latitude != null && longitude != null) {
       located.push({ id, name, latitude, longitude });
     }
+    if (reviewStatus && reviewStatus !== "approved") {
+      skipped.push({
+        id,
+        name: name ?? id,
+        reason: `review status is "${reviewStatus}", not approved`,
+      });
+    }
+
     if (
       !name ||
-      timings == null ||
+      !timingsResult.ok ||
       !sources ||
       latitude == null ||
       longitude == null ||
-      errors.length > before
+      errors.length > before ||
+      reviewStatus !== "approved"
     ) {
       return;
     }
 
-    const prior = existingById.get(id);
-    const keptGallery = prior && hasVerifiedGallery(prior);
     temples.push({
       id,
-      name,
-      state: templeState,
+      name: prior && update ? prior.name : name,
+      state: prior && update ? prior.state ?? templeState : templeState,
       city: String(raw.city),
       deity: String(raw.deity),
-      imageUrl: keptGallery ? String(prior.imageUrl ?? "") : "",
-      images: keptGallery ? [...prior.images] : [],
+      imageUrl: prior && update ? prior.imageUrl ?? "" : "",
+      images: prior && update ? prior.images ?? [] : [],
       description,
-      story: prior?.story ?? "",
-      location: prior?.location ?? `${raw.city}, ${templeState}`,
-      timings,
+      story: prior && update ? prior.story ?? "" : "",
+      location:
+        prior && update
+          ? prior.location ?? `${raw.city}, ${templeState}`
+          : `${raw.city}, ${templeState}`,
+      timings: timingsResult.value,
       specialities: specialities ?? [],
       latitude,
       longitude,
-      photos: keptGallery ? prior.photos ?? [] : [],
+      photos: prior && update ? prior.photos ?? [] : [],
       sources,
       photo_pack: raw.photo_pack,
       review: raw.review,
     });
   });
 
-  const summary = { new: [], changed: [], unchanged: [] };
   const nameOwners = new Map();
   for (const prior of existing) {
     const key = normaliseName(prior.name);
@@ -335,21 +386,29 @@ export function validateStateBatch(batch, existing = []) {
     }
     const prior = existingById.get(temple.id);
     if (prior) {
-      if (normaliseName(prior.name) !== nameKey) {
-        errors.push(
-          `${temple.id} already exists as "${prior.name}" and cannot be reused for "${temple.name}".`,
-        );
+      for (const other of existing) {
+        if (String(other.id).toLowerCase() === temple.id) continue;
+        if (
+          Number.isFinite(other.latitude) &&
+          Number.isFinite(other.longitude) &&
+          distanceKm(temple, other) <= DUPLICATE_DISTANCE_KM
+        ) {
+          errors.push(
+            `${temple.id} is within ${DUPLICATE_DISTANCE_KM} km of existing ${other.id} ` +
+              `(${distanceKm(temple, other).toFixed(3)} km).`,
+          );
+        }
       }
       continue;
     }
     const owner = nameOwners.get(nameKey);
-    if (owner && owner.id !== temple.id) {
+    if (owner && String(owner.id).toLowerCase() !== temple.id) {
       errors.push(
         `${temple.id} duplicates the normalised name of existing ${owner.id} ("${owner.name}").`,
       );
     }
     for (const other of existing) {
-      if (other.id === temple.id) continue;
+      if (String(other.id).toLowerCase() === temple.id) continue;
       if (
         Number.isFinite(other.latitude) &&
         Number.isFinite(other.longitude) &&
@@ -363,17 +422,33 @@ export function validateStateBatch(batch, existing = []) {
     }
   }
 
-  if (errors.length > 0) return { ok: false, errors, temples: [], summary };
+  if (errors.length > 0) {
+    return {
+      ok: false,
+      errors,
+      warnings,
+      temples: [],
+      summary: { ...emptySummary(), skipped },
+    };
+  }
 
+  const summary = { ...emptySummary(), skipped };
   for (const temple of temples) {
     const prior = existingById.get(temple.id);
     if (!prior) {
       summary.new.push({ id: temple.id, name: temple.name });
       continue;
     }
-    const keys = changedKeys(prior, temple).filter(
-      (key) => !(hasVerifiedGallery(prior) && ["imageUrl", "images", "photos"].includes(key)),
-    );
+    const locked = new Set([
+      "name",
+      "state",
+      "imageUrl",
+      "images",
+      "photos",
+      "story",
+      "location",
+    ]);
+    const keys = changedKeys(prior, temple).filter((key) => !locked.has(key));
     if (keys.length === 0) {
       summary.unchanged.push({ id: temple.id, name: temple.name });
     } else {
@@ -381,7 +456,7 @@ export function validateStateBatch(batch, existing = []) {
     }
   }
 
-  return { ok: true, errors, temples, summary };
+  return { ok: true, errors, warnings, temples, summary };
 }
 
 export function targetShortfall(batch) {
@@ -456,7 +531,7 @@ export function isPlaceholderImageUrl(raw) {
     }
   }
   const blob = `${parsed.pathname} ${parsed.search}`.toLowerCase();
-  if (blob.includes("placeholder") || blob.includes("picsum") || blob.includes("stock")) {
+  if (blob.includes("placeholder") || blob.includes("picsum")) {
     return true;
   }
   return false;
@@ -487,26 +562,26 @@ function insideBox(latitude, longitude, bounds) {
 function readTimings(raw, label, errors) {
   if (!Object.prototype.hasOwnProperty.call(raw, "timings")) {
     errors.push(`${label}.timings is required (a string, or null with timings_note).`);
-    return null;
+    return { ok: false, value: null };
   }
   if (raw.timings === null) {
     if (typeof raw.timings_note !== "string" || raw.timings_note.trim() === "") {
       errors.push(`${label}.timings is null and needs a timings_note.`);
-      return null;
+      return { ok: false, value: null };
     }
     if (raw.timings_note.length > 1000) {
       errors.push(`${label}.timings_note is longer than 1000 characters.`);
     }
-    return raw.timings_note;
+    return { ok: true, value: null };
   }
   if (typeof raw.timings !== "string" || raw.timings.trim() === "") {
     errors.push(`${label}.timings must be a non-empty string or null.`);
-    return null;
+    return { ok: false, value: null };
   }
   if (raw.timings.length > 1000) {
     errors.push(`${label}.timings is longer than 1000 characters.`);
   }
-  return raw.timings;
+  return { ok: true, value: raw.timings };
 }
 
 function readSources(raw, label, errors) {
@@ -543,11 +618,14 @@ function readPhotoPack(raw, slug, label, errors) {
     return;
   }
   const path = requireString(raw.path, `${label}.photo_pack.path`, errors);
-  if (path && path !== `photos/${slug}/`) {
+  if (path && path.toLowerCase() !== `photos/${slug}/`) {
     errors.push(`${label}.photo_pack.path must be photos/${slug}/.`);
   }
-  if (raw.status !== "READY" && raw.status !== "SHORTFALL") {
-    errors.push(`${label}.photo_pack.status must be READY or SHORTFALL.`);
+  const statuses = ["READY", "SHORTFALL", "PENDING", "NO_CATEGORY"];
+  if (!statuses.includes(raw.status)) {
+    errors.push(
+      `${label}.photo_pack.status must be READY, SHORTFALL, PENDING, or NO_CATEGORY.`,
+    );
   }
   if (!Number.isInteger(raw.count) || raw.count < 0) {
     errors.push(`${label}.photo_pack.count must be a non-negative integer.`);
@@ -559,18 +637,19 @@ function readPhotoPack(raw, slug, label, errors) {
 function readReview(raw, label, errors) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
     errors.push(`${label}.review is required and must be an object.`);
-    return;
+    return null;
   }
   for (const key of Object.keys(raw)) {
     if (!["status", "reviewer", "notes"].includes(key)) {
       errors.push(`${label}.review must not include ${key}.`);
     }
   }
-  requireString(raw.status, `${label}.review.status`, errors);
+  const status = requireString(raw.status, `${label}.review.status`, errors);
   requireString(raw.reviewer, `${label}.review.reviewer`, errors);
   if (typeof raw.notes !== "string") {
     errors.push(`${label}.review.notes must be a string.`);
   }
+  return status;
 }
 
 function rejectPlaceholderUrls(raw, label, errors) {
@@ -593,7 +672,10 @@ function collectUrls(value, urls) {
     return;
   }
   if (value && typeof value === "object") {
-    for (const nested of Object.values(value)) collectUrls(nested, urls);
+    for (const [key, nested] of Object.entries(value)) {
+      if (key === "sources") continue;
+      collectUrls(nested, urls);
+    }
   }
 }
 
@@ -621,25 +703,39 @@ function requireNumber(value, label, errors) {
   return value;
 }
 
+function emptySummary() {
+  return { new: [], changed: [], unchanged: [], skipped: [] };
+}
+
 function fail(errors) {
   return {
     ok: false,
     errors,
+    warnings: [],
     temples: [],
-    summary: { new: [], changed: [], unchanged: [] },
+    summary: emptySummary(),
   };
 }
 
 export function formatSummary(summary) {
+  const skipped = summary.skipped ?? [];
   const lines = [
     `new: ${summary.new.length}`,
     `changed: ${summary.changed.length}`,
     `unchanged: ${summary.unchanged.length}`,
+    `skipped: ${skipped.length}`,
   ];
   for (const row of summary.new) lines.push(`  new ${row.id}`);
   for (const row of summary.changed) {
     lines.push(`  changed ${row.id} (${row.fields.join(", ")})`);
   }
   for (const row of summary.unchanged) lines.push(`  unchanged ${row.id}`);
+  for (const row of skipped) lines.push(`  skipped ${row.id} (${row.reason})`);
   return lines.join("\n");
+}
+
+export function formatWarnings(warnings) {
+  return (warnings ?? [])
+    .map((warning) => `Warning: ${warning.message}\nReview note: ${warning.reviewNote}`)
+    .join("\n");
 }
