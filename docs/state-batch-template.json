@@ -1,0 +1,31 @@
+{
+  "state": "Bihar",
+  "temples": [
+    {
+      "slug": "example-temple",
+      "name": "Example Temple",
+      "state": "Bihar",
+      "city": "Patna",
+      "deity": "Shiva",
+      "description": "One sentence on what a visitor sees.",
+      "timings": null,
+      "timings_note": "Hours are not taken from an official notice. Confirm locally before planning.",
+      "specialities": [
+        "One visitor-facing fact"
+      ],
+      "latitude": 25.6,
+      "longitude": 85.1,
+      "sources": [
+        "https://example.org/example-temple"
+      ],
+      "photo_pack": {
+        "status": "pending",
+        "images": []
+      },
+      "review": {
+        "status": "example",
+        "note": "Shape only. Do not seed this file."
+      }
+    }
+  ]
+}

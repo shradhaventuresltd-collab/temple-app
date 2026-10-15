@@ -232,6 +232,20 @@ Production / release browsing does **not** require signing in. Seed and Admin wr
 
 **Idempotency:** each seeded temple is stored under a slug of its name (e.g. `meenakshi-amman-temple`). Re-running Seed merges into those same documents instead of creating duplicates. Existing admin-uploaded `images` and original `createdAt` values are preserved. CMS **Create** uses the same slug rule and refuses a name that would collide.
 
+### State batch seeding
+
+Reviewed state batches follow [`docs/state-batch-template.json`](docs/state-batch-template.json) (at most 50 temples). Each temple uses `slug` (the document id). `timings` may be `null` when `timings_note` explains why. `story` and `location` are forbidden. `sources`, `photo_pack`, and `review` are required. Image URLs may not be picsum, placeholder, or stock hosts. Coordinates must sit inside that state's bounding box. The same id, the same normalised name, or coordinates within 1 km are rejected.
+
+Dry-run prints new, changed, and unchanged. `--write` merges text into `lib/data/sample_data.dart` and leaves a verified seed gallery in place. `--apply --project` is Deployer-only, in a terminal, and is not a CI step. On an existing Firestore document it does not overwrite `imageUrl`, `images`, or `photos` when a verified gallery is already there. The template is a shape to validate; do not `--write` or `--apply` that example file.
+
+```bash
+cd scripts
+npm install
+node seed_state_batch.js ../docs/state-batch-template.json
+node seed_state_batch.js path/to/bihar.json --write
+node seed_state_batch.js path/to/bihar.json --apply --project temple-directory-india
+```
+
 Release and profile builds hide Seed/Admin entirely (including the Admin sign-in panel); `seedTempleData` and Admin CMS writes also refuse to run outside debug, and rules reject non-admin writes even if a client tried. The release App Bundle still links `firebase_auth` and `firebase_storage` — Play Data safety must not claim those SDKs are absent (see [`docs/play-store-listing.md`](docs/play-store-listing.md)).
 
 The home screen **falls back** to the 180 bundled sample temples if Firestore is empty or unreachable, so browse can look populated while the cloud `temples` collection is still empty. Admin reads Firestore only — it stays empty until an admin seeds or creates a temple.
