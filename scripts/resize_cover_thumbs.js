@@ -24,12 +24,11 @@
  * Stat, download, and upload use the bucket named in the cover URL, not the
  * app's default bucket. A cover with no photos[] entry for that URL is not
  * uploaded. Apply confirms the Firebase download URL (?alt=media and the
- * stored token) before it writes photos[].thumbUrl. That write re-reads
- * the temple in a transaction. A cover that is no longer the same photo
- * is skipped and reported. Only that photo's thumbUrl is set, on the
- * fresh document. Index entries for the run are built from those fresh
- * documents and written once at the end, per shard, not once per temple.
- * The resume file is rewritten after each successful row.
+ * stored token) before it writes photos[].thumbUrl. Each successful row
+ * is one transaction: re-read the temple, skip it when the cover photo
+ * changed, set thumbUrl only on that photo, and write that temple's
+ * index entry from the fresh document. The index is not batched at the
+ * end of the run. The resume file is rewritten after each successful row.
  *
  * Encoding uses sharp, installed by Deployer
  * (`npm install --prefix scripts sharp`). Tests inject an encoder and never
@@ -74,8 +73,9 @@ demo-temple-index when --project is omitted.
 for this project. Apply rewrites that file after each uploaded or current thumb.
 
 Apply writes the thumb object, checks its Firebase download URL, then
-photos[].thumbUrl. Index entries are batched per shard at the end of the run.
-A cover with no matching photos[] entry is listed as no-photo and not uploaded.
+one transaction per temple for photos[].thumbUrl and that temple's index
+entry. A cover that changed is skipped. A cover with no matching photos[]
+entry is listed as no-photo and not uploaded.
 It does not deploy rules. Install sharp before apply:
   npm install --prefix scripts sharp
 `);
@@ -371,7 +371,7 @@ export function commitCoverThumb(fresh, { source, thumbUrl, updateTime } = {}) {
  * stat, download, and upload receive `{ bucket }` from the cover URL.
  * [reread] loads the temple again before upload. A cover that moved is
  * skipped. [writeThumbUrl] may return `{ ok: false }` to skip the resume
- * line, or a fresh `{ temple, photos, entry }` for the index batch.
+ * line. The index entry is written inside that call, not after the run.
  * [onResume] runs after each row whose thumbUrl was stored.
  */
 export async function applyCoverThumbPlans(plans, deps) {
@@ -381,7 +381,8 @@ export async function applyCoverThumbPlans(plans, deps) {
       report.push({ ...plan, result: "skipped" });
       continue;
     }
-    let current = plan;
+    const plannedState = plan.temple?.state;
+    let current = { ...plan, plannedState };
     if (!deps.dryRun && typeof deps.reread === "function") {
       const fresh = await deps.reread(plan.id);
       const freshId = fresh?.id ?? plan.id;
@@ -393,7 +394,7 @@ export async function applyCoverThumbPlans(plans, deps) {
         report.push({ ...plan, result: "skipped", reason: "no-photo" });
         continue;
       }
-      current = { ...plan, temple: { ...fresh, id: freshId } };
+      current = { ...plan, plannedState, temple: { ...fresh, id: freshId } };
     }
     if (!coverHasPhoto(current.temple, current.source)) {
       report.push({ ...current, result: "skipped", reason: "no-photo" });
@@ -469,7 +470,11 @@ async function storeThumbUrl(plan, thumbUrl, deps, extra) {
     if (!assigned.ok) {
       return { ...plan, ...extra, result: "skipped", reason: assigned.reason, thumbUrl: media };
     }
-    const written = await deps.writeThumbUrl({ ...assigned, source: plan.source });
+    const written = await deps.writeThumbUrl({
+      ...assigned,
+      source: plan.source,
+      plannedState: plan.plannedState ?? plan.temple?.state,
+    });
     if (written && written.ok === false) {
       return { ...plan, ...extra, result: "skipped", reason: written.reason, thumbUrl: media };
     }
@@ -598,62 +603,71 @@ async function loadTemples(project, env) {
 }
 
 /**
- * photos[].thumbUrl only, from a transaction re-read. The index is applied
- * later, for the whole run, from the document this returns.
- * A cover that moved returns `{ ok: false, reason: "cover-changed" }` and
- * does not write. The photos array written is the fresh one with thumbUrl
- * set on the cover photo.
+ * One transaction per temple. Re-read the document, and write nothing when
+ * the cover photo changed. Otherwise set thumbUrl on that photo of the fresh
+ * document and write that temple's index entry from the same document.
+ * Meta is stamped in this transaction. A later row does not batch these.
  */
-export async function persistCoverPhotos(db, assigned) {
+export async function persistCoverPhotos(db, assigned, deps = {}) {
+  const admin = deps.admin ?? (await import("firebase-admin")).default;
   const source = assigned.source ?? firstVerifiedGalleryUrl(assigned.temple);
   const thumbUrl = (assigned.photos ?? []).find(
     (photo) => photo && typeof photo.url === "string" && photo.url.trim() === source && photo.thumbUrl,
   )?.thumbUrl;
   const id = String(assigned.temple?.id ?? "");
   if (!id || typeof thumbUrl !== "string") return { ok: false, reason: "thumb-url" };
+  const plannedState = assigned.plannedState ?? assigned.temple?.state;
   return db.runTransaction(async (tx) => {
-    const ref = db.collection("temples").doc(id);
-    const snap = await tx.get(ref);
-    if (!snap.exists) return { ok: false, reason: "missing" };
-    const fresh = { ...snap.data(), id: snap.id };
-    const committed = commitCoverThumb(fresh, { source, thumbUrl });
-    if (!committed.ok) return committed;
-    tx.update(ref, { photos: committed.photos });
-    return committed;
-  });
-}
-
-/**
- * Index upserts for this run. Removals stay empty so sibling entries in the
- * shard are not deleted. applyPlan then writes one entry per shard per round,
- * and bumps meta once per round instead of once per temple.
- */
-export function thumbIndexReport(assigned) {
-  const upserts = [];
-  for (const item of assigned ?? []) {
-    if (!item?.temple || !item?.entry) continue;
-    upserts.push({
-      shard: stateSlug(item.temple.state),
-      id: String(item.temple.id),
-      entry: item.entry,
+    const templeRef = db.collection("temples").doc(id);
+    const templeSnap = await tx.get(templeRef);
+    if (!templeSnap.exists) return { ok: false, reason: "missing" };
+    const fresh = { ...templeSnap.data(), id: templeSnap.id };
+    const committed = commitCoverThumb(fresh, {
+      source,
+      thumbUrl,
+      updateTime: assigned.updateTime,
     });
-  }
-  return {
-    missing: [],
-    drifted: [],
-    moved: [],
-    stale: [],
-    unchanged: 0,
-    upserts,
-    removals: [],
-    counts: new Map(),
-    capViolations: [],
-  };
-}
-
-export async function applyThumbIndex(db, assigned, deps = {}) {
-  const { applyPlan } = await import("./rebuild_index.js");
-  return applyPlan(db, thumbIndexReport(assigned), deps);
+    if (!committed.ok) return committed;
+    const shard = stateSlug(committed.temple.state);
+    const previous =
+      typeof plannedState === "string" && plannedState !== "" ? stateSlug(plannedState) : null;
+    const indexRef = db.collection("temple_index").doc(shard);
+    const metaRef = db.collection("meta").doc("temple_index");
+    await tx.get(indexRef);
+    const metaSnap = await tx.get(metaRef);
+    const oldRef = previous && previous !== shard ? db.collection("temple_index").doc(previous) : null;
+    const oldSnap = oldRef ? await tx.get(oldRef) : null;
+    tx.update(templeRef, { photos: committed.photos });
+    const entry = {
+      ...committed.entry,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    tx.set(
+      indexRef,
+      { entries: { [id]: entry } },
+      { mergeFields: [new admin.firestore.FieldPath("entries", id)] },
+    );
+    if (oldRef && oldSnap?.exists) {
+      tx.update(
+        oldRef,
+        new admin.firestore.FieldPath("entries", id),
+        admin.firestore.FieldValue.delete(),
+      );
+    }
+    const touched = oldRef && oldSnap?.exists ? [shard, previous] : [shard];
+    if (!metaSnap.exists) {
+      const stamps = {};
+      for (const name of touched) stamps[name] = admin.firestore.FieldValue.serverTimestamp();
+      tx.set(metaRef, { indexVersion: 1, shards: stamps }, { merge: true });
+    } else {
+      const patch = { indexVersion: admin.firestore.FieldValue.increment(1) };
+      for (const name of touched) {
+        patch[`shards.${name}`] = admin.firestore.FieldValue.serverTimestamp();
+      }
+      tx.update(metaRef, patch);
+    }
+    return { ...committed, shard, entry };
+  });
 }
 
 function storageDeps(admin) {
@@ -717,21 +731,13 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
   }
   const stat = deps.stat ?? storage?.stat;
   if (!stat) throw new Error("Dry-run needs a Storage stat. No write.");
-  const queued = [];
   const writeThumbUrl = async (assigned) => {
-    let stored = assigned;
-    if (deps.writeThumbUrl) {
-      const returned = await deps.writeThumbUrl(assigned);
-      if (returned && returned.ok === false) return returned;
-      if (returned?.entry && returned?.temple) stored = returned;
-    } else if (opts.apply) {
-      const admin = await openAdmin(project, env);
-      const returned = await persistCoverPhotos(admin.firestore(), assigned);
-      if (!returned || returned.ok === false) return returned ?? { ok: false, reason: "missing" };
-      stored = returned;
-    }
-    queued.push(stored);
-    return stored;
+    if (deps.writeThumbUrl) return deps.writeThumbUrl(assigned);
+    if (!opts.apply) return assigned;
+    const admin = await openAdmin(project, env);
+    const returned = await persistCoverPhotos(admin.firestore(), assigned);
+    if (!returned || returned.ok === false) return returned ?? { ok: false, reason: "missing" };
+    return returned;
   };
   const reread =
     deps.reread ??
@@ -755,28 +761,17 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
         }
       }
     : undefined;
-  let rows;
-  try {
-    rows = await applyCoverThumbPlans(plans, {
-      dryRun: !opts.apply,
-      stat,
-      download: deps.download ?? storage?.download,
-      encode: deps.encode ?? storage?.encode,
-      upload: deps.upload ?? storage?.upload,
-      verifyPublic: deps.verifyPublic ?? (opts.apply ? verifyPublicObject : undefined),
-      writeThumbUrl,
-      reread,
-      onResume,
-    });
-  } finally {
-    if (opts.apply && queued.length > 0) {
-      if (deps.applyIndex) await deps.applyIndex(queued);
-      else if (!deps.writeThumbUrl) {
-        const admin = await openAdmin(project, env);
-        await applyThumbIndex(admin.firestore(), queued);
-      }
-    }
-  }
+  const rows = await applyCoverThumbPlans(plans, {
+    dryRun: !opts.apply,
+    stat,
+    download: deps.download ?? storage?.download,
+    encode: deps.encode ?? storage?.encode,
+    upload: deps.upload ?? storage?.upload,
+    verifyPublic: deps.verifyPublic ?? (opts.apply ? verifyPublicObject : undefined),
+    writeThumbUrl,
+    reread,
+    onResume,
+  });
   log(formatThumbReport(rows, { apply: opts.apply }));
   return rows;
 }

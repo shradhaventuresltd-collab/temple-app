@@ -4,14 +4,7 @@ import { dirname, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import {
-  batchRounds,
-  coverThumb,
-  fullCoverUrlFromThumb,
-  planOps,
-  thumbObjectPath,
-  wikimediaOriginalUrl,
-} from "./temple_index.js";
+import { coverThumb, fullCoverUrlFromThumb, thumbObjectPath, wikimediaOriginalUrl } from "./temple_index.js";
 import {
   THUMB_CACHE_CONTROL,
   applyCoverThumbPlans,
@@ -26,13 +19,51 @@ import {
   planCoverThumb,
   sourceIsNewer,
   staysFullSizeWikimedia,
-  thumbIndexReport,
   thumbSaveOptions,
   withCoverThumbUrl,
 } from "./resize_cover_thumbs.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const emulator = { FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080" };
+
+const indexAdmin = {
+  firestore: {
+    FieldPath: class FieldPath {
+      constructor(...parts) {
+        this.parts = parts;
+      }
+    },
+    FieldValue: {
+      serverTimestamp: () => "SERVER_TIME",
+      increment: (n) => ({ increment: n }),
+      delete: () => "DELETE",
+    },
+  },
+};
+
+function memoryDb(read) {
+  const ops = [];
+  return {
+    ops,
+    collection(name) {
+      return { doc: (id) => ({ path: `${name}/${id}`, id, collection: name }) };
+    },
+    async runTransaction(fn) {
+      const writes = [];
+      const result = await fn({
+        get: async (ref) => read(ref),
+        update: (ref, ...args) => writes.push({ op: "update", path: ref.path, args }),
+        set: (ref, data, options) => writes.push({ op: "set", path: ref.path, data, options }),
+      });
+      if (!result || result.ok === false) {
+        assert.equal(writes.length, 0);
+        return result;
+      }
+      ops.push(writes);
+      return result;
+    },
+  };
+}
 
 function shore(id = "shore-temple") {
   const source = `https://storage.googleapis.com/bucket/temples/${id}/01.jpg`;
@@ -169,7 +200,6 @@ test("apply stores the download URL and does not skip a stale thumb", async () =
   const uploads = [];
   const writes = [];
   const resumes = [];
-  const indexBatches = [];
   const rows = await main(["--apply", "--project", "demo-temple-index"], {
     env: emulator,
     log: () => {},
@@ -177,9 +207,6 @@ test("apply stores the download URL and does not skip a stale thumb", async () =
       throw new Error("emulator apply must not prompt");
     },
     writeResume: (body) => resumes.push(body),
-    applyIndex: async (assigned) => {
-      indexBatches.push(assigned);
-    },
     load: async () => [shore("new-temple"), shore("old-temple"), shore("stale-temple")],
     stat: async (path) => {
       if (path.endsWith("/01.jpg")) {
@@ -239,8 +266,6 @@ test("apply stores the download URL and does not skip a stale thumb", async () =
   assert.match(resumes[0], /new-temple/);
   assert.doesNotMatch(resumes[0], /old-temple/);
   assert.match(resumes[2], /stale-temple/);
-  assert.equal(indexBatches.length, 1);
-  assert.equal(indexBatches[0].length, 3);
   const stored = writes.find((write) => write.temple?.id === "new-temple");
   assert.equal(stored.photos[0].thumbUrl, stored.entry.coverThumb);
   assert.match(stored.entry.coverThumb, /token=real/);
@@ -368,34 +393,14 @@ test("a missing photo does not invent thumbUrl", async () => {
   assert.equal(report.includes("coverThumbUrl"), false);
 });
 
-test("resume is written after each row and the index is one batch", () => {
-  const first = withCoverThumbUrl(
-    shore("a-temple"),
-    "https://firebasestorage.googleapis.com/v0/b/bucket/o/a?alt=media&token=1",
-  );
-  const second = withCoverThumbUrl(
-    shore("b-temple"),
-    "https://firebasestorage.googleapis.com/v0/b/bucket/o/b?alt=media&token=1",
-  );
-  const kerala = shore("c-temple");
-  kerala.state = "Kerala";
-  const third = withCoverThumbUrl(
-    kerala,
-    "https://firebasestorage.googleapis.com/v0/b/bucket/o/c?alt=media&token=1",
-  );
-  const report = thumbIndexReport([first, second, third]);
-  assert.equal(report.removals.length, 0);
-  assert.equal(report.stale.length, 0);
-  assert.equal(report.upserts.length, 3);
-  const rounds = batchRounds(planOps(report));
-  assert.equal(rounds.length, 2);
-  assert.equal(rounds[0].length, 2);
-  assert.equal(new Set(rounds[0].map((op) => op.shard)).size, 2);
+test("the resize script does not batch the index after the run", () => {
+  const source = readFileSync(resolve(here, "resize_cover_thumbs.js"), "utf8");
+  assert.doesNotMatch(source, /applyThumbIndex|applyIndex|thumbIndexReport/);
 });
 
-test("a failed later row keeps the resume line already written", async () => {
+test("a failed later row keeps the resume line and does not flush an index batch", async () => {
   const resumes = [];
-  const indexBatches = [];
+  const indexWrites = [];
   await assert.rejects(
     () =>
       main(["--apply", "--project", "demo-temple-index"], {
@@ -414,20 +419,17 @@ test("a failed later row keeps the resume line already written", async () => {
           };
         },
         verifyPublic: async () => true,
-        writeThumbUrl: async () => {},
-        writeResume: (body) => resumes.push(body),
-        applyIndex: async (assigned) => {
-          indexBatches.push(assigned);
+        writeThumbUrl: async (assigned) => {
+          indexWrites.push(assigned.temple.id);
         },
+        writeResume: (body) => resumes.push(body),
       }),
     /boom/,
   );
   assert.equal(resumes.length, 1);
   assert.match(resumes[0], /a-temple/);
   assert.doesNotMatch(resumes[0], /b-temple/);
-  assert.equal(indexBatches.length, 1);
-  assert.equal(indexBatches[0].length, 1);
-  assert.equal(indexBatches[0][0].temple.id, "a-temple");
+  assert.deepEqual(indexWrites, ["a-temple"]);
 });
 
 test("a mid-run edit is kept and a replaced cover is not overwritten", async () => {
@@ -437,10 +439,18 @@ test("a mid-run edit is kept and a replaced cover is not overwritten", async () 
     "kept-temple": structuredClone(kept),
     "moved-temple": structuredClone(moved),
   };
+  const db = memoryDb((ref) => {
+    if (ref.collection === "temples") {
+      const data = live[ref.id];
+      return { exists: Boolean(data), id: ref.id, data: () => structuredClone(data) };
+    }
+    if (ref.collection === "meta") {
+      return { exists: true, id: ref.id, data: () => ({ indexVersion: 4, shards: {} }) };
+    }
+    return { exists: true, id: ref.id, data: () => ({ entries: {} }) };
+  });
   const uploads = [];
-  const writes = [];
   const resumes = [];
-  const indexBatches = [];
   const rows = await main(["--apply", "--project", "demo-temple-index"], {
     env: emulator,
     log: () => {},
@@ -469,106 +479,84 @@ test("a mid-run edit is kept and a replaced cover is not overwritten", async () 
       };
     },
     verifyPublic: async () => true,
-    writeThumbUrl: async (assigned) => {
-      const thumbUrl = assigned.photos.find((photo) => photo.thumbUrl)?.thumbUrl;
-      const committed = commitCoverThumb(live[assigned.temple.id], {
-        source: assigned.source,
-        thumbUrl,
-      });
-      writes.push(committed);
-      return committed;
-    },
+    writeThumbUrl: (assigned) => persistCoverPhotos(db, assigned, { admin: indexAdmin }),
     writeResume: (body) => resumes.push(body),
-    applyIndex: async (assigned) => {
-      indexBatches.push(assigned);
-    },
   });
   assert.deepEqual(uploads, ["temples/kept-temple/01_480_g1.jpg"]);
   assert.equal(rows.find((row) => row.id === "moved-temple").reason, "cover-changed");
-  assert.equal(writes.length, 1);
-  assert.equal(writes[0].ok, true);
-  assert.equal(writes[0].temple.name, "New Name");
-  assert.equal(writes[0].photos[0].credit, "Admin");
-  assert.match(writes[0].photos[0].thumbUrl, /token=real/);
-  assert.equal(writes[0].photos[1].credit, "Keep");
-  assert.equal(writes[0].photos[1].thumbUrl, undefined);
-  assert.equal(writes[0].entry.name, "New Name");
-  assert.equal(writes[0].entry.coverThumb, writes[0].photos[0].thumbUrl);
+  assert.equal(db.ops.length, 1);
+  const [writes] = db.ops;
+  const photos = writes.find((write) => write.path === "temples/kept-temple");
+  assert.equal(photos.args[0].photos[0].credit, "Admin");
+  assert.match(photos.args[0].photos[0].thumbUrl, /token=real/);
+  assert.equal(photos.args[0].photos[1].credit, "Keep");
+  assert.equal(photos.args[0].photos[1].thumbUrl, undefined);
+  const index = writes.find((write) => write.path === "temple_index/tamil-nadu");
+  assert.equal(index.data.entries["kept-temple"].name, "New Name");
+  assert.equal(index.data.entries["kept-temple"].coverThumb, photos.args[0].photos[0].thumbUrl);
+  assert.equal(index.data.entries["kept-temple"].updatedAt, "SERVER_TIME");
+  assert.deepEqual(index.options.mergeFields[0].parts, ["entries", "kept-temple"]);
+  const meta = writes.find((write) => write.path === "meta/temple_index");
+  assert.deepEqual(meta.args[0].indexVersion, { increment: 1 });
+  assert.equal(meta.args[0]["shards.tamil-nadu"], "SERVER_TIME");
   assert.equal(resumes.length, 1);
   assert.match(resumes[0], /kept-temple/);
   assert.doesNotMatch(resumes[0], /moved-temple/);
-  assert.equal(indexBatches.length, 1);
-  assert.equal(indexBatches[0].length, 1);
-  assert.equal(indexBatches[0][0].entry.name, "New Name");
-  assert.equal(indexBatches[0][0].entry.coverThumb, writes[0].photos[0].thumbUrl);
   assert.match(formatThumbReport(rows, { apply: true }), /skip moved-temple cover-changed/);
 });
 
-test("persistCoverPhotos writes thumbUrl onto the fresh photos", async () => {
+test("persistCoverPhotos writes the fresh thumb and index in one transaction", async () => {
   const source = "https://storage.googleapis.com/bucket/temples/kept-temple/01.jpg";
   const thumb = "https://firebasestorage.googleapis.com/v0/b/bucket/o/t?alt=media&token=real";
-  const assigned = { ...withCoverThumbUrl(shore("kept-temple"), thumb), source };
-  let payload = null;
-  const db = {
-    collection() {
-      return { doc() { return { id: "kept-temple" }; } };
-    },
-    async runTransaction(fn) {
-      return fn({
-        async get() {
-          return {
-            exists: true,
-            id: "kept-temple",
-            data: () => ({
-              ...shore("kept-temple"),
-              name: "New Name",
-              photos: [
-                { url: source, licence: "CC0", credit: "Admin", order: 0 },
-                { url: "https://example.com/other.jpg", credit: "Keep", order: 1 },
-              ],
-            }),
-          };
-        },
-        update(_ref, data) {
-          payload = data;
-        },
-      });
-    },
+  const assigned = {
+    ...withCoverThumbUrl(shore("kept-temple"), thumb),
+    source,
+    plannedState: "Tamil Nadu",
   };
-  const committed = await persistCoverPhotos(db, assigned);
+  const fresh = {
+    ...shore("kept-temple"),
+    name: "New Name",
+    photos: [
+      { url: source, licence: "CC0", credit: "Admin", order: 0 },
+      { url: "https://example.com/other.jpg", credit: "Keep", order: 1 },
+    ],
+  };
+  const db = memoryDb((ref) => {
+    if (ref.collection === "temples") {
+      return { exists: true, id: ref.id, data: () => structuredClone(fresh) };
+    }
+    if (ref.collection === "meta") return { exists: false, id: ref.id, data: () => undefined };
+    return { exists: false, id: ref.id, data: () => undefined };
+  });
+  const committed = await persistCoverPhotos(db, assigned, { admin: indexAdmin });
   assert.equal(committed.temple.name, "New Name");
-  assert.equal(payload.photos[0].credit, "Admin");
-  assert.equal(payload.photos[0].thumbUrl, thumb);
-  assert.equal(payload.photos[1].credit, "Keep");
-  assert.equal(payload.photos[1].thumbUrl, undefined);
-  assert.deepEqual(Object.keys(payload), ["photos"]);
   assert.equal(committed.entry.name, "New Name");
+  assert.equal(committed.entry.coverThumb, thumb);
+  assert.equal(db.ops.length, 1);
+  const [writes] = db.ops;
+  const photos = writes.find((write) => write.op === "update" && write.path.startsWith("temples/"));
+  assert.equal(photos.args[0].photos[0].credit, "Admin");
+  assert.equal(photos.args[0].photos[0].thumbUrl, thumb);
+  assert.equal(photos.args[0].photos[1].thumbUrl, undefined);
+  assert.equal(Object.keys(photos.args[0]).length, 1);
+  const index = writes.find((write) => write.path === "temple_index/tamil-nadu");
+  assert.equal(index.data.entries["kept-temple"].coverThumb, thumb);
+  const meta = writes.find((write) => write.path === "meta/temple_index");
+  assert.equal(meta.data.indexVersion, 1);
+  assert.equal(meta.data.shards["tamil-nadu"], "SERVER_TIME");
 
-  const moved = {
-    collection() {
-      return { doc() { return {}; } };
-    },
-    async runTransaction(fn) {
-      return fn({
-        async get() {
-          return {
-            exists: true,
-            id: "kept-temple",
-            data: () => ({
-              ...shore("kept-temple"),
-              images: ["https://upload.wikimedia.org/wikipedia/commons/2/20/Other.jpg"],
-            }),
-          };
-        },
-        update() {
-          throw new Error("cover change must not write");
-        },
-      });
-    },
-  };
-  const skipped = await persistCoverPhotos(moved, assigned);
+  const moved = memoryDb(() => ({
+    exists: true,
+    id: "kept-temple",
+    data: () => ({
+      ...shore("kept-temple"),
+      images: ["https://upload.wikimedia.org/wikipedia/commons/2/20/Other.jpg"],
+    }),
+  }));
+  const skipped = await persistCoverPhotos(moved, assigned, { admin: indexAdmin });
   assert.equal(skipped.ok, false);
   assert.equal(skipped.reason, "cover-changed");
+  assert.equal(moved.ops.length, 0);
   const changed = commitCoverThumb(
     { ...shore("kept-temple"), updateTime: "t2" },
     { source, thumbUrl: thumb, updateTime: "t1" },
