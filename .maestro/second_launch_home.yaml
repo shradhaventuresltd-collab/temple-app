@@ -1,0 +1,16 @@
+appId: com.shradhaventures.temple
+---
+# Second process start after Terms were accepted by read_only_smoke.
+# clearState stays false so the gate must not return. Home must not paint
+# the release error fallback or the Firebase no-app stack.
+- launchApp:
+    clearState: false
+    stopApp: true
+- extendedWaitUntil:
+    visible: "Temple Directory|Loading temples|Browse "
+    timeout: 45000
+- assertNotVisible: "Something went wrong"
+- assertNotVisible: "No Firebase App"
+- assertNotVisible: "[core/no-app]"
+- assertNotVisible:
+    id: "policy-accept-button"

@@ -259,6 +259,24 @@ for attempt in 1 2; do
   fi
   warn_if_flow_retried "${out}/maestro-stdout.log" "$attempt"
   if [[ "$status" -eq 0 ]]; then
+    # Terms are already accepted. Relaunch without clearing state and fail
+    # if Home paints the release error fallback. This stays inside the
+    # 12-minute shell timeout; screenshots are still skipped when the job
+    # clock is past 600 seconds.
+    echo "===== second launch after terms ====="
+    second="${DEBUG_ROOT}/second-launch"
+    mkdir -p "$second"
+    set +e
+    maestro test --debug-output "$second" .maestro/second_launch_home.yaml \
+      2>&1 | tee "${second}/maestro-stdout.log"
+    second_status=$?
+    set -e
+    if [[ "$second_status" -ne 0 ]]; then
+      echo "Second launch showed an error or did not reach Home." >&2
+      dump_failure "$second"
+      exit "$second_status"
+    fi
+
     # The workflow kills this script at 12 minutes. The screenshot budget
     # is measured from JOB_START_EPOCH (the job's first step), not from
     # $SECONDS, which only starts when this script starts. Skip once 600s

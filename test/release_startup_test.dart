@@ -40,12 +40,12 @@ void main() {
     expectDetailedErrorBranch(debug: true, demoBuild: false, adminTools: false);
   });
 
-  test('DEMO_BUILD shows the exception text and stack', () {
-    expectDetailedErrorBranch(debug: false, demoBuild: true, adminTools: false);
+  test('release DEMO_BUILD shows the branded screen, not a stack', () {
+    expectBrandedReleaseBranch(demoBuild: true, adminTools: false);
   });
 
-  test('ENABLE_ADMIN_TOOLS shows the exception text and stack', () {
-    expectDetailedErrorBranch(debug: false, demoBuild: false, adminTools: true);
+  test('release ENABLE_ADMIN_TOOLS shows the branded screen, not a stack', () {
+    expectBrandedReleaseBranch(demoBuild: false, adminTools: true);
   });
 
   testWidgets(
@@ -146,6 +146,34 @@ FlutterErrorDetails _boomDetails() {
     exception: Exception('boom-marker'),
     stack: StackTrace.fromString('#0 gate\n#1 main\n'),
   );
+}
+
+void expectBrandedReleaseBranch({
+  required bool demoBuild,
+  required bool adminTools,
+}) {
+  final previous = ErrorWidget.builder;
+  try {
+    expect(
+      showDetailedReleaseError(
+        debug: false,
+        demoBuild: demoBuild,
+        adminTools: adminTools,
+      ),
+      isFalse,
+    );
+    installReleaseErrorWidget(
+      debug: false,
+      demoBuild: demoBuild,
+      adminTools: adminTools,
+    );
+    expect(ErrorWidget.builder, same(productionReleaseErrorWidget));
+    final widget = ErrorWidget.builder(_boomDetails());
+    expect(widget, isA<BrandedReleaseErrorScreen>());
+    expect(widget, isNot(isA<ErrorWidget>()));
+  } finally {
+    ErrorWidget.builder = previous;
+  }
 }
 
 void expectDetailedErrorBranch({

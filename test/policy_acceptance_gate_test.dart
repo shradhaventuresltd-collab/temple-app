@@ -362,6 +362,42 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Accept runs on the first tap and shows progress while saving', (
+    tester,
+  ) async {
+    final store = _SlowPolicyAcceptanceStore();
+    await tester.pumpWidget(_app(store: store));
+    await tester.pumpAndSettle();
+
+    final button = tester.widget<FilledButton>(find.byType(FilledButton));
+    final pressed = button.style?.backgroundColor?.resolve({
+      WidgetState.pressed,
+    });
+    final idle = button.style?.backgroundColor?.resolve({});
+    expect(pressed, isNotNull);
+    expect(idle, isNotNull);
+    expect(pressed, isNot(idle));
+    expect(button.onPressed, isNotNull);
+
+    await tester.tap(find.byKey(const Key('policy-accept-button')));
+    await tester.pump();
+
+    expect(store.writes, 1);
+    expect(find.byKey(const Key('policy-accept-progress')), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    final saving = tester.widget<FilledButton>(find.byType(FilledButton));
+    expect(saving.onPressed, isNull);
+    expect(find.byType(HomeScreen), findsNothing);
+
+    store.release.complete();
+    await tester.pumpAndSettle();
+
+    expect(store.writes, 1);
+    expect(find.byType(HomeScreen), findsOneWidget);
+    expect(find.byType(PolicyAcceptanceGate), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Accept stays on screen at text scale 2.0', (tester) async {
     await _expectAcceptReachable(
       tester,
@@ -375,6 +411,17 @@ void main() {
   ) async {
     await _expectAcceptReachable(tester, size: const Size(640, 360));
   });
+}
+
+class _SlowPolicyAcceptanceStore extends _MemoryPolicyAcceptanceStore {
+  final Completer<void> release = Completer<void>();
+
+  @override
+  Future<void> write(PolicyAcceptance acceptance) async {
+    writes++;
+    value = acceptance;
+    await release.future;
+  }
 }
 
 class _MemoryPolicyAcceptanceStore implements PolicyAcceptanceStore {

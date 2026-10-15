@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/data/sample_data.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/widgets/home_mosaic_collage.dart';
+import 'package:temple_app/widgets/mosaic_tile_placeholder.dart';
 import 'package:temple_app/widgets/temple_image_placeholder.dart';
 
 Temple _temple({
@@ -161,7 +162,9 @@ void main() {
     expect(find.byType(TempleImagePlaceholder), findsOneWidget);
   });
 
-  testWidgets('Purmandal lithograph tiles show the 1847 caption', (tester) async {
+  testWidgets('Purmandal lithograph tiles show the 1847 caption', (
+    tester,
+  ) async {
     final purmandal = sampleTemples.firstWhere(
       (temple) => temple.name == 'Purmandal Temple',
     );
@@ -172,5 +175,78 @@ void main() {
     );
     expect(find.text('Lithograph, 1847'), findsWidgets);
     expect(find.byKey(const Key('cover-caption')), findsWidgets);
+  });
+
+  testWidgets('collage tiles show a placeholder while loading and on error', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: HomeMosaicCollage(
+            temples: [
+              _temple(imageUrl: 'https://example.com/temple.jpg'),
+              _temple(
+                name: 'Thumb',
+                imageUrl:
+                    'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/example.jpg/480px-example.jpg',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final images = tester
+        .widgetList<CachedNetworkImage>(find.byType(CachedNetworkImage))
+        .toList();
+    final context = tester.element(find.byType(CachedNetworkImage).first);
+    final direct = images.firstWhere(
+      (image) => image.imageUrl == 'https://example.com/temple.jpg',
+    );
+    expect(
+      direct.placeholder!(context, direct.imageUrl),
+      isA<MosaicTilePlaceholder>(),
+    );
+    expect(
+      direct.errorWidget!(context, direct.imageUrl, Exception('offline')),
+      isA<MosaicTilePlaceholder>(),
+    );
+
+    final thumb = images.firstWhere(
+      (image) => image.imageUrl.contains('/thumb/'),
+    );
+    final fallback = thumb.errorWidget!(
+      context,
+      thumb.imageUrl,
+      Exception('thumb failed'),
+    );
+    expect(fallback, isA<CachedNetworkImage>());
+    final original = fallback as CachedNetworkImage;
+    expect(
+      original.placeholder!(context, original.imageUrl),
+      isA<MosaicTilePlaceholder>(),
+    );
+    expect(
+      original.errorWidget!(context, original.imageUrl, Exception('offline')),
+      isA<MosaicTilePlaceholder>(),
+    );
+
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: MosaicTilePlaceholder())),
+    );
+    expect(find.byType(MosaicTilePlaceholder), findsOneWidget);
+    expect(find.byIcon(Icons.temple_hindu_outlined), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: MosaicTilePlaceholder(animate: true)),
+      ),
+    );
+    await tester.pump();
+    expect(find.byIcon(Icons.temple_hindu_outlined), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    expect(tester.takeException(), isNull);
   });
 }

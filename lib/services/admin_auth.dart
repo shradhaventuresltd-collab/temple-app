@@ -10,11 +10,7 @@ bool hasAdminClaim(Map<String, dynamic>? claims) => claims?['admin'] == true;
 /// Signed-in Firebase user plus whether they hold the admin claim.
 @immutable
 class AdminSession {
-  const AdminSession({
-    this.uid,
-    this.email,
-    this.isAdmin = false,
-  });
+  const AdminSession({this.uid, this.email, this.isAdmin = false});
 
   static const signedOut = AdminSession();
 
@@ -41,25 +37,42 @@ abstract class AdminAuth {
   /// Forces a token refresh so a newly granted `admin` claim is visible.
   Future<void> refreshClaims();
 
-  static AdminAuth _instance = FirebaseAdminAuth();
+  static AdminAuth? _instance;
 
-  static AdminAuth get instance => _instance;
+  /// True after [instance] has created or been given an implementation.
+  ///
+  /// Home must stay false until Admin sign-in is opened. Building the
+  /// directory used to construct [FirebaseAdminAuth] and touch
+  /// [FirebaseAuth.instance] before [Firebase.initializeApp].
+  static bool get isInitialized => _instance != null;
+
+  /// Lazily constructs [FirebaseAdminAuth]. Do not read this from a build method.
+  static AdminAuth get instance => _instance ??= FirebaseAdminAuth();
 
   @visibleForTesting
   static set instance(AdminAuth value) => _instance = value;
 
   @visibleForTesting
-  static void resetInstance() => _instance = FirebaseAdminAuth();
+  static void resetInstance() => _instance = null;
 }
 
 class FirebaseAdminAuth implements AdminAuth {
   FirebaseAdminAuth({FirebaseAuth? firebaseAuth})
-      : _auth = firebaseAuth ?? FirebaseAuth.instance {
-    _session = _auth.idTokenChanges().asyncMap(_sessionFor);
-  }
+    : _firebaseAuth = firebaseAuth;
 
-  final FirebaseAuth _auth;
-  late final Stream<AdminSession> _session;
+  final FirebaseAuth? _firebaseAuth;
+  FirebaseAuth? _resolved;
+  Stream<AdminSession>? _session;
+
+  /// [FirebaseAuth.instance] runs here, not in the constructor, and only when
+  /// a sign-in method or [session] is used.
+  FirebaseAuth get _auth {
+    final existing = _resolved;
+    if (existing != null) return existing;
+    final injected = _firebaseAuth;
+    if (injected != null) return _resolved = injected;
+    return _resolved = FirebaseAuth.instance;
+  }
 
   Future<AdminSession> _sessionFor(User? user) async {
     if (user == null) return AdminSession.signedOut;
@@ -72,7 +85,16 @@ class FirebaseAdminAuth implements AdminAuth {
   }
 
   @override
-  Stream<AdminSession> get session => _session;
+  Stream<AdminSession> get session {
+    final existing = _session;
+    if (existing != null) return existing;
+    try {
+      return _session = _auth.idTokenChanges().asyncMap(_sessionFor);
+    } catch (e, st) {
+      debugPrint('Admin auth is unavailable until Firebase is ready: $e\n$st');
+      return _session = Stream<AdminSession>.value(AdminSession.signedOut);
+    }
+  }
 
   @override
   Future<bool> isCurrentUserAdmin() async {

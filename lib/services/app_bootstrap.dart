@@ -6,12 +6,35 @@ import 'package:temple_app/config/build_flags.dart';
 import 'package:temple_app/firebase_options.dart';
 import 'package:temple_app/services/ad_consent.dart';
 import 'package:temple_app/services/ad_helper.dart';
+import 'package:temple_app/services/firebase_ready.dart';
+
+/// Options passed to [Firebase.initializeApp] for this process.
+///
+/// Demo distribution (`DEMO_APP_ID_SUFFIX` on Android) returns null so the
+/// native SDK reads the `.demo` client from google-services.json. Play, smoke,
+/// and demo-seed pass [configured] (`DefaultFirebaseOptions`).
+FirebaseOptions? startupFirebaseOptions({
+  required bool demoAppIdSuffix,
+  required bool isWeb,
+  required bool isAndroid,
+  required FirebaseOptions configured,
+}) {
+  if (androidDemoUsesGoogleServices(
+    demoAppIdSuffix: demoAppIdSuffix,
+    isWeb: isWeb,
+    isAndroid: isAndroid,
+  )) {
+    return null;
+  }
+  return configured;
+}
 
 /// Startup helpers aimed at a fast first Flutter frame (KAN-75).
 ///
-/// Native splash is solid saffron (`#FF8F00`). Awaiting AdMob (and a slow
-/// Firebase init) before [runApp] makes that orange linger for several
-/// seconds even when Home would otherwise load fine.
+/// Native splash is solid saffron (`#FF8F00`). [main] awaits Firebase, with
+/// [firebaseTimeout], before [runApp] so Auth and Firestore are not touched
+/// on a missing app. Ads still start only after Terms, and they do not block
+/// that first frame.
 class AppBootstrap {
   AppBootstrap._();
 
@@ -37,24 +60,28 @@ class AppBootstrap {
   static const Duration adsStartupTimeout = Duration(minutes: 3, seconds: 20);
 
   /// Initializes Firebase with a timeout. Returns `false` on failure/timeout.
-  /// Call from the widget tree after [runApp] so the cream Home shell can
-  /// paint immediately; do not await this in [main] before [runApp].
+  ///
+  /// [main] awaits this before [runApp] on every flavour, including demo
+  /// distribution (`DEMO_APP_ID_SUFFIX`, options from google-services.json)
+  /// and demo-seed (options from [DefaultFirebaseOptions]). A failure still
+  /// returns and the app paints from cache or the bundled sample.
   static Future<bool> initializeFirebase({
     Future<void> Function()? initialize,
     Duration timeout = firebaseTimeout,
   }) async {
     try {
-      final demoAndroid = androidDemoUsesGoogleServices(
-        demoAppIdSuffix: kDemoAppIdSuffix,
-        isWeb: kIsWeb,
-        isAndroid: !kIsWeb && defaultTargetPlatform == TargetPlatform.android,
-      );
-      final start = initialize ??
+      if (initialize == null && firebaseAppsReady()) return true;
+      final start =
+          initialize ??
           () => Firebase.initializeApp(
-                options: demoAndroid
-                    ? null
-                    : DefaultFirebaseOptions.currentPlatform,
-              );
+            options: startupFirebaseOptions(
+              demoAppIdSuffix: kDemoAppIdSuffix,
+              isWeb: kIsWeb,
+              isAndroid:
+                  !kIsWeb && defaultTargetPlatform == TargetPlatform.android,
+              configured: DefaultFirebaseOptions.currentPlatform,
+            ),
+          );
       await start().timeout(timeout);
       return true;
     } on TimeoutException catch (e) {
@@ -77,12 +104,13 @@ class AppBootstrap {
     Duration timeout = adsStartupTimeout,
   }) async {
     try {
-      final start = initialize ??
+      final start =
+          initialize ??
           () => AdHelper.initializeAds(
-                consentInfoTimeout: consentInfoTimeout,
-                consentFormTimeout: consentFormTimeout,
-                mobileAdsTimeout: mobileAdsTimeout,
-              );
+            consentInfoTimeout: consentInfoTimeout,
+            consentFormTimeout: consentFormTimeout,
+            mobileAdsTimeout: mobileAdsTimeout,
+          );
       await start().timeout(timeout);
     } on TimeoutException catch (e) {
       debugPrint('AdHelper.initializeAds timed out: $e');

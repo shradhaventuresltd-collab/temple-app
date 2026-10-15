@@ -128,6 +128,24 @@ expect_eq "screenshots are skipped at 700s even though 80s remain" \
   "$(screenshot_run_seconds 700)" ""
 echo "ok: screenshot budget uses job start and the 780s cap"
 
+if ! grep -q 'second_launch_home.yaml' scripts/ci/run_android_smoke.sh; then
+  echo "FAIL: android smoke must run the second launch after Terms" >&2
+  exit 1
+fi
+if ! grep -q 'clearState: false' .maestro/second_launch_home.yaml; then
+  echo "FAIL: the second launch must keep Terms acceptance" >&2
+  exit 1
+fi
+if ! grep -q 'Something went wrong' .maestro/second_launch_home.yaml; then
+  echo "FAIL: the second launch must assert the error fallback is absent" >&2
+  exit 1
+fi
+if ! grep -q 'No Firebase App' .maestro/second_launch_home.yaml; then
+  echo "FAIL: the second launch must assert the Firebase no-app text is absent" >&2
+  exit 1
+fi
+echo "ok: second launch keeps acceptance and rejects the error fallback"
+
 if minutes_at_or_over_threshold 1499.9; then
   echo "FAIL: 1499.9 should be under the 75% threshold" >&2
   exit 1

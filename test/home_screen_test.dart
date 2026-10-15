@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
@@ -40,10 +41,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        home: HomeScreen(
-          adminAuth: auth,
-          templesLoader: () async => temples,
-        ),
+        home: HomeScreen(adminAuth: auth, templesLoader: () async => temples),
       ),
     );
     await tester.pumpAndSettle();
@@ -63,33 +61,32 @@ void main() {
     expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
   });
 
-  testWidgets(
-    'heritage subtitle uses regular Poppins, not italic',
-    (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: HomeScreen(
-            adminAuth: FakeAdminAuth(),
-            templesLoader: () async => [sampleTemple()],
-          ),
+  testWidgets('heritage subtitle uses regular Poppins, not italic', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomeScreen(
+          adminAuth: FakeAdminAuth(),
+          templesLoader: () async => [sampleTemple()],
         ),
-      );
-      await tester.pumpAndSettle();
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      const subtitle =
-          'A comprehensive exploration of India\'s sacred architectural legacy';
-      await tester.scrollUntilVisible(find.text(subtitle), 400);
-      await tester.pumpAndSettle();
+    const subtitle =
+        'A comprehensive exploration of India\'s sacred architectural legacy';
+    await tester.scrollUntilVisible(find.text(subtitle), 400);
+    await tester.pumpAndSettle();
 
-      expect(find.text(subtitle), findsOneWidget);
-      expect(
-        tester.widget<Text>(find.text(subtitle)).style?.fontStyle,
-        isNot(FontStyle.italic),
-      );
-      await tester.runAsync(() => GoogleFonts.pendingFonts());
-      expect(tester.takeException(), isNull);
-    },
-  );
+    expect(find.text(subtitle), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.text(subtitle)).style?.fontStyle,
+      isNot(FontStyle.italic),
+    );
+    await tester.runAsync(() => GoogleFonts.pendingFonts());
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('Home still renders honest empty state when load is empty', (
     tester,
@@ -153,31 +150,36 @@ void main() {
     expect(find.text('Retry'), findsOneWidget);
   });
 
-  testWidgets(
-    'Home hides Seed and Admin app-bar actions when override is false',
-    (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: HomeScreen(
-            adminAuth: FakeAdminAuth(),
-            templesLoader: () async => [sampleTemple()],
-            adminToolsEnabled: false,
-          ),
+  testWidgets('Home hides the admin overflow when override is false', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomeScreen(
+          adminAuth: FakeAdminAuth(),
+          templesLoader: () async => [sampleTemple()],
+          adminToolsEnabled: false,
         ),
-      );
-      await tester.pumpAndSettle();
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      expect(find.byType(DebugHomeAdminActions), findsNothing);
-      expect(find.byKey(const Key('home-admin-sign-in')), findsNothing);
-      expect(find.text('Admin sign-in'), findsNothing);
-      expect(find.text('Seed'), findsNothing);
-      expect(find.byIcon(Icons.admin_panel_settings_rounded), findsNothing);
-    },
-  );
+    expect(find.byType(DebugHomeAdminActions), findsNothing);
+    expect(find.byKey(const Key('home-admin-menu')), findsNothing);
+    expect(find.byKey(const Key('home-admin-sign-in')), findsNothing);
+    expect(find.text('Admin sign-in'), findsNothing);
+    expect(find.text('Seed'), findsNothing);
+    expect(find.byIcon(Icons.admin_panel_settings_rounded), findsNothing);
+  });
 
   testWidgets(
-    'Home shows Admin app-bar action when override is true',
+    'Home keeps the full title and puts Admin sign-in in the overflow',
     (tester) async {
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       await tester.pumpWidget(
         MaterialApp(
           home: HomeScreen(
@@ -189,11 +191,27 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byType(DebugHomeAdminActions), findsOneWidget);
+      expect(find.byType(DebugHomeAdminActions), findsNothing);
+      expect(find.text('Admin sign-in'), findsNothing);
+      expect(find.text('Seed'), findsNothing);
+      expect(find.byIcon(Icons.admin_panel_settings_rounded), findsNothing);
+      expect(find.text('Temple Directory'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      final title = tester.renderObject<RenderParagraph>(
+        find.text('Temple Directory'),
+      );
+      expect(title.text.toPlainText(), 'Temple Directory');
+      expect(title.didExceedMaxLines, isFalse);
+      final titleRect = tester.getRect(find.text('Temple Directory'));
+      final menuRect = tester.getRect(find.byKey(const Key('home-admin-menu')));
+      expect(titleRect.right, lessThanOrEqualTo(menuRect.left));
+
+      await tester.tap(find.byKey(const Key('home-admin-menu')));
+      await tester.pumpAndSettle();
+
       expect(find.byKey(const Key('home-admin-sign-in')), findsOneWidget);
       expect(find.text('Admin sign-in'), findsOneWidget);
-      expect(find.byIcon(Icons.admin_panel_settings_rounded), findsOneWidget);
-      expect(find.text('Seed'), findsNothing);
     },
   );
 }
