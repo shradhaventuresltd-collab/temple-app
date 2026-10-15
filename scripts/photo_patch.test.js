@@ -198,42 +198,34 @@ test("gallery writes require the audited gallery and dry-run names each doc", ()
   assert.match(source, /No write/);
 });
 
-function fakeDb(docs, { onTransactionRead } = {}) {
+function fakeDb(docs) {
   const updates = [];
-  let inTransaction = false;
+  const ops = [];
   const db = {
     updates,
+    ops,
     collection() {
       return {
         doc(id) {
-          return {
-            id,
-            async get() {
-              if (inTransaction && onTransactionRead) return onTransactionRead(id);
-              if (!Object.prototype.hasOwnProperty.call(docs, id)) {
-                return { exists: false, data: () => undefined };
-              }
-              return { exists: true, data: () => docs[id] };
-            },
-          };
+          return { id };
         },
       };
     },
     async runTransaction(fn) {
-      inTransaction = true;
-      try {
-        const tx = {
-          async get(ref) {
-            return ref.get();
-          },
-          update(ref, fields) {
-            updates.push({ id: ref.id, fields });
-          },
-        };
-        return await fn(tx);
-      } finally {
-        inTransaction = false;
-      }
+      const tx = {
+        async get(ref) {
+          ops.push(`get ${ref.id}`);
+          if (!Object.prototype.hasOwnProperty.call(docs, ref.id)) {
+            return { exists: false, data: () => undefined };
+          }
+          return { exists: true, data: () => docs[ref.id] };
+        },
+        update(ref, fields) {
+          ops.push(`update ${ref.id}`);
+          updates.push({ id: ref.id, fields });
+        },
+      };
+      return fn(tx);
     },
   };
   return db;
@@ -311,37 +303,46 @@ test("a live photos entry is skipped by default and aborts under --strict", asyn
     assert.equal(matched.updates.length, 1);
     assert.equal(matched.updates[0].id, "akshardham-temple");
 
-    const raced = fakeDb(
-      { "akshardham-temple": { ...empty } },
-      {
-        onTransactionRead: () => ({
-          exists: true,
-          data: () => liveObject,
-        }),
-      },
-    );
-    lines.length = 0;
-    await applyPatchSet(raced, patch, { strict: false });
-    assert.deepEqual(raced.updates, []);
-    assert.match(lines.join("\n"), /skipped temples\/akshardham-temple/);
-
+    const two = {
+      temples: [
+        patch.temples[0],
+        {
+          id: "purmandal-temple",
+          fields: patch.temples[0].fields,
+          expect: empty,
+        },
+      ],
+    };
+    const strictPair = fakeDb({
+      "akshardham-temple": { ...empty },
+      "purmandal-temple": liveObject,
+    });
     await assert.rejects(
-      () =>
-        applyPatchSet(
-          fakeDb(
-            { "akshardham-temple": { ...empty } },
-            {
-              onTransactionRead: () => ({
-                exists: true,
-                data: () => liveObject,
-              }),
-            },
-          ),
-          patch,
-          { strict: true },
-        ),
-      /No write/,
+      () => applyPatchSet(strictPair, two, { strict: true }),
+      /purmandal-temple[\s\S]*No write/,
     );
+    assert.deepEqual(strictPair.updates, []);
+    assert.deepEqual(strictPair.ops, [
+      "get akshardham-temple",
+      "get purmandal-temple",
+    ]);
+
+    lines.length = 0;
+    const defaultPair = fakeDb({
+      "akshardham-temple": { ...empty },
+      "purmandal-temple": liveObject,
+    });
+    await applyPatchSet(defaultPair, two, { strict: false });
+    assert.deepEqual(
+      defaultPair.updates.map((row) => row.id),
+      ["akshardham-temple"],
+    );
+    assert.deepEqual(defaultPair.ops, [
+      "get akshardham-temple",
+      "get purmandal-temple",
+      "update akshardham-temple",
+    ]);
+    assert.match(lines.join("\n"), /skipped temples\/purmandal-temple/);
   } finally {
     console.log = original;
   }

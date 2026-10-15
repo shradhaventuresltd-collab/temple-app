@@ -166,19 +166,24 @@ bool _isHistoricalPrintCaption(String credit) {
   return lower.contains('lithograph') || lower.contains('1847 print');
 }
 
-/// Year named in a historical-print credit, preferring "1847 print".
+/// Year 1500–2099 sitting next to lithograph or print wording.
+///
+/// An unrelated 4-digit number in the credit, such as an accession or a
+/// catalogue id, is not a caption year.
 String? _printYear(String credit) {
-  final besidePrint = RegExp(
-    r'\b(\d{4})\s*print\b',
+  final match = RegExp(
+    r'\b(1[5-9]\d{2}|20\d{2})\b\s*(?:lithographs?|lithographic|prints?)\b'
+    r'|'
+    r'\b(?:lithographs?|lithographic|prints?)\b'
+    r'(?:\s*[\(,:\-–]|\s+(?:of|from|circa|c\.|ca\.|dated|in)\s+)'
+    r'\s*(1[5-9]\d{2}|20\d{2})\b',
     caseSensitive: false,
   ).firstMatch(credit);
-  if (besidePrint != null) return besidePrint.group(1);
-  final afterLithograph = RegExp(
-    r'lithograph[^\d]{0,40}(\d{4})',
-    caseSensitive: false,
-  ).firstMatch(credit);
-  if (afterLithograph != null) return afterLithograph.group(1);
-  return RegExp(r'\b(\d{4})\b').firstMatch(credit)?.group(1);
+  final year = match?.group(1) ?? match?.group(2);
+  if (year == null) return null;
+  final value = int.tryParse(year);
+  if (value == null || value < 1500 || value > 2099) return null;
+  return year;
 }
 
 /// Short label for a cover that is a historical print, not a photograph.
