@@ -34,6 +34,8 @@
  * new object is `temples/{id}/{filename}`. Apply uploads it only when it
  * is missing. Before the write, that same storage.googleapis.com URL must
  * return HTTP 200. A public object with no download token still passes.
+ * A network error from that check skips the temple as
+ * `public-check-failed` and the run continues.
  * The transaction skips the doc when `imageUrl` is no longer the planned old
  * URL. The old Places object stays in Storage. A temple with no creditable
  * frame 01 is reported (`no-creditable-frame`, or `no-wave-pack`).
@@ -833,13 +835,19 @@ export async function applyCoverPhotoPlans(plans, deps) {
 
 /**
  * HTTP 200 on the URL this plan will write. A public storage.googleapis.com
- * object passes with no download token.
+ * object passes with no download token. DNS failure, connection reset, and
+ * timeout are `public-check-failed` so the next temple still runs.
  */
 async function writtenUrlIsPublic(plan, deps) {
   const url = typeof plan?.imageUrl === "string" ? plan.imageUrl : "";
-  if (!url.startsWith("https://")) return false;
+  if (!url.startsWith("https://")) return { ok: false, reason: "not-public" };
   const check = deps.verifyPublic ?? verifyPublicObject;
-  return (await check(url)) === true;
+  try {
+    const ok = (await check(url)) === true;
+    return ok ? { ok: true } : { ok: false, reason: "not-public" };
+  } catch {
+    return { ok: false, reason: "public-check-failed" };
+  }
 }
 
 /**
@@ -868,7 +876,7 @@ export async function ensureCoverFrame(plan, deps = {}) {
     await file.makePublic();
   }
   const readable = await writtenUrlIsPublic(plan, deps);
-  if (!readable) return { ok: false, reason: "not-public" };
+  if (!readable.ok) return { ok: false, reason: readable.reason };
   return { ok: true, uploaded: !exists };
 }
 

@@ -1209,3 +1209,68 @@ test("apply uploads a missing frame, writes the cover once, and keeps the old ob
   assert.match(plainLines.join("\n"), /replaced: 0/);
   assert.match(plainLines.join("\n"), /skip virupaksha-temple no-matching-credit/);
 });
+
+test("a public-check network error skips that temple and the next one is still written", async () => {
+  const firstUrl = mirrorUrl("virupaksha-temple", "image_1.jpg");
+  const secondUrl = mirrorUrl("iskcon-temple-bangalore", "image_1.jpg");
+  const first = planCoverPhoto(
+    {
+      id: "virupaksha-temple",
+      state: "Karnataka",
+      imageUrl: firstUrl,
+      photos: [],
+      images: [firstUrl],
+    },
+    replaceOpts,
+  );
+  const second = planCoverPhoto(
+    {
+      id: "iskcon-temple-bangalore",
+      state: "Karnataka",
+      imageUrl: secondUrl,
+      photos: [],
+      images: [secondUrl],
+    },
+    replaceOpts,
+  );
+  assert.equal(first.action, "replace");
+  assert.equal(second.action, "replace");
+  const written = [];
+  const bucket = {
+    file() {
+      return {
+        async exists() {
+          return [true];
+        },
+        async delete() {
+          throw new Error("delete");
+        },
+      };
+    },
+  };
+  const rows = await applyCoverPhotoPlans([first, second], {
+    dryRun: false,
+    ensureUploaded: (plan) =>
+      ensureCoverFrame(plan, {
+        bucket,
+        verifyPublic: async (url) => {
+          if (url === first.imageUrl) {
+            throw new Error("getaddrinfo ENOTFOUND storage.googleapis.com");
+          }
+          return url === second.imageUrl;
+        },
+      }),
+    write: async (plan) => {
+      written.push(plan.id);
+      return { ok: true };
+    },
+  });
+  assert.equal(rows[0].id, "virupaksha-temple");
+  assert.equal(rows[0].result, "skipped");
+  assert.equal(rows[0].reason, "public-check-failed");
+  assert.equal(rows[1].id, "iskcon-temple-bangalore");
+  assert.equal(rows[1].result, "replaced");
+  assert.deepEqual(written, ["iskcon-temple-bangalore"]);
+  assert.match(formatCoverPhotoReport(rows, { apply: true }), /skip virupaksha-temple public-check-failed/);
+  assert.match(formatCoverPhotoReport(rows, { apply: true }), /replaced iskcon-temple-bangalore/);
+});
