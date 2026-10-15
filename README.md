@@ -230,7 +230,7 @@ Production / release browsing does **not** require signing in. Seed and Admin wr
 6. After you are recognized as admin, tap **Seed** on Home or **Seed sample temples** on Admin’s empty state. Watch idle → Seeding → success or a short error (not a silent no-op). Or tap **Create a temple** to add one document without seeding.
 7. Admin uses a live Firestore snapshot, so the temple list appears as soon as a seed/create/edit/delete succeeds — no hot restart. Home reloads when you leave Admin (and after a successful seed from Home).
 
-**Idempotency:** each seeded temple is stored under a slug of its name (e.g. `meenakshi-amman-temple`). Re-running Seed merges into those same documents instead of creating duplicates. Existing admin-uploaded `images` and original `createdAt` values are preserved. CMS **Create** uses the same slug rule and refuses a name that would collide.
+**Idempotency:** each seeded temple is stored under a slug of its name (e.g. `meenakshi-amman-temple`). Re-running Seed merges into those same documents instead of creating duplicates. Existing admin-uploaded `images` and original `createdAt` values are preserved. When a live gallery is kept, Seed sets `imageUrl` to `images[0]` so the cover cannot point at a different host. CMS **Create** uses the same slug rule and refuses a name that would collide.
 
 ### State batch seeding
 
@@ -245,6 +245,26 @@ node seed_state_batch.js ../docs/state-batch-template.json
 node seed_state_batch.js path/to/bihar.json --write
 node seed_state_batch.js path/to/bihar.json --apply --project temple-directory-india
 ```
+
+### Photo mirror and field patches
+
+Do not run **Seed** against production, and do not pass `--patch-firestore`, to apply the photo fixes in this repo. Deployer uses the two scripts below after merge. Both default to a dry-run, refuse `CI`, and ask you to type the Firebase project id before any write.
+
+```bash
+cd scripts
+npm install
+node patch_image_url_mirror.js
+node patch_image_url_mirror.js --apply --project temple-directory-india
+```
+
+The apply step reads each live document and sets only `imageUrl` to that document's `images[0]`. It covers the 30 mirror ids, including Anjengo where `imageUrl` is empty. It does not change `images` or `photos`.
+
+```bash
+node apply_field_patches.js --patches ../tools/prod-patches/photo-field-patches.json
+node apply_field_patches.js --apply --project temple-directory-india --patches ../tools/prod-patches/photo-field-patches.json
+```
+
+`tools/prod-patches/photo-field-patches.json` updates only the keys listed on each temple: `imageUrl`, `images`, and `photos` for the promoted galleries; `timings` only for Amarnath Cave Temple; `imageUrl` and `images` only for Pashupatinath Temple (Mandsaur). It does not upload Storage objects and it does not create missing documents. Image URLs in that patch and in `lib/data/sample_data.dart` have `utm_*` query parameters stripped.
 
 Release and profile builds hide Seed/Admin entirely (including the Admin sign-in panel); `seedTempleData` and Admin CMS writes also refuse to run outside debug, and rules reject non-admin writes even if a client tried. The release App Bundle still links `firebase_auth` and `firebase_storage` — Play Data safety must not claim those SDKs are absent (see [`docs/play-store-listing.md`](docs/play-store-listing.md)).
 

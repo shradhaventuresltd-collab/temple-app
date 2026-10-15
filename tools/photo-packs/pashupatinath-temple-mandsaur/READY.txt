@@ -1,4 +1,6 @@
-Ready: 5 photos
+Ready: 7 photos
 slug: pashupatinath-temple-mandsaur
-retrieved: 2026-09-22 IST
-KAN-76 WAVE C — do NOT set live imageUrl.
+retrieved: 2026-10-15
+Category:Pashupatinath Temple, Mandsaur. Cover is 01 exterior.
+Kathmandu frames are not in this pack (The_Pashupatinath_Temple_27.jpg and the Sadhu_Giving_Blessings Kathmandu file were removed).
+KAN-76 WAVE C — do NOT set live imageUrl from this folder.
