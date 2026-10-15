@@ -1,0 +1,88 @@
+{
+  "state": "Assam",
+  "owner": "Reviewer",
+  "generated": "2026-10-15",
+  "existing_in_prod": 0,
+  "target": 50,
+  "temples": [
+    {
+      "slug": "kamakhya-temple",
+      "name": "Kamakhya Temple",
+      "city": "Guwahati",
+      "state": "Assam",
+      "deity": "Kamakhya (Shakti)",
+      "latitude": 26.1664,
+      "longitude": 91.7055,
+      "timings": null,
+      "timings_note": "No official (temple trust / state tourism / ASI) timings page verified; left null.",
+      "description": "Kamakhya Temple crowns Nilachal hill in Guwahati and is one of the most revered Shakta shrines in India. It is a major centre of Tantric worship, and its present structure reflects centuries of rebuilding in a distinctive local style known as Nilachal.",
+      "specialities": [
+        "Counted among the oldest Shakta pithas",
+        "Site of the annual Ambubachi Mela",
+        "Centre of the Kulachara Tantra tradition",
+        "Nilachal-style temple architecture"
+      ],
+      "sources": [
+        {
+          "field": "name,city,deity,description,specialities",
+          "title": "Kamakhya Temple — Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Kamakhya_Temple"
+        },
+        {
+          "field": "latitude,longitude",
+          "title": "Kamakhya Temple — Wikipedia (coordinates)",
+          "url": "https://en.wikipedia.org/wiki/Kamakhya_Temple"
+        }
+      ],
+      "photo_pack": {
+        "path": "photos/kamakhya-temple/",
+        "status": "SHORTFALL",
+        "count": 0
+      },
+      "review": {
+        "status": "approved",
+        "reviewer": "fixture",
+        "notes": ""
+      }
+    },
+    {
+      "slug": "umananda-temple",
+      "name": "Umananda Temple",
+      "city": "Guwahati",
+      "state": "Assam",
+      "deity": "Shiva",
+      "latitude": 26.1964,
+      "longitude": 91.7453,
+      "timings": null,
+      "timings_note": "No official (temple trust / state tourism / ASI) timings page verified; left null.",
+      "description": "Umananda Temple is a Shiva shrine on Umananda (Peacock) Island in the Brahmaputra, opposite Kachari Ghat in Guwahati. Visitors reach it by country boat. The temple was first built in 1694 under Ahom king Gadadhar Singha and was damaged in the 1897 earthquake.",
+      "specialities": [
+        "Located on a river island in the Brahmaputra",
+        "Built in 1694 under Ahom king Gadadhar Singha",
+        "Reached by boat from Guwahati"
+      ],
+      "sources": [
+        {
+          "field": "name,city,deity,description,specialities",
+          "title": "Umananda Temple — Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Umananda_Temple"
+        },
+        {
+          "field": "latitude,longitude",
+          "title": "Umananda Temple — Wikipedia (coordinates)",
+          "url": "https://en.wikipedia.org/wiki/Umananda_Temple"
+        }
+      ],
+      "photo_pack": {
+        "path": "photos/umananda-temple/",
+        "status": "SHORTFALL",
+        "count": 0
+      },
+      "review": {
+        "status": "rejected",
+        "reviewer": "fixture",
+        "notes": "Rejected in review. Not for seeding."
+      }
+    }
+  ]
+}

@@ -167,6 +167,7 @@ bool isPlaceholderImageUrl(String raw) {
     'placekitten.com',
     'fakeimg.pl',
     'placeimg.com',
+    'lorempixel.com',
   ];
   for (final known in hosts) {
     if (host == known || host.endsWith('.$known')) return true;

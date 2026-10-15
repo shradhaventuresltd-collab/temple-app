@@ -1,0 +1,48 @@
+{
+  "state": "Tamil Nadu",
+  "owner": "Research",
+  "generated": "2026-10-15",
+  "existing_in_prod": 20,
+  "target": 50,
+  "temples": [
+    {
+      "slug": "koodal-azhagar-temple",
+      "name": "Koodal Azhagar Temple",
+      "city": "Madurai",
+      "state": "Tamil Nadu",
+      "deity": "Vishnu (Koodal Azhagar)",
+      "latitude": 9.9139,
+      "longitude": 78.1146,
+      "timings": null,
+      "timings_note": "No official (HR&CE / temple) timings page found; left null.",
+      "description": "Koodal Azhagar Temple is a Vishnu temple in the heart of Madurai and one of the 108 Divya Desams praised by the Alvars. It is known for its three-tiered sanctum with Vishnu in sitting, standing and reclining postures.",
+      "specialities": [
+        "One of the 108 Divya Desams",
+        "Three-tier sanctum: seated, standing and reclining Vishnu",
+        "Glorified in the Nalayira Divya Prabandham"
+      ],
+      "sources": [
+        {
+          "field": "name,city,deity,description,specialities",
+          "title": "Koodal Azhagar Temple — Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Koodal_Azhagar_Temple"
+        },
+        {
+          "field": "latitude,longitude",
+          "title": "Koodal Azhagar Temple — Wikipedia (coordinates)",
+          "url": "https://en.wikipedia.org/wiki/Koodal_Azhagar_Temple"
+        }
+      ],
+      "photo_pack": {
+        "path": "photos/koodal-azhagar-temple/",
+        "status": "READY",
+        "count": 5
+      },
+      "review": {
+        "status": "pending",
+        "reviewer": "Research Pavi",
+        "notes": ""
+      }
+    }
+  ]
+}

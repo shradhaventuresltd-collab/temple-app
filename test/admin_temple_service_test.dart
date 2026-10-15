@@ -48,6 +48,29 @@ void main() {
 
     final fromLocation = Temple.fromMap('id-2', {'location': 'Old field'});
     expect(fromLocation.location, 'Old field');
+    expect(fromLocation.timings, '');
+  });
+
+  test('null timings stay null in Firestore data and sample constructors', () {
+    final temple = Temple(
+      name: 'Example Temple',
+      state: 'Bihar',
+      city: 'Patna',
+      deity: 'Shiva',
+      imageUrl: '',
+      description: 'A temple.',
+      story: 'A story.',
+      location: 'Patna, Bihar',
+      timings: null,
+      specialities: const ['Stone'],
+      latitude: 25.6,
+      longitude: 85.1,
+    );
+    expect(temple.timings, '');
+    expect(temple.toFirestoreData()['timings'], isNull);
+
+    final fromDoc = Temple.fromMap('example-temple', {'timings': null});
+    expect(fromDoc.toFirestoreData()['timings'], isNull);
   });
 
   test('toFirestoreData uses address, not a parallel schema', () {
