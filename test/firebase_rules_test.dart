@@ -63,6 +63,21 @@ void main() {
     expect(storageRules, isNot(contains('allow write: if true')));
   });
 
+  test('null timings are allowed and an empty timings string is not', () {
+    expect(firestoreRules, contains('function validTimings()'));
+    expect(firestoreRules, contains('function optionalTimings()'));
+    expect(
+      firestoreRules,
+      contains('request.resource.data.timings == null ||'),
+    );
+    expect(firestoreRules, contains('validTimings()'));
+    expect(firestoreRules, contains('optionalTimings()'));
+    expect(firestoreRules, contains("validStringLength('timings', 1, 1000)"));
+    expect(firestoreRules, contains("validStringLength('story', 1, 20000)"));
+    expect(firestoreRules, isNot(contains("timings == ''")));
+    expect(firestoreRules, isNot(contains('timings == ""')));
+  });
+
   test('firebase.json points at the checked-in rules files', () {
     final firebaseJson = File('firebase.json').readAsStringSync();
     expect(firebaseJson, contains('"rules": "firestore.rules"'));
