@@ -146,4 +146,155 @@ if ! minutes_at_or_over_threshold 2000; then
 fi
 echo "ok: 2000 meets 75%"
 
+expect_eq "every workflow shares one total" \
+  "$(sum_workflow_minutes 12 7 40 1)" 60
+listed="$(printf '%s\n' \
+  '222	.github/workflows/android-smoke.yml' \
+  '444	.github/workflows/actions-minutes.yml' \
+  '161335	.github/workflows/ci.yml' \
+  '333	.github/workflows/demo-seed-launch.yml' \
+  '555	.github/workflows/retired.yml' \
+  | workflow_rows_from_api_tsv)"
+expect_eq "the minutes total lists every workflow, including deleted ones" \
+  "$listed" \
+  $'444\tactions-minutes.yml\n222\tandroid-smoke.yml\n161335\tci.yml\n333\tdemo-seed-launch.yml\n555\tretired.yml'
+if workflow_rows_from_api_tsv </dev/null >/dev/null 2>&1; then
+  echo "FAIL: an empty workflow list should fail" >&2
+  exit 1
+fi
+echo "ok: an empty workflow list fails"
+if grep -q 'printf '"'"'%s\\n'"'"' "ci.yml" "android-smoke.yml"' scripts/ci/check_actions_minutes.sh; then
+  echo "FAIL: workflow minutes must not be a hardcoded ci.yml plus android-smoke.yml list" >&2
+  exit 1
+fi
+echo "ok: workflow minutes are not a hardcoded pair"
+if ! grep -q 'actions/workflows?per_page=100' scripts/ci/check_actions_minutes.sh; then
+  echo "FAIL: workflows must be listed through the Actions API" >&2
+  exit 1
+fi
+echo "ok: workflows are listed through the Actions API"
+expect_eq "1,500 alert says to cut smoke to 10 AM and 10 PM IST" \
+  "$(minutes_over_budget_action)" \
+  "Change the android-smoke cron to two runs a day, 10 AM and 10 PM IST (cron '30 4,16 * * *')."
+expect_eq "issue names this repository's minutes and the shared quota" \
+  "$(minutes_issue_opening)" \
+  "This repository's Actions minutes are at or above 1,500 of 2,000 free private minutes. Those 2,000 minutes are shared across the account. Other repositories on the account use the same quota and are not included in this total."
+if ! grep -q "this repository's minutes" docs/testing.md; then
+  echo "FAIL: docs must say this repository's minutes" >&2
+  exit 1
+fi
+echo "ok: docs say this repository's minutes"
+if ! grep -q 'Other repositories use the same quota' docs/testing.md; then
+  echo "FAIL: docs must note that other repositories share the quota" >&2
+  exit 1
+fi
+echo "ok: docs note that other repositories share the quota"
+if ! grep -q 'demo-seed-launch.yml' docs/testing.md || ! grep -q 'actions-minutes.yml' docs/testing.md; then
+  echo "FAIL: docs must include demo-seed-launch.yml and actions-minutes.yml in the minutes total" >&2
+  exit 1
+fi
+echo "ok: docs include demo-seed-launch and actions-minutes"
+
+minutes_bin="$(mktemp -d)"
+cat >"$minutes_bin/gh" <<'EOF'
+#!/bin/bash
+url=""
+for arg in "$@"; do
+  case "$arg" in
+    repos/*) url="$arg" ;;
+  esac
+done
+case "$url" in
+  repos/example/repo/actions/workflows\?per_page=100)
+    printf '%s\n' \
+      '10	.github/workflows/ci.yml' \
+      '20	.github/workflows/android-smoke.yml' \
+      '30	.github/workflows/demo-seed-launch.yml' \
+      '40	.github/workflows/actions-minutes.yml'
+    ;;
+  repos/example/repo/actions/workflows/10/runs\?*)
+    echo 1001
+    ;;
+  repos/example/repo/actions/workflows/20/runs\?*)
+    echo 2001
+    ;;
+  repos/example/repo/actions/workflows/30/runs\?*)
+    echo 3001
+    ;;
+  repos/example/repo/actions/workflows/40/runs\?*)
+    echo 4001
+    ;;
+  repos/example/repo/actions/runs/1001/jobs\?*)
+    printf 'success\t2026-10-01T00:00:00Z\t2026-10-01T00:02:00Z\n'
+    ;;
+  repos/example/repo/actions/runs/2001/jobs\?*)
+    printf 'success\t2026-10-01T00:00:00Z\t2026-10-01T00:03:00Z\n'
+    ;;
+  repos/example/repo/actions/runs/3001/jobs\?*)
+    printf 'success\t2026-10-01T00:00:00Z\t2026-10-01T00:40:00Z\n'
+    ;;
+  repos/example/repo/actions/runs/4001/jobs\?*)
+    printf 'success\t2026-10-01T00:00:00Z\t2026-10-01T00:01:00Z\n'
+    ;;
+  *)
+    echo "unexpected gh url: ${url}" >&2
+    exit 1
+    ;;
+esac
+EOF
+chmod +x "$minutes_bin/gh"
+minutes_out="$(PATH="$minutes_bin:/usr/bin:/bin" GITHUB_REPOSITORY=example/repo bash scripts/ci/check_actions_minutes.sh)"
+case "$minutes_out" in
+  "This repository's minutes: 46 / 2000 "*) ;;
+  *)
+    echo "FAIL: minutes total should be 46 across every workflow, got: ${minutes_out}" >&2
+    exit 1
+    ;;
+esac
+echo "ok: minutes total includes ci, android-smoke, demo-seed-launch, and actions-minutes"
+rm -rf "$minutes_bin"
+
+expect_eq "skipped job does not count" \
+  "$(job_billable_minutes skipped 2026-10-01T00:00:00Z 2026-10-01T00:05:00Z)" 0
+expect_eq "skipped job with no timestamps does not count" \
+  "$(job_billable_minutes skipped null null)" 0
+expect_eq "a job without completed_at is skipped" \
+  "$(job_billable_minutes failure null null)" 0
+expect_eq "an in-progress job is skipped" \
+  "$(job_billable_minutes success 2026-10-01T00:00:00Z null)" 0
+expect_eq "a job that ran is at least 1 minute" \
+  "$(job_billable_minutes success 2026-10-01T00:00:00Z 2026-10-01T00:00:00Z)" 1
+expect_eq "30 seconds rounds up to 1 minute" \
+  "$(job_billable_minutes success 2026-10-01T00:00:00Z 2026-10-01T00:00:30Z)" 1
+expect_eq "60 seconds is 1 minute" \
+  "$(job_billable_minutes success 2026-10-01T00:00:00Z 2026-10-01T00:01:00Z)" 1
+expect_eq "61 seconds rounds up to 2 minutes" \
+  "$(job_billable_minutes success 2026-10-01T00:00:00Z 2026-10-01T00:01:01Z)" 2
+expect_eq "cancelled job still counts" \
+  "$(job_billable_minutes cancelled 2026-10-01T00:00:00Z 2026-10-01T00:01:30Z)" 2
+
+if job_billable_minutes success null 2026-10-01T00:01:00Z >/dev/null 2>&1; then
+  echo "FAIL: a finished job missing started_at should fail" >&2
+  exit 1
+fi
+echo "ok: a finished job missing started_at fails"
+
+if job_billable_minutes success 2026-10-01T00:02:00Z 2026-10-01T00:01:00Z >/dev/null 2>&1; then
+  echo "FAIL: completed_at before started_at should fail" >&2
+  exit 1
+fi
+echo "ok: completed_at before started_at fails"
+
+require_minutes_if_runs 0 0 0 ci.yml
+echo "ok: no runs and 0 minutes is allowed"
+require_minutes_if_runs 3 0 0 android-smoke.yml
+echo "ok: all-skipped runs are not a zero-total error"
+if require_minutes_if_runs 2 0 1 android-smoke.yml >/dev/null 2>&1; then
+  echo "FAIL: finished jobs with a 0 minute total should fail" >&2
+  exit 1
+fi
+echo "ok: finished jobs with a 0 minute total fails"
+require_minutes_if_runs 2 5 2 android-smoke.yml
+echo "ok: runs with measured minutes pass"
+
 echo "CI guard checks passed."

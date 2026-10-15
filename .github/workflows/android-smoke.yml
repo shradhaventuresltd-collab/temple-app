@@ -9,7 +9,9 @@ name: android-smoke
 # A scheduled run is skipped when main HEAD equals the last successful
 # android-smoke job on main, or the last failed attempt, so a red SHA is
 # not retried every slot. A schedule-triggered cancelled job counts as
-# failed. A workflow_dispatch cancel does not.
+# failed, including a manual cancel of that scheduled run. That SHA stays
+# blocked until a new commit or a workflow_dispatch. A workflow_dispatch
+# cancel does not.
 #
 # pull_request is opt-in. types are labeled and synchronize only.
 # The emulator job runs only when the PR has the run-smoke label:
@@ -148,12 +150,15 @@ jobs:
           "${HOME}/.maestro/bin/maestro" --version
 
       # System image the emulator runner installs under ANDROID_SDK_ROOT.
+      # Already cached. Key is API level 34, ABI x86_64, image google_apis.
       - name: Cache emulator system image
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: /usr/local/lib/android/sdk/system-images
           key: system-image-android-34-google_apis-x86_64
 
+      # Already cached. Key is API level 34, ABI x86_64, image google_apis
+      # (pixel_6 snapshot). A hit keeps the run near 8 minutes.
       # reactivecircus/android-emulator-runner snapshot pattern: cache the
       # AVD, boot once without -no-snapshot-save on a miss, then smoke with
       # -no-snapshot-save so the cached snapshot is not rewritten.
@@ -196,9 +201,10 @@ jobs:
           # for sys.boot_completed and installs the APK with adb.
           emulator-options: -no-snapshot-save -no-snapshot-load -no-boot-anim -gpu swiftshader_indirect -no-window -noaudio -camera-back none -camera-front none
           # One dash-safe command. The action runs this with /usr/bin/sh.
-          # 12m is under the 15-minute job limit. --kill-after sends SIGKILL
-          # if SIGTERM is ignored, so a hang exits non-zero and the job
-          # concludes failure. timeout-minutes itself concludes cancelled.
+          # Setup usually takes about 6 to 7 minutes, so the 15-minute job
+          # limit fires before this 12-minute shell timeout and the job
+          # concludes cancelled. A scheduled cancel counts as failed.
+          # --kill-after sends SIGKILL if the shell timeout is reached.
           script: timeout --kill-after=30s 12m bash scripts/ci/run_android_smoke.sh
 
       - name: Upload Maestro debug output
