@@ -151,7 +151,11 @@ List<String> verifiedMosaicUrls(Iterable<Temple> temples) {
   return [for (final temple in temples) ...verifiedGalleryUrls(temple)];
 }
 
-/// True for empty values and known stock/placeholder image URLs.
+/// True for empty values and exact placeholder hosts.
+///
+/// Host equality only. A path or query that contains `placeholder` or
+/// `picsum` is not enough, and a subdomain such as `fastly.picsum.photos`
+/// is not a match. `images.unsplash.com` and shutterstock are photographs.
 bool isPlaceholderImageUrl(String raw) {
   final url = raw.trim();
   if (url.isEmpty) return true;
@@ -161,37 +165,17 @@ bool isPlaceholderImageUrl(String raw) {
   }
   final host = uri.host.toLowerCase();
   if (host.isEmpty) return true;
-  const hosts = <String>[
+  const hosts = <String>{
     'picsum.photos',
     'placeholder.com',
     'via.placeholder.com',
     'placehold.co',
     'placehold.it',
     'dummyimage.com',
-    'loremflickr.com',
-    'placekitten.com',
-    'fakeimg.pl',
-    'placeimg.com',
     'lorempixel.com',
-    'unsplash.com',
     'source.unsplash.com',
-    'shutterstock.com',
-    'istockphoto.com',
-    'gettyimages.com',
-    'pexels.com',
-    'stock.adobe.com',
-    'freepik.com',
-    'dreamstime.com',
-    '123rf.com',
-    'depositphotos.com',
-  ];
-  for (final known in hosts) {
-    if (host == known || host.endsWith('.$known')) return true;
-  }
-  if (host.contains('picsum.photos')) return true;
-  final blob = '${uri.path} ${uri.query}'.toLowerCase();
-  if (blob.contains('placeholder') || blob.contains('picsum')) return true;
-  return false;
+  };
+  return hosts.contains(host);
 }
 
 SiteTradition _traditionFromIndex(String value) {

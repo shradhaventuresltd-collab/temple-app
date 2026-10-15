@@ -119,30 +119,17 @@ const FORBIDDEN = [
   "trip_planning",
 ];
 
-const PLACEHOLDER_HOSTS = [
+/** Exact hosts only. Keep in step with detail_honesty.dart and temple_index.js. */
+const PLACEHOLDER_HOSTS = new Set([
   "picsum.photos",
   "placeholder.com",
   "via.placeholder.com",
   "placehold.co",
   "placehold.it",
   "dummyimage.com",
-  "loremflickr.com",
-  "placekitten.com",
-  "fakeimg.pl",
-  "placeimg.com",
-  "unsplash.com",
-  "source.unsplash.com",
-  "shutterstock.com",
-  "istockphoto.com",
-  "gettyimages.com",
-  "pexels.com",
-  "stock.adobe.com",
-  "freepik.com",
-  "dreamstime.com",
-  "123rf.com",
-  "depositphotos.com",
   "lorempixel.com",
-];
+  "source.unsplash.com",
+]);
 
 function box(latMin, latMax, lngMin, lngMax) {
   return Object.freeze({ latMin, latMax, lngMin, lngMax });
@@ -530,16 +517,7 @@ export function isPlaceholderImageUrl(raw) {
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return true;
   const host = parsed.hostname.toLowerCase();
   if (host === "") return true;
-  for (const known of PLACEHOLDER_HOSTS) {
-    if (host === known || host.endsWith(`.${known}`) || host.includes("picsum.photos")) {
-      return true;
-    }
-  }
-  const blob = `${parsed.pathname} ${parsed.search}`.toLowerCase();
-  if (blob.includes("placeholder") || blob.includes("picsum")) {
-    return true;
-  }
-  return false;
+  return PLACEHOLDER_HOSTS.has(host);
 }
 
 export function distanceKm(left, right) {

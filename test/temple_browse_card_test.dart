@@ -150,7 +150,7 @@ void main() {
           imageUrl: '',
           images: const [
             'https://picsum.photos/seed/desk/800/600',
-            'https://fastly.picsum.photos/id/1015/800/600',
+            'https://via.placeholder.com/800x600',
           ],
         ),
       );
@@ -288,7 +288,7 @@ void main() {
   });
 
   testWidgets(
-    'a Commons 480px thumb retries the original once, including under 480px',
+    'a Commons thumb retries the original once, including under 500px',
     (tester) async {
       const thumb =
           'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/480px-Keesara_gutta_main_temple_gate.jpg';

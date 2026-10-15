@@ -99,7 +99,7 @@ void main() {
     expect(entry['address'], 'Madurai Main, Madurai, Tamil Nadu 625001');
     expect(
       entry['coverThumb'],
-      'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/480px-File.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/500px-File.jpg',
     );
     expect(entry['lat'], 9.9195);
     expect(entry['lng'], 78.1193);
@@ -151,7 +151,7 @@ void main() {
         ],
         'imageUrl': wide,
       }),
-      'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/480px-File.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/500px-File.jpg',
     );
     expect(coverThumbFor({'imageUrl': full}), full);
     expect(
@@ -217,7 +217,7 @@ void main() {
     );
     expect(
       wikimediaOriginalUrl(
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/480px-File.jpg',
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/500px-File.jpg',
       ),
       'https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg',
     );

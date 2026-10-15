@@ -33,6 +33,10 @@ const int kTempleIndexShortAddressMax = 340;
 /// `coverThumb` is a URL, capped so a shard of summaries stays small.
 const int kTempleIndexCoverThumbMax = 500;
 
+/// Commons thumb width. Wikimedia's ladder includes 500 and rejects 480
+/// with HTTP 400. Cards still decode at about 480px.
+const int kCommonsThumbPx = 500;
+
 /// Trimmed so 400 entries stay under 1 MiB. Ids are not trimmed; they are
 /// the map key and already limited to 200 characters.
 const int kTempleIndexNameMax = 80;
@@ -133,11 +137,11 @@ String shortTempleAddress(String raw) {
 /// or `imageUrl` when `images` is empty. Placeholder hosts are skipped.
 ///
 /// A stored `photos[].thumbUrl` for that photo is used as written. Otherwise
-/// a Wikimedia `/thumb/` wider than 480px is narrowed. A Commons original
-/// `.../commons/<h>/<hh>/<name>` becomes a 480px thumb when `<h>/<hh>` match
-/// the MD5 of the underscored filename. An SVG thumb appends `.png`. A TIFF
-/// thumb appends `.jpg`. PDF, DjVu, WebM, OGV, and anything else stay the
-/// full URL. Storage siblings are not invented. The
+/// a Wikimedia `/thumb/` wider than [kCommonsThumbPx] is narrowed. A Commons
+/// original `.../commons/<h>/<hh>/<name>` becomes a 500px thumb when
+/// `<h>/<hh>` match the MD5 of the underscored filename. An SVG thumb
+/// appends `.png`. A TIFF thumb appends `.jpg`. PDF, DjVu, WebM, OGV, and
+/// anything else stay the full URL. Storage siblings are not invented. The
 /// result is at most [kTempleIndexCoverThumbMax] characters. Detail keeps
 /// the full gallery URL.
 String? coverThumbFor(Map<String, dynamic> data) {
@@ -193,7 +197,8 @@ List<String> _galleryCandidates(Map<String, dynamic> data) {
 
 /// URL list helper. Prefer [coverThumbFor] so the gallery order stays put.
 ///
-/// Wikimedia thumbs are rewritten to 480px. Other URLs stay full size.
+/// Wikimedia thumbs wider than [kCommonsThumbPx] are rewritten to 500px.
+/// Other URLs stay full size.
 String? coverThumbFromUrls(Iterable<Object?> urls) {
   for (final raw in urls) {
     if (raw is! String) continue;
@@ -220,10 +225,11 @@ String? _fullCover(Object? raw) {
   return trimmed;
 }
 
-/// Wikimedia URL at 480px, or null when [raw] is not a Commons file.
+/// Wikimedia URL at [kCommonsThumbPx], or null when [raw] is not a Commons file.
 ///
-/// An existing `/thumb/` wider than 480px is narrowed. An original
-/// `.../commons/<h>/<hh>/<name>` becomes that 480px thumb.
+/// An existing `/thumb/` wider than 500px is narrowed. A thumb that is
+/// already 500px or smaller is left as stored. An original
+/// `.../commons/<h>/<hh>/<name>` becomes that 500px thumb.
 String? _wikimedia480(Object? raw) {
   final trimmed = _fullCover(raw);
   if (trimmed == null) return null;
@@ -233,8 +239,8 @@ String? _wikimedia480(Object? raw) {
   if (!decodedPath.contains('/thumb/')) return _commonsOriginal480(trimmed);
   return trimmed.replaceFirstMapped(RegExp(r'/(\d+)px-([^/?#]+)'), (match) {
     final width = int.tryParse(match.group(1)!) ?? 0;
-    if (width <= 480) return match.group(0)!;
-    return '/480px-${match.group(2)}';
+    if (width <= kCommonsThumbPx) return match.group(0)!;
+    return '/${kCommonsThumbPx}px-${match.group(2)}';
   });
 }
 
@@ -300,9 +306,9 @@ String _commonsDecode(String value) {
 /// JPEG. PDF, DjVu, WebM, and OGV are not rewritten.
 String? _commonsThumbName(String decoded, String encoded) {
   final lower = decoded.toLowerCase();
-  if (lower.endsWith('.svg')) return '480px-$encoded.png';
+  if (lower.endsWith('.svg')) return '${kCommonsThumbPx}px-$encoded.png';
   if (lower.endsWith('.tif') || lower.endsWith('.tiff')) {
-    return '480px-$encoded.jpg';
+    return '${kCommonsThumbPx}px-$encoded.jpg';
   }
   if (lower.endsWith('.pdf') ||
       lower.endsWith('.djvu') ||
@@ -310,7 +316,7 @@ String? _commonsThumbName(String decoded, String encoded) {
       lower.endsWith('.ogv')) {
     return null;
   }
-  return '480px-$encoded';
+  return '${kCommonsThumbPx}px-$encoded';
 }
 
 /// MediaWiki path encoding. Commas stay literal so Dart and JS match.

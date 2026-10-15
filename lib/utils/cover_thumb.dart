@@ -223,8 +223,8 @@ final RegExp _wikiThumbSize = RegExp(r'^\d+px-');
 /// Original file behind a Wikimedia `/thumb/.../NNNpx-` URL.
 ///
 /// `thumb.wikimedia.org` is rewritten to `upload.wikimedia.org`. Null when
-/// [raw] is not a Wikimedia thumb. A failed 480px card requests this once
-/// before the placeholder.
+/// [raw] is not a Wikimedia thumb. A failed Commons thumb requests this
+/// once before the placeholder.
 String? wikimediaOriginalUrl(String? raw) {
   final trimmed = raw?.trim() ?? '';
   final noQuery = trimmed.split('#').first.split('?').first;

@@ -53,7 +53,27 @@ void main() {
     );
     expect(
       isPlaceholderImageUrl('https://fastly.picsum.photos/id/1/800/600'),
-      isTrue,
+      isFalse,
+    );
+    expect(
+      isPlaceholderImageUrl('https://images.unsplash.com/photo-1'),
+      isFalse,
+    );
+    expect(
+      isPlaceholderImageUrl('https://www.shutterstock.com/image-photo/temple'),
+      isFalse,
+    );
+    expect(
+      isPlaceholderImageUrl(
+        'https://upload.wikimedia.org/wikipedia/commons/x/xx/Placeholder_temple.jpg',
+      ),
+      isFalse,
+    );
+    expect(
+      isPlaceholderImageUrl(
+        'https://storage.googleapis.com/bucket/temples/placeholder-x.jpg',
+      ),
+      isFalse,
     );
     expect(isPlaceholderImageUrl('https://placehold.co/800x600'), isTrue);
     expect(isPlaceholderImageUrl('https://placehold.it/800x600'), isTrue);

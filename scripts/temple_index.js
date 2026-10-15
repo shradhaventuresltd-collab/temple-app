@@ -12,6 +12,8 @@ export const MAX_ENTRIES = 400;
 export const MAX_SHARDS = 48;
 export const SHORT_ADDRESS_MAX = 340;
 export const COVER_THUMB_MAX = 500;
+/** Wikimedia serves 500px and rejects 480px with HTTP 400. */
+export const COMMONS_THUMB_PX = 500;
 export const NAME_MAX = 80;
 export const CITY_MAX = 40;
 export const STATE_MAX = 40;
@@ -104,6 +106,18 @@ export function shortAddress(raw) {
   return cut.trimEnd().replace(/[,\s]+$/, "");
 }
 
+/** Exact hosts. Same set as state_batch.js and detail_honesty.dart. */
+const PLACEHOLDER_HOSTS = new Set([
+  "picsum.photos",
+  "placeholder.com",
+  "via.placeholder.com",
+  "placehold.co",
+  "placehold.it",
+  "dummyimage.com",
+  "lorempixel.com",
+  "source.unsplash.com",
+]);
+
 function placeholder(url) {
   let parsed;
   try {
@@ -114,36 +128,7 @@ function placeholder(url) {
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return true;
   const host = parsed.hostname.toLowerCase();
   if (!host) return true;
-  const hosts = [
-    "picsum.photos",
-    "placeholder.com",
-    "via.placeholder.com",
-    "placehold.co",
-    "placehold.it",
-    "dummyimage.com",
-    "loremflickr.com",
-    "placekitten.com",
-    "fakeimg.pl",
-    "placeimg.com",
-    "lorempixel.com",
-    "unsplash.com",
-    "source.unsplash.com",
-    "shutterstock.com",
-    "istockphoto.com",
-    "gettyimages.com",
-    "pexels.com",
-    "stock.adobe.com",
-    "freepik.com",
-    "dreamstime.com",
-    "123rf.com",
-    "depositphotos.com",
-  ];
-  if (hosts.some((known) => host === known || host.endsWith(`.${known}`))) {
-    return true;
-  }
-  if (host.includes("picsum.photos")) return true;
-  const blob = `${parsed.pathname} ${parsed.search}`.toLowerCase();
-  return blob.includes("placeholder") || blob.includes("picsum");
+  return PLACEHOLDER_HOSTS.has(host);
 }
 
 function httpUrl(raw) {
@@ -177,17 +162,18 @@ function commonsEncode(name) {
 }
 
 /**
- * 480px thumb for a Commons original, or null.
+ * 500px thumb for a Commons original, or null.
  * `h`/`hh` are the MD5 of the underscored filename. Existing segments must
  * match that digest. An SVG thumb appends `.png`. A TIFF thumb appends
  * `.jpg`. PDF, DjVu, WebM, and OGV stay the full URL.
  */
 function commonsThumbName(decoded, encoded) {
   const lower = decoded.toLowerCase();
-  if (lower.endsWith(".svg")) return `480px-${encoded}.png`;
-  if (lower.endsWith(".tif") || lower.endsWith(".tiff")) return `480px-${encoded}.jpg`;
+  const width = `${COMMONS_THUMB_PX}px`;
+  if (lower.endsWith(".svg")) return `${width}-${encoded}.png`;
+  if (lower.endsWith(".tif") || lower.endsWith(".tiff")) return `${width}-${encoded}.jpg`;
   if (/\.(pdf|djvu|webm|ogv)$/i.test(lower)) return null;
-  return `480px-${encoded}`;
+  return `${width}-${encoded}`;
 }
 
 function commonsOriginal480(trimmed) {
@@ -233,9 +219,10 @@ function commonsOriginal480(trimmed) {
 }
 
 /**
- * Wikimedia URL at 480px, or null when [raw] is not a Commons file.
- * An existing `/thumb/` wider than 480px is narrowed. An original
- * `.../commons/<h>/<hh>/<name>` becomes that 480px thumb.
+ * Wikimedia URL at 500px, or null when [raw] is not a Commons file.
+ * An existing `/thumb/` wider than 500px is narrowed. A thumb that is
+ * already 500px or smaller is left as stored. An original
+ * `.../commons/<h>/<hh>/<name>` becomes that 500px thumb.
  */
 function wikimedia480(raw) {
   const trimmed = knownThumbUrl(raw);
@@ -249,8 +236,8 @@ function wikimedia480(raw) {
   if (!pathname.includes("/thumb/")) return commonsOriginal480(trimmed);
   return trimmed.replace(/\/(\d+)px-([^/?#]+)/, (full, width, rest) => {
     const parsed = Number(width);
-    if (!Number.isFinite(parsed) || parsed <= 480) return full;
-    return `/480px-${rest}`;
+    if (!Number.isFinite(parsed) || parsed <= COMMONS_THUMB_PX) return full;
+    return `/${COMMONS_THUMB_PX}px-${rest}`;
   });
 }
 
@@ -419,8 +406,8 @@ export function fullCoverUrlFromThumb(raw) {
 /**
  * Original file behind a Wikimedia `/thumb/.../NNNpx-` URL.
  * `thumb.wikimedia.org` is rewritten to `upload.wikimedia.org`.
- * Null when [raw] is not a Wikimedia thumb. Cards use this after the
- * 480px URL fails, so the full image is tried before the placeholder.
+ * Null when [raw] is not a Wikimedia thumb. Cards use this after a
+ * thumb URL fails, so the full image is tried before the placeholder.
  */
 export function wikimediaOriginalUrl(raw) {
   const trimmed = typeof raw === "string" ? raw.trim() : "";
@@ -465,7 +452,7 @@ function galleryCandidates(data) {
   return imageUrl ? [imageUrl] : [];
 }
 
-/** First verified gallery URL, before a 480px rewrite. Matches browse. */
+/** First verified gallery URL, before a 500px rewrite. Matches browse. */
 export function firstVerifiedGalleryUrl(data) {
   for (const url of galleryCandidates(data)) {
     if (!httpUrl(url) || placeholder(url)) continue;
@@ -493,9 +480,10 @@ export function firstThumbSource(data) {
  * `imageUrl` when `images` is empty.
  *
  * A stored `photos[].thumbUrl` for that photo is used as written. Otherwise
- * a Wikimedia `/thumb/` wider than 480px is narrowed. A Commons original
- * `.../commons/<h>/<hh>/<name>` becomes a 480px thumb when `<h>/<hh>` match
- * the MD5 of the underscored filename. An SVG thumb appends `.png`.
+ * a Wikimedia `/thumb/` wider than 500px is narrowed. A Commons original
+ * `.../commons/<h>/<hh>/<name>` becomes a 500px thumb when `<h>/<hh>` match
+ * the MD5 of the underscored filename. An SVG thumb appends `.png`. A TIFF
+ * thumb appends `.jpg`. PDF, DjVu, WebM, and OGV stay the full URL.
  * Anything else stays the full URL. Storage siblings are not invented.
  * Result is at most 500 characters. Detail keeps the full gallery URL.
  */

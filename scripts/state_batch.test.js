@@ -142,11 +142,8 @@ test("story, location, and id are forbidden; sources, photo_pack, and review are
 test("validator rejects placeholder image URLs and ignores sources and Stockholm", () => {
   const urls = [
     "https://picsum.photos/seed/example/800/600",
-    "https://fastly.picsum.photos/id/1/800/600.jpg",
     "https://placehold.co/800x600",
     "https://via.placeholder.com/800",
-    "https://images.unsplash.com/photo-1",
-    "https://www.shutterstock.com/image-photo/temple-1",
     "https://lorempixel.com/800/600/city",
     "https://source.unsplash.com/random",
     "https://dummyimage.com/600x400/000/fff",
@@ -185,6 +182,23 @@ test("validator rejects placeholder image URLs and ignores sources and Stockholm
   };
   const allowed = validateStateBatch(batch([cited]), []);
   assert.equal(allowed.ok, true, allowed.errors.join("\n"));
+
+  const kept = [
+    "https://fastly.picsum.photos/id/1/800/600.jpg",
+    "https://images.unsplash.com/photo-1",
+    "https://www.shutterstock.com/image-photo/temple-1",
+    "https://upload.wikimedia.org/wikipedia/commons/x/xx/Placeholder_temple.jpg",
+    "https://storage.googleapis.com/bucket/temples/placeholder-x.jpg",
+  ];
+  for (const url of kept) {
+    const row = temple();
+    row.photo_pack = {
+      ...row.photo_pack,
+      photos: [{ url, credit: "Example" }],
+    };
+    const result = validateStateBatch(batch([row]), []);
+    assert.equal(result.ok, true, `${url}\n${result.errors.join("\n")}`);
+  }
 });
 
 test("a Bihar batch with Delhi coordinates is a hard error", () => {

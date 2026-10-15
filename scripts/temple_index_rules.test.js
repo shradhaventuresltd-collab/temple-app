@@ -411,6 +411,64 @@ test("an admin save without coordinates writes null", async () => {
   );
 });
 
+test("exact placeholder hosts fail on imageUrl and images[0], and extra photo keys fail", async () => {
+  const db = adminDb("admin-exact-hosts");
+  const hosts = [
+    "https://picsum.photos/seed/a/800/600",
+    "https://placeholder.com/800",
+    "https://via.placeholder.com/800",
+    "https://placehold.co/800x600",
+    "https://placehold.it/800",
+    "https://dummyimage.com/800x600",
+    "https://lorempixel.com/800/600",
+    "https://source.unsplash.com/random",
+  ];
+  for (const url of hosts) {
+    await assertFails(
+      setDoc(at(db, "temples/bad-cover"), templePayload("bad-cover", { imageUrl: url })),
+    );
+    await assertFails(
+      setDoc(at(db, "temples/bad-images"), templePayload("bad-images", { images: [url, "https://example.com/real.jpg"] })),
+    );
+  }
+  const passes = [
+    "https://upload.wikimedia.org/wikipedia/commons/x/xx/Placeholder_temple.jpg",
+    "https://storage.googleapis.com/bucket/temples/placeholder-x.jpg",
+    "https://images.unsplash.com/photo-1",
+    "https://fastly.picsum.photos/id/1/800/600",
+    "https://www.shutterstock.com/image-photo/temple",
+  ];
+  for (const url of passes) {
+    await assertSucceeds(
+      setDoc(
+        at(db, "temples/real-cover"),
+        templePayload("real-cover", {
+          imageUrl: url,
+          images: [url],
+          photos: [{ url, licence: "CC0", order: 0 }],
+        }),
+      ),
+    );
+  }
+  await assertSucceeds(
+    setDoc(
+      at(db, "temples/later-placeholder"),
+      templePayload("later-placeholder", {
+        imageUrl: "https://example.com/cover.jpg",
+        images: ["https://example.com/cover.jpg", "https://picsum.photos/seed/a/800/600"],
+      }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      at(db, "temples/foo-bar"),
+      templePayload("foo-bar", {
+        photos: [{ url: "https://example.com/full.jpg", licence: "CC0", order: 0, foo: 1, bar: 2 }],
+      }),
+    ),
+  );
+});
+
 test("a Commons file named with Unsplash passes the photo key checks", async () => {
   const db = adminDb("admin-unsplash-name");
   const unsplashName =

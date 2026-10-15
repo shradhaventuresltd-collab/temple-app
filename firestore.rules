@@ -40,7 +40,7 @@ service cloud.firestore {
     //   Shard id is the state slug (tamil-nadu). One field:
     //   - entries: map keyed by temple id. Each value is a browse summary:
     //       id, slug, name, city, state, deity, address (short),
-    //       coverThumb (stored photos[].thumbUrl, else a Wikimedia 480px
+    //       coverThumb (stored photos[].thumbUrl, else a Wikimedia 500px
     //       thumb, else the full URL; max 500),
     //       lat, lng (null when missing, never 0,0), updatedAt, v,
     //       tradition, living, framing.
@@ -186,11 +186,18 @@ service cloud.firestore {
         value.matches('^https://[^\\s]+$');
     }
 
-    // Placeholder hosts are not matched here. hasAll/hasOnly plus a
-    // matches() on each photo crosses the 1000-expression limit on a
-    // 3-photo save. The app and the seed validator keep the host list.
+    // Exact placeholder hosts, on imageUrl and images[0] only. A matches()
+    // inside isValidPhoto runs for every photo slot and crosses the
+    // 1000-expression limit. Photos rely on the app and the seed validator.
+    // A path containing "placeholder" or "picsum" is allowed.
+    function placeholderHost(url) {
+      return url is string && url.matches('(?i)^https?://(picsum\\.photos|placeholder\\.com|via\\.placeholder\\.com|placehold\\.co|placehold\\.it|dummyimage\\.com|lorempixel\\.com|source\\.unsplash\\.com)([/?#].*)?$');
+    }
+
     function imageListOk(list) {
-      return list is list && list.size() <= 50;
+      return list is list &&
+        list.size() <= 50 &&
+        (list.size() < 1 || !placeholderHost(list[0]));
     }
 
     function optionalImageList(data) {
@@ -274,6 +281,7 @@ service cloud.firestore {
         validStringLength('city', 1, 100) &&
         validStringLength('deity', 1, 100) &&
         data.imageUrl is string && data.imageUrl.size() <= 2000 &&
+        !placeholderHost(data.imageUrl) &&
         validStringLength('description', 1, 10000) &&
         validStringLength('story', 1, 20000) &&
         validStringLength('address', 1, 500) &&
@@ -331,6 +339,7 @@ service cloud.firestore {
         optionalStringLength('city', 1, 100) &&
         optionalStringLength('deity', 1, 100) &&
         optionalStringLength('imageUrl', 0, 2000) &&
+        (!('imageUrl' in data) || !placeholderHost(data.imageUrl)) &&
         optionalStringLength('description', 1, 10000) &&
         optionalStringLength('story', 1, 20000) &&
         optionalStringLength('address', 1, 500) &&

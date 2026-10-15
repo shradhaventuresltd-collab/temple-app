@@ -201,7 +201,7 @@ export function thumbSaveOptions(file) {
 
 /**
  * A Wikimedia original (no `/thumb/` in the path). Browse coverThumb may
- * rewrite it to a Commons 480px URL. This planner still skips it: the file
+ * rewrite it to a Commons 500px URL. This planner still skips it: the file
  * is not in Storage, and this script does not upload a thumb.
  */
 export function staysFullSizeWikimedia(source) {

@@ -5,8 +5,10 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 /// Client cache bounds for the directory (KAN-147).
 ///
-/// List and mosaic covers decode at about 480px, the same edge as `_480`
-/// thumbs. Detail does not set a decode size, so the full image stays sharp.
+/// List and mosaic covers decode at about 480px. Commons covers are
+/// requested at 500px, a size Wikimedia serves, and decoded down to this
+/// edge. Storage `_480` object names are unchanged. Detail does not set a
+/// decode size, so the full image stays sharp.
 ///
 /// Firestore persistence stays on for Android and iOS and off for web. Web
 /// launches stay cold: the web cache is memory-only, which the directory

@@ -11,7 +11,7 @@ import 'package:temple_app/utils/cover_thumb.dart';
 /// public URL of its original. That original is readable under the same
 /// Storage rule as the thumb. A Wikimedia `/thumb/h/hh/name/NNNpx-` URL
 /// falls back once to the original file (drop `/thumb` and the last
-/// segment), including a thumb of an original that is under 480px. A
+/// segment), including a thumb narrower than 500px. A
 /// `thumb.wikimedia.org` host is rewritten to `upload.wikimedia.org`.
 class CoverNetworkImage extends StatelessWidget {
   const CoverNetworkImage({

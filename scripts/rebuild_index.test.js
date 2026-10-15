@@ -120,7 +120,7 @@ test("cover thumb matches the first verified gallery image and caps at 500", () 
     "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/1280px-File.jpg";
   assert.equal(
     coverThumb({ imageUrl: wide }),
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/480px-File.jpg",
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/500px-File.jpg",
   );
   assert.equal(coverThumb({ imageUrl: full }), full);
   assert.equal(

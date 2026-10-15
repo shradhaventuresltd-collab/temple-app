@@ -106,7 +106,7 @@ function temple(extra = {}) {
 
 test("placeholder hosts are recognised and other URLs stay", () => {
   assert.equal(placeholderHostUrl(picsum), true);
-  assert.equal(placeholderHostUrl("https://fastly.picsum.photos/id/1/800/600"), true);
+  assert.equal(placeholderHostUrl("https://fastly.picsum.photos/id/1/800/600"), false);
   assert.equal(placeholderHostUrl("https://placeholder.com/800"), true);
   assert.equal(placeholderHostUrl("https://via.placeholder.com/800"), true);
   assert.equal(placeholderHostUrl("https://source.unsplash.com/random"), true);
@@ -114,6 +114,18 @@ test("placeholder hosts are recognised and other URLs stay", () => {
   assert.equal(placeholderHostUrl("https://dummyimage.com/600x400"), true);
   assert.equal(placeholderHostUrl("https://placehold.co/800"), true);
   assert.equal(placeholderHostUrl("https://placehold.it/800"), true);
+  assert.equal(placeholderHostUrl("https://images.unsplash.com/photo-1"), false);
+  assert.equal(placeholderHostUrl("https://www.shutterstock.com/image-photo/temple"), false);
+  assert.equal(
+    placeholderHostUrl(
+      "https://upload.wikimedia.org/wikipedia/commons/x/xx/Placeholder_temple.jpg",
+    ),
+    false,
+  );
+  assert.equal(
+    placeholderHostUrl("https://storage.googleapis.com/bucket/temples/placeholder-x.jpg"),
+    false,
+  );
   assert.equal(placeholderHostUrl(wiki), false);
   assert.equal(placeholderHostUrl(""), false);
   assert.equal(placeholderHostUrl("not-a-url"), false);
