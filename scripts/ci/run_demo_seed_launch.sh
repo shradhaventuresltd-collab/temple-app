@@ -55,7 +55,13 @@ for node in pattern.findall(xml):
     if not match:
         continue
     x1, y1, x2, y2 = map(int, match.groups())
-    print((x1 + x2) // 2, (y1 + y2) // 2)
+    # Near the bottom of the node. The app-bar action center is under
+    # the status bar (More is about y=74), and that tap never lands.
+    inset = max(8, (y2 - y1) // 5)
+    y = y2 - inset
+    if y <= y1:
+        y = (y1 + y2) // 2
+    print((x1 + x2) // 2, y)
     break
 ' "$needle" <"$OUT/uidump.xml" || true
 }
