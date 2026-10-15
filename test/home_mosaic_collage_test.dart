@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/data/sample_data.dart';
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/services/client_cache.dart';
 import 'package:temple_app/widgets/home_mosaic_collage.dart';
 import 'package:temple_app/widgets/temple_image_placeholder.dart';
 
@@ -133,10 +134,15 @@ void main() {
     expect(find.byType(CachedNetworkImage), findsWidgets);
     expect(find.text('3 temples across India'), findsOneWidget);
 
-    final urls = tester
+    final images = tester
         .widgetList<CachedNetworkImage>(find.byType(CachedNetworkImage))
-        .map((w) => w.imageUrl)
-        .toSet();
+        .toList();
+    final urls = images.map((w) => w.imageUrl).toSet();
+    for (final image in images) {
+      expect(image.memCacheWidth, lessThanOrEqualTo(ClientCache.listDecodePx));
+      expect(image.memCacheHeight, lessThanOrEqualTo(ClientCache.listDecodePx));
+      expect(image.cacheManager, same(ClientCache.images));
+    }
     expect(urls.any((u) => u.contains('picsum')), isFalse);
     expect(
       urls,
@@ -161,7 +167,9 @@ void main() {
     expect(find.byType(TempleImagePlaceholder), findsOneWidget);
   });
 
-  testWidgets('Purmandal lithograph tiles show the 1847 caption', (tester) async {
+  testWidgets('Purmandal lithograph tiles show the 1847 caption', (
+    tester,
+  ) async {
     final purmandal = sampleTemples.firstWhere(
       (temple) => temple.name == 'Purmandal Temple',
     );

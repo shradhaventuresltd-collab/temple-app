@@ -18,7 +18,7 @@
  *
  * Seed and scripts/seed_state_batch.js --apply write the index themselves.
  * This tool is a repair and backfill only. It is not a required step.
- * Do not run this in CI. Do not point --apply at production from an agent.
+ * Do not run this in CI. Deployer only, dry run first.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";

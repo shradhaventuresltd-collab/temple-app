@@ -1,11 +1,13 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:temple_app/config/build_flags.dart';
 import 'package:temple_app/firebase_options.dart';
 import 'package:temple_app/services/ad_consent.dart';
 import 'package:temple_app/services/ad_helper.dart';
+import 'package:temple_app/services/client_cache.dart';
 
 /// Startup helpers aimed at a fast first Flutter frame (KAN-75).
 ///
@@ -39,8 +41,13 @@ class AppBootstrap {
   /// Initializes Firebase with a timeout. Returns `false` on failure/timeout.
   /// Call from the widget tree after [runApp] so the cream Home shell can
   /// paint immediately; do not await this in [main] before [runApp].
+  ///
+  /// On success, Firestore settings are applied before this future
+  /// completes. Directory reads await it, so persistence and the 100 MiB
+  /// cache are in place before the first query.
   static Future<bool> initializeFirebase({
     Future<void> Function()? initialize,
+    void Function()? configureFirestore,
     Duration timeout = firebaseTimeout,
   }) async {
     try {
@@ -49,13 +56,18 @@ class AppBootstrap {
         isWeb: kIsWeb,
         isAndroid: !kIsWeb && defaultTargetPlatform == TargetPlatform.android,
       );
-      final start = initialize ??
+      final start =
+          initialize ??
           () => Firebase.initializeApp(
-                options: demoAndroid
-                    ? null
-                    : DefaultFirebaseOptions.currentPlatform,
-              );
+            options: demoAndroid
+                ? null
+                : DefaultFirebaseOptions.currentPlatform,
+          );
       await start().timeout(timeout);
+      final configure =
+          configureFirestore ??
+          (initialize == null ? _configureLiveFirestore : null);
+      configure?.call();
       return true;
     } on TimeoutException catch (e) {
       debugPrint('Firebase.initializeApp timed out: $e');
@@ -64,6 +76,10 @@ class AppBootstrap {
       debugPrint('Firebase.initializeApp failed: $e\n$st');
       return false;
     }
+  }
+
+  static void _configureLiveFirestore() {
+    configureDirectoryFirestore(FirebaseFirestore.instance);
   }
 
   /// UMP consent, then AdMob, without throwing.
@@ -77,12 +93,13 @@ class AppBootstrap {
     Duration timeout = adsStartupTimeout,
   }) async {
     try {
-      final start = initialize ??
+      final start =
+          initialize ??
           () => AdHelper.initializeAds(
-                consentInfoTimeout: consentInfoTimeout,
-                consentFormTimeout: consentFormTimeout,
-                mobileAdsTimeout: mobileAdsTimeout,
-              );
+            consentInfoTimeout: consentInfoTimeout,
+            consentFormTimeout: consentFormTimeout,
+            mobileAdsTimeout: mobileAdsTimeout,
+          );
       await start().timeout(timeout);
     } on TimeoutException catch (e) {
       debugPrint('AdHelper.initializeAds timed out: $e');

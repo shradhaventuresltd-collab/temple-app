@@ -11,6 +11,8 @@ import 'package:temple_app/screens/home_screen.dart';
 import 'package:temple_app/screens/policy_acceptance_gate.dart';
 import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/services/app_bootstrap.dart';
+import 'package:temple_app/services/client_cache.dart';
+import 'package:temple_app/services/offline_link.dart';
 import 'package:temple_app/services/policy_acceptance_store.dart';
 import 'package:temple_app/services/policy_link_launcher.dart';
 import 'package:temple_app/services/temple_service.dart';
@@ -28,6 +30,9 @@ Future<void> main() async {
   installFontLoadErrorLogging();
   registerBundledFontLicenses();
   GoogleFonts.config.allowRuntimeFetching = false;
+  // Cap decoded bitmaps before the first list paints full-size covers.
+  ClientCache.installImageMemoryLimits();
+  DirectoryLink.listen(directoryConnectivity());
   // Paint Flutter UI immediately. Native splash is solid saffron (#FF8F00);
   // awaiting Ads/Firebase here made that orange linger for several seconds
   // (KAN-75). The first Flutter frame is the Terms gate or a cream hold.

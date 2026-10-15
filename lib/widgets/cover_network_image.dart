@@ -1,5 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:temple_app/services/client_cache.dart';
 import 'package:temple_app/utils/cover_thumb.dart';
 
 /// List-card image. [url] is tried first. On failure, [fallbackUrl] is
@@ -22,6 +24,7 @@ class CoverNetworkImage extends StatelessWidget {
     this.fit = BoxFit.cover,
     this.memCacheWidth,
     this.memCacheHeight,
+    this.cacheManager,
     this.fadeInDuration = const Duration(milliseconds: 300),
   });
 
@@ -34,6 +37,9 @@ class CoverNetworkImage extends StatelessWidget {
   final BoxFit fit;
   final int? memCacheWidth;
   final int? memCacheHeight;
+
+  /// Disk cache. Defaults to the shared directory cache (1,000 objects).
+  final BaseCacheManager? cacheManager;
   final Duration fadeInDuration;
 
   String? get _fallback {
@@ -47,6 +53,7 @@ class CoverNetworkImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final next = _fallback;
+    final manager = cacheManager ?? ClientCache.images;
     return CachedNetworkImage(
       imageUrl: url,
       height: height,
@@ -54,6 +61,7 @@ class CoverNetworkImage extends StatelessWidget {
       fit: fit,
       memCacheWidth: memCacheWidth,
       memCacheHeight: memCacheHeight,
+      cacheManager: manager,
       fadeInDuration: fadeInDuration,
       placeholder: (context, imageUrl) => placeholder,
       errorWidget: (context, failedUrl, failure) {
@@ -65,6 +73,7 @@ class CoverNetworkImage extends StatelessWidget {
           fit: fit,
           memCacheWidth: memCacheWidth,
           memCacheHeight: memCacheHeight,
+          cacheManager: manager,
           fadeInDuration: fadeInDuration,
           placeholder: (context, imageUrl) => placeholder,
           errorWidget: (context, imageUrl, secondFailure) => error,

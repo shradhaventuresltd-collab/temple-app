@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/config/build_flags.dart';
@@ -9,7 +11,9 @@ import 'package:temple_app/services/temple_service.dart';
 import 'package:temple_app/widgets/app_drawer.dart';
 import 'package:temple_app/widgets/debug_home_admin_actions.dart';
 import 'package:temple_app/services/firestore_read_log.dart';
+import 'package:temple_app/services/offline_link.dart';
 import 'package:temple_app/widgets/home_mosaic_collage.dart';
+import 'package:temple_app/widgets/offline_banner.dart';
 import 'package:temple_app/widgets/unavailable_states_notice.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -55,6 +59,30 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _templesFuture = _loadTemples();
+    DirectoryReconnect.tick.addListener(_onReconnect);
+  }
+
+  @override
+  void dispose() {
+    DirectoryReconnect.tick.removeListener(_onReconnect);
+    super.dispose();
+  }
+
+  void _onReconnect() {
+    unawaited(_refreshQuietly());
+  }
+
+  /// Reload after the network returns without swapping in a loading spinner.
+  /// The list already on screen stays until the new read finishes.
+  Future<void> _refreshQuietly() async {
+    final next = _loadTemples(refresh: true);
+    try {
+      final temples = await next;
+      if (!mounted) return;
+      setState(() => _templesFuture = Future.value(temples));
+    } catch (e, st) {
+      debugPrint('Directory refresh after reconnect failed: $e\n$st');
+    }
   }
 
   void _reloadTemples() {
@@ -104,40 +132,51 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
         ],
       ),
-      body: FutureBuilder<List<Temple>>(
-        future: _templesFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const _HomeLoadingBody();
-          }
-          if (snapshot.hasError) {
-            return _HomeErrorBody(onRetry: _reloadTemples);
-          }
+      body: Column(
+        children: [
+          const OfflineBanner(),
+          Expanded(
+            child: FutureBuilder<List<Temple>>(
+              future: _templesFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const _HomeLoadingBody();
+                }
+                if (snapshot.hasError) {
+                  return _HomeErrorBody(onRetry: _reloadTemples);
+                }
 
-          final allTemples = snapshot.data ?? [];
-          final missing = FirestoreReadLog.instance.unavailableShardsMessage;
-          if (allTemples.isEmpty) {
-            if (missing != null) {
-              return _HomeErrorBody(onRetry: _reloadTemples, detail: missing);
-            }
-            return _HomeEmptyBody(onRetry: _reloadTemples);
-          }
+                final allTemples = snapshot.data ?? [];
+                final missing =
+                    FirestoreReadLog.instance.unavailableShardsMessage;
+                if (allTemples.isEmpty) {
+                  if (missing != null) {
+                    return _HomeErrorBody(
+                      onRetry: _reloadTemples,
+                      detail: missing,
+                    );
+                  }
+                  return _HomeEmptyBody(onRetry: _reloadTemples);
+                }
 
-          return _HomeBody(
-            allTemples: allTemples,
-            onBrowseTemples: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => TempleListScreen(
-                    temples: allTemples,
-                    title: 'All Temples',
-                  ),
-                ),
-              );
-            },
-          );
-        },
+                return _HomeBody(
+                  allTemples: allTemples,
+                  onBrowseTemples: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => TempleListScreen(
+                          temples: allTemples,
+                          title: 'All Temples',
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
       // New future identity refreshes the drawer after Seed / Admin.
       drawer: AppDrawer(key: ObjectKey(_templesFuture)),

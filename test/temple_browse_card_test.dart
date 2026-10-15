@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/data/sample_data.dart';
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/services/client_cache.dart';
 import 'package:temple_app/widgets/temple_browse_card.dart';
 import 'package:temple_app/widgets/temple_image_placeholder.dart';
 
@@ -303,7 +304,7 @@ void main() {
     expect((fallback as CachedNetworkImage).imageUrl, full);
   });
 
-  testWidgets('verified covers decode at the card size', (tester) async {
+  testWidgets('verified covers decode at about 480px', (tester) async {
     await pumpCard(
       tester,
       temple(
@@ -318,12 +319,17 @@ void main() {
     final context = tester.element(find.byType(CachedNetworkImage));
     final dpr = MediaQuery.devicePixelRatioOf(context);
     final width = tester.getSize(find.byType(TempleBrowseCard)).width;
-
-    expect(image.memCacheWidth, (width * dpr).round().clamp(1, 1600));
-    expect(
-      image.memCacheHeight,
-      (TempleBrowseCard.coverHeight * dpr).round().clamp(1, 1200),
+    final decode = listImageDecodeSize(
+      logicalWidth: width,
+      logicalHeight: TempleBrowseCard.coverHeight,
+      devicePixelRatio: dpr,
     );
+
+    expect(image.memCacheWidth, decode.width);
+    expect(image.memCacheHeight, decode.height);
+    expect(image.memCacheWidth, lessThanOrEqualTo(ClientCache.listDecodePx));
+    expect(image.memCacheHeight, lessThanOrEqualTo(ClientCache.listDecodePx));
+    expect(image.cacheManager, same(ClientCache.images));
   });
 
   testWidgets('Purmandal cover shows the 1847 lithograph caption', (

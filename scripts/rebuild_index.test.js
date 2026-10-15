@@ -624,4 +624,6 @@ test("CI workflow runs the unit test and never the apply tool", () => {
   assert.match(source, /confirmProject/);
   assert.match(source, /assertNotCi/);
   assert.match(source, /FIRESTORE_EMULATOR_HOST/);
+  assert.match(source, /Deployer only, dry run first/);
+  assert.doesNotMatch(source, /from an agent/);
 });

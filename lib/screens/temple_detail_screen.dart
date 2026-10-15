@@ -4,6 +4,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/services/client_cache.dart';
+import 'package:temple_app/widgets/offline_banner.dart';
 import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/services/temple_service.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
@@ -219,6 +221,7 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const OfflineBanner(),
               // ── Image gallery with PageView ──
               Stack(
                 children: [
@@ -241,8 +244,11 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
                               return InteractiveViewer(
                                 minScale: 1.0,
                                 maxScale: 4.0,
+                                // Detail keeps the full image. List cards
+                                // decode at about 480px; this hero does not.
                                 child: CachedNetworkImage(
                                   imageUrl: gallery[index],
+                                  cacheManager: ClientCache.images,
                                   fit: BoxFit.contain,
                                   width: double.infinity,
                                   height: _imageHeight,

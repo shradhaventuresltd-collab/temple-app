@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/photo_licence.dart';
+import 'package:temple_app/services/client_cache.dart';
 import 'package:temple_app/models/temple_photo.dart';
 
 /// In-progress or saved photo in the admin editor.
@@ -334,6 +335,8 @@ class _PhotoTile extends StatelessWidget {
     if (url.isNotEmpty) {
       return CachedNetworkImage(
         imageUrl: url,
+        cacheManager: ClientCache.images,
+        memCacheWidth: ClientCache.listDecodePx,
         fit: BoxFit.cover,
         placeholder: (_, _) => const _PhotoFallback(),
         errorWidget: (_, _, _) => const _PhotoFallback(),
