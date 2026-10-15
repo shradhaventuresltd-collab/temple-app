@@ -247,14 +247,14 @@ else
     if ! assert_terms_kept_relaunch; then
       status=1
     fi
-    # More is the admin-tools overflow. Leave it closed. Tapping it has
-    # been taking this emulator offline before the offline relaunch.
-    # Do not tap Seed.
-    if ! visible "More"; then
+    # The relaunch dump already has Home. Another uiautomator pass here
+    # has been enough to take the emulator down before the offline gate.
+    # More is the admin-tools overflow. Leave it closed. Do not tap Seed.
+    if [[ ! -f "$OUT/uidump.xml" ]] || ! grep -q "More" "$OUT/uidump.xml"; then
       echo "Admin overflow was not on Home"
       status=1
     fi
-    if visible "Seed sample temples"; then
+    if [[ -f "$OUT/uidump.xml" ]] && grep -q "Seed sample temples" "$OUT/uidump.xml"; then
       echo "Seed write button is on screen; refusing to tap it"
       status=1
     fi
@@ -266,9 +266,10 @@ screenshot final
 # Second launch with the radios off. Bundled fonts must still paint the
 # gate. pm clear drops any acceptance from the online pass. Do not tap Seed.
 echo "===== offline relaunch ====="
-# Bound these. A stuck logcat or am start used to hold the 18-minute
-# shell timeout after Home was already on screen.
-timeout 20s adb logcat -d -v time >"$OUT/logcat-online.txt" 2>/dev/null || true
+# A full logcat -d has been taking the emulator down. Keep a short tail,
+# then stop the process so the guest can clear data.
+timeout 10s adb logcat -d -t 80 -v time >"$OUT/logcat-online.txt" 2>/dev/null || true
+timeout 10s adb shell am force-stop "$PKG" || true
 timeout 15s adb shell svc wifi disable || true
 timeout 15s adb shell svc data disable || true
 timeout 20s adb shell pm clear "$PKG" || true

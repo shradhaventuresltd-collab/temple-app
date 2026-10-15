@@ -164,8 +164,12 @@ if ! grep -q '0x10008000' scripts/ci/run_android_smoke.sh; then
   echo "FAIL: the smoke relaunch must start MainActivity in a fresh task" >&2
   exit 1
 fi
-if ! grep -q 'visible "More"' scripts/ci/run_demo_seed_launch.sh; then
+if ! grep -q 'wait_for "More"' scripts/ci/run_demo_seed_launch.sh; then
   echo "FAIL: demo-seed must see the admin overflow on the admin-tools APK" >&2
+  exit 1
+fi
+if ! grep -q 'logcat -d -t 80' scripts/ci/run_demo_seed_launch.sh; then
+  echo "FAIL: demo-seed must not dump the full logcat before the offline relaunch" >&2
   exit 1
 fi
 if grep -q 'tap_needle "More"' scripts/ci/run_demo_seed_launch.sh; then
