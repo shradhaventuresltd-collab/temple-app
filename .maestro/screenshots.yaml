@@ -133,8 +133,7 @@ appId: com.shradhaventures.temple
       - eraseText:
           optional: true
       - inputText: "Martand Sun Temple"
-      - hideKeyboard:
-          optional: true
+      # hideKeyboard sends Back on google_atd and pops the directory.
       # "Martand" also matches Jejuri Khandoba: its address is
       # "Shri Martand Dev Sansthan...". The full name matches one
       # temple, and the count node is then exactly "1 temple".
@@ -196,8 +195,7 @@ appId: com.shradhaventures.temple
       - eraseText:
           optional: true
       - inputText: "Jejuri Khandoba Temple"
-      - hideKeyboard:
-          optional: true
+      # hideKeyboard sends Back on google_atd and pops the directory.
       - extendedWaitUntil:
           visible: "1 temple"
           timeout: 8000
@@ -240,8 +238,7 @@ appId: com.shradhaventures.temple
       - eraseText:
           optional: true
       - inputText: "Dilwara"
-      - hideKeyboard:
-          optional: true
+      # hideKeyboard sends Back on google_atd and pops the directory.
       - extendedWaitUntil:
           visible: "\\d+ temples?"
           timeout: 8000
@@ -279,8 +276,7 @@ appId: com.shradhaventures.temple
       - eraseText:
           optional: true
       - inputText: "Mahabodhi"
-      - hideKeyboard:
-          optional: true
+      # hideKeyboard sends Back on google_atd and pops the directory.
       - extendedWaitUntil:
           visible: "\\d+ temples?"
           timeout: 8000
@@ -333,8 +329,7 @@ appId: com.shradhaventures.temple
       - eraseText:
           optional: true
       - inputText: "Shore Temple"
-      - hideKeyboard:
-          optional: true
+      # hideKeyboard sends Back on google_atd and pops the directory.
       - extendedWaitUntil:
           visible: "\\d+ temples?"
           timeout: 8000
@@ -387,8 +382,7 @@ appId: com.shradhaventures.temple
       - eraseText:
           optional: true
       - inputText: "Meenakshi"
-      - hideKeyboard:
-          optional: true
+      # hideKeyboard sends Back on google_atd and pops the directory.
       - extendedWaitUntil:
           visible: "\\d+ temples?"
           timeout: 8000

@@ -90,7 +90,8 @@ appId: com.shradhaventures.temple
 # The card's accessibility text is the name plus place and deity, so a
 # bare name match does not see it. The filtered count is its own node
 # ("1 temple", or "N temples" if more than one name matches).
-- hideKeyboard
+# Do not hideKeyboard here. On google_atd that sends Back and pops the
+# directory, so the count node never stays on screen.
 - extendedWaitUntil:
     visible: "\\d+ temples?"
     timeout: 45000
