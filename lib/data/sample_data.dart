@@ -9522,10 +9522,53 @@ const List<Temple> sampleTemples = [
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/Pashupatinath_Temple_Mandsaur.jpg/1280px-Pashupatinath_Temple_Mandsaur.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/5/5a/0111321_Pasupatinath_temple%2C_Mandsaur_Madhya_Pradesh_008.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/7/72/0111321_Pasupatinath_temple%2C_Mandsaur_Madhya_Pradesh_014.jpg',
-      'https://upload.wikimedia.org/wikipedia/commons/3/37/0111321_Pasupatinath_temple%2C_Mandsaur_Madhya_Pradesh_001.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/1/13/0111321_Pasupatinath_temple%2C_Mandsaur_Madhya_Pradesh_071.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/d/d1/Statue_of_Pashupatinath_Mandsaur.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/c/c9/0111321_Pasupatinath_temple%2C_Mandsaur_Madhya_Pradesh_086.jpg',
+    ],
+    photos: [
+      TemplePhoto(
+        url:
+            'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/Pashupatinath_Temple_Mandsaur.jpg/1280px-Pashupatinath_Temple_Mandsaur.jpg',
+        credit: 'Rohit MDS · CC BY-SA 4.0',
+        licence: PhotoLicence.ccBySa,
+        order: 0,
+      ),
+      TemplePhoto(
+        url:
+            'https://upload.wikimedia.org/wikipedia/commons/5/5a/0111321_Pasupatinath_temple%2C_Mandsaur_Madhya_Pradesh_008.jpg',
+        credit: 'Ms Sarah Welch',
+        licence: PhotoLicence.cc0,
+        order: 1,
+      ),
+      TemplePhoto(
+        url:
+            'https://upload.wikimedia.org/wikipedia/commons/7/72/0111321_Pasupatinath_temple%2C_Mandsaur_Madhya_Pradesh_014.jpg',
+        credit: 'Ms Sarah Welch',
+        licence: PhotoLicence.cc0,
+        order: 2,
+      ),
+      TemplePhoto(
+        url:
+            'https://upload.wikimedia.org/wikipedia/commons/1/13/0111321_Pasupatinath_temple%2C_Mandsaur_Madhya_Pradesh_071.jpg',
+        credit: 'Ms Sarah Welch',
+        licence: PhotoLicence.cc0,
+        order: 3,
+      ),
+      TemplePhoto(
+        url:
+            'https://upload.wikimedia.org/wikipedia/commons/d/d1/Statue_of_Pashupatinath_Mandsaur.jpg',
+        credit: 'Rohit MDS · CC BY-SA 4.0',
+        licence: PhotoLicence.ccBySa,
+        order: 4,
+      ),
+      TemplePhoto(
+        url:
+            'https://upload.wikimedia.org/wikipedia/commons/c/c9/0111321_Pasupatinath_temple%2C_Mandsaur_Madhya_Pradesh_086.jpg',
+        credit: 'Ms Sarah Welch',
+        licence: PhotoLicence.cc0,
+        order: 5,
+      ),
     ],
     description:
         'Major Mandsaur Shiva shrine on the Shivna River, centred on a '
