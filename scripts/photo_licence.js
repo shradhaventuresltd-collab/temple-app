@@ -85,7 +85,8 @@ function clampCredit(value) {
 }
 
 /**
- * Keep the person named in a Commons author field and drop the usage note.
+ * Keep the person named in a Commons author field and drop the usage note
+ * and any bracketed note, such as "(talk)" or a Panoramio user id.
  * @param {unknown} author
  * @returns {string}
  */
@@ -103,6 +104,7 @@ export function cleanAuthor(author) {
   );
   if (note !== -1) name = name.slice(0, note);
 
+  name = name.replace(/\s*\([^)]*\)/g, " ").replace(/\s+/g, " ").trim();
   return name.replace(/[.,;:\s]+$/g, "").trim();
 }
 

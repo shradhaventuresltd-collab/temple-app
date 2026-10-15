@@ -189,13 +189,14 @@ bool isPlaceholderImageUrl(String raw) {
   return false;
 }
 
-/// Named unlicensed-stock hosts. Subdomains match. `gettyimages` is a label.
+/// Named unlicensed-stock hosts. Subdomains match. `gettyimages` is the site name.
 const _stockHosts = <String>[
   'shutterstock.com',
   'istockphoto.com',
   'istock.com',
   'pexels.com',
   'stock.adobe.com',
+  'ftcdn.net',
   'alamy.com',
   'dreamstime.com',
   '123rf.com',
@@ -203,11 +204,34 @@ const _stockHosts = <String>[
   'freepik.com',
 ];
 
+/// `gettyimages.com`, `media.gettyimages.com`, and `www.gettyimages.co.uk`.
+/// `gettyimages.example.com` is a different registrable domain.
+bool _isGettyImagesHost(String host) {
+  final labels = host
+      .toLowerCase()
+      .split('.')
+      .where((label) => label.isNotEmpty)
+      .toList();
+  final index = labels.lastIndexOf('gettyimages');
+  if (index < 0 || index == labels.length - 1) return false;
+  final rest = labels.sublist(index + 1);
+  if (rest.length == 1) {
+    return RegExp(r'^[a-z]{2,24}$').hasMatch(rest[0]);
+  }
+  if (rest.length == 2) {
+    return RegExp(r'^(ac|co|com|edu|gob|gov|net|nic|org)$').hasMatch(rest[0]) &&
+        RegExp(r'^[a-z]{2}$').hasMatch(rest[1]);
+  }
+  return false;
+}
+
 /// True for an unlicensed stock-photo host.
 ///
 /// A named host matches itself or a subdomain (`www.shutterstock.com`).
-/// `gettyimages` matches that label on any TLD (`gettyimages.co.uk`,
-/// `media.gettyimages.com`). `stock.adobe.com` does not block `adobe.com`.
+/// `gettyimages` matches that site name (`gettyimages.co.uk`,
+/// `media.gettyimages.com`). `gettyimages.example.com` does not.
+/// `stock.adobe.com` and `ftcdn.net` are Adobe Stock. They do not block
+/// `adobe.com`.
 /// Empty values and non-HTTP URLs are not stock. `images.unsplash.com`
 /// stays allowed. Firestore rules do not apply this list.
 bool isUnlicensedStockImageUrl(String raw) {
@@ -219,7 +243,7 @@ bool isUnlicensedStockImageUrl(String raw) {
   }
   final host = uri.host.toLowerCase();
   if (host.isEmpty) return false;
-  if (host.split('.').contains('gettyimages')) return true;
+  if (_isGettyImagesHost(host)) return true;
   for (final stock in _stockHosts) {
     if (host == stock || host.endsWith('.$stock')) return true;
   }

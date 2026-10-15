@@ -411,8 +411,8 @@ test("an admin save without coordinates writes null", async () => {
   );
 });
 
-test("exact placeholder hosts fail on imageUrl and images[0], and extra photo keys fail", async () => {
-  const db = adminDb("admin-exact-hosts");
+test("placeholder hosts and their subdomains fail on imageUrl and images[0], and extra photo keys fail", async () => {
+  const db = adminDb("admin-placeholder-hosts");
   const hosts = [
     "https://picsum.photos/seed/a/800/600",
     "https://placeholder.com/800",
@@ -424,6 +424,19 @@ test("exact placeholder hosts fail on imageUrl and images[0], and extra photo ke
     "https://source.unsplash.com/random",
     "https://fastly.picsum.photos/id/1/800/600",
     "https://i.picsum.photos/id/1/800/600",
+    "https://loremflickr.com/800/600",
+    "https://www.loremflickr.com/800/600",
+    "https://placekitten.com/800/600",
+    "https://www.placekitten.com/800/600",
+    "https://fakeimg.pl/800",
+    "https://cdn.fakeimg.pl/800",
+    "https://placeimg.com/800/600",
+    "https://img.placeimg.com/800/600",
+    "https://user@picsum.photos",
+    "https://picsum.photos:443",
+    "https://user:pass@www.loremflickr.com:443/800/600",
+    "https://source.unsplash.com:443",
+    "https://user@placekitten.com/800/600",
   ];
   for (const url of hosts) {
     await assertFails(
@@ -437,8 +450,14 @@ test("exact placeholder hosts fail on imageUrl and images[0], and extra photo ke
     "https://upload.wikimedia.org/wikipedia/commons/x/xx/Placeholder_temple.jpg",
     "https://storage.googleapis.com/bucket/temples/placeholder-x.jpg",
     "https://images.unsplash.com/photo-1",
+    "https://cdn.source.unsplash.com/random",
+    "https://notpicsum.photos/800",
+    "https://notpicsum.photos:443/800",
+    "https://images.unsplash.com:443/photo-1",
+    "https://user@images.unsplash.com/photo-1",
+    "https://cdn.source.unsplash.com:443/random",
     "https://www.shutterstock.com/image-photo/temple",
-    "https://loremflickr.com/800/600",
+    "https://www.shutterstock.com:443/image-photo/temple",
   ];
   for (const url of passes) {
     await assertSucceeds(

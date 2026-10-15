@@ -11,6 +11,7 @@ import {
   thumbObjectPath,
   wikimediaOriginalUrl,
 } from "./temple_index.js";
+import { planCoverPhoto } from "./backfill_cover_photos.js";
 import {
   THUMB_CACHE_CONTROL,
   applyCoverThumbPlans,
@@ -144,6 +145,103 @@ test("a wiki cover stays not-storage when a storage url is later in the gallery"
   });
   assert.equal(plan.action, "skip");
   assert.equal(plan.reason, "wikimedia-full");
+});
+
+test("a backfilled storage cover is picked up, including another url for the same object", () => {
+  const imageUrl =
+    "https://storage.googleapis.com/temple-directory-india.firebasestorage.app/temples/virupaksha-temple/01_Hemakuta_Hills.jpg";
+  const firebase =
+    "https://firebasestorage.googleapis.com/v0/b/temple-directory-india.firebasestorage.app/o/temples%2Fvirupaksha-temple%2F01_Hemakuta_Hills.jpg?alt=media&token=t";
+  const bare = {
+    id: "virupaksha-temple",
+    name: "Virupaksha Temple",
+    state: "Karnataka",
+    city: "Hampi",
+    deity: "Shiva",
+    imageUrl,
+    images: [firebase],
+    photos: [],
+  };
+  assert.equal(planCoverThumb(bare).reason, "no-photo");
+  const backfill = planCoverPhoto({ ...bare, images: [imageUrl] });
+  assert.equal(backfill.action, "add");
+  const filled = { ...bare, photos: backfill.photos };
+  const plan = planCoverThumb(filled);
+  assert.equal(plan.action, "upload");
+  assert.equal(plan.objectPath, "temples/virupaksha-temple/01_Hemakuta_Hills.jpg");
+  assert.notEqual(plan.reason, "no-photo");
+});
+
+test("twelve wikimedia full-size covers are reported and not uploaded", () => {
+  const dart = readFileSync(resolve(here, "../lib/data/sample_data.dart"), "utf8");
+  const urls = [];
+  const re = /imageUrl:\s*(?:\n\s*)?'([^']*)'/g;
+  let match;
+  while ((match = re.exec(dart))) urls.push(match[1]);
+  const originals = urls.filter(
+    (url) => url.startsWith("https://upload.wikimedia.org/") && !url.includes("/thumb/"),
+  );
+  assert.equal(originals.length, 12);
+  const temples = originals.map((url, index) => ({
+    id: `wiki-full-${index}`,
+    imageUrl: url,
+    images: [url],
+    photos: [],
+  }));
+  for (const temple of temples) {
+    const plan = planCoverThumb(temple);
+    assert.equal(plan.action, "skip", temple.imageUrl);
+    assert.equal(plan.reason, "wikimedia-full", temple.imageUrl);
+    const thumb = coverThumb(temple);
+    assert.match(thumb, /\/500px-/, temple.imageUrl);
+    assert.equal(thumb.includes("/thumb/"), true, temple.imageUrl);
+  }
+  const uploads = [];
+  const rows = [];
+  return applyCoverThumbPlans(
+    temples.map((temple) => planCoverThumb(temple)),
+    {
+      dryRun: true,
+      stat: async () => {
+        throw new Error("a wikimedia original must not be stat'd");
+      },
+      upload: async (file) => {
+        uploads.push(file);
+        return { url: "https://example.com/thumb.jpg" };
+      },
+    },
+  ).then((planned) => {
+    rows.push(...planned);
+    assert.equal(uploads.length, 0);
+    assert.equal(rows.every((row) => row.reason === "wikimedia-full"), true);
+    const report = formatThumbReport(rows);
+    assert.match(report, /wikimedia full-size: 12/);
+    assert.match(report, /full-size wiki-full-0 /);
+    assert.equal(report.includes("would-upload"), false);
+  });
+});
+
+test("gettyimages.example.com is not treated as the stock host", () => {
+  const other = planCoverThumb({
+    id: "other-site",
+    imageUrl: "https://gettyimages.example.com/photo.jpg",
+  });
+  assert.equal(other.reason, "not-storage");
+  const stock = planCoverThumb({
+    id: "getty",
+    imageUrl: "https://media.gettyimages.com/id/1/photo.jpg",
+  });
+  assert.equal(stock.reason, "no-cover");
+  const country = planCoverThumb({
+    id: "getty-uk",
+    imageUrl: "https://www.gettyimages.co.uk/detail/photo/temple",
+  });
+  assert.equal(country.reason, "no-cover");
+  const adobe = planCoverThumb({
+    id: "adobe-stock",
+    imageUrl: "https://t4.ftcdn.net/jpg/01/temple.jpg",
+  });
+  assert.equal(adobe.reason, "no-cover");
 });
 
 test("a storage cover plans an upload and a wikimedia cover does not", () => {

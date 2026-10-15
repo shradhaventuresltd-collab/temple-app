@@ -14,6 +14,8 @@ import {
   persistClearCover,
   planClearCover,
   placeholderHostUrl,
+  removableImageUrl,
+  stockHostUrl,
 } from "./clear_placeholder_covers.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -124,6 +126,15 @@ test("placeholder hosts are recognised and other URLs stay", () => {
   assert.equal(placeholderHostUrl("https://placehold.it/800"), true);
   assert.equal(placeholderHostUrl("https://images.unsplash.com/photo-1"), false);
   assert.equal(placeholderHostUrl("https://www.shutterstock.com/image-photo/temple"), false);
+  assert.equal(stockHostUrl("https://www.shutterstock.com/image-photo/temple"), true);
+  assert.equal(stockHostUrl("https://t4.ftcdn.net/jpg/01/temple.jpg"), true);
+  assert.equal(stockHostUrl("https://www.adobe.com/image/temple.jpg"), false);
+  assert.equal(stockHostUrl("https://media.gettyimages.com/id/1/photo.jpg"), true);
+  assert.equal(stockHostUrl("https://www.gettyimages.co.uk/detail/photo/temple"), true);
+  assert.equal(stockHostUrl("https://gettyimages.example.com/photo.jpg"), false);
+  assert.equal(stockHostUrl("https://images.unsplash.com/photo-1"), false);
+  assert.equal(removableImageUrl("https://www.shutterstock.com/image-photo/temple"), true);
+  assert.equal(removableImageUrl("https://images.unsplash.com/photo-1"), false);
   assert.equal(
     placeholderHostUrl(
       "https://upload.wikimedia.org/wikipedia/commons/x/xx/Placeholder_temple.jpg",
@@ -160,6 +171,46 @@ test("known covers lose placeholder hosts from imageUrl, images, and photos", ()
   assert.equal(mixed.patch.photos[0].url, wiki);
   assert.equal(Object.hasOwn(mixed.patch.photos[0], "thumbUrl"), false);
   assert.equal(planClearCover(temple({ imageUrl: wiki, images: [wiki], photos: [] })).action, "ready");
+  const stock = "https://www.shutterstock.com/image-photo/temple";
+  const getty = "https://www.gettyimages.com/detail/photo/temple";
+  const cleared = planClearCover(
+    temple({
+      imageUrl: stock,
+      images: [stock, wiki, getty],
+      photos: [
+        { url: stock, licence: "CC0", order: 0 },
+        {
+          url: wiki,
+          licence: "CC-BY",
+          credit: "Photographer",
+          order: 1,
+          thumbUrl: "https://media.gettyimages.com/id/1/photo.jpg",
+        },
+      ],
+    }),
+  );
+  assert.equal(cleared.action, "clear");
+  assert.equal(cleared.patch.imageUrl, "");
+  assert.deepEqual(cleared.patch.images, [wiki]);
+  assert.equal(cleared.patch.photos.length, 1);
+  assert.equal(cleared.patch.photos[0].url, wiki);
+  assert.equal(Object.hasOwn(cleared.patch.photos[0], "thumbUrl"), false);
+  const otherSite = planClearCover(
+    temple({
+      imageUrl: "https://gettyimages.example.com/photo.jpg",
+      images: ["https://gettyimages.example.com/photo.jpg"],
+      photos: [],
+    }),
+  );
+  assert.equal(otherSite.action, "ready");
+  const unsplash = planClearCover(
+    temple({
+      imageUrl: "https://images.unsplash.com/photo-1",
+      images: ["https://images.unsplash.com/photo-1"],
+      photos: [],
+    }),
+  );
+  assert.equal(unsplash.action, "ready");
 });
 
 test("dry-run lists the known temples and does not write", async () => {

@@ -250,7 +250,7 @@ const SEED_DOCUMENT_ID_BY_PACK_SLUG = {
   "ranchhodraiji-temple-dakor": "ranchhodraiji-temple",
 };
 
-function resolveSeedDocId(packDir, manifest, docIdOverride) {
+export function resolveSeedDocId(packDir, manifest, docIdOverride) {
   if (docIdOverride) return docIdOverride;
   const packSlug = manifest.temple_slug || basename(packDir);
   if (SEED_DOCUMENT_ID_BY_PACK_SLUG[packSlug]) {
@@ -693,7 +693,11 @@ async function main() {
   process.exit(0);
 }
 
-main().catch((err) => {
-  console.error(`\n✖  ${err.message}`);
-  process.exit(1);
-});
+const invoked =
+  process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (invoked) {
+  main().catch((err) => {
+    console.error(`\n✖  ${err.message}`);
+    process.exit(1);
+  });
+}
