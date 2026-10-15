@@ -105,7 +105,12 @@ export function cleanAuthor(author) {
   if (note !== -1) name = name.slice(0, note);
 
   name = name.replace(/\s*\([^)]*\)/g, " ").replace(/\s+/g, " ").trim();
-  return name.replace(/[.,;:\s]+$/g, "").trim();
+  name = name.replace(/[,;:\s]+$/g, "").trim();
+  // A final dot on an initial ("Chaitra. B. H.") is part of the name.
+  if (/\.$/.test(name) && !/(?:^|\s)[A-Za-z]\.$/.test(name)) {
+    name = name.replace(/\.+$/g, "").trim();
+  }
+  return name;
 }
 
 function ccVersionLabel(licence, licenseRaw) {

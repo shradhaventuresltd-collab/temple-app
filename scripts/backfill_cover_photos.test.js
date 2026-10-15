@@ -13,6 +13,7 @@ import {
   formatCoverPhotoReport,
   main,
   parseArgs,
+  ensureCoverFrame,
   persistCoverPhoto,
   planCoverPhoto,
 } from "./backfill_cover_photos.js";
@@ -119,9 +120,9 @@ test("a different file's credit is not copied onto the cover", () => {
       images: [{ url: wiki, credit: "Someone", licence: "CC-BY" }],
     }),
   );
-  assert.equal(plan.action, "skip");
-  assert.equal(plan.reason, "no-matching-credit");
-  assert.equal(plan.photo, undefined);
+  assert.equal(plan.action, "replace");
+  assert.equal(plan.photo.credit, "Arjun Dharne · CC BY-SA 4.0");
+  assert.notEqual(plan.photo.credit, "Someone");
   const unrelated = planCoverPhoto(
     temple({
       imageUrl: unmatched,
@@ -136,8 +137,9 @@ test("a different file's credit is not copied onto the cover", () => {
       ],
     }),
   );
-  assert.equal(unrelated.reason, "no-matching-credit");
-  assert.notEqual(unrelated.photo?.credit, "Someone");
+  assert.equal(unrelated.action, "replace");
+  assert.equal(unrelated.photo.credit, "Arjun Dharne · CC BY-SA 4.0");
+  assert.notEqual(unrelated.photo.credit, "Someone");
 });
 
 test("a recorded mirror source can supply the cover's own credit", () => {
@@ -243,7 +245,9 @@ test("a mirrored storage cover takes credit from that pack frame only", () => {
       images: [],
     }),
   );
-  assert.equal(places.reason, "no-matching-credit");
+  assert.equal(places.action, "replace");
+  assert.equal(places.filename, "01_Hemakuta_Hills.jpg");
+  assert.equal(places.photo.credit, "Arjun Dharne · CC BY-SA 4.0");
 
   const otherTemple = planCoverPhoto({
     id: "meenakshi-amman-temple",
@@ -293,7 +297,7 @@ test("a mirrored storage cover takes credit from that pack frame only", () => {
         photos: [],
         images: [],
       });
-      assert.equal(skipped.reason, "no-matching-credit", id);
+      assert.equal(skipped.reason, "no-wave-pack", id);
       continue;
     }
     const cover = photos[0];
@@ -444,6 +448,14 @@ test("See Commons and other non-name authors are no-credit", () => {
     "See Commons file page",
     "see source",
     "SEE the file page",
+    "See description",
+    "See below",
+    "Own work",
+    "OWN WORK",
+    "Self",
+    "SELF",
+    "Self-photographed",
+    "self photographed",
     "N/A",
     "n/a",
     "-",
@@ -462,6 +474,8 @@ test("See Commons and other non-name authors are no-credit", () => {
     assert.equal(placeholderAuthor(author), true, author);
   }
   assert.equal(placeholderAuthor("Seetharaman"), false);
+  assert.equal(placeholderAuthor("See"), false);
+  assert.equal(placeholderAuthor("See Kumar"), false);
   assert.equal(placeholderAuthor("Anonymous0006"), false);
   assert.equal(placeholderAuthor("Rajesh Unknown"), false);
   assert.equal(placeholderAuthor("Shanmugamp7"), false);
@@ -472,7 +486,6 @@ test("See Commons and other non-name authors are no-credit", () => {
     ["talakaveri-temple", "02_Thalakauvery-hillview-panorama.jpg"],
     ["talakaveri-temple", "03_Talacauvery_panorama.jpg"],
     ["talakaveri-temple", "06_Hills_surrounding_Thalakaveri.jpg"],
-    ["khatushyam-temple", "04_Khatushyamji_Pad_Yatra_from_Kota.jpg"],
   ];
   for (const [id, filename] of skipped) {
     const plan = planCoverPhoto({
@@ -504,7 +517,8 @@ test("bracket notes are stripped and the author name is kept", () => {
     images: [],
   });
   assert.equal(vaishno.action, "add");
-  assert.equal(vaishno.photo.credit, "Tapan Kumar Debn… · CC BY-SA 3.0");
+  assert.equal(vaishno.photo.credit, "Tapan Kumar Debnath · CC BY-SA 3.0");
+  assert.equal(vaishno.photo.credit.includes("…"), false);
   assert.equal(vaishno.photo.credit.includes("Panoramio"), false);
 
   const swamimalai = planCoverPhoto({
@@ -516,6 +530,27 @@ test("bracket notes are stripped and the author name is kept", () => {
   assert.equal(swamimalai.action, "add");
   assert.equal(swamimalai.photo.credit, "Ravichandar84 · CC BY-SA 3.0");
   assert.equal(swamimalai.photo.credit.includes("Wikipedia"), false);
+
+  const khatushyam = planCoverPhoto({
+    id: "khatushyam-temple",
+    imageUrl: mirrorUrl("khatushyam-temple", "04_Khatushyamji_Pad_Yatra_from_Kota.jpg"),
+    photos: [],
+    images: [],
+  });
+  assert.equal(khatushyam.action, "add");
+  assert.equal(khatushyam.photo.credit, "User:Shyam · CC BY-SA 2.5");
+
+  const chaitra = planCoverPhoto({
+    id: "annapoorneshwari-temple-horanadu",
+    imageUrl: mirrorUrl(
+      "annapoorneshwari-temple-horanadu",
+      "02_Horanadu_Annapurneshwari_Temple.jpg",
+    ),
+    photos: [],
+    images: [],
+  });
+  assert.equal(chaitra.action, "add");
+  assert.equal(chaitra.photo.credit, "Chaitra. B. H. · CC BY-SA 4.0");
 });
 
 test("a prepended cover renumbers every photo from the array index", () => {
@@ -794,4 +829,217 @@ test("prod apply is refused in CI and without a project", async () => {
     /prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI/,
   );
   assert.doesNotMatch(source, /from an agent/);
+});
+
+test("an uncredited Places or timestamp cover is replaced by the best Wave A/B frame", () => {
+  const stay = {
+    "anjengo-sree-durga-devi-temple": "no-wave-pack",
+    "mannarsala-sree-nagaraja-temple": "no-wave-pack",
+    "meenakshi-amman-temple": "no-wave-pack",
+    "shore-temple": "no-wave-pack",
+  };
+  const plans = [];
+  let replaced = 0;
+  for (const id of MIRROR_TEMPLE_IDS) {
+    const filename = id === "chamundeshwari-temple" ? "1739462400000000.jpg" : "image_1.jpg";
+    const url = mirrorUrl(id, filename);
+    const plan = planCoverPhoto({
+      id,
+      state: "Karnataka",
+      imageUrl: url,
+      photos: [],
+      images: [url, mirrorUrl(id, "image_2.jpg")],
+    });
+    plans.push(plan);
+    if (stay[id]) {
+      assert.equal(plan.action, "skip", id);
+      assert.equal(plan.reason, stay[id], id);
+      assert.equal(plan.photo, undefined, id);
+      continue;
+    }
+    assert.equal(plan.action, "replace", id);
+    assert.equal(plan.oldObject, `temples/${id}/${filename}`, id);
+    assert.equal(plan.oldImageUrl, url, id);
+    assert.equal(plan.imageUrl, mirrorUrl(id, plan.filename), id);
+    assert.equal(plan.objectPath, `temples/${id}/${plan.filename}`, id);
+    assert.notEqual(plan.objectPath, plan.oldObject, id);
+    assert.equal(plan.photos[0].url, plan.imageUrl, id);
+    assert.equal(plan.photos[0].order, 0, id);
+    assert.ok(plan.photo.credit.length > 0 && plan.photo.credit.length <= 200, id);
+    assert.ok(PHOTO_LICENCES.includes(plan.photo.licence), id);
+    assert.equal(plan.images[0], plan.imageUrl, id);
+    assert.equal(plan.images[1], mirrorUrl(id, "image_2.jpg"), id);
+    assert.equal(plan.images.includes(url), false, id);
+    assert.equal(plan.upload, "if-missing", id);
+    const again = planCoverPhoto({
+      id,
+      imageUrl: plan.imageUrl,
+      photos: plan.photos,
+      images: plan.images,
+    });
+    assert.equal(again.action, "ready", id);
+    replaced += 1;
+  }
+  assert.equal(replaced, 26);
+  assert.equal(MIRROR_TEMPLE_IDS.length, 30);
+
+  const gokarna = plans.find((plan) => plan.id === "mahabaleshwar-temple-gokarna");
+  assert.equal(gokarna.filename, "04_Main_entry_to_the_Mahabaleshwar_Temple_at_Gokaran.jpg");
+  assert.equal(gokarna.photo.credit, "Nvvchar · CC BY-SA 3.0");
+  assert.equal(gokarna.photo.licence, "CC-BY-SA");
+
+  const chamundi = plans.find((plan) => plan.id === "chamundeshwari-temple");
+  assert.equal(chamundi.filename, "01_Chamundi_From_Karanji_Mysore_Nov23_A7C_08173.jpg");
+  assert.equal(chamundi.photo.credit, "Timothy A. Gonsalves · CC BY-SA 4.0");
+
+  const otherBucket = planCoverPhoto({
+    id: "virupaksha-temple",
+    imageUrl: "https://storage.googleapis.com/bucket/temples/virupaksha-temple/image_1.jpg",
+    photos: [],
+    images: [],
+  });
+  assert.equal(otherBucket.reason, "no-matching-credit");
+
+  const waveC = planCoverPhoto({
+    id: "dwarkadhish-temple",
+    imageUrl: mirrorUrl("dwarkadhish-temple", "image_1.jpg"),
+    photos: [],
+    images: [],
+  });
+  assert.equal(waveC.action, "skip");
+  assert.equal(waveC.reason, "no-wave-pack");
+
+  const report = formatCoverPhotoReport(plans);
+  assert.equal(report.includes("https://"), false);
+  assert.match(report, /replaced: 26/);
+  assert.match(report, /would-replace virupaksha-temple/);
+  assert.match(report, /old: temples\/virupaksha-temple\/image_1.jpg/);
+  assert.match(report, /new: 01_Hemakuta_Hills.jpg/);
+  assert.match(report, /credit: Arjun Dharne · CC BY-SA 4.0/);
+  assert.match(report, /licence: CC-BY-SA/);
+  assert.match(report, /upload: if-missing/);
+  assert.match(report, /skip anjengo-sree-durga-devi-temple no-wave-pack/);
+  assert.match(report, /No Storage uploads/);
+  assert.equal(parseArgs(["--replace-uncredited-cover"]).replaceUncreditedCover, true);
+});
+
+test("apply uploads a missing frame, writes the cover once, and keeps the old object", async () => {
+  const placesUrl = mirrorUrl("virupaksha-temple", "image_1.jpg");
+  const fresh = temple({
+    imageUrl: placesUrl,
+    photos: [],
+    images: [placesUrl, mirrorUrl("virupaksha-temple", "image_2.jpg")],
+  });
+  const plan = planCoverPhoto(fresh);
+  assert.equal(plan.action, "replace");
+  const uploads = [];
+  const db = memoryDb((ref) => {
+    if (ref.collection === "temples") {
+      return { exists: true, id: ref.id, data: () => structuredClone(fresh) };
+    }
+    if (ref.collection === "meta") return { exists: false, id: ref.id, data: () => undefined };
+    return { exists: false, id: ref.id, data: () => undefined };
+  });
+  const rows = await applyCoverPhotoPlans([plan], {
+    dryRun: false,
+    ensureUploaded: async (item) => {
+      uploads.push(item.objectPath);
+      return { ok: true, uploaded: true };
+    },
+    write: (item) => persistCoverPhoto(db, item, { admin: indexAdmin }),
+  });
+  assert.equal(rows[0].result, "replaced");
+  assert.deepEqual(uploads, ["temples/virupaksha-temple/01_Hemakuta_Hills.jpg"]);
+  assert.equal(uploads.includes(plan.oldObject), false);
+  assert.equal(db.ops.length, 1);
+  const [writes] = db.ops;
+  const templeWrite = writes.find((write) => write.path === "temples/virupaksha-temple");
+  assert.deepEqual(Object.keys(templeWrite.args[0]).sort(), ["imageUrl", "images", "photos"]);
+  assert.equal(templeWrite.args[0].imageUrl, plan.imageUrl);
+  assert.deepEqual(templeWrite.args[0].images, plan.images);
+  assert.equal(templeWrite.args[0].photos[0].credit, "Arjun Dharne · CC BY-SA 4.0");
+  assert.equal(templeWrite.args[0].photos[0].licence, "CC-BY-SA");
+  const index = writes.find((write) => write.path === "temple_index/karnataka");
+  assert.equal(index.data.entries["virupaksha-temple"].coverThumb, plan.imageUrl);
+
+  const missing = await applyCoverPhotoPlans([plan], {
+    dryRun: false,
+    ensureUploaded: async () => ({ ok: false, reason: "missing-file" }),
+    write: () => {
+      throw new Error("write");
+    },
+  });
+  assert.equal(missing[0].result, "skipped");
+  assert.equal(missing[0].reason, "missing-file");
+
+  const calls = [];
+  const bucket = {
+    file(path) {
+      return {
+        async exists() {
+          calls.push("exists");
+          return [true];
+        },
+        async makePublic() {
+          calls.push("public");
+        },
+        async delete() {
+          calls.push("delete");
+        },
+      };
+    },
+    async upload() {
+      calls.push("upload");
+    },
+  };
+  const present = await ensureCoverFrame(plan, { bucket });
+  assert.equal(present.uploaded, false);
+  assert.deepEqual(calls, ["exists"]);
+
+  const absent = {
+    file() {
+      return {
+        async exists() {
+          return [false];
+        },
+        async makePublic() {
+          calls.push("public");
+        },
+        async delete() {
+          calls.push("delete");
+        },
+      };
+    },
+    async upload(_local, options) {
+      calls.push(`upload:${options.destination}`);
+    },
+  };
+  const uploaded = await ensureCoverFrame(plan, { bucket: absent });
+  assert.equal(uploaded.uploaded, true);
+  assert.equal(calls.includes("delete"), false);
+  assert.equal(calls.includes(`upload:${plan.objectPath}`), true);
+  assert.equal(calls.includes(`upload:${plan.oldObject}`), false);
+
+  let dryUploads = 0;
+  const lines = [];
+  await main(["--replace-uncredited-cover", "--project", "demo-temple-index"], {
+    env: { FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080" },
+    log: (line) => lines.push(line),
+    load: async () => [fresh],
+    ensureUploaded: async () => {
+      dryUploads += 1;
+      return { ok: true };
+    },
+    write: async () => {
+      throw new Error("write");
+    },
+  });
+  assert.equal(dryUploads, 0);
+  const report = lines.join("\n");
+  assert.match(report, /would-replace virupaksha-temple/);
+  assert.match(report, /old: temples\/virupaksha-temple\/image_1.jpg/);
+  assert.match(report, /new: 01_Hemakuta_Hills.jpg/);
+  assert.match(report, /credit: Arjun Dharne · CC BY-SA 4.0/);
+  assert.match(report, /licence: CC-BY-SA/);
+  assert.equal(report.includes("https://"), false);
 });

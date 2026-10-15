@@ -41,7 +41,7 @@ Do NOT set live imageUrl — eng upload only (KAN-77).
 
 ## 04_Khatushyamji_Pad_Yatra_from_Kota.jpg
 - **Commons File:** File:Khatushyamji Pad Yatra from Kota.JPG
-- **Author:** Myself
+- **Author:** User:Shyam
 - **License:** CC BY-SA 2.5
 - **License URL:** https://creativecommons.org/licenses/by-sa/2.5/
 - **Source page URL:** https://commons.wikimedia.org/wiki/File%3AKhatushyamji_Pad_Yatra_from_Kota.JPG
