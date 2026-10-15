@@ -33,9 +33,34 @@ const int kTempleIndexShortAddressMax = 340;
 /// `coverThumb` is a URL, capped so a shard of summaries stays small.
 const int kTempleIndexCoverThumbMax = 500;
 
-/// Commons thumb width. Wikimedia's ladder includes 500 and rejects 480
-/// with HTTP 400. Cards still decode at about 480px.
+/// Commons thumb width requested for a non-standard or full-size original.
+/// Wikimedia's ladder includes 500 and rejects 480 with HTTP 400. Cards
+/// still decode at about 480px.
 const int kCommonsThumbPx = 500;
+
+/// Widths Wikimedia serves for a hotlinked thumb (w.wiki/GHai).
+const Set<int> kWikimediaThumbSteps = {
+  20,
+  40,
+  60,
+  120,
+  250,
+  330,
+  500,
+  960,
+  1280,
+  1920,
+  3840,
+};
+
+/// Listed steps stay. 480 is not listed and becomes 500. Any other
+/// non-standard width below 500 becomes 330. A wider non-standard width
+/// becomes 500.
+int _commonsThumbWidth(int width) {
+  if (kWikimediaThumbSteps.contains(width)) return width;
+  if (width == 480 || width >= kCommonsThumbPx) return kCommonsThumbPx;
+  return 330;
+}
 
 /// Trimmed so 400 entries stay under 1 MiB. Ids are not trimmed; they are
 /// the map key and already limited to 200 characters.
@@ -137,11 +162,14 @@ String shortTempleAddress(String raw) {
 /// or `imageUrl` when `images` is empty. Placeholder hosts are skipped.
 ///
 /// A stored `photos[].thumbUrl` for that photo is used as written. Otherwise
-/// a Wikimedia `/thumb/` wider than [kCommonsThumbPx] is narrowed. A Commons
-/// original `.../commons/<h>/<hh>/<name>` becomes a 500px thumb when
-/// `<h>/<hh>` match the MD5 of the underscored filename. An SVG thumb
-/// appends `.png`. A TIFF thumb appends `.jpg`. PDF, DjVu, WebM, OGV, and
-/// anything else stay the full URL. Storage siblings are not invented. The
+/// a Wikimedia `/thumb/` is snapped onto [kWikimediaThumbSteps]. A listed
+/// width stays, including 330, 500, 960, and 1280. 480px becomes 500px.
+/// Any other non-standard width below 500 becomes 330px, and a wider
+/// non-standard width becomes 500px. A Commons original
+/// `.../commons/<h>/<hh>/<name>` becomes a 500px thumb when `<h>/<hh>`
+/// match the MD5 of the underscored filename. An SVG thumb appends `.png`.
+/// A TIFF thumb appends `.jpg`. PDF, DjVu, WebM, OGV, and anything else
+/// stay the full URL. Storage siblings are not invented. The
 /// result is at most [kTempleIndexCoverThumbMax] characters. Detail keeps
 /// the full gallery URL.
 String? coverThumbFor(Map<String, dynamic> data) {
@@ -197,7 +225,8 @@ List<String> _galleryCandidates(Map<String, dynamic> data) {
 
 /// URL list helper. Prefer [coverThumbFor] so the gallery order stays put.
 ///
-/// Wikimedia thumbs wider than [kCommonsThumbPx] are rewritten to 500px.
+/// Wikimedia thumbs that are not on [kWikimediaThumbSteps] are rewritten
+/// to 500px, or to 330px when the stored width is below 500 and is not 480.
 /// Other URLs stay full size.
 String? coverThumbFromUrls(Iterable<Object?> urls) {
   for (final raw in urls) {
@@ -225,11 +254,14 @@ String? _fullCover(Object? raw) {
   return trimmed;
 }
 
-/// Wikimedia URL at [kCommonsThumbPx], or null when [raw] is not a Commons file.
+/// Wikimedia URL on the thumbnail ladder, or null when [raw] is not a
+/// Commons file.
 ///
-/// An existing `/thumb/` wider than 500px is narrowed. A thumb that is
-/// already 500px or smaller is left as stored. An original
-/// `.../commons/<h>/<hh>/<name>` becomes that 500px thumb.
+/// An existing `/thumb/` whose width is not a [kWikimediaThumbSteps] value
+/// is rewritten. 480px becomes 500px. Any other non-standard width below
+/// 500 becomes 330px, and a wider non-standard width becomes 500px. A
+/// listed width stays. An original `.../commons/<h>/<hh>/<name>` becomes
+/// a 500px thumb.
 String? _wikimedia480(Object? raw) {
   final trimmed = _fullCover(raw);
   if (trimmed == null) return null;
@@ -239,8 +271,9 @@ String? _wikimedia480(Object? raw) {
   if (!decodedPath.contains('/thumb/')) return _commonsOriginal480(trimmed);
   return trimmed.replaceFirstMapped(RegExp(r'/(\d+)px-([^/?#]+)'), (match) {
     final width = int.tryParse(match.group(1)!) ?? 0;
-    if (width <= kCommonsThumbPx) return match.group(0)!;
-    return '/${kCommonsThumbPx}px-${match.group(2)}';
+    final next = _commonsThumbWidth(width);
+    if (next == width) return match.group(0)!;
+    return '/${next}px-${match.group(2)}';
   });
 }
 

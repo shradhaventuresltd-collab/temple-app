@@ -74,7 +74,7 @@ void main() {
 
   test('entry keeps browse fields and drops the heavy document', () {
     const thumb =
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/1280px-File.jpg';
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/800px-File.jpg';
     final entry = templeIndexEntryFromMap('meenakshi-amman-temple', {
       'name': 'Meenakshi Amman Temple',
       'state': 'Tamil Nadu',
@@ -143,7 +143,7 @@ void main() {
       'https://example.com/gallery.jpg',
     );
     const wide =
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/1280px-File.jpg';
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/800px-File.jpg';
     expect(
       coverThumbFor({
         'photos': [

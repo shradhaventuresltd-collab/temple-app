@@ -14,6 +14,21 @@ export const SHORT_ADDRESS_MAX = 340;
 export const COVER_THUMB_MAX = 500;
 /** Wikimedia serves 500px and rejects 480px with HTTP 400. */
 export const COMMONS_THUMB_PX = 500;
+/** Hotlinked thumb widths from w.wiki/GHai ($wgThumbnailSteps). */
+const WIKIMEDIA_THUMB_STEPS = new Set([
+  20, 40, 60, 120, 250, 330, 500, 960, 1280, 1920, 3840,
+]);
+
+/**
+ * Listed steps stay. 480 is not listed and becomes 500. Any other
+ * non-standard width below 500 becomes 330. A wider non-standard width
+ * becomes 500.
+ */
+function commonsThumbWidth(width) {
+  if (WIKIMEDIA_THUMB_STEPS.has(width)) return width;
+  if (width === 480 || width >= COMMONS_THUMB_PX) return COMMONS_THUMB_PX;
+  return 330;
+}
 export const NAME_MAX = 80;
 export const CITY_MAX = 40;
 export const STATE_MAX = 40;
@@ -219,10 +234,11 @@ function commonsOriginal480(trimmed) {
 }
 
 /**
- * Wikimedia URL at 500px, or null when [raw] is not a Commons file.
- * An existing `/thumb/` wider than 500px is narrowed. A thumb that is
- * already 500px or smaller is left as stored. An original
- * `.../commons/<h>/<hh>/<name>` becomes that 500px thumb.
+ * Wikimedia URL on the thumbnail ladder, or null when [raw] is not a
+ * Commons file. An existing `/thumb/` whose width is not a standard step
+ * is rewritten. 480px becomes 500px. Any other non-standard width below
+ * 500 becomes 330px, and a wider non-standard width becomes 500px. A
+ * listed width stays. An original becomes a 500px thumb.
  */
 function wikimedia480(raw) {
   const trimmed = knownThumbUrl(raw);
@@ -236,8 +252,10 @@ function wikimedia480(raw) {
   if (!pathname.includes("/thumb/")) return commonsOriginal480(trimmed);
   return trimmed.replace(/\/(\d+)px-([^/?#]+)/, (full, width, rest) => {
     const parsed = Number(width);
-    if (!Number.isFinite(parsed) || parsed <= COMMONS_THUMB_PX) return full;
-    return `/${COMMONS_THUMB_PX}px-${rest}`;
+    if (!Number.isFinite(parsed)) return full;
+    const next = commonsThumbWidth(parsed);
+    if (next === parsed) return full;
+    return `/${next}px-${rest}`;
   });
 }
 
@@ -480,7 +498,10 @@ export function firstThumbSource(data) {
  * `imageUrl` when `images` is empty.
  *
  * A stored `photos[].thumbUrl` for that photo is used as written. Otherwise
- * a Wikimedia `/thumb/` wider than 500px is narrowed. A Commons original
+ * a Wikimedia `/thumb/` is snapped onto the w.wiki/GHai steps. A listed
+ * width stays, including 330, 500, 960, and 1280. 480px becomes 500px.
+ * Any other non-standard width below 500 becomes 330px, and a wider
+ * non-standard width becomes 500px. A Commons original
  * `.../commons/<h>/<hh>/<name>` becomes a 500px thumb when `<h>/<hh>` match
  * the MD5 of the underscored filename. An SVG thumb appends `.png`. A TIFF
  * thumb appends `.jpg`. PDF, DjVu, WebM, and OGV stay the full URL.

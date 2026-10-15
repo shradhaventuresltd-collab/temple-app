@@ -40,8 +40,9 @@ service cloud.firestore {
     //   Shard id is the state slug (tamil-nadu). One field:
     //   - entries: map keyed by temple id. Each value is a browse summary:
     //       id, slug, name, city, state, deity, address (short),
-    //       coverThumb (stored photos[].thumbUrl, else a Wikimedia 500px
-    //       thumb, else the full URL; max 500),
+    //       coverThumb (stored photos[].thumbUrl, else a Wikimedia thumb
+    //       on the w.wiki/GHai steps, with 480px rewritten to 500px, else
+    //       the full URL; max 500),
     //       lat, lng (null when missing, never 0,0), updatedAt, v,
     //       tradition, living, framing.
     //       altNames, published, and hidden are copied only when the temple

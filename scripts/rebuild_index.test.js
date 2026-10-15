@@ -117,7 +117,7 @@ test("cover thumb matches the first verified gallery image and caps at 500", () 
     "https://example.com/gallery.jpg",
   );
   const wide =
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/1280px-File.jpg";
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/800px-File.jpg";
   assert.equal(
     coverThumb({ imageUrl: wide }),
     "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/500px-File.jpg",

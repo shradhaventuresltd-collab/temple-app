@@ -1,10 +1,10 @@
 [
   {
-    "name": "wikimedia wide thumb becomes 500px",
+    "name": "a listed 1280px commons thumb stays 1280px",
     "data": {
       "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/1280px-File.jpg"
     },
-    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/500px-File.jpg"
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/1280px-File.jpg"
   },
   {
     "name": "firebase storage full object stays the full url until thumbUrl is stored",
@@ -209,11 +209,39 @@
     "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/330px-File.jpg"
   },
   {
-    "name": "a 480px commons thumb stays 480px",
+    "name": "a 480px commons thumb becomes 500px",
     "data": {
       "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/480px-File.jpg"
     },
-    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/480px-File.jpg"
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/500px-File.jpg"
+  },
+  {
+    "name": "a non-standard 400px commons thumb becomes 330px",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/400px-File.jpg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/330px-File.jpg"
+  },
+  {
+    "name": "a non-standard 800px commons thumb becomes 500px",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/800px-File.jpg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/500px-File.jpg"
+  },
+  {
+    "name": "a listed 960px commons thumb stays 960px",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/960px-File.jpg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/960px-File.jpg"
+  },
+  {
+    "name": "a listed 250px commons thumb stays 250px",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/250px-File.jpg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/250px-File.jpg"
   },
   {
     "name": "a 500px commons thumb stays 500px",
