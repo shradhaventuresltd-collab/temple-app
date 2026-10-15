@@ -1,5 +1,6 @@
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_photo.dart';
+import 'package:temple_app/utils/cover_thumb.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
 
 /// `temple_index/{stateSlug}` — one shard per state.
@@ -126,17 +127,73 @@ String shortTempleAddress(String raw) {
 
 /// Browse cover for one temple document.
 ///
-/// Same choice as [verifiedCoverUrl]: the first verified URL in `images`,
+/// Same photo as [verifiedCoverUrl]: the first verified URL in `images`,
 /// or `imageUrl` when `images` is empty. Placeholder hosts are skipped.
-/// Wikimedia `/thumb/` URLs wider than 480px are rewritten to `480px`. The
-/// result is at most [kTempleIndexCoverThumbMax] characters.
 ///
-/// TODO(KAN-146): a generated thumbnail can replace this URL later. The
-/// photo that is chosen stays the browse gallery photo.
+/// A `_480` thumb replaces that URL when one exists: `photos[].thumbUrl`
+/// for that photo, a Wikimedia thumb rewritten to 480px, a Storage object
+/// under `temples/{id}/{file}` (the admin upload and
+/// `scripts/resize_cover_thumbs.js` write `{file}_480`), or a `{name}_480`
+/// URL already listed beside it. Anything else stays the full URL. The
+/// result is at most [kTempleIndexCoverThumbMax] characters. Detail keeps
+/// the full gallery URL.
 String? coverThumbFor(Map<String, dynamic> data) {
   final source = firstVerifiedGalleryUrl(data);
   if (source == null) return null;
+  final explicit = _explicitThumb(data, source);
+  if (explicit != null) return explicit;
+  final ready = _browseThumb(source);
+  if (ready != null) return ready;
+  final derived = storageThumbUrl(
+    source,
+    maxLength: kTempleIndexCoverThumbMax,
+  );
+  if (derived != null) return derived;
+  final listed = _listedFileThumb(data, source);
+  if (listed != null) return listed;
   return _usableCover(source, allowFull: true);
+}
+
+String? _explicitThumb(Map<String, dynamic> data, String source) {
+  final photos = data['photos'];
+  if (photos is! List) return null;
+  for (final photo in photos) {
+    if (photo is! Map) continue;
+    final url = photo['url'];
+    if (url is! String || url.trim() != source) continue;
+    final thumb = _browseThumb(photo['thumbUrl']);
+    if (thumb != null) return thumb;
+  }
+  return null;
+}
+
+String? _listedFileThumb(Map<String, dynamic> data, String source) {
+  final sibling = fileThumbSibling(source);
+  if (sibling == null || !_urlListed(data, sibling)) return null;
+  return _browseThumb(sibling);
+}
+
+bool _urlListed(Map<String, dynamic> data, String url) {
+  final want = url.trim();
+  final images = data['images'];
+  if (images is List) {
+    for (final item in images) {
+      if (item is String && item.trim() == want) return true;
+    }
+  }
+  final imageUrl = data['imageUrl'];
+  if (imageUrl is String && imageUrl.trim() == want) return true;
+  final photos = data['photos'];
+  if (photos is List) {
+    for (final photo in photos) {
+      if (photo is! Map) continue;
+      final photoUrl = photo['url'];
+      final thumbUrl = photo['thumbUrl'];
+      if (photoUrl is String && photoUrl.trim() == want) return true;
+      if (thumbUrl is String && thumbUrl.trim() == want) return true;
+    }
+  }
+  return false;
 }
 
 /// Unrewritten gallery URL [coverThumbFor] is taken from.
@@ -169,12 +226,20 @@ List<String> _galleryCandidates(Map<String, dynamic> data) {
 
 /// URL list helper. Prefer [coverThumbFor] so the gallery order stays put.
 String? coverThumbFromUrls(Iterable<Object?> urls) {
-  for (final raw in urls) {
+  final list = urls.toList();
+  for (final raw in list) {
     final thumb = _browseThumb(raw);
     if (thumb != null) return thumb;
   }
-  // TODO(KAN-146): drop the full-URL fallback once thumbs exist.
-  for (final raw in urls) {
+  for (final raw in list) {
+    if (raw is! String) continue;
+    final derived = storageThumbUrl(
+      raw,
+      maxLength: kTempleIndexCoverThumbMax,
+    );
+    if (derived != null) return derived;
+  }
+  for (final raw in list) {
     final full = _usableCover(raw, allowFull: true);
     if (full != null) return full;
   }

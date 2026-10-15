@@ -5,6 +5,7 @@ import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
 import 'package:temple_app/services/admin_temple_service.dart';
+import 'package:temple_app/services/photo_thumb_encoder.dart';
 import 'package:temple_app/services/seed_service.dart';
 import 'package:temple_app/services/temple_form_validation.dart';
 import 'package:temple_app/services/temple_photo_upload.dart';
@@ -16,6 +17,7 @@ class AdminTempleFormScreen extends StatefulWidget {
     required this.adminTemples,
     this.existing,
     this.uploader,
+    this.thumbEncoder,
     this.pickImages,
     this.initialDrafts,
   });
@@ -30,7 +32,11 @@ class AdminTempleFormScreen extends StatefulWidget {
   /// Storage upload. Tests can inject a fake. Defaults to Cloud Storage.
   final TemplePhotoUploader? uploader;
 
-  /// Multi-image pick. Defaults to [ImagePicker.pickMultiImage] (limit 10).
+  /// Builds the `_480` thumb before upload. Tests can inject a fake.
+  final TemplePhotoThumbEncoder? thumbEncoder;
+
+  /// Multi-image pick. Defaults to [ImagePicker.pickMultiImage] resized to
+  /// [kTemplePhotoMaxEdge] at [kTemplePhotoJpegQuality].
   final Future<List<XFile>> Function({required int limit})? pickImages;
 
   bool get isEditing => existing != null;
@@ -214,7 +220,13 @@ class _AdminTempleFormScreenState extends State<AdminTempleFormScreen> {
   }
 
   Future<List<XFile>> _pickMultiImage({required int limit}) {
-    return ImagePicker().pickMultiImage(limit: limit);
+    final args = templePhotoPickArguments(limit: limit);
+    return ImagePicker().pickMultiImage(
+      limit: args.limit,
+      maxWidth: args.maxWidth,
+      maxHeight: args.maxHeight,
+      imageQuality: args.imageQuality,
+    );
   }
 
   Future<void> _uploadDraft(AdminPhotoDraft draft, String docId) async {
@@ -227,10 +239,17 @@ class _AdminTempleFormScreenState extends State<AdminTempleFormScreen> {
       return;
     }
     final uploader = widget.uploader ?? FirebaseTemplePhotoUploader();
+    final encoder =
+        widget.thumbEncoder ?? const FlutterTemplePhotoThumbEncoder();
     try {
+      final thumbBytes = await encoder.encode(
+        bytes: bytes,
+        extension: photoExtensionFromName(draft.fileName),
+      );
       final url = await uploader.upload(
         docId: docId,
         bytes: bytes,
+        thumbBytes: thumbBytes,
         extension: photoExtensionFromName(draft.fileName),
         onProgress: (progress) {
           if (!mounted) return;

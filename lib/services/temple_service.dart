@@ -17,9 +17,10 @@ import 'package:temple_app/services/temple_directory_client.dart';
 /// error serves the applied shards from the local cache when they exist,
 /// otherwise the bundled sample, and the next launch tries the server again.
 /// When one shard misses on both the server and the cache, the client queries
-/// `temples` where `state` equals that state. The bundled sample for the
-/// state is used only if that query also fails, and the screen says it is
-/// showing the offline sample.
+/// `temples` where `state` equals that state. Zero documents is the same gap
+/// as a failed query: the state is not dropped. The bundled sample for the
+/// state is used only in that case, and the screen says it could not load
+/// the state. A sample on screen also says it is the offline sample.
 ///
 /// Web launches are always cold. The web Firestore cache is memory-only, so
 /// a new page load has no shard documents even when [IndexStampStore] still
@@ -185,8 +186,9 @@ class TempleService {
     return _stateOrSample(read.slug);
   }
 
-  /// One state's `temples` documents. The bundled sample is only for a failed
-  /// query, and that sample is always announced.
+  /// One state's `temples` documents. The bundled sample is for a failed
+  /// query or a query that returns nothing, and that sample is always
+  /// announced. An empty result would otherwise drop the state with no notice.
   Future<_ShardRows?> _stateOrSample(String slug) async {
     final fromState = await _templesForState(slug);
     if (fromState != null) return fromState;
@@ -205,6 +207,7 @@ class TempleService {
           )
           .timeout(fetchTimeout);
       _readLog.serverRead(docs.isEmpty ? 1 : docs.length);
+      if (docs.isEmpty) return null;
       final temples = [
         for (final doc in docs) Temple.fromMap(doc.id, doc.data ?? {}),
       ];

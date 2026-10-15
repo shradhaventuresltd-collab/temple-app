@@ -144,6 +144,42 @@ void main() {
     expect(gap.log.unavailableShardsMessage, isNot(contains('offline sample')));
   });
 
+  test('a failed shard whose state query returns 0 shows the notice', () async {
+    final harness = _harness(
+      serverStamps: {'bihar': _newStamp},
+      failServerShards: {'bihar'},
+      keepCache: false,
+    );
+    final rows = await harness.service.getTemples();
+    expect(
+      harness.fake.gets,
+      contains('query:Source.server:temples:state=Bihar'),
+    );
+    expect(rows.map((temple) => temple.name), [
+      for (final temple in sampleTemples)
+        if (temple.state == 'Bihar') temple.name,
+    ]);
+    expect(harness.log.unavailableShardsMessage, contains('Could not load'));
+    expect(harness.log.unavailableShardsMessage, contains('Bihar'));
+    expect(harness.log.unavailableShardsMessage, contains('offline sample'));
+
+    final gap = _harness(
+      serverStamps: {'atlantis': _newStamp, 'kerala': _oldStamp},
+      failServerShards: {'atlantis'},
+      keepCache: false,
+    );
+    final kept = await gap.service.getTemples();
+    expect(kept.map((temple) => temple.id), ['kerala-temple']);
+    expect(
+      gap.fake.gets,
+      contains('query:Source.server:temples:state=Atlantis'),
+    );
+    expect(gap.log.unavailableShards, ['Atlantis']);
+    expect(gap.log.unavailableShardsMessage, contains('Could not load'));
+    expect(gap.log.unavailableShardsMessage, contains('Atlantis'));
+    expect(gap.log.unavailableShardsMessage, isNot(contains('offline sample')));
+  });
+
   test('a failed shard uses that state when the query succeeds', () async {
     final harness = _harness(
       serverStamps: {'bihar': _newStamp},

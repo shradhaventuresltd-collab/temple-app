@@ -1,0 +1,120 @@
+[
+  {
+    "name": "wikimedia wide thumb becomes 480px",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/1280px-File.jpg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/480px-File.jpg"
+  },
+  {
+    "name": "firebase storage full object points at the public _480 thumb",
+    "data": {
+      "images": [
+        "https://firebasestorage.googleapis.com/v0/b/app/o/temples%2Fid%2F171000.jpg?alt=media&token=abc"
+      ]
+    },
+    "expect": "https://firebasestorage.googleapis.com/v0/b/app/o/temples%2Fid%2F171000_480.jpg?alt=media"
+  },
+  {
+    "name": "an existing _480 storage object is kept, token and all",
+    "data": {
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/app/o/temples%2Fshore%2Fcover_480.jpg?alt=media&token=abc"
+    },
+    "expect": "https://firebasestorage.googleapis.com/v0/b/app/o/temples%2Fshore%2Fcover_480.jpg?alt=media&token=abc"
+  },
+  {
+    "name": "cloud storage pack cover points at 01_480",
+    "data": {
+      "imageUrl": "https://storage.googleapis.com/temple-directory-india.firebasestorage.app/temples/mahabodhi-temple/01.jpg",
+      "images": [
+        "https://storage.googleapis.com/temple-directory-india.firebasestorage.app/temples/mahabodhi-temple/01.jpg"
+      ]
+    },
+    "expect": "https://storage.googleapis.com/temple-directory-india.firebasestorage.app/temples/mahabodhi-temple/01_480.jpg"
+  },
+  {
+    "name": "jpeg extension is preserved",
+    "data": {
+      "imageUrl": "https://storage.googleapis.com/bucket/temples/shore/cover.jpeg"
+    },
+    "expect": "https://storage.googleapis.com/bucket/temples/shore/cover_480.jpeg"
+  },
+  {
+    "name": "png extension case is preserved",
+    "data": {
+      "imageUrl": "https://storage.googleapis.com/bucket/temples/shore/hero.PNG"
+    },
+    "expect": "https://storage.googleapis.com/bucket/temples/shore/hero_480.PNG"
+  },
+  {
+    "name": "firebasestorage.app host is rewritten to the public download URL",
+    "data": {
+      "imageUrl": "https://temple-directory-india.firebasestorage.app/v0/b/temple-directory-india.firebasestorage.app/o/temples%2Fshore%2F01.jpg?alt=media"
+    },
+    "expect": "https://firebasestorage.googleapis.com/v0/b/temple-directory-india.firebasestorage.app/o/temples%2Fshore%2F01_480.jpg?alt=media"
+  },
+  {
+    "name": "photos thumbUrl wins when it is the gallery photo",
+    "data": {
+      "images": [
+        "https://firebasestorage.googleapis.com/v0/b/app/o/temples%2Fid%2F171000.jpg?alt=media"
+      ],
+      "photos": [
+        {
+          "url": "https://firebasestorage.googleapis.com/v0/b/app/o/temples%2Fid%2F171000.jpg?alt=media",
+          "thumbUrl": "https://cdn.example/photos/shore_480.jpg",
+          "licence": "CC0",
+          "order": 0
+        }
+      ]
+    },
+    "expect": "https://cdn.example/photos/shore_480.jpg"
+  },
+  {
+    "name": "a listed non-storage _480 sibling is preferred",
+    "data": {
+      "images": [
+        "https://cdn.example/photos/shore.jpg",
+        "https://cdn.example/photos/shore_480.jpg"
+      ]
+    },
+    "expect": "https://cdn.example/photos/shore_480.jpg"
+  },
+  {
+    "name": "a non-storage cover without a sibling stays full size",
+    "data": {
+      "imageUrl": "https://cdn.example/photos/shore.jpg"
+    },
+    "expect": "https://cdn.example/photos/shore.jpg"
+  },
+  {
+    "name": "a storage object outside temples/ stays full size",
+    "data": {
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/app/o/other%2Ffile.jpg?alt=media"
+    },
+    "expect": "https://firebasestorage.googleapis.com/v0/b/app/o/other%2Ffile.jpg?alt=media"
+  },
+  {
+    "name": "gallery-first ignores a thumbUrl on a different photo",
+    "data": {
+      "photos": [
+        {
+          "url": "https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg",
+          "thumbUrl": "https://cdn.example/photos/shore_480.jpg",
+          "licence": "CC0",
+          "order": 0
+        }
+      ],
+      "imageUrl": "https://example.com/cover.jpg",
+      "images": ["https://example.com/gallery.jpg"]
+    },
+    "expect": "https://example.com/gallery.jpg"
+  },
+  {
+    "name": "picsum is not a cover",
+    "data": {
+      "imageUrl": "https://picsum.photos/seed/temple/800/600"
+    },
+    "expect": null
+  }
+]

@@ -122,7 +122,6 @@ test("cover thumb matches the first verified gallery image and caps at 500", () 
     coverThumb({ imageUrl: wide }),
     "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/480px-File.jpg",
   );
-  // TODO(KAN-146): full URL until thumbnails exist.
   assert.equal(coverThumb({ imageUrl: full }), full);
   assert.equal(
     coverThumb({

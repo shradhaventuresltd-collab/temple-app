@@ -278,6 +278,48 @@ async function commitTemple(db, { id, data, isNew, previous, deleteTemple = fals
   await batch.commit();
 }
 
+test("latitude and longitude are both null or both set", async () => {
+  const db = adminDb("admin-coord-pair");
+  await assertSucceeds(
+    setDoc(at(db, "temples/both-null"), templePayload("both-null", { latitude: null, longitude: null })),
+  );
+  await assertSucceeds(
+    setDoc(at(db, "temples/both-set"), templePayload("both-set", { latitude: 0, longitude: 0 })),
+  );
+  await assertFails(
+    setDoc(
+      at(db, "temples/lat-only"),
+      templePayload("lat-only", { latitude: 12.6, longitude: null }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      at(db, "temples/lng-only"),
+      templePayload("lng-only", { latitude: null, longitude: 80 }),
+    ),
+  );
+
+  await assertSucceeds(
+    setDoc(at(db, "temples/paired"), templePayload("paired", { latitude: 12.6, longitude: 80 })),
+  );
+  await assertFails(
+    setDoc(at(db, "temples/paired"), { latitude: null }, { merge: true }),
+  );
+  await assertFails(
+    setDoc(at(db, "temples/paired"), { longitude: null }, { merge: true }),
+  );
+  await assertSucceeds(
+    setDoc(at(db, "temples/paired"), { latitude: null, longitude: null }, { merge: true }),
+  );
+  await assertSucceeds(
+    setDoc(at(db, "temples/paired"), { city: "Mamallapuram" }, { merge: true }),
+  );
+  const saved = await getDoc(at(db, "temples/paired"));
+  assert.equal(saved.data().latitude, null);
+  assert.equal(saved.data().longitude, null);
+  assert.equal(saved.data().city, "Mamallapuram");
+});
+
 test("an admin save without coordinates writes null", async () => {
   const db = adminDb("admin-null-coords");
   const id = "unplaced-temple";

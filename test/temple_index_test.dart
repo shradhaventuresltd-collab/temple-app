@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:temple_app/data/sample_data.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_index.dart';
+import 'package:temple_app/utils/cover_thumb.dart';
 import 'package:temple_app/widgets/temple_browse_card.dart';
 import 'package:temple_app/services/admin_temple_service.dart';
 import 'package:temple_app/services/seed_service.dart';
@@ -152,7 +153,6 @@ void main() {
       }),
       'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/480px-File.jpg',
     );
-    // TODO(KAN-146): this full URL is a stand-in until thumbnails exist.
     expect(coverThumbFor({'imageUrl': full}), full);
     expect(
       coverThumbFor({
@@ -173,6 +173,30 @@ void main() {
         'images': [full],
       }),
       full,
+    );
+  });
+
+  test('cover thumb fixture matches the JS builder', () {
+    final cases =
+        jsonDecode(
+              File('scripts/fixtures/cover_thumb_cases.json').readAsStringSync(),
+            )
+            as List;
+    for (final raw in cases) {
+      final row = Map<String, dynamic>.from(raw as Map);
+      final data = Map<String, dynamic>.from(row['data'] as Map);
+      expect(coverThumbFor(data), row['expect'], reason: row['name'] as String);
+    }
+    expect(
+      thumbObjectPath('temples/shore/01.jpg'),
+      'temples/shore/01_480.jpg',
+    );
+    expect(thumbObjectPath('temples/shore/01_480.jpg'), isNull);
+    expect(
+      storageThumbUrl(
+        'https://storage.googleapis.com/bucket/temples/shore/01.jpg',
+      ),
+      'https://storage.googleapis.com/bucket/temples/shore/01_480.jpg',
     );
   });
 

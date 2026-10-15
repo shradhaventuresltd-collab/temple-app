@@ -47,6 +47,8 @@ void main() {
     expect(firestoreRules, contains("photo.licence == 'CC-BY-SA'"));
     expect(firestoreRules, contains('optionalValidPhotos(data)'));
     expect(firestoreRules, contains('function isValidPhoto(photo)'));
+    expect(firestoreRules, contains('function coordinatesArePaired(data)'));
+    expect(firestoreRules, contains('coordinatesArePaired(data)'));
     expect(firestoreRules, isNot(contains('allow write: if true')));
     expect(
       firestoreRules,

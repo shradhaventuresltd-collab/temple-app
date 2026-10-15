@@ -162,6 +162,135 @@ function browseThumb(raw) {
   });
 }
 
+function safeDecode(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+/**
+ * `temples/{id}/{file}` for a Storage object. Null when [objectPath] is
+ * already a `_480` / `-480` image or is not a temple photo.
+ * Extension case is kept so the object name matches Storage.
+ */
+export function thumbObjectPath(objectPath) {
+  const parts = String(objectPath ?? "").split("/");
+  if (parts.length !== 3 || parts[0] !== "temples") return null;
+  const id = parts[1];
+  if (!id || id === "." || id === "..") return null;
+  const ext = /^(.*)\.(jpe?g|png|webp)$/i.exec(parts[2]);
+  if (!ext || !ext[1] || /[_-]480$/i.test(ext[1])) return null;
+  return `temples/${id}/${ext[1]}_480.${ext[2]}`;
+}
+
+/**
+ * Firebase or Cloud Storage object named by [raw]. The path is taken from
+ * the raw URL so a `%2F` inside the Firebase object name stays one object.
+ * @returns {{ kind: "firebase" | "gcs", bucket: string, objectPath: string } | null}
+ */
+export function storageObjectFromUrl(raw) {
+  const trimmed = httpUrl(raw);
+  if (!trimmed) return null;
+  const firebase = /^https:\/\/([^/?#]+)\/v0\/b\/([^/?#]+)\/o\/([^?#]+)/i.exec(trimmed);
+  if (firebase) {
+    const host = firebase[1].toLowerCase();
+    if (host !== "firebasestorage.googleapis.com" && !host.endsWith(".firebasestorage.app")) {
+      return null;
+    }
+    return {
+      kind: "firebase",
+      bucket: safeDecode(firebase[2]),
+      objectPath: safeDecode(firebase[3]),
+    };
+  }
+  const gcs = /^https:\/\/storage\.googleapis\.com\/([^/?#]+)\/([^?#]+)/i.exec(trimmed);
+  if (!gcs) return null;
+  return {
+    kind: "gcs",
+    bucket: safeDecode(gcs[1]),
+    objectPath: gcs[2].split("/").map(safeDecode).join("/"),
+  };
+}
+
+function publicStorageUrl(located, objectPath) {
+  if (located.kind === "gcs") {
+    const segments = objectPath.split("/").map(encodeURIComponent).join("/");
+    return `https://storage.googleapis.com/${encodeURIComponent(located.bucket)}/${segments}`;
+  }
+  return (
+    "https://firebasestorage.googleapis.com/v0/b/" +
+    `${encodeURIComponent(located.bucket)}/o/${encodeURIComponent(objectPath)}?alt=media`
+  );
+}
+
+/**
+ * Public `_480` URL for one of our Storage photos. Null when [raw] is not
+ * a full-size `temples/{id}/{file}` object. The download token is dropped:
+ * Storage rules allow public read, and a token belongs to the full object.
+ */
+export function storageThumbUrl(raw) {
+  const located = storageObjectFromUrl(raw);
+  if (!located) return null;
+  const thumbPath = thumbObjectPath(located.objectPath);
+  if (!thumbPath) return null;
+  const url = publicStorageUrl(located, thumbPath);
+  if (placeholder(url) || url.length > COVER_THUMB_MAX) return null;
+  return url;
+}
+
+/** `{name}_480.ext` beside a non-Storage URL. Query and fragment are kept. */
+export function fileThumbSibling(raw) {
+  const trimmed = httpUrl(raw);
+  if (!trimmed || placeholder(trimmed) || storageObjectFromUrl(trimmed)) return null;
+  const hashAt = trimmed.indexOf("#");
+  const beforeHash = hashAt === -1 ? trimmed : trimmed.slice(0, hashAt);
+  const fragment = hashAt === -1 ? "" : trimmed.slice(hashAt);
+  const queryAt = beforeHash.indexOf("?");
+  const withoutQuery = queryAt === -1 ? beforeHash : beforeHash.slice(0, queryAt);
+  const query = queryAt === -1 ? "" : beforeHash.slice(queryAt);
+  const slash = withoutQuery.lastIndexOf("/");
+  if (slash < "https://".length) return null;
+  const ext = /^(.*)\.(jpe?g|png|webp)$/i.exec(safeDecode(withoutQuery.slice(slash + 1)));
+  if (!ext || !ext[1] || /[_-]480$/i.test(ext[1])) return null;
+  const name = encodeURIComponent(`${ext[1]}_480.${ext[2]}`);
+  return `${withoutQuery.slice(0, slash + 1)}${name}${query}${fragment}`;
+}
+
+function urlListed(data, url) {
+  const want = url.trim();
+  const images = Array.isArray(data?.images) ? data.images : [];
+  for (const item of images) {
+    if (typeof item === "string" && item.trim() === want) return true;
+  }
+  if (typeof data?.imageUrl === "string" && data.imageUrl.trim() === want) return true;
+  const photos = Array.isArray(data?.photos) ? data.photos : [];
+  for (const photo of photos) {
+    if (!photo || typeof photo !== "object") continue;
+    if (typeof photo.url === "string" && photo.url.trim() === want) return true;
+    if (typeof photo.thumbUrl === "string" && photo.thumbUrl.trim() === want) return true;
+  }
+  return false;
+}
+
+function explicitThumb(data, source) {
+  const photos = Array.isArray(data?.photos) ? data.photos : [];
+  for (const photo of photos) {
+    if (!photo || typeof photo !== "object") continue;
+    if (typeof photo.url !== "string" || photo.url.trim() !== source) continue;
+    const thumb = browseThumb(photo.thumbUrl);
+    if (thumb) return thumb;
+  }
+  return null;
+}
+
+function listedFileThumb(data, source) {
+  const sibling = fileThumbSibling(source);
+  if (!sibling || !urlListed(data, sibling)) return null;
+  return browseThumb(sibling);
+}
+
 function usableCover(raw, { allowFull }) {
   const thumb = browseThumb(raw);
   if (thumb) return thumb;
@@ -194,14 +323,27 @@ export function firstVerifiedGalleryUrl(data) {
 }
 
 /**
- * Same photo as browse: first verified `images` URL, or `imageUrl` when
- * `images` is empty. Wikimedia thumbs wider than 480px are rewritten.
- * TODO(KAN-146): a generated thumbnail can replace this URL later.
- * Result is at most 500 characters.
+ * Browse cover. Same photo as the gallery: first verified `images` URL, or
+ * `imageUrl` when `images` is empty.
+ *
+ * A `_480` thumb replaces that URL when one exists: `photos[].thumbUrl` for
+ * that photo, a Wikimedia thumb rewritten to 480px, a Storage object under
+ * `temples/{id}/{file}` (the upload and resize_cover_thumbs.js write
+ * `{file}_480`), or a `{name}_480` URL already listed beside it.
+ * Anything else stays the full URL. Result is at most 500 characters.
+ * Detail keeps the full gallery URL.
  */
 export function coverThumb(data) {
   const source = firstVerifiedGalleryUrl(data);
   if (!source) return null;
+  const explicit = explicitThumb(data, source);
+  if (explicit) return explicit;
+  const ready = browseThumb(source);
+  if (ready) return ready;
+  const derived = storageThumbUrl(source);
+  if (derived) return derived;
+  const listed = listedFileThumb(data, source);
+  if (listed) return listed;
   return usableCover(source, { allowFull: true });
 }
 
