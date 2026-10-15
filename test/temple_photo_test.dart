@@ -182,6 +182,28 @@ void main() {
       ], url),
       isNull,
     );
+    expect(
+      historicalCoverCaption(const [
+        TemplePhoto(
+          url: url,
+          credit: 'A lithograph of the shrine. Catalogue 1847.',
+          licence: PhotoLicence.cc0,
+          order: 0,
+        ),
+      ], url),
+      'Lithograph',
+    );
+    expect(
+      historicalCoverCaption(const [
+        TemplePhoto(
+          url: url,
+          credit: '1499 lithograph',
+          licence: PhotoLicence.cc0,
+          order: 0,
+        ),
+      ], url),
+      'Lithograph',
+    );
   });
 
   test('credit is required for CC-BY and CC-BY-SA only', () {

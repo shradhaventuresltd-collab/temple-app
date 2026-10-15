@@ -10,9 +10,9 @@
  * must still be live. --apply reads each target document first. A gallery
  * write runs only when live imageUrl, images, and photos still match that
  * audited state. A mismatch is skipped and reported. --strict aborts the
- * whole run before any write. Each document's check and update then run in
- * one transaction, so a gallery that changes after the first read is
- * checked again before that document is written. It refuses CI and requires
+ * whole run before any write. All targets are read inside one transaction
+ * before any update, so --strict aborts before a write when a later
+ * document does not match. It refuses CI and requires
  * a confirm prompt plus an explicit --project. It does not upload Storage
  * objects and it does not run Seed.
  */
@@ -234,79 +234,57 @@ function printPlan(patch) {
 }
 
 /**
- * Read every target, then write only the matches.
+ * Read every target, then write only the matches, inside one transaction.
  *
- * A missing document aborts before any write. --strict does the same when
- * any live gallery differs from the audit. Otherwise each matching document
- * is updated inside its own transaction, which reads the document again and
- * skips (or aborts, under --strict) if the gallery changed.
+ * A missing document aborts before any update. --strict does the same when
+ * any live gallery differs from the audit, including a later document, so
+ * no earlier document is written. Otherwise mismatches are skipped and the
+ * matches are updated in that same transaction.
  */
 export async function applyPatchSet(db, patch, { strict }) {
-  const planned = [];
-  for (const temple of patch.temples) {
-    const ref = db.collection("temples").doc(temple.id);
-    const snap = await ref.get();
-    if (!snap.exists) {
-      planned.push({ temple, ref, action: "missing" });
-      continue;
-    }
-    const data = snap.data() || {};
-    if (temple.expect && !galleryMatches(data, temple.expect)) {
-      planned.push({ temple, ref, action: "skip" });
-      continue;
-    }
-    planned.push({ temple, ref, action: "write" });
-  }
-
-  const missing = planned.filter((row) => row.action === "missing").map((row) => row.temple.id);
-  if (missing.length > 0) {
-    throw new Error(
-      `Refusing to write. These documents do not exist: ${missing.join(", ")}. No write.`,
-    );
-  }
-  const skipped = planned.filter((row) => row.action === "skip").map((row) => row.temple.id);
-  if (strict && skipped.length > 0) {
-    throw new Error(
-      `Refusing to write. Live gallery does not match the audited state: ${skipped.join(", ")}. No write.`,
-    );
-  }
-
-  for (const row of planned) {
-    if (row.action === "skip") {
-      console.log(
-        `skipped temples/${row.temple.id}  live gallery does not match the audited state`,
-      );
-      continue;
-    }
-    const wrote = await db.runTransaction(async (tx) => {
-      const snap = await tx.get(row.ref);
+  await db.runTransaction(async (tx) => {
+    const planned = [];
+    for (const temple of patch.temples) {
+      const ref = db.collection("temples").doc(temple.id);
+      const snap = await tx.get(ref);
       if (!snap.exists) {
-        throw new Error(
-          `Refusing to write. These documents do not exist: ${row.temple.id}. No write.`,
-        );
+        planned.push({ temple, ref, action: "missing" });
+        continue;
       }
       const data = snap.data() || {};
-      if (row.temple.expect && !galleryMatches(data, row.temple.expect)) {
-        if (strict) {
-          throw new Error(
-            `Refusing to write. Live gallery does not match the audited state: ${row.temple.id}. No write.`,
-          );
-        }
-        return false;
+      if (temple.expect && !galleryMatches(data, temple.expect)) {
+        planned.push({ temple, ref, action: "skip" });
+        continue;
+      }
+      planned.push({ temple, ref, action: "write" });
+    }
+
+    const missing = planned.filter((row) => row.action === "missing").map((row) => row.temple.id);
+    if (missing.length > 0) {
+      throw new Error(
+        `Refusing to write. These documents do not exist: ${missing.join(", ")}. No write.`,
+      );
+    }
+    const skipped = planned.filter((row) => row.action === "skip").map((row) => row.temple.id);
+    if (strict && skipped.length > 0) {
+      throw new Error(
+        `Refusing to write. Live gallery does not match the audited state: ${skipped.join(", ")}. No write.`,
+      );
+    }
+
+    for (const row of planned) {
+      if (row.action === "skip") {
+        console.log(
+          `skipped temples/${row.temple.id}  live gallery does not match the audited state`,
+        );
+        continue;
       }
       tx.update(row.ref, row.temple.fields);
-      return true;
-    });
-    if (!wrote) {
       console.log(
-        `skipped temples/${row.temple.id}  live gallery does not match the audited state`,
+        `updated temples/${row.temple.id} (${Object.keys(row.temple.fields).join(", ")})`,
       );
-      continue;
     }
-    console.log(
-      `updated temples/${row.temple.id} (${Object.keys(row.temple.fields).join(", ")})`,
-    );
-  }
+  });
 }
 
 async function applyPatches(project, patch, { strict }) {
