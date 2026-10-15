@@ -1,5 +1,5 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:temple_app/widgets/cover_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_photo.dart';
@@ -59,123 +59,144 @@ class TempleBrowseCard extends StatelessWidget {
     return Semantics(
       identifier: 'temple-browse-card',
       child: DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.brown.withAlpha(20),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.white,
-        shape: RoundedRectangleBorder(
+        decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: gold),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.brown.withAlpha(20),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap:
-              onTap ??
-              () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => TempleDetailScreen(temple: temple),
+        child: Material(
+          color: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: gold),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap:
+                onTap ??
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => TempleDetailScreen(temple: temple),
+                  ),
                 ),
-              ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _BrowseCover(temple: temple),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      temple.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.lora(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: saffron,
-                        height: 1.25,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _BrowseCover(temple: temple),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        temple.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.lora(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: saffron,
+                          height: 1.25,
+                        ),
                       ),
-                    ),
-                    if (place.isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.place_rounded,
-                            size: 16,
-                            color: Colors.brown.shade400,
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              place,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.poppins(
-                                fontSize: 13,
-                                color: Colors.brown.shade600,
-                                fontWeight: FontWeight.w500,
-                                height: 1.3,
+                      if (place.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.place_rounded,
+                              size: 16,
+                              color: Colors.brown.shade400,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                place,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  color: Colors.brown.shade600,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.3,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
-                    if (deity.isNotEmpty || honestyLabels.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          Widget chip(String label, {Color? background}) {
-                            return ConstrainedBox(
-                              constraints: BoxConstraints(
-                                maxWidth: constraints.maxWidth,
-                              ),
-                              child: _BrowseChip(
-                                label: label,
-                                background:
-                                    background ?? const Color(0xFFFFF9E3),
-                              ),
-                            );
-                          }
-
-                          return Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              if (deity.isNotEmpty) chip(deity),
-                              for (final label in honestyLabels)
-                                chip(
-                                  label,
-                                  background: label == 'Heritage visit'
-                                      ? const Color(0xFFFFF3D8)
-                                      : const Color(0xFFFFF9E3),
+                          ],
+                        ),
+                      ],
+                      if (deity.isNotEmpty || honestyLabels.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            Widget chip(String label, {Color? background}) {
+                              return ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxWidth: constraints.maxWidth,
                                 ),
-                            ],
-                          );
-                        },
-                      ),
+                                child: _BrowseChip(
+                                  label: label,
+                                  background:
+                                      background ?? const Color(0xFFFFF9E3),
+                                ),
+                              );
+                            }
+
+                            return Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                if (deity.isNotEmpty) chip(deity),
+                                for (final label in honestyLabels)
+                                  chip(
+                                    label,
+                                    background: label == 'Heritage visit'
+                                        ? const Color(0xFFFFF3D8)
+                                        : const Color(0xFFFFF9E3),
+                                  ),
+                              ],
+                            );
+                          },
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }
+}
+
+/// Full gallery URL already on [temple], when it is not the thumb itself.
+String? _storedFullCover(Temple temple, String displayed) {
+  final image = temple.imageUrl.trim();
+  if (image.startsWith('https://') &&
+      image != displayed &&
+      !isPlaceholderImageUrl(image)) {
+    return image;
+  }
+  for (final photo in temple.photos) {
+    final url = photo.url.trim();
+    final thumb = photo.thumbUrl?.trim() ?? '';
+    if (thumb == displayed &&
+        url.startsWith('https://') &&
+        url != displayed &&
+        !isPlaceholderImageUrl(url)) {
+      return url;
+    }
+  }
+  return null;
 }
 
 class _BrowseCover extends StatelessWidget {
@@ -198,21 +219,22 @@ class _BrowseCover extends StatelessWidget {
             ? constraints.maxWidth
             : MediaQuery.sizeOf(context).width;
         final caption =
-            temple.coverCaption ?? historicalCoverCaption(temple.photos, coverUrl);
+            temple.coverCaption ??
+            historicalCoverCaption(temple.photos, coverUrl);
         return Stack(
           children: [
-            CachedNetworkImage(
-              imageUrl: coverUrl,
+            CoverNetworkImage(
+              url: coverUrl,
+              fallbackUrl: _storedFullCover(temple, coverUrl),
               height: TempleBrowseCard.coverHeight,
               width: double.infinity,
               fit: BoxFit.cover,
               memCacheWidth: (width * dpr).round().clamp(1, 1600),
-              memCacheHeight: (TempleBrowseCard.coverHeight * dpr).round().clamp(
-                1,
-                1200,
-              ),
+              memCacheHeight: (TempleBrowseCard.coverHeight * dpr)
+                  .round()
+                  .clamp(1, 1200),
               fadeInDuration: const Duration(milliseconds: 300),
-              placeholder: (context, url) => const ColoredBox(
+              placeholder: const ColoredBox(
                 color: Color(0xFFFFF8EE),
                 child: Center(
                   child: SizedBox(
@@ -225,7 +247,7 @@ class _BrowseCover extends StatelessWidget {
                   ),
                 ),
               ),
-              errorWidget: (context, url, error) => const TempleImagePlaceholder(
+              error: const TempleImagePlaceholder(
                 height: TempleBrowseCard.coverHeight,
               ),
             ),

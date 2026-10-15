@@ -4,6 +4,9 @@ import 'dart:ui' as ui;
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:temple_app/services/temple_photo_upload.dart';
 
+// The source extension is unused: every thumb is JPEG. The parameter stays
+// so callers can pass the picked filename without a second API.
+
 /// Builds the `{timestamp}_480` bytes uploaded next to a temple photo.
 abstract class TemplePhotoThumbEncoder {
   Future<Uint8List> encode({
@@ -13,8 +16,9 @@ abstract class TemplePhotoThumbEncoder {
 }
 
 /// Scales to [kTemplePhotoThumbEdge] wide with the Flutter codec, then
-/// encodes with the platform JPEG/PNG/WebP encoder. No image library is
-/// bundled in the APK. Frames already at or under that width are not enlarged.
+/// encodes JPEG with the platform encoder at [kTemplePhotoThumbQuality].
+/// PNG and WebP originals become JPEG thumbs. No image library is bundled
+/// in the APK. Frames already at or under that width are not enlarged.
 class FlutterTemplePhotoThumbEncoder implements TemplePhotoThumbEncoder {
   const FlutterTemplePhotoThumbEncoder();
 
@@ -24,13 +28,12 @@ class FlutterTemplePhotoThumbEncoder implements TemplePhotoThumbEncoder {
     required String extension,
   }) async {
     final scaled = await _scaleToThumbWidth(bytes);
-    final format = _formatFor(templePhotoStoredExtension(extension));
     final encoded = await FlutterImageCompress.compressWithList(
       scaled.png,
       minWidth: scaled.width,
       minHeight: scaled.height,
-      quality: kTemplePhotoJpegQuality,
-      format: format,
+      quality: kTemplePhotoThumbQuality,
+      format: CompressFormat.jpeg,
       keepExif: false,
     );
     if (encoded.isEmpty) {
@@ -50,17 +53,6 @@ class _ScaledPng {
   final Uint8List png;
   final int width;
   final int height;
-}
-
-CompressFormat _formatFor(String extension) {
-  switch (extension) {
-    case 'png':
-      return CompressFormat.png;
-    case 'webp':
-      return CompressFormat.webp;
-    default:
-      return CompressFormat.jpeg;
-  }
 }
 
 Future<_ScaledPng> _scaleToThumbWidth(Uint8List bytes) async {

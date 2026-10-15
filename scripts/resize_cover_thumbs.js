@@ -1,35 +1,40 @@
 /**
- * Write `_480` Storage thumbs for temple cover images.
+ * Write `_480` Storage thumbs for temple cover images and store the real
+ * download URL on `photos[].thumbUrl`. The index entry is then rebuilt with
+ * the same `entryFromTemple` path as `rebuild_index.js`. coverThumb does not
+ * guess a sibling URL.
  *
  * Dry-run is the default. It reads temple documents and prints which cover
- * objects would gain a `temples/{id}/{file}_480.{ext}` sibling. It does not
- * write.
+ * objects would gain a `temples/{id}/{file}_480_g{generation}.jpg` sibling.
+ * It does not write.
  *
  *   node scripts/resize_cover_thumbs.js --project temple-directory-india
+ *   node scripts/resize_cover_thumbs.js --limit 25 --resume --project temple-directory-india
  *
  * Apply is hand-run only. CI cannot apply. A prod apply asks you to type
- * the project id. There is no default project. Apply uploads thumbs only.
- * It does not write Firestore and it does not deploy.
+ * the project id. There is no default project. Apply uploads thumbs and
+ * writes `photos[].thumbUrl` plus that temple's index entry. It does not
+ * deploy.
  *
  *   node scripts/resize_cover_thumbs.js --apply --project temple-directory-india
  *
- * After apply, rebuild the index so browse covers point at the new thumbs:
- *
- *   node scripts/rebuild_index.js --apply --project temple-directory-india
- *
- * Encoding uses sharp, installed by Deployer (`npm install --prefix scripts sharp`).
- * Tests inject an encoder and never import sharp. Do not run --apply from CI
- * or from an agent against production.
+ * The thumb name includes the source generation. A newer source is uploaded
+ * again even when an older thumb object exists. Encoding uses sharp,
+ * installed by Deployer (`npm install --prefix scripts sharp`). Tests inject
+ * an encoder and never import sharp. Do not run --apply from CI or from an
+ * agent against production.
  */
-import { existsSync, readFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard.js";
 import {
+  entryFromTemple,
   firstVerifiedGalleryUrl,
+  stateSlug,
   storageObjectFromUrl,
-  storageThumbUrl,
   thumbObjectPath,
 } from "./temple_index.js";
 
@@ -37,12 +42,14 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export const THUMB_CACHE_CONTROL = "public, max-age=31536000, immutable";
 export const THUMB_EDGE = 480;
+export const THUMB_JPEG_QUALITY = 80;
+export const RESUME_FILE = resolve(__dirname, ".resize_cover_thumbs.resume.json");
 
 function printUsage() {
   console.log(`
 Usage:
-  node resize_cover_thumbs.js [--dry-run] [--project <firebase-project-id>]
-  node resize_cover_thumbs.js --apply --project <firebase-project-id>
+  node resize_cover_thumbs.js [--dry-run] [--limit N] [--resume] [--project <id>]
+  node resize_cover_thumbs.js --apply [--limit N] [--resume] --project <id>
 
 Default is dry-run: list cover objects that still need a _480 sibling.
 Nothing is written. --apply is for Deployer, in a terminal, after merge.
@@ -51,9 +58,12 @@ Set FIRESTORE_EMULATOR_HOST to use the emulator without that prompt.
 --project is required against prod. The emulator falls back to
 demo-temple-index when --project is omitted.
 
-Apply writes Storage objects only. It does not update Firestore and it
-does not deploy rules. Run rebuild_index.js --apply afterwards so
-coverThumb points at the thumbs. Install sharp before apply:
+--limit N stops after N covers that still need a thumb.
+--resume skips ids already recorded in scripts/.resize_cover_thumbs.resume.json
+for this project. Apply appends uploaded and current thumbs to that file.
+
+Apply writes the thumb object, then photos[].thumbUrl, then the index entry
+through entryFromTemple. It does not deploy rules. Install sharp before apply:
   npm install --prefix scripts sharp
 `);
 }
@@ -64,6 +74,8 @@ export function parseArgs(argv) {
     apply: false,
     project: null,
     help: false,
+    limit: null,
+    resume: false,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -72,6 +84,13 @@ export function parseArgs(argv) {
     else if (arg === "--apply") {
       opts.apply = true;
       opts.dryRun = false;
+    } else if (arg === "--resume") opts.resume = true;
+    else if (arg === "--limit") {
+      const parsed = Number(argv[++i]);
+      if (!Number.isInteger(parsed) || parsed < 1) {
+        throw new Error("--limit needs a positive integer.");
+      }
+      opts.limit = parsed;
     } else if (arg === "--project") opts.project = argv[++i];
     else throw new Error(`Unknown argument: ${arg}`);
   }
@@ -107,43 +126,52 @@ export async function authorizeApply(project, env = process.env, deps = {}) {
   return confirm(id);
 }
 
-function extOf(objectPath) {
-  const file = objectPath.split("/").pop() ?? "";
-  const dot = file.lastIndexOf(".");
-  return dot === -1 ? "" : file.slice(dot + 1);
+export function firebaseDownloadUrl(bucket, objectPath, token) {
+  return (
+    "https://firebasestorage.googleapis.com/v0/b/" +
+    `${encodeURIComponent(bucket)}/o/${encodeURIComponent(objectPath)}?alt=media&token=${token}`
+  );
 }
 
-export function contentTypeForExt(ext) {
-  const lower = String(ext ?? "").toLowerCase();
-  if (lower === "png") return "image/png";
-  if (lower === "webp") return "image/webp";
-  return "image/jpeg";
+export function loadResume(raw, project) {
+  if (raw == null || String(raw).trim() === "") return new Set();
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return new Set();
+  }
+  if (!parsed || parsed.project !== project || !Array.isArray(parsed.ids)) return new Set();
+  return new Set(parsed.ids.filter((id) => typeof id === "string" && id !== ""));
+}
+
+export function saveResume(project, ids) {
+  return `${JSON.stringify({ project, ids: [...ids].sort() }, null, 2)}\n`;
 }
 
 /**
  * One cover. `upload` means a full-size Storage object should gain a thumb.
- * Wikimedia and other non-Storage covers are `skip` (browse already rewrites
- * Wikimedia to 480px). An object that is already `_480` is `skip`.
+ * Wikimedia and other non-Storage covers are `skip`. The download URL is not
+ * guessed here; apply stores the URL Storage returns.
  */
 export function planCoverThumb(temple) {
   const id = String(temple?.id ?? "");
   const source = firstVerifiedGalleryUrl(temple);
-  if (!source) return { id, action: "skip", reason: "no-cover" };
+  if (!source) return { id, action: "skip", reason: "no-cover", temple };
   const located = storageObjectFromUrl(source);
-  if (!located) return { id, action: "skip", reason: "not-storage", source };
-  const thumbPath = thumbObjectPath(located.objectPath);
-  if (!thumbPath) return { id, action: "skip", reason: "already-thumb", source };
-  const thumbUrl = storageThumbUrl(source);
-  if (!thumbUrl) return { id, action: "skip", reason: "thumb-url", source };
+  if (!located) return { id, action: "skip", reason: "not-storage", source, temple };
+  if (!thumbObjectPath(located.objectPath, "1")) {
+    return { id, action: "skip", reason: "already-thumb", source, temple };
+  }
   return {
     id,
     action: "upload",
     source,
     objectPath: located.objectPath,
-    thumbPath,
-    thumbUrl,
-    contentType: contentTypeForExt(extOf(thumbPath)),
+    bucket: located.bucket,
+    contentType: "image/jpeg",
     cacheControl: THUMB_CACHE_CONTROL,
+    temple,
   };
 }
 
@@ -151,14 +179,55 @@ export function planCoverThumbs(temples) {
   return (temples ?? []).map((temple) => planCoverThumb(temple));
 }
 
+export function applyLimitAndResume(plans, { limit = null, resumeIds = new Set() } = {}) {
+  let uploads = 0;
+  return plans.map((plan) => {
+    if (plan.action !== "upload") return plan;
+    if (resumeIds.has(plan.id)) return { ...plan, action: "skip", reason: "resume" };
+    if (limit != null && uploads >= limit) return { ...plan, action: "skip", reason: "limit" };
+    uploads += 1;
+    return plan;
+  });
+}
+
+export function sourceIsNewer(sourceUpdated, thumbUpdated) {
+  const source = Date.parse(sourceUpdated ?? "");
+  const thumb = Date.parse(thumbUpdated ?? "");
+  if (!Number.isFinite(source) || !Number.isFinite(thumb)) return false;
+  return source > thumb;
+}
+
+/**
+ * Attach [thumbUrl] to the photo whose url is the cover. The index entry
+ * is `entryFromTemple`, the same projection rebuild_index writes.
+ */
+export function withCoverThumbUrl(temple, thumbUrl) {
+  const source = firstVerifiedGalleryUrl(temple);
+  if (typeof thumbUrl !== "string" || !thumbUrl.startsWith("https://") || !source) {
+    return { ok: false, reason: "thumb-url" };
+  }
+  const photos = Array.isArray(temple?.photos) ? temple.photos.map((photo) => ({ ...photo })) : [];
+  let matched = false;
+  for (const photo of photos) {
+    if (photo && typeof photo.url === "string" && photo.url.trim() === source) {
+      photo.thumbUrl = thumbUrl;
+      matched = true;
+    }
+  }
+  if (!matched) return { ok: false, reason: "no-photo" };
+  const next = { ...temple, photos };
+  return { ok: true, temple: next, photos, entry: entryFromTemple(next) };
+}
+
 /**
  * @param {object[]} plans from [planCoverThumbs]
  * @param {{
  *   dryRun: boolean,
- *   exists: (path: string) => Promise<boolean>,
+ *   stat: (path: string) => Promise<{generation?: string, updated?: string, url?: string}|null>,
  *   download?: (path: string) => Promise<Buffer>,
  *   encode?: (bytes: Buffer, ext: string) => Promise<Buffer>,
- *   upload?: (file: { path: string, bytes: Buffer, contentType: string, cacheControl: string }) => Promise<void>,
+ *   upload?: (file: object) => Promise<{url: string}>,
+ *   writeThumbUrl?: (assigned: object) => Promise<void>,
  * }} deps
  */
 export async function applyCoverThumbPlans(plans, deps) {
@@ -168,27 +237,68 @@ export async function applyCoverThumbPlans(plans, deps) {
       report.push({ ...plan, result: "skipped" });
       continue;
     }
-    const already = await deps.exists(plan.thumbPath);
-    if (already) {
-      report.push({ ...plan, result: "exists" });
+    const sourceStat = await deps.stat(plan.objectPath);
+    const generation = String(sourceStat?.generation ?? "");
+    if (!/^\d+$/.test(generation)) {
+      report.push({ ...plan, result: "skipped", reason: "no-generation" });
+      continue;
+    }
+    let thumbPath = thumbObjectPath(plan.objectPath, generation);
+    let thumbStat = thumbPath ? await deps.stat(thumbPath) : null;
+    if (thumbStat && sourceIsNewer(sourceStat.updated, thumbStat.updated)) {
+      const millis = Date.parse(sourceStat.updated);
+      if (Number.isFinite(millis)) {
+        thumbPath = thumbObjectPath(plan.objectPath, generation, { updatedMillis: millis });
+        thumbStat = await deps.stat(thumbPath);
+      }
+    }
+    if (thumbStat && !sourceIsNewer(sourceStat.updated, thumbStat.updated)) {
+      const row = { ...plan, result: "exists", thumbPath, thumbUrl: thumbStat.url ?? null };
+      if (!deps.dryRun && thumbStat.url && deps.writeThumbUrl) {
+        const assigned = withCoverThumbUrl(plan.temple, thumbStat.url);
+        if (assigned.ok) await deps.writeThumbUrl(assigned);
+      }
+      report.push(row);
       continue;
     }
     if (deps.dryRun) {
-      report.push({ ...plan, result: "would-upload" });
+      report.push({ ...plan, result: "would-upload", thumbPath });
       continue;
     }
     const bytes = await deps.download(plan.objectPath);
-    const thumb = await deps.encode(bytes, extOf(plan.thumbPath));
+    const thumb = await deps.encode(bytes, "jpg");
     if (!thumb || thumb.length === 0) {
-      throw new Error(`Encoder returned an empty thumb for ${plan.thumbPath}. No write.`);
+      throw new Error(`Encoder returned an empty thumb for ${thumbPath}. No write.`);
     }
-    await deps.upload({
-      path: plan.thumbPath,
+    const uploaded = await deps.upload({
+      path: thumbPath,
       bytes: thumb,
       contentType: plan.contentType,
       cacheControl: plan.cacheControl,
     });
-    report.push({ ...plan, result: "uploaded", bytes: thumb.length });
+    const thumbUrl = uploaded?.url;
+    if (typeof thumbUrl !== "string" || !thumbUrl.startsWith("https://")) {
+      throw new Error(`Upload did not return a download URL for ${thumbPath}. No Firestore write.`);
+    }
+    const assigned = withCoverThumbUrl(plan.temple, thumbUrl);
+    if (!assigned.ok) {
+      report.push({
+        ...plan,
+        result: "uploaded",
+        thumbPath,
+        thumbUrl,
+        reason: assigned.reason,
+      });
+      continue;
+    }
+    await deps.writeThumbUrl(assigned);
+    report.push({
+      ...plan,
+      result: "uploaded",
+      thumbPath,
+      thumbUrl,
+      bytes: thumb.length,
+    });
   }
   return report;
 }
@@ -196,7 +306,9 @@ export async function applyCoverThumbPlans(plans, deps) {
 export function formatThumbReport(rows, { apply = false } = {}) {
   const lines = [apply ? "Mode: apply" : "Mode: dry-run"];
   const counts = { upload: 0, exists: 0, skip: 0, uploaded: 0 };
+  let notStorage = 0;
   for (const row of rows) {
+    if (row.reason === "not-storage") notStorage += 1;
     if (row.result === "would-upload" || row.result === "uploaded") counts.upload += 1;
     else if (row.result === "exists") counts.exists += 1;
     else counts.skip += 1;
@@ -205,6 +317,7 @@ export function formatThumbReport(rows, { apply = false } = {}) {
   lines.push(
     `covers: ${rows.length}  thumbs: ${counts.upload}  exists: ${counts.exists}  skip: ${counts.skip}`,
   );
+  lines.push(`skip not-storage: ${notStorage}`);
   for (const row of rows) {
     if (row.result === "would-upload" || row.result === "uploaded") {
       lines.push(`${row.result} ${row.id} ${row.thumbPath}`);
@@ -215,15 +328,19 @@ export function formatThumbReport(rows, { apply = false } = {}) {
     }
   }
   if (!apply) lines.push("Dry-run only. No Storage writes.");
-  else lines.push("Storage thumbs only. Firestore was not written. Run rebuild_index.js --apply next.");
+  else {
+    lines.push(
+      "Storage thumbs plus photos[].thumbUrl and the index entry. Rules were not deployed.",
+    );
+  }
   return lines.join("\n");
 }
 
 /**
- * sharp resize. Imported only when Deployer applies. Tests never call this.
- * Width is [THUMB_EDGE]. Smaller frames are not enlarged.
+ * sharp resize to JPEG. Imported only when Deployer applies. Tests never
+ * call this. Width is [THUMB_EDGE]. Smaller frames are not enlarged.
  */
-export async function encodeWithSharp(bytes, ext) {
+export async function encodeWithSharp(bytes) {
   let sharp;
   try {
     ({ default: sharp } = await import("sharp"));
@@ -235,11 +352,9 @@ export async function encodeWithSharp(bytes, ext) {
   const input = sharp(bytes, { failOn: "none" }).rotate();
   const meta = await input.metadata();
   const width = meta.width ?? 0;
-  const pipeline = width > THUMB_EDGE ? input.resize({ width: THUMB_EDGE, withoutEnlargement: true }) : input;
-  const lower = String(ext ?? "").toLowerCase();
-  if (lower === "png") return pipeline.png().toBuffer();
-  if (lower === "webp") return pipeline.webp({ quality: 80 }).toBuffer();
-  return pipeline.jpeg({ quality: 80 }).toBuffer();
+  const pipeline =
+    width > THUMB_EDGE ? input.resize({ width: THUMB_EDGE, withoutEnlargement: true }) : input;
+  return pipeline.jpeg({ quality: THUMB_JPEG_QUALITY }).toBuffer();
 }
 
 async function openAdmin(project, env) {
@@ -268,8 +383,7 @@ async function openAdmin(project, env) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
     projectId: project,
-    storageBucket:
-      env.STORAGE_BUCKET || `${project}.firebasestorage.app`,
+    storageBucket: env.STORAGE_BUCKET || `${project}.firebasestorage.app`,
   });
   return admin;
 }
@@ -280,11 +394,33 @@ async function loadTemples(project, env) {
   return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 }
 
-function storageDeps(bucket, env) {
+export async function persistCoverThumb(db, assigned, deps = {}) {
+  const { diffIndex } = await import("./temple_index.js");
+  const { applyPlan } = await import("./rebuild_index.js");
+  const id = String(assigned.temple.id);
+  await db.collection("temples").doc(id).update({ photos: assigned.photos });
+  const shard = stateSlug(assigned.temple.state);
+  const snap = await db.collection("temple_index").doc(shard).get();
+  const entries = snap.exists ? (snap.data()?.entries ?? {}) : {};
+  const report = diffIndex([assigned.temple], { [shard]: entries });
+  await applyPlan(db, report, deps);
+}
+
+function storageDeps(bucket) {
+  const bucketName = bucket.name;
   return {
-    exists: async (path) => {
-      const [found] = await bucket.file(path).exists();
-      return found;
+    stat: async (path) => {
+      const file = bucket.file(path);
+      const [found] = await file.exists();
+      if (!found) return null;
+      const [metadata] = await file.getMetadata();
+      const tokens = String(metadata?.metadata?.firebaseStorageDownloadTokens ?? "");
+      const token = tokens.split(",")[0].trim();
+      return {
+        generation: String(metadata.generation ?? ""),
+        updated: metadata.updated,
+        url: token ? firebaseDownloadUrl(bucketName, path, token) : null,
+      };
     },
     download: async (path) => {
       const [bytes] = await bucket.file(path).download();
@@ -292,15 +428,17 @@ function storageDeps(bucket, env) {
     },
     encode: encodeWithSharp,
     upload: async (file) => {
+      const token = randomUUID();
       await bucket.file(file.path).save(file.bytes, {
         resumable: false,
         metadata: {
           contentType: file.contentType,
           cacheControl: file.cacheControl,
+          metadata: { firebaseStorageDownloadTokens: token },
         },
       });
+      return { url: firebaseDownloadUrl(bucketName, file.path, token) };
     },
-    env,
   };
 }
 
@@ -316,20 +454,47 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
   if (opts.apply) await authorizeApply(project, env, { confirm: deps.confirm });
   const load = deps.load ?? loadTemples;
   const temples = await load(project, env);
-  const plans = planCoverThumbs(temples);
+  temples.sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  const resumeRaw = opts.resume
+    ? (deps.readResume ?? (() => (existsSync(RESUME_FILE) ? readFileSync(RESUME_FILE, "utf8") : "")))()
+    : "";
+  const resumeIds = opts.resume ? loadResume(resumeRaw, project) : new Set();
+  const plans = applyLimitAndResume(planCoverThumbs(temples), {
+    limit: opts.limit,
+    resumeIds,
+  });
   let storage = deps.storage ?? null;
-  const needsBucket = !deps.exists || (opts.apply && !deps.upload);
+  const needsBucket = !deps.stat;
   if (needsBucket && !storage) {
     const admin = await openAdmin(project, env);
-    storage = storageDeps(admin.storage().bucket(), env);
+    storage = storageDeps(admin.storage().bucket());
   }
+  const stat = deps.stat ?? storage?.stat;
+  if (!stat) throw new Error("Dry-run needs a Storage stat. No write.");
+  const writeThumbUrl =
+    deps.writeThumbUrl ??
+    (opts.apply
+      ? async (assigned) => {
+          const admin = await openAdmin(project, env);
+          await persistCoverThumb(admin.firestore(), assigned);
+        }
+      : async () => {});
   const rows = await applyCoverThumbPlans(plans, {
     dryRun: !opts.apply,
-    exists: deps.exists ?? storage.exists,
+    stat,
     download: deps.download ?? storage?.download,
     encode: deps.encode ?? storage?.encode,
     upload: deps.upload ?? storage?.upload,
+    writeThumbUrl,
   });
+  if (opts.apply) {
+    for (const row of rows) {
+      if (row.result === "uploaded" || row.result === "exists") resumeIds.add(row.id);
+    }
+    const body = saveResume(project, resumeIds);
+    if (deps.writeResume) deps.writeResume(body);
+    else writeFileSync(RESUME_FILE, body);
+  }
   log(formatThumbReport(rows, { apply: opts.apply }));
   return rows;
 }

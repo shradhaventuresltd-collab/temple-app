@@ -246,7 +246,7 @@ class _AdminTempleFormScreenState extends State<AdminTempleFormScreen> {
         bytes: bytes,
         extension: photoExtensionFromName(draft.fileName),
       );
-      final url = await uploader.upload(
+      final uploaded = await uploader.upload(
         docId: docId,
         bytes: bytes,
         thumbBytes: thumbBytes,
@@ -258,7 +258,8 @@ class _AdminTempleFormScreenState extends State<AdminTempleFormScreen> {
       );
       if (!mounted) return;
       setState(() {
-        draft.url = url;
+        draft.url = uploaded.url;
+        draft.thumbUrl = uploaded.thumbUrl;
         draft.uploading = false;
         draft.failed = false;
         draft.progress = 1;

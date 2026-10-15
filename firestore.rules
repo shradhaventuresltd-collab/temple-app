@@ -40,7 +40,8 @@ service cloud.firestore {
     //   Shard id is the state slug (tamil-nadu). One field:
     //   - entries: map keyed by temple id. Each value is a browse summary:
     //       id, slug, name, city, state, deity, address (short),
-    //       coverThumb (480px thumb when one exists, else the full URL; max 500),
+    //       coverThumb (stored photos[].thumbUrl, else a Wikimedia 480px
+    //       thumb, else the full URL; max 500),
     //       lat, lng (null when missing, never 0,0), updatedAt, v,
     //       tradition, living, framing.
     //       altNames, published, and hidden are copied only when the temple
@@ -147,13 +148,14 @@ service cloud.firestore {
     function isValidPhoto(photo) {
       return photo is map &&
         photo.keys().hasAll(['url', 'licence', 'order']) &&
-        photo.keys().hasOnly(['url', 'credit', 'licence', 'order']) &&
+        photo.keys().hasOnly(['url', 'credit', 'licence', 'order', 'thumbUrl']) &&
         httpsUrl(photo.url) &&
         isPhotoLicence(photo.licence) &&
         photo.order is int &&
         photo.order >= 0 &&
         photo.order <= 11 &&
-        photoCreditOk(photo);
+        photoCreditOk(photo) &&
+        (!('thumbUrl' in photo) || httpsUrl(photo.thumbUrl));
     }
 
     // Rules have no loops. Check each of the 12 possible slots.
@@ -278,11 +280,23 @@ service cloud.firestore {
     }
 
     // A listed point has both axes. An unlisted temple has both null
-    // (or the field absent on an update). One axis alone is rejected.
+    // (or the field absent). One axis alone is rejected on create, and on
+    // an update that changes either axis. An existing unpaired document can
+    // still be edited when the write does not touch latitude or longitude.
+    // scripts/audit_coords.js nulls those docs before this rule is deployed.
     function coordinatesArePaired(data) {
       let latSet = 'latitude' in data && data.latitude != null;
       let lngSet = 'longitude' in data && data.longitude != null;
       return latSet == lngSet;
+    }
+
+    function coordinateKeysUntouched() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['latitude', 'longitude']);
+    }
+
+    function coordinatesOkOnUpdate(data) {
+      return coordinateKeysUntouched() || coordinatesArePaired(data);
     }
 
     // Relaxed validator for updates (including set-with-merge).
@@ -311,7 +325,7 @@ service cloud.firestore {
         optionalValidPhotos(data) &&
         (!('latitude' in data) || validLatitude(data.latitude)) &&
         (!('longitude' in data) || validLongitude(data.longitude)) &&
-        coordinatesArePaired(data);
+        coordinatesOkOnUpdate(data);
     }
 
     // ===============================================================

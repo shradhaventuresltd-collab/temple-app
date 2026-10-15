@@ -144,16 +144,22 @@ function httpUrl(raw) {
   }
 }
 
-function browseThumb(raw) {
+function knownThumbUrl(raw) {
   const trimmed = httpUrl(raw);
   if (!trimmed || placeholder(trimmed) || trimmed.length > COVER_THUMB_MAX) return null;
+  return trimmed;
+}
+
+/** Wikimedia `/thumb/` URL at 480px, or null when [raw] is not one. */
+function wikimedia480(raw) {
+  const trimmed = knownThumbUrl(raw);
+  if (!trimmed) return null;
   let pathname = trimmed;
   try {
     pathname = decodeURIComponent(new URL(trimmed).pathname);
   } catch {
     return null;
   }
-  if (/[_-]480\.(jpe?g|png|webp)$/i.test(pathname)) return trimmed;
   if (!pathname.includes("/thumb/")) return null;
   return trimmed.replace(/\/(\d+)px-([^/?#]+)/, (full, width, rest) => {
     const parsed = Number(width);
@@ -171,18 +177,29 @@ function safeDecode(value) {
 }
 
 /**
- * `temples/{id}/{file}` for a Storage object. Null when [objectPath] is
- * already a `_480` / `-480` image or is not a temple photo.
- * Extension case is kept so the object name matches Storage.
+ * `temples/{id}/{stem}_480_g{generation}.jpg` for a full-size temple photo.
+ * Null when [objectPath] is already a thumb or is not a temple photo.
+ * A non-jpg source keeps that extension in the name so a failed card can
+ * request the original once (`hero_480_g42_PNG.jpg` → `hero.PNG`).
+ * [updatedMillis] is set only when the generation-named thumb is older than
+ * the source, so the immutable URL changes.
  */
-export function thumbObjectPath(objectPath) {
+export function thumbObjectPath(objectPath, generation, { updatedMillis } = {}) {
   const parts = String(objectPath ?? "").split("/");
   if (parts.length !== 3 || parts[0] !== "temples") return null;
   const id = parts[1];
   if (!id || id === "." || id === "..") return null;
   const ext = /^(.*)\.(jpe?g|png|webp)$/i.exec(parts[2]);
-  if (!ext || !ext[1] || /[_-]480$/i.test(ext[1])) return null;
-  return `temples/${id}/${ext[1]}_480.${ext[2]}`;
+  if (!ext || !ext[1] || /_480_g\d+(?:u\d+)?(?:_[A-Za-z0-9]+)?$|[_-]480$/i.test(ext[1])) {
+    return null;
+  }
+  const gen = String(generation ?? "");
+  if (!/^\d+$/.test(gen)) return null;
+  const sourceExt = ext[2];
+  const suffix = sourceExt === "jpg" ? "" : `_${sourceExt}`;
+  const bust =
+    updatedMillis == null || updatedMillis === "" ? "" : `u${updatedMillis}`;
+  return `temples/${id}/${ext[1]}_480_g${gen}${bust}${suffix}.jpg`;
 }
 
 /**
@@ -225,53 +242,30 @@ function publicStorageUrl(located, objectPath) {
   );
 }
 
+/** Full-size object path named by a generation thumb, or null. */
+export function fullObjectPathFromThumb(objectPath) {
+  const parts = String(objectPath ?? "").split("/");
+  if (parts.length !== 3 || parts[0] !== "temples" || !parts[1]) return null;
+  const file = parts[2];
+  const match = /_480_g(\d+)(?:u(\d+))?(?:_([A-Za-z0-9]+))?\.jpg$/i.exec(file);
+  if (!match) return null;
+  const stem = file.slice(0, file.length - match[0].length);
+  if (!stem) return null;
+  const ext = match[3] || "jpg";
+  return `temples/${parts[1]}/${stem}.${ext}`;
+}
+
 /**
- * Public `_480` URL for one of our Storage photos. Null when [raw] is not
- * a full-size `temples/{id}/{file}` object. The download token is dropped:
- * Storage rules allow public read, and a token belongs to the full object.
+ * Public URL of the original behind a `_480_g` thumb. The thumb's download
+ * token is not reused. Storage rules make this as readable as the original.
+ * Null when [raw] is not one of our thumbs. Cards call this after an error.
  */
-export function storageThumbUrl(raw) {
+export function fullCoverUrlFromThumb(raw) {
   const located = storageObjectFromUrl(raw);
   if (!located) return null;
-  const thumbPath = thumbObjectPath(located.objectPath);
-  if (!thumbPath) return null;
-  const url = publicStorageUrl(located, thumbPath);
-  if (placeholder(url) || url.length > COVER_THUMB_MAX) return null;
-  return url;
-}
-
-/** `{name}_480.ext` beside a non-Storage URL. Query and fragment are kept. */
-export function fileThumbSibling(raw) {
-  const trimmed = httpUrl(raw);
-  if (!trimmed || placeholder(trimmed) || storageObjectFromUrl(trimmed)) return null;
-  const hashAt = trimmed.indexOf("#");
-  const beforeHash = hashAt === -1 ? trimmed : trimmed.slice(0, hashAt);
-  const fragment = hashAt === -1 ? "" : trimmed.slice(hashAt);
-  const queryAt = beforeHash.indexOf("?");
-  const withoutQuery = queryAt === -1 ? beforeHash : beforeHash.slice(0, queryAt);
-  const query = queryAt === -1 ? "" : beforeHash.slice(queryAt);
-  const slash = withoutQuery.lastIndexOf("/");
-  if (slash < "https://".length) return null;
-  const ext = /^(.*)\.(jpe?g|png|webp)$/i.exec(safeDecode(withoutQuery.slice(slash + 1)));
-  if (!ext || !ext[1] || /[_-]480$/i.test(ext[1])) return null;
-  const name = encodeURIComponent(`${ext[1]}_480.${ext[2]}`);
-  return `${withoutQuery.slice(0, slash + 1)}${name}${query}${fragment}`;
-}
-
-function urlListed(data, url) {
-  const want = url.trim();
-  const images = Array.isArray(data?.images) ? data.images : [];
-  for (const item of images) {
-    if (typeof item === "string" && item.trim() === want) return true;
-  }
-  if (typeof data?.imageUrl === "string" && data.imageUrl.trim() === want) return true;
-  const photos = Array.isArray(data?.photos) ? data.photos : [];
-  for (const photo of photos) {
-    if (!photo || typeof photo !== "object") continue;
-    if (typeof photo.url === "string" && photo.url.trim() === want) return true;
-    if (typeof photo.thumbUrl === "string" && photo.thumbUrl.trim() === want) return true;
-  }
-  return false;
+  const fullPath = fullObjectPathFromThumb(located.objectPath);
+  if (!fullPath) return null;
+  return publicStorageUrl(located, fullPath);
 }
 
 function explicitThumb(data, source) {
@@ -279,25 +273,10 @@ function explicitThumb(data, source) {
   for (const photo of photos) {
     if (!photo || typeof photo !== "object") continue;
     if (typeof photo.url !== "string" || photo.url.trim() !== source) continue;
-    const thumb = browseThumb(photo.thumbUrl);
+    const thumb = knownThumbUrl(photo.thumbUrl);
     if (thumb) return thumb;
   }
   return null;
-}
-
-function listedFileThumb(data, source) {
-  const sibling = fileThumbSibling(source);
-  if (!sibling || !urlListed(data, sibling)) return null;
-  return browseThumb(sibling);
-}
-
-function usableCover(raw, { allowFull }) {
-  const thumb = browseThumb(raw);
-  if (thumb) return thumb;
-  if (!allowFull) return null;
-  const trimmed = httpUrl(raw);
-  if (!trimmed || placeholder(trimmed) || trimmed.length > COVER_THUMB_MAX) return null;
-  return trimmed;
 }
 
 function galleryCandidates(data) {
@@ -326,25 +305,19 @@ export function firstVerifiedGalleryUrl(data) {
  * Browse cover. Same photo as the gallery: first verified `images` URL, or
  * `imageUrl` when `images` is empty.
  *
- * A `_480` thumb replaces that URL when one exists: `photos[].thumbUrl` for
- * that photo, a Wikimedia thumb rewritten to 480px, a Storage object under
- * `temples/{id}/{file}` (the upload and resize_cover_thumbs.js write
- * `{file}_480`), or a `{name}_480` URL already listed beside it.
- * Anything else stays the full URL. Result is at most 500 characters.
- * Detail keeps the full gallery URL.
+ * A stored `photos[].thumbUrl` for that photo is used as written. Otherwise
+ * a Wikimedia thumb wider than 480px is rewritten, and anything else stays
+ * the full URL. Storage siblings are not invented. Result is at most 500
+ * characters. Detail keeps the full gallery URL.
  */
 export function coverThumb(data) {
   const source = firstVerifiedGalleryUrl(data);
   if (!source) return null;
   const explicit = explicitThumb(data, source);
   if (explicit) return explicit;
-  const ready = browseThumb(source);
-  if (ready) return ready;
-  const derived = storageThumbUrl(source);
-  if (derived) return derived;
-  const listed = listedFileThumb(data, source);
-  if (listed) return listed;
-  return usableCover(source, { allowFull: true });
+  const wiki = wikimedia480(source);
+  if (wiki) return wiki;
+  return knownThumbUrl(source);
 }
 
 function isHistoricalPrintCaption(credit) {

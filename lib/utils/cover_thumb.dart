@@ -1,14 +1,21 @@
-// Storage object paths and the public `_480` URL beside a temple photo.
+// Storage object names for a temple photo and its `_480` thumb.
 //
-// Kept in step with `scripts/temple_index.js` (`storageThumbUrl`,
-// `thumbObjectPath`, `fileThumbSibling`). List cards read the result from
-// `coverThumb`. Detail keeps the full object.
+// Kept in step with `scripts/temple_index.js` (`thumbObjectPath`,
+// `fullCoverUrlFromThumb`). `coverThumb` does not invent a sibling URL.
+// The card asks [fullCoverUrlFromThumb] only after the stored thumb fails.
 
 final RegExp _imageFile = RegExp(
   r'^(.*)\.(jpe?g|png|webp)$',
   caseSensitive: false,
 );
-final RegExp _alreadyThumb = RegExp(r'[_-]480$', caseSensitive: false);
+final RegExp _alreadyThumb = RegExp(
+  r'_480_g\d+(?:u\d+)?(?:_[A-Za-z0-9]+)?$|[_-]480$',
+  caseSensitive: false,
+);
+final RegExp _thumbFile = RegExp(
+  r'_480_g(\d+)(?:u(\d+))?(?:_([A-Za-z0-9]+))?\.jpg$',
+  caseSensitive: false,
+);
 
 final RegExp _firebaseUrl = RegExp(
   r'^https://([^/?#]+)/v0/b/([^/?#]+)/o/([^?#]+)',
@@ -46,9 +53,18 @@ bool _firebaseHost(String host) {
       lower.endsWith('.firebasestorage.app');
 }
 
-/// `temples/{id}/{file}_480.{ext}`, or null when [objectPath] is not a
-/// full-size temple photo. Extension case is kept.
-String? thumbObjectPath(String objectPath) {
+/// `temples/{id}/{file}_480_g{generation}.jpg` for a full-size temple photo.
+///
+/// [generation] is the source object's Storage generation, so a replaced
+/// original gets a new object and the immutable cache of the old thumb stays
+/// on the old URL. A non-jpg source keeps its extension in the name
+/// (`hero_480_g42_PNG.jpg`) so a failed card can request that original once.
+/// Already-thumb names return null. Extension case of a non-jpg source is kept.
+String? thumbObjectPath(
+  String objectPath, {
+  required String generation,
+  int? updatedMillis,
+}) {
   final parts = objectPath.split('/');
   if (parts.length != 3 || parts[0] != 'temples') return null;
   final id = parts[1];
@@ -57,7 +73,11 @@ String? thumbObjectPath(String objectPath) {
   if (ext == null) return null;
   final stem = ext.group(1)!;
   if (stem.isEmpty || _alreadyThumb.hasMatch(stem)) return null;
-  return 'temples/$id/${stem}_480.${ext.group(2)}';
+  if (!RegExp(r'^\d+$').hasMatch(generation)) return null;
+  final sourceExt = ext.group(2)!;
+  final suffix = sourceExt == 'jpg' ? '' : '_$sourceExt';
+  final bust = updatedMillis == null ? '' : 'u$updatedMillis';
+  return 'temples/$id/${stem}_480_g$generation$bust$suffix.jpg';
 }
 
 /// Firebase or Cloud Storage object named by [raw].
@@ -97,40 +117,30 @@ String _publicStorageUrl(StorageObjectLocation located, String objectPath) {
       '${Uri.encodeComponent(objectPath)}?alt=media';
 }
 
-/// Public `_480` URL for a full-size `temples/{id}/{file}` object.
-///
-/// Null when [raw] is not one of those objects. The download token is
-/// dropped: Storage rules allow public read, and that token belongs to the
-/// full-size object. [maxLength] rejects a URL the index cannot store.
-String? storageThumbUrl(String? raw, {int maxLength = 500}) {
-  final located = storageObjectFromUrl(raw);
-  if (located == null) return null;
-  final thumbPath = thumbObjectPath(located.objectPath);
-  if (thumbPath == null) return null;
-  final url = _publicStorageUrl(located, thumbPath);
-  if (url.length > maxLength) return null;
-  return url;
+/// Full-size object path named by a generation thumb, or null.
+String? fullObjectPathFromThumb(String objectPath) {
+  final parts = objectPath.split('/');
+  if (parts.length != 3 || parts[0] != 'temples') return null;
+  final id = parts[1];
+  if (id.isEmpty) return null;
+  final file = parts[2];
+  final match = _thumbFile.firstMatch(file);
+  if (match == null) return null;
+  final stem = file.substring(0, file.length - match.group(0)!.length);
+  if (stem.isEmpty) return null;
+  final ext = match.group(3) ?? 'jpg';
+  return 'temples/$id/$stem.$ext';
 }
 
-/// `{name}_480.ext` beside a non-Storage https URL. Query and fragment stay.
-String? fileThumbSibling(String? raw) {
-  final trimmed = raw?.trim() ?? '';
-  if (!trimmed.toLowerCase().startsWith('https://')) return null;
-  if (storageObjectFromUrl(trimmed) != null) return null;
-  final hashAt = trimmed.indexOf('#');
-  final beforeHash = hashAt == -1 ? trimmed : trimmed.substring(0, hashAt);
-  final fragment = hashAt == -1 ? '' : trimmed.substring(hashAt);
-  final queryAt = beforeHash.indexOf('?');
-  final withoutQuery = queryAt == -1
-      ? beforeHash
-      : beforeHash.substring(0, queryAt);
-  final query = queryAt == -1 ? '' : beforeHash.substring(queryAt);
-  final slash = withoutQuery.lastIndexOf('/');
-  if (slash < 'https://'.length) return null;
-  final ext = _imageFile.firstMatch(_decode(withoutQuery.substring(slash + 1)));
-  if (ext == null) return null;
-  final stem = ext.group(1)!;
-  if (stem.isEmpty || _alreadyThumb.hasMatch(stem)) return null;
-  final name = Uri.encodeComponent('${stem}_480.${ext.group(2)}');
-  return '${withoutQuery.substring(0, slash + 1)}$name$query$fragment';
+/// Public URL of the original object behind a `_480_g` thumb.
+///
+/// Used once, after the stored thumb URL fails to load. The download token
+/// belongs to the thumb, so this URL has none. Storage rules allow the same
+/// public read as the original. Null when [raw] is not one of our thumbs.
+String? fullCoverUrlFromThumb(String? raw) {
+  final located = storageObjectFromUrl(raw);
+  if (located == null) return null;
+  final fullPath = fullObjectPathFromThumb(located.objectPath);
+  if (fullPath == null) return null;
+  return _publicStorageUrl(located, fullPath);
 }

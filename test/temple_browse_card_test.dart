@@ -247,6 +247,25 @@ void main() {
     expect(find.byType(CachedNetworkImage), findsOneWidget);
   });
 
+  testWidgets('a failed thumb falls back to the full url once', (tester) async {
+    const thumb =
+        'https://firebasestorage.googleapis.com/v0/b/app/o/temples%2Fshore%2F01_480_g42.jpg?alt=media&token=thumb';
+    const full =
+        'https://firebasestorage.googleapis.com/v0/b/app/o/temples%2Fshore%2F01.jpg?alt=media';
+    await pumpCard(tester, temple(imageUrl: thumb));
+    final image = tester.widget<CachedNetworkImage>(
+      find.byType(CachedNetworkImage),
+    );
+    expect(image.imageUrl, thumb);
+    final context = tester.element(find.byType(CachedNetworkImage));
+    final fallback = image.errorWidget!(context, thumb, Exception('missing'));
+    expect(fallback, isA<CachedNetworkImage>());
+    final next = fallback as CachedNetworkImage;
+    expect(next.imageUrl, full);
+    final placeholder = next.errorWidget!(context, full, Exception('missing'));
+    expect(placeholder, isA<TempleImagePlaceholder>());
+  });
+
   testWidgets('verified covers decode at the card size', (tester) async {
     await pumpCard(
       tester,
@@ -270,7 +289,9 @@ void main() {
     );
   });
 
-  testWidgets('Purmandal cover shows the 1847 lithograph caption', (tester) async {
+  testWidgets('Purmandal cover shows the 1847 lithograph caption', (
+    tester,
+  ) async {
     await pumpCard(tester, _named('Purmandal Temple'));
     expect(find.byKey(const Key('cover-caption')), findsOneWidget);
     expect(find.text('Lithograph, 1847'), findsOneWidget);

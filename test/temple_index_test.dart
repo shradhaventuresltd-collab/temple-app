@@ -179,7 +179,9 @@ void main() {
   test('cover thumb fixture matches the JS builder', () {
     final cases =
         jsonDecode(
-              File('scripts/fixtures/cover_thumb_cases.json').readAsStringSync(),
+              File(
+                'scripts/fixtures/cover_thumb_cases.json',
+              ).readAsStringSync(),
             )
             as List;
     for (final raw in cases) {
@@ -187,16 +189,29 @@ void main() {
       final data = Map<String, dynamic>.from(row['data'] as Map);
       expect(coverThumbFor(data), row['expect'], reason: row['name'] as String);
     }
+    final names =
+        jsonDecode(
+              File('scripts/fixtures/thumb_name_cases.json').readAsStringSync(),
+            )
+            as List;
+    for (final raw in names) {
+      final row = Map<String, dynamic>.from(raw as Map);
+      expect(
+        thumbObjectPath(
+          row['objectPath'] as String,
+          generation: row['generation'] as String,
+        ),
+        row['thumbPath'],
+      );
+      expect(fullCoverUrlFromThumb(row['thumbUrl'] as String), row['fullUrl']);
+    }
     expect(
-      thumbObjectPath('temples/shore/01.jpg'),
-      'temples/shore/01_480.jpg',
+      thumbObjectPath('temples/shore/01_480.jpg', generation: '1'),
+      isNull,
     );
-    expect(thumbObjectPath('temples/shore/01_480.jpg'), isNull);
     expect(
-      storageThumbUrl(
-        'https://storage.googleapis.com/bucket/temples/shore/01.jpg',
-      ),
-      'https://storage.googleapis.com/bucket/temples/shore/01_480.jpg',
+      fullCoverUrlFromThumb('https://cdn.example/photos/shore.jpg'),
+      isNull,
     );
   });
 

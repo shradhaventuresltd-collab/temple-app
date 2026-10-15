@@ -1,5 +1,5 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:temple_app/widgets/cover_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_photo.dart';
@@ -35,10 +35,7 @@ String drawerAboutDirectoryBlurb(int templeCount) {
 /// Picsum / placeholder hosts are dropped via [verifiedMosaicUrls]. When none
 /// remain, tiles use [TempleImagePlaceholder] (Photo pending) instead of stock.
 class HomeMosaicCollage extends StatelessWidget {
-  const HomeMosaicCollage({
-    super.key,
-    required this.temples,
-  });
+  const HomeMosaicCollage({super.key, required this.temples});
 
   final List<Temple> temples;
 
@@ -53,9 +50,12 @@ class HomeMosaicCollage extends StatelessWidget {
     final captions = <String, String>{
       for (final temple in temples)
         for (final url in verifiedGalleryUrls(temple))
-          if ((temple.coverCaption ?? historicalCoverCaption(temple.photos, url)) !=
+          if ((temple.coverCaption ??
+                  historicalCoverCaption(temple.photos, url)) !=
               null)
-            url: temple.coverCaption ?? historicalCoverCaption(temple.photos, url)!,
+            url:
+                temple.coverCaption ??
+                historicalCoverCaption(temple.photos, url)!,
     };
     final count = temples.length;
 
@@ -206,15 +206,14 @@ class _MosaicTile extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        CachedNetworkImage(
-          imageUrl: url,
+        CoverNetworkImage(
+          url: url,
           fit: BoxFit.cover,
           width: double.infinity,
           height: double.infinity,
           fadeInDuration: const Duration(milliseconds: 400),
-          placeholder: (context, url) =>
-              ColoredBox(color: Colors.brown.shade100),
-          errorWidget: (context, url, error) => ColoredBox(
+          placeholder: ColoredBox(color: Colors.brown.shade100),
+          error: ColoredBox(
             color: Colors.brown.shade200,
             child: const Icon(
               Icons.photo_outlined,

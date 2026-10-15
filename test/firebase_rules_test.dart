@@ -49,6 +49,9 @@ void main() {
     expect(firestoreRules, contains('function isValidPhoto(photo)'));
     expect(firestoreRules, contains('function coordinatesArePaired(data)'));
     expect(firestoreRules, contains('coordinatesArePaired(data)'));
+    expect(firestoreRules, contains('function coordinatesOkOnUpdate(data)'));
+    expect(firestoreRules, contains('coordinatesOkOnUpdate(data)'));
+    expect(firestoreRules, contains("'thumbUrl'"));
     expect(firestoreRules, isNot(contains('allow write: if true')));
     expect(
       firestoreRules,

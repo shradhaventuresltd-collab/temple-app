@@ -320,6 +320,57 @@ test("latitude and longitude are both null or both set", async () => {
   assert.equal(saved.data().city, "Mamallapuram");
 });
 
+test("an update that does not touch coordinates leaves an unpaired doc writable", async () => {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(
+      at(context.firestore(), "temples/legacy-unpaired"),
+      templePayload("legacy-unpaired", { latitude: 12.6, longitude: null }),
+    );
+  });
+  const db = adminDb("admin-legacy-coords");
+  await assertSucceeds(
+    setDoc(at(db, "temples/legacy-unpaired"), { city: "Mamallapuram" }, { merge: true }),
+  );
+  await assertFails(
+    setDoc(at(db, "temples/legacy-unpaired"), { latitude: 13 }, { merge: true }),
+  );
+  await assertSucceeds(
+    setDoc(
+      at(db, "temples/legacy-unpaired"),
+      { latitude: null, longitude: null },
+      { merge: true },
+    ),
+  );
+  const saved = await getDoc(at(db, "temples/legacy-unpaired"));
+  assert.equal(saved.data().latitude, null);
+  assert.equal(saved.data().longitude, null);
+  assert.equal(saved.data().city, "Mamallapuram");
+});
+
+test("photos may store an https thumbUrl", async () => {
+  const db = adminDb("admin-thumb-url");
+  const thumb =
+    "https://firebasestorage.googleapis.com/v0/b/app/o/temples%2Fshore%2F01_480_g42.jpg?alt=media&token=real";
+  await assertSucceeds(
+    setDoc(
+      at(db, "temples/with-thumb"),
+      templePayload("with-thumb", {
+        photos: [{ url: "https://example.com/full.jpg", licence: "CC0", order: 0, thumbUrl: thumb }],
+      }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      at(db, "temples/bad-thumb"),
+      templePayload("bad-thumb", {
+        photos: [
+          { url: "https://example.com/full.jpg", licence: "CC0", order: 0, thumbUrl: "http://example.com/t.jpg" },
+        ],
+      }),
+    ),
+  );
+});
+
 test("an admin save without coordinates writes null", async () => {
   const db = adminDb("admin-null-coords");
   const id = "unplaced-temple";

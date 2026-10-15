@@ -7,13 +7,13 @@
     "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/480px-File.jpg"
   },
   {
-    "name": "firebase storage full object points at the public _480 thumb",
+    "name": "firebase storage full object stays the full url until thumbUrl is stored",
     "data": {
       "images": [
         "https://firebasestorage.googleapis.com/v0/b/app/o/temples%2Fid%2F171000.jpg?alt=media&token=abc"
       ]
     },
-    "expect": "https://firebasestorage.googleapis.com/v0/b/app/o/temples%2Fid%2F171000_480.jpg?alt=media"
+    "expect": "https://firebasestorage.googleapis.com/v0/b/app/o/temples%2Fid%2F171000.jpg?alt=media&token=abc"
   },
   {
     "name": "an existing _480 storage object is kept, token and all",
@@ -23,35 +23,35 @@
     "expect": "https://firebasestorage.googleapis.com/v0/b/app/o/temples%2Fshore%2Fcover_480.jpg?alt=media&token=abc"
   },
   {
-    "name": "cloud storage pack cover points at 01_480",
+    "name": "cloud storage pack cover stays full size without a stored thumbUrl",
     "data": {
       "imageUrl": "https://storage.googleapis.com/temple-directory-india.firebasestorage.app/temples/mahabodhi-temple/01.jpg",
       "images": [
         "https://storage.googleapis.com/temple-directory-india.firebasestorage.app/temples/mahabodhi-temple/01.jpg"
       ]
     },
-    "expect": "https://storage.googleapis.com/temple-directory-india.firebasestorage.app/temples/mahabodhi-temple/01_480.jpg"
+    "expect": "https://storage.googleapis.com/temple-directory-india.firebasestorage.app/temples/mahabodhi-temple/01.jpg"
   },
   {
-    "name": "jpeg extension is preserved",
+    "name": "jpeg extension is not rewritten",
     "data": {
       "imageUrl": "https://storage.googleapis.com/bucket/temples/shore/cover.jpeg"
     },
-    "expect": "https://storage.googleapis.com/bucket/temples/shore/cover_480.jpeg"
+    "expect": "https://storage.googleapis.com/bucket/temples/shore/cover.jpeg"
   },
   {
-    "name": "png extension case is preserved",
+    "name": "png extension case is not rewritten",
     "data": {
       "imageUrl": "https://storage.googleapis.com/bucket/temples/shore/hero.PNG"
     },
-    "expect": "https://storage.googleapis.com/bucket/temples/shore/hero_480.PNG"
+    "expect": "https://storage.googleapis.com/bucket/temples/shore/hero.PNG"
   },
   {
-    "name": "firebasestorage.app host is rewritten to the public download URL",
+    "name": "a storage download url is not rewritten to a public sibling",
     "data": {
       "imageUrl": "https://temple-directory-india.firebasestorage.app/v0/b/temple-directory-india.firebasestorage.app/o/temples%2Fshore%2F01.jpg?alt=media"
     },
-    "expect": "https://firebasestorage.googleapis.com/v0/b/temple-directory-india.firebasestorage.app/o/temples%2Fshore%2F01_480.jpg?alt=media"
+    "expect": "https://temple-directory-india.firebasestorage.app/v0/b/temple-directory-india.firebasestorage.app/o/temples%2Fshore%2F01.jpg?alt=media"
   },
   {
     "name": "photos thumbUrl wins when it is the gallery photo",
@@ -62,23 +62,23 @@
       "photos": [
         {
           "url": "https://firebasestorage.googleapis.com/v0/b/app/o/temples%2Fid%2F171000.jpg?alt=media",
-          "thumbUrl": "https://cdn.example/photos/shore_480.jpg",
+          "thumbUrl": "https://firebasestorage.googleapis.com/v0/b/app/o/temples%2Fid%2F171000_480_g42.jpg?alt=media&token=real",
           "licence": "CC0",
           "order": 0
         }
       ]
     },
-    "expect": "https://cdn.example/photos/shore_480.jpg"
+    "expect": "https://firebasestorage.googleapis.com/v0/b/app/o/temples%2Fid%2F171000_480_g42.jpg?alt=media&token=real"
   },
   {
-    "name": "a listed non-storage _480 sibling is preferred",
+    "name": "a listed non-storage _480 sibling is not guessed",
     "data": {
       "images": [
         "https://cdn.example/photos/shore.jpg",
         "https://cdn.example/photos/shore_480.jpg"
       ]
     },
-    "expect": "https://cdn.example/photos/shore_480.jpg"
+    "expect": "https://cdn.example/photos/shore.jpg"
   },
   {
     "name": "a non-storage cover without a sibling stays full size",

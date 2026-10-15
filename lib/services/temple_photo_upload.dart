@@ -7,8 +7,11 @@ import 'package:temple_app/utils/cover_thumb.dart';
 /// Long edge of a photo before it is stored. The picker applies this.
 const double kTemplePhotoMaxEdge = 1600;
 
-/// JPEG/WebP quality for the stored photo and its `_480` thumb.
+/// JPEG quality for the stored photo. The picker applies this.
 const int kTemplePhotoJpegQuality = 80;
+
+/// JPEG quality for the `_480` thumb. Within the 75–80 range.
+const int kTemplePhotoThumbQuality = 80;
 
 /// Width of the list-card thumb. Taller frames keep their aspect ratio.
 const int kTemplePhotoThumbEdge = 480;
@@ -44,6 +47,7 @@ class TemplePhotoUploadPlan {
     required this.mainPath,
     required this.thumbPath,
     required this.contentType,
+    required this.thumbContentType,
     required this.cacheControl,
   });
 
@@ -51,15 +55,23 @@ class TemplePhotoUploadPlan {
   final String thumbPath;
   final String contentType;
 
+  /// Thumbs are JPEG, including when the original is PNG or WebP.
+  final String thumbContentType;
+
   /// Timestamped names never change (KAN-49). The thumb uses the same header.
+  /// Its object name includes the source generation, so a replaced original
+  /// does not reuse this immutable URL.
   final String cacheControl;
 }
 
-/// `temples/{docId}/{timestamp}.{ext}` and `temples/{docId}/{timestamp}_480.{ext}`.
+/// `temples/{docId}/{timestamp}.{ext}` and
+/// `temples/{docId}/{timestamp}_480_g{generation}.jpg`.
 TemplePhotoUploadPlan planTemplePhotoUpload({
   required String docId,
   required int timestamp,
   required String extension,
+  required String generation,
+  int? updatedMillis,
 }) {
   final stored = templePhotoStoredExtension(extension);
   final mainPath = templePhotoStoragePath(
@@ -67,7 +79,11 @@ TemplePhotoUploadPlan planTemplePhotoUpload({
     timestamp: timestamp,
     extension: stored,
   );
-  final thumbPath = thumbObjectPath(mainPath);
+  final thumbPath = thumbObjectPath(
+    mainPath,
+    generation: generation,
+    updatedMillis: updatedMillis,
+  );
   if (thumbPath == null) {
     throw StateError('Photo path "$mainPath" has no _480 thumbnail.');
   }
@@ -75,24 +91,52 @@ TemplePhotoUploadPlan planTemplePhotoUpload({
     mainPath: mainPath,
     thumbPath: thumbPath,
     contentType: contentTypeForPhotoExtension(stored),
+    thumbContentType: 'image/jpeg',
     cacheControl: 'public, max-age=31536000, immutable',
   );
 }
 
-/// Writes one Storage object and returns its download URL.
+/// Download URLs for the full photo and its thumb.
+class TemplePhotoUpload {
+  const TemplePhotoUpload({required this.url, required this.thumbUrl});
+
+  /// Stored as `photos[].url`.
+  final String url;
+
+  /// Stored as `photos[].thumbUrl`. This is the thumb's own download URL.
+  final String thumbUrl;
+}
+
+/// One stored object. [generation] is the Storage generation string.
+class TemplePhotoStoredObject {
+  const TemplePhotoStoredObject({
+    required this.path,
+    required this.url,
+    required this.generation,
+  });
+
+  final String path;
+  final String url;
+  final String generation;
+}
+
+/// Writes one Storage object and returns its download URL and generation.
 abstract class TemplePhotoObjectWriter {
-  Future<String> put({
+  Future<TemplePhotoStoredObject> put({
     required String path,
     required Uint8List bytes,
     required String contentType,
     required String cacheControl,
     required void Function(double progress) onProgress,
   });
+
+  /// Removes an object left behind when the other half of the upload fails.
+  Future<void> delete({required String path});
 }
 
-/// Uploads one temple photo and its thumb, and returns the full-size URL.
+/// Uploads one temple photo and its thumb.
 abstract class TemplePhotoUploader {
-  Future<String> upload({
+  Future<TemplePhotoUpload> upload({
     required String docId,
     required Uint8List bytes,
     required Uint8List thumbBytes,
@@ -101,8 +145,12 @@ abstract class TemplePhotoUploader {
   });
 }
 
-/// Writes both objects with one timestamp. The full-size download URL is
-/// what `photos[].url` stores. Browse derives `{name}_480` from that URL.
+/// Writes the original, then the thumb named with that object's generation.
+///
+/// The original is deleted if the thumb upload fails, so a full-size object
+/// is not left without its `photos[].thumbUrl`. Both download URLs are the
+/// ones Storage returns. Thumbs sit under `temples/{id}/`, the same public
+/// read as the original.
 class FirebaseTemplePhotoUploader implements TemplePhotoUploader {
   FirebaseTemplePhotoUploader({
     TemplePhotoObjectWriter? objects,
@@ -116,7 +164,7 @@ class FirebaseTemplePhotoUploader implements TemplePhotoUploader {
   final int Function()? clock;
 
   @override
-  Future<String> upload({
+  Future<TemplePhotoUpload> upload({
     required String docId,
     required Uint8List bytes,
     required Uint8List thumbBytes,
@@ -130,27 +178,44 @@ class FirebaseTemplePhotoUploader implements TemplePhotoUploader {
       throw StateError('Photo thumbnail is empty.');
     }
     final timestamp = clock?.call() ?? DateTime.now().microsecondsSinceEpoch;
+    final stored = templePhotoStoredExtension(extension);
+    final mainPath = templePhotoStoragePath(
+      docId: docId,
+      timestamp: timestamp,
+      extension: stored,
+    );
+    final cacheControl = 'public, max-age=31536000, immutable';
+    final main = await _objects.put(
+      path: mainPath,
+      bytes: bytes,
+      contentType: contentTypeForPhotoExtension(stored),
+      cacheControl: cacheControl,
+      onProgress: (value) => onProgress((value * 0.5).clamp(0, 0.5)),
+    );
     final plan = planTemplePhotoUpload(
       docId: docId,
       timestamp: timestamp,
       extension: extension,
+      generation: main.generation,
     );
-    final mainUrl = await _objects.put(
-      path: plan.mainPath,
-      bytes: bytes,
-      contentType: plan.contentType,
-      cacheControl: plan.cacheControl,
-      onProgress: (value) => onProgress((value * 0.5).clamp(0, 0.5)),
-    );
-    await _objects.put(
-      path: plan.thumbPath,
-      bytes: thumbBytes,
-      contentType: plan.contentType,
-      cacheControl: plan.cacheControl,
-      onProgress: (value) => onProgress((0.5 + value * 0.5).clamp(0.5, 1)),
-    );
-    onProgress(1);
-    return mainUrl;
+    try {
+      final thumb = await _objects.put(
+        path: plan.thumbPath,
+        bytes: thumbBytes,
+        contentType: plan.thumbContentType,
+        cacheControl: plan.cacheControl,
+        onProgress: (value) => onProgress((0.5 + value * 0.5).clamp(0.5, 1)),
+      );
+      onProgress(1);
+      return TemplePhotoUpload(url: main.url, thumbUrl: thumb.url);
+    } catch (error) {
+      try {
+        await _objects.delete(path: main.path);
+      } catch (_) {
+        // The thumb failed. Surface that error even if cleanup also fails.
+      }
+      throw StateError('Photo thumbnail upload failed. $error');
+    }
   }
 }
 
@@ -161,7 +226,7 @@ class FirebaseTemplePhotoObjectWriter implements TemplePhotoObjectWriter {
   final FirebaseStorage _storage;
 
   @override
-  Future<String> put({
+  Future<TemplePhotoStoredObject> put({
     required String path,
     required Uint8List bytes,
     required String contentType,
@@ -184,10 +249,24 @@ class FirebaseTemplePhotoObjectWriter implements TemplePhotoObjectWriter {
     try {
       await task;
       onProgress(1);
-      return await ref.getDownloadURL();
+      final meta = await ref.getMetadata();
+      final generation = meta.generation;
+      if (generation == null || !RegExp(r'^\d+$').hasMatch(generation)) {
+        throw StateError('Storage did not return a generation for $path.');
+      }
+      return TemplePhotoStoredObject(
+        path: path,
+        url: await ref.getDownloadURL(),
+        generation: generation,
+      );
     } finally {
       await subscription.cancel();
     }
+  }
+
+  @override
+  Future<void> delete({required String path}) {
+    return _storage.ref(path).delete();
   }
 }
 
