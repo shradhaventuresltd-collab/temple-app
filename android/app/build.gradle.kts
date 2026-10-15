@@ -27,6 +27,9 @@ val releaseStoreFilePath = keystoreProperty("storeFile")
 val releaseStorePassword = keystoreProperty("storePassword")
 val releaseKeyAlias = keystoreProperty("keyAlias")
 val releaseKeyPassword = keystoreProperty("keyPassword")
+// Optional. Play key.properties omits this and keeps the AGP default.
+// The demo distribution workflow sets PKCS12 for its demo keystore.
+val releaseStoreType = keystoreProperty("storeType")
 val missingSigningKeys = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
     .filter { keystoreProperty(it) == null }
 val releaseStoreFile = releaseStoreFilePath?.let { file(it) }
@@ -94,6 +97,9 @@ android {
                 // Resolved from android/app, so ../upload-keystore.jks is android/upload-keystore.jks.
                 storeFile = file(releaseStoreFilePath!!)
                 storePassword = releaseStorePassword
+                if (releaseStoreType != null) {
+                    storeType = releaseStoreType
+                }
             }
         }
     }

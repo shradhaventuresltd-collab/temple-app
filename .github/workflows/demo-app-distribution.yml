@@ -1,0 +1,132 @@
+name: demo-app-distribution
+
+# Tester release APK for Firebase App Distribution. Not a Play upload.
+# Defines match demo-seed-launch: DEMO_BUILD and ENABLE_ADMIN_TOOLS.
+# The job calls flutter build apk. It does not build a Play app bundle,
+# does not install the APK, and does not run Seed or write to Firestore.
+#
+# A pull_request run, or a run whose App Distribution secrets are empty,
+# skips distribution and succeeds. Empty signing secrets skip the signed
+# build as well. The demo keystore is decoded to a temp file and deleted
+# before distribution.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer push or dispatch on the same ref supersedes an in-progress build.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  demo-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Plan signing and distribution
+        id: plan
+        env:
+          DEMO_KEYSTORE_B64: ${{ secrets.DEMO_KEYSTORE_B64 }}
+          DEMO_KEYSTORE_PASSWORD: ${{ secrets.DEMO_KEYSTORE_PASSWORD }}
+          DEMO_KEY_ALIAS: ${{ secrets.DEMO_KEY_ALIAS }}
+          DEMO_KEY_PASSWORD: ${{ secrets.DEMO_KEY_PASSWORD }}
+          FIREBASE_ANDROID_APP_ID: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
+          FIREBASE_APP_DISTRIBUTION_SA_JSON: ${{ secrets.FIREBASE_APP_DISTRIBUTION_SA_JSON }}
+        run: bash scripts/ci/demo_distribution_plan.sh
+
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        if: steps.plan.outputs.sign == 'true'
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        if: steps.plan.outputs.sign == 'true'
+        with:
+          flutter-version: '3.47.7'
+          cache: true
+
+      - name: flutter pub get
+        if: steps.plan.outputs.sign == 'true'
+        run: flutter pub get
+
+      - name: Cache Gradle
+        if: steps.plan.outputs.sign == 'true'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('pubspec.lock', 'android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
+
+      - name: Build universal demo release APK
+        id: build
+        if: steps.plan.outputs.sign == 'true'
+        env:
+          DEMO_KEYSTORE_B64: ${{ secrets.DEMO_KEYSTORE_B64 }}
+          DEMO_KEYSTORE_PASSWORD: ${{ secrets.DEMO_KEYSTORE_PASSWORD }}
+          DEMO_KEY_ALIAS: ${{ secrets.DEMO_KEY_ALIAS }}
+          DEMO_KEY_PASSWORD: ${{ secrets.DEMO_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          keystore_path="$(bash scripts/ci/prepare_demo_keystore.sh)"
+          cleanup() {
+            bash scripts/ci/cleanup_demo_signing.sh "$keystore_path"
+          }
+          trap cleanup EXIT
+          printf 'DEMO_KEYSTORE_PATH=%s\n' "$keystore_path" >> "$GITHUB_ENV"
+          flutter build apk --release \
+            --target-platform android-arm,android-arm64,android-x64 \
+            --dart-define=DEMO_BUILD=true \
+            --dart-define=ENABLE_ADMIN_TOOLS=true
+          apk="build/app/outputs/flutter-apk/app-release.apk"
+          size="$(stat -c%s "$apk")"
+          echo "Universal demo APK size: ${size} bytes"
+          layout="$(bash scripts/ci/demo_apk_layout.sh "$size")"
+          echo "APK layout: ${layout}"
+          if [[ "$layout" == "split" ]]; then
+            echo "Universal APK is over 60 MiB. Building split APKs per ABI."
+            flutter build apk --release --split-per-abi \
+              --target-platform android-arm,android-arm64,android-x64 \
+              --dart-define=DEMO_BUILD=true \
+              --dart-define=ENABLE_ADMIN_TOOLS=true
+            rm -f "$apk"
+          fi
+
+      - name: Delete demo keystore
+        if: always() && steps.plan.outputs.sign == 'true'
+        run: bash scripts/ci/cleanup_demo_signing.sh "${DEMO_KEYSTORE_PATH:-}"
+
+      - name: Upload demo APK
+        if: steps.build.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: demo-apk
+          path: build/app/outputs/flutter-apk/*release.apk
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Distribute to Firebase App Distribution
+        if: steps.plan.outputs.distribute == 'true' && steps.build.outcome == 'success'
+        env:
+          FIREBASE_ANDROID_APP_ID: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
+          FIREBASE_APP_DISTRIBUTION_SA_JSON: ${{ secrets.FIREBASE_APP_DISTRIBUTION_SA_JSON }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          apks=(build/app/outputs/flutter-apk/*release.apk)
+          if ((${#apks[@]} == 0)); then
+            echo "error: no release APK to distribute" >&2
+            exit 1
+          fi
+          bash scripts/ci/distribute_demo_apk.sh "${apks[@]}"

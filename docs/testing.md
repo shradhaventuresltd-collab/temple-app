@@ -15,7 +15,7 @@ Public legal pages, after Deployer runs `firebase deploy --only hosting --projec
 - https://temple-directory-india.web.app/privacy-policy.html
 - https://temple-directory-india.web.app/terms-of-service.html
 
-Neither workflow signs a Play bundle or uploads to App Distribution.
+`analyze-test` and `android-smoke` do not sign a Play bundle or upload to App Distribution. The tester pipeline is [`demo-app-distribution`](#demo-apk-on-firebase-app-distribution), below.
 
 A weekly workflow, `actions-minutes`, compares usage with the 2,000 minute private-repo budget and opens or updates an issue labelled `actions-minutes` when usage is at or above 1,500 minutes (75%). It reads the optional repository secret `BILLING_TOKEN`: a fine-grained personal access token created by the owner of this user-owned account, with account permission **Plan: Read-only**. `GITHUB_TOKEN` cannot read billing here. If `BILLING_TOKEN` is missing or rejected, the workflow sums this repository's Actions run timings for the current month. That estimate does not include other private repositories on the account.
 
@@ -66,6 +66,39 @@ flutter build apk --release \
 ```
 
 It uses the same `run-smoke` label gate as `android-smoke` (`pull_request` types `labeled` and `synchronize`, plus `workflow_dispatch`). The job signs with an ephemeral keystore (`android/key.properties` and `*.jks` stay gitignored). It is not the Play upload key. The script installs that release APK on the API 34 emulator, expects the Terms gate, taps Accept, opens the Admin sign-in panel, and never taps Seed. It then turns the radios off, clears app data, and expects the gate again. Artifacts are `demo-seed-launch` (logcat and screenshots) and `demo-seed-apk`.
+
+## Demo APK on Firebase App Distribution
+
+Workflow `demo-app-distribution` builds the tester APK on every push to `main` and from **Actions → demo-app-distribution → Run workflow** (`workflow_dispatch`). From a checkout:
+
+```bash
+gh workflow run demo-app-distribution.yml --ref main
+```
+
+The build is the same release defines as `demo-seed-launch`:
+
+```bash
+flutter build apk --release \
+  --target-platform android-arm,android-arm64,android-x64 \
+  --dart-define=DEMO_BUILD=true \
+  --dart-define=ENABLE_ADMIN_TOOLS=true
+```
+
+That is a universal APK (armeabi-v7a, arm64-v8a, and x86_64). The job logs the file size. If the universal APK is over 60 MiB (62914560 bytes) it builds again with `--split-per-abi` and distributes those APKs instead. This command is `flutter build apk`. It does not call `scripts/build_play_aab.sh`, and those defines never go into the Play bundle.
+
+The job signs with the demo keystore from `DEMO_KEYSTORE_B64` (PKCS12, `storeType=PKCS12` in the gitignored `android/key.properties`). That key is not the Play upload key. The workflow decodes it to a temp file, and deletes the file and `android/key.properties` after the build. A device that already has a Play-signed install must uninstall that install first; Android will not replace it with a build signed by the demo key.
+
+The APK is the `demo-apk` artifact, kept for 7 days. Distribution runs `firebase appdistribution:distribute` (firebase-tools 15.34.0) with `--groups core-testers`. Release notes are the 7-character SHA, the commit subject, and the Actions run URL. A `pull_request` run, or a run missing the demo keystore or App Distribution secrets, skips distribution and succeeds. The job does not install the APK, open Admin, tap Seed, or write to Firestore.
+
+Testers install it from App Distribution:
+
+1. In the Firebase console, open project `temple-directory-india` → App Distribution → Testers & Groups. The group alias is `core-testers`. Add the tester's Google account email. Firebase sends an invitation.
+2. The tester opens that invitation and accepts it.
+3. On the phone, install **App Tester** (the Firebase App Distribution app) from the link in the invitation, or from Google Play under the name App Tester.
+4. Sign in to App Tester with the invited Google account.
+5. Open Temple Directory India, choose the latest build, and install it. Android may ask for permission to install from App Tester.
+
+The service account in `FIREBASE_APP_DISTRIBUTION_SA_JSON` needs the **Firebase App Distribution Admin** role (`roles/firebaseappdistro.admin`) on `temple-directory-india`, and the Firebase App Distribution API must be enabled. It does not need Firestore access. `FIREBASE_ANDROID_APP_ID` is the Android app id for `com.shradhaventures.temple` (`1:109314154382:android:d34e6caea62c14124ccedf` in [android-play-internal-test.md](android-play-internal-test.md)). `analyze-test` runs `scripts/ci/test_demo_distribution_guard.sh` and still runs `scripts/test_play_aab_guard.sh`.
 
 ## Demo ads (`DEMO_BUILD`)
 

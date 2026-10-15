@@ -1,0 +1,610 @@
+#!/usr/bin/env bash
+# Checks for the demo App Distribution workflow.
+# Does not run flutter, does not call Firebase, and does not print secrets.
+set -euo pipefail
+
+cd "$(dirname "$0")/../.."
+unset RUNNER_TEMP
+
+expect_eq() {
+  local desc="$1" got="$2" want="$3"
+  if [[ "$got" != "$want" ]]; then
+    echo "FAIL: ${desc}: got '${got}', want '${want}'" >&2
+    exit 1
+  fi
+  echo "ok: ${desc}"
+}
+
+expect_file() {
+  local desc="$1" path="$2"
+  if [[ ! -f "$path" ]]; then
+    echo "FAIL: ${desc}: missing ${path}" >&2
+    exit 1
+  fi
+  echo "ok: ${desc}"
+}
+
+forbid() {
+  local desc="$1" pattern="$2" file="$3"
+  if grep -E -q -- "$pattern" "$file"; then
+    echo "FAIL: ${desc}" >&2
+    exit 1
+  fi
+  echo "ok: ${desc}"
+}
+
+require() {
+  local desc="$1" pattern="$2" file="$3"
+  if ! grep -E -q -- "$pattern" "$file"; then
+    echo "FAIL: ${desc}" >&2
+    exit 1
+  fi
+  echo "ok: ${desc}"
+}
+
+workflow=.github/workflows/demo-app-distribution.yml
+expect_file "demo distribution workflow exists" "$workflow"
+
+on_block="$(awk '
+  /^on:$/ { capture=1; next }
+  capture && /^[^ ]/ { exit }
+  capture { print }
+' "$workflow")"
+if ! grep -q 'workflow_dispatch:' <<<"$on_block"; then
+  echo "FAIL: workflow_dispatch trigger missing" >&2
+  exit 1
+fi
+echo "ok: workflow_dispatch trigger"
+if ! grep -q -- '- main' <<<"$on_block"; then
+  echo "FAIL: push to main trigger missing" >&2
+  exit 1
+fi
+echo "ok: push to main trigger"
+if grep -q 'pull_request' <<<"$on_block"; then
+  echo "FAIL: pull_request must not trigger this workflow" >&2
+  exit 1
+fi
+echo "ok: pull_request is not a trigger"
+
+expect_eq "contents: read is set on the workflow and the job" \
+  "$(grep -c 'contents: read' "$workflow")" 2
+if grep -E -q '^[[:space:]]+[A-Za-z0-9_-]+: write$' "$workflow"; then
+  echo "FAIL: workflow grants a write permission" >&2
+  exit 1
+fi
+echo "ok: no write permission"
+
+require "concurrency cancels superseded runs" \
+  'cancel-in-progress: true' "$workflow"
+# shellcheck disable=SC2016 # workflow expression is literal text
+if ! grep -F -q 'group: ${{ github.workflow }}-${{ github.ref }}' "$workflow"; then
+  echo "FAIL: concurrency group is not the workflow and ref" >&2
+  exit 1
+fi
+echo "ok: concurrency group is the workflow and ref"
+
+timeout="$(awk '/^    timeout-minutes:/ { print $2; exit }' "$workflow")"
+if [[ -z "$timeout" || "$timeout" -gt 30 ]]; then
+  echo "FAIL: job timeout must be 30 minutes or less (got '${timeout}')" >&2
+  exit 1
+fi
+echo "ok: job timeout is ${timeout} minutes"
+
+require "APK artifact is kept for 7 days" 'retention-days: 7' "$workflow"
+require "APK artifact name" 'name: demo-apk' "$workflow"
+
+expect_eq "both apk builds pass DEMO_BUILD" \
+  "$(grep -c -- '--dart-define=DEMO_BUILD=true' "$workflow")" 2
+expect_eq "both apk builds pass ENABLE_ADMIN_TOOLS" \
+  "$(grep -c -- '--dart-define=ENABLE_ADMIN_TOOLS=true' "$workflow")" 2
+expect_eq "both apk builds request arm, arm64, and x86_64" \
+  "$(grep -c -- '--target-platform android-arm,android-arm64,android-x64' "$workflow")" 2
+expect_eq "split-per-abi is only the over-60MiB fallback" \
+  "$(grep -c -- '--split-per-abi' "$workflow")" 1
+
+forbid "workflow does not build a Play bundle" 'build_play_aab|appbundle' "$workflow"
+forbid "workflow does not run Seed or Firestore writes" \
+  'seed_service|firebase deploy|firestore' "$workflow"
+forbid "workflow does not trace commands" 'set -x' "$workflow"
+forbid "workflow does not echo secrets" \
+  'echo .*(secrets\.|\$\{?DEMO_KEYSTORE_|\$\{?DEMO_KEY_|\$\{?FIREBASE_)' "$workflow"
+
+require "workflow decodes the demo keystore" \
+  'prepare_demo_keystore.sh' "$workflow"
+require "workflow deletes the demo keystore" \
+  'cleanup_demo_signing.sh' "$workflow"
+require "workflow chooses universal vs split from the file size" \
+  'demo_apk_layout.sh' "$workflow"
+require "workflow distributes with the helper script" \
+  'distribute_demo_apk.sh' "$workflow"
+
+require "Play signing still does not require storeType" \
+  'val missingSigningKeys = listOf\("storeFile", "storePassword", "keyAlias", "keyPassword"\)' \
+  android/app/build.gradle.kts
+require "storeType is applied only when key.properties sets it" \
+  'if \(releaseStoreType != null\)' android/app/build.gradle.kts
+
+forbid "Play script does not distribute the demo APK" \
+  'appdistribution|DEMO_KEYSTORE|FIREBASE_APP_DISTRIBUTION' scripts/build_play_aab.sh
+require "analyze-test runs this guard" \
+  'scripts/ci/test_demo_distribution_guard.sh' .github/workflows/ci.yml
+
+require "keystore is PKCS12" 'storeType=PKCS12' scripts/ci/prepare_demo_keystore.sh
+require "keystore is base64-decoded" 'base64 --decode' scripts/ci/prepare_demo_keystore.sh
+forbid "keystore script does not echo secrets" \
+  'echo .*(DEMO_KEYSTORE_|DEMO_KEY_)' scripts/ci/prepare_demo_keystore.sh
+forbid "keystore script does not trace commands" 'set -x' scripts/ci/prepare_demo_keystore.sh
+
+require "distribute uses the Firebase CLI" \
+  'appdistribution:distribute' scripts/ci/distribute_demo_apk.sh
+require "distribute targets core-testers" \
+  '--groups core-testers' scripts/ci/distribute_demo_apk.sh
+require "distribute uses GOOGLE_APPLICATION_CREDENTIALS" \
+  'GOOGLE_APPLICATION_CREDENTIALS=' scripts/ci/distribute_demo_apk.sh
+require "firebase-tools is pinned" \
+  'FIREBASE_TOOLS_VERSION=15\.34\.0' scripts/ci/distribute_demo_apk.sh
+forbid "distribute script does not trace commands" 'set -x' scripts/ci/distribute_demo_apk.sh
+# shellcheck disable=SC2016 # grep pattern, not a shell expansion
+forbid "distribute script does not echo the service account" \
+  'echo .*(\$FIREBASE_APP_DISTRIBUTION_SA_JSON|\$FIREBASE_ANDROID_APP_ID|private_key)' \
+  scripts/ci/distribute_demo_apk.sh
+forbid "distribute script does not run Seed or Firestore writes" \
+  'seed_service|firebase deploy|firestore' scripts/ci/distribute_demo_apk.sh
+
+expect_eq "60 MiB stays universal" \
+  "$(bash scripts/ci/demo_apk_layout.sh 62914560)" universal
+expect_eq "one byte over 60 MiB splits per ABI" \
+  "$(bash scripts/ci/demo_apk_layout.sh 62914561)" split
+expect_eq "a small APK stays universal" \
+  "$(bash scripts/ci/demo_apk_layout.sh 0)" universal
+
+fill_signing() {
+  export DEMO_KEYSTORE_B64="e30="
+  export DEMO_KEYSTORE_PASSWORD="store-secret"
+  export DEMO_KEY_ALIAS="demo"
+  export DEMO_KEY_PASSWORD="key-secret"
+}
+
+fill_firebase() {
+  export FIREBASE_ANDROID_APP_ID="1:123:android:abc"
+  export FIREBASE_APP_DISTRIBUTION_SA_JSON='{"type":"service_account"}'
+}
+
+clear_demo_env() {
+  unset DEMO_KEYSTORE_B64 DEMO_KEYSTORE_PASSWORD DEMO_KEY_ALIAS DEMO_KEY_PASSWORD
+  unset FIREBASE_ANDROID_APP_ID FIREBASE_APP_DISTRIBUTION_SA_JSON
+  unset DEMO_KEYSTORE_PATH GOOGLE_APPLICATION_CREDENTIALS RUNNER_TEMP
+}
+
+run_plan() {
+  local event="$1"
+  shift
+  GITHUB_EVENT_NAME="$event" bash scripts/ci/demo_distribution_plan.sh
+}
+
+clear_demo_env
+fill_signing
+fill_firebase
+plan="$(run_plan push)"
+expect_eq "push with secrets signs" "$(grep '^sign=' <<<"$plan" | cut -d= -f2-)" true
+expect_eq "push with secrets distributes" "$(grep '^distribute=' <<<"$plan" | cut -d= -f2-)" true
+if ! grep -q 'core-testers' <<<"$plan"; then
+  echo "FAIL: a ready run should name the tester group" >&2
+  exit 1
+fi
+echo "ok: a ready run names core-testers"
+if grep -q 'store-secret' <<<"$plan"; then
+  echo "FAIL: plan output included a signing secret" >&2
+  exit 1
+fi
+echo "ok: plan output does not include signing secrets"
+
+plan="$(run_plan workflow_dispatch)"
+expect_eq "workflow_dispatch with secrets distributes" \
+  "$(grep '^distribute=' <<<"$plan" | cut -d= -f2-)" true
+
+plan="$(run_plan pull_request)"
+expect_eq "pull_request still signs when the keystore secrets exist" \
+  "$(grep '^sign=' <<<"$plan" | cut -d= -f2-)" true
+expect_eq "pull_request skips distribution" \
+  "$(grep '^distribute=' <<<"$plan" | cut -d= -f2-)" false
+if ! grep -q 'Skipping distribution on a pull_request run.' <<<"$plan"; then
+  echo "FAIL: pull_request skip was not reported" >&2
+  exit 1
+fi
+echo "ok: pull_request skip is reported"
+
+clear_demo_env
+fill_signing
+export FIREBASE_ANDROID_APP_ID=""
+export FIREBASE_APP_DISTRIBUTION_SA_JSON='{"type":"service_account"}'
+plan="$(run_plan push)"
+expect_eq "missing app id still signs" "$(grep '^sign=' <<<"$plan" | cut -d= -f2-)" true
+expect_eq "missing app id skips distribution" \
+  "$(grep '^distribute=' <<<"$plan" | cut -d= -f2-)" false
+if ! grep -q 'FIREBASE_ANDROID_APP_ID' <<<"$plan"; then
+  echo "FAIL: missing app id was not named" >&2
+  exit 1
+fi
+echo "ok: missing app id is named"
+
+clear_demo_env
+fill_firebase
+export DEMO_KEYSTORE_B64=""
+export DEMO_KEYSTORE_PASSWORD="store-secret"
+export DEMO_KEY_ALIAS="demo"
+export DEMO_KEY_PASSWORD="key-secret"
+plan="$(run_plan push)"
+expect_eq "missing keystore skips signing" "$(grep '^sign=' <<<"$plan" | cut -d= -f2-)" false
+expect_eq "missing keystore skips distribution" \
+  "$(grep '^distribute=' <<<"$plan" | cut -d= -f2-)" false
+if grep -q 'store-secret' <<<"$plan"; then
+  echo "FAIL: missing-keystore plan included a password" >&2
+  exit 1
+fi
+echo "ok: missing-keystore plan does not include a password"
+
+output_file="$(mktemp)"
+clear_demo_env
+fill_signing
+fill_firebase
+GITHUB_OUTPUT="$output_file" GITHUB_EVENT_NAME=push \
+  bash scripts/ci/demo_distribution_plan.sh >/dev/null
+expect_eq "GITHUB_OUTPUT sign" "$(grep '^sign=' "$output_file" | cut -d= -f2-)" true
+expect_eq "GITHUB_OUTPUT distribute" "$(grep '^distribute=' "$output_file" | cut -d= -f2-)" true
+rm -f "$output_file"
+
+# Keystore round-trip. Fixture passwords are not real secrets.
+tmp="$(mktemp -d)"
+props="$tmp/key.properties"
+printf 'storePassword=keep-me\n' >"$props"
+payload='demo-keystore-bytes'
+store_password='p\a=b'
+key_password="$(printf 'k\303\251y')"
+alias='demo key'
+clear_demo_env
+DEMO_KEYSTORE_B64="$(printf '%s' "$payload" | base64 -w0)"
+export DEMO_KEYSTORE_B64
+export DEMO_KEYSTORE_PASSWORD="$store_password"
+export DEMO_KEY_PASSWORD="$key_password"
+export DEMO_KEY_ALIAS="$alias"
+export TMPDIR="$tmp"
+set +e
+prepare_out="$(bash scripts/ci/prepare_demo_keystore.sh "$props" 2>"$tmp/prepare.err")"
+prepare_status=$?
+set -e
+if [[ "$prepare_status" -ne 0 ]]; then
+  echo "FAIL: prepare_demo_keystore.sh exited ${prepare_status}" >&2
+  exit 1
+fi
+echo "ok: prepare_demo_keystore.sh exits 0"
+if grep -q -F "$store_password" "$tmp/prepare.err" || grep -q -F "$store_password" <<<"$prepare_out"; then
+  echo "FAIL: prepare output included the store password" >&2
+  exit 1
+fi
+if grep -q -F "$key_password" "$tmp/prepare.err" || grep -q -F "$key_password" <<<"$prepare_out"; then
+  echo "FAIL: prepare output included the key password" >&2
+  exit 1
+fi
+echo "ok: prepare output does not include passwords"
+if [[ ! -f "$prepare_out" ]]; then
+  echo "FAIL: prepare did not print a keystore path" >&2
+  exit 1
+fi
+if [[ "$prepare_out" != "$tmp"/* ]]; then
+  echo "FAIL: keystore was not written under TMPDIR" >&2
+  exit 1
+fi
+expect_eq "decoded keystore bytes" "$(cat "$prepare_out")" "$payload"
+python3 - "$props" "$prepare_out" "$store_password" "$key_password" "$alias" <<'PY'
+import sys
+
+path, store_file, store_password, key_password, alias = sys.argv[1:]
+
+def unescape(value: str) -> str:
+    out = []
+    i = 0
+    while i < len(value):
+        if value[i] == "\\" and i + 1 < len(value):
+            nxt = value[i + 1]
+            if nxt == "\\":
+                out.append("\\")
+                i += 2
+            elif nxt == "n":
+                out.append("\n")
+                i += 2
+            elif nxt == "r":
+                out.append("\r")
+                i += 2
+            elif nxt == "t":
+                out.append("\t")
+                i += 2
+            elif nxt == "u" and i + 6 <= len(value):
+                out.append(chr(int(value[i + 2 : i + 6], 16)))
+                i += 6
+            else:
+                out.append(nxt)
+                i += 2
+        else:
+            out.append(value[i])
+            i += 1
+    return "".join(out)
+
+found = {}
+with open(path, encoding="ascii") as handle:
+    for line in handle:
+        key, sep, raw = line.rstrip("\n").partition("=")
+        if not sep:
+            sys.exit("missing separator")
+        found[key] = unescape(raw)
+expected = {
+    "storePassword": store_password,
+    "keyPassword": key_password,
+    "keyAlias": alias,
+    "storeFile": store_file,
+    "storeType": "PKCS12",
+}
+if found != expected:
+    sys.stderr.write("key.properties round-trip mismatch\n")
+    sys.exit(1)
+PY
+echo "ok: key.properties round-trips PKCS12 signing values"
+
+bash scripts/ci/cleanup_demo_signing.sh "$prepare_out" "$props"
+if [[ -e "$prepare_out" || -e "$props" ]]; then
+  echo "FAIL: cleanup left the keystore or key.properties" >&2
+  exit 1
+fi
+echo "ok: cleanup deletes the keystore and key.properties"
+
+if bash scripts/ci/cleanup_demo_signing.sh /etc/passwd "$tmp/unused.properties" 2>/dev/null; then
+  echo "FAIL: cleanup deleted or accepted a path outside temp" >&2
+  exit 1
+fi
+if [[ ! -f /etc/passwd ]]; then
+  echo "FAIL: cleanup removed /etc/passwd" >&2
+  exit 1
+fi
+echo "ok: cleanup refuses a path outside temp"
+if bash scripts/ci/cleanup_demo_signing.sh /tmp/../etc/passwd "$tmp/unused.properties" 2>/dev/null; then
+  echo "FAIL: cleanup accepted a path that leaves temp" >&2
+  exit 1
+fi
+echo "ok: cleanup refuses .. in the keystore path"
+
+# A bad keystore must not replace an existing properties file.
+printf 'storePassword=keep-me\n' >"$props"
+export DEMO_KEYSTORE_B64='@@@'
+set +e
+bash scripts/ci/prepare_demo_keystore.sh "$props" >"$tmp/bad.out" 2>"$tmp/bad.err"
+bad_status=$?
+set -e
+if [[ "$bad_status" -eq 0 ]]; then
+  echo "FAIL: invalid keystore base64 exited 0" >&2
+  exit 1
+fi
+expect_eq "failed prepare keeps the previous properties file" \
+  "$(cat "$props")" "storePassword=keep-me"
+if grep -q -F '@@@' "$tmp/bad.err" || grep -q -F '@@@' "$tmp/bad.out"; then
+  echo "FAIL: invalid base64 was echoed" >&2
+  exit 1
+fi
+echo "ok: invalid keystore base64 fails without echoing it"
+if find "$tmp" -name 'demo-keystore.*.p12' | grep -q .; then
+  echo "FAIL: invalid prepare left a keystore file" >&2
+  exit 1
+fi
+echo "ok: invalid prepare deletes the partial keystore"
+
+# Distribution. A fake npx records the CLI args and must not be required
+# when the run skips.
+fake_bin="$(mktemp -d)"
+record="$tmp/npx-record"
+mkdir -p "$record"
+cat >"$fake_bin/npx" <<'EOF'
+#!/bin/bash
+set -euo pipefail
+printf '%s\n' "$@" >"$FAKE_RECORD/args"
+prev=""
+notes=""
+for arg in "$@"; do
+  if [[ "$prev" == "--release-notes-file" ]]; then
+    notes="$arg"
+  fi
+  if [[ "$prev" == "--app" ]]; then
+    printf '%s' "$arg" >"$FAKE_RECORD/app"
+  fi
+  prev="$arg"
+done
+if [[ -n "$notes" ]]; then
+  cp "$notes" "$FAKE_RECORD/notes"
+fi
+if [[ -z "${GOOGLE_APPLICATION_CREDENTIALS:-}" || ! -f "$GOOGLE_APPLICATION_CREDENTIALS" ]]; then
+  echo "credentials file missing" >"$FAKE_RECORD/error"
+  exit 4
+fi
+python3 - "$GOOGLE_APPLICATION_CREDENTIALS" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as handle:
+    data = json.load(handle)
+assert data.get("type") == "service_account"
+assert "private_key" in data
+PY
+printf '%s\n' "$GOOGLE_APPLICATION_CREDENTIALS" >"$FAKE_RECORD/gac"
+if [[ "${FAKE_NPX_STATUS:-0}" -ne 0 ]]; then
+  exit "$FAKE_NPX_STATUS"
+fi
+exit 0
+EOF
+chmod +x "$fake_bin/npx"
+
+apk="$tmp/app-release.apk"
+printf 'apk-bytes' >"$apk"
+subject="$(git log -1 --format=%s)"
+sa_json='{"type":"service_account","private_key":"fake-key","client_email":"distro@example.iam.gserviceaccount.com"}'
+
+run_distribute() {
+  PATH="$fake_bin:$PATH" \
+    TMPDIR="$tmp/distro" \
+    FAKE_RECORD="$record" \
+    GITHUB_SHA="abcdef1234567890abcdef1234567890abcdef12" \
+    GITHUB_SERVER_URL="https://github.com" \
+    GITHUB_REPOSITORY="example/repo" \
+    GITHUB_RUN_ID="4242" \
+    FIREBASE_ANDROID_APP_ID="1:123:android:abc" \
+    FIREBASE_APP_DISTRIBUTION_SA_JSON="$sa_json" \
+    bash scripts/ci/distribute_demo_apk.sh "$@"
+}
+
+rm -rf "$tmp/distro" "$record"
+mkdir -p "$tmp/distro" "$record"
+set +e
+dist_out="$(GITHUB_EVENT_NAME=pull_request run_distribute "$apk" 2>&1)"
+dist_status=$?
+set -e
+expect_eq "pull_request distribute exits 0" "$dist_status" 0
+if ! grep -q 'Skipping distribution on a pull_request run.' <<<"$dist_out"; then
+  echo "FAIL: distribute did not report the pull_request skip" >&2
+  exit 1
+fi
+if [[ -f "$record/args" ]]; then
+  echo "FAIL: pull_request called npx" >&2
+  exit 1
+fi
+echo "ok: pull_request distribute skips before the CLI"
+if find "$tmp/distro" -type f | grep -q .; then
+  echo "FAIL: pull_request skip left a temp file" >&2
+  exit 1
+fi
+echo "ok: pull_request skip leaves no credentials file"
+
+rm -rf "$record"
+mkdir -p "$record"
+set +e
+dist_out="$(
+  PATH="$fake_bin:$PATH" \
+    TMPDIR="$tmp/distro" \
+    FAKE_RECORD="$record" \
+    GITHUB_EVENT_NAME=push \
+    GITHUB_SHA="abcdef1234567890abcdef1234567890abcdef12" \
+    GITHUB_SERVER_URL="https://github.com" \
+    GITHUB_REPOSITORY="example/repo" \
+    GITHUB_RUN_ID="4242" \
+    FIREBASE_ANDROID_APP_ID="" \
+    FIREBASE_APP_DISTRIBUTION_SA_JSON="$sa_json" \
+    bash scripts/ci/distribute_demo_apk.sh "$apk" 2>&1
+)"
+dist_status=$?
+set -e
+expect_eq "missing app id distribute exits 0" "$dist_status" 0
+if ! grep -q 'FIREBASE_ANDROID_APP_ID' <<<"$dist_out"; then
+  echo "FAIL: missing app id skip did not name the secret" >&2
+  exit 1
+fi
+if [[ -f "$record/args" ]]; then
+  echo "FAIL: missing app id called npx" >&2
+  exit 1
+fi
+echo "ok: missing Firebase secret skips distribution"
+
+rm -rf "$tmp/distro" "$record"
+mkdir -p "$tmp/distro" "$record"
+set +e
+dist_out="$(GITHUB_EVENT_NAME=push run_distribute "$apk" 2>"$tmp/dist.err")"
+dist_status=$?
+set -e
+expect_eq "distribute exits 0" "$dist_status" 0
+if grep -q 'fake-key' "$tmp/dist.err" || grep -q 'fake-key' <<<"$dist_out"; then
+  echo "FAIL: distribute output included the service account key" >&2
+  exit 1
+fi
+echo "ok: distribute output does not include the service account key"
+expect_eq "firebase-tools pin" \
+  "$(sed -n '2p' "$record/args")" "firebase-tools@15.34.0"
+expect_eq "CLI command" "$(sed -n '3p' "$record/args")" "appdistribution:distribute"
+expect_eq "distributed APK" "$(sed -n '4p' "$record/args")" "$apk"
+if ! grep -q -- '--groups' "$record/args" || ! grep -q -- 'core-testers' "$record/args"; then
+  echo "FAIL: distribute args missed --groups core-testers" >&2
+  exit 1
+fi
+echo "ok: distribute args include --groups core-testers"
+if ! grep -q -- '--app' "$record/args" || ! grep -q -- '--release-notes-file' "$record/args"; then
+  echo "FAIL: distribute args missed --app or --release-notes-file" >&2
+  exit 1
+fi
+echo "ok: distribute args include --app and --release-notes-file"
+expect_eq "release notes" "$(cat "$record/notes")" \
+  "$(printf '%s %s\n%s\n' "abcdef1" "$subject" "https://github.com/example/repo/actions/runs/4242")"
+gac_path="$(cat "$record/gac")"
+if [[ -e "$gac_path" ]]; then
+  echo "FAIL: service account file was not deleted" >&2
+  exit 1
+fi
+echo "ok: service account file is deleted after distribution"
+if find "$tmp/distro" -type f | grep -q .; then
+  echo "FAIL: distribute left a temp file" >&2
+  exit 1
+fi
+echo "ok: distribute leaves no temp files"
+
+rm -rf "$tmp/distro" "$record"
+mkdir -p "$tmp/distro" "$record"
+set +e
+FAKE_NPX_STATUS=9 GITHUB_EVENT_NAME=push run_distribute "$apk" >"$tmp/fail.out" 2>"$tmp/fail.err"
+fail_status=$?
+set -e
+expect_eq "firebase CLI failure fails the script" "$fail_status" 9
+if [[ ! -f "$record/gac" ]]; then
+  echo "FAIL: failing CLI call did not record the credentials path" >&2
+  exit 1
+fi
+if [[ -e "$(cat "$record/gac")" ]]; then
+  echo "FAIL: service account file survived a CLI failure" >&2
+  exit 1
+fi
+echo "ok: service account file is deleted when the CLI fails"
+if grep -q 'fake-key' "$tmp/fail.err" || grep -q 'fake-key' "$tmp/fail.out"; then
+  echo "FAIL: CLI failure output included the service account key" >&2
+  exit 1
+fi
+echo "ok: CLI failure output does not include the service account key"
+
+rm -rf "$tmp/distro"
+mkdir -p "$tmp/distro"
+set +e
+bad_json_out="$(
+  PATH="$fake_bin:$PATH" \
+    TMPDIR="$tmp/distro" \
+    FAKE_RECORD="$record" \
+    GITHUB_EVENT_NAME=push \
+    GITHUB_SHA="abcdef1234567890abcdef1234567890abcdef12" \
+    GITHUB_SERVER_URL="https://github.com" \
+    GITHUB_REPOSITORY="example/repo" \
+    GITHUB_RUN_ID="4242" \
+    FIREBASE_ANDROID_APP_ID="1:123:android:abc" \
+    FIREBASE_APP_DISTRIBUTION_SA_JSON='not-json' \
+    bash scripts/ci/distribute_demo_apk.sh "$apk" 2>&1
+)"
+bad_json_status=$?
+set -e
+if [[ "$bad_json_status" -eq 0 ]]; then
+  echo "FAIL: invalid service account JSON exited 0" >&2
+  exit 1
+fi
+if ! grep -q 'not JSON' <<<"$bad_json_out"; then
+  echo "FAIL: invalid service account JSON was not reported" >&2
+  exit 1
+fi
+if grep -q 'not-json' <<<"$bad_json_out"; then
+  echo "FAIL: invalid service account JSON was echoed" >&2
+  exit 1
+fi
+echo "ok: invalid service account JSON fails without echoing it"
+if find "$tmp/distro" -type f | grep -q .; then
+  echo "FAIL: invalid service account JSON left a temp file" >&2
+  exit 1
+fi
+echo "ok: invalid service account JSON leaves no temp file"
+
+rm -rf "$tmp" "$fake_bin"
+echo "Demo distribution guard checks passed."
