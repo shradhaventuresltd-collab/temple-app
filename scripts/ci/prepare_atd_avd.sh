@@ -58,3 +58,28 @@ if (( bytes > cap )); then
   mkfs.ext4 -F -L data "$img"
   echo "userdata.img now $(stat -c %s "$img") bytes"
 fi
+
+# Pixel 6 still asks qemu for 7372.80 MB of host space. -partition-size does
+# not lower that. After the APK build the runner has about 5.6 GB free.
+# Drop build outputs and, on a cache hit only, the NDK and Gradle caches.
+# A miss must stay on disk so the cache post step does not save an empty tree.
+echo "===== df before userdata allocation ====="
+df -h /
+if [[ "${NDK_CACHE_HIT:-}" == "true" ]]; then
+  rm -rf /usr/local/lib/android/sdk/ndk
+  echo "removed NDK after a cache hit"
+fi
+if [[ "${GRADLE_CACHE_HIT:-}" == "true" ]]; then
+  rm -rf "${HOME}/.gradle/caches"
+  echo "removed Gradle caches after a cache hit"
+fi
+rm -rf \
+  "${GITHUB_WORKSPACE}/android/.gradle" \
+  "${GITHUB_WORKSPACE}/android/app/build" \
+  "${GITHUB_WORKSPACE}/build/app/intermediates" \
+  "${GITHUB_WORKSPACE}/build/app/tmp" \
+  /usr/local/share/boost \
+  /usr/share/swift \
+  /usr/local/share/powershell
+echo "===== df after freeing build caches ====="
+df -h /

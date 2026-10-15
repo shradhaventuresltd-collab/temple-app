@@ -367,6 +367,8 @@ require "AVD prep forces a 2048M userdata image" \
   'disk.dataPartition.size=2048M' scripts/ci/prepare_atd_avd.sh
 require "AVD prep replaces an oversized userdata.img" \
   'mkfs.ext4 -F -L data' scripts/ci/prepare_atd_avd.sh
+require "AVD prep drops the NDK only after a cache hit" \
+  'removed NDK after a cache hit' scripts/ci/prepare_atd_avd.sh
 require "smoke passes -partition-size 2048" \
   '-partition-size 2048' .github/workflows/android-smoke.yml
 require "seed-launch passes -partition-size 2048" \
