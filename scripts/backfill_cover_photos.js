@@ -77,6 +77,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { assertOneCoverOk } from "./cover_ok.js";
 import { cleanAuthor, mapPhotoLicence, photoCredit } from "./photo_licence.js";
 import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard.js";
 import { changedFields, entryFromTemple, stateSlug, storageObjectFromUrl } from "./temple_index.js";
@@ -85,6 +86,8 @@ import {
   WAVE_A_TN_KL_PACKS,
   WAVE_B_KARNATAKA_PACKS,
 } from "./upload_research_pack.js";
+
+export { assertOneCoverOk };
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const packsRoot = resolve(__dirname, "..", "tools", "photo-packs");
@@ -407,16 +410,16 @@ function sourceUrlsFor(photo) {
  */
 let packFrames;
 let waveDocIds;
-let noCoverFrameIds;
+let packManifests;
 function loadPacks() {
   if (packFrames) return;
   const index = new Map();
   const waves = new Set();
-  const declined = new Set();
+  const manifests = new Map();
   if (!existsSync(packsRoot)) {
     packFrames = index;
     waveDocIds = waves;
-    noCoverFrameIds = declined;
+    packManifests = manifests;
     return;
   }
   for (const entry of readdirSync(packsRoot, { withFileTypes: true })) {
@@ -428,7 +431,7 @@ function loadPacks() {
     const docId = resolveSeedDocId(packDir, manifest, null);
     if (!docId) continue;
     if (WAVE_PACK_SLUGS.has(entry.name)) waves.add(docId);
-    if (manifest.no_cover_frame === true) declined.add(docId);
+    manifests.set(docId, manifest);
     const list = index.get(docId) ?? [];
     const photos = Array.isArray(manifest.photos) ? manifest.photos : [];
     assertOneCoverOk(docId, photos);
@@ -448,7 +451,7 @@ function loadPacks() {
   }
   packFrames = index;
   waveDocIds = waves;
-  noCoverFrameIds = declined;
+  packManifests = manifests;
 }
 
 function framesByTempleId() {
@@ -461,9 +464,9 @@ function waveTempleIds() {
   return waveDocIds;
 }
 
-function declinedCoverIds() {
+function manifestByTempleId() {
   loadPacks();
-  return noCoverFrameIds;
+  return packManifests;
 }
 
 function isExcluded(exclude, id) {
@@ -474,18 +477,8 @@ function isExcluded(exclude, id) {
 }
 
 /**
- * One `cover_ok` photo per pack. Two is a validation error, not a choice.
- */
-export function assertOneCoverOk(docId, photos) {
-  const flagged = (Array.isArray(photos) ? photos : []).filter((photo) => photo?.cover_ok === true);
-  if (flagged.length <= 1) return;
-  const names = flagged.map((photo) => photo.filename || "(unnamed)").join(", ");
-  throw new Error(`${docId} has ${flagged.length} cover_ok photos (${names}). One cover only.`);
-}
-
-/**
- * `no_cover_frame` wins over `cover_ok` and over frame 01. Otherwise a
- * creditable `cover_ok` photo, then frame 01 when it is creditable.
+ * `no_cover_frame` wins over `cover_ok` and over frame 01. Otherwise the
+ * choice is a creditable `cover_ok` photo, then frame 01 when it is creditable.
  */
 export function bestCreditableFrame(frames, opts = {}) {
   if (!Array.isArray(frames) || frames.length === 0) return null;
@@ -668,13 +661,15 @@ function replacementPlan(temple, imageUrl, photos, failed) {
   if (!waveTempleIds().has(id)) {
     return { id, action: "skip", reason: "no-wave-pack", imageUrl, oldObject: located.objectPath };
   }
-  const noCoverFrame = declinedCoverIds().has(id);
-  const best = bestCreditableFrame(frames, { noCoverFrame });
+  const manifest = manifestByTempleId().get(id);
+  const chosen = manifest ? coverFrameForPack(manifest) : null;
+  const stored = chosen ? frames.find((frame) => frame.filename === chosen.filename) : null;
+  const best = stored && chosen.pair ? { ...stored, pair: chosen.pair } : null;
   if (!best || best.filename === located.filename) {
     return {
       id,
       action: "skip",
-      reason: noCoverFrame ? "no-cover-frame" : "no-creditable-frame",
+      reason: manifest?.no_cover_frame === true ? "no-cover-frame" : "no-creditable-frame",
       imageUrl,
       oldObject: located.objectPath,
     };

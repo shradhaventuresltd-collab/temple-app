@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
@@ -26,7 +27,7 @@ import {
 import { mapPhotoLicence, photoCredit } from "./photo_licence.js";
 import { MIRROR_TEMPLE_IDS } from "./patch_image_url_mirror.js";
 import { entryFromTemple } from "./temple_index.js";
-import { resolveSeedDocId } from "./upload_research_pack.js";
+import { processPack, resolveSeedDocId } from "./upload_research_pack.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "..");
@@ -836,7 +837,7 @@ test("prod apply is refused in CI and without a project", async () => {
 
 const replaceOpts = { replaceUncreditedCover: true };
 
-test("replacement is opt-in and only an uncredited image_N cover uses frame 01", () => {
+test("replacement is opt-in and only an uncredited image_N cover uses frame 01", async () => {
   const placesUrl = mirrorUrl("virupaksha-temple", "image_1.jpg");
   const placesDoc = {
     id: "virupaksha-temple",
@@ -979,6 +980,26 @@ test("replacement is opt-in and only an uncredited image_N cover uses frame 01",
       }),
     /two-covers has 2 cover_ok photos/,
   );
+
+  const packDir = mkdtempSync(join(tmpdir(), "two-cover-ok-"));
+  try {
+    writeFileSync(
+      join(packDir, "manifest.json"),
+      JSON.stringify({
+        temple_slug: "two-covers",
+        photos: [
+          { filename: "02_a.jpg", cover_ok: true },
+          { filename: "04_b.jpg", cover_ok: true },
+        ],
+      }),
+    );
+    await assert.rejects(
+      () => processPack({ packDir, dryRun: true, bucketName: "temple-directory-india.firebasestorage.app" }),
+      /two-covers has 2 cover_ok photos \(02_a.jpg, 04_b.jpg\)/,
+    );
+  } finally {
+    rmSync(packDir, { recursive: true, force: true });
+  }
 });
 
 test("an uncredited image_N cover is replaced only by a creditable frame 01", () => {
