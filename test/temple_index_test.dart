@@ -206,6 +206,12 @@ void main() {
       expect(fullCoverUrlFromThumb(row['thumbUrl'] as String), row['fullUrl']);
     }
     expect(
+      fullCoverUrlFromThumb(
+        'https://storage.googleapis.com/bucket/temples/shore/01_480.jpg',
+      ),
+      'https://storage.googleapis.com/bucket/temples/shore/01.jpg',
+    );
+    expect(
       thumbObjectPath('temples/shore/01_480.jpg', generation: '1'),
       isNull,
     );

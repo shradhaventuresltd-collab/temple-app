@@ -241,16 +241,23 @@ class _AdminTempleFormScreenState extends State<AdminTempleFormScreen> {
     final uploader = widget.uploader ?? FirebaseTemplePhotoUploader();
     final encoder =
         widget.thumbEncoder ?? const FlutterTemplePhotoThumbEncoder();
+    final extension = photoExtensionFromName(draft.fileName);
     try {
+      // The picked file can still carry GPS EXIF. Both objects are a new
+      // JPEG from that raster, and the stored name is `.jpg`.
+      final fullBytes = await encoder.encodeFull(
+        bytes: bytes,
+        extension: extension,
+      );
       final thumbBytes = await encoder.encode(
         bytes: bytes,
-        extension: photoExtensionFromName(draft.fileName),
+        extension: extension,
       );
       final uploaded = await uploader.upload(
         docId: docId,
-        bytes: bytes,
+        bytes: fullBytes,
         thumbBytes: thumbBytes,
-        extension: photoExtensionFromName(draft.fileName),
+        extension: 'jpg',
         onProgress: (progress) {
           if (!mounted) return;
           setState(() => draft.progress = progress);

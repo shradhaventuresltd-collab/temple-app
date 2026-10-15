@@ -117,7 +117,8 @@ String _publicStorageUrl(StorageObjectLocation located, String objectPath) {
       '${Uri.encodeComponent(objectPath)}?alt=media';
 }
 
-/// Full-size object path named by a generation thumb, or null.
+/// Full-size object path named by a generation thumb, or by a guessed
+/// `{stem}_480.{ext}` sibling. Null when [objectPath] is not one of those.
 String? fullObjectPathFromThumb(String objectPath) {
   final parts = objectPath.split('/');
   if (parts.length != 3 || parts[0] != 'temples') return null;
@@ -125,11 +126,20 @@ String? fullObjectPathFromThumb(String objectPath) {
   if (id.isEmpty) return null;
   final file = parts[2];
   final match = _thumbFile.firstMatch(file);
-  if (match == null) return null;
-  final stem = file.substring(0, file.length - match.group(0)!.length);
+  if (match != null) {
+    final stem = file.substring(0, file.length - match.group(0)!.length);
+    if (stem.isEmpty) return null;
+    final ext = match.group(3) ?? 'jpg';
+    return 'temples/$id/$stem.$ext';
+  }
+  final legacy = RegExp(
+    r'^(.*)_480\.(jpe?g|png|webp)$',
+    caseSensitive: false,
+  ).firstMatch(file);
+  if (legacy == null) return null;
+  final stem = legacy.group(1)!;
   if (stem.isEmpty) return null;
-  final ext = match.group(3) ?? 'jpg';
-  return 'temples/$id/$stem.$ext';
+  return 'temples/$id/$stem.${legacy.group(2)}';
 }
 
 /// Public URL of the original object behind a `_480_g` thumb.

@@ -347,6 +347,33 @@ test("an update that does not touch coordinates leaves an unpaired doc writable"
   assert.equal(saved.data().city, "Mamallapuram");
 });
 
+test("thumbUrl is an optional https URL capped at 2000 characters", async () => {
+  const db = adminDb("admin-thumb-cap");
+  await assertSucceeds(setDoc(at(db, "temples/no-thumb"), templePayload("no-thumb")));
+  const saved = await getDoc(at(db, "temples/no-thumb"));
+  assert.equal(saved.data().photos[0].thumbUrl, undefined);
+  const prefix = "https://example.com/";
+  const atCap = prefix + "a".repeat(2000 - prefix.length);
+  assert.equal(atCap.length, 2000);
+  await assertSucceeds(
+    setDoc(
+      at(db, "temples/thumb-cap"),
+      templePayload("thumb-cap", {
+        photos: [{ url: "https://example.com/full.jpg", licence: "CC0", order: 0, thumbUrl: atCap }],
+      }),
+    ),
+  );
+  const over = `${atCap}a`;
+  await assertFails(
+    setDoc(
+      at(db, "temples/thumb-over"),
+      templePayload("thumb-over", {
+        photos: [{ url: "https://example.com/full.jpg", licence: "CC0", order: 0, thumbUrl: over }],
+      }),
+    ),
+  );
+});
+
 test("photos may store an https thumbUrl", async () => {
   const db = adminDb("admin-thumb-url");
   const thumb =

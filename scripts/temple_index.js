@@ -242,17 +242,24 @@ function publicStorageUrl(located, objectPath) {
   );
 }
 
-/** Full-size object path named by a generation thumb, or null. */
+/**
+ * Full-size object path named by a generation thumb, or by a guessed
+ * `{stem}_480.{ext}` sibling. Null when [objectPath] is not one of those.
+ */
 export function fullObjectPathFromThumb(objectPath) {
   const parts = String(objectPath ?? "").split("/");
   if (parts.length !== 3 || parts[0] !== "temples" || !parts[1]) return null;
   const file = parts[2];
   const match = /_480_g(\d+)(?:u(\d+))?(?:_([A-Za-z0-9]+))?\.jpg$/i.exec(file);
-  if (!match) return null;
-  const stem = file.slice(0, file.length - match[0].length);
-  if (!stem) return null;
-  const ext = match[3] || "jpg";
-  return `temples/${parts[1]}/${stem}.${ext}`;
+  if (match) {
+    const stem = file.slice(0, file.length - match[0].length);
+    if (!stem) return null;
+    const ext = match[3] || "jpg";
+    return `temples/${parts[1]}/${stem}.${ext}`;
+  }
+  const legacy = /^(.*)_480\.(jpe?g|png|webp)$/i.exec(file);
+  if (!legacy || !legacy[1]) return null;
+  return `temples/${parts[1]}/${legacy[1]}.${legacy[2]}`;
 }
 
 /**

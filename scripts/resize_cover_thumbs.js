@@ -19,10 +19,16 @@
  *   node scripts/resize_cover_thumbs.js --apply --project temple-directory-india
  *
  * The thumb name includes the source generation. A newer source is uploaded
- * again even when an older thumb object exists. Encoding uses sharp,
- * installed by Deployer (`npm install --prefix scripts sharp`). Tests inject
- * an encoder and never import sharp. Do not run --apply from CI or from an
- * agent against production.
+ * again even when an older thumb object exists. The upload uses
+ * ifGenerationMatch: 0, so an object that is already there is not overwritten.
+ * Stat, download, and upload use the bucket named in the cover URL, not the
+ * app's default bucket. Apply confirms the new object is publicly readable
+ * at its storage.googleapis.com URL before it writes photos[].thumbUrl or
+ * the index entry.
+ *
+ * Encoding uses sharp, installed by Deployer
+ * (`npm install --prefix scripts sharp`). Tests inject an encoder and never
+ * import sharp. Do not run --apply from CI or from an agent against production.
  */
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -133,6 +139,71 @@ export function firebaseDownloadUrl(bucket, objectPath, token) {
   );
 }
 
+/** Unauthenticated object URL. Apply checks this before writing thumbUrl. */
+export function publicObjectUrl(bucket, objectPath) {
+  if (typeof bucket !== "string" || bucket.trim() === "") return null;
+  if (typeof objectPath !== "string" || objectPath.trim() === "") return null;
+  const segments = objectPath.split("/").map((part) => encodeURIComponent(part)).join("/");
+  return `https://storage.googleapis.com/${encodeURIComponent(bucket)}/${segments}`;
+}
+
+/** Bucket named by the cover URL. Never the app default. */
+export function bucketNameForPlan(plan) {
+  const name = typeof plan?.bucket === "string" ? plan.bucket.trim() : "";
+  if (!name) throw new Error("Cover URL has no Storage bucket. No write.");
+  return name;
+}
+
+/**
+ * Save options for a new thumb. ifGenerationMatch 0 creates the object only
+ * when it does not already exist, so a generation-named thumb is never
+ * overwritten.
+ */
+export function thumbSaveOptions(file) {
+  return {
+    resumable: false,
+    preconditionOpts: { ifGenerationMatch: 0 },
+    metadata: {
+      contentType: file.contentType,
+      cacheControl: file.cacheControl,
+      metadata: { firebaseStorageDownloadTokens: file.token },
+    },
+  };
+}
+
+/**
+ * A Wikimedia file URL that coverThumb leaves at full size. Thumb paths are
+ * rewritten to 480px when they are wider, so they are not listed here.
+ */
+export function staysFullSizeWikimedia(source) {
+  if (typeof source !== "string" || !source.startsWith("https://")) return false;
+  let host = "";
+  let path = "";
+  try {
+    const url = new URL(source);
+    host = url.hostname.toLowerCase();
+    path = url.pathname;
+  } catch {
+    return false;
+  }
+  if (!host.endsWith("wikimedia.org")) return false;
+  return !/\/thumb\//i.test(path);
+}
+
+/** GET [url]. True only for an unauthenticated 200. */
+export async function verifyPublicObject(url, fetchImpl = globalThis.fetch) {
+  if (typeof fetchImpl !== "function") {
+    throw new Error("This Node has no fetch. No Firestore write.");
+  }
+  const response = await fetchImpl(url, { method: "GET", redirect: "follow" });
+  try {
+    await response.body?.cancel?.();
+  } catch {
+    // The status is what the check needs.
+  }
+  return response.status === 200;
+}
+
 export function loadResume(raw, project) {
   if (raw == null || String(raw).trim() === "") return new Set();
   let parsed;
@@ -159,7 +230,10 @@ export function planCoverThumb(temple) {
   const source = firstVerifiedGalleryUrl(temple);
   if (!source) return { id, action: "skip", reason: "no-cover", temple };
   const located = storageObjectFromUrl(source);
-  if (!located) return { id, action: "skip", reason: "not-storage", source, temple };
+  if (!located) {
+    const reason = staysFullSizeWikimedia(source) ? "wikimedia-full" : "not-storage";
+    return { id, action: "skip", reason, source, temple };
+  }
   if (!thumbObjectPath(located.objectPath, "1")) {
     return { id, action: "skip", reason: "already-thumb", source, temple };
   }
@@ -227,8 +301,10 @@ export function withCoverThumbUrl(temple, thumbUrl) {
  *   download?: (path: string) => Promise<Buffer>,
  *   encode?: (bytes: Buffer, ext: string) => Promise<Buffer>,
  *   upload?: (file: object) => Promise<{url: string}>,
+ *   verifyPublic?: (url: string) => Promise<boolean>,
  *   writeThumbUrl?: (assigned: object) => Promise<void>,
  * }} deps
+ * stat, download, and upload receive `{ bucket }` from the cover URL.
  */
 export async function applyCoverThumbPlans(plans, deps) {
   const report = [];
@@ -237,48 +313,72 @@ export async function applyCoverThumbPlans(plans, deps) {
       report.push({ ...plan, result: "skipped" });
       continue;
     }
-    const sourceStat = await deps.stat(plan.objectPath);
+    const bucket = plan.bucket;
+    const sourceStat = await deps.stat(plan.objectPath, { bucket });
     const generation = String(sourceStat?.generation ?? "");
     if (!/^\d+$/.test(generation)) {
       report.push({ ...plan, result: "skipped", reason: "no-generation" });
       continue;
     }
     let thumbPath = thumbObjectPath(plan.objectPath, generation);
-    let thumbStat = thumbPath ? await deps.stat(thumbPath) : null;
+    let thumbStat = thumbPath ? await deps.stat(thumbPath, { bucket }) : null;
     if (thumbStat && sourceIsNewer(sourceStat.updated, thumbStat.updated)) {
       const millis = Date.parse(sourceStat.updated);
       if (Number.isFinite(millis)) {
         thumbPath = thumbObjectPath(plan.objectPath, generation, { updatedMillis: millis });
-        thumbStat = await deps.stat(thumbPath);
+        thumbStat = await deps.stat(thumbPath, { bucket });
       }
     }
     if (thumbStat && !sourceIsNewer(sourceStat.updated, thumbStat.updated)) {
-      const row = { ...plan, result: "exists", thumbPath, thumbUrl: thumbStat.url ?? null };
-      if (!deps.dryRun && thumbStat.url && deps.writeThumbUrl) {
-        const assigned = withCoverThumbUrl(plan.temple, thumbStat.url);
+      const thumbUrl = thumbStat.url ?? null;
+      if (!deps.dryRun && thumbUrl && deps.writeThumbUrl) {
+        const readable = await confirmPublicThumb(bucket, thumbPath, deps);
+        if (!readable.ok) {
+          report.push({
+            ...plan,
+            result: "not-public",
+            thumbPath,
+            publicUrl: readable.url,
+          });
+          continue;
+        }
+        const assigned = withCoverThumbUrl(plan.temple, thumbUrl);
         if (assigned.ok) await deps.writeThumbUrl(assigned);
       }
-      report.push(row);
+      report.push({ ...plan, result: "exists", thumbPath, thumbUrl });
       continue;
     }
     if (deps.dryRun) {
       report.push({ ...plan, result: "would-upload", thumbPath });
       continue;
     }
-    const bytes = await deps.download(plan.objectPath);
+    const bytes = await deps.download(plan.objectPath, { bucket });
     const thumb = await deps.encode(bytes, "jpg");
     if (!thumb || thumb.length === 0) {
       throw new Error(`Encoder returned an empty thumb for ${thumbPath}. No write.`);
     }
     const uploaded = await deps.upload({
       path: thumbPath,
+      bucket,
       bytes: thumb,
       contentType: plan.contentType,
       cacheControl: plan.cacheControl,
+      ifGenerationMatch: 0,
     });
     const thumbUrl = uploaded?.url;
     if (typeof thumbUrl !== "string" || !thumbUrl.startsWith("https://")) {
       throw new Error(`Upload did not return a download URL for ${thumbPath}. No Firestore write.`);
+    }
+    const readable = await confirmPublicThumb(bucket, thumbPath, deps);
+    if (!readable.ok) {
+      report.push({
+        ...plan,
+        result: "not-public",
+        thumbPath,
+        thumbUrl,
+        publicUrl: readable.url,
+      });
+      continue;
     }
     const assigned = withCoverThumbUrl(plan.temple, thumbUrl);
     if (!assigned.ok) {
@@ -303,12 +403,29 @@ export async function applyCoverThumbPlans(plans, deps) {
   return report;
 }
 
+/**
+ * Public read at storage.googleapis.com. False skips the Firestore write.
+ * Dry-run does not call this.
+ */
+async function confirmPublicThumb(bucket, thumbPath, deps) {
+  const url = publicObjectUrl(bucket, thumbPath);
+  if (!url) return { ok: false, url: null };
+  const check = deps.verifyPublic;
+  if (typeof check !== "function") {
+    throw new Error("Apply needs a public-read check. No Firestore write.");
+  }
+  const ok = await check(url);
+  return { ok: ok === true, url };
+}
+
 export function formatThumbReport(rows, { apply = false } = {}) {
   const lines = [apply ? "Mode: apply" : "Mode: dry-run"];
   const counts = { upload: 0, exists: 0, skip: 0, uploaded: 0 };
   let notStorage = 0;
+  const fullSize = [];
   for (const row of rows) {
-    if (row.reason === "not-storage") notStorage += 1;
+    if (row.reason === "not-storage" || row.reason === "wikimedia-full") notStorage += 1;
+    if (row.reason === "wikimedia-full") fullSize.push(row);
     if (row.result === "would-upload" || row.result === "uploaded") counts.upload += 1;
     else if (row.result === "exists") counts.exists += 1;
     else counts.skip += 1;
@@ -318,12 +435,18 @@ export function formatThumbReport(rows, { apply = false } = {}) {
     `covers: ${rows.length}  thumbs: ${counts.upload}  exists: ${counts.exists}  skip: ${counts.skip}`,
   );
   lines.push(`skip not-storage: ${notStorage}`);
+  lines.push(`wikimedia full-size: ${fullSize.length}`);
+  for (const row of fullSize) {
+    lines.push(`full-size ${row.id} ${row.source}`);
+  }
   for (const row of rows) {
     if (row.result === "would-upload" || row.result === "uploaded") {
       lines.push(`${row.result} ${row.id} ${row.thumbPath}`);
     } else if (row.result === "exists") {
       lines.push(`exists ${row.id} ${row.thumbPath}`);
-    } else if (row.reason) {
+    } else if (row.result === "not-public") {
+      lines.push(`not-public ${row.id} ${row.publicUrl}`);
+    } else if (row.reason && row.reason !== "wikimedia-full") {
       lines.push(`skip ${row.id} ${row.reason}`);
     }
   }
@@ -406,11 +529,13 @@ export async function persistCoverThumb(db, assigned, deps = {}) {
   await applyPlan(db, report, deps);
 }
 
-function storageDeps(bucket) {
-  const bucketName = bucket.name;
+function storageDeps(admin) {
+  function bucket(name) {
+    return admin.storage().bucket(bucketNameForPlan({ bucket: name }));
+  }
   return {
-    stat: async (path) => {
-      const file = bucket.file(path);
+    stat: async (path, opts = {}) => {
+      const file = bucket(opts.bucket).file(path);
       const [found] = await file.exists();
       if (!found) return null;
       const [metadata] = await file.getMetadata();
@@ -419,25 +544,19 @@ function storageDeps(bucket) {
       return {
         generation: String(metadata.generation ?? ""),
         updated: metadata.updated,
-        url: token ? firebaseDownloadUrl(bucketName, path, token) : null,
+        url: token ? firebaseDownloadUrl(opts.bucket, path, token) : null,
       };
     },
-    download: async (path) => {
-      const [bytes] = await bucket.file(path).download();
+    download: async (path, opts = {}) => {
+      const [bytes] = await bucket(opts.bucket).file(path).download();
       return bytes;
     },
     encode: encodeWithSharp,
     upload: async (file) => {
       const token = randomUUID();
-      await bucket.file(file.path).save(file.bytes, {
-        resumable: false,
-        metadata: {
-          contentType: file.contentType,
-          cacheControl: file.cacheControl,
-          metadata: { firebaseStorageDownloadTokens: token },
-        },
-      });
-      return { url: firebaseDownloadUrl(bucketName, file.path, token) };
+      const name = bucketNameForPlan(file);
+      await bucket(name).file(file.path).save(file.bytes, thumbSaveOptions({ ...file, token }));
+      return { url: firebaseDownloadUrl(name, file.path, token) };
     },
   };
 }
@@ -467,7 +586,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
   const needsBucket = !deps.stat;
   if (needsBucket && !storage) {
     const admin = await openAdmin(project, env);
-    storage = storageDeps(admin.storage().bucket());
+    storage = storageDeps(admin);
   }
   const stat = deps.stat ?? storage?.stat;
   if (!stat) throw new Error("Dry-run needs a Storage stat. No write.");
@@ -485,6 +604,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     download: deps.download ?? storage?.download,
     encode: deps.encode ?? storage?.encode,
     upload: deps.upload ?? storage?.upload,
+    verifyPublic: deps.verifyPublic ?? (opts.apply ? verifyPublicObject : undefined),
     writeThumbUrl,
   });
   if (opts.apply) {

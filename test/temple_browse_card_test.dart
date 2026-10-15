@@ -266,6 +266,23 @@ void main() {
     expect(placeholder, isA<TempleImagePlaceholder>());
   });
 
+  testWidgets('a guessed _480 url that fails falls back to the original', (
+    tester,
+  ) async {
+    const guessed =
+        'https://storage.googleapis.com/bucket/temples/shore/01_480.jpg';
+    const full = 'https://storage.googleapis.com/bucket/temples/shore/01.jpg';
+    await pumpCard(tester, temple(imageUrl: guessed));
+    final image = tester.widget<CachedNetworkImage>(
+      find.byType(CachedNetworkImage),
+    );
+    expect(image.imageUrl, guessed);
+    final context = tester.element(find.byType(CachedNetworkImage));
+    final fallback = image.errorWidget!(context, guessed, Exception('403'));
+    expect(fallback, isA<CachedNetworkImage>());
+    expect((fallback as CachedNetworkImage).imageUrl, full);
+  });
+
   testWidgets('verified covers decode at the card size', (tester) async {
     await pumpCard(
       tester,

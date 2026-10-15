@@ -14,7 +14,10 @@ import {
   main,
   parseArgs,
   planCoverThumb,
+  publicObjectUrl,
   sourceIsNewer,
+  staysFullSizeWikimedia,
+  thumbSaveOptions,
   withCoverThumbUrl,
 } from "./resize_cover_thumbs.js";
 
@@ -51,9 +54,25 @@ test("a storage cover plans an upload and a wikimedia cover does not", () => {
   const storage = planCoverThumb(shore());
   assert.equal(storage.action, "upload");
   assert.equal(storage.objectPath, "temples/shore-temple/01.jpg");
+  assert.equal(storage.bucket, "bucket");
   assert.equal(storage.cacheControl, THUMB_CACHE_CONTROL);
   assert.equal(storage.contentType, "image/jpeg");
   assert.equal(Object.hasOwn(storage, "thumbUrl"), false);
+  const firebase = planCoverThumb({
+    ...shore(),
+    images: [
+      "https://firebasestorage.googleapis.com/v0/b/other.appspot.com/o/temples%2Fshore-temple%2F01.jpg?alt=media&token=abc",
+    ],
+    photos: [
+      {
+        url: "https://firebasestorage.googleapis.com/v0/b/other.appspot.com/o/temples%2Fshore-temple%2F01.jpg?alt=media&token=abc",
+        licence: "CC0",
+        order: 0,
+      },
+    ],
+  });
+  assert.equal(firebase.bucket, "other.appspot.com");
+  assert.equal(thumbSaveOptions({ token: "t" }).preconditionOpts.ifGenerationMatch, 0);
 
   const wiki = planCoverThumb({
     id: "meenakshi",
@@ -77,6 +96,10 @@ test("dry-run lists a missing thumb, counts not-storage, and does not upload", a
         imageUrl:
           "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/1280px-File.jpg",
       },
+      {
+        id: "wiki-original",
+        imageUrl: "https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg",
+      },
     ],
     stat: async (path) =>
       path.endsWith("/01.jpg")
@@ -94,7 +117,19 @@ test("dry-run lists a missing thumb, counts not-storage, and does not upload", a
   assert.equal(rows.find((row) => row.id === "shore-temple").result, "would-upload");
   assert.equal(rows.find((row) => row.id === "shore-temple").thumbPath, "temples/shore-temple/01_480_g1.jpg");
   assert.equal(rows.find((row) => row.id === "wiki").reason, "not-storage");
-  assert.match(lines.join("\n"), /skip not-storage: 1/);
+  assert.equal(rows.find((row) => row.id === "wiki-original").reason, "wikimedia-full");
+  assert.equal(staysFullSizeWikimedia(rows.find((row) => row.id === "wiki").source), false);
+  const report = lines.join("\n");
+  assert.match(report, /skip not-storage: 2/);
+  assert.match(report, /wikimedia full-size: 1/);
+  assert.match(
+    report,
+    /full-size wiki-original https:\/\/upload\.wikimedia\.org\/wikipedia\/commons\/2\/20\/File\.jpg/,
+  );
+  assert.equal(
+    fullCoverUrlFromThumb("https://storage.googleapis.com/bucket/temples/shore/01_480.jpg"),
+    "https://storage.googleapis.com/bucket/temples/shore/01.jpg",
+  );
 });
 
 test("apply stores the download URL and does not skip a stale thumb", async () => {
@@ -135,12 +170,18 @@ test("apply stores the download URL and does not skip a stale thumb", async () =
         url: `https://firebasestorage.googleapis.com/v0/b/bucket/o/${encodeURIComponent(file.path)}?alt=media&token=real`,
       };
     },
+    verifyPublic: async (url) => {
+      writes.push({ verified: url });
+      return true;
+    },
     writeThumbUrl: async (assigned) => {
       writes.push(assigned);
     },
   });
   assert.equal(uploads.length, 2);
   assert.equal(uploads[0].path, "temples/new-temple/01_480_g42.jpg");
+  assert.equal(uploads[0].bucket, "bucket");
+  assert.equal(uploads[0].ifGenerationMatch, 0);
   assert.equal(
     uploads[1].path,
     `temples/stale-temple/01_480_g42u${Date.parse("2024-06-01T00:00:00.000Z")}.jpg`,
@@ -149,7 +190,12 @@ test("apply stores the download URL and does not skip a stale thumb", async () =
   assert.equal(uploads[0].cacheControl, THUMB_CACHE_CONTROL);
   assert.equal(rows.find((row) => row.id === "old-temple").result, "exists");
   assert.equal(rows.find((row) => row.id === "new-temple").result, "uploaded");
-  const stored = writes.find((write) => write.temple.id === "new-temple");
+  const verified = writes.find((write) => write.verified);
+  assert.equal(
+    verified.verified,
+    publicObjectUrl("bucket", "temples/new-temple/01_480_g42.jpg"),
+  );
+  const stored = writes.find((write) => write.temple?.id === "new-temple");
   assert.equal(stored.photos[0].thumbUrl, stored.entry.coverThumb);
   assert.match(stored.entry.coverThumb, /token=real/);
   assert.equal(coverThumb(stored.temple), stored.photos[0].thumbUrl);
@@ -170,6 +216,7 @@ test("an older thumb name does not count as current", async () => {
       uploads.push(file);
       return { url: "https://example.com/t?token=1" };
     },
+    verifyPublic: async () => true,
     writeThumbUrl: async () => {},
   });
   assert.equal(uploads.length, 1);
@@ -215,6 +262,32 @@ test("prod apply without a project is refused", async () => {
   assert.throws(() => parseArgs(["--apply", "--nope"]), /Unknown argument/);
   assert.throws(() => parseArgs(["--limit", "0"]), /limit/);
   await assert.rejects(() => authorizeApply("", { FIRESTORE_EMULATOR_HOST: "" }), /project/);
+});
+
+test("a thumb that is not publicly readable is not written to the index", async () => {
+  const writes = [];
+  const rows = await applyCoverThumbPlans([planCoverThumb(shore())], {
+    dryRun: false,
+    stat: async (path) =>
+      path.endsWith("/01.jpg") ? { generation: "3", updated: "2024-01-01T00:00:00.000Z" } : null,
+    download: async () => Buffer.from("full"),
+    encode: async () => Buffer.from("thumb"),
+    upload: async (file) => {
+      assert.equal(file.ifGenerationMatch, 0);
+      assert.equal(file.bucket, "bucket");
+      return { url: "https://example.com/t?token=1" };
+    },
+    verifyPublic: async (url) => {
+      assert.equal(url, publicObjectUrl("bucket", "temples/shore-temple/01_480_g3.jpg"));
+      return false;
+    },
+    writeThumbUrl: async (assigned) => {
+      writes.push(assigned);
+    },
+  });
+  assert.equal(writes.length, 0);
+  assert.equal(rows[0].result, "not-public");
+  assert.match(formatThumbReport(rows, { apply: true }), /not-public shore-temple/);
 });
 
 test("a missing photo does not invent thumbUrl", () => {

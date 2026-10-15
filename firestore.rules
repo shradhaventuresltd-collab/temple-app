@@ -155,7 +155,13 @@ service cloud.firestore {
         photo.order >= 0 &&
         photo.order <= 11 &&
         photoCreditOk(photo) &&
-        (!('thumbUrl' in photo) || httpsUrl(photo.thumbUrl));
+        // thumbUrl is optional. When present it is an https URL, length-capped
+        // the same way as the photo url (2000).
+        (!('thumbUrl' in photo) || (
+          photo.thumbUrl is string &&
+          photo.thumbUrl.size() <= 2000 &&
+          httpsUrl(photo.thumbUrl)
+        ));
     }
 
     // Rules have no loops. Check each of the 12 possible slots.
