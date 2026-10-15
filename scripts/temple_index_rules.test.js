@@ -281,6 +281,15 @@ async function commitTemple(db, { id, data, isNew, previous, deleteTemple = fals
   await batch.commit();
 }
 
+test("httpsUrl rejects a photo url that contains whitespace", async () => {
+  const db = adminDb("admin-url");
+  const spaced = templePayload("spaced-url", {
+    photos: [{ url: "https://example.com/a b.jpg", licence: "CC0", order: 0 }],
+  });
+  await assertFails(setDoc(at(db, "temples/spaced-url"), spaced));
+  await assertSucceeds(setDoc(at(db, "temples/plain-url"), templePayload("plain-url")));
+});
+
 test("create, update, state move, and delete keep the entry and meta", async () => {
   const id = "shore-temple";
   await testEnv.withSecurityRulesDisabled(async (context) => {

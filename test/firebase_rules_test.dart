@@ -34,7 +34,7 @@ void main() {
     expect(firestoreRules, contains("'photos'"));
     expect(firestoreRules, contains('photos.size() <= 12'));
     expect(firestoreRules, contains('value.size() <= 2000'));
-    expect(firestoreRules, contains("value[0:8] == 'https://'"));
+    expect(firestoreRules, contains(r"^https://[^\\s]+$"));
     expect(firestoreRules, contains('photo.credit.size() <= 200'));
     expect(firestoreRules, contains('photo.order is int'));
     expect(firestoreRules, contains('photo.order >= 0'));

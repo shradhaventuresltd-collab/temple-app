@@ -16,10 +16,12 @@
  * timings null is stored as null. timings_note is never written.
  * story is the sourced description (2–4 sentences).
  * Only review.status "approved" is seeded. Image fields are never written.
- * --apply pre-checks every id, then create()s each temple together with
- * entries.{id} on temple_index/{stateSlug} and the meta/temple_index bump.
- * One batch per state shard, under 500 ops. If any id already exists, the
- * whole apply is aborted before any write. rebuild_index.js is a repair
+ * --apply pre-checks every id, reads meta/temple_index and each target
+ * shard, then create()s each temple. Index entries are merged with
+ * set(mergeFields) on entries.{id} so an existing shard is not replaced.
+ * meta is bumped with increment and merge. Existing plus new entry keys
+ * must stay at or under 400, or the apply aborts before any write.
+ * One batch per state shard, under 500 ops. rebuild_index.js is a repair
  * tool, not a required follow-up.
  */
 import { readFileSync, writeFileSync } from "node:fs";
@@ -27,7 +29,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { confirmProject } from "./prod_guard.js";
-import { entryFromTemple, planSeedIndexBatches } from "./temple_index.js";
+import { entryFromTemple, MAX_ENTRIES, planSeedIndexBatches } from "./temple_index.js";
 import {
   formatInfo,
   formatSummary,
@@ -52,14 +54,15 @@ Usage:
 
 Default is dry-run. Existing slugs are always rejected (no overwrite, no rename).
 --write merges approved temples into lib/data/sample_data.dart (repo only).
---apply writes Firestore temples/{id} for Deployer only, plus the matching
-temple_index shard and meta/temple_index bump in the same create() batches.
+--apply writes Firestore temples/{id} for Deployer only, plus a merged
+entries.{id} on the matching temple_index shard and a meta increment.
 It prompts for the project id, refuses CI, and does not run unless --project
 is explicit. Only review.status "approved" is seeded. timings null stays null.
 story is copied from the description. Deploy firestore.rules before writing
-any null-timings document. --apply checks that every id is absent, then
-creates them with their index entries, one batch per state shard, under 500
-ops. One existing id aborts the apply before any write.
+any null-timings document. --apply reads meta and each target shard first,
+refuses when existing plus new entry keys would pass 400, then creates the
+temple docs and merges the entries. One existing temple id aborts before
+any write. One batch per state shard, under 500 ops.
 Do not combine this with Seed or upload_research_pack.js --patch-firestore.
 `);
 }
@@ -140,8 +143,14 @@ export function assertIdsAbsent(temples, existingIds) {
   }
 }
 
-async function applyToFirestore(project, temples) {
+async function openSeedFirestore(project, admin) {
   const { readFileSync: read, existsSync } = await import("node:fs");
+  if (process.env.FIRESTORE_EMULATOR_HOST) {
+    if (admin.apps.length === 0) {
+      admin.initializeApp({ projectId: project });
+    }
+    return admin.firestore();
+  }
   const candidates = [
     resolve(__dirname, "service-account.json"),
     resolve(__dirname, "..", "service-account.json"),
@@ -152,7 +161,6 @@ async function applyToFirestore(project, temples) {
       "service-account.json was not found in scripts/ or the repo root. No write.",
     );
   }
-  const admin = (await import("firebase-admin")).default;
   const serviceAccount = JSON.parse(read(saPath, "utf8"));
   if (serviceAccount.project_id && serviceAccount.project_id !== project) {
     throw new Error(
@@ -165,16 +173,46 @@ async function applyToFirestore(project, temples) {
       projectId: project,
     });
   }
-  const db = admin.firestore();
-  const refs = temples.map((temple) => db.collection("temples").doc(temple.id));
-  const snaps = refs.length === 0 ? [] : await db.getAll(...refs);
-  assertIdsAbsent(
-    temples,
-    new Set(snaps.filter((snap) => snap.exists).map((snap) => snap.id)),
-  );
+  return admin.firestore();
+}
+
+/**
+ * Create temple docs and merge their index entries.
+ *
+ * Reads meta/temple_index and every target shard first. If existing keys
+ * plus the new ids would pass 400, throws before any write. Shard writes
+ * are set(mergeFields) on entries.{id}. Meta uses increment and merge.
+ *
+ * @param {FirebaseFirestore.Firestore} db
+ * @param {object[]} temples normalised temples (id, name, state, ...)
+ * @param {typeof import("firebase-admin")} admin
+ */
+export async function applySeedBatches(db, temples, admin) {
   if (temples.length === 0) return;
   const rounds = planSeedIndexBatches(temples);
-  let metaExists = false;
+  const metaRef = db.collection("meta").doc("temple_index");
+  const metaSnap = await metaRef.get();
+  const baseShards =
+    metaSnap.exists && metaSnap.data()?.shards && typeof metaSnap.data().shards === "object"
+      ? { ...metaSnap.data().shards }
+      : {};
+
+  for (const round of rounds) {
+    const snap = await db.collection("temple_index").doc(round.shard).get();
+    const existing =
+      snap.exists && snap.data()?.entries && typeof snap.data().entries === "object"
+        ? snap.data().entries
+        : {};
+    const keys = new Set(Object.keys(existing));
+    for (const temple of round.temples) keys.add(String(temple.id));
+    if (keys.size > MAX_ENTRIES) {
+      throw new Error(
+        `Shard ${round.shard} would have ${keys.size} entries; max is ${MAX_ENTRIES}. No write.`,
+      );
+    }
+  }
+
+  const touched = [];
   for (const round of rounds) {
     const batch = db.batch();
     const entries = {};
@@ -189,35 +227,41 @@ async function applyToFirestore(project, temples) {
       entries[temple.id] = entry;
       console.log(`created temples/${temple.id}`);
     }
-    batch.create(db.collection("temple_index").doc(round.shard), { entries });
-    const stamp = admin.firestore.FieldValue.serverTimestamp();
-    const meta = db.collection("meta").doc("temple_index");
-    if (!metaExists) {
-      batch.create(meta, {
-        indexVersion: 1,
-        shards: { [round.shard]: stamp },
-      });
-      metaExists = true;
-    } else {
-      // merge: true, not mergeFields. mergeFields + increment resets
-      // indexVersion. Copy stamps already written so the map replace
-      // does not drop earlier shards in this file.
-      const snap = await meta.get();
-      const existing = snap.exists ? (snap.data()?.shards ?? {}) : {};
-      batch.set(
-        meta,
-        {
-          indexVersion: admin.firestore.FieldValue.increment(1),
-          shards: { ...existing, [round.shard]: stamp },
-        },
-        { merge: true },
-      );
+    batch.set(
+      db.collection("temple_index").doc(round.shard),
+      { entries },
+      { mergeFields: Object.keys(entries).map((id) => `entries.${id}`) },
+    );
+    touched.push(round.shard);
+    const shards = { ...baseShards };
+    for (const name of touched) {
+      shards[name] = admin.firestore.FieldValue.serverTimestamp();
     }
+    batch.set(
+      metaRef,
+      {
+        indexVersion: admin.firestore.FieldValue.increment(1),
+        shards,
+      },
+      { merge: true },
+    );
     await batch.commit();
   }
 }
 
-async function main(argv = process.argv.slice(2)) {
+async function applyToFirestore(project, temples) {
+  const admin = (await import("firebase-admin")).default;
+  const db = await openSeedFirestore(project, admin);
+  const refs = temples.map((temple) => db.collection("temples").doc(temple.id));
+  const snaps = refs.length === 0 ? [] : await db.getAll(...refs);
+  assertIdsAbsent(
+    temples,
+    new Set(snaps.filter((snap) => snap.exists).map((snap) => snap.id)),
+  );
+  await applySeedBatches(db, temples, admin);
+}
+
+async function main(argv = process.argv.slice(2), deps = {}) {
   const opts = parseArgs(argv);
   if (opts.help || !opts.file) {
     printUsage();
@@ -258,7 +302,7 @@ async function main(argv = process.argv.slice(2)) {
     return result;
   }
 
-  const project = await confirmProject(opts.project);
+  const project = await (deps.confirmProject ?? confirmProject)(opts.project);
   console.log(`Applying ${result.temples.length} temples to ${project}.`);
   await applyToFirestore(project, result.temples);
   return result;

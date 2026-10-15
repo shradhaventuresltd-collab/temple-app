@@ -6,7 +6,12 @@ import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-import { assertIdsAbsent, firestoreWritePayload, parseArgs } from "./seed_state_batch.js";
+import {
+  assertIdsAbsent,
+  firestoreWritePayload,
+  main,
+  parseArgs,
+} from "./seed_state_batch.js";
 import {
   STATE_BOUNDS,
   canonicalPhotoPackPath,
@@ -824,9 +829,10 @@ test("apply omits image fields and refuses to overwrite an existing document", (
   assert.match(source, /firestoreWritePayload\(temple, null\)/);
   assert.match(source, /getAll\(/);
   assert.match(source, /batch\.create\(db\.collection\("temples"\)\.doc\(temple\.id\)/);
-  assert.match(source, /batch\.create\(db\.collection\("temple_index"\)\.doc\(round\.shard\)/);
-  assert.match(source, /batch\.create\(meta/);
+  assert.match(source, /mergeFields/);
   assert.match(source, /planSeedIndexBatches/);
+  assert.doesNotMatch(source, /batch\.create\(db\.collection\("temple_index"\)/);
+  assert.doesNotMatch(source, /batch\.create\(meta/);
   assert.match(source, /assertIdsAbsent/);
   assert.doesNotMatch(source, /collection\("temples"\)[\s\S]{0,160}\.set\(/);
   assert.doesNotMatch(source, /collection\("temples"\)[\s\S]{0,160}\.update\(/);
@@ -1120,6 +1126,116 @@ const List<Temple> sampleTemples = [
   const twice = mergeTemplesIntoSource(once, validated.temples);
   assert.equal(once, twice);
 });
+
+const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST ?? "";
+const onEmulator = /^(127\.0\.0\.1|localhost):\d+$/.test(emulatorHost);
+
+function applyBatchFile(slug, name) {
+  const dir = mkdtempSync(join(tmpdir(), "seed-apply-"));
+  const file = join(dir, "bihar.json");
+  const payload = batch([
+    temple({
+      slug,
+      name,
+      city: "Gaya",
+      latitude: 24.5123,
+      longitude: 84.2345,
+      description: `${name} is a Shiva shrine in Gaya used to check the batch shape. The description is two sentences so the research rule is met.`,
+    }),
+  ]);
+  writeFileSync(file, JSON.stringify(payload));
+  return file;
+}
+
+async function emulatorDb() {
+  const admin = (await import("firebase-admin")).default;
+  if (admin.apps.length === 0) {
+    admin.initializeApp({ projectId: "demo-temple-index" });
+  }
+  return admin.firestore();
+}
+
+async function applyOnEmulator(file) {
+  await main([file, "--apply", "--project", "demo-temple-index"], {
+    confirmProject: async (id) => id,
+  });
+}
+
+test(
+  "--apply merges entries into an existing meta and shard",
+  { skip: onEmulator ? false : "Firestore emulator is not running" },
+  async () => {
+    const db = await emulatorDb();
+    const kept = {
+      id: "kept-temple",
+      name: "Kept Temple",
+      state: "Bihar",
+      city: "Patna",
+      deity: "Devi",
+      hasImage: false,
+      coverThumb: "",
+    };
+    const keralaStamp = new Date("2020-06-01T00:00:00.000Z");
+    await db.collection("temple_index").doc("bihar").set({
+      entries: { "kept-temple": kept },
+    });
+    await db.collection("meta").doc("temple_index").set({
+      indexVersion: 4,
+      shards: {
+        bihar: new Date("2020-05-01T00:00:00.000Z"),
+        kerala: keralaStamp,
+      },
+      note: "keep me",
+    });
+    await db.collection("temples").doc("seed-apply-merge-temple").delete();
+
+    const file = applyBatchFile("seed-apply-merge-temple", "Seed Apply Merge Temple");
+    await applyOnEmulator(file);
+
+    const shard = (await db.collection("temple_index").doc("bihar").get()).data();
+    assert.equal(shard.entries["kept-temple"].name, "Kept Temple");
+    assert.equal(shard.entries["seed-apply-merge-temple"].id, "seed-apply-merge-temple");
+    assert.equal(shard.entries["seed-apply-merge-temple"].state, "Bihar");
+    const meta = (await db.collection("meta").doc("temple_index").get()).data();
+    assert.equal(meta.indexVersion, 5);
+    assert.equal(meta.note, "keep me");
+    assert.equal(meta.shards.kerala.toMillis(), keralaStamp.getTime());
+    const created = await db.collection("temples").doc("seed-apply-merge-temple").get();
+    assert.equal(created.exists, true);
+    assert.equal(created.get("timings"), null);
+    assert.equal(Object.hasOwn(created.data(), "imageUrl"), false);
+  },
+);
+
+test(
+  "--apply aborts before any write when a shard would pass 400 entries",
+  { skip: onEmulator ? false : "Firestore emulator is not running" },
+  async () => {
+    const db = await emulatorDb();
+    const entries = {};
+    for (let i = 0; i < 400; i += 1) {
+      entries[`full-${i}`] = { id: `full-${i}`, name: `Full ${i}` };
+    }
+    await db.collection("temple_index").doc("bihar").set({ entries });
+    await db.collection("meta").doc("temple_index").set({
+      indexVersion: 2,
+      shards: { bihar: new Date("2020-01-01T00:00:00.000Z") },
+    });
+    await db.collection("temples").doc("cap-abort-temple").delete();
+
+    const file = applyBatchFile("cap-abort-temple", "Cap Abort Temple");
+    await assert.rejects(() => applyOnEmulator(file), /would have 401 entries/);
+
+    const created = await db.collection("temples").doc("cap-abort-temple").get();
+    assert.equal(created.exists, false);
+    const shard = (await db.collection("temple_index").doc("bihar").get()).data();
+    assert.equal(Object.keys(shard.entries).length, 400);
+    assert.equal(shard.entries["full-0"].name, "Full 0");
+    assert.equal(Object.hasOwn(shard.entries, "cap-abort-temple"), false);
+    const meta = (await db.collection("meta").doc("temple_index").get()).data();
+    assert.equal(meta.indexVersion, 2);
+  },
+);
 
 test("CI workflows do not apply seed batches", () => {
   const ci = readFileSync(resolve(repoRoot, ".github/workflows/ci.yml"), "utf8");
