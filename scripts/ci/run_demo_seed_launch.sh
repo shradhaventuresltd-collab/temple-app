@@ -207,6 +207,10 @@ else
         status=1
       else
         adb shell input keyevent 66 || true
+        sleep 1
+        if ! visible "Admin sign-in required"; then
+          adb shell input keyevent 66 || true
+        fi
       fi
       if ! wait_for "Admin sign-in required" 8; then
         echo "Admin panel did not open"
