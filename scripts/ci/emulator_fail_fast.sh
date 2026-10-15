@@ -20,6 +20,12 @@ for ((i = 0; i < ${#args[@]}; i++)); do
   fi
 done
 
+sdk="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+adb_bin="${sdk}/platform-tools/adb"
+if [[ ! -x "$adb_bin" ]]; then
+  adb_bin="adb"
+fi
+
 # A new session so this wrapper can exit after boot without SIGHUP'ing qemu.
 setsid "$real" "$@" &
 child=$!
@@ -38,10 +44,15 @@ for _ in $(seq 1 300); do
   if ! kill -0 "$child" 2>/dev/null; then
     status=0
     wait "$child" || status=$?
+    # qemu exits 0 when the action runs `adb emu kill` after a snapshot.
+    # A non-zero exit before boot is the failure we must surface.
+    if [[ "$status" -eq 0 ]]; then
+      exit 0
+    fi
     fail_fast "$status"
   fi
   if [[ -n "$port" ]]; then
-    boot="$(adb -s "emulator-${port}" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)"
+    boot="$("$adb_bin" -s "emulator-${port}" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)"
     if [[ "$boot" == "1" ]]; then
       exit 0
     fi

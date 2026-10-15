@@ -77,9 +77,6 @@ rm -rf \
   "${GITHUB_WORKSPACE}/android/.gradle" \
   "${GITHUB_WORKSPACE}/android/app/build" \
   "${GITHUB_WORKSPACE}/build/app/intermediates" \
-  "${GITHUB_WORKSPACE}/build/app/tmp" \
-  /usr/local/share/boost \
-  /usr/share/swift \
-  /usr/local/share/powershell
+  "${GITHUB_WORKSPACE}/build/app/tmp"
 echo "===== df after freeing build caches ====="
 df -h /
