@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: state batch and index checks
-        run: node --test scripts/state_batch.test.js scripts/rebuild_index.test.js scripts/resize_cover_thumbs.test.js scripts/audit_coords.test.js
+        run: node --test scripts/state_batch.test.js scripts/rebuild_index.test.js scripts/resize_cover_thumbs.test.js scripts/audit_coords.test.js scripts/backfill_cover_photos.test.js
 
       - name: photo patch checks
         run: node --test scripts/photo_patch.test.js
