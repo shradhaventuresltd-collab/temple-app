@@ -693,29 +693,37 @@ if find "$tmp/distro" -type f | grep -q .; then
 fi
 echo "ok: invalid service account JSON leaves no temp file"
 
-# google-services.json: Play client stays. The demo client is added by
-# Deployer; a placeholder must not be committed.
+# google-services.json: Play and legacy clients stay. The .demo client
+# is the registered Firebase app; a placeholder must not be committed.
 python3 - <<'PY'
 import json
 import sys
 
 data = json.load(open("android/app/google-services.json", encoding="utf-8"))
 packages = []
+demo_app_id = ""
 for client in data["client"]:
     package = client["client_info"]["android_client_info"]["package_name"]
     packages.append(package)
     if package != "com.shradhaventures.temple.demo":
         continue
-    app_id = (client["client_info"].get("mobilesdk_app_id") or "").strip()
+    demo_app_id = (client["client_info"].get("mobilesdk_app_id") or "").strip()
     key = ((client.get("api_key") or [{}])[0].get("current_key") or "").strip()
-    if not app_id or not key or app_id.startswith(("REPLACE", "TODO")) or key.startswith(("REPLACE", "TODO")):
+    if not demo_app_id or not key or demo_app_id.startswith(("REPLACE", "TODO", "CHANGEME", "your-")) or key.startswith(("REPLACE", "TODO", "CHANGEME", "your-")):
         sys.stderr.write("demo client is a placeholder\n")
         sys.exit(1)
 if "com.shradhaventures.temple" not in packages:
     sys.stderr.write("Play client missing\n")
     sys.exit(1)
+if "com.example.temple_app" not in packages:
+    sys.stderr.write("legacy client missing\n")
+    sys.exit(1)
+if demo_app_id != "1:109314154382:android:856cbde1eb92ba234ccedf":
+    sys.stderr.write("demo client app id does not match the registered app\n")
+    sys.exit(1)
 PY
 echo "ok: Play google-services client remains"
+echo "ok: demo google-services client is the registered app"
 
 missing_json="$tmp/services-missing.json"
 python3 - "$missing_json" <<'PY'

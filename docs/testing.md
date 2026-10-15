@@ -102,9 +102,9 @@ Testers install it from App Distribution:
 4. Sign in to App Tester with the invited Google account.
 5. Open Temple Directory India, choose the latest build, and install it. Android may ask for permission to install from App Tester.
 
-The service account in `FIREBASE_APP_DISTRIBUTION_SA_JSON` needs the **Firebase App Distribution Admin** role (`roles/firebaseappdistro.admin`) on `temple-directory-india`, and the Firebase App Distribution API must be enabled. It does not need Firestore access. `FIREBASE_ANDROID_APP_ID` is the Firebase Android app id for `com.shradhaventures.temple.demo`, not the Play app id in [android-play-internal-test.md](android-play-internal-test.md). `analyze-test` runs `scripts/ci/test_demo_distribution_guard.sh` and still runs `scripts/test_play_aab_guard.sh`.
+The service account in `FIREBASE_APP_DISTRIBUTION_SA_JSON` needs the **Firebase App Distribution Admin** role (`roles/firebaseappdistro.admin`) on `temple-directory-india`, and the Firebase App Distribution API must be enabled. It does not need Firestore access. `FIREBASE_ANDROID_APP_ID` is `1:109314154382:android:856cbde1eb92ba234ccedf`, the Firebase Android app id for `com.shradhaventures.temple.demo`. That is not the Play app id in [android-play-internal-test.md](android-play-internal-test.md). `analyze-test` runs `scripts/ci/test_demo_distribution_guard.sh` and still runs `scripts/test_play_aab_guard.sh`.
 
-`android/app/google-services.json` still needs a client whose `package_name` is `com.shradhaventures.temple.demo`. Until that object is pasted in from the Firebase console download, `scripts/ci/check_demo_google_services.sh` fails the demo build and names the fields to copy (`mobilesdk_app_id`, `package_name`, `api_key.current_key`). Do not invent those values, and do not remove the Play client. After that client is added, and `FIREBASE_ANDROID_APP_ID` is set to its `mobilesdk_app_id`, no other code change is required.
+`android/app/google-services.json` includes that `.demo` client next to the Play client (`com.shradhaventures.temple`) and the legacy `com.example.temple_app` client. `scripts/ci/check_demo_google_services.sh` fails the demo build if the `.demo` client is removed or its `mobilesdk_app_id` or `api_key.current_key` is empty. Leave the Play client in place.
 
 ## Demo ads (`DEMO_BUILD`)
 
