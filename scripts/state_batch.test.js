@@ -149,6 +149,13 @@ test("validator rejects placeholder image URLs and ignores sources and Stockholm
     "https://dummyimage.com/600x400/000/fff",
     "https://placehold.it/600x400",
     "https://placeholder.com/600",
+    "https://fastly.picsum.photos/id/1/800/600.jpg",
+    "https://i.picsum.photos/id/1/800/600.jpg",
+    "https://loremflickr.com/800/600",
+    "https://www.loremflickr.com/800/600",
+    "https://placekitten.com/800/600",
+    "https://fakeimg.pl/800x600",
+    "https://placeimg.com/800/600",
   ];
   for (const url of urls) {
     const row = temple();
@@ -183,10 +190,40 @@ test("validator rejects placeholder image URLs and ignores sources and Stockholm
   const allowed = validateStateBatch(batch([cited]), []);
   assert.equal(allowed.ok, true, allowed.errors.join("\n"));
 
-  const kept = [
-    "https://fastly.picsum.photos/id/1/800/600.jpg",
-    "https://images.unsplash.com/photo-1",
+  const stock = [
     "https://www.shutterstock.com/image-photo/temple-1",
+    "https://www.istockphoto.com/photo/temple",
+    "https://media.gettyimages.com/id/1/photo.jpg",
+    "https://www.gettyimages.co.uk/detail/photo/temple",
+    "https://www.pexels.com/photo/temple",
+    "https://stock.adobe.com/images/temple",
+    "https://www.alamy.com/temple.jpg",
+    "https://www.dreamstime.com/temple",
+    "https://www.123rf.com/photo_1.html",
+    "https://depositphotos.com/photo/temple.html",
+    "https://www.freepik.com/free-photo/temple",
+    "https://www.istock.com/photo/temple",
+  ];
+  for (const url of stock) {
+    const row = temple();
+    row.photo_pack = {
+      ...row.photo_pack,
+      photos: [{ url, credit: "Example" }],
+    };
+    const result = validateStateBatch(batch([row]), []);
+    assert.equal(result.ok, false, url);
+    assert.ok(
+      result.errors.some((error) => error.includes("unlicensed stock")),
+      result.errors.join("\n"),
+    );
+  }
+
+  const kept = [
+    "https://images.unsplash.com/photo-1",
+    "https://www.adobe.com/image/temple.jpg",
+    "https://example.com/photos/shutterstock-temple.jpg",
+    "https://notpicsum.photos/800/600",
+    "https://cdn.source.unsplash.com/random",
     "https://upload.wikimedia.org/wikipedia/commons/x/xx/Placeholder_temple.jpg",
     "https://storage.googleapis.com/bucket/temples/placeholder-x.jpg",
   ];
@@ -833,6 +870,14 @@ test("apply omits image fields and refuses to overwrite an existing document", (
     photos: [],
   };
   assert.equal(hasVerifiedGallery(picsumLive), false);
+  assert.equal(
+    hasVerifiedGallery({
+      imageUrl: "https://www.shutterstock.com/image-photo/temple",
+      images: ["https://www.shutterstock.com/image-photo/temple"],
+      photos: [],
+    }),
+    false,
+  );
   assert.throws(() => firestoreWritePayload(incoming, picsumLive), /will not be overwritten/);
 
   const created = firestoreWritePayload(incoming, null);

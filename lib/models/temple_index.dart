@@ -53,12 +53,13 @@ const Set<int> kWikimediaThumbSteps = {
   3840,
 };
 
-/// Listed steps stay. 480 is not listed and becomes 500. Any other
-/// non-standard width below 500 becomes 330. A wider non-standard width
-/// becomes 500.
+/// List covers only. Widths above 500, including 960, 1280, 1920, and
+/// 3840, become 500. 480 becomes 500. Any other non-standard width below
+/// 500 becomes 330. A listed width of 500 or below stays. Detail still
+/// shows the stored gallery URL.
 int _commonsThumbWidth(int width) {
+  if (width == 480 || width > kCommonsThumbPx) return kCommonsThumbPx;
   if (kWikimediaThumbSteps.contains(width)) return width;
-  if (width == 480 || width >= kCommonsThumbPx) return kCommonsThumbPx;
   return 330;
 }
 
@@ -161,11 +162,11 @@ String shortTempleAddress(String raw) {
 /// Same photo as [verifiedCoverUrl]: the first verified URL in `images`,
 /// or `imageUrl` when `images` is empty. Placeholder hosts are skipped.
 ///
-/// A stored `photos[].thumbUrl` for that photo is used as written. Otherwise
-/// a Wikimedia `/thumb/` is snapped onto [kWikimediaThumbSteps]. A listed
-/// width stays, including 330, 500, 960, and 1280. 480px becomes 500px.
-/// Any other non-standard width below 500 becomes 330px, and a wider
-/// non-standard width becomes 500px. A Commons original
+/// A stored `photos[].thumbUrl` is used as written unless it is a Commons
+/// thumb, which is snapped the same way. Widths above 500, including 960,
+/// 1280, 1920, and 3840, become 500px. 480px becomes 500px. Any other
+/// non-standard width below 500 becomes 330px. A listed width of 500 or
+/// below stays. A Commons original
 /// `.../commons/<h>/<hh>/<name>` becomes a 500px thumb when `<h>/<hh>`
 /// match the MD5 of the underscored filename. An SVG thumb appends `.png`.
 /// A TIFF thumb appends `.jpg`. PDF, DjVu, WebM, OGV, and anything else
@@ -176,7 +177,7 @@ String? coverThumbFor(Map<String, dynamic> data) {
   final source = firstVerifiedGalleryUrl(data);
   if (source == null) return null;
   final explicit = _explicitThumb(data, source);
-  if (explicit != null) return explicit;
+  if (explicit != null) return _wikimedia480(explicit) ?? explicit;
   final wiki = _wikimedia480(source);
   if (wiki != null) return wiki;
   return _fullCover(source);
@@ -198,7 +199,7 @@ String? _explicitThumb(Map<String, dynamic> data, String source) {
 /// Unrewritten gallery URL [coverThumbFor] is taken from.
 String? firstVerifiedGalleryUrl(Map<String, dynamic> data) {
   for (final url in _galleryCandidates(data)) {
-    if (!_httpUrl(url) || isPlaceholderImageUrl(url)) continue;
+    if (!_httpUrl(url) || isDisallowedImageUrl(url)) continue;
     return url;
   }
   return null;
@@ -249,7 +250,7 @@ String? _knownThumbUrl(Object? raw) {
 String? _fullCover(Object? raw) {
   if (raw is! String) return null;
   final trimmed = raw.trim();
-  if (!_httpUrl(trimmed) || isPlaceholderImageUrl(trimmed)) return null;
+  if (!_httpUrl(trimmed) || isDisallowedImageUrl(trimmed)) return null;
   if (trimmed.length > kTempleIndexCoverThumbMax) return null;
   return trimmed;
 }
@@ -257,11 +258,10 @@ String? _fullCover(Object? raw) {
 /// Wikimedia URL on the thumbnail ladder, or null when [raw] is not a
 /// Commons file.
 ///
-/// An existing `/thumb/` whose width is not a [kWikimediaThumbSteps] value
-/// is rewritten. 480px becomes 500px. Any other non-standard width below
-/// 500 becomes 330px, and a wider non-standard width becomes 500px. A
-/// listed width stays. An original `.../commons/<h>/<hh>/<name>` becomes
-/// a 500px thumb.
+/// An existing `/thumb/` above 500px, including 960, 1280, 1920, and 3840,
+/// becomes 500px. 480px becomes 500px. Any other non-standard width below
+/// 500 becomes 330px. A listed width of 500 or below stays. An original
+/// `.../commons/<h>/<hh>/<name>` becomes a 500px thumb.
 String? _wikimedia480(Object? raw) {
   final trimmed = _fullCover(raw);
   if (trimmed == null) return null;

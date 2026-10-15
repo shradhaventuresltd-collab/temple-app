@@ -136,6 +136,26 @@ void main() {
       'Use photograph URLs. Placeholder hosts are not saved.',
     );
 
+    final stock = validateTempleDraft(
+      draft(imageUrl: 'https://www.shutterstock.com/image-photo/temple'),
+    );
+    expect(stock.isValid, isFalse);
+    expect(
+      stock.errors['imageUrl'],
+      'Use a photograph URL. Unlicensed stock hosts are not saved.',
+    );
+
+    final unsplash = validateTempleDraft(
+      draft(imageUrl: 'https://images.unsplash.com/photo-1'),
+    );
+    expect(unsplash.isValid, isTrue);
+    expect(unsplash.temple!.imageUrl, 'https://images.unsplash.com/photo-1');
+
+    final adobe = validateTempleDraft(
+      draft(imageUrl: 'https://www.adobe.com/image/temple.jpg'),
+    );
+    expect(adobe.isValid, isTrue);
+
     final pending = validateTempleDraft(draft(imageUrl: '', imagesText: ''));
     expect(pending.isValid, isTrue);
     expect(pending.temple!.imageUrl, isEmpty);

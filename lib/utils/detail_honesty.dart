@@ -126,12 +126,12 @@ class DetailHonesty {
 
 /// Gallery URLs that are safe to show as photographs of the place.
 ///
-/// Picsum, generic placeholder hosts, and empty values are omitted so the
-/// detail screen can say photo pending instead of framing stock images as real.
+/// Picsum, generic placeholder hosts, unlicensed stock hosts, and empty
+/// values are omitted so the detail screen can say photo pending.
 List<String> verifiedGalleryUrls(Temple temple) {
   return [
     for (final url in temple.galleryImages)
-      if (!isPlaceholderImageUrl(url)) url.trim(),
+      if (!isDisallowedImageUrl(url)) url.trim(),
   ];
 }
 
@@ -151,11 +151,28 @@ List<String> verifiedMosaicUrls(Iterable<Temple> temples) {
   return [for (final temple in temples) ...verifiedGalleryUrls(temple)];
 }
 
-/// True for empty values and exact placeholder hosts.
+/// Placeholder-only domains. The host or a subdomain matches.
+/// `source.unsplash.com` is exact and is not in this list.
+const _placeholderSuffixHosts = <String>[
+  'picsum.photos',
+  'placeholder.com',
+  'placehold.co',
+  'placehold.it',
+  'dummyimage.com',
+  'lorempixel.com',
+  'loremflickr.com',
+  'placekitten.com',
+  'fakeimg.pl',
+  'placeimg.com',
+];
+
+/// True for empty values and placeholder hosts.
 ///
-/// Host equality only. A path or query that contains `placeholder` or
-/// `picsum` is not enough, and a subdomain such as `fastly.picsum.photos`
-/// is not a match. `images.unsplash.com` and shutterstock are photographs.
+/// A listed domain matches the host or a subdomain, so `picsum.photos`
+/// covers `fastly.picsum.photos` and `i.picsum.photos`. `source.unsplash.com`
+/// is exact: `images.unsplash.com` is a photograph. A path or query that
+/// contains `placeholder` or `picsum` is not enough. Unlicensed stock hosts
+/// are [isUnlicensedStockImageUrl], not this check.
 bool isPlaceholderImageUrl(String raw) {
   final url = raw.trim();
   if (url.isEmpty) return true;
@@ -165,17 +182,53 @@ bool isPlaceholderImageUrl(String raw) {
   }
   final host = uri.host.toLowerCase();
   if (host.isEmpty) return true;
-  const hosts = <String>{
-    'picsum.photos',
-    'placeholder.com',
-    'via.placeholder.com',
-    'placehold.co',
-    'placehold.it',
-    'dummyimage.com',
-    'lorempixel.com',
-    'source.unsplash.com',
-  };
-  return hosts.contains(host);
+  if (host == 'source.unsplash.com') return true;
+  for (final known in _placeholderSuffixHosts) {
+    if (host == known || host.endsWith('.$known')) return true;
+  }
+  return false;
+}
+
+/// Named unlicensed-stock hosts. Subdomains match. `gettyimages` is a label.
+const _stockHosts = <String>[
+  'shutterstock.com',
+  'istockphoto.com',
+  'istock.com',
+  'pexels.com',
+  'stock.adobe.com',
+  'alamy.com',
+  'dreamstime.com',
+  '123rf.com',
+  'depositphotos.com',
+  'freepik.com',
+];
+
+/// True for an unlicensed stock-photo host.
+///
+/// A named host matches itself or a subdomain (`www.shutterstock.com`).
+/// `gettyimages` matches that label on any TLD (`gettyimages.co.uk`,
+/// `media.gettyimages.com`). `stock.adobe.com` does not block `adobe.com`.
+/// Empty values and non-HTTP URLs are not stock. `images.unsplash.com`
+/// stays allowed. Firestore rules do not apply this list.
+bool isUnlicensedStockImageUrl(String raw) {
+  final url = raw.trim();
+  if (url.isEmpty) return false;
+  final uri = Uri.tryParse(url);
+  if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
+    return false;
+  }
+  final host = uri.host.toLowerCase();
+  if (host.isEmpty) return false;
+  if (host.split('.').contains('gettyimages')) return true;
+  for (final stock in _stockHosts) {
+    if (host == stock || host.endsWith('.$stock')) return true;
+  }
+  return false;
+}
+
+/// Placeholder host or unlicensed stock host. Empty values count.
+bool isDisallowedImageUrl(String raw) {
+  return isPlaceholderImageUrl(raw) || isUnlicensedStockImageUrl(raw);
 }
 
 SiteTradition _traditionFromIndex(String value) {

@@ -2,7 +2,7 @@
  * Clear placeholder-host URLs from temple image fields.
  *
  * Dry-run is the default. It reads temple documents and prints which covers
- * would lose an exact placeholder-host URL. It does not write.
+ * would lose a placeholder host or subdomain. It does not write.
  * The app then shows Photo pending for that temple.
  *
  *   node scripts/clear_placeholder_covers.js --project temple-directory-india
@@ -36,10 +36,11 @@ Usage:
   node clear_placeholder_covers.js --apply --project <firebase-project-id>
 
 Default is dry-run: list temples whose imageUrl, images, or photos use an
-exact placeholder host (picsum.photos, placeholder.com, via.placeholder.com,
-placehold.co, placehold.it, dummyimage.com, lorempixel.com,
-source.unsplash.com). A path containing "placeholder" or "picsum" is kept.
-images.unsplash.com and shutterstock are kept. Nothing is written.
+placeholder host or its subdomain (picsum.photos, placeholder.com,
+placehold.co, placehold.it, dummyimage.com, lorempixel.com, loremflickr.com,
+placekitten.com, fakeimg.pl, placeimg.com). source.unsplash.com is exact.
+A path containing "placeholder" or "picsum" is kept. images.unsplash.com
+and shutterstock are kept. Nothing is written.
 prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
 Prod apply prompts for the project id.
 Set FIRESTORE_EMULATOR_HOST to use the emulator without that prompt.

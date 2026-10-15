@@ -20,13 +20,14 @@ const WIKIMEDIA_THUMB_STEPS = new Set([
 ]);
 
 /**
- * Listed steps stay. 480 is not listed and becomes 500. Any other
- * non-standard width below 500 becomes 330. A wider non-standard width
- * becomes 500.
+ * List covers only. Widths above 500, including 960, 1280, 1920, and 3840,
+ * become 500. 480 becomes 500. Any other non-standard width below 500
+ * becomes 330. A listed width of 500 or below stays. Detail keeps the
+ * stored gallery URL.
  */
 function commonsThumbWidth(width) {
+  if (width === 480 || width > COMMONS_THUMB_PX) return COMMONS_THUMB_PX;
   if (WIKIMEDIA_THUMB_STEPS.has(width)) return width;
-  if (width === 480 || width >= COMMONS_THUMB_PX) return COMMONS_THUMB_PX;
   return 330;
 }
 export const NAME_MAX = 80;
@@ -121,17 +122,33 @@ export function shortAddress(raw) {
   return cut.trimEnd().replace(/[,\s]+$/, "");
 }
 
-/** Exact hosts. Same set as state_batch.js and detail_honesty.dart. */
-const PLACEHOLDER_HOSTS = new Set([
+/** Same placeholder domains as state_batch.js. `source.unsplash.com` is exact. */
+const PLACEHOLDER_SUFFIX_HOSTS = [
   "picsum.photos",
   "placeholder.com",
-  "via.placeholder.com",
   "placehold.co",
   "placehold.it",
   "dummyimage.com",
   "lorempixel.com",
-  "source.unsplash.com",
-]);
+  "loremflickr.com",
+  "placekitten.com",
+  "fakeimg.pl",
+  "placeimg.com",
+];
+
+/** Same stock list as state_batch.js. Not applied by Firestore rules. */
+const STOCK_HOSTS = [
+  "shutterstock.com",
+  "istockphoto.com",
+  "istock.com",
+  "pexels.com",
+  "stock.adobe.com",
+  "alamy.com",
+  "dreamstime.com",
+  "123rf.com",
+  "depositphotos.com",
+  "freepik.com",
+];
 
 function placeholder(url) {
   let parsed;
@@ -143,7 +160,24 @@ function placeholder(url) {
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return true;
   const host = parsed.hostname.toLowerCase();
   if (!host) return true;
-  return PLACEHOLDER_HOSTS.has(host);
+  if (host === "source.unsplash.com") return true;
+  return PLACEHOLDER_SUFFIX_HOSTS.some(
+    (known) => host === known || host.endsWith(`.${known}`),
+  );
+}
+
+function unlicensedStock(url) {
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
+  const host = parsed.hostname.toLowerCase();
+  if (!host) return false;
+  if (host.split(".").includes("gettyimages")) return true;
+  return STOCK_HOSTS.some((stock) => host === stock || host.endsWith(`.${stock}`));
 }
 
 function httpUrl(raw) {
@@ -160,7 +194,9 @@ function httpUrl(raw) {
 
 function knownThumbUrl(raw) {
   const trimmed = httpUrl(raw);
-  if (!trimmed || placeholder(trimmed) || trimmed.length > COVER_THUMB_MAX) return null;
+  if (!trimmed || placeholder(trimmed) || unlicensedStock(trimmed) || trimmed.length > COVER_THUMB_MAX) {
+    return null;
+  }
   return trimmed;
 }
 
@@ -235,10 +271,10 @@ function commonsOriginal480(trimmed) {
 
 /**
  * Wikimedia URL on the thumbnail ladder, or null when [raw] is not a
- * Commons file. An existing `/thumb/` whose width is not a standard step
- * is rewritten. 480px becomes 500px. Any other non-standard width below
- * 500 becomes 330px, and a wider non-standard width becomes 500px. A
- * listed width stays. An original becomes a 500px thumb.
+ * Commons file. An existing `/thumb/` above 500px, including 960, 1280,
+ * 1920, and 3840, becomes 500px. 480px becomes 500px. Any other
+ * non-standard width below 500 becomes 330px. A listed width of 500 or
+ * below stays. An original becomes a 500px thumb.
  */
 function wikimedia480(raw) {
   const trimmed = knownThumbUrl(raw);
@@ -473,7 +509,7 @@ function galleryCandidates(data) {
 /** First verified gallery URL, before a 500px rewrite. Matches browse. */
 export function firstVerifiedGalleryUrl(data) {
   for (const url of galleryCandidates(data)) {
-    if (!httpUrl(url) || placeholder(url)) continue;
+    if (!httpUrl(url) || placeholder(url) || unlicensedStock(url)) continue;
     return url;
   }
   return null;
@@ -487,7 +523,7 @@ export function firstVerifiedGalleryUrl(data) {
 export function firstThumbSource(data) {
   for (const url of galleryCandidates(data)) {
     if (storageObjectFromUrl(url)) return url;
-    if (!httpUrl(url) || placeholder(url)) continue;
+    if (!httpUrl(url) || placeholder(url) || unlicensedStock(url)) continue;
     return url;
   }
   return null;
@@ -497,11 +533,11 @@ export function firstThumbSource(data) {
  * Browse cover. Same photo as the gallery: first verified `images` URL, or
  * `imageUrl` when `images` is empty.
  *
- * A stored `photos[].thumbUrl` for that photo is used as written. Otherwise
- * a Wikimedia `/thumb/` is snapped onto the w.wiki/GHai steps. A listed
- * width stays, including 330, 500, 960, and 1280. 480px becomes 500px.
- * Any other non-standard width below 500 becomes 330px, and a wider
- * non-standard width becomes 500px. A Commons original
+ * A stored `photos[].thumbUrl` is used as written unless it is a Commons
+ * thumb, which is snapped the same way. Widths above 500, including 960,
+ * 1280, 1920, and 3840, become 500px. 480px becomes 500px. Any other
+ * non-standard width below 500 becomes 330px. A listed width of 500 or
+ * below stays. A Commons original
  * `.../commons/<h>/<hh>/<name>` becomes a 500px thumb when `<h>/<hh>` match
  * the MD5 of the underscored filename. An SVG thumb appends `.png`. A TIFF
  * thumb appends `.jpg`. PDF, DjVu, WebM, and OGV stay the full URL.
@@ -512,7 +548,7 @@ export function coverThumb(data) {
   const source = firstVerifiedGalleryUrl(data);
   if (!source) return null;
   const explicit = explicitThumb(data, source);
-  if (explicit) return explicit;
+  if (explicit) return wikimedia480(explicit) || explicit;
   const wiki = wikimedia480(source);
   if (wiki) return wiki;
   return knownThumbUrl(source);

@@ -195,7 +195,7 @@ class _MosaicTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (isPlaceholderImageUrl(url)) {
+    if (isDisallowedImageUrl(url)) {
       return const ColoredBox(
         color: Color(0xFFFFE0B2),
         child: Center(

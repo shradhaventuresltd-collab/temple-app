@@ -422,6 +422,8 @@ test("exact placeholder hosts fail on imageUrl and images[0], and extra photo ke
     "https://dummyimage.com/800x600",
     "https://lorempixel.com/800/600",
     "https://source.unsplash.com/random",
+    "https://fastly.picsum.photos/id/1/800/600",
+    "https://i.picsum.photos/id/1/800/600",
   ];
   for (const url of hosts) {
     await assertFails(
@@ -435,8 +437,8 @@ test("exact placeholder hosts fail on imageUrl and images[0], and extra photo ke
     "https://upload.wikimedia.org/wikipedia/commons/x/xx/Placeholder_temple.jpg",
     "https://storage.googleapis.com/bucket/temples/placeholder-x.jpg",
     "https://images.unsplash.com/photo-1",
-    "https://fastly.picsum.photos/id/1/800/600",
     "https://www.shutterstock.com/image-photo/temple",
+    "https://loremflickr.com/800/600",
   ];
   for (const url of passes) {
     await assertSucceeds(

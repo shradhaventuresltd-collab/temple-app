@@ -59,6 +59,16 @@ void main() {
       ),
       {'imageUrl': '', 'images': <String>[]},
     );
+    expect(
+      seedHonestyImageFields(
+        bundledImageUrl: 'https://www.shutterstock.com/image-photo/temple',
+        existingImageUrl: 'https://images.unsplash.com/photo-1',
+      ),
+      {
+        'imageUrl': 'https://images.unsplash.com/photo-1',
+        'images': ['https://images.unsplash.com/photo-1'],
+      },
+    );
 
     expect(
       seedHonestyImageFields(

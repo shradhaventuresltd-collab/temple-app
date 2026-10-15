@@ -1,10 +1,10 @@
 [
   {
-    "name": "a listed 1280px commons thumb stays 1280px",
+    "name": "a 1280px commons thumb becomes 500px for the list cover",
     "data": {
       "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/1280px-File.jpg"
     },
-    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/1280px-File.jpg"
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/500px-File.jpg"
   },
   {
     "name": "firebase storage full object stays the full url until thumbUrl is stored",
@@ -230,11 +230,11 @@
     "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/500px-File.jpg"
   },
   {
-    "name": "a listed 960px commons thumb stays 960px",
+    "name": "a 960px commons thumb becomes 500px for the list cover",
     "data": {
       "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/960px-File.jpg"
     },
-    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/960px-File.jpg"
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/500px-File.jpg"
   },
   {
     "name": "a listed 250px commons thumb stays 250px",
@@ -270,5 +270,62 @@
       "imageUrl": "https://images.unsplash.com/photo-1"
     },
     "expect": "https://images.unsplash.com/photo-1"
+  },
+  {
+    "name": "fastly.picsum.photos is not a cover",
+    "data": {
+      "imageUrl": "https://fastly.picsum.photos/id/1/800/600"
+    },
+    "expect": null
+  },
+  {
+    "name": "i.picsum.photos is not a cover",
+    "data": {
+      "imageUrl": "https://i.picsum.photos/id/1/800/600"
+    },
+    "expect": null
+  },
+  {
+    "name": "a shutterstock host is not a cover",
+    "data": {
+      "imageUrl": "https://www.shutterstock.com/image-photo/temple"
+    },
+    "expect": null
+  },
+  {
+    "name": "loremflickr.com is not a cover",
+    "data": {
+      "imageUrl": "https://loremflickr.com/800/600"
+    },
+    "expect": null
+  },
+  {
+    "name": "a 1920px commons thumb becomes 500px for the list cover",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/1920px-File.jpg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/500px-File.jpg"
+  },
+  {
+    "name": "a 3840px commons thumb becomes 500px for the list cover",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/3840px-File.jpg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/500px-File.jpg"
+  },
+  {
+    "name": "a stored 1280px commons thumbUrl snaps to 500px",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg",
+      "photos": [
+        {
+          "url": "https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg",
+          "thumbUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/1280px-File.jpg",
+          "licence": "CC0",
+          "order": 0
+        }
+      ]
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/500px-File.jpg"
   }
 ]

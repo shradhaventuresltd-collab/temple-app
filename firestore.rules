@@ -190,9 +190,10 @@ service cloud.firestore {
     // Exact placeholder hosts, on imageUrl and images[0] only. A matches()
     // inside isValidPhoto runs for every photo slot and crosses the
     // 1000-expression limit. Photos rely on the app and the seed validator.
-    // A path containing "placeholder" or "picsum" is allowed.
+    // A path containing "placeholder" or "picsum" is allowed. Stock hosts
+    // such as shutterstock are not in this regex; the app rejects those.
     function placeholderHost(url) {
-      return url is string && url.matches('(?i)^https?://(picsum\\.photos|placeholder\\.com|via\\.placeholder\\.com|placehold\\.co|placehold\\.it|dummyimage\\.com|lorempixel\\.com|source\\.unsplash\\.com)([/?#].*)?$');
+      return url is string && url.matches('(?i)^https?://(picsum\\.photos|fastly\\.picsum\\.photos|i\\.picsum\\.photos|placeholder\\.com|via\\.placeholder\\.com|placehold\\.co|placehold\\.it|dummyimage\\.com|lorempixel\\.com|source\\.unsplash\\.com)([/?#].*)?$');
     }
 
     function imageListOk(list) {
