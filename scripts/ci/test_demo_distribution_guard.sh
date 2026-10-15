@@ -333,10 +333,24 @@ do
     'system-image-android-34-google_atd-x86_64' "$emulator_workflow"
   require "workflow caches the google_atd AVD snapshot" \
     'avd-34-x86_64-google_atd-pixel6-snapshot' "$emulator_workflow"
-  require "workflow gives the emulator 2 cores" \
-    'cores: 2' "$emulator_workflow"
+  require "workflow sets emulator cores from nproc" \
+    'cores: \$\{' "$emulator_workflow"
+  require "workflow caps AVD userdata at 2048M" \
+    'disk-size: 2048M' "$emulator_workflow"
+  require "workflow installs the fail-fast emulator wrapper" \
+    'scripts/ci/prepare_atd_avd.sh' "$emulator_workflow"
+  require "workflow prints df before the emulator" \
+    '===== df before emulator =====' "$emulator_workflow"
   require "workflow disables emulator audio" \
     '-no-audio' "$emulator_workflow"
+  if ! awk '
+    /free_runner_disk.sh/ { freed = 1 }
+    /flutter build apk/ && !freed { exit 1 }
+    END { if (!freed) exit 1 }
+  ' "$emulator_workflow"; then
+    echo "FAIL: ${emulator_workflow} must free disk before the APK build" >&2
+    exit 1
+  fi
   if grep -q 'target: google_apis' "$emulator_workflow"; then
     echo "FAIL: ${emulator_workflow} must not boot the google_apis image" >&2
     exit 1
@@ -346,7 +360,11 @@ do
     exit 1
   fi
 done
-echo "ok: emulator jobs use google_atd, 2 cores, and -no-audio"
+echo "ok: emulator jobs use google_atd, nproc cores, 2048M userdata, and -no-audio"
+require "fail-fast wrapper reports a dead emulator" \
+  'Emulator process exited before boot' scripts/ci/emulator_fail_fast.sh
+require "AVD prep forces a 2048M userdata image" \
+  'disk.dataPartition.size=2048M' scripts/ci/prepare_atd_avd.sh
 forbid "disk script does not install npm" 'npm |firebase-tools|firebase-cli' \
   scripts/ci/free_runner_disk.sh
 if grep -F -q 'applicationIdSuffix' scripts/build_play_aab.sh; then

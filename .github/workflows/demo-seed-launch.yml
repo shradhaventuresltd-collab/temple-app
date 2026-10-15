@@ -110,14 +110,18 @@ jobs:
             --dart-define=DEMO_BUILD=true \
             --dart-define=ENABLE_ADMIN_TOOLS=true
 
-      - name: Cache emulator system image
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      # restore + save, not the combined action: its post step runs only
+      # when the job succeeds, and a cold miss must still be saved if a
+      # later step fails.
+      - name: Restore emulator system image
+        id: system-image-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: /usr/local/lib/android/sdk/system-images
           key: system-image-android-34-google_atd-x86_64
 
-      - name: Cache AVD
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      - name: Restore AVD
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         id: avd-cache
         with:
           path: |
@@ -133,21 +137,35 @@ jobs:
         run: |
           (cd android && ./gradlew --stop) || true
           pkill -f 'KotlinCompileDaemon|kotlin-compiler-daemon|GradleDaemon' || true
+          echo "===== df before emulator ====="
+          df -h
           free -h
+          echo "nproc=$(nproc)"
+          if [[ "$(nproc)" -ge 4 ]]; then
+            echo "EMULATOR_CORES=4" >> "$GITHUB_ENV"
+          else
+            echo "EMULATOR_CORES=2" >> "$GITHUB_ENV"
+          fi
 
       - name: Create AVD snapshot for caching
+        id: create-avd
         if: steps.avd-cache.outputs.cache-hit != 'true'
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: 34
           arch: x86_64
           target: google_atd
+          # main's AVD profile is pixel_6. It is not a smaller device.
+          # disk-size caps userdata at 2048M; the profile default is ~7GB
+          # and the runner does not have that free after the APK build.
           profile: pixel_6
-          cores: 2
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: 2048M
           avd-name: temple-smoke-34-atd
           force-avd-creation: false
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-audio -no-boot-anim -camera-back none -camera-front none
+          pre-emulator-launch-script: bash scripts/ci/prepare_atd_avd.sh temple-smoke-34-atd
           script: echo "Generated AVD snapshot for caching."
 
       - name: Launch demo-seed APK
@@ -159,12 +177,32 @@ jobs:
           # launcher and System UI that were ANRing on google_apis.
           target: google_atd
           profile: pixel_6
-          cores: 2
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: 2048M
           avd-name: temple-smoke-34-atd
           force-avd-creation: false
           disable-animations: true
           emulator-options: -no-snapshot-save -no-boot-anim -gpu swiftshader_indirect -no-window -no-audio -camera-back none -camera-front none
+          pre-emulator-launch-script: bash scripts/ci/prepare_atd_avd.sh temple-smoke-34-atd
           script: timeout --kill-after=30s 18m bash scripts/ci/run_demo_seed_launch.sh
+
+      - name: Save emulator system image
+        if: always() && steps.system-image-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: /usr/local/lib/android/sdk/system-images
+          key: system-image-android-34-google_atd-x86_64
+
+      - name: Save AVD
+        if: always() && steps.avd-cache.outputs.cache-hit != 'true' && steps.create-avd.outcome == 'success'
+        continue-on-error: true
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-34-x86_64-google_atd-pixel6-snapshot
 
       - name: Upload demo-seed logcat and screenshots
         if: always()
