@@ -180,6 +180,15 @@ jobs:
             ~/.android/adb*
           key: avd-34-x86_64-google_apis-pixel6-snapshot
 
+      # gradle.properties sets -Xmx8G and the daemon stays up after the APK
+      # build. The emulator then raises guest RAM to 2560MB. On the hosted
+      # runner those two together tore down demo-seed-launch while it was
+      # loading the AVD snapshot. Stop the daemon before any emulator boot.
+      - name: Stop Gradle before the emulator
+        run: |
+          (cd android && ./gradlew --stop)
+          free -h
+
       - name: Create AVD snapshot for caching
         if: steps.avd-cache.outputs.cache-hit != 'true'
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
