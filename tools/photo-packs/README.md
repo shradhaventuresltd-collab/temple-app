@@ -93,7 +93,7 @@ from this branch.
 | `banashankari-temple-bengaluru` | Badami / Cholachagudda frames | 6 Bengaluru / Kanakapura Road photos. `site_verified`. |
 | `talakaveri-temple` | Brihadeeswara and Srirangam | 5 Talakaveri / Kodagu photos. `site_verified`. |
 | `mahabaleshwar-temple-gokarna` | Kathmandu Gokarneshwor | 6 Gokarna, Karnataka photos. `site_verified`. |
-| `pashupatinath-temple-mandsaur` | `The_Pashupatinath_Temple_27.jpg` and the Kathmandu Maha Shivaratri sadhu frame (Nabin K. Sapkota, Bijay Chaurasia) | 7 photos from Category:Pashupatinath Temple, Mandsaur. Kathmandu frames are not in the pack. |
+| `pashupatinath-temple-mandsaur` | `The_Pashupatinath_Temple_27.jpg`, the Kathmandu Maha Shivaratri sadhu frame (Nabin K. Sapkota, Bijay Chaurasia), and the access-road arch with the bank advertisement | 6 photos from Category:Pashupatinath Temple, Mandsaur. Cover is 01. Kathmandu frames are not in the pack. |
 | `sri-krishna-matha-udupi` | Parashurama temple, theatre, railway station, generic city frame | 8 Matha-only photos. `site_verified`. |
 
 ## Tamil Nadu + Kerala Wave A
@@ -242,7 +242,7 @@ K.vishnupranay).
 | `naina-devi-temple-bilaspur` | `naina-devi-temple` | Naina Devi Temple | Himachal Pradesh | 5 |
 | `omkareshwar-temple` | same | Omkareshwar Temple | Madhya Pradesh | 5 |
 | `panchvaktra-temple-mandi` | `panchvaktra-temple` | Panchvaktra Temple | Himachal Pradesh | 5 |
-| `pashupatinath-temple-mandsaur` | `pashupatinath-temple` | Pashupatinath Temple | Madhya Pradesh | 7 |
+| `pashupatinath-temple-mandsaur` | `pashupatinath-temple` | Pashupatinath Temple | Madhya Pradesh | 6 |
 | `patan-devi-temple` | same | Patan Devi Temple | Bihar | 5 |
 | `prem-mandir-vrindavan` | `prem-mandir` | Prem Mandir | Uttar Pradesh | 5 |
 | `raghunath-temple-jammu` | `raghunath-temple` | Raghunath Temple | Jammu and Kashmir | 5 |

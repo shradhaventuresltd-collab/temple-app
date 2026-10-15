@@ -166,6 +166,19 @@ bool _isHistoricalPrintCaption(String credit) {
   return lower.contains('lithograph') || lower.contains('1847 print');
 }
 
+/// Short label for a cover that is a historical print, not a photograph.
+///
+/// Browse cards and the home collage use this so the 1847 Purmandal plate
+/// is not shown as a photo of the temple.
+String? historicalCoverCaption(List<TemplePhoto> photos, String url) {
+  for (final photo in photos) {
+    if (photo.url != url) continue;
+    if (_isHistoricalPrintCaption(photo.credit)) return 'Lithograph, 1847';
+    return null;
+  }
+  return null;
+}
+
 /// Storage object path for an admin photo upload.
 String templePhotoStoragePath({
   required String docId,

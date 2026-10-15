@@ -864,9 +864,18 @@ void main() {
   test('Pashupatinath Mandsaur uses the category pack once each', () {
     final temple = _named('Pashupatinath Temple');
     expect(temple.city, 'Mandsaur');
-    expect(temple.images, hasLength(7));
-    expect(temple.images.toSet(), hasLength(7));
+    expect(temple.images, hasLength(6));
+    expect(temple.images.toSet(), hasLength(6));
+    expect(temple.photos, hasLength(6));
     expect(temple.imageUrl, temple.images.first);
+    expect(temple.images.join('\n'), isNot(contains('Madhya_Pradesh_001')));
+    expect(temple.photos[0].credit, 'Rohit MDS · CC BY-SA 4.0');
+    expect(temple.photos[0].licence, PhotoLicence.ccBySa);
+    expect(temple.photos[0].order, 0);
+    expect(temple.photos[4].url, contains('Statue_of_Pashupatinath_Mandsaur'));
+    expect(temple.photos[4].credit, 'Rohit MDS · CC BY-SA 4.0');
+    expect(temple.photos[4].licence, PhotoLicence.ccBySa);
+    expect(temple.photos[4].order, 4);
     expect(
       temple.imageUrl,
       'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/Pashupatinath_Temple_Mandsaur.jpg/1280px-Pashupatinath_Temple_Mandsaur.jpg',
@@ -921,6 +930,10 @@ void main() {
     expect(
       visiblePhotoCredit(purmandal.photos, purmandal.imageUrl),
       contains('1847 print'),
+    );
+    expect(
+      historicalCoverCaption(purmandal.photos, purmandal.imageUrl),
+      'Lithograph, 1847',
     );
     final janaki = _named('Janaki Temple Sitamarhi');
     expect(janaki.images.join('\n'), isNot(contains('Punaura_Sitamarhi')));
