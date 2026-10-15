@@ -43,10 +43,10 @@ class _HomeScreenState extends State<HomeScreen> {
   final TempleService _templeService = TempleService();
   late Future<List<Temple>> _templesFuture;
 
-  Future<List<Temple>> _loadTemples() {
+  Future<List<Temple>> _loadTemples({bool refresh = false}) {
     final loader = widget.templesLoader;
     if (loader != null) return loader();
-    return _templeService.getTemples();
+    return _templeService.getTemples(refresh: refresh);
   }
 
   @override
@@ -56,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _reloadTemples() {
-    setState(() => _templesFuture = _loadTemples());
+    setState(() => _templesFuture = _loadTemples(refresh: true));
   }
 
   AdminAuth get _auth => widget.adminAuth ?? AdminAuth.instance;

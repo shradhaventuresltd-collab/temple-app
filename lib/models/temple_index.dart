@@ -1,4 +1,5 @@
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
 
 /// `temple_index/{stateSlug}` — one shard per state.
@@ -265,6 +266,7 @@ Map<String, dynamic> templeIndexEntryFromMap(
   final temple = Temple.fromMap(id, data);
   final flags = templeIndexFlagsFor(temple);
   final coords = templeIndexCoordinates(data);
+  final cover = coverThumbFor(data);
   final address = shortTempleAddress(
     _text(data['address']).isNotEmpty
         ? _text(data['address'])
@@ -281,7 +283,7 @@ Map<String, dynamic> templeIndexEntryFromMap(
     'state': _clip(data['state'], kTempleIndexStateMax),
     'deity': _clip(data['deity'], kTempleIndexDeityMax),
     'address': address,
-    'coverThumb': coverThumbFor(data),
+    'coverThumb': cover,
     'lat': coords.lat,
     'lng': coords.lng,
     'updatedAt': null,
@@ -297,11 +299,107 @@ Map<String, dynamic> templeIndexEntryFromMap(
   if (data.containsKey('hidden') && data['hidden'] is bool) {
     entry['hidden'] = data['hidden'];
   }
+  final caption = cover == null
+      ? null
+      : historicalCoverCaption(temple.photos, cover);
+  if (caption != null) entry['coverCaption'] = caption;
   return entry;
 }
 
-/// Browse filter hook for KAN-145. The client still reads `temples` and does
-/// not call this yet.
+/// Browse card built from one `entries.{id}` value. Description, story, and
+/// timings stay empty; the detail screen loads `temples/{id}` for those.
+Temple templeFromIndexEntry(Map<String, dynamic> entry) {
+  final id = _text(entry['id']).isNotEmpty ? _text(entry['id']) : _text(entry['slug']);
+  final cover = _text(entry['coverThumb']);
+  final caption = _text(entry['coverCaption']);
+  final coords = templeIndexCoordinates({
+    'latitude': entry['lat'],
+    'longitude': entry['lng'],
+  });
+  return Temple(
+    id: id,
+    name: _text(entry['name']),
+    state: _text(entry['state']),
+    city: _text(entry['city']),
+    deity: _text(entry['deity']),
+    imageUrl: cover,
+    images: cover.isEmpty ? const [] : [cover],
+    description: '',
+    story: '',
+    location: _text(entry['address']),
+    timings: null,
+    specialities: const [],
+    latitude: coords.lat ?? 0,
+    longitude: coords.lng ?? 0,
+    indexTradition: _text(entry['tradition']).isEmpty
+        ? 'unspecified'
+        : _text(entry['tradition']),
+    indexFraming: _text(entry['framing']).isEmpty
+        ? 'neutral'
+        : _text(entry['framing']),
+    coverCaption: caption.isEmpty ? null : caption,
+  );
+}
+
+/// Milliseconds for a meta shard stamp. Null when the value is not a time.
+int? indexStampMillis(Object? value) {
+  if (value == null) return null;
+  if (value is DateTime) return value.millisecondsSinceEpoch;
+  if (value is int) return value;
+  final millis = _tryMillis(value);
+  return millis;
+}
+
+int? _tryMillis(Object value) {
+  try {
+    final dynamic stamp = value;
+    final dynamic millis = stamp.millisecondsSinceEpoch;
+    if (millis is int) return millis;
+  } catch (_) {}
+  return null;
+}
+
+/// True when both stamps are times and name the same instant.
+bool sameIndexStamp(Object? cached, Object? server) {
+  final left = indexStampMillis(cached);
+  final right = indexStampMillis(server);
+  if (left == null || right == null) return false;
+  return left == right;
+}
+
+/// One shard the browse load will read.
+class IndexShardRead {
+  const IndexShardRead({required this.slug, required this.fromCache});
+
+  final String slug;
+
+  /// True when the cached shard is still the server stamp.
+  final bool fromCache;
+}
+
+/// Shards to read after a cache meta and a server meta.
+///
+/// A shard comes from cache only when its server `updatedAt` matches the
+/// cached meta and that shard document is already cached. Anything else is
+/// a server read. Slugs are sorted so the browse order does not depend on
+/// map order.
+List<IndexShardRead> planIndexShardReads({
+  required Map<String, Object?> cachedStamps,
+  required Map<String, Object?> serverStamps,
+  required Set<String> shardsInCache,
+}) {
+  final slugs = serverStamps.keys.toList()..sort();
+  return [
+    for (final slug in slugs)
+      IndexShardRead(
+        slug: slug,
+        fromCache: shardsInCache.contains(slug) &&
+            sameIndexStamp(cachedStamps[slug], serverStamps[slug]),
+      ),
+  ];
+}
+
+/// Browse filter. The client drops hidden or explicitly unpublished entries.
 ///
 /// When `hidden` or `published` is present on an entry, the index lists the
 /// temple only if it is not hidden and not explicitly unpublished. Missing

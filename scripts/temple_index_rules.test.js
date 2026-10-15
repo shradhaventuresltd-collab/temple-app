@@ -261,22 +261,19 @@ async function commitTemple(db, { id, data, isNew, previous, deleteTemple = fals
   if (metaShards.length > 0) {
     const metaRef = at(db, "meta/temple_index");
     const metaSnap = await getDoc(metaRef);
-    const stamps = {};
     if (metaSnap.exists()) {
-      const existing = metaSnap.data()?.shards ?? {};
-      for (const [key, value] of Object.entries(existing)) stamps[key] = value;
+      // Field paths only. Resending the whole shards map would rewrite
+      // sibling timestamps. increment under mergeFields resets indexVersion.
+      const patch = { indexVersion: increment(1) };
+      for (const name of metaShards) {
+        patch[`shards.${name}`] = serverTimestamp();
+      }
+      batch.update(metaRef, patch);
+    } else {
+      const stamps = {};
+      for (const name of metaShards) stamps[name] = serverTimestamp();
+      batch.set(metaRef, { indexVersion: 1, shards: stamps });
     }
-    for (const name of metaShards) stamps[name] = serverTimestamp();
-    // merge: true. increment under mergeFields resets indexVersion in this
-    // SDK, and the rules then deny the batch on the next edit.
-    batch.set(
-      metaRef,
-      {
-        indexVersion: metaSnap.exists() ? increment(1) : 1,
-        shards: stamps,
-      },
-      { merge: true },
-    );
   }
   await batch.commit();
 }

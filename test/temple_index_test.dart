@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:temple_app/data/sample_data.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_index.dart';
+import 'package:temple_app/widgets/temple_browse_card.dart';
 import 'package:temple_app/services/admin_temple_service.dart';
 import 'package:temple_app/services/seed_service.dart';
 
@@ -571,9 +572,48 @@ void main() {
     await dir.delete(recursive: true);
   });
 
-  test('browse still reads temples, not the index', () {
+  test('an index entry becomes a browse temple with stored honesty', () {
+    final temple = templeFromIndexEntry({
+      'id': 'shore-temple',
+      'name': 'Shore Temple',
+      'state': 'Tamil Nadu',
+      'city': 'Mahabalipuram',
+      'deity': 'Shiva',
+      'address': 'Mahabalipuram, Tamil Nadu',
+      'coverThumb': 'https://example.com/shore.jpg',
+      'coverCaption': 'Lithograph, 1847',
+      'lat': 12.616,
+      'lng': 80.199,
+      'tradition': 'unspecified',
+      'framing': 'monument',
+    });
+    expect(temple.isIndexSummary, isTrue);
+    expect(temple.description, isEmpty);
+    expect(temple.imageUrl, 'https://example.com/shore.jpg');
+    expect(temple.location, 'Mahabalipuram, Tamil Nadu');
+    expect(temple.latitude, 12.616);
+    expect(temple.longitude, 80.199);
+    expect(templeBrowseHonestyLabels(temple), ['Heritage visit']);
+    expect(temple.coverCaption, 'Lithograph, 1847');
+  });
+
+  test('unchanged shard stamps stay on cache and a new stamp is fetched', () {
+    final stamp = DateTime.utc(2026, 1, 2);
+    final plan = planIndexShardReads(
+      cachedStamps: {'bihar': stamp, 'kerala': stamp},
+      serverStamps: {'kerala': stamp, 'bihar': DateTime.utc(2026, 2, 2)},
+      shardsInCache: {'bihar', 'kerala'},
+    );
+    expect(plan.map((read) => read.slug), ['bihar', 'kerala']);
+    expect(plan[0].fromCache, isFalse);
+    expect(plan[1].fromCache, isTrue);
+  });
+
+  test('browse reads the index and falls back to temples', () {
     final source = File('lib/services/temple_service.dart').readAsStringSync();
     expect(source, contains("collection('temples')"));
-    expect(source, isNot(contains('temple_index')));
+    expect(source, contains('kTempleIndexCollection'));
+    expect(source, contains('Source.cache'));
+    expect(source, contains('Source.server'));
   });
 }

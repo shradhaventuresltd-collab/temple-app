@@ -38,7 +38,7 @@ jobs:
       - name: temple index emulator rules
         run: |
           npm ci --prefix scripts
-          scripts/node_modules/.bin/firebase emulators:exec --only firestore --project demo-temple-index "node --test scripts/temple_index_rules.test.js && node --test --test-name-pattern \"existing meta and shard|would pass 400|temple id exists\" scripts/state_batch.test.js"
+          scripts/node_modules/.bin/firebase emulators:exec --only firestore --project demo-temple-index "node --test scripts/temple_index_rules.test.js && node --test --test-name-pattern \"existing meta and shard|would pass 400|temple id exists\" scripts/state_batch.test.js && node --test scripts/index_read_count.test.js"
 
       # No upload key in CI. This exercises the guard, not a signed AAB.
       - name: Play AAB guard

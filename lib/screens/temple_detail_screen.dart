@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_photo.dart';
+import 'package:temple_app/services/temple_service.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
 import 'package:temple_app/widgets/app_drawer.dart';
 import 'package:temple_app/widgets/temple_image_placeholder.dart';
@@ -13,17 +14,73 @@ import 'package:url_launcher/url_launcher.dart';
 const Color _saffron = Color(0xFFFF8F00);
 const Color _gold = Color(0xFFFFD54F);
 
-class TempleDetailScreen extends StatelessWidget {
-  const TempleDetailScreen({super.key, required this.temple});
+class TempleDetailScreen extends StatefulWidget {
+  const TempleDetailScreen({super.key, required this.temple, this.loadTemple});
 
+  /// Browse summary, or a full document when the caller already has one.
   final Temple temple;
+
+  /// Loads `temples/{id}`. Tests pass a fake. Index summaries fetch; a full
+  /// document passed in is shown as-is.
+  final Future<Temple?> Function(String id)? loadTemple;
+
+  @override
+  State<TempleDetailScreen> createState() => _TempleDetailScreenState();
+}
+
+class _TempleDetailScreenState extends State<TempleDetailScreen> {
+  late Temple _temple;
+  var _loading = false;
+  var _missing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _temple = widget.temple;
+    final id = widget.temple.id.trim();
+    if (!widget.temple.isIndexSummary || id.isEmpty) return;
+    _loading = true;
+    final load = widget.loadTemple ?? TempleService().getTemple;
+    unawaited(_fetch(load, id));
+  }
+
+  Future<void> _fetch(Future<Temple?> Function(String id) load, String id) async {
+    try {
+      final full = await load(id);
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        if (full == null) {
+          _missing = true;
+        } else {
+          _temple = full;
+        }
+      });
+    } catch (e, st) {
+      debugPrint('Temple detail read failed: $e\n$st');
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _missing = true;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFFFBF2),
       drawer: const AppDrawer(),
-      body: TempleDetailBody(temple: temple),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator(color: _saffron))
+          : _missing
+          ? Center(
+              child: Text(
+                'Could not load this temple.',
+                style: GoogleFonts.poppins(color: Colors.brown.shade700),
+              ),
+            )
+          : TempleDetailBody(temple: _temple),
     );
   }
 }

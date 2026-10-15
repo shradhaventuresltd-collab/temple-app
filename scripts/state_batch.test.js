@@ -11,6 +11,7 @@ import {
   assertIdsAbsent,
   firestoreWritePayload,
   parseArgs,
+  planSeedCommits,
 } from "./seed_state_batch.js";
 import {
   STATE_BOUNDS,
@@ -836,7 +837,7 @@ test("apply omits image fields and refuses to overwrite an existing document", (
   assert.match(source, /assertIdsAbsent/);
   assert.doesNotMatch(source, /collection\("temples"\)[\s\S]{0,80}\.set\(/);
   assert.doesNotMatch(source, /collection\("temples"\)[\s\S]{0,80}\.update\(/);
-  assert.doesNotMatch(source, /\.update\(/);
+  assert.match(source, /batch\.update\(metaRef, patch\)/);
   assert.doesNotMatch(source, /--update/);
   assert.equal(Object.hasOwn(parseArgs(["batch.json"]), "update"), false);
   assert.throws(() => parseArgs(["batch.json", "--update"]), /Unknown argument/);
@@ -1201,7 +1202,7 @@ test(
     const odisha = (await db.collection("temple_index").doc("odisha").get()).data();
     assert.equal(odisha.entries["seed-apply-odisha-temple"].state, "Odisha");
     const meta = (await db.collection("meta").doc("temple_index").get()).data();
-    assert.equal(meta.indexVersion, 6);
+    assert.equal(meta.indexVersion, 5);
     assert.equal(meta.note, "keep me");
     assert.equal(meta.shards.kerala.toMillis(), keralaStamp.getTime());
     assert.ok(meta.shards.bihar);
@@ -1299,6 +1300,23 @@ test(
     assert.equal(meta.note, "keep me");
   },
 );
+
+test("seed commits are one batch under 500 writes and split above it", () => {
+  const small = [
+    { shard: "bihar", creates: [{ id: "a" }] },
+    { shard: "odisha", creates: [{ id: "b" }] },
+  ];
+  assert.equal(planSeedCommits(small).length, 1);
+  const heavy = [];
+  for (let i = 0; i < 3; i += 1) {
+    const creates = [];
+    for (let n = 0; n < 200; n += 1) creates.push({ id: `${i}-${n}` });
+    heavy.push({ shard: `state-${i}`, creates });
+  }
+  const split = planSeedCommits(heavy);
+  assert.equal(split.length, 3);
+  assert.equal(split[0].length, 1);
+});
 
 test("CI workflows do not apply seed batches", () => {
   const ci = readFileSync(resolve(repoRoot, ".github/workflows/ci.yml"), "utf8");

@@ -53,8 +53,9 @@ class HomeMosaicCollage extends StatelessWidget {
     final captions = <String, String>{
       for (final temple in temples)
         for (final url in verifiedGalleryUrls(temple))
-          if (historicalCoverCaption(temple.photos, url) != null)
-            url: historicalCoverCaption(temple.photos, url)!,
+          if ((temple.coverCaption ?? historicalCoverCaption(temple.photos, url)) !=
+              null)
+            url: temple.coverCaption ?? historicalCoverCaption(temple.photos, url)!,
     };
     final count = temples.length;
 

@@ -18,6 +18,9 @@ class Temple {
     this.images = const [],
     this.photos = const [],
     this.writePhotos = false,
+    this.indexTradition,
+    this.indexFraming,
+    this.coverCaption,
   }) : _timings = timings;
 
   final String id;
@@ -49,6 +52,19 @@ class Temple {
   /// plus [images] from that list in the same payload. Seed leaves this
   /// false so existing docs are not backfilled.
   final bool writePhotos;
+
+  /// Set when this value came from a `temple_index` entry, not a full document.
+  ///
+  /// Browse cards use these instead of re-reading description text. Detail
+  /// loads `temples/{id}` and builds a [Temple] without them.
+  final String? indexTradition;
+  final String? indexFraming;
+
+  /// Lithograph label already computed for [imageUrl]. Null on full documents;
+  /// the card then reads [photos].
+  final String? coverCaption;
+
+  bool get isIndexSummary => indexTradition != null && indexFraming != null;
 
   final double latitude;
   final double longitude;
@@ -141,6 +157,9 @@ class Temple {
     List<String>? images,
     List<TemplePhoto>? photos,
     bool? writePhotos,
+    String? indexTradition,
+    String? indexFraming,
+    String? coverCaption,
     double? latitude,
     double? longitude,
   }) {
@@ -159,6 +178,9 @@ class Temple {
       images: images ?? this.images,
       photos: photos ?? this.photos,
       writePhotos: writePhotos ?? this.writePhotos,
+      indexTradition: indexTradition ?? this.indexTradition,
+      indexFraming: indexFraming ?? this.indexFraming,
+      coverCaption: coverCaption ?? this.coverCaption,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
     );

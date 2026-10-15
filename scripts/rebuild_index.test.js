@@ -536,6 +536,7 @@ test("apply re-reads each shard before writing and skips a fresh match", async (
   assert.equal(count, 1);
   assert.deepEqual(gets, ["temple_index/bihar", "meta/temple_index"]);
   assert.deepEqual(commits[0][1].opts, { merge: true });
+  assert.deepEqual(Object.keys(commits[0][1].data.shards), ["bihar"]);
   assert.equal(commits.length, 1);
   assert.equal(commits[0][0].path, "temple_index/bihar");
   assert.deepEqual(commits[0][0].opts.mergeFields[0].parts, ["entries", "patan-devi-temple"]);
