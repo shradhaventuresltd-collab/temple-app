@@ -36,7 +36,7 @@ What it checks:
 5. Opening that card reaches temple detail.
 6. **Get Directions** leaves the app. Maps, a browser, or an Android chooser all count. The button still being on screen fails the flow.
 
-Install [Maestro](https://maestro.mobile.dev/) and start an Android emulator (API 30 or newer; CI uses API 34 `google_atd` x86_64, Pixel 6, userdata `2048M`, and 4 cores when `nproc` is at least 4). The emulator needs something that can open `https://www.google.com/maps/...` (Chrome or the Maps app). Without that, Get Directions stays in the app and shows "Couldn't open directions on this device."
+Install [Maestro](https://maestro.mobile.dev/) and start an Android emulator (API 30 or newer; CI uses API 34 `google_atd` x86_64, Pixel 6, userdata `2048M` via `-partition-size 2048`, and 4 cores when `nproc` is at least 4). This repo's hosted runner has 2 cores, so the job uses 2. The system image's `userdata.img` is about 7372 MB and `disk.dataPartition.size` does not shrink it, so AVD prep replaces an oversized image with a 512M ext4 filesystem before boot. The emulator needs something that can open `https://www.google.com/maps/...` (Chrome or the Maps app). Without that, Get Directions stays in the app and shows "Couldn't open directions on this device."
 
 ```bash
 flutter pub get

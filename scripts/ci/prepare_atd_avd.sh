@@ -28,3 +28,33 @@ printf 'disk.dataPartition.size=2048M\n' >> "${cfg}.tmp"
 mv "${cfg}.tmp" "$cfg"
 echo "userdata partition set to 2048M"
 grep '^disk.dataPartition.size=' "$cfg"
+
+# The emulator reads hardware-qemu.ini when avdmanager already wrote it.
+# A smaller config.ini line does not override that file.
+qcfg="${HOME}/.android/avd/${avd_name}.avd/hardware-qemu.ini"
+if [[ -f "$qcfg" ]]; then
+  grep -v '^disk.dataPartition.size' "$qcfg" > "${qcfg}.tmp"
+  printf 'disk.dataPartition.size = 2048M\n' >> "${qcfg}.tmp"
+  mv "${qcfg}.tmp" "$qcfg"
+  echo "hardware-qemu.ini userdata partition set to 2048M"
+fi
+
+# google_atd ships userdata.img at about 7372.80 MB. disk.dataPartition.size
+# does not shrink that image, and qemu still tries to allocate it. Replace an
+# oversized image with a 512M ext4 filesystem. -partition-size 2048 can then
+# grow the AVD copy, which fits in the space left after the APK build.
+img="$(find "$sdk/system-images" -type f -path '*/google_atd/*/userdata.img' -print -quit)"
+if [[ -z "$img" ]]; then
+  echo "google_atd userdata.img not found under ${sdk}/system-images" >&2
+  exit 1
+fi
+bytes="$(stat -c %s "$img")"
+cap=$((2048 * 1024 * 1024))
+echo "userdata.img ${img} apparent bytes ${bytes}"
+if (( bytes > cap )); then
+  echo "replacing oversized userdata.img with a 512M ext4 image"
+  rm -f "$img"
+  truncate -s 512M "$img"
+  mkfs.ext4 -F -L data "$img"
+  echo "userdata.img now $(stat -c %s "$img") bytes"
+fi

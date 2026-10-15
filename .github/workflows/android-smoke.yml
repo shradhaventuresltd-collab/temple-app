@@ -229,7 +229,7 @@ jobs:
           avd-name: temple-smoke-34-atd
           force-avd-creation: false
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -no-audio -no-boot-anim -camera-back none -camera-front none
+          emulator-options: -no-window -gpu swiftshader_indirect -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
           pre-emulator-launch-script: bash scripts/ci/prepare_atd_avd.sh temple-smoke-34-atd
           script: echo "Generated AVD snapshot for caching."
 
@@ -253,7 +253,7 @@ jobs:
           # guest was still settling. The smoke script waits for
           # sys.boot_completed and installs the APK with adb.
           pre-emulator-launch-script: bash scripts/ci/prepare_atd_avd.sh temple-smoke-34-atd
-          emulator-options: -no-snapshot-save -no-snapshot-load -no-boot-anim -gpu swiftshader_indirect -no-window -no-audio -camera-back none -camera-front none
+          emulator-options: -no-snapshot-save -no-snapshot-load -no-boot-anim -gpu swiftshader_indirect -no-window -no-audio -camera-back none -camera-front none -partition-size 2048
           # One dash-safe command. The action runs this with /usr/bin/sh.
           # Setup usually takes about 6 to 7 minutes, so the 15-minute job
           # limit fires before this 12-minute shell timeout and the job

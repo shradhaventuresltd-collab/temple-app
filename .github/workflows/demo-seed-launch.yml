@@ -164,7 +164,7 @@ jobs:
           avd-name: temple-smoke-34-atd
           force-avd-creation: false
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -no-audio -no-boot-anim -camera-back none -camera-front none
+          emulator-options: -no-window -gpu swiftshader_indirect -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
           pre-emulator-launch-script: bash scripts/ci/prepare_atd_avd.sh temple-smoke-34-atd
           script: echo "Generated AVD snapshot for caching."
 
@@ -182,7 +182,7 @@ jobs:
           avd-name: temple-smoke-34-atd
           force-avd-creation: false
           disable-animations: true
-          emulator-options: -no-snapshot-save -no-boot-anim -gpu swiftshader_indirect -no-window -no-audio -camera-back none -camera-front none
+          emulator-options: -no-snapshot-save -no-boot-anim -gpu swiftshader_indirect -no-window -no-audio -camera-back none -camera-front none -partition-size 2048
           pre-emulator-launch-script: bash scripts/ci/prepare_atd_avd.sh temple-smoke-34-atd
           script: timeout --kill-after=30s 18m bash scripts/ci/run_demo_seed_launch.sh
 

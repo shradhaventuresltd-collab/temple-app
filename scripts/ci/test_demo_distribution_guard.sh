@@ -365,6 +365,12 @@ require "fail-fast wrapper reports a dead emulator" \
   'Emulator process exited before boot' scripts/ci/emulator_fail_fast.sh
 require "AVD prep forces a 2048M userdata image" \
   'disk.dataPartition.size=2048M' scripts/ci/prepare_atd_avd.sh
+require "AVD prep replaces an oversized userdata.img" \
+  'mkfs.ext4 -F -L data' scripts/ci/prepare_atd_avd.sh
+require "smoke passes -partition-size 2048" \
+  '-partition-size 2048' .github/workflows/android-smoke.yml
+require "seed-launch passes -partition-size 2048" \
+  '-partition-size 2048' .github/workflows/demo-seed-launch.yml
 forbid "disk script does not install npm" 'npm |firebase-tools|firebase-cli' \
   scripts/ci/free_runner_disk.sh
 if grep -F -q 'applicationIdSuffix' scripts/build_play_aab.sh; then
