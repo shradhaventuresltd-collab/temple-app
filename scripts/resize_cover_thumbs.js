@@ -43,6 +43,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard.js";
+import { assertStorageAuth, STORAGE_AUTH_BUCKET } from "./storage_auth.js";
 import {
   entryFromTemple,
   firstThumbSource,
@@ -774,6 +775,13 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
   const env = deps.env ?? process.env;
   const project = resolveProject(opts, env);
   if (opts.apply) await authorizeApply(project, env, { confirm: deps.confirm });
+  if (opts.apply) {
+    if (deps.storagePreflight) await deps.storagePreflight();
+    else if (!usesEmulator(env)) {
+      const admin = await openAdmin(project, env);
+      await assertStorageAuth(admin.storage().bucket(STORAGE_AUTH_BUCKET));
+    }
+  }
   const load = deps.load ?? loadTemples;
   const temples = await load(project, env);
   temples.sort((a, b) => String(a.id).localeCompare(String(b.id)));

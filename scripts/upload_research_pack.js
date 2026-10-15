@@ -3,6 +3,7 @@ import { basename, dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 
 import { assertOneCoverOk } from "./cover_ok.js";
+import { assertStorageAuth } from "./storage_auth.js";
 import { mapPhotoLicence, photoCredit } from "./photo_licence.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -644,6 +645,7 @@ async function main() {
       credential: admin.credential.cert(sa.json),
       storageBucket: opts.bucket,
     });
+    await assertStorageAuth(adminApp.storage().bucket(opts.bucket));
   }
 
   const summaries = [];

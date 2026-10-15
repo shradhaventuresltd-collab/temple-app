@@ -1,3 +1,4 @@
+import "./storage_auth.js";
 import "dotenv/config";
 import admin from "firebase-admin";
 import axios from "axios";

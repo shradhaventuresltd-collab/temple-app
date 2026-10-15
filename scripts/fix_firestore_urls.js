@@ -1,3 +1,4 @@
+import "./storage_auth.js";
 import admin from "firebase-admin";
 import { readFileSync } from "fs";
 import { resolve, dirname } from "path";

@@ -43,6 +43,9 @@
  * any temple, that `fetch` exists. Each check aborts after about 10 seconds,
  * and that timeout is `public-check-failed` too. `--exclude id1,id2`
  * skips those temple ids and warns when an id is not in the loaded set.
+ * Apply runs one read-only Storage exists() before any Firestore write.
+ * If that token request fails, it stops with
+ * "Storage auth preflight failed. No Firestore write."
  * The transaction skips the doc when `imageUrl` is no longer the planned old
  * URL. The old Places object stays in Storage. A temple with no creditable
  * frame 01 is reported (`no-creditable-frame`, or `no-wave-pack`).
@@ -78,6 +81,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { assertOneCoverOk } from "./cover_ok.js";
+import { assertStorageAuth, STORAGE_AUTH_BUCKET } from "./storage_auth.js";
 import { cleanAuthor, mapPhotoLicence, photoCredit } from "./photo_licence.js";
 import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard.js";
 import { changedFields, entryFromTemple, stateSlug, storageObjectFromUrl } from "./temple_index.js";
@@ -1016,6 +1020,13 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
   const env = deps.env ?? process.env;
   const project = resolveProject(opts, env);
   if (opts.apply) await authorizeApply(project, env, { confirm: deps.confirm });
+  if (opts.apply) {
+    if (deps.storagePreflight) await deps.storagePreflight();
+    else if (!usesEmulator(env)) {
+      const admin = await openAdmin(project, env);
+      await assertStorageAuth(admin.storage().bucket(STORAGE_AUTH_BUCKET));
+    }
+  }
   const fetchImpl = Object.prototype.hasOwnProperty.call(deps, "fetchImpl")
     ? deps.fetchImpl
     : globalThis.fetch;
