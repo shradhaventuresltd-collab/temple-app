@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:temple_app/data/sample_data.dart';
 import 'package:temple_app/services/seed_service.dart';
+import 'package:temple_app/services/temple_write_store.dart';
 
 void main() {
   test('templeDocumentId slugs names stably', () {
@@ -194,6 +195,25 @@ void main() {
     expect(karnataka['images'], chamundi.images);
     expect((karnataka['imageUrl'] as String).contains('picsum'), isFalse);
     expect((karnataka['imageUrl'] as String).contains('wikimedia.org'), isTrue);
+  });
+
+  test('seed writes each temple through one index commit', () async {
+    final store = MemoryTempleWriteStore();
+    final result = await seedTempleData(
+      store: store,
+      existingDocs: const {},
+      isAdmin: () async => true,
+    );
+    expect(result.createdCount, sampleTemples.length);
+    expect(result.updatedCount, 0);
+    expect(store.docs.length, sampleTemples.length);
+    expect(store.indexVersion, sampleTemples.length);
+    final indexed = store.shards.values.fold<int>(
+      0,
+      (count, entries) => count + entries.length,
+    );
+    expect(indexed, sampleTemples.length);
+    expect(store.lastIndexFieldPaths, contains('meta/temple_index'));
   });
 
   test('Cheluvanarayana Seed id differs from the Melukote pack folder', () {

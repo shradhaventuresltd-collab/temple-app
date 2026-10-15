@@ -6,7 +6,12 @@ import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-import { assertIdsAbsent, firestoreWritePayload, parseArgs } from "./seed_state_batch.js";
+import {
+  applySeedBatches,
+  assertIdsAbsent,
+  firestoreWritePayload,
+  parseArgs,
+} from "./seed_state_batch.js";
 import {
   STATE_BOUNDS,
   canonicalPhotoPackPath,
@@ -823,9 +828,14 @@ test("apply omits image fields and refuses to overwrite an existing document", (
   const source = readFileSync(join(here, "seed_state_batch.js"), "utf8");
   assert.match(source, /firestoreWritePayload\(temple, null\)/);
   assert.match(source, /getAll\(/);
-  assert.match(source, /batch\.create\(/);
+  assert.match(source, /batch\.create\(db\.collection\("temples"\)\.doc\(temple\.id\)/);
+  assert.match(source, /mergeFields/);
+  assert.match(source, /planSeedIndexBatches/);
+  assert.doesNotMatch(source, /batch\.create\(db\.collection\("temple_index"\)/);
+  assert.doesNotMatch(source, /batch\.create\(meta/);
   assert.match(source, /assertIdsAbsent/);
-  assert.doesNotMatch(source, /\.set\(/);
+  assert.doesNotMatch(source, /collection\("temples"\)[\s\S]{0,80}\.set\(/);
+  assert.doesNotMatch(source, /collection\("temples"\)[\s\S]{0,80}\.update\(/);
   assert.doesNotMatch(source, /\.update\(/);
   assert.doesNotMatch(source, /--update/);
   assert.equal(Object.hasOwn(parseArgs(["batch.json"]), "update"), false);
@@ -1116,6 +1126,179 @@ const List<Temple> sampleTemples = [
   const twice = mergeTemplesIntoSource(once, validated.temples);
   assert.equal(once, twice);
 });
+
+const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST ?? "";
+const onEmulator = /^(127\.0\.0\.1|localhost):\d+$/.test(emulatorHost);
+
+function indexedTemple(id, state, city, latitude, longitude) {
+  return {
+    id,
+    name: id,
+    state,
+    city,
+    deity: "Shiva",
+    description: `${id} is a shrine used to check the apply path. The second sentence keeps the story long enough.`,
+    timings: null,
+    specialities: ["Stone gateway"],
+    latitude,
+    longitude,
+    story: `${id} is a shrine used to check the apply path. The second sentence keeps the story long enough.`,
+    location: `${city}, ${state}`,
+  };
+}
+
+async function emulatorApply() {
+  const admin = (await import("firebase-admin")).default;
+  if (admin.apps.length === 0) {
+    admin.initializeApp({ projectId: "demo-temple-index" });
+  }
+  return {
+    admin,
+    db: admin.firestore(),
+    apply: (temples) => applySeedBatches(admin.firestore(), temples, admin),
+  };
+}
+
+test(
+  "--apply merges a multi-state run into an existing meta and shard",
+  { skip: onEmulator ? false : "Firestore emulator is not running" },
+  async () => {
+    const { db, apply } = await emulatorApply();
+    const kept = {
+      id: "kept-temple",
+      name: "Kept Temple",
+      state: "Bihar",
+      city: "Patna",
+      deity: "Devi",
+      hasImage: false,
+      coverThumb: "",
+    };
+    const keralaStamp = new Date("2020-06-01T00:00:00.000Z");
+    await db.collection("temple_index").doc("bihar").set({
+      entries: { "kept-temple": kept },
+    });
+    await db.collection("temple_index").doc("odisha").delete();
+    await db.collection("meta").doc("temple_index").set({
+      indexVersion: 4,
+      shards: {
+        bihar: new Date("2020-05-01T00:00:00.000Z"),
+        kerala: keralaStamp,
+      },
+      note: "keep me",
+    });
+    await db.collection("temples").doc("seed-apply-merge-temple").delete();
+    await db.collection("temples").doc("seed-apply-odisha-temple").delete();
+
+    // Odisha is first so a commit-per-state loop would write it before Bihar.
+    await apply([
+      indexedTemple("seed-apply-odisha-temple", "Odisha", "Puri", 19.8123, 85.8312),
+      indexedTemple("seed-apply-merge-temple", "Bihar", "Gaya", 24.5123, 84.2345),
+    ]);
+
+    const bihar = (await db.collection("temple_index").doc("bihar").get()).data();
+    assert.equal(bihar.entries["kept-temple"].name, "Kept Temple");
+    assert.equal(bihar.entries["seed-apply-merge-temple"].state, "Bihar");
+    const odisha = (await db.collection("temple_index").doc("odisha").get()).data();
+    assert.equal(odisha.entries["seed-apply-odisha-temple"].state, "Odisha");
+    const meta = (await db.collection("meta").doc("temple_index").get()).data();
+    assert.equal(meta.indexVersion, 6);
+    assert.equal(meta.note, "keep me");
+    assert.equal(meta.shards.kerala.toMillis(), keralaStamp.getTime());
+    assert.ok(meta.shards.bihar);
+    assert.ok(meta.shards.odisha);
+    const created = await db.collection("temples").doc("seed-apply-merge-temple").get();
+    assert.equal(created.exists, true);
+    assert.equal(created.get("timings"), null);
+    assert.equal(Object.hasOwn(created.data(), "imageUrl"), false);
+    assert.equal((await db.collection("temples").doc("seed-apply-odisha-temple").get()).exists, true);
+  },
+);
+
+test(
+  "--apply aborts before any write when a shard would pass 400 entries",
+  { skip: onEmulator ? false : "Firestore emulator is not running" },
+  async () => {
+    const { db, apply } = await emulatorApply();
+    const entries = {};
+    for (let i = 0; i < 400; i += 1) {
+      entries[`full-${i}`] = { id: `full-${i}`, name: `Full ${i}` };
+    }
+    await db.collection("temple_index").doc("bihar").set({ entries });
+    await db.collection("temple_index").doc("odisha").delete();
+    const keralaStamp = new Date("2020-06-01T00:00:00.000Z");
+    await db.collection("meta").doc("temple_index").set({
+      indexVersion: 2,
+      shards: {
+        bihar: new Date("2020-01-01T00:00:00.000Z"),
+        kerala: keralaStamp,
+      },
+    });
+    await db.collection("temples").doc("cap-abort-temple").delete();
+    await db.collection("temples").doc("cap-abort-odisha").delete();
+
+    // Odisha is first. A Bihar cap failure must not leave the Odisha write behind.
+    await assert.rejects(
+      () =>
+        apply([
+          indexedTemple("cap-abort-odisha", "Odisha", "Puri", 19.8123, 85.8312),
+          indexedTemple("cap-abort-temple", "Bihar", "Gaya", 24.5123, 84.2345),
+        ]),
+      /would have 401 entries/,
+    );
+
+    assert.equal((await db.collection("temples").doc("cap-abort-temple").get()).exists, false);
+    assert.equal((await db.collection("temples").doc("cap-abort-odisha").get()).exists, false);
+    assert.equal((await db.collection("temple_index").doc("odisha").get()).exists, false);
+    const shard = (await db.collection("temple_index").doc("bihar").get()).data();
+    assert.equal(Object.keys(shard.entries).length, 400);
+    assert.equal(shard.entries["full-0"].name, "Full 0");
+    assert.equal(Object.hasOwn(shard.entries, "cap-abort-temple"), false);
+    const meta = (await db.collection("meta").doc("temple_index").get()).data();
+    assert.equal(meta.indexVersion, 2);
+    assert.equal(meta.shards.kerala.toMillis(), keralaStamp.getTime());
+    assert.equal(Object.hasOwn(meta.shards, "odisha"), false);
+  },
+);
+
+test(
+  "--apply aborts before any write when a temple id exists",
+  { skip: onEmulator ? false : "Firestore emulator is not running" },
+  async () => {
+    const { db, apply } = await emulatorApply();
+    await db.collection("temple_index").doc("bihar").set({
+      entries: { "kept-temple": { id: "kept-temple", name: "Kept Temple" } },
+    });
+    await db.collection("temple_index").doc("odisha").delete();
+    await db.collection("meta").doc("temple_index").set({
+      indexVersion: 3,
+      shards: { bihar: new Date("2020-01-01T00:00:00.000Z") },
+      note: "keep me",
+    });
+    await db.collection("temples").doc("existing-bihar-temple").set({ name: "Already there" });
+    await db.collection("temples").doc("fresh-odisha-temple").delete();
+
+    await assert.rejects(
+      () =>
+        apply([
+          indexedTemple("fresh-odisha-temple", "Odisha", "Puri", 19.8123, 85.8312),
+          indexedTemple("existing-bihar-temple", "Bihar", "Gaya", 24.5123, 84.2345),
+        ]),
+      /existing-bihar-temple/,
+    );
+
+    assert.equal((await db.collection("temples").doc("fresh-odisha-temple").get()).exists, false);
+    assert.equal((await db.collection("temple_index").doc("odisha").get()).exists, false);
+    assert.equal(
+      (await db.collection("temples").doc("existing-bihar-temple").get()).get("name"),
+      "Already there",
+    );
+    const bihar = (await db.collection("temple_index").doc("bihar").get()).data();
+    assert.equal(Object.keys(bihar.entries).length, 1);
+    const meta = (await db.collection("meta").doc("temple_index").get()).data();
+    assert.equal(meta.indexVersion, 3);
+    assert.equal(meta.note, "keep me");
+  },
+);
 
 test("CI workflows do not apply seed batches", () => {
   const ci = readFileSync(resolve(repoRoot, ".github/workflows/ci.yml"), "utf8");

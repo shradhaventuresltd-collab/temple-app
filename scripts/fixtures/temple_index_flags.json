@@ -1,0 +1,122 @@
+[
+  {
+    "id": "jain-daily",
+    "name": "Dilwara Temples",
+    "deity": "Jain Tirthankaras",
+    "description": "Daily puja is held.",
+    "story": "",
+    "timings": "",
+    "specialities": [],
+    "tradition": "jain",
+    "living": false,
+    "framing": "neutral"
+  },
+  {
+    "id": "daily-pooja",
+    "name": "Example Shrine",
+    "deity": "Shiva",
+    "description": "The shrine holds daily pooja for devotees.",
+    "story": "",
+    "timings": "",
+    "specialities": [],
+    "tradition": "unspecified",
+    "living": true,
+    "framing": "living"
+  },
+  {
+    "id": "archaeology",
+    "name": "Shore Temple",
+    "deity": "Shiva",
+    "description": "This is an archaeological site.",
+    "story": "",
+    "timings": "",
+    "specialities": [],
+    "tradition": "unspecified",
+    "living": false,
+    "framing": "monument"
+  },
+  {
+    "id": "empty",
+    "name": "",
+    "deity": "",
+    "description": "",
+    "story": "",
+    "timings": null,
+    "specialities": [],
+    "tradition": "unspecified",
+    "living": false,
+    "framing": "neutral"
+  },
+  {
+    "id": "gurdwara",
+    "name": "Harmandir Sahib Gurdwara",
+    "deity": "Guru Nanak",
+    "description": "A Sikh site.",
+    "story": "",
+    "timings": "",
+    "specialities": [],
+    "tradition": "sikh",
+    "living": false,
+    "framing": "neutral"
+  },
+  {
+    "id": "puja-discontinued",
+    "name": "Old Shrine",
+    "deity": "Shiva",
+    "description": "The old puja discontinued after the shrine closed.",
+    "story": "",
+    "timings": "",
+    "specialities": [],
+    "tradition": "unspecified",
+    "living": false,
+    "framing": "neutral"
+  },
+  {
+    "id": "no-daily-pooja",
+    "name": "Quiet Shrine",
+    "deity": "Devi",
+    "description": "There is no daily pooja here.",
+    "story": "",
+    "timings": "",
+    "specialities": [],
+    "tradition": "unspecified",
+    "living": false,
+    "framing": "neutral"
+  },
+  {
+    "id": "not-a-living",
+    "name": "Monument Shrine",
+    "deity": "Shiva",
+    "description": "This is not a living temple.",
+    "story": "",
+    "timings": "",
+    "specialities": [],
+    "tradition": "unspecified",
+    "living": false,
+    "framing": "monument"
+  },
+  {
+    "id": "ruins",
+    "name": "Ruined Shrine",
+    "deity": "Shiva",
+    "description": "The shrine is in ruins and worship ceased.",
+    "story": "",
+    "timings": "",
+    "specialities": [],
+    "tradition": "unspecified",
+    "living": false,
+    "framing": "monument"
+  },
+  {
+    "id": "story-living",
+    "name": "River Temple",
+    "deity": "Vishnu",
+    "description": "A stone shrine.",
+    "story": "It is a living temple.",
+    "timings": "",
+    "specialities": [],
+    "tradition": "unspecified",
+    "living": true,
+    "framing": "living"
+  }
+]

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/models/temple_index.dart';
 import 'package:temple_app/screens/admin_screen.dart';
 import 'package:temple_app/screens/admin_temple_form_screen.dart';
 import 'package:temple_app/services/admin_auth.dart';
@@ -33,10 +34,7 @@ Future<void> _pumpForm(
 }) async {
   await tester.pumpWidget(
     MaterialApp(
-      home: AdminTempleFormScreen(
-        adminTemples: api,
-        existing: existing,
-      ),
+      home: AdminTempleFormScreen(adminTemples: api, existing: existing),
     ),
   );
   await tester.pump();
@@ -49,7 +47,11 @@ Future<void> _pumpAdmin(
 }) async {
   await tester.pumpWidget(
     MaterialApp(
-      home: AdminScreen(adminAuth: auth, adminTemples: api, adminToolsEnabled: true),
+      home: AdminScreen(
+        adminAuth: auth,
+        adminTemples: api,
+        adminToolsEnabled: true,
+      ),
     ),
   );
   await tester.pump();
@@ -57,8 +59,9 @@ Future<void> _pumpAdmin(
 }
 
 void main() {
-  testWidgets('empty required fields show errors and do not write',
-      (tester) async {
+  testWidgets('empty required fields show errors and do not write', (
+    tester,
+  ) async {
     final api = FakeAdminTempleService();
 
     await _pumpForm(tester, api: api);
@@ -149,6 +152,49 @@ void main() {
     expect(find.text('Create temple'), findsWidgets);
   });
 
+  testWidgets('a full state shard shows the cap error and does not pop', (
+    tester,
+  ) async {
+    final message = templeIndexShardFullMessage(
+      state: 'Tamil Nadu',
+      count: 400,
+    );
+    final api = FakeAdminTempleService()..writeError = StateError(message);
+
+    await _pumpForm(tester, api: api);
+
+    await tester.enterText(
+      find.byKey(const Key('admin-temple-name-field')),
+      'New Shore Temple',
+    );
+    await tester.enterText(
+      find.byKey(const Key('admin-temple-state-field')),
+      'Tamil Nadu',
+    );
+    await tester.enterText(
+      find.byKey(const Key('admin-temple-city-field')),
+      'Mahabalipuram',
+    );
+    await tester.enterText(
+      find.byKey(const Key('admin-temple-deity-field')),
+      'Shiva',
+    );
+    await tester.enterText(
+      find.byKey(const Key('admin-temple-location-field')),
+      'Mahabalipuram',
+    );
+    await tester.ensureVisible(
+      find.byKey(const Key('admin-temple-save-button')),
+    );
+    await tester.tap(find.byKey(const Key('admin-temple-save-button')));
+    await tester.pump();
+
+    expect(find.byKey(const Key('admin-temple-form-error')), findsOneWidget);
+    expect(find.text(message), findsOneWidget);
+    expect(find.text('Create temple'), findsWidgets);
+    expect(api.createCalls, 1);
+  });
+
   testWidgets('edit form saves updates to the existing id', (tester) async {
     final api = FakeAdminTempleService(initial: [_temple()]);
 
@@ -171,8 +217,9 @@ void main() {
     expect(api.createCalls, 0);
   });
 
-  testWidgets('signed-in admin sees CMS actions; list refreshes after create',
-      (tester) async {
+  testWidgets('signed-in admin sees CMS actions; list refreshes after create', (
+    tester,
+  ) async {
     final auth = FakeAdminAuth(
       initial: const AdminSession(
         uid: 'uid-1',
@@ -206,8 +253,9 @@ void main() {
     expect(find.byKey(const Key('admin-add-temple-fab')), findsOneWidget);
   });
 
-  testWidgets('delete requires confirm and then removes the temple',
-      (tester) async {
+  testWidgets('delete requires confirm and then removes the temple', (
+    tester,
+  ) async {
     final auth = FakeAdminAuth(
       initial: const AdminSession(
         uid: 'uid-1',

@@ -23,8 +23,8 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - name: state batch checks
-        run: node --test scripts/state_batch.test.js
+      - name: state batch and index checks
+        run: node --test scripts/state_batch.test.js scripts/rebuild_index.test.js
 
       - name: photo patch checks
         run: node --test scripts/photo_patch.test.js
@@ -33,6 +33,12 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+
+      # Local Firestore emulator only. demo-* never reaches production.
+      - name: temple index emulator rules
+        run: |
+          npm ci --prefix scripts
+          scripts/node_modules/.bin/firebase emulators:exec --only firestore --project demo-temple-index "node --test scripts/temple_index_rules.test.js && node --test --test-name-pattern \"existing meta and shard|would pass 400|temple id exists\" scripts/state_batch.test.js"
 
       # No upload key in CI. This exercises the guards, not a signed AAB.
       # The demo distribution check does not build an APK or call Firebase.
