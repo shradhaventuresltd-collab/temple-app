@@ -36,10 +36,11 @@ Usage:
   node clear_placeholder_covers.js --apply --project <firebase-project-id>
 
 Default is dry-run: list temples whose imageUrl, images, or photos use an
-exact placeholder host (picsum.photos, placeholder.com, via.placeholder.com,
-placehold.co, placehold.it, dummyimage.com, lorempixel.com,
-source.unsplash.com). A path containing "placeholder" or "picsum" is kept.
-images.unsplash.com and shutterstock are kept. Nothing is written.
+exact placeholder host (picsum.photos, fastly.picsum.photos, i.picsum.photos,
+placeholder.com, via.placeholder.com, placehold.co, placehold.it,
+dummyimage.com, lorempixel.com, source.unsplash.com). A path containing
+"placeholder" or "picsum" is kept. images.unsplash.com and shutterstock are
+kept. Nothing is written.
 prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
 Prod apply prompts for the project id.
 Set FIRESTORE_EMULATOR_HOST to use the emulator without that prompt.

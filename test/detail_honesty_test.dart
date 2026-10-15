@@ -53,15 +53,64 @@ void main() {
     );
     expect(
       isPlaceholderImageUrl('https://fastly.picsum.photos/id/1/800/600'),
-      isFalse,
+      isTrue,
+    );
+    expect(
+      isPlaceholderImageUrl('https://i.picsum.photos/id/1/800/600'),
+      isTrue,
     );
     expect(
       isPlaceholderImageUrl('https://images.unsplash.com/photo-1'),
       isFalse,
     );
     expect(
+      isUnlicensedStockImageUrl('https://images.unsplash.com/photo-1'),
+      isFalse,
+    );
+    expect(
       isPlaceholderImageUrl('https://www.shutterstock.com/image-photo/temple'),
       isFalse,
+    );
+    expect(isUnlicensedStockImageUrl(''), isFalse);
+    expect(isUnlicensedStockImageUrl('not-a-url'), isFalse);
+    for (final url in [
+      'https://www.shutterstock.com/image-photo/temple',
+      'https://www.istockphoto.com/photo/temple',
+      'https://media.gettyimages.com/id/1/photo.jpg',
+      'https://www.gettyimages.co.uk/detail/photo/temple',
+      'https://www.pexels.com/photo/temple',
+      'https://stock.adobe.com/images/temple',
+      'https://www.alamy.com/temple.jpg',
+      'https://www.dreamstime.com/temple',
+      'https://www.123rf.com/photo_1.html',
+      'https://depositphotos.com/photo/temple.html',
+      'https://www.freepik.com/free-photo/temple',
+      'https://cdn.istock.com/photo/temple',
+    ]) {
+      expect(isUnlicensedStockImageUrl(url), isTrue, reason: url);
+      expect(isDisallowedImageUrl(url), isTrue, reason: url);
+    }
+    expect(
+      isUnlicensedStockImageUrl('https://www.adobe.com/image/temple.jpg'),
+      isFalse,
+    );
+    expect(
+      isUnlicensedStockImageUrl(
+        'https://example.com/photos/shutterstock-temple.jpg',
+      ),
+      isFalse,
+    );
+    expect(
+      verifiedGalleryUrls(
+        _draft(imageUrl: 'https://www.shutterstock.com/image-photo/temple'),
+      ),
+      isEmpty,
+    );
+    expect(
+      verifiedGalleryUrls(
+        _draft(imageUrl: 'https://images.unsplash.com/photo-1'),
+      ),
+      ['https://images.unsplash.com/photo-1'],
     );
     expect(
       isPlaceholderImageUrl(
@@ -79,10 +128,7 @@ void main() {
     expect(isPlaceholderImageUrl('https://placehold.it/800x600'), isTrue);
     expect(isPlaceholderImageUrl('https://dummyimage.com/800x600'), isTrue);
     expect(isPlaceholderImageUrl('https://lorempixel.com/800/600'), isTrue);
-    expect(
-      isPlaceholderImageUrl('https://source.unsplash.com/random'),
-      isTrue,
-    );
+    expect(isPlaceholderImageUrl('https://source.unsplash.com/random'), isTrue);
     expect(isPlaceholderImageUrl('https://placeholder.com/800'), isTrue);
     expect(
       isPlaceholderImageUrl('https://via.placeholder.com/800x600'),

@@ -36,9 +36,9 @@ List<String> templeBrowseHonestyLabels(Temple temple) {
 /// Browse card: cover, name, place, and deity chip.
 ///
 /// Cover uses [verifiedCoverUrl] — the same honesty as the detail hero.
-/// Placeholder hosts (picsum, placehold, and the rest of
-/// [isPlaceholderImageUrl]) render as [TempleImagePlaceholder] so stock
-/// images are not presented as photographs. Outlier sites also show the
+/// Placeholder hosts and unlicensed stock hosts ([isDisallowedImageUrl])
+/// render as [TempleImagePlaceholder] so those URLs are not presented as
+/// photographs. Outlier sites also show the
 /// honesty chip from [templeBrowseHonestyLabels]. Story, gallery, and
 /// timings stay off the card.
 class TempleBrowseCard extends StatelessWidget {
@@ -184,7 +184,7 @@ String? _storedFullCover(Temple temple, String displayed) {
   final image = temple.imageUrl.trim();
   if (image.startsWith('https://') &&
       image != displayed &&
-      !isPlaceholderImageUrl(image)) {
+      !isDisallowedImageUrl(image)) {
     return image;
   }
   for (final photo in temple.photos) {
@@ -193,7 +193,7 @@ String? _storedFullCover(Temple temple, String displayed) {
     if (thumb == displayed &&
         url.startsWith('https://') &&
         url != displayed &&
-        !isPlaceholderImageUrl(url)) {
+        !isDisallowedImageUrl(url)) {
       return url;
     }
   }

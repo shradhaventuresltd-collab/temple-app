@@ -19,8 +19,9 @@ String templeDocumentId(String name) {
 
 /// Cover + gallery fields for Seed writes.
 ///
-/// Drops picsum / placeholder hosts so Seed never stores stock URLs as
-/// photographs. Verified admin uploads in [existingImages] are kept. When
+/// Drops picsum, placeholder hosts, and unlicensed stock hosts so Seed
+/// never stores them as photographs. Verified admin uploads in
+/// [existingImages] are kept. When
 /// that gallery is non-empty, [imageUrl] is `images.first` so a later Seed
 /// cannot point the cover at a different host than the gallery.
 Map<String, Object> seedHonestyImageFields({
@@ -33,13 +34,13 @@ Map<String, Object> seedHonestyImageFields({
 
   final verifiedImages = [
     for (final raw in existingImages)
-      if (!isPlaceholderImageUrl(raw)) raw.trim(),
+      if (!isDisallowedImageUrl(raw)) raw.trim(),
   ];
 
   final String imageUrl;
-  if (!isPlaceholderImageUrl(bundled)) {
+  if (!isDisallowedImageUrl(bundled)) {
     imageUrl = bundled;
-  } else if (!isPlaceholderImageUrl(existingCover)) {
+  } else if (!isDisallowedImageUrl(existingCover)) {
     imageUrl = existingCover;
   } else {
     imageUrl = '';
@@ -84,13 +85,13 @@ Map<String, Object> seedImageFieldsWithPack({
 
   final verifiedExisting = [
     for (final raw in existingImages)
-      if (!isPlaceholderImageUrl(raw)) raw.trim(),
+      if (!isDisallowedImageUrl(raw)) raw.trim(),
   ];
   if (verifiedExisting.isNotEmpty) return honesty;
 
   final pack = [
     for (final raw in bundledImages)
-      if (!isPlaceholderImageUrl(raw)) raw.trim(),
+      if (!isDisallowedImageUrl(raw)) raw.trim(),
   ];
   if (pack.isEmpty) return honesty;
 

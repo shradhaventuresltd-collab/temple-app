@@ -124,6 +124,8 @@ export function shortAddress(raw) {
 /** Exact hosts. Same set as state_batch.js and detail_honesty.dart. */
 const PLACEHOLDER_HOSTS = new Set([
   "picsum.photos",
+  "fastly.picsum.photos",
+  "i.picsum.photos",
   "placeholder.com",
   "via.placeholder.com",
   "placehold.co",
@@ -132,6 +134,20 @@ const PLACEHOLDER_HOSTS = new Set([
   "lorempixel.com",
   "source.unsplash.com",
 ]);
+
+/** Same stock list as state_batch.js. Not applied by Firestore rules. */
+const STOCK_HOSTS = [
+  "shutterstock.com",
+  "istockphoto.com",
+  "istock.com",
+  "pexels.com",
+  "stock.adobe.com",
+  "alamy.com",
+  "dreamstime.com",
+  "123rf.com",
+  "depositphotos.com",
+  "freepik.com",
+];
 
 function placeholder(url) {
   let parsed;
@@ -144,6 +160,20 @@ function placeholder(url) {
   const host = parsed.hostname.toLowerCase();
   if (!host) return true;
   return PLACEHOLDER_HOSTS.has(host);
+}
+
+function unlicensedStock(url) {
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
+  const host = parsed.hostname.toLowerCase();
+  if (!host) return false;
+  if (host.split(".").includes("gettyimages")) return true;
+  return STOCK_HOSTS.some((stock) => host === stock || host.endsWith(`.${stock}`));
 }
 
 function httpUrl(raw) {
@@ -160,7 +190,9 @@ function httpUrl(raw) {
 
 function knownThumbUrl(raw) {
   const trimmed = httpUrl(raw);
-  if (!trimmed || placeholder(trimmed) || trimmed.length > COVER_THUMB_MAX) return null;
+  if (!trimmed || placeholder(trimmed) || unlicensedStock(trimmed) || trimmed.length > COVER_THUMB_MAX) {
+    return null;
+  }
   return trimmed;
 }
 
@@ -473,7 +505,7 @@ function galleryCandidates(data) {
 /** First verified gallery URL, before a 500px rewrite. Matches browse. */
 export function firstVerifiedGalleryUrl(data) {
   for (const url of galleryCandidates(data)) {
-    if (!httpUrl(url) || placeholder(url)) continue;
+    if (!httpUrl(url) || placeholder(url) || unlicensedStock(url)) continue;
     return url;
   }
   return null;
@@ -487,7 +519,7 @@ export function firstVerifiedGalleryUrl(data) {
 export function firstThumbSource(data) {
   for (const url of galleryCandidates(data)) {
     if (storageObjectFromUrl(url)) return url;
-    if (!httpUrl(url) || placeholder(url)) continue;
+    if (!httpUrl(url) || placeholder(url) || unlicensedStock(url)) continue;
     return url;
   }
   return null;

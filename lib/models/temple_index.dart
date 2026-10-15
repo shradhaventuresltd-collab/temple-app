@@ -198,7 +198,7 @@ String? _explicitThumb(Map<String, dynamic> data, String source) {
 /// Unrewritten gallery URL [coverThumbFor] is taken from.
 String? firstVerifiedGalleryUrl(Map<String, dynamic> data) {
   for (final url in _galleryCandidates(data)) {
-    if (!_httpUrl(url) || isPlaceholderImageUrl(url)) continue;
+    if (!_httpUrl(url) || isDisallowedImageUrl(url)) continue;
     return url;
   }
   return null;
@@ -249,7 +249,7 @@ String? _knownThumbUrl(Object? raw) {
 String? _fullCover(Object? raw) {
   if (raw is! String) return null;
   final trimmed = raw.trim();
-  if (!_httpUrl(trimmed) || isPlaceholderImageUrl(trimmed)) return null;
+  if (!_httpUrl(trimmed) || isDisallowedImageUrl(trimmed)) return null;
   if (trimmed.length > kTempleIndexCoverThumbMax) return null;
   return trimmed;
 }

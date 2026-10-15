@@ -270,5 +270,26 @@
       "imageUrl": "https://images.unsplash.com/photo-1"
     },
     "expect": "https://images.unsplash.com/photo-1"
+  },
+  {
+    "name": "fastly.picsum.photos is not a cover",
+    "data": {
+      "imageUrl": "https://fastly.picsum.photos/id/1/800/600"
+    },
+    "expect": null
+  },
+  {
+    "name": "i.picsum.photos is not a cover",
+    "data": {
+      "imageUrl": "https://i.picsum.photos/id/1/800/600"
+    },
+    "expect": null
+  },
+  {
+    "name": "a shutterstock host is not a cover",
+    "data": {
+      "imageUrl": "https://www.shutterstock.com/image-photo/temple"
+    },
+    "expect": null
   }
 ]

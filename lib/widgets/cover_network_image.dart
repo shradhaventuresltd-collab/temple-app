@@ -4,6 +4,25 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:temple_app/services/client_cache.dart';
 import 'package:temple_app/utils/cover_thumb.dart';
 
+final RegExp _commonsTiffName = RegExp(
+  r'\.tiff?(?:\.jpe?g|\.png)?$',
+  caseSensitive: false,
+);
+
+/// Commons `.tif` / `.tiff`, including a thumb named `NNNpx-Name.tif.jpg`.
+bool _commonsTiff(String raw) {
+  final uri = Uri.tryParse(raw.trim());
+  if (uri == null) return false;
+  final host = uri.host.toLowerCase();
+  if (host != 'upload.wikimedia.org' && host != 'thumb.wikimedia.org') {
+    return false;
+  }
+  final path = uri.path;
+  if (!path.toLowerCase().contains('/commons/')) return false;
+  final name = path.split('/').last;
+  return _commonsTiffName.hasMatch(name);
+}
+
 /// List-card image. [url] is tried first. On failure, [fallbackUrl] is
 /// requested once. A second failure shows [error].
 ///
@@ -11,8 +30,10 @@ import 'package:temple_app/utils/cover_thumb.dart';
 /// public URL of its original. That original is readable under the same
 /// Storage rule as the thumb. A Wikimedia `/thumb/h/hh/name/NNNpx-` URL
 /// falls back once to the original file (drop `/thumb` and the last
-/// segment), including a thumb narrower than 500px. A
-/// `thumb.wikimedia.org` host is rewritten to `upload.wikimedia.org`.
+/// segment), including a thumb narrower than 500px. A Commons `.tif` or
+/// `.tiff` file, including `NNNpx-Name.tif.jpg`, shows [error] instead of
+/// requesting that original. A `thumb.wikimedia.org` host is rewritten to
+/// `upload.wikimedia.org`.
 class CoverNetworkImage extends StatelessWidget {
   const CoverNetworkImage({
     super.key,
@@ -44,10 +65,15 @@ class CoverNetworkImage extends StatelessWidget {
   final Duration fadeInDuration;
 
   String? get _fallback {
+    if (_commonsTiff(url)) return null;
     final known = fallbackUrl?.trim() ?? '';
-    if (known.startsWith('https://') && known != url) return known;
+    if (known.startsWith('https://') && known != url) {
+      return _commonsTiff(known) ? null : known;
+    }
     final derived = fullCoverUrlFromThumb(url) ?? wikimediaOriginalUrl(url);
-    if (derived != null && derived != url) return derived;
+    if (derived != null && derived != url && !_commonsTiff(derived)) {
+      return derived;
+    }
     return null;
   }
 

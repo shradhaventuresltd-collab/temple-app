@@ -110,10 +110,15 @@ TempleFormValidation validateTempleDraft(TempleDraft draft) {
   if (imageUrl.isNotEmpty && isPlaceholderImageUrl(imageUrl)) {
     errors['imageUrl'] =
         'Use a photograph URL. Placeholder hosts are not saved.';
+  } else if (imageUrl.isNotEmpty && isUnlicensedStockImageUrl(imageUrl)) {
+    errors['imageUrl'] =
+        'Use a photograph URL. Unlicensed stock hosts are not saved.';
   }
   if (images.any(isPlaceholderImageUrl)) {
+    errors['images'] = 'Use photograph URLs. Placeholder hosts are not saved.';
+  } else if (images.any(isUnlicensedStockImageUrl)) {
     errors['images'] =
-        'Use photograph URLs. Placeholder hosts are not saved.';
+        'Use photograph URLs. Unlicensed stock hosts are not saved.';
   }
   if (errors.isNotEmpty) {
     return TempleFormValidation(errors: errors);
