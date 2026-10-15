@@ -81,9 +81,9 @@ tap_needle() {
   adb shell input tap $point
 }
 
-# Wait only on the system dialog and on this app's dialog. Close app on
-# the system dialog kills system_server. Pixel Launcher can stay up after
-# Wait and hide the Terms gate; Close app is safe for that launcher dialog.
+# Tap Wait only on "Process system isn't responding" and
+# "Pixel Launcher isn't responding". Any other isn't-responding dialog
+# is this app's ANR: save a screenshot and fail the job.
 dismiss_system_anr() {
   hierarchy
   [[ -f "$OUT/uidump.xml" ]] || return 0
@@ -94,12 +94,19 @@ dismiss_system_anr() {
   fi
   if grep -q "Pixel Launcher isn't responding" "$OUT/uidump.xml"; then
     echo "Dismissing Pixel Launcher isn't responding"
-    tap_needle "Wait" || tap_needle "Close app" || true
+    tap_needle "Wait" || true
     return 0
   fi
   if grep -q "isn't responding" "$OUT/uidump.xml"; then
-    echo "Dismissing an app isn't-responding dialog"
-    tap_needle "Wait" || true
+    local dialog pattern
+    pattern='[^"]*isn'"'"'t responding'
+    dialog="$(grep -o "$pattern" "$OUT/uidump.xml" | head -n 1 || true)"
+    if [[ -z "$dialog" ]]; then
+      dialog="an isn't-responding dialog is on screen"
+    fi
+    echo "App ANR: ${dialog}. Failing the job." >&2
+    screenshot app-anr
+    exit 1
   fi
 }
 

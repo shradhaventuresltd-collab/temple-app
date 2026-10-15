@@ -18,10 +18,9 @@ appId: com.shradhaventures.temple
     commands:
       - launchApp:
           clearState: true
-      # The system dialog can come back after one Wait tap and cover the
-      # Terms gate for the whole 60s assert. Keep dismissing it until the
-      # accept control is visible. Close app on that dialog kills
-      # system_server. Wait/Close on this app's own dialog is not tapped.
+      # Tap Wait only on the system dialog and the Pixel Launcher dialog
+      # until the accept control is visible. An ANR from this app fails
+      # the job instead of being dismissed.
       - repeat:
           times: 12
           while:
@@ -36,9 +35,6 @@ appId: com.shradhaventures.temple
                   - tapOn:
                       text: "Wait"
                       optional: true
-                  - tapOn:
-                      text: "Close app"
-                      optional: true
             - runFlow:
                 when:
                   visible: "Process system isn't responding"
@@ -47,6 +43,13 @@ appId: com.shradhaventures.temple
                   - tapOn:
                       text: "Wait"
                       optional: true
+            - runFlow:
+                when:
+                  visible: "Temple Directory India isn't responding"
+                commands:
+                  - assertTrue:
+                      condition: ${false}
+                      label: "App ANR: Temple Directory India isn't responding. Failing the smoke job."
             - extendedWaitUntil:
                 visible:
                   id: "policy-accept-button"

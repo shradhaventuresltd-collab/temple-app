@@ -21,9 +21,6 @@ appId: com.shradhaventures.temple
             - tapOn:
                 text: "Wait"
                 optional: true
-            - tapOn:
-                text: "Close app"
-                optional: true
       - runFlow:
           when:
             visible: "Process system isn't responding"

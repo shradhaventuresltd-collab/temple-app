@@ -299,8 +299,21 @@ require "seed launch taps Wait on the system ANR" \
   'tap_needle "Wait"' scripts/ci/run_demo_seed_launch.sh
 require "seed launch dismisses the Pixel Launcher ANR" \
   'Pixel Launcher isn'"'"'t responding' scripts/ci/run_demo_seed_launch.sh
+require "seed launch fails an app ANR" \
+  'App ANR:' scripts/ci/run_demo_seed_launch.sh
+require "seed launch screenshots an app ANR" \
+  'screenshot app-anr' scripts/ci/run_demo_seed_launch.sh
+forbid "seed launch does not tap Close app" 'Close app' \
+  scripts/ci/run_demo_seed_launch.sh
 require "Maestro smoke dismisses the system ANR with Wait" \
   'Process system isn'"'"'t responding' .maestro/read_only_smoke.yaml
+require "Maestro smoke fails an app ANR" \
+  'App ANR: Temple Directory India isn'"'"'t responding' \
+  .maestro/read_only_smoke.yaml
+forbid "Maestro smoke does not tap Close app" 'Close app' \
+  .maestro/read_only_smoke.yaml
+forbid "smoke shell does not tap Close app" 'Close app' \
+  scripts/ci/run_android_smoke.sh
 if grep -q '/usr/local/lib/android/sdk/system-images' scripts/ci/free_runner_disk.sh; then
   echo "FAIL: disk script must not delete the emulator system images" >&2
   exit 1

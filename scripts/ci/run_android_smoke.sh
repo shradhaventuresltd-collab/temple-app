@@ -133,9 +133,9 @@ warn_if_flow_retried() {
   fi
 }
 
-# Tap Wait, then Close app, only on the Pixel Launcher ANR dialog.
-# Tap Wait only on "Process system isn't responding". Close app there
-# kills system_server. An ANR from this app stays up.
+# Tap Wait only on "Process system isn't responding" and
+# "Pixel Launcher isn't responding". Any other isn't-responding dialog
+# is this app's ANR: save a screenshot and fail the job.
 dismiss_anr_dialog() {
   adb shell uiautomator dump /sdcard/uidump.xml >/dev/null 2>&1 || return 0
   local xml labels
@@ -145,7 +145,18 @@ dismiss_anr_dialog() {
     labels=$'Wait'
   elif grep -q "Pixel Launcher isn't responding" <<<"$xml"; then
     warn "Dismissing the Pixel Launcher isn't-responding dialog before Maestro"
-    labels=$'Wait\nClose app'
+    labels=$'Wait'
+  elif grep -q "isn't responding" <<<"$xml"; then
+    local dialog pattern
+    pattern='[^"]*isn'"'"'t responding'
+    dialog="$(grep -o "$pattern" <<<"$xml" | head -n 1 || true)"
+    if [[ -z "$dialog" ]]; then
+      dialog="an isn't-responding dialog is on screen"
+    fi
+    echo "App ANR: ${dialog}. Failing the job." >&2
+    mkdir -p "${GITHUB_WORKSPACE:-/tmp}/screenshots"
+    adb exec-out screencap -p >"${GITHUB_WORKSPACE:-/tmp}/screenshots/app-anr.png" || true
+    exit 1
   else
     return 0
   fi
@@ -224,6 +235,10 @@ for attempt in 1 2; do
   maestro test --debug-output "$out" .maestro/read_only_smoke.yaml 2>&1 | tee "${out}/maestro-stdout.log"
   status=$?
   set -e
+  if grep -q "App ANR:" "${out}/maestro-stdout.log"; then
+    echo "App ANR: Temple Directory India isn't responding. Failing the job." >&2
+    exit 1
+  fi
   warn_if_flow_retried "${out}/maestro-stdout.log" "$attempt"
   if [[ "$status" -eq 0 ]]; then
     # The workflow kills this script at 12 minutes. The screenshot budget
