@@ -11,6 +11,7 @@ class AdminPhotoDraft {
   AdminPhotoDraft({
     required this.id,
     this.url = '',
+    this.thumbUrl,
     this.credit = '',
     this.licence,
     this.order = 0,
@@ -23,6 +24,9 @@ class AdminPhotoDraft {
 
   final String id;
   String url;
+
+  /// Download URL of the `_480` object, when this draft has one.
+  String? thumbUrl;
   String credit;
   PhotoLicence? licence;
   int order;
@@ -51,6 +55,7 @@ class AdminPhotoDraft {
       credit: credit.trim(),
       licence: licence,
       order: order,
+      thumbUrl: thumbUrl,
     );
   }
 
@@ -66,6 +71,7 @@ class AdminPhotoDraft {
         AdminPhotoDraft(
           id: 'photo-$slot-${photos[indexed[slot]].url.hashCode}',
           url: photos[indexed[slot]].url,
+          thumbUrl: photos[indexed[slot]].thumbUrl,
           credit: photos[indexed[slot]].credit,
           licence: photos[indexed[slot]].licence,
           order: slot,

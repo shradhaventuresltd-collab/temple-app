@@ -47,6 +47,12 @@ void main() {
     expect(firestoreRules, contains("photo.licence == 'CC-BY-SA'"));
     expect(firestoreRules, contains('optionalValidPhotos(data)'));
     expect(firestoreRules, contains('function isValidPhoto(photo)'));
+    expect(firestoreRules, contains('function coordinatesArePaired(data)'));
+    expect(firestoreRules, contains('coordinatesArePaired(data)'));
+    expect(firestoreRules, contains('function coordinatesOkOnUpdate(data)'));
+    expect(firestoreRules, contains('coordinatesOkOnUpdate(data)'));
+    expect(firestoreRules, contains("'thumbUrl'"));
+    expect(firestoreRules, contains('photo.thumbUrl.size() <= 2000'));
     expect(firestoreRules, isNot(contains('allow write: if true')));
     expect(
       firestoreRules,

@@ -6,7 +6,9 @@ service firebase.storage {
     }
 
     // Public directory images: unauthenticated clients may read
-    // `temples/{docId}/…`. Uploads, overwrites, and deletes require admin.
+    // `temples/{docId}/…`. A `_480_g` thumb lives in that same prefix, so it
+    // is as publicly readable as the original. Uploads, overwrites, and
+    // deletes require admin.
     match /temples/{templeId}/{allPaths=**} {
       allow read: if true;
       allow write: if isAdmin();

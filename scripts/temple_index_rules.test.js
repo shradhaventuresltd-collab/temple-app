@@ -278,6 +278,126 @@ async function commitTemple(db, { id, data, isNew, previous, deleteTemple = fals
   await batch.commit();
 }
 
+test("latitude and longitude are both null or both set", async () => {
+  const db = adminDb("admin-coord-pair");
+  await assertSucceeds(
+    setDoc(at(db, "temples/both-null"), templePayload("both-null", { latitude: null, longitude: null })),
+  );
+  await assertSucceeds(
+    setDoc(at(db, "temples/both-set"), templePayload("both-set", { latitude: 0, longitude: 0 })),
+  );
+  await assertFails(
+    setDoc(
+      at(db, "temples/lat-only"),
+      templePayload("lat-only", { latitude: 12.6, longitude: null }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      at(db, "temples/lng-only"),
+      templePayload("lng-only", { latitude: null, longitude: 80 }),
+    ),
+  );
+
+  await assertSucceeds(
+    setDoc(at(db, "temples/paired"), templePayload("paired", { latitude: 12.6, longitude: 80 })),
+  );
+  await assertFails(
+    setDoc(at(db, "temples/paired"), { latitude: null }, { merge: true }),
+  );
+  await assertFails(
+    setDoc(at(db, "temples/paired"), { longitude: null }, { merge: true }),
+  );
+  await assertSucceeds(
+    setDoc(at(db, "temples/paired"), { latitude: null, longitude: null }, { merge: true }),
+  );
+  await assertSucceeds(
+    setDoc(at(db, "temples/paired"), { city: "Mamallapuram" }, { merge: true }),
+  );
+  const saved = await getDoc(at(db, "temples/paired"));
+  assert.equal(saved.data().latitude, null);
+  assert.equal(saved.data().longitude, null);
+  assert.equal(saved.data().city, "Mamallapuram");
+});
+
+test("an update that does not touch coordinates leaves an unpaired doc writable", async () => {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(
+      at(context.firestore(), "temples/legacy-unpaired"),
+      templePayload("legacy-unpaired", { latitude: 12.6, longitude: null }),
+    );
+  });
+  const db = adminDb("admin-legacy-coords");
+  await assertSucceeds(
+    setDoc(at(db, "temples/legacy-unpaired"), { city: "Mamallapuram" }, { merge: true }),
+  );
+  await assertFails(
+    setDoc(at(db, "temples/legacy-unpaired"), { latitude: 13 }, { merge: true }),
+  );
+  await assertSucceeds(
+    setDoc(
+      at(db, "temples/legacy-unpaired"),
+      { latitude: null, longitude: null },
+      { merge: true },
+    ),
+  );
+  const saved = await getDoc(at(db, "temples/legacy-unpaired"));
+  assert.equal(saved.data().latitude, null);
+  assert.equal(saved.data().longitude, null);
+  assert.equal(saved.data().city, "Mamallapuram");
+});
+
+test("thumbUrl is an optional https URL capped at 2000 characters", async () => {
+  const db = adminDb("admin-thumb-cap");
+  await assertSucceeds(setDoc(at(db, "temples/no-thumb"), templePayload("no-thumb")));
+  const saved = await getDoc(at(db, "temples/no-thumb"));
+  assert.equal(saved.data().photos[0].thumbUrl, undefined);
+  const prefix = "https://example.com/";
+  const atCap = prefix + "a".repeat(2000 - prefix.length);
+  assert.equal(atCap.length, 2000);
+  await assertSucceeds(
+    setDoc(
+      at(db, "temples/thumb-cap"),
+      templePayload("thumb-cap", {
+        photos: [{ url: "https://example.com/full.jpg", licence: "CC0", order: 0, thumbUrl: atCap }],
+      }),
+    ),
+  );
+  const over = `${atCap}a`;
+  await assertFails(
+    setDoc(
+      at(db, "temples/thumb-over"),
+      templePayload("thumb-over", {
+        photos: [{ url: "https://example.com/full.jpg", licence: "CC0", order: 0, thumbUrl: over }],
+      }),
+    ),
+  );
+});
+
+test("photos may store an https thumbUrl", async () => {
+  const db = adminDb("admin-thumb-url");
+  const thumb =
+    "https://firebasestorage.googleapis.com/v0/b/app/o/temples%2Fshore%2F01_480_g42.jpg?alt=media&token=real";
+  await assertSucceeds(
+    setDoc(
+      at(db, "temples/with-thumb"),
+      templePayload("with-thumb", {
+        photos: [{ url: "https://example.com/full.jpg", licence: "CC0", order: 0, thumbUrl: thumb }],
+      }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      at(db, "temples/bad-thumb"),
+      templePayload("bad-thumb", {
+        photos: [
+          { url: "https://example.com/full.jpg", licence: "CC0", order: 0, thumbUrl: "http://example.com/t.jpg" },
+        ],
+      }),
+    ),
+  );
+});
+
 test("an admin save without coordinates writes null", async () => {
   const db = adminDb("admin-null-coords");
   const id = "unplaced-temple";

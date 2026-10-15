@@ -126,17 +126,34 @@ String shortTempleAddress(String raw) {
 
 /// Browse cover for one temple document.
 ///
-/// Same choice as [verifiedCoverUrl]: the first verified URL in `images`,
+/// Same photo as [verifiedCoverUrl]: the first verified URL in `images`,
 /// or `imageUrl` when `images` is empty. Placeholder hosts are skipped.
-/// Wikimedia `/thumb/` URLs wider than 480px are rewritten to `480px`. The
-/// result is at most [kTempleIndexCoverThumbMax] characters.
 ///
-/// TODO(KAN-146): a generated thumbnail can replace this URL later. The
-/// photo that is chosen stays the browse gallery photo.
+/// A stored `photos[].thumbUrl` for that photo is used as written. Otherwise
+/// a Wikimedia thumb wider than 480px is rewritten, and anything else stays
+/// the full URL. Storage siblings are not invented. The result is at most
+/// [kTempleIndexCoverThumbMax] characters. Detail keeps the full gallery URL.
 String? coverThumbFor(Map<String, dynamic> data) {
   final source = firstVerifiedGalleryUrl(data);
   if (source == null) return null;
-  return _usableCover(source, allowFull: true);
+  final explicit = _explicitThumb(data, source);
+  if (explicit != null) return explicit;
+  final wiki = _wikimedia480(source);
+  if (wiki != null) return wiki;
+  return _fullCover(source);
+}
+
+String? _explicitThumb(Map<String, dynamic> data, String source) {
+  final photos = data['photos'];
+  if (photos is! List) return null;
+  for (final photo in photos) {
+    if (photo is! Map) continue;
+    final url = photo['url'];
+    if (url is! String || url.trim() != source) continue;
+    final thumb = _knownThumbUrl(photo['thumbUrl']);
+    if (thumb != null) return thumb;
+  }
+  return null;
 }
 
 /// Unrewritten gallery URL [coverThumbFor] is taken from.
@@ -168,23 +185,27 @@ List<String> _galleryCandidates(Map<String, dynamic> data) {
 }
 
 /// URL list helper. Prefer [coverThumbFor] so the gallery order stays put.
+///
+/// Wikimedia thumbs are rewritten to 480px. Other URLs stay full size.
 String? coverThumbFromUrls(Iterable<Object?> urls) {
   for (final raw in urls) {
-    final thumb = _browseThumb(raw);
-    if (thumb != null) return thumb;
+    if (raw is! String) continue;
+    final wiki = _wikimedia480(raw);
+    if (wiki != null) return wiki;
   }
-  // TODO(KAN-146): drop the full-URL fallback once thumbs exist.
   for (final raw in urls) {
-    final full = _usableCover(raw, allowFull: true);
+    final full = _fullCover(raw);
     if (full != null) return full;
   }
   return null;
 }
 
-String? _usableCover(Object? raw, {required bool allowFull}) {
-  final thumb = _browseThumb(raw);
-  if (thumb != null) return thumb;
-  if (!allowFull) return null;
+String? _knownThumbUrl(Object? raw) {
+  if (raw is! String) return null;
+  return _fullCover(raw);
+}
+
+String? _fullCover(Object? raw) {
   if (raw is! String) return null;
   final trimmed = raw.trim();
   if (!_httpUrl(trimmed) || isPlaceholderImageUrl(trimmed)) return null;
@@ -192,20 +213,13 @@ String? _usableCover(Object? raw, {required bool allowFull}) {
   return trimmed;
 }
 
-String? _browseThumb(Object? raw) {
-  if (raw is! String) return null;
-  final trimmed = raw.trim();
-  if (!_httpUrl(trimmed) || isPlaceholderImageUrl(trimmed)) return null;
-  if (trimmed.length > kTempleIndexCoverThumbMax) return null;
+/// Wikimedia `/thumb/` URL at 480px, or null when [raw] is not one.
+String? _wikimedia480(Object? raw) {
+  final trimmed = _fullCover(raw);
+  if (trimmed == null) return null;
   final uri = Uri.tryParse(trimmed);
   if (uri == null) return null;
   final decodedPath = Uri.decodeFull(uri.path);
-  if (RegExp(
-    r'[_-]480\.(jpe?g|png|webp)$',
-    caseSensitive: false,
-  ).hasMatch(decodedPath)) {
-    return trimmed;
-  }
   if (!decodedPath.contains('/thumb/')) return null;
   return trimmed.replaceFirstMapped(RegExp(r'/(\d+)px-([^/?#]+)'), (match) {
     final width = int.tryParse(match.group(1)!) ?? 0;

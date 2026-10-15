@@ -144,16 +144,22 @@ function httpUrl(raw) {
   }
 }
 
-function browseThumb(raw) {
+function knownThumbUrl(raw) {
   const trimmed = httpUrl(raw);
   if (!trimmed || placeholder(trimmed) || trimmed.length > COVER_THUMB_MAX) return null;
+  return trimmed;
+}
+
+/** Wikimedia `/thumb/` URL at 480px, or null when [raw] is not one. */
+function wikimedia480(raw) {
+  const trimmed = knownThumbUrl(raw);
+  if (!trimmed) return null;
   let pathname = trimmed;
   try {
     pathname = decodeURIComponent(new URL(trimmed).pathname);
   } catch {
     return null;
   }
-  if (/[_-]480\.(jpe?g|png|webp)$/i.test(pathname)) return trimmed;
   if (!pathname.includes("/thumb/")) return null;
   return trimmed.replace(/\/(\d+)px-([^/?#]+)/, (full, width, rest) => {
     const parsed = Number(width);
@@ -162,13 +168,147 @@ function browseThumb(raw) {
   });
 }
 
-function usableCover(raw, { allowFull }) {
-  const thumb = browseThumb(raw);
-  if (thumb) return thumb;
-  if (!allowFull) return null;
+function safeDecode(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+/**
+ * `temples/{id}/{stem}_480_g{generation}.jpg` for a full-size temple photo.
+ * Null when [objectPath] is already a thumb or is not a temple photo.
+ * A non-jpg source keeps that extension in the name so a failed card can
+ * request the original once (`hero_480_g42_PNG.jpg` → `hero.PNG`).
+ * [updatedMillis] is set only when the generation-named thumb is older than
+ * the source, so the immutable URL changes.
+ */
+export function thumbObjectPath(objectPath, generation, { updatedMillis } = {}) {
+  const parts = String(objectPath ?? "").split("/");
+  if (parts.length !== 3 || parts[0] !== "temples") return null;
+  const id = parts[1];
+  if (!id || id === "." || id === "..") return null;
+  const ext = /^(.*)\.(jpe?g|png|webp)$/i.exec(parts[2]);
+  if (!ext || !ext[1] || /_480_g\d+(?:u\d+)?(?:_[A-Za-z0-9]+)?$|[_-]480$/i.test(ext[1])) {
+    return null;
+  }
+  const gen = String(generation ?? "");
+  if (!/^\d+$/.test(gen)) return null;
+  const sourceExt = ext[2];
+  const suffix = sourceExt === "jpg" ? "" : `_${sourceExt}`;
+  const bust =
+    updatedMillis == null || updatedMillis === "" ? "" : `u${updatedMillis}`;
+  return `temples/${id}/${ext[1]}_480_g${gen}${bust}${suffix}.jpg`;
+}
+
+/**
+ * Firebase or Cloud Storage object named by [raw]. The path is taken from
+ * the raw URL so a `%2F` inside the Firebase object name stays one object.
+ * @returns {{ kind: "firebase" | "gcs", bucket: string, objectPath: string } | null}
+ */
+export function storageObjectFromUrl(raw) {
   const trimmed = httpUrl(raw);
-  if (!trimmed || placeholder(trimmed) || trimmed.length > COVER_THUMB_MAX) return null;
-  return trimmed;
+  if (!trimmed) return null;
+  const firebase = /^https:\/\/([^/?#]+)\/v0\/b\/([^/?#]+)\/o\/([^?#]+)/i.exec(trimmed);
+  if (firebase) {
+    const host = firebase[1].toLowerCase();
+    if (host !== "firebasestorage.googleapis.com" && !host.endsWith(".firebasestorage.app")) {
+      return null;
+    }
+    return {
+      kind: "firebase",
+      bucket: safeDecode(firebase[2]),
+      objectPath: safeDecode(firebase[3]),
+    };
+  }
+  const gcs = /^https:\/\/storage\.googleapis\.com\/([^/?#]+)\/([^?#]+)/i.exec(trimmed);
+  if (!gcs) return null;
+  return {
+    kind: "gcs",
+    bucket: safeDecode(gcs[1]),
+    objectPath: gcs[2].split("/").map(safeDecode).join("/"),
+  };
+}
+
+function publicStorageUrl(located, objectPath) {
+  if (located.kind === "gcs") {
+    const segments = objectPath.split("/").map(encodeURIComponent).join("/");
+    return `https://storage.googleapis.com/${encodeURIComponent(located.bucket)}/${segments}`;
+  }
+  return (
+    "https://firebasestorage.googleapis.com/v0/b/" +
+    `${encodeURIComponent(located.bucket)}/o/${encodeURIComponent(objectPath)}?alt=media`
+  );
+}
+
+/**
+ * Full-size object path named by a generation thumb, or by a guessed
+ * `{stem}_480.{ext}` sibling. Null when [objectPath] is not one of those.
+ */
+export function fullObjectPathFromThumb(objectPath) {
+  const parts = String(objectPath ?? "").split("/");
+  if (parts.length !== 3 || parts[0] !== "temples" || !parts[1]) return null;
+  const file = parts[2];
+  const match = /_480_g(\d+)(?:u(\d+))?(?:_([A-Za-z0-9]+))?\.jpg$/i.exec(file);
+  if (match) {
+    const stem = file.slice(0, file.length - match[0].length);
+    if (!stem) return null;
+    const ext = match[3] || "jpg";
+    return `temples/${parts[1]}/${stem}.${ext}`;
+  }
+  const legacy = /^(.*)_480\.(jpe?g|png|webp)$/i.exec(file);
+  if (!legacy || !legacy[1]) return null;
+  return `temples/${parts[1]}/${legacy[1]}.${legacy[2]}`;
+}
+
+/**
+ * Public URL of the original behind a `_480_g` thumb. The thumb's download
+ * token is not reused. Storage rules make this as readable as the original.
+ * Null when [raw] is not one of our thumbs. Cards call this after an error.
+ */
+export function fullCoverUrlFromThumb(raw) {
+  const located = storageObjectFromUrl(raw);
+  if (!located) return null;
+  const fullPath = fullObjectPathFromThumb(located.objectPath);
+  if (!fullPath) return null;
+  return publicStorageUrl(located, fullPath);
+}
+
+/**
+ * Original file behind a Wikimedia `/thumb/.../NNNpx-` URL.
+ * `thumb.wikimedia.org` is rewritten to `upload.wikimedia.org`.
+ * Null when [raw] is not a Wikimedia thumb. Cards use this after the
+ * 480px URL fails, so the full image is tried before the placeholder.
+ */
+export function wikimediaOriginalUrl(raw) {
+  const trimmed = typeof raw === "string" ? raw.trim() : "";
+  const noHash = trimmed.split("#")[0];
+  const noQuery = noHash.split("?")[0];
+  const match = /^(https:\/\/)([^/]+)(\/.*)$/i.exec(noQuery);
+  if (!match) return null;
+  let host = match[2].toLowerCase();
+  if (host !== "upload.wikimedia.org" && host !== "thumb.wikimedia.org") return null;
+  if (host === "thumb.wikimedia.org") host = "upload.wikimedia.org";
+  const parts = match[3].split("/");
+  if (parts.length < 4 || !/^\d+px-/.test(parts[parts.length - 1])) return null;
+  const thumbAt = parts.indexOf("thumb");
+  if (thumbAt <= 0 || thumbAt >= parts.length - 2) return null;
+  parts.splice(parts.length - 1, 1);
+  parts.splice(thumbAt, 1);
+  const result = `https://${host}${parts.join("/")}`;
+  return result === noQuery ? null : result;
+}
+
+function explicitThumb(data, source) {
+  const photos = Array.isArray(data?.photos) ? data.photos : [];
+  for (const photo of photos) {
+    if (!photo || typeof photo !== "object") continue;
+    if (typeof photo.url !== "string" || photo.url.trim() !== source) continue;
+    const thumb = knownThumbUrl(photo.thumbUrl);
+    if (thumb) return thumb;
+  }
+  return null;
 }
 
 function galleryCandidates(data) {
@@ -194,15 +334,22 @@ export function firstVerifiedGalleryUrl(data) {
 }
 
 /**
- * Same photo as browse: first verified `images` URL, or `imageUrl` when
- * `images` is empty. Wikimedia thumbs wider than 480px are rewritten.
- * TODO(KAN-146): a generated thumbnail can replace this URL later.
- * Result is at most 500 characters.
+ * Browse cover. Same photo as the gallery: first verified `images` URL, or
+ * `imageUrl` when `images` is empty.
+ *
+ * A stored `photos[].thumbUrl` for that photo is used as written. Otherwise
+ * a Wikimedia thumb wider than 480px is rewritten, and anything else stays
+ * the full URL. Storage siblings are not invented. Result is at most 500
+ * characters. Detail keeps the full gallery URL.
  */
 export function coverThumb(data) {
   const source = firstVerifiedGalleryUrl(data);
   if (!source) return null;
-  return usableCover(source, { allowFull: true });
+  const explicit = explicitThumb(data, source);
+  if (explicit) return explicit;
+  const wiki = wikimedia480(source);
+  if (wiki) return wiki;
+  return knownThumbUrl(source);
 }
 
 function isHistoricalPrintCaption(credit) {
