@@ -141,8 +141,10 @@ dump_failure() {
 # Get Directions leaves the https stub resumed. Maestro's launchApp
 # force-stops this package and returns as soon as the start is issued,
 # so the hierarchy stays on the stub and the new process is not resumed.
-# force-stop does not clear app data.
+# Stop the stub (and press Back) before starting our activity in a fresh
+# task. force-stop and CLEAR_TASK do not clear app data.
 leave_directions_handoff() {
+  adb shell input keyevent KEYCODE_BACK || true
   adb shell am force-stop com.android.fakesystemapp || true
   adb shell am force-stop com.shradhaventures.handoff || true
   adb shell input keyevent KEYCODE_HOME || true
@@ -154,14 +156,16 @@ temple_resumed() {
     | grep -q "$PKG"
 }
 
-# Cold process start with Terms still accepted. Maestro then asserts Home
-# and must not stop the process again (stopApp: false in the flow).
+# Cold process start with Terms still accepted. FLAG_ACTIVITY_NEW_TASK |
+# FLAG_ACTIVITY_CLEAR_TASK (0x10008000) starts a fresh task so the
+# directions stub cannot stay resumed. Maestro then asserts Home and must
+# not stop the process again (stopApp: false in the flow).
 second_process_start() {
   leave_directions_handoff
   adb logcat -c || true
   adb shell am force-stop "$PKG" || true
   sleep 1
-  adb shell am start -W -n "${PKG}/.MainActivity" || true
+  adb shell am start -W -n "${PKG}/.MainActivity" -f 0x10008000 || true
   local pid=""
   local attempt
   for attempt in $(seq 1 20); do
@@ -182,7 +186,7 @@ second_process_start() {
       return 0
     fi
     leave_directions_handoff
-    adb shell am start -W -n "${PKG}/.MainActivity" || true
+    adb shell am start -W -n "${PKG}/.MainActivity" -f 0x10008000 || true
     sleep 1
   done
   echo "Second launch process is not the resumed activity." >&2

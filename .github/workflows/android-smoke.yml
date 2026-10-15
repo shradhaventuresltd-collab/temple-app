@@ -132,7 +132,9 @@ jobs:
 
       # Profile starts much faster than debug on a cold emulator, and
       # x86_64 matches the AVD. DEMO_BUILD forces test ad units. Do not
-      # pass ENABLE_ADMIN_TOOLS. The Maestro flow never taps Seed or Admin.
+      # pass ENABLE_ADMIN_TOOLS here (and never on the Play AAB). The
+      # release demo-seed job is the one that relaunches with that define.
+      # The Maestro flow never taps Seed or Admin.
       - name: Cache Gradle
         id: gradle-cache
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0

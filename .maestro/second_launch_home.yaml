@@ -1,9 +1,10 @@
 appId: com.shradhaventures.temple
 ---
 # Second process start after Terms were accepted by read_only_smoke.
-# The smoke script already force-stopped the directions stub and started
-# MainActivity without clearing data. stopApp stays false so Maestro does
-# not kill that process and leave the stub browser resumed.
+# The smoke script already force-stopped the directions stub (Get
+# Directions leaves StubBrowserActivity resumed) and started MainActivity
+# in a fresh task without clearing data. stopApp stays false so Maestro
+# does not kill that process and leave the stub browser resumed.
 # clearState stays false so the gate must not return. Home must not paint
 # the release error fallback or the Firebase no-app stack.
 - launchApp:
@@ -14,6 +15,8 @@ appId: com.shradhaventures.temple
     timeout: 60000
 - assertNotVisible: "Something went wrong"
 - assertNotVisible: "No Firebase App"
-- assertNotVisible: "[core/no-app]"
+# Maestro compiles selector text as a regex. The escaped brackets match
+# the literal error code. An unescaped pair would be a character class.
+- assertNotVisible: "\\[core/no-app\\]"
 - assertNotVisible:
     id: "policy-accept-button"

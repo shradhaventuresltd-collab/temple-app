@@ -148,12 +148,38 @@ if ! grep -q 'stopApp: false' .maestro/second_launch_home.yaml; then
   echo "FAIL: the second launch must not stop the process Maestro is asserting" >&2
   exit 1
 fi
+if ! grep -F -q '\\[core/no-app\\]' .maestro/second_launch_home.yaml; then
+  echo "FAIL: the Maestro no-app selector must escape brackets (it is a regex)" >&2
+  exit 1
+fi
+if grep -F -q 'assertNotVisible: "[core/no-app]"' .maestro/second_launch_home.yaml; then
+  echo "FAIL: an unescaped [core/no-app] selector is a character class" >&2
+  exit 1
+fi
 if ! grep -q 'com.android.fakesystemapp' scripts/ci/run_android_smoke.sh; then
   echo "FAIL: the smoke script must leave the directions stub before the second launch" >&2
   exit 1
 fi
+if ! grep -q '0x10008000' scripts/ci/run_android_smoke.sh; then
+  echo "FAIL: the smoke relaunch must start MainActivity in a fresh task" >&2
+  exit 1
+fi
 if ! grep -q 'tap_needle "More"' scripts/ci/run_demo_seed_launch.sh; then
   echo "FAIL: demo-seed must open the Home overflow before Admin sign-in" >&2
+  exit 1
+fi
+if ! grep -q 'second launch with terms kept' scripts/ci/run_demo_seed_launch.sh; then
+  echo "FAIL: demo-seed must relaunch with Terms kept on the admin-tools APK" >&2
+  exit 1
+fi
+if ! grep -q 'Something went wrong' scripts/ci/run_demo_seed_launch.sh; then
+  echo "FAIL: demo-seed relaunch must reject the release error fallback" >&2
+  exit 1
+fi
+second_at="$(grep -n 'assert_terms_kept_relaunch' scripts/ci/run_demo_seed_launch.sh | tail -1 | cut -d: -f1)"
+clear_at="$(grep -n 'adb shell pm clear' scripts/ci/run_demo_seed_launch.sh | head -1 | cut -d: -f1)"
+if [[ -z "$second_at" || -z "$clear_at" || "$second_at" -ge "$clear_at" ]]; then
+  echo "FAIL: demo-seed must relaunch with Terms kept before pm clear" >&2
   exit 1
 fi
 echo "ok: second launch keeps acceptance and rejects the error fallback"

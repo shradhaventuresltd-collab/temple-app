@@ -7,8 +7,10 @@
 # keystore because the Play upload key is not on the runner. Release mode
 # (AOT, no assertions, Impeller on) matches that demo.
 #
-# Success means: the Terms gate is on screen, Accept opens Home, and the
-# Admin panel opens. The script never taps Seed, so it does not write
+# Success means: the Terms gate is on screen, Accept opens Home, a second
+# process start keeps that acceptance and does not paint the error
+# fallback (this APK has ENABLE_ADMIN_TOOLS, the build that crashed), and
+# the Admin panel opens. The script never taps Seed, so it does not write
 # sample temples to production Firestore.
 set -euo pipefail
 
@@ -55,13 +57,16 @@ for node in pattern.findall(xml):
     if not match:
         continue
     x1, y1, x2, y2 = map(int, match.groups())
-    # Near the bottom of the node. The app-bar action center is under
-    # the status bar (More is about y=74), and that tap never lands.
-    inset = max(8, (y2 - y1) // 5)
-    y = y2 - inset
-    if y <= y1:
-        y = (y1 + y2) // 2
-    print((x1 + x2) // 2, y)
+    x = (x1 + x2) // 2
+    y = (y1 + y2) // 2
+    # App-bar actions are drawn under the status bar. Their center
+    # (More is about y=74) never lands. Use the bottom edge of those
+    # nodes only; controls further down keep their center.
+    if y2 < 200 and y < 140:
+        y = y2 - 4
+        if y <= y1:
+            y = (y1 + y2) // 2
+    print(x, y)
     break
 ' "$needle" <"$OUT/uidump.xml" || true
 }
@@ -145,6 +150,41 @@ wait_for() {
   return 1
 }
 
+# Second process start after Accept. pm clear has not run, so Terms stay
+# accepted. ENABLE_ADMIN_TOOLS is on for this release APK: Home used to
+# construct AdminAuth in build and paint the no-app error. 0x10008000 is
+# FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_CLEAR_TASK (a fresh task, not a
+# data clear).
+assert_terms_kept_relaunch() {
+  echo "===== second launch with terms kept ====="
+  timeout 15s adb logcat -c || true
+  timeout 15s adb shell am force-stop "$PKG" || true
+  sleep 1
+  timeout 30s adb shell am start -W -n "${PKG}/.MainActivity" -f 0x10008000 || true
+  if ! wait_for "More" 15 && ! wait_for "Loading temples" 5; then
+    echo "Second launch did not reach Home with Terms kept"
+    screenshot relaunch
+    return 1
+  fi
+  screenshot relaunch
+  hierarchy
+  local bad
+  for bad in \
+    "Something went wrong" \
+    "No Firebase App" \
+    "[core/no-app]" \
+    "Before you begin" \
+    "policy-accept-button"
+  do
+    if [[ -f "$OUT/uidump.xml" ]] && grep -F -q "$bad" "$OUT/uidump.xml"; then
+      echo "Second launch showed: $bad"
+      return 1
+    fi
+  done
+  echo "second launch kept Terms and did not paint the error fallback"
+  return 0
+}
+
 echo "===== wait for boot ====="
 adb wait-for-device
 boot=""
@@ -199,6 +239,11 @@ else
     status=1
   else
     screenshot home
+    # Relaunch while acceptance is still stored. The offline section
+    # below clears data and must stay after this check.
+    if ! assert_terms_kept_relaunch; then
+      status=1
+    fi
     # Admin sign-in is in the Home overflow (tooltip More). Do not tap Seed.
     if visible "Seed sample temples"; then
       echo "Seed write button is on screen; refusing to tap it"
@@ -209,6 +254,13 @@ else
       status=1
     else
       sleep 1
+      hierarchy
+      if ! grep -q "Admin sign-in" "$OUT/uidump.xml"; then
+        # The first tap can hit the status bar. The menu is still closed,
+        # so tapping More again opens it instead of dismissing it.
+        tap_needle "More" || true
+        sleep 1
+      fi
       if ! tap_needle "Admin sign-in" && ! tap_needle "Admin Panel"; then
         sleep 1
         if ! tap_needle "Admin sign-in"; then
