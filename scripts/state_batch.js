@@ -21,6 +21,8 @@ import { changedKeys, templeDocumentId } from "./temple_seed.js";
 
 export const MAX_TEMPLES_PER_BATCH = 100;
 export const DUPLICATE_DISTANCE_KM = 1;
+/** Overlap warnings only when a point is this close to a box edge. */
+export const BORDER_MARGIN_DEGREES = 0.3;
 
 /** India, including island territories used by this directory. */
 export const LATITUDE_RANGE = Object.freeze({ min: 6, max: 37.5 });
@@ -34,10 +36,11 @@ export const LONGITUDE_RANGE = Object.freeze({ min: 68, max: 97.5 });
  * union of those three territories, so Diu (Gangeshwar 20.7135, 70.9264) is
  * inside. Puducherry is the union-territory relation (Pondicherry, Karaikal,
  * Mahe, Yanam). Boxes are coarse and overlap at some borders. A point outside
- * its padded box is a hard error. A point inside its own box and inside a
- * second box is a warning plus a review note: Ballia (25.7584, 84.1487) sits
- * in both Uttar Pradesh and Bihar, and Tamreswari (27.9417, 95.8472) sits in
- * both Assam and Arunachal Pradesh. Delhi (28.6139, 77.2091) stays outside Bihar.
+ * its padded box is a hard error. A point inside two boxes warns only when it
+ * is within 0.3° of an edge of either box. Interior overlap, such as central
+ * Telangana, central Haryana, or Jaimangla Garh (25.5922, 86.1613) inside the
+ * West Bengal rectangle, does not warn. Tamreswari (27.9417, 95.8472) is near
+ * the Assam edge and still warns. Delhi (28.6139, 77.2091) stays outside Bihar.
  */
 export const STATE_BOUNDS = Object.freeze({
   "Andaman and Nicobar Islands": box(6.65, 13.78, 92.1, 94.38),
@@ -316,7 +319,7 @@ export function validateStateBatch(batch, existing = []) {
         latitude,
         longitude,
         distinctFrom: distinctFromSlugs(raw.dedupe),
-        reviewNote: reviewNoteText(raw.review),
+        dedupeReason: dedupeReasonText(raw.dedupe),
       });
     }
     if (reviewStatus && reviewStatus !== "approved") {
@@ -559,11 +562,26 @@ function insideBox(latitude, longitude, bounds) {
   );
 }
 
+function distanceToBoxEdge(latitude, longitude, bounds) {
+  return Math.min(
+    latitude - bounds.latMin,
+    bounds.latMax - latitude,
+    longitude - bounds.lngMin,
+    bounds.lngMax - longitude,
+  );
+}
+
 function overlappingStates(latitude, longitude, templeState) {
+  const own = STATE_BOUNDS[templeState];
+  const ownEdge = distanceToBoxEdge(latitude, longitude, own);
   const names = [];
   for (const [name, bounds] of Object.entries(STATE_BOUNDS)) {
     if (name === templeState) continue;
-    if (insideBox(latitude, longitude, bounds)) names.push(name);
+    if (!insideBox(latitude, longitude, bounds)) continue;
+    const otherEdge = distanceToBoxEdge(latitude, longitude, bounds);
+    if (ownEdge <= BORDER_MARGIN_DEGREES || otherEdge <= BORDER_MARGIN_DEGREES) {
+      names.push(name);
+    }
   }
   return names;
 }
@@ -751,9 +769,18 @@ function listsDistinct(record, otherId) {
   return list.includes(String(otherId).toLowerCase());
 }
 
-function reviewNoteText(review) {
-  if (!review || typeof review !== "object" || Array.isArray(review)) return "";
-  return typeof review.notes === "string" ? review.notes.trim() : "";
+function dedupeReasonText(dedupe) {
+  if (!dedupe || typeof dedupe !== "object" || Array.isArray(dedupe)) return "";
+  return typeof dedupe.reason === "string" ? dedupe.reason.trim() : "";
+}
+
+function reasonNamesTemple(reason, temple) {
+  const text = String(reason ?? "").toLowerCase();
+  if (text === "") return false;
+  const slug = String(temple.id ?? "").trim().toLowerCase();
+  if (slug && text.includes(slug)) return true;
+  const name = String(temple.name ?? "").trim().toLowerCase();
+  return name !== "" && text.includes(name);
 }
 
 function recordProximity(left, right, errors, warnings, info, existing) {
@@ -776,17 +803,17 @@ function recordProximity(left, right, errors, warnings, info, existing) {
     return;
   }
   const namesDiffer = normaliseName(left.name) !== normaliseName(right.name);
-  const note = typeof left.reviewNote === "string" ? left.reviewNote.trim() : "";
-  if (!namesDiffer || note === "") {
+  const reason = typeof left.dedupeReason === "string" ? left.dedupeReason.trim() : "";
+  if (!namesDiffer || !reasonNamesTemple(reason, right)) {
     errors.push(
-      `${detail}. A distinct_from pair with an existing temple needs a different normalised name and a review note.`,
+      `${detail}. A distinct_from pair with an existing temple needs a different normalised name and a dedupe.reason that names the other temple by slug or name.`,
     );
     return;
   }
   warnings.push({
     id: left.id,
     message: `${detail}. dedupe.distinct_from lists the other slug.`,
-    reviewNote: note,
+    reviewNote: reason,
   });
 }
 

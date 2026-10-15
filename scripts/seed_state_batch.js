@@ -16,6 +16,8 @@
  * timings null is stored as null. timings_note is never written.
  * story is the sourced description (2–4 sentences).
  * Only review.status "approved" is seeded. Image fields are never written.
+ * --apply pre-checks every id, then writes with create() in one batch.
+ * If any id already exists, the whole batch is aborted before any write.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
@@ -50,7 +52,8 @@ Default is dry-run. Existing slugs are always rejected (no overwrite, no rename)
 project id, refuses CI, and does not run unless --project is explicit.
 Only review.status "approved" is seeded. timings null stays null.
 story is copied from the description. Deploy firestore.rules before writing
-any null-timings document.
+any null-timings document. --apply checks that every id is absent, then
+creates them together. One existing id aborts the batch before any write.
 Do not combine this with Seed or upload_research_pack.js --patch-firestore.
 `);
 }
@@ -114,6 +117,23 @@ export function firestoreWritePayload(temple, live) {
   };
 }
 
+/**
+ * Refuse the whole batch when any id is already present. No document is written.
+ * @param {object[]} temples
+ * @param {Set<string>} existingIds
+ */
+export function assertIdsAbsent(temples, existingIds) {
+  const taken = [];
+  for (const temple of temples) {
+    if (existingIds.has(String(temple.id))) taken.push(temple.id);
+  }
+  if (taken.length > 0) {
+    throw new Error(
+      `Refusing to write. These ids already exist: ${taken.join(", ")}. No write.`,
+    );
+  }
+}
+
 async function applyToFirestore(project, temples) {
   const { readFileSync: read, existsSync } = await import("node:fs");
   const candidates = [
@@ -140,21 +160,23 @@ async function applyToFirestore(project, temples) {
     });
   }
   const db = admin.firestore();
+  const refs = temples.map((temple) => db.collection("temples").doc(temple.id));
+  const snaps = refs.length === 0 ? [] : await db.getAll(...refs);
+  assertIdsAbsent(
+    temples,
+    new Set(snaps.filter((snap) => snap.exists).map((snap) => snap.id)),
+  );
+  if (temples.length === 0) return;
+  const batch = db.batch();
   for (const temple of temples) {
-    const ref = db.collection("temples").doc(temple.id);
-    const snap = await ref.get();
-    if (snap.exists) {
-      throw new Error(
-        `temples/${temple.id} already exists. Refusing to overwrite. No write.`,
-      );
-    }
     const data = firestoreWritePayload(temple, null);
-    await ref.set({
+    batch.create(db.collection("temples").doc(temple.id), {
       ...data,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
-    console.log(`created temples/${temple.id}`);
   }
+  await batch.commit();
+  for (const temple of temples) console.log(`created temples/${temple.id}`);
 }
 
 async function main(argv = process.argv.slice(2)) {

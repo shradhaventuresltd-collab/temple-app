@@ -6,7 +6,7 @@ import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-import { firestoreWritePayload, parseArgs } from "./seed_state_batch.js";
+import { assertIdsAbsent, firestoreWritePayload, parseArgs } from "./seed_state_batch.js";
 import {
   STATE_BOUNDS,
   canonicalPhotoPackPath,
@@ -197,7 +197,27 @@ test("a Bihar batch with Delhi coordinates is a hard error", () => {
   assert.ok(STATE_BOUNDS.Delhi.lngMin <= 77.2091 && STATE_BOUNDS.Delhi.lngMax >= 77.2091);
 });
 
-test("a point inside two state boxes warns, as with Ballia and Tamreswari", () => {
+test("overlap warns only within 0.3 degrees of a box edge", () => {
+  const border = validateStateBatch(
+    batch([
+      temple({
+        slug: "border-temple",
+        name: "Border Temple",
+        city: "Ballia",
+        latitude: 25.7584,
+        longitude: 84.5501,
+      }),
+    ]),
+    [],
+  );
+  assert.equal(border.ok, true, border.errors.join("\n"));
+  assert.ok(
+    border.warnings.some(
+      (warning) => warning.message.includes("Uttar Pradesh") && warning.message.includes("Bihar"),
+    ),
+    JSON.stringify(border.warnings),
+  );
+
   const ballia = validateStateBatch(
     batch([
       temple({
@@ -211,35 +231,10 @@ test("a point inside two state boxes warns, as with Ballia and Tamreswari", () =
     [],
   );
   assert.equal(ballia.ok, true, ballia.errors.join("\n"));
-  assert.equal(ballia.summary.new.length, 1);
-  assert.ok(
-    ballia.warnings.some(
-      (warning) => warning.message.includes("Uttar Pradesh") && warning.message.includes("Bihar"),
-    ),
+  assert.equal(
+    ballia.warnings.some((warning) => warning.message.includes("bounding box")),
+    false,
     JSON.stringify(ballia.warnings),
-  );
-  assert.match(ballia.warnings[0].reviewNote, /Uttar Pradesh/);
-
-  const balliaAsUp = validateStateBatch(
-    batch(
-      [
-        temple({
-          slug: "ballia-temple",
-          name: "Ballia Temple",
-          state: "Uttar Pradesh",
-          city: "Ballia",
-          latitude: 25.7584,
-          longitude: 84.1487,
-        }),
-      ],
-      "Uttar Pradesh",
-    ),
-    [],
-  );
-  assert.equal(balliaAsUp.ok, true, balliaAsUp.errors.join("\n"));
-  assert.ok(
-    balliaAsUp.warnings.some((warning) => warning.message.includes("Bihar")),
-    JSON.stringify(balliaAsUp.warnings),
   );
 
   const tamreswari = validateStateBatch(
@@ -266,11 +261,87 @@ test("a point inside two state boxes warns, as with Ballia and Tamreswari", () =
     ),
     JSON.stringify(tamreswari.warnings),
   );
-  assert.match(tamreswari.warnings[0].reviewNote, /Arunachal Pradesh/);
-  assert.equal(
-    tamreswari.errors.some((error) => error.includes("outside")),
-    false,
+
+  const jaimangla = validateStateBatch(
+    batch([
+      temple({
+        slug: "jaimangla-garh-temple",
+        name: "Jaimangla Garh Temple",
+        city: "Begusarai",
+        latitude: 25.5922,
+        longitude: 86.1613,
+      }),
+    ]),
+    [],
   );
+  assert.equal(jaimangla.ok, true, jaimangla.errors.join("\n"));
+  assert.equal(
+    jaimangla.warnings.some((warning) => warning.message.includes("West Bengal")),
+    false,
+    JSON.stringify(jaimangla.warnings),
+  );
+
+  const telangana = validateStateBatch(
+    batch(
+      [
+        temple({
+          slug: "yadagirigutta-temple",
+          name: "Yadagirigutta Temple",
+          state: "Telangana",
+          city: "Yadagirigutta",
+          latitude: 17.5892,
+          longitude: 78.9446,
+        }),
+      ],
+      "Telangana",
+    ),
+    [],
+  );
+  assert.equal(telangana.ok, true, telangana.errors.join("\n"));
+  assert.equal(telangana.warnings.length, 0, JSON.stringify(telangana.warnings));
+
+  const haryana = validateStateBatch(
+    batch(
+      [
+        temple({
+          slug: "central-haryana-temple",
+          name: "Central Haryana Temple",
+          state: "Haryana",
+          city: "Rohtak",
+          latitude: 29.29,
+          longitude: 76.04,
+        }),
+      ],
+      "Haryana",
+    ),
+    [],
+  );
+  assert.equal(haryana.ok, false);
+  assert.ok(haryana.errors.some((error) => error.includes("need 4 or more")));
+  assert.equal(
+    haryana.warnings.some((warning) => warning.message.includes("bounding box")),
+    false,
+    JSON.stringify(haryana.warnings),
+  );
+
+  const haryanaPrecise = validateStateBatch(
+    batch(
+      [
+        temple({
+          slug: "central-haryana-temple",
+          name: "Central Haryana Temple",
+          state: "Haryana",
+          city: "Rohtak",
+          latitude: 29.2911,
+          longitude: 76.0411,
+        }),
+      ],
+      "Haryana",
+    ),
+    [],
+  );
+  assert.equal(haryanaPrecise.ok, true, haryanaPrecise.errors.join("\n"));
+  assert.equal(haryanaPrecise.warnings.length, 0, JSON.stringify(haryanaPrecise.warnings));
 });
 
 test("coordinates reject 2 or fewer decimals, warn on 3, and accept 4 or more", () => {
@@ -413,12 +484,23 @@ test("a 1 km pair is accepted when dedupe.distinct_from lists the other slug", (
     ...nearby.review,
     notes: "Different shrine from Example Temple, confirmed on the map.",
   };
+  const notesOnly = validateStateBatch(batch([nearby]), [existing]);
+  assert.equal(notesOnly.ok, false);
+  assert.ok(
+    notesOnly.errors.some((error) => error.includes("dedupe.reason")),
+    notesOnly.errors.join("\n"),
+  );
+
+  nearby.dedupe = {
+    distinct_from: ["example-temple"],
+    reason: "Distinct from Example Temple in the same neighbourhood.",
+  };
   const againstExisting = validateStateBatch(batch([nearby]), [existing]);
   assert.equal(againstExisting.ok, true, againstExisting.errors.join("\n"));
   assert.equal(againstExisting.info.length, 0);
   assert.equal(againstExisting.warnings.length, 1);
   assert.match(againstExisting.warnings[0].message, /existing example-temple/);
-  assert.match(againstExisting.warnings[0].reviewNote, /Different shrine/);
+  assert.match(againstExisting.warnings[0].reviewNote, /Example Temple/);
 
   const incoming = temple({
     slug: "nearby-temple",
@@ -426,10 +508,13 @@ test("a 1 km pair is accepted when dedupe.distinct_from lists the other slug", (
     latitude: 25.6151,
     longitude: 85.1372,
   });
-  incoming.dedupe = { distinct_from: ["example-temple"] };
+  incoming.dedupe = {
+    distinct_from: ["example-temple"],
+    reason: "Not the same temple as example-temple.",
+  };
   incoming.review = {
     ...incoming.review,
-    notes: "Not the same temple as example-temple.",
+    notes: "Photo shortfall: 0/5.",
   };
   const fromIncoming = validateStateBatch(batch([incoming]), [
     { ...existing, dedupe: undefined },
@@ -437,7 +522,30 @@ test("a 1 km pair is accepted when dedupe.distinct_from lists the other slug", (
   assert.equal(fromIncoming.ok, true, fromIncoming.errors.join("\n"));
   assert.equal(fromIncoming.info.length, 0);
   assert.equal(fromIncoming.warnings.length, 1);
-  assert.match(fromIncoming.warnings[0].reviewNote, /Not the same temple/);
+  assert.match(fromIncoming.warnings[0].reviewNote, /example-temple/);
+
+  const shortfall = temple({
+    slug: "nearby-temple",
+    name: "Nearby Temple",
+    latitude: 25.6151,
+    longitude: 85.1372,
+  });
+  shortfall.dedupe = {
+    distinct_from: ["example-temple"],
+    reason: "Photo shortfall: 0/5.",
+  };
+  shortfall.review = {
+    ...shortfall.review,
+    notes: "Approved by Research Pavi 2026-10-15.",
+  };
+  const generic = validateStateBatch(batch([shortfall]), [
+    { ...existing, dedupe: undefined },
+  ]);
+  assert.equal(generic.ok, false);
+  assert.ok(
+    generic.errors.some((error) => error.includes("dedupe.reason")),
+    generic.errors.join("\n"),
+  );
 
   const sameName = temple({
     slug: "exampletemple",
@@ -445,8 +553,10 @@ test("a 1 km pair is accepted when dedupe.distinct_from lists the other slug", (
     latitude: 25.6151,
     longitude: 85.1372,
   });
-  sameName.dedupe = { distinct_from: ["example-temple"] };
-  sameName.review = { ...sameName.review, notes: "Same folded name." };
+  sameName.dedupe = {
+    distinct_from: ["example-temple"],
+    reason: "Same folded name as example-temple.",
+  };
   const foldedName = validateStateBatch(batch([sameName]), [
     { ...existing, dedupe: undefined },
   ]);
@@ -456,20 +566,20 @@ test("a 1 km pair is accepted when dedupe.distinct_from lists the other slug", (
     foldedName.errors.join("\n"),
   );
 
-  const noNote = temple({
+  const noReason = temple({
     slug: "nearby-temple",
     name: "Nearby Temple",
     latitude: 25.6151,
     longitude: 85.1372,
   });
-  noNote.dedupe = { distinct_from: ["example-temple"] };
-  const missingNote = validateStateBatch(batch([noNote]), [
+  noReason.dedupe = { distinct_from: ["example-temple"] };
+  const missingReason = validateStateBatch(batch([noReason]), [
     { ...existing, dedupe: undefined },
   ]);
-  assert.equal(missingNote.ok, false);
+  assert.equal(missingReason.ok, false);
   assert.ok(
-    missingNote.errors.some((error) => error.includes("review note")),
-    missingNote.errors.join("\n"),
+    missingReason.errors.some((error) => error.includes("dedupe.reason")),
+    missingReason.errors.join("\n"),
   );
 });
 
@@ -536,10 +646,13 @@ test("Odisha cluster pairs within 1 km of prod stay valid with a warning", () =>
     for (const other of rows) {
       if (other.slug !== row.slug && distanceKm(row, other) <= 1) near.push(other.slug);
     }
-    row.dedupe = { distinct_from: near };
+    row.dedupe = {
+      distinct_from: near,
+      reason: `Distinct shrines: ${near.join(", ")}.`,
+    };
     row.review = {
       ...row.review,
-      notes: `Distinct shrine in the Bhubaneswar cluster, not ${near[0]}.`,
+      notes: "Approved by Research Pavi 2026-10-15.",
     };
   }
   const result = validateStateBatch(batch(rows, "Odisha"), cluster);
@@ -709,10 +822,28 @@ test("apply omits image fields and refuses to overwrite an existing document", (
 
   const source = readFileSync(join(here, "seed_state_batch.js"), "utf8");
   assert.match(source, /firestoreWritePayload\(temple, null\)/);
-  assert.match(source, /already exists. Refusing to overwrite/);
+  assert.match(source, /getAll\(/);
+  assert.match(source, /batch\.create\(/);
+  assert.match(source, /assertIdsAbsent/);
+  assert.doesNotMatch(source, /\.set\(/);
+  assert.doesNotMatch(source, /\.update\(/);
   assert.doesNotMatch(source, /--update/);
   assert.equal(Object.hasOwn(parseArgs(["batch.json"]), "update"), false);
   assert.throws(() => parseArgs(["batch.json", "--update"]), /Unknown argument/);
+
+  const second = { ...incoming, id: "other-temple" };
+  assert.throws(
+    () => assertIdsAbsent([incoming, second], new Set(["other-temple"])),
+    /other-temple/,
+  );
+  assert.throws(
+    () => assertIdsAbsent([incoming, second], new Set(["example-temple", "other-temple"])),
+    /example-temple, other-temple/,
+  );
+  assert.deepEqual(
+    assertIdsAbsent([incoming], new Set()),
+    undefined,
+  );
 });
 
 test("an existing slug is rejected, including a case-only match", () => {
