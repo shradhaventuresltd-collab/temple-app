@@ -78,6 +78,48 @@ void main() {
     expect(firestoreRules, isNot(contains('timings == ""')));
   });
 
+  test('temple index and meta are public-read and admin-write', () {
+    expect(firestoreRules, contains('match /temple_index/{stateSlug}'));
+    expect(firestoreRules, contains('match /meta/{metaId}'));
+    expect(firestoreRules, contains("metaId == 'temple_index'"));
+    expect(
+      firestoreRules,
+      contains('allow read: if metaId == \'temple_index\''),
+    );
+    expect(
+      firestoreRules,
+      contains('isValidTempleIndexCreate(request.resource.data)'),
+    );
+    expect(
+      firestoreRules,
+      contains('isValidTempleIndexUpdate(request.resource.data)'),
+    );
+    expect(firestoreRules, contains('isValidTempleIndexShard(data)'));
+    expect(firestoreRules, contains('data.entries.keys().size() <= 400'));
+    expect(firestoreRules, contains('data.entries.keys().size() == 1'));
+    expect(firestoreRules, contains('affectedKeys().size() <= 1'));
+    expect(firestoreRules, contains('data.shards.keys().size() <= 48'));
+    expect(
+      firestoreRules,
+      contains('data.indexVersion == resource.data.indexVersion + 1'),
+    );
+    expect(firestoreRules, contains('validIndexStateSlug(stateSlug)'));
+    expect(
+      firestoreRules,
+      contains('function isValidTempleIndexMeta(data, isCreate)'),
+    );
+    expect(firestoreRules, isNot(contains('allow write: if true')));
+    expect(firestoreRules, contains("allow create: if isAdmin() &&"));
+    expect(
+      firestoreRules,
+      contains('allow delete: if isAdmin() && validIndexStateSlug(stateSlug)'),
+    );
+    expect(
+      firestoreRules,
+      contains("allow delete: if metaId == 'temple_index' && isAdmin()"),
+    );
+  });
+
   test('firebase.json points at the checked-in rules files', () {
     final firebaseJson = File('firebase.json').readAsStringSync();
     expect(firebaseJson, contains('"rules": "firestore.rules"'));

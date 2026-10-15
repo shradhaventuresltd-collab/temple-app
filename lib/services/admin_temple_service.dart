@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:temple_app/config/build_flags.dart';
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/models/temple_index.dart';
 import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/services/seed_service.dart';
 
@@ -13,9 +14,18 @@ abstract class TempleWriteStore {
   /// Current `temples/{id}` map, or `null` if the document is missing.
   Future<Map<String, dynamic>?> get(String id);
 
-  Future<void> set(String id, Map<String, dynamic> data, {required bool isNew});
+  /// Writes the temple and, in the same commit, its index entry and meta bump.
+  ///
+  /// [previous] is the stored temple when the caller already loaded it.
+  /// A state change removes `entries.{id}` from the old shard.
+  Future<void> set(
+    String id,
+    Map<String, dynamic> data, {
+    required bool isNew,
+    Map<String, dynamic>? previous,
+  });
 
-  Future<void> deleteDocument(String id);
+  Future<void> deleteDocument(String id, {Map<String, dynamic>? previous});
 
   /// Deletes objects under `temples/{docId}/`. Returns how many were removed.
   /// External URLs (picsum seed images, etc.) are not Storage objects.
@@ -54,19 +64,114 @@ class FirebaseTempleWriteStore implements TempleWriteStore {
     String id,
     Map<String, dynamic> data, {
     required bool isNew,
-  }) async {
-    final payload = Map<String, dynamic>.from(data);
-    final ref = _col.doc(id);
-    if (isNew) {
-      payload['createdAt'] = FieldValue.serverTimestamp();
-      await ref.set(payload);
-    } else {
-      await ref.set(payload, SetOptions(merge: true));
-    }
+    Map<String, dynamic>? previous,
+  }) {
+    return _commitTemple(
+      id: id,
+      data: data,
+      isNew: isNew,
+      deleteTemple: false,
+      previous: previous,
+    );
   }
 
   @override
-  Future<void> deleteDocument(String id) => _col.doc(id).delete();
+  Future<void> deleteDocument(String id, {Map<String, dynamic>? previous}) {
+    return _commitTemple(
+      id: id,
+      data: null,
+      isNew: false,
+      deleteTemple: true,
+      previous: previous,
+    );
+  }
+
+  /// One batch: the temple document, a single `entries.{id}` field path,
+  /// and the `meta/temple_index` bump.
+  ///
+  /// A state move also field-deletes `entries.{id}` on the old shard.
+  /// That shard is read only to see whether the delete is needed. The
+  /// entries map is never loaded or rewritten.
+  Future<void> _commitTemple({
+    required String id,
+    required Map<String, dynamic>? data,
+    required bool isNew,
+    required bool deleteTemple,
+    Map<String, dynamic>? previous,
+  }) async {
+    final ref = _col.doc(id);
+    var prior = previous;
+    if (prior == null && !isNew) {
+      final snap = await ref.get();
+      if (snap.exists) prior = snap.data();
+    }
+    final plan = planTempleIndex(
+      id: id,
+      next: deleteTemple ? null : data,
+      previous: isNew ? null : prior,
+    );
+
+    DocumentReference<Map<String, dynamic>>? oldShard;
+    if (plan.removeShard != null) {
+      final candidate = _firestore
+          .collection(kTempleIndexCollection)
+          .doc(plan.removeShard);
+      final oldSnap = await candidate.get();
+      if (oldSnap.exists) oldShard = candidate;
+    }
+
+    final batch = _firestore.batch();
+    if (deleteTemple) {
+      batch.delete(ref);
+    } else if (isNew) {
+      final payload = Map<String, dynamic>.from(data!);
+      payload['createdAt'] = FieldValue.serverTimestamp();
+      batch.set(ref, payload);
+    } else {
+      batch.set(ref, data!, SetOptions(merge: true));
+    }
+
+    if (plan.upsertShard != null && plan.entry != null) {
+      final entry = Map<String, dynamic>.from(plan.entry!);
+      entry['updatedAt'] = FieldValue.serverTimestamp();
+      batch.set(
+        _firestore.collection(kTempleIndexCollection).doc(plan.upsertShard),
+        {
+          'entries': {id: entry},
+        },
+        SetOptions(
+          mergeFields: [
+            FieldPath(['entries', id]),
+          ],
+        ),
+      );
+    }
+    if (oldShard != null) {
+      // Entry ids are slugs with no dots, so this is one field path.
+      batch.update(oldShard, {'entries.$id': FieldValue.delete()});
+    }
+    if (plan.touchesIndex) {
+      batch.set(
+        _firestore
+            .collection(kTempleIndexMetaCollection)
+            .doc(kTempleIndexMetaDocId),
+        {
+          'indexVersion': FieldValue.increment(1),
+          'shards': {
+            for (final slug in plan.metaShards)
+              slug: FieldValue.serverTimestamp(),
+          },
+        },
+        SetOptions(
+          mergeFields: [
+            'indexVersion',
+            for (final slug in plan.metaShards) FieldPath(['shards', slug]),
+          ],
+        ),
+      );
+    }
+    await batch.commit();
+  }
 
   @override
   Future<int> deleteStoragePrefix(String docId) {
@@ -99,6 +204,14 @@ class MemoryTempleWriteStore implements TempleWriteStore {
   /// How many Storage objects [deleteStoragePrefix] should report per doc id.
   Map<String, int> storageObjectCounts;
 
+  /// `temple_index/{stateSlug}` → temple id → entry. One key is written
+  /// at a time; siblings already in the shard are left in place.
+  final Map<String, Map<String, Map<String, dynamic>>> shards = {};
+
+  int indexVersion = 0;
+  final Map<String, String> shardStamps = {};
+  List<String> lastIndexFieldPaths = const [];
+
   Object? setError;
   Object? deleteDocumentError;
   Object? deleteStorageError;
@@ -119,8 +232,14 @@ class MemoryTempleWriteStore implements TempleWriteStore {
     String id,
     Map<String, dynamic> data, {
     required bool isNew,
+    Map<String, dynamic>? previous,
   }) async {
     if (setError != null) throw setError!;
+    final prior = isNew
+        ? null
+        : (previous ??
+              (docs[id] == null ? null : Map<String, dynamic>.from(docs[id]!)));
+    final plan = planTempleIndex(id: id, next: data, previous: prior);
     final payload = Map<String, dynamic>.from(data);
     if (isNew) {
       payload['createdAt'] = 'server';
@@ -128,12 +247,47 @@ class MemoryTempleWriteStore implements TempleWriteStore {
     } else {
       docs[id] = {...?docs[id], ...payload};
     }
+    _applyIndexPlan(plan);
   }
 
   @override
-  Future<void> deleteDocument(String id) async {
+  Future<void> deleteDocument(
+    String id, {
+    Map<String, dynamic>? previous,
+  }) async {
     if (deleteDocumentError != null) throw deleteDocumentError!;
+    final prior =
+        previous ??
+        (docs[id] == null ? null : Map<String, dynamic>.from(docs[id]!));
+    final plan = planTempleIndex(id: id, next: null, previous: prior);
     docs.remove(id);
+    _applyIndexPlan(plan);
+  }
+
+  void _applyIndexPlan(TempleIndexPlan plan) {
+    final paths = <String>[];
+    if (plan.upsertShard != null && plan.entry != null) {
+      final shard = shards.putIfAbsent(plan.upsertShard!, () => {});
+      final entry = Map<String, dynamic>.from(plan.entry!);
+      entry['updatedAt'] = 'server';
+      shard[plan.id] = entry;
+      paths.add('temple_index/${plan.upsertShard}/entries/${plan.id}');
+    }
+    if (plan.removeShard != null) {
+      final old = shards[plan.removeShard!];
+      if (old != null && old.containsKey(plan.id)) {
+        old.remove(plan.id);
+        paths.add('temple_index/${plan.removeShard}/entries/${plan.id} delete');
+      }
+    }
+    if (plan.touchesIndex) {
+      indexVersion += 1;
+      for (final slug in plan.metaShards) {
+        shardStamps[slug] = 'server';
+      }
+      paths.add('meta/temple_index');
+    }
+    lastIndexFieldPaths = paths;
   }
 
   @override
@@ -268,13 +422,19 @@ class AdminTempleService implements AdminTempleApi {
     if (temple.name.trim().isEmpty) {
       throw StateError('Name is required.');
     }
-    if (!await _store.exists(id)) {
+    final previous = await _store.get(id);
+    if (previous == null) {
       throw StateError(
         'Temple was not found. It may have already been deleted.',
       );
     }
 
-    await _store.set(id, _payload(temple, id), isNew: false);
+    await _store.set(
+      id,
+      _payload(temple, id),
+      isNew: false,
+      previous: previous,
+    );
   }
 
   /// Storage has already succeeded. Merge URLs, then `set(merge: true)` the
@@ -314,7 +474,7 @@ class AdminTempleService implements AdminTempleApi {
     assertTemplePayloadValidForRules(payload);
 
     try {
-      await _store.set(id, payload, isNew: false);
+      await _store.set(id, payload, isNew: false, previous: stored);
     } catch (e) {
       throw StateError(
         'Storage upload succeeded, but Firestore could not save the image '
@@ -350,7 +510,8 @@ class AdminTempleService implements AdminTempleApi {
     }
 
     try {
-      await _store.deleteDocument(docId);
+      final previous = await _store.get(docId);
+      await _store.deleteDocument(docId, previous: previous);
     } catch (e) {
       throw StateError(
         'Removed $storageDeleted Storage object(s), but the Firestore '

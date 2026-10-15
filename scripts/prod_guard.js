@@ -3,12 +3,8 @@
  * Dry-run is the default in each caller. These checks run only for --apply.
  */
 
-export function assertNotCi() {
-  if (
-    process.env.CI ||
-    process.env.GITHUB_ACTIONS ||
-    process.env.GITHUB_WORKFLOW
-  ) {
+export function assertNotCi(env = process.env) {
+  if (env.CI || env.GITHUB_ACTIONS || env.GITHUB_WORKFLOW) {
     throw new Error(
       "Refusing to write Firestore or Storage from CI. Deployer applies after merge, from a terminal.",
     );

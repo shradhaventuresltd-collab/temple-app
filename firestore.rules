@@ -35,9 +35,28 @@ service cloud.firestore {
     // Access: Public read (this is a public temple directory).
     //         Admin-only create/update/delete via custom claim `admin: true`.
     //
-    // Queries used by the app:
+    // Collection: temple_index/{stateSlug}
+    //   Shard id is the state slug (tamil-nadu). One field:
+    //   - entries: map keyed by temple id. Each value is a browse summary:
+    //       id, slug, name, city, state, deity, address (short),
+    //       coverThumb (thumb URL or null — never the full imageUrl),
+    //       lat, lng (null when missing, never 0,0), updatedAt, v,
+    //       tradition, living, framing.
+    //       altNames, published, and hidden are copied only when the temple
+    //       document already has that field.
+    //     Descriptions, timings, and photos are not stored.
+    //   Writes set a single entries.{id} field path. The map is not rewritten.
+    //   entries key count is capped at 400.
+    //
+    // Document: meta/temple_index
+    //   - indexVersion: int, incremented by 1 on each index commit
+    //   - shards: map of stateSlug → timestamp (at most 48 keys)
+    //
+    // Queries used by the app today (KAN-145 will switch browse to the index):
     //   - collection('temples').get()
     //   - collection('temples').orderBy('name').snapshots()
+    // Rules also allow a later collection('temple_index').get() and
+    // meta/temple_index get. The client does not issue those yet.
     //
     // Note: The seed service uses set() with merge:true for idempotent
     // upserts, which triggers update rules for existing docs. Merge writes
@@ -160,6 +179,54 @@ service cloud.firestore {
       return !('photos' in data) || validPhotos(data.photos);
     }
 
+    function validIndexStateSlug(slug) {
+      return slug is string &&
+        slug.size() >= 1 &&
+        slug.size() <= 80 &&
+        slug.matches('^[a-z0-9-]{1,80}$');
+    }
+
+    // Shard document. Entry field types are checked by the admin writer and
+    // rebuild tool. Rules cannot loop map values; they cap the key set and
+    // refuse a write that changes more than one entry.
+    function isValidTempleIndexShard(data) {
+      return data.keys().hasOnly(['entries']) &&
+        data.keys().hasAll(['entries']) &&
+        data.entries is map &&
+        data.entries.keys().size() <= 400;
+    }
+
+    function isValidTempleIndexCreate(data) {
+      return isValidTempleIndexShard(data) &&
+        data.entries.keys().size() == 1;
+    }
+
+    function isValidTempleIndexUpdate(data) {
+      return isValidTempleIndexShard(data) &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['entries']) &&
+        (
+          !('entries' in resource.data) ||
+          request.resource.data.entries.diff(resource.data.entries)
+            .affectedKeys().size() <= 1
+        );
+    }
+
+    function isValidTempleIndexMeta(data, isCreate) {
+      return data.keys().hasOnly(['indexVersion', 'shards']) &&
+        data.keys().hasAll(['indexVersion', 'shards']) &&
+        data.indexVersion is int &&
+        data.indexVersion >= 1 &&
+        data.indexVersion <= 10000000 &&
+        data.shards is map &&
+        data.shards.keys().size() <= 48 &&
+        (
+          isCreate
+            ? data.indexVersion == 1
+            : data.indexVersion == resource.data.indexVersion + 1
+        );
+    }
+
     // ===============================================================
     // Domain Validators
     // ===============================================================
@@ -245,6 +312,41 @@ service cloud.firestore {
 
       // Only admins may delete temples.
       allow delete: if isAdmin();
+    }
+
+    // ===============================================================
+    // Rules: temple_index shards and meta/temple_index
+    // ===============================================================
+    //
+    // Public read is the directory projection (same audience as temples).
+    // Writes require the admin claim. Prototype: review before relying on it.
+
+    match /temple_index/{stateSlug} {
+      allow read: if true;
+
+      allow create: if isAdmin() &&
+        validIndexStateSlug(stateSlug) &&
+        isValidTempleIndexCreate(request.resource.data);
+
+      allow update: if isAdmin() &&
+        validIndexStateSlug(stateSlug) &&
+        isValidTempleIndexUpdate(request.resource.data);
+
+      allow delete: if isAdmin() && validIndexStateSlug(stateSlug);
+    }
+
+    match /meta/{metaId} {
+      allow read: if metaId == 'temple_index';
+
+      allow create: if metaId == 'temple_index' &&
+        isAdmin() &&
+        isValidTempleIndexMeta(request.resource.data, true);
+
+      allow update: if metaId == 'temple_index' &&
+        isAdmin() &&
+        isValidTempleIndexMeta(request.resource.data, false);
+
+      allow delete: if metaId == 'temple_index' && isAdmin();
     }
 
     // ===============================================================
