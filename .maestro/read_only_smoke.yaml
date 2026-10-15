@@ -18,9 +18,9 @@ appId: com.shradhaventures.temple
     commands:
       - launchApp:
           clearState: true
-      # Tap Wait only on Process system, Pixel Launcher, and System UI
-      # until the accept control is visible. An ANR from this app fails
-      # the job instead of being dismissed.
+      # Tap Wait on Process system, Pixel Launcher, System UI, and
+      # Google Play services (com.google.android.gms) until the accept
+      # control is visible. An ANR from this app fails the job.
       - repeat:
           times: 12
           while:
@@ -46,6 +46,22 @@ appId: com.shradhaventures.temple
             - runFlow:
                 when:
                   visible: "System UI isn't responding"
+                optional: true
+                commands:
+                  - tapOn:
+                      text: "Wait"
+                      optional: true
+            - runFlow:
+                when:
+                  visible: "Google Play services isn't responding"
+                optional: true
+                commands:
+                  - tapOn:
+                      text: "Wait"
+                      optional: true
+            - runFlow:
+                when:
+                  visible: "com\\.google\\.android\\.gms.*isn't responding"
                 optional: true
                 commands:
                   - tapOn:

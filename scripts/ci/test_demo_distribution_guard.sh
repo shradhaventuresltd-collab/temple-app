@@ -301,6 +301,10 @@ require "seed launch dismisses the Pixel Launcher ANR" \
   'Pixel Launcher isn'"'"'t responding' scripts/ci/run_demo_seed_launch.sh
 require "seed launch dismisses the System UI ANR" \
   'System UI isn'"'"'t responding' scripts/ci/run_demo_seed_launch.sh
+require "seed launch dismisses a Google Play services ANR" \
+  'Google Play services isn'"'"'t responding' scripts/ci/run_demo_seed_launch.sh
+require "seed launch dismisses a GMS process ANR" \
+  'com.google.android.gms' scripts/ci/run_demo_seed_launch.sh
 require "seed launch fails an app ANR" \
   'App ANR:' scripts/ci/run_demo_seed_launch.sh
 require "seed launch screenshots an app ANR" \
@@ -311,6 +315,12 @@ require "Maestro smoke dismisses the system ANR with Wait" \
   'Process system isn'"'"'t responding' .maestro/read_only_smoke.yaml
 require "Maestro smoke dismisses the System UI ANR with Wait" \
   'System UI isn'"'"'t responding' .maestro/read_only_smoke.yaml
+require "Maestro smoke dismisses a Google Play services ANR with Wait" \
+  'Google Play services isn'"'"'t responding' .maestro/read_only_smoke.yaml
+require "Maestro smoke dismisses a GMS process ANR with Wait" \
+  'com\\\\\.google\\\\\.android\\\\\.gms' .maestro/read_only_smoke.yaml
+require "smoke shell dismisses a Google Play services ANR" \
+  'Google Play services isn'"'"'t responding' scripts/ci/run_android_smoke.sh
 require "Maestro smoke fails an app ANR" \
   'App ANR: Temple Directory India isn'"'"'t responding' \
   .maestro/read_only_smoke.yaml

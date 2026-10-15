@@ -47,7 +47,8 @@ adb shell input keyevent KEYCODE_WAKEUP || true
 adb shell wm dismiss-keyguard || true
 # An OS ANR dialog covers the temple app. Do not set hide_error_dialogs:
 # that flag hides every ANR, including one from com.shradhaventures.temple.
-# Wait is tapped only for Process system, Pixel Launcher, and System UI.
+# Wait is tapped for Process system, Pixel Launcher, System UI, and
+# Google Play services (com.google.android.gms). An ANR from this app fails.
 # The runner also disables animations. Set them again after boot so a
 # late settings restart cannot leave window animations on.
 adb shell settings put global window_animation_scale 0 || true
@@ -133,30 +134,38 @@ warn_if_flow_retried() {
   fi
 }
 
-# Tap Wait only on "Process system isn't responding",
-# "Pixel Launcher isn't responding", and "System UI isn't responding".
-# Any other isn't-responding dialog is this app's ANR: save a screenshot
-# and fail the job.
+# Tap Wait on "Process system isn't responding",
+# "Pixel Launcher isn't responding", "System UI isn't responding",
+# and "Google Play services isn't responding" (including a dialog whose
+# text names com.google.android.gms). Any other isn't-responding dialog
+# is this app's ANR: save a screenshot and fail the job.
 dismiss_anr_dialog() {
   adb shell uiautomator dump /sdcard/uidump.xml >/dev/null 2>&1 || return 0
-  local xml labels os_dialog candidate
+  local xml labels os_dialog candidate dialog pattern
   xml="$(adb exec-out cat /sdcard/uidump.xml 2>/dev/null || true)"
   os_dialog=""
   for candidate in \
     "Process system isn't responding" \
     "Pixel Launcher isn't responding" \
-    "System UI isn't responding"
+    "System UI isn't responding" \
+    "Google Play services isn't responding"
   do
     if grep -q "$candidate" <<<"$xml"; then
       os_dialog="$candidate"
       break
     fi
   done
+  if [[ -z "$os_dialog" ]] && grep -q "isn't responding" <<<"$xml"; then
+    pattern='[^"]*isn'"'"'t responding'
+    dialog="$(grep -o "$pattern" <<<"$xml" | head -n 1 || true)"
+    if [[ "$dialog" == *com.google.android.gms* ]]; then
+      os_dialog="$dialog"
+    fi
+  fi
   if [[ -n "$os_dialog" ]]; then
     warn "Dismissing ${os_dialog} before Maestro"
     labels=$'Wait'
   elif grep -q "isn't responding" <<<"$xml"; then
-    local dialog pattern
     pattern='[^"]*isn'"'"'t responding'
     dialog="$(grep -o "$pattern" <<<"$xml" | head -n 1 || true)"
     if [[ -z "$dialog" ]]; then
