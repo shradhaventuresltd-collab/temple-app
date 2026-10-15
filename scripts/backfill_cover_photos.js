@@ -15,13 +15,18 @@
  * `patch_image_url_mirror` copied from, when the object stores it on
  * `source`, `sourceUrl`, `source_url`, or `mirroredFrom`. A Storage mirror
  * whose document has no such object is resolved through the photo-pack
- * manifest: `temples/{id}/{frame}` must be that temple's id and a manifest
- * filename for the seed document id `upload_research_pack.js` uses. Credit
- * then comes from that frame, or from a `photos` or `images` object whose
- * url is that frame's `source_url` or `downloaded_url`. A different file's
- * credit is not used. `image_N.jpg` is not treated as a frame. Otherwise
- * the doc is skipped with `no-matching-credit`. A real credit is a
- * non-empty string of at most 200 characters. On a document object, licence
+ * manifest: the object must be in the temple-directory-india bucket
+ * (`temple-directory-india.firebasestorage.app` or
+ * `temple-directory-india.appspot.com`) and `temples/{id}/{frame}` must be
+ * that temple's id and a manifest filename for the seed document id
+ * `upload_research_pack.js` uses. Credit then comes from that frame, or
+ * from a `photos` or `images` object whose url is that frame's
+ * `source_url` or `downloaded_url`. A different file's credit is not used.
+ * `image_N.jpg` is not treated as a frame. Otherwise the doc is skipped
+ * with `no-matching-credit`. A placeholder author — empty, or "Unknown
+ * author" repeated, as on a Wikimedia template — is `no-credit`. A real
+ * credit is a non-empty string of at most 200 characters. On a document
+ * object, licence
  * must already be CC-BY, CC-BY-SA, CC0, Own, or Permission. A manifest
  * licence is the Commons string for that same frame, mapped with the
  * uploader's rules onto those five. Nothing is defaulted. Two different
@@ -40,7 +45,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { mapPhotoLicence, photoCredit } from "./photo_licence.js";
+import { cleanAuthor, mapPhotoLicence, photoCredit } from "./photo_licence.js";
 import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard.js";
 import { changedFields, entryFromTemple, stateSlug, storageObjectFromUrl } from "./temple_index.js";
 import { resolveSeedDocId } from "./upload_research_pack.js";
@@ -57,6 +62,12 @@ export const PHOTO_LICENCES = ["CC-BY", "CC-BY-SA", "CC0", "Own", "Permission"];
 /** Original URL a mirror copied from, when an image object stored it. */
 const MIRROR_SOURCE_KEYS = ["source", "sourceUrl", "source_url", "mirroredFrom"];
 const MAX_CREDIT = 200;
+
+/** Storage buckets for project temple-directory-india. */
+const DIRECTORY_BUCKETS = new Set([
+  "temple-directory-india.firebasestorage.app",
+  "temple-directory-india.appspot.com",
+]);
 const MAX_PHOTOS = 12;
 const MAX_URL = 2000;
 
@@ -185,7 +196,20 @@ function canonicalImageUrl(raw) {
   return `${parsed.protocol}//${parsed.hostname.toLowerCase()}${path}`;
 }
 
+/**
+ * Wikimedia writes "Unknown author", sometimes twice with no space, when a
+ * file has no creator. An empty author is the same gap. A real name that
+ * merely contains those words is kept.
+ */
+export function placeholderAuthor(author) {
+  const name = cleanAuthor(author);
+  if (!name) return true;
+  const collapsed = name.toLowerCase().replace(/\s+/g, "");
+  return /^(unknownauthor)+$/.test(collapsed);
+}
+
 function manifestPair(photo) {
+  if (placeholderAuthor(photo?.author)) return { ok: false, reason: "no-credit" };
   let licence;
   try {
     licence = mapPhotoLicence(photo.license);
@@ -251,13 +275,14 @@ function framesByTempleId() {
 }
 
 /**
- * The manifest frame named by a Storage cover, when the object path is
- * `temples/{templeId}/{filename}` and that filename is in that temple's pack.
- * A different slug or a Places `image_N.jpg` name does not match.
+ * The manifest frame named by a Storage cover, when the object is in the
+ * temple-directory-india bucket, the path is `temples/{templeId}/{filename}`,
+ * and that filename is in that temple's pack. Another bucket, a different
+ * slug, or a Places `image_N.jpg` name does not match.
  */
 function packFrameForCover(templeId, imageUrl) {
   const located = storageObjectFromUrl(imageUrl);
-  if (!located) return null;
+  if (!located || !DIRECTORY_BUCKETS.has(located.bucket.toLowerCase())) return null;
   const parts = located.objectPath.split("/").filter(Boolean);
   if (parts.length !== 3 || parts[0] !== "temples") return null;
   const slug = parts[1];

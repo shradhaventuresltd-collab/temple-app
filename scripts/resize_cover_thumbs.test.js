@@ -149,9 +149,9 @@ test("a wiki cover stays not-storage when a storage url is later in the gallery"
 
 test("a backfilled storage cover is picked up, including another url for the same object", () => {
   const imageUrl =
-    "https://storage.googleapis.com/bucket/temples/virupaksha-temple/01_Hemakuta_Hills.jpg";
+    "https://storage.googleapis.com/temple-directory-india.firebasestorage.app/temples/virupaksha-temple/01_Hemakuta_Hills.jpg";
   const firebase =
-    "https://firebasestorage.googleapis.com/v0/b/bucket/o/temples%2Fvirupaksha-temple%2F01_Hemakuta_Hills.jpg?alt=media&token=t";
+    "https://firebasestorage.googleapis.com/v0/b/temple-directory-india.firebasestorage.app/o/temples%2Fvirupaksha-temple%2F01_Hemakuta_Hills.jpg?alt=media&token=t";
   const bare = {
     id: "virupaksha-temple",
     name: "Virupaksha Temple",
@@ -237,6 +237,11 @@ test("gettyimages.example.com is not treated as the stock host", () => {
     imageUrl: "https://www.gettyimages.co.uk/detail/photo/temple",
   });
   assert.equal(country.reason, "no-cover");
+  const adobe = planCoverThumb({
+    id: "adobe-stock",
+    imageUrl: "https://t4.ftcdn.net/jpg/01/temple.jpg",
+  });
+  assert.equal(adobe.reason, "no-cover");
 });
 
 test("a storage cover plans an upload and a wikimedia cover does not", () => {

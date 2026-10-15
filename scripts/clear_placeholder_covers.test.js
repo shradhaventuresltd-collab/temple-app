@@ -127,6 +127,8 @@ test("placeholder hosts are recognised and other URLs stay", () => {
   assert.equal(placeholderHostUrl("https://images.unsplash.com/photo-1"), false);
   assert.equal(placeholderHostUrl("https://www.shutterstock.com/image-photo/temple"), false);
   assert.equal(stockHostUrl("https://www.shutterstock.com/image-photo/temple"), true);
+  assert.equal(stockHostUrl("https://t4.ftcdn.net/jpg/01/temple.jpg"), true);
+  assert.equal(stockHostUrl("https://www.adobe.com/image/temple.jpg"), false);
   assert.equal(stockHostUrl("https://media.gettyimages.com/id/1/photo.jpg"), true);
   assert.equal(stockHostUrl("https://www.gettyimages.co.uk/detail/photo/temple"), true);
   assert.equal(stockHostUrl("https://gettyimages.example.com/photo.jpg"), false);

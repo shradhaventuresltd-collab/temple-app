@@ -147,6 +147,7 @@ const STOCK_HOSTS = [
   "istock.com",
   "pexels.com",
   "stock.adobe.com",
+  "ftcdn.net",
   "alamy.com",
   "dreamstime.com",
   "123rf.com",

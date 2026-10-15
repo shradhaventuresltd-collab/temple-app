@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   PHOTO_LICENCES,
+  placeholderAuthor,
   applyCoverPhotoPlans,
   authorizeApply,
   commitCoverPhoto,
@@ -316,6 +317,64 @@ test("a mirrored storage cover takes credit from that pack frame only", () => {
   assert.equal(MIRROR_TEMPLE_IDS.length, 30);
   assert.equal(added, 29);
   assert.equal(packs.has("anjengo-sree-durga-devi-temple"), false);
+});
+
+test("a placeholder pack author is no-credit, and another bucket does not match", () => {
+  assert.equal(placeholderAuthor(""), true);
+  assert.equal(placeholderAuthor("   "), true);
+  assert.equal(placeholderAuthor("Unknown author"), true);
+  assert.equal(placeholderAuthor("Unknown authorUnknown author"), true);
+  assert.equal(placeholderAuthor("Unknown authorUnknown authorUnknown author"), true);
+  assert.equal(placeholderAuthor("UNKNOWN AUTHOR unknown author"), true);
+  assert.equal(placeholderAuthor("Ms Sarah Welch"), false);
+  assert.equal(placeholderAuthor("Unknown author, Ms Sarah Welch"), false);
+
+  const filename =
+    "01_The_Temples_of_Raghunath_Jammu_India_ca.1875-ca.1940_imp-cswc-GB-237-C.jpg";
+  const plan = planCoverPhoto({
+    id: "raghunath-temple",
+    imageUrl: mirrorUrl("raghunath-temple", filename),
+    photos: [],
+    images: [],
+  });
+  assert.equal(plan.action, "skip");
+  assert.equal(plan.reason, "no-credit");
+  assert.equal(plan.photo, undefined);
+
+  const second = planCoverPhoto({
+    id: "raghunath-temple",
+    imageUrl: mirrorUrl(
+      "raghunath-temple",
+      "02_12th-century_Samaveda_samhita_and_brahmanam_Aranyaganam_Prapathaka_1-6.jpg",
+    ),
+    photos: [],
+    images: [],
+  });
+  assert.equal(second.action, "add");
+  assert.equal(second.photo.credit, "Ms Sarah Welch · CC BY-SA 4.0");
+  assert.equal(second.photo.licence, "CC-BY-SA");
+
+  const otherBucket = planCoverPhoto(
+    temple({
+      imageUrl:
+        "https://storage.googleapis.com/bucket/temples/virupaksha-temple/01_Hemakuta_Hills.jpg",
+      photos: [],
+      images: [],
+    }),
+  );
+  assert.equal(otherBucket.reason, "no-matching-credit");
+  assert.equal(otherBucket.photo, undefined);
+
+  const appspot = planCoverPhoto(
+    temple({
+      imageUrl:
+        "https://storage.googleapis.com/temple-directory-india.appspot.com/temples/virupaksha-temple/01_Hemakuta_Hills.jpg",
+      photos: [],
+      images: [],
+    }),
+  );
+  assert.equal(appspot.action, "add");
+  assert.equal(appspot.photo.credit, "Arjun Dharne · CC BY-SA 4.0");
 });
 
 test("a prepended cover renumbers every photo from the array index", () => {

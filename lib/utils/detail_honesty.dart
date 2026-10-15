@@ -196,6 +196,7 @@ const _stockHosts = <String>[
   'istock.com',
   'pexels.com',
   'stock.adobe.com',
+  'ftcdn.net',
   'alamy.com',
   'dreamstime.com',
   '123rf.com',
@@ -229,7 +230,8 @@ bool _isGettyImagesHost(String host) {
 /// A named host matches itself or a subdomain (`www.shutterstock.com`).
 /// `gettyimages` matches that site name (`gettyimages.co.uk`,
 /// `media.gettyimages.com`). `gettyimages.example.com` does not.
-/// `stock.adobe.com` does not block `adobe.com`.
+/// `stock.adobe.com` and `ftcdn.net` are Adobe Stock. They do not block
+/// `adobe.com`.
 /// Empty values and non-HTTP URLs are not stock. `images.unsplash.com`
 /// stays allowed. Firestore rules do not apply this list.
 bool isUnlicensedStockImageUrl(String raw) {

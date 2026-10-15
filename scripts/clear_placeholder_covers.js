@@ -40,8 +40,8 @@ placeholder host or its subdomain (picsum.photos, placeholder.com,
 placehold.co, placehold.it, dummyimage.com, lorempixel.com, loremflickr.com,
 placekitten.com, fakeimg.pl, placeimg.com) or an unlicensed stock host
 (shutterstock.com, istockphoto.com, istock.com, pexels.com, stock.adobe.com,
-alamy.com, dreamstime.com, 123rf.com, depositphotos.com, freepik.com, and
-gettyimages as the site name). source.unsplash.com is exact.
+ftcdn.net, alamy.com, dreamstime.com, 123rf.com, depositphotos.com,
+freepik.com, and gettyimages as the site name). source.unsplash.com is exact.
 A path containing "placeholder" or "picsum" is kept. images.unsplash.com
 and adobe.com are kept. Nothing is written.
 prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.

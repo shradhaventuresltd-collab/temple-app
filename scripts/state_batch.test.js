@@ -197,6 +197,8 @@ test("validator rejects placeholder image URLs and ignores sources and Stockholm
     "https://www.gettyimages.co.uk/detail/photo/temple",
     "https://www.pexels.com/photo/temple",
     "https://stock.adobe.com/images/temple",
+    "https://t4.ftcdn.net/jpg/01/temple.jpg",
+    "https://www.ftcdn.net/temple.jpg",
     "https://www.alamy.com/temple.jpg",
     "https://www.dreamstime.com/temple",
     "https://www.123rf.com/photo_1.html",

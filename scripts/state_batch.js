@@ -142,7 +142,8 @@ const PLACEHOLDER_SUFFIX_HOSTS = [
  * Named hosts match the host or a subdomain. `gettyimages` matches only as
  * the site name (`gettyimages.com`, `media.gettyimages.com`,
  * `www.gettyimages.co.uk`), not as a label inside another domain.
- * `stock.adobe.com` does not include `adobe.com`. Not a Firestore rule.
+ * `stock.adobe.com` and `ftcdn.net` are Adobe Stock. They do not include
+ * `adobe.com`. Not a Firestore rule.
  */
 const STOCK_HOSTS = [
   "shutterstock.com",
@@ -150,6 +151,7 @@ const STOCK_HOSTS = [
   "istock.com",
   "pexels.com",
   "stock.adobe.com",
+  "ftcdn.net",
   "alamy.com",
   "dreamstime.com",
   "123rf.com",
