@@ -158,5 +158,47 @@
       "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg"
     },
     "expect": "https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg"
+  },
+  {
+    "name": "commons tif original becomes a jpeg thumb",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/Example.tif"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/Example.tif/480px-Example.tif.jpg"
+  },
+  {
+    "name": "commons tiff original becomes a jpeg thumb",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/Example.tiff"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/Example.tiff/480px-Example.tiff.jpg"
+  },
+  {
+    "name": "commons pdf original stays the full url",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/Example.pdf"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/Example.pdf"
+  },
+  {
+    "name": "commons djvu original stays the full url",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/Example.djvu"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/Example.djvu"
+  },
+  {
+    "name": "commons webm original stays the full url",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/Example.webm"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/Example.webm"
+  },
+  {
+    "name": "commons ogv original stays the full url",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/Example.ogv"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/Example.ogv"
   }
 ]

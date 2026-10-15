@@ -411,38 +411,20 @@ test("an admin save without coordinates writes null", async () => {
   );
 });
 
-test("placeholder hosts are rejected on image URL fields", async () => {
-  const db = adminDb("admin-placeholder-hosts");
-  const hosts = [
-    "https://picsum.photos/seed/anjengo/800/600",
-    "https://placeholder.com/800",
-    "https://via.placeholder.com/800x600",
-    "https://source.unsplash.com/random",
-    "https://lorempixel.com/800/600",
-    "https://dummyimage.com/600x400",
-    "https://placehold.co/800x600",
-    "https://placehold.it/800x600",
-    "https://fastly.picsum.photos/id/1/800/600",
-  ];
-  for (const url of hosts) {
-    await assertFails(
-      setDoc(at(db, "temples/placeholder-cover"), templePayload("placeholder-cover", { imageUrl: url })),
-    );
-    await assertFails(
-      setDoc(
-        at(db, "temples/placeholder-images"),
-        templePayload("placeholder-images", { images: [url] }),
-      ),
-    );
-    await assertFails(
-      setDoc(
-        at(db, "temples/placeholder-photo"),
-        templePayload("placeholder-photo", {
-          photos: [{ url, licence: "CC0", order: 0 }],
-        }),
-      ),
-    );
-  }
+test("a Commons file named with Unsplash passes the photo key checks", async () => {
+  const db = adminDb("admin-unsplash-name");
+  const unsplashName =
+    "https://upload.wikimedia.org/wikipedia/commons/f/fe/Temple_Unsplash_view.jpg";
+  await assertSucceeds(
+    setDoc(
+      at(db, "temples/unsplash-name"),
+      templePayload("unsplash-name", {
+        imageUrl: unsplashName,
+        images: [unsplashName],
+        photos: [{ url: unsplashName, licence: "CC0", order: 0 }],
+      }),
+    ),
+  );
   await assertSucceeds(
     setDoc(at(db, "temples/photo-pending"), templePayload("photo-pending", { imageUrl: "", images: [] })),
   );
@@ -468,14 +450,6 @@ test("placeholder hosts are rejected on image URL fields", async () => {
     setDoc(
       at(db, "temples/full-gallery"),
       templePayload("full-gallery", { imageUrl: gallery[0], images: gallery, photos }),
-    ),
-  );
-  const latePhotos = photos.map((photo) => ({ ...photo }));
-  latePhotos[2] = { url: "https://placehold.co/800x600", licence: "CC0", order: 2 };
-  await assertFails(
-    setDoc(
-      at(db, "temples/late-photo"),
-      templePayload("late-photo", { photos: latePhotos }),
     ),
   );
   await assertFails(

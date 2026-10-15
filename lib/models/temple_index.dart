@@ -135,8 +135,9 @@ String shortTempleAddress(String raw) {
 /// A stored `photos[].thumbUrl` for that photo is used as written. Otherwise
 /// a Wikimedia `/thumb/` wider than 480px is narrowed. A Commons original
 /// `.../commons/<h>/<hh>/<name>` becomes a 480px thumb when `<h>/<hh>` match
-/// the MD5 of the underscored filename. An SVG thumb appends `.png`.
-/// Anything else stays the full URL. Storage siblings are not invented. The
+/// the MD5 of the underscored filename. An SVG thumb appends `.png`. A TIFF
+/// thumb appends `.jpg`. PDF, DjVu, WebM, OGV, and anything else stay the
+/// full URL. Storage siblings are not invented. The
 /// result is at most [kTempleIndexCoverThumbMax] characters. Detail keeps
 /// the full gallery URL.
 String? coverThumbFor(Map<String, dynamic> data) {
@@ -279,9 +280,8 @@ String? _commonsOriginal480(String trimmed) {
     return null;
   }
   final encoded = _commonsEncode(decoded);
-  final thumbFile = decoded.toLowerCase().endsWith('.svg')
-      ? '480px-$encoded.png'
-      : '480px-$encoded';
+  final thumbFile = _commonsThumbName(decoded, encoded);
+  if (thumbFile == null) return null;
   final next =
       'https://upload.wikimedia.org/wikipedia/commons/thumb/$h/$hh/$encoded/$thumbFile';
   if (next.length > kTempleIndexCoverThumbMax) return null;
@@ -294,6 +294,23 @@ String _commonsDecode(String value) {
   } catch (_) {
     return value;
   }
+}
+
+/// Thumb filename for a Commons original. SVG becomes PNG. TIFF becomes
+/// JPEG. PDF, DjVu, WebM, and OGV are not rewritten.
+String? _commonsThumbName(String decoded, String encoded) {
+  final lower = decoded.toLowerCase();
+  if (lower.endsWith('.svg')) return '480px-$encoded.png';
+  if (lower.endsWith('.tif') || lower.endsWith('.tiff')) {
+    return '480px-$encoded.jpg';
+  }
+  if (lower.endsWith('.pdf') ||
+      lower.endsWith('.djvu') ||
+      lower.endsWith('.webm') ||
+      lower.endsWith('.ogv')) {
+    return null;
+  }
+  return '480px-$encoded';
 }
 
 /// MediaWiki path encoding. Commas stay literal so Dart and JS match.

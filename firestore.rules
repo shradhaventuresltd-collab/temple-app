@@ -147,13 +147,9 @@ service cloud.firestore {
 
     function isValidPhoto(photo) {
       return photo is map &&
-        // hasAll/hasOnly on every photo pushes a 3-photo create over the
-        // 1000-expression limit once the placeholder matches() is included.
-        // size <= 5 is the same key cap (url, credit, licence, order, thumbUrl).
-        // Missing url, licence, or order still fails the checks below.
-        photo.size() <= 5 &&
+        photo.keys().hasAll(['url', 'licence', 'order']) &&
+        photo.keys().hasOnly(['url', 'credit', 'licence', 'order', 'thumbUrl']) &&
         httpsUrl(photo.url) &&
-        !photo.url.lower().matches('.*(picsum|placeholder|placehold|dummyimage|lorempixel|unsplash).*') &&
         isPhotoLicence(photo.licence) &&
         photo.order is int &&
         photo.order >= 0 &&
@@ -190,20 +186,11 @@ service cloud.firestore {
         value.matches('^https://[^\\s]+$');
     }
 
-    // picsum, placeholder.com, via.placeholder.com, source.unsplash.com,
-    // lorempixel, dummyimage, placehold.co, and placehold.it.
-    function placeholderHost(value) {
-      return value.lower().matches('.*(picsum|placeholder|placehold|dummyimage|lorempixel|unsplash).*');
-    }
-
-    // Gallery slot 0 and imageUrl. Further images slots are not scanned:
-    // another matches() on a 3-photo create crosses the 1000-expression
-    // limit. The admin form and the seed validator reject a placeholder
-    // in any slot. Empty strings stay allowed (Photo pending).
+    // Placeholder hosts are not matched here. hasAll/hasOnly plus a
+    // matches() on each photo crosses the 1000-expression limit on a
+    // 3-photo save. The app and the seed validator keep the host list.
     function imageListOk(list) {
-      return list is list &&
-        list.size() <= 50 &&
-        (list.size() < 1 || !(list[0] is string) || list[0].size() == 0 || !placeholderHost(list[0]));
+      return list is list && list.size() <= 50;
     }
 
     function optionalImageList(data) {
@@ -287,7 +274,6 @@ service cloud.firestore {
         validStringLength('city', 1, 100) &&
         validStringLength('deity', 1, 100) &&
         data.imageUrl is string && data.imageUrl.size() <= 2000 &&
-        (data.imageUrl.size() == 0 || !placeholderHost(data.imageUrl)) &&
         validStringLength('description', 1, 10000) &&
         validStringLength('story', 1, 20000) &&
         validStringLength('address', 1, 500) &&
@@ -345,7 +331,6 @@ service cloud.firestore {
         optionalStringLength('city', 1, 100) &&
         optionalStringLength('deity', 1, 100) &&
         optionalStringLength('imageUrl', 0, 2000) &&
-        (!('imageUrl' in data) || data.imageUrl.size() == 0 || !placeholderHost(data.imageUrl)) &&
         optionalStringLength('description', 1, 10000) &&
         optionalStringLength('story', 1, 20000) &&
         optionalStringLength('address', 1, 500) &&

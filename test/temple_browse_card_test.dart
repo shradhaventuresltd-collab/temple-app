@@ -287,6 +287,46 @@ void main() {
     expect(placeholder, isA<TempleImagePlaceholder>());
   });
 
+  testWidgets(
+    'a Commons 480px thumb retries the original once, including under 480px',
+    (tester) async {
+      const thumb =
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/480px-Keesara_gutta_main_temple_gate.jpg';
+      const full =
+          'https://upload.wikimedia.org/wikipedia/commons/a/a1/Keesara_gutta_main_temple_gate.jpg';
+      const small =
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/Example.tif/200px-Example.tif.jpg';
+      const smallFull =
+          'https://upload.wikimedia.org/wikipedia/commons/5/57/Example.tif';
+
+      Future<void> expectRetry(String shown, String original) async {
+        await pumpCard(tester, temple(imageUrl: shown));
+        final image = tester.widget<CachedNetworkImage>(
+          find.byType(CachedNetworkImage),
+        );
+        expect(image.imageUrl, shown);
+        final context = tester.element(find.byType(CachedNetworkImage));
+        final fallback = image.errorWidget!(
+          context,
+          shown,
+          Exception('missing'),
+        );
+        expect(fallback, isA<CachedNetworkImage>());
+        final next = fallback as CachedNetworkImage;
+        expect(next.imageUrl, original);
+        final placeholder = next.errorWidget!(
+          context,
+          original,
+          Exception('missing'),
+        );
+        expect(placeholder, isA<TempleImagePlaceholder>());
+      }
+
+      await expectRetry(thumb, full);
+      await expectRetry(small, smallFull);
+    },
+  );
+
   testWidgets('a guessed _480 url that fails falls back to the original', (
     tester,
   ) async {

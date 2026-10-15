@@ -179,8 +179,17 @@ function commonsEncode(name) {
 /**
  * 480px thumb for a Commons original, or null.
  * `h`/`hh` are the MD5 of the underscored filename. Existing segments must
- * match that digest. An SVG thumb appends `.png`.
+ * match that digest. An SVG thumb appends `.png`. A TIFF thumb appends
+ * `.jpg`. PDF, DjVu, WebM, and OGV stay the full URL.
  */
+function commonsThumbName(decoded, encoded) {
+  const lower = decoded.toLowerCase();
+  if (lower.endsWith(".svg")) return `480px-${encoded}.png`;
+  if (lower.endsWith(".tif") || lower.endsWith(".tiff")) return `480px-${encoded}.jpg`;
+  if (/\.(pdf|djvu|webm|ogv)$/i.test(lower)) return null;
+  return `480px-${encoded}`;
+}
+
 function commonsOriginal480(trimmed) {
   let parsed;
   try {
@@ -216,7 +225,8 @@ function commonsOriginal480(trimmed) {
     return null;
   }
   const encoded = commonsEncode(decoded);
-  const thumbFile = /\.svg$/i.test(decoded) ? `480px-${encoded}.png` : `480px-${encoded}`;
+  const thumbFile = commonsThumbName(decoded, encoded);
+  if (!thumbFile) return null;
   const next = `https://upload.wikimedia.org/wikipedia/commons/thumb/${h}/${hh}/${encoded}/${thumbFile}`;
   if (next.length > COVER_THUMB_MAX) return null;
   return next;
