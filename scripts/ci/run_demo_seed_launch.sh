@@ -81,15 +81,26 @@ tap_needle() {
   adb shell input tap $point
 }
 
-# Wait only. Close app on this dialog kills system_server.
+# Wait only on the system dialog and on this app's dialog. Close app on
+# the system dialog kills system_server. Pixel Launcher can stay up after
+# Wait and hide the Terms gate; Close app is safe for that launcher dialog.
 dismiss_system_anr() {
   hierarchy
   [[ -f "$OUT/uidump.xml" ]] || return 0
-  if ! grep -q "Process system isn't responding" "$OUT/uidump.xml"; then
+  if grep -q "Process system isn't responding" "$OUT/uidump.xml"; then
+    echo "Dismissing Process system isn't responding"
+    tap_needle "Wait" || true
     return 0
   fi
-  echo "Dismissing Process system isn't responding"
-  tap_needle "Wait" || true
+  if grep -q "Pixel Launcher isn't responding" "$OUT/uidump.xml"; then
+    echo "Dismissing Pixel Launcher isn't responding"
+    tap_needle "Wait" || tap_needle "Close app" || true
+    return 0
+  fi
+  if grep -q "isn't responding" "$OUT/uidump.xml"; then
+    echo "Dismissing an app isn't-responding dialog"
+    tap_needle "Wait" || true
+  fi
 }
 
 wait_for() {

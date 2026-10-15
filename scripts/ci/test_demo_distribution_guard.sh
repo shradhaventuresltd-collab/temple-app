@@ -297,6 +297,8 @@ fi
 echo "ok: smoke taps Wait only on the system ANR dialog"
 require "seed launch taps Wait on the system ANR" \
   'tap_needle "Wait"' scripts/ci/run_demo_seed_launch.sh
+require "seed launch dismisses the Pixel Launcher ANR" \
+  'Pixel Launcher isn'"'"'t responding' scripts/ci/run_demo_seed_launch.sh
 require "Maestro smoke dismisses the system ANR with Wait" \
   'Process system isn'"'"'t responding' .maestro/read_only_smoke.yaml
 if grep -q '/usr/local/lib/android/sdk/system-images' scripts/ci/free_runner_disk.sh; then
