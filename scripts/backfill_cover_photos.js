@@ -31,8 +31,10 @@
  * uploads, custom names, and `_480` thumbs are reported and left in
  * place. The new cover is a creditable photo marked `cover_ok`, or frame
  * 01 when no photo has that flag. A later frame is not used unless it is
- * `cover_ok`. A pack with `no_cover_frame` and no `cover_ok` photo is
- * reported as `no-cover-frame` and frame 01 is left unused. The new
+ * `cover_ok`. `no_cover_frame` is checked first, so that pack is reported
+ * as `no-cover-frame` even when a photo is also `cover_ok`, and frame 01
+ * is left unused. A pack with two `cover_ok` photos fails validation.
+ * The new
  * object is `temples/{id}/{filename}`. Apply uploads it only when it
  * is missing. Before the write, that same storage.googleapis.com URL must
  * return HTTP 200. A public object with no download token still passes.
@@ -40,7 +42,7 @@
  * `public-check-failed` and the run continues. Apply checks once, before
  * any temple, that `fetch` exists. Each check aborts after about 10 seconds,
  * and that timeout is `public-check-failed` too. `--exclude id1,id2`
- * skips those temple ids.
+ * skips those temple ids and warns when an id is not in the loaded set.
  * The transaction skips the doc when `imageUrl` is no longer the planned old
  * URL. The old Places object stays in Storage. A temple with no creditable
  * frame 01 is reported (`no-creditable-frame`, or `no-wave-pack`).
@@ -429,6 +431,7 @@ function loadPacks() {
     if (manifest.no_cover_frame === true) declined.add(docId);
     const list = index.get(docId) ?? [];
     const photos = Array.isArray(manifest.photos) ? manifest.photos : [];
+    assertOneCoverOk(docId, photos);
     for (const photo of photos) {
       if (!photo || typeof photo.filename !== "string" || photo.filename === "") continue;
       const pair = manifestPair(photo);
@@ -471,17 +474,48 @@ function isExcluded(exclude, id) {
 }
 
 /**
- * A creditable `cover_ok` photo, otherwise frame 01 when it is creditable.
- * `noCoverFrame` means the pack has no exterior, so frame 01 is not used.
+ * One `cover_ok` photo per pack. Two is a validation error, not a choice.
+ */
+export function assertOneCoverOk(docId, photos) {
+  const flagged = (Array.isArray(photos) ? photos : []).filter((photo) => photo?.cover_ok === true);
+  if (flagged.length <= 1) return;
+  const names = flagged.map((photo) => photo.filename || "(unnamed)").join(", ");
+  throw new Error(`${docId} has ${flagged.length} cover_ok photos (${names}). One cover only.`);
+}
+
+/**
+ * `no_cover_frame` wins over `cover_ok` and over frame 01. Otherwise a
+ * creditable `cover_ok` photo, then frame 01 when it is creditable.
  */
 export function bestCreditableFrame(frames, opts = {}) {
   if (!Array.isArray(frames) || frames.length === 0) return null;
+  if (opts.noCoverFrame === true) return null;
   const flagged = frames.find((frame) => frame.coverOk && frame.pair);
   if (flagged) return flagged;
-  if (opts.noCoverFrame === true) return null;
   const cover = frames.find((frame) => /^01(?:_|\.|$)/.test(frame.filename));
   if (!cover?.pair) return null;
   return cover;
+}
+
+/**
+ * The frame a pack manifest would use as a replacement cover.
+ * `no_cover_frame` returns null even when a photo is `cover_ok`.
+ */
+export function coverFrameForPack(manifest) {
+  const photos = Array.isArray(manifest?.photos) ? manifest.photos : [];
+  const docId = String(manifest?.doc_id_hint || manifest?.temple_slug || "pack");
+  assertOneCoverOk(docId, photos);
+  const frames = [];
+  for (const photo of photos) {
+    if (!photo || typeof photo.filename !== "string" || photo.filename === "") continue;
+    const pair = manifestPair(photo);
+    frames.push({
+      filename: photo.filename,
+      coverOk: photo.cover_ok === true,
+      pair: pair.ok ? { credit: pair.credit, licence: pair.licence } : null,
+    });
+  }
+  return bestCreditableFrame(frames, { noCoverFrame: manifest?.no_cover_frame === true });
 }
 
 export function storageCoverUrl(docId, filename) {
@@ -637,11 +671,10 @@ function replacementPlan(temple, imageUrl, photos, failed) {
   const noCoverFrame = declinedCoverIds().has(id);
   const best = bestCreditableFrame(frames, { noCoverFrame });
   if (!best || best.filename === located.filename) {
-    const hasCover = frames.some((frame) => frame.coverOk && frame.pair);
     return {
       id,
       action: "skip",
-      reason: noCoverFrame && !hasCover ? "no-cover-frame" : "no-creditable-frame",
+      reason: noCoverFrame ? "no-cover-frame" : "no-creditable-frame",
       imageUrl,
       oldObject: located.objectPath,
     };
@@ -980,6 +1013,7 @@ async function loadTemples(project, env) {
 export async function main(argv = process.argv.slice(2), deps = {}) {
   const opts = parseArgs(argv);
   const log = deps.log ?? ((line) => console.log(line));
+  const warn = deps.warn ?? ((line) => console.warn(line));
   if (opts.help) {
     printUsage();
     return null;
@@ -994,6 +1028,10 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
   const load = deps.load ?? loadTemples;
   const temples = await load(project, env);
   temples.sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  const knownIds = new Set(temples.map((temple) => String(temple?.id ?? "")));
+  for (const id of [...opts.exclude].sort()) {
+    if (!knownIds.has(id)) warn(`exclude: unknown temple id ${id}`);
+  }
   const plans = planCoverPhotos(temples, {
     replaceUncreditedCover: opts.replaceUncreditedCover === true,
     exclude: opts.exclude,

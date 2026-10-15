@@ -14,6 +14,8 @@ import {
   main,
   parseArgs,
   bestCreditableFrame,
+  assertOneCoverOk,
+  coverFrameForPack,
   assertFetchAvailable,
   fetchPublicUrl,
   PUBLIC_CHECK_TIMEOUT_MS,
@@ -938,6 +940,45 @@ test("replacement is opt-in and only an uncredited image_N cover uses frame 01",
     ),
     null,
   );
+  assert.equal(
+    coverFrameForPack({
+      temple_slug: "both-flags",
+      no_cover_frame: true,
+      photos: [
+        {
+          filename: "01_laundry.jpg",
+          author: "Ada Lovelace",
+          license: "CC BY 4.0",
+        },
+        {
+          filename: "03_south_side.jpg",
+          author: "Ada Lovelace",
+          license: "CC BY-SA 4.0",
+          cover_ok: true,
+        },
+      ],
+    }),
+    null,
+  );
+  assert.throws(
+    () =>
+      assertOneCoverOk("two-covers", [
+        { filename: "02_a.jpg", cover_ok: true },
+        { filename: "04_b.jpg", cover_ok: true },
+      ]),
+    /two-covers has 2 cover_ok photos \(02_a.jpg, 04_b.jpg\)/,
+  );
+  assert.throws(
+    () =>
+      coverFrameForPack({
+        temple_slug: "two-covers",
+        photos: [
+          { filename: "02_a.jpg", author: "Ada Lovelace", license: "CC BY 4.0", cover_ok: true },
+          { filename: "04_b.jpg", author: "Ada Lovelace", license: "CC BY 4.0", cover_ok: true },
+        ],
+      }),
+    /two-covers has 2 cover_ok photos/,
+  );
 });
 
 test("an uncredited image_N cover is replaced only by a creditable frame 01", () => {
@@ -949,10 +990,10 @@ test("an uncredited image_N cover is replaced only by a creditable frame 01", ()
     "mahabaleshwar-temple-gokarna": "no-creditable-frame",
     "chamundeshwari-temple": "not-places-cover",
     "sri-manjunatha-temple-dharmasthala": "no-cover-frame",
+    "srikanteshwara-temple-nanjangud": "no-cover-frame",
   };
   const coverFrame = {
     "iskcon-temple-bangalore": "04_ISKON_temple_in_Bengaluru.jpg",
-    "srikanteshwara-temple-nanjangud": "03_KAM22_Nanjangud_01_SriKanteshwara_Temple_South_Side.jpg",
     "guruvayur-sri-krishna-temple": "03_009392022_Guruvayur_temple_Kerala_024.jpg",
     "virupaksha-temple": "04_Virupaksha_Temple_Tower.jpg",
   };
@@ -1010,7 +1051,7 @@ test("an uncredited image_N cover is replaced only by a creditable frame 01", ()
     assert.equal(again.action, "ready", id);
     replaced += 1;
   }
-  assert.equal(replaced, 23);
+  assert.equal(replaced, 22);
   assert.equal(MIRROR_TEMPLE_IDS.length, 30);
 
   const otherBucket = planCoverPhoto(
@@ -1038,12 +1079,13 @@ test("an uncredited image_N cover is replaced only by a creditable frame 01", ()
 
   const report = formatCoverPhotoReport(plans);
   assert.equal(report.includes("https://"), false);
-  assert.match(report, /replaced: 23/);
+  assert.match(report, /replaced: 22/);
   assert.match(report, /would-replace virupaksha-temple/);
   assert.match(report, /old: temples\/virupaksha-temple\/image_1.jpg/);
   assert.match(report, /new: 04_Virupaksha_Temple_Tower.jpg/);
   assert.match(report, /credit: Krishnakulkarni36 · CC BY-SA 4.0/);
   assert.match(report, /skip sri-manjunatha-temple-dharmasthala no-cover-frame/);
+  assert.match(report, /skip srikanteshwara-temple-nanjangud no-cover-frame/);
   assert.match(report, /licence: CC-BY-SA/);
   assert.match(report, /upload: if-missing/);
   assert.match(report, /skip anjengo-sree-durga-devi-temple no-wave-pack/);
@@ -1372,16 +1414,22 @@ test("a missing fetch fails before any write, and a hung public check times out"
   assert.equal(signal?.aborted, true);
 
   const dry = [];
-  await main(["--replace-uncredited-cover", "--exclude", "virupaksha-temple", "--project", "demo"], {
-    env: { FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080" },
-    fetchImpl: undefined,
-    log: (line) => dry.push(line),
-    load: async () => [
-      { id: "virupaksha-temple", imageUrl: placesUrl, photos: [], images: [placesUrl] },
-    ],
-    write: async () => {
-      throw new Error("write");
+  const warnings = [];
+  await main(
+    ["--replace-uncredited-cover", "--exclude", "virupaksha-temple,not-a-temple", "--project", "demo"],
+    {
+      env: { FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080" },
+      fetchImpl: undefined,
+      log: (line) => dry.push(line),
+      warn: (line) => warnings.push(line),
+      load: async () => [
+        { id: "virupaksha-temple", imageUrl: placesUrl, photos: [], images: [placesUrl] },
+      ],
+      write: async () => {
+        throw new Error("write");
+      },
     },
-  });
+  );
   assert.match(dry.join("\n"), /skip virupaksha-temple excluded/);
+  assert.deepEqual(warnings, ["exclude: unknown temple id not-a-temple"]);
 });
