@@ -4,7 +4,13 @@ import { dirname, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { coverThumb, fullCoverUrlFromThumb, thumbObjectPath, wikimediaOriginalUrl } from "./temple_index.js";
+import {
+  coverThumb,
+  fullCoverUrlFromThumb,
+  storageObjectFromUrl,
+  thumbObjectPath,
+  wikimediaOriginalUrl,
+} from "./temple_index.js";
 import {
   THUMB_CACHE_CONTROL,
   applyCoverThumbPlans,
@@ -91,6 +97,53 @@ test("cover thumb fixture matches the Dart writer", () => {
     assert.equal(thumbObjectPath(row.objectPath, row.generation), row.thumbPath);
     assert.equal(fullCoverUrlFromThumb(row.thumbUrl), row.fullUrl);
   }
+});
+
+test("every stored storage url form names the object", () => {
+  const cases = JSON.parse(readFileSync(resolve(here, "fixtures/storage_url_cases.json"), "utf8"));
+  for (const row of cases) {
+    const located = storageObjectFromUrl(row.url);
+    if (row.objectPath == null) {
+      assert.equal(located, null, row.name);
+      continue;
+    }
+    assert.equal(located?.kind, row.kind, row.name);
+    assert.equal(located?.bucket, row.bucket, row.name);
+    assert.equal(located?.objectPath, row.objectPath, row.name);
+    const temple = {
+      id: "shore-temple",
+      images: [row.url],
+      photos: [{ url: row.url, licence: "CC0", order: 0 }],
+    };
+    const plan = planCoverThumb(temple);
+    assert.equal(plan.action, "upload", row.name);
+    assert.equal(plan.bucket, row.bucket, row.name);
+    assert.equal(plan.objectPath, row.objectPath, row.name);
+    assert.notEqual(plan.reason, "not-storage", row.name);
+  }
+  for (const url of [
+    "https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg",
+    "https://evil.example/v0/b/bucket/o/temples%2Fshore-temple%2F01.jpg",
+    "https://bucket.firebasestorage.app.evil.com/o/temples%2Fshore-temple%2F01.jpg",
+    "http://storage.googleapis.com/bucket/temples/shore-temple/01.jpg",
+  ]) {
+    assert.equal(storageObjectFromUrl(url), null, url);
+  }
+});
+
+test("a wiki cover stays not-storage when a storage url is later in the gallery", () => {
+  const wiki = "https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg";
+  const storage = "gs://bucket/temples/shore-temple/01.jpg";
+  const plan = planCoverThumb({
+    id: "shore-temple",
+    images: [wiki, storage],
+    photos: [
+      { url: wiki, licence: "CC0", order: 0 },
+      { url: storage, licence: "CC0", order: 1 },
+    ],
+  });
+  assert.equal(plan.action, "skip");
+  assert.equal(plan.reason, "wikimedia-full");
 });
 
 test("a storage cover plans an upload and a wikimedia cover does not", () => {

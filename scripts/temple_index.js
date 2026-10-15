@@ -202,32 +202,87 @@ export function thumbObjectPath(objectPath, generation, { updatedMillis } = {}) 
   return `temples/${id}/${ext[1]}_480_g${gen}${bust}${suffix}.jpg`;
 }
 
+function firebaseDownloadHost(host) {
+  const lower = String(host ?? "").toLowerCase();
+  return lower === "firebasestorage.googleapis.com" || lower.endsWith(".firebasestorage.app");
+}
+
+/** Path after the host, before `?` or `#`, still percent-encoded. */
+function rawUrlPath(trimmed) {
+  const match = /^[a-z][a-z0-9+.-]*:\/\/[^/?#]+([^?#]*)/i.exec(trimmed);
+  return match ? match[1] : "";
+}
+
+/**
+ * Object name on `https://<bucket>.firebasestorage.app`.
+ * `/o/<encoded>` is one Storage object (`%2F` stays inside the name).
+ * `/o/temples/...` and `/temples/...` are the same object with slashes left in the path.
+ */
+function firebaseHostObjectPath(rawPath) {
+  if (!rawPath) return null;
+  const path = rawPath.replace(/\/+$/, "");
+  const encoded = /^\/o\/([^/]+)$/i.exec(path);
+  if (encoded) {
+    const decoded = safeDecode(encoded[1]).replace(/^\/+|\/+$/g, "");
+    return decoded || null;
+  }
+  let body = path.replace(/^\/+/, "");
+  if (/^o\//i.test(body)) body = body.slice(2);
+  if (!body) return null;
+  return body.split("/").map(safeDecode).join("/");
+}
+
 /**
  * Firebase or Cloud Storage object named by [raw]. The path is taken from
  * the raw URL so a `%2F` inside the Firebase object name stays one object.
+ * Forms: `firebasestorage.googleapis.com/v0/b/<bucket>/o/<encoded>`,
+ * `https://<bucket>.firebasestorage.app/...`, `gs://<bucket>/<path>`, and
+ * `storage.googleapis.com/<bucket>/<path>`.
  * @returns {{ kind: "firebase" | "gcs", bucket: string, objectPath: string } | null}
  */
 export function storageObjectFromUrl(raw) {
-  const trimmed = httpUrl(raw);
+  const trimmed = String(raw ?? "").trim();
   if (!trimmed) return null;
+  if (/^gs:\/\//i.test(trimmed)) {
+    const gs = /^gs:\/\/([^/?#]+)\/([^?#]+)/i.exec(trimmed);
+    if (!gs) return null;
+    const objectPath = gs[2].replace(/\/+$/, "").split("/").map(safeDecode).join("/");
+    const bucket = safeDecode(gs[1]);
+    if (!bucket || !objectPath) return null;
+    return { kind: "gcs", bucket, objectPath };
+  }
+  if (!httpUrl(trimmed) || !trimmed.toLowerCase().startsWith("https://")) return null;
   const firebase = /^https:\/\/([^/?#]+)\/v0\/b\/([^/?#]+)\/o\/([^?#]+)/i.exec(trimmed);
   if (firebase) {
-    const host = firebase[1].toLowerCase();
-    if (host !== "firebasestorage.googleapis.com" && !host.endsWith(".firebasestorage.app")) {
-      return null;
-    }
+    if (!firebaseDownloadHost(firebase[1])) return null;
+    const objectPath = safeDecode(firebase[3]);
+    if (!objectPath) return null;
     return {
       kind: "firebase",
       bucket: safeDecode(firebase[2]),
-      objectPath: safeDecode(firebase[3]),
+      objectPath,
     };
+  }
+  let parsed;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return null;
+  }
+  const host = parsed.hostname.toLowerCase();
+  if (host.endsWith(".firebasestorage.app")) {
+    const objectPath = firebaseHostObjectPath(rawUrlPath(trimmed));
+    if (!objectPath) return null;
+    return { kind: "firebase", bucket: host, objectPath };
   }
   const gcs = /^https:\/\/storage\.googleapis\.com\/([^/?#]+)\/([^?#]+)/i.exec(trimmed);
   if (!gcs) return null;
+  const objectPath = gcs[2].split("/").map(safeDecode).join("/");
+  if (!objectPath) return null;
   return {
     kind: "gcs",
     bucket: safeDecode(gcs[1]),
-    objectPath: gcs[2].split("/").map(safeDecode).join("/"),
+    objectPath,
   };
 }
 
@@ -327,6 +382,20 @@ function galleryCandidates(data) {
 /** First verified gallery URL, before a 480px rewrite. Matches browse. */
 export function firstVerifiedGalleryUrl(data) {
   for (const url of galleryCandidates(data)) {
+    if (!httpUrl(url) || placeholder(url)) continue;
+    return url;
+  }
+  return null;
+}
+
+/**
+ * Cover the thumb planner resizes. Same order as [firstVerifiedGalleryUrl].
+ * A `gs://` object in that position is kept. Browse still skips `gs://`
+ * because a card cannot load it.
+ */
+export function firstThumbSource(data) {
+  for (const url of galleryCandidates(data)) {
+    if (storageObjectFromUrl(url)) return url;
     if (!httpUrl(url) || placeholder(url)) continue;
     return url;
   }

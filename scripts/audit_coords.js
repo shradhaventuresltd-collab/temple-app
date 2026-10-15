@@ -8,8 +8,8 @@
  * Apply nulls both latitude and longitude on those documents. Each write
  * re-reads the document in a transaction and skips it when the pair is
  * already complete. The report prints the latitude and longitude that were
- * discarded. Deployer runs this before deploying the paired-coordinate
- * rules, so an existing unpaired document is not locked. CI cannot apply.
+ * discarded. The Deployer agent or Sanu runs this before deploying the
+ * paired-coordinate rules, so an existing unpaired document is not locked.
  * A prod apply asks you to type the project id. There is no default
  * project. Apply does not deploy rules.
  *
@@ -17,7 +17,7 @@
  *
  * An update that does not touch latitude or longitude is already allowed by
  * the rules. This script is how the stored documents become paired.
- * Do not run --apply from CI or from an agent against production.
+ * prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";

@@ -624,6 +624,18 @@ test("CI workflow runs the unit test and never the apply tool", () => {
   assert.match(source, /confirmProject/);
   assert.match(source, /assertNotCi/);
   assert.match(source, /FIRESTORE_EMULATOR_HOST/);
-  assert.match(source, /Deployer only, dry run first/);
-  assert.doesNotMatch(source, /from an agent/);
+  const policy =
+    "prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI";
+  for (const file of [
+    "scripts/rebuild_index.js",
+    "scripts/resize_cover_thumbs.js",
+    "scripts/audit_coords.js",
+    "scripts/patch_image_url_mirror.js",
+    "scripts/apply_field_patches.js",
+    "scripts/seed_state_batch.js",
+  ]) {
+    const text = readFileSync(resolve(repoRoot, file), "utf8");
+    assert.ok(text.includes(policy), file);
+    assert.doesNotMatch(text, /from an agent/);
+  }
 });

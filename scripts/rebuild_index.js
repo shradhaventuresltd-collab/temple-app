@@ -7,8 +7,7 @@
  *   node scripts/rebuild_index.js --project temple-directory-india
  *   FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 node scripts/rebuild_index.js
  *
- * Apply is hand-run only. CI cannot apply. A prod apply asks you to type
- * the project id. There is no default project.
+ * A prod apply asks you to type the project id. There is no default project.
  *
  *   node scripts/rebuild_index.js --apply --project temple-directory-india
  *   FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 node scripts/rebuild_index.js --apply --project demo
@@ -18,7 +17,7 @@
  *
  * Seed and scripts/seed_state_batch.js --apply write the index themselves.
  * This tool is a repair and backfill only. It is not a required step.
- * Do not run this in CI. Deployer only, dry run first.
+ * prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -42,8 +41,8 @@ Usage:
   node rebuild_index.js --apply --project <firebase-project-id>
 
 Default is dry-run: print missing, stale, moved, and drifted entries.
-Nothing is written. --apply is for Deployer, in a terminal, after merge.
-CI is refused. Prod apply uses prod_guard and prompts for the project id.
+Nothing is written. prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
+Prod apply uses prod_guard and prompts for the project id.
 Set FIRESTORE_EMULATOR_HOST to use the emulator without that prompt.
 --project is required against prod. The emulator falls back to
 demo-temple-index when --project is omitted.

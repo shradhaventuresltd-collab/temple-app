@@ -10,7 +10,8 @@
  *
  * --apply reads each live document and sets imageUrl to that document's
  * images[0]. It does not write images, photos, or any other field.
- * It refuses CI and requires a confirm prompt. Do not run it in CI.
+ * It requires a confirm prompt.
+ * prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
  * Do not run Seed or upload_research_pack.js --patch-firestore.
  */
 import { resolve } from "node:path";

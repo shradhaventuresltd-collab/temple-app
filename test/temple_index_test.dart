@@ -237,6 +237,37 @@ void main() {
       fullCoverUrlFromThumb('https://cdn.example/photos/shore.jpg'),
       isNull,
     );
+    final stored =
+        jsonDecode(
+              File('scripts/fixtures/storage_url_cases.json').readAsStringSync(),
+            )
+            as List;
+    for (final raw in stored) {
+      final row = Map<String, dynamic>.from(raw as Map);
+      final located = storageObjectFromUrl(row['url'] as String);
+      expect(located, isNotNull, reason: row['name'] as String);
+      expect(located!.kind, row['kind'], reason: row['name'] as String);
+      expect(located.bucket, row['bucket'], reason: row['name'] as String);
+      expect(located.objectPath, row['objectPath'], reason: row['name'] as String);
+    }
+    expect(
+      storageObjectFromUrl(
+        'https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg',
+      ),
+      isNull,
+    );
+    expect(
+      storageObjectFromUrl(
+        'https://evil.example/v0/b/bucket/o/temples%2Fshore%2F01.jpg',
+      ),
+      isNull,
+    );
+    expect(
+      storageObjectFromUrl(
+        'https://bucket.firebasestorage.app.evil.com/o/temples%2Fshore%2F01.jpg',
+      ),
+      isNull,
+    );
   });
 
   test('short address keeps a search word that follows a comma', () {

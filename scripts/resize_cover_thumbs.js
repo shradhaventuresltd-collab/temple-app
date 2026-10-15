@@ -11,10 +11,9 @@
  *   node scripts/resize_cover_thumbs.js --project temple-directory-india
  *   node scripts/resize_cover_thumbs.js --limit 25 --resume --project temple-directory-india
  *
- * Apply is hand-run only. CI cannot apply. A prod apply asks you to type
- * the project id. There is no default project. Apply uploads thumbs and
- * writes `photos[].thumbUrl` plus that temple's index entry. It does not
- * deploy.
+ * A prod apply asks you to type the project id. There is no default
+ * project. Apply uploads thumbs and writes `photos[].thumbUrl` plus that
+ * temple's index entry. It does not deploy.
  *
  *   node scripts/resize_cover_thumbs.js --apply --project temple-directory-india
  *
@@ -35,7 +34,8 @@
  *
  * Encoding uses sharp, installed by Deployer
  * (`npm install --prefix scripts sharp`). Tests inject an encoder and never
- * import sharp. Do not run --apply from CI or from an agent against production.
+ * import sharp.
+ * prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
  */
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
@@ -45,7 +45,7 @@ import { fileURLToPath } from "node:url";
 import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard.js";
 import {
   entryFromTemple,
-  firstVerifiedGalleryUrl,
+  firstThumbSource,
   stateSlug,
   storageObjectFromUrl,
   thumbObjectPath,
@@ -65,8 +65,8 @@ Usage:
   node resize_cover_thumbs.js --apply [--limit N] [--resume] --project <id>
 
 Default is dry-run: list cover objects that still need a _480 sibling.
-Nothing is written. --apply is for Deployer, in a terminal, after merge.
-CI is refused. Prod apply prompts for the project id.
+Nothing is written. prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
+Prod apply prompts for the project id.
 Set FIRESTORE_EMULATOR_HOST to use the emulator without that prompt.
 --project is required against prod. The emulator falls back to
 demo-temple-index when --project is omitted.
@@ -272,7 +272,7 @@ export function saveResume(project, covers) {
  * True when some photos[] url is the cover. Without that entry there is
  * nowhere to store thumbUrl, and no new top-level field is added.
  */
-export function coverHasPhoto(temple, source = firstVerifiedGalleryUrl(temple)) {
+export function coverHasPhoto(temple, source = firstThumbSource(temple)) {
   if (typeof source !== "string" || source === "") return false;
   const photos = Array.isArray(temple?.photos) ? temple.photos : [];
   return photos.some(
@@ -288,7 +288,7 @@ export function coverHasPhoto(temple, source = firstVerifiedGalleryUrl(temple)) 
  */
 export function planCoverThumb(temple) {
   const id = String(temple?.id ?? "");
-  const source = firstVerifiedGalleryUrl(temple);
+  const source = firstThumbSource(temple);
   if (!source) return { id, action: "skip", reason: "no-cover", temple };
   const located = storageObjectFromUrl(source);
   if (!located) {
@@ -352,7 +352,7 @@ export function sourceIsNewer(sourceUpdated, thumbUpdated) {
  * is `entryFromTemple`, the same projection rebuild_index writes.
  */
 export function withCoverThumbUrl(temple, thumbUrl) {
-  const source = firstVerifiedGalleryUrl(temple);
+  const source = firstThumbSource(temple);
   if (typeof thumbUrl !== "string" || !thumbUrl.startsWith("https://") || !source) {
     return { ok: false, reason: "thumb-url" };
   }
@@ -378,7 +378,7 @@ export function withCoverThumbUrl(temple, thumbUrl) {
  * never had a read stamp to compare, and the cover URL is the check.
  */
 export function commitCoverThumb(fresh, { source, thumbUrl } = {}) {
-  if (!source || firstVerifiedGalleryUrl(fresh) !== source) {
+  if (!source || firstThumbSource(fresh) !== source) {
     return { ok: false, reason: "cover-changed" };
   }
   return withCoverThumbUrl(fresh, thumbUrl);
@@ -415,7 +415,7 @@ export async function applyCoverThumbPlans(plans, deps) {
     if (!deps.dryRun && typeof deps.reread === "function") {
       const fresh = await deps.reread(plan.id);
       const freshId = fresh?.id ?? plan.id;
-      if (!fresh || firstVerifiedGalleryUrl(fresh) !== plan.source) {
+      if (!fresh || firstThumbSource(fresh) !== plan.source) {
         report.push({ ...plan, result: "skipped", reason: "cover-changed" });
         continue;
       }
@@ -657,7 +657,7 @@ async function loadTemples(project, env) {
  */
 export async function persistCoverPhotos(db, assigned, deps = {}) {
   const admin = deps.admin ?? (await import("firebase-admin")).default;
-  const source = assigned.source ?? firstVerifiedGalleryUrl(assigned.temple);
+  const source = assigned.source ?? firstThumbSource(assigned.temple);
   const thumbUrl = (assigned.photos ?? []).find(
     (photo) => photo && typeof photo.url === "string" && photo.url.trim() === source && photo.thumbUrl,
   )?.thumbUrl;

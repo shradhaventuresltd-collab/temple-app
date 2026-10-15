@@ -7,8 +7,8 @@
  *
  * Default is --dry-run: validate and print new / changed / unchanged / skipped.
  * Nothing is written. --write updates lib/data/sample_data.dart only.
- * --apply writes Firestore and is for Deployer, in a terminal, after merge.
- * CI must not pass --apply. This script never uploads Storage objects.
+ * --apply writes Firestore after merge. This script never uploads Storage objects.
+ * prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
  *
  * A slug that already exists in the seed or in prod is always rejected.
  * Nothing is overwritten and nothing is renamed.
@@ -64,9 +64,10 @@ Usage:
 
 Default is dry-run. Existing slugs are always rejected (no overwrite, no rename).
 --write merges approved temples into lib/data/sample_data.dart (repo only).
---apply writes Firestore temples/{id} for Deployer only, plus a merged
+--apply writes Firestore temples/{id}, plus a merged
 entries.{id} on the matching temple_index shard and a meta increment.
-It prompts for the project id, refuses CI, and does not run unless --project
+prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
+It prompts for the project id and does not run unless --project
 is explicit. Only review.status "approved" is seeded. timings null stays null.
 story is copied from the description. Deploy firestore.rules before writing
 any null-timings document. --apply reads every temple id, meta, and each target shard first.
