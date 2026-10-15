@@ -108,6 +108,24 @@ void main() {
       isFalse,
     );
     expect(
+      isUnlicensedStockImageUrl('https://gettyimages.example.com/photo.jpg'),
+      isFalse,
+    );
+    expect(
+      isUnlicensedStockImageUrl('https://cdn.gettyimages.example.com/a.jpg'),
+      isFalse,
+    );
+    expect(
+      isUnlicensedStockImageUrl(
+        'https://www.gettyimages.co.uk.evil.com/photo.jpg',
+      ),
+      isFalse,
+    );
+    expect(
+      isUnlicensedStockImageUrl('https://www.gettyimages.com/photo/temple'),
+      isTrue,
+    );
+    expect(
       isUnlicensedStockImageUrl(
         'https://example.com/photos/shutterstock-temple.jpg',
       ),
@@ -435,37 +453,40 @@ void main() {
     expect(jainDarshan.framingLabel, isNull);
   });
 
-  test('negated worship phrases stay neutral, including past 48 characters', () {
-    const negated = <String>[
-      'The old puja discontinued after the shrine closed.',
-      'Puja has been discontinued and the sanctum is empty.',
-      'This courtyard was once worshipped.',
-      'This courtyard was once widely worshipped.',
-      'A historic puja is all the notes record.',
-      'A historical aarti is mentioned only as a past custom.',
-      'The former puja is no longer held.',
-      'There is no surviving inscription or local memory of a daily puja on this site.',
-    ];
-    for (final description in negated) {
-      final honesty = DetailHonesty.of(
+  test(
+    'negated worship phrases stay neutral, including past 48 characters',
+    () {
+      const negated = <String>[
+        'The old puja discontinued after the shrine closed.',
+        'Puja has been discontinued and the sanctum is empty.',
+        'This courtyard was once worshipped.',
+        'This courtyard was once widely worshipped.',
+        'A historic puja is all the notes record.',
+        'A historical aarti is mentioned only as a past custom.',
+        'The former puja is no longer held.',
+        'There is no surviving inscription or local memory of a daily puja on this site.',
+      ];
+      for (final description in negated) {
+        final honesty = DetailHonesty.of(
+          _draft(
+            description: description,
+            timings: 'Open daily 6:00 AM–8:00 PM.',
+          ),
+        );
+        expect(honesty.framing, SiteFraming.neutral, reason: description);
+        expect(honesty.framingLabel, isNull, reason: description);
+      }
+
+      final living = DetailHonesty.of(
         _draft(
-          description: description,
+          description: 'Darshan begins after dawn and the puja is current.',
           timings: 'Open daily 6:00 AM–8:00 PM.',
         ),
       );
-      expect(honesty.framing, SiteFraming.neutral, reason: description);
-      expect(honesty.framingLabel, isNull, reason: description);
-    }
-
-    final living = DetailHonesty.of(
-      _draft(
-        description: 'Darshan begins after dawn and the puja is current.',
-        timings: 'Open daily 6:00 AM–8:00 PM.',
-      ),
-    );
-    expect(living.framing, SiteFraming.livingTemple);
-    expect(living.framingLabel, 'Living temple');
-  });
+      expect(living.framing, SiteFraming.livingTemple);
+      expect(living.framingLabel, 'Living temple');
+    },
+  );
 
   test('worship words are whole words, so Darshana is not darshan', () {
     final darshana = DetailHonesty.of(

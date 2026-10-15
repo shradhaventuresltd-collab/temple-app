@@ -270,15 +270,30 @@ export function saveResume(project, covers) {
 
 /**
 /**
+ * Same cover string, or two URLs that name one Storage object. A token URL
+ * and the storage.googleapis.com URL of that object are the same file.
+ */
+function sameCover(photoUrl, source) {
+  const left = typeof photoUrl === "string" ? photoUrl.trim() : "";
+  const right = typeof source === "string" ? source.trim() : "";
+  if (!left || !right) return false;
+  if (left === right) return true;
+  const a = storageObjectFromUrl(left);
+  const b = storageObjectFromUrl(right);
+  if (!a || !b) return false;
+  return a.bucket === b.bucket && a.objectPath === b.objectPath;
+}
+
+/**
  * True when some photos[] url is the cover. Without that entry there is
- * nowhere to store thumbUrl, and no new top-level field is added.
+ * nowhere to store thumbUrl, and no new top-level field is added. The
+ * backfill writes photos[].url from imageUrl; a gallery string that is the
+ * same Storage object still counts.
  */
 export function coverHasPhoto(temple, source = firstThumbSource(temple)) {
   if (typeof source !== "string" || source === "") return false;
   const photos = Array.isArray(temple?.photos) ? temple.photos : [];
-  return photos.some(
-    (photo) => photo && typeof photo.url === "string" && photo.url.trim() === source,
-  );
+  return photos.some((photo) => photo && sameCover(photo.url, source));
 }
 
 /**
@@ -360,7 +375,7 @@ export function withCoverThumbUrl(temple, thumbUrl) {
   const photos = Array.isArray(temple?.photos) ? temple.photos.map((photo) => ({ ...photo })) : [];
   let matched = false;
   for (const photo of photos) {
-    if (photo && typeof photo.url === "string" && photo.url.trim() === source) {
+    if (photo && sameCover(photo.url, source)) {
       photo.thumbUrl = thumbUrl;
       matched = true;
     }

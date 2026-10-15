@@ -136,7 +136,11 @@ const PLACEHOLDER_SUFFIX_HOSTS = [
   "placeimg.com",
 ];
 
-/** Same stock list as state_batch.js. Not applied by Firestore rules. */
+/**
+ * Same stock list as state_batch.js. Not applied by Firestore rules.
+ * `gettyimages` matches only as the site name, not as a label inside
+ * another domain.
+ */
 const STOCK_HOSTS = [
   "shutterstock.com",
   "istockphoto.com",
@@ -176,8 +180,27 @@ function unlicensedStock(url) {
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
   const host = parsed.hostname.toLowerCase();
   if (!host) return false;
-  if (host.split(".").includes("gettyimages")) return true;
+  if (isGettyImagesHost(host)) return true;
   return STOCK_HOSTS.some((stock) => host === stock || host.endsWith(`.${stock}`));
+}
+
+/**
+ * `gettyimages.com`, `media.gettyimages.com`, and `www.gettyimages.co.uk`.
+ * `gettyimages.example.com` is a different registrable domain.
+ */
+function isGettyImagesHost(host) {
+  const labels = String(host ?? "")
+    .toLowerCase()
+    .split(".")
+    .filter(Boolean);
+  const index = labels.lastIndexOf("gettyimages");
+  if (index < 0 || index === labels.length - 1) return false;
+  const rest = labels.slice(index + 1);
+  if (rest.length === 1) return /^[a-z]{2,24}$/.test(rest[0]);
+  if (rest.length === 2) {
+    return /^(ac|co|com|edu|gob|gov|net|nic|org)$/.test(rest[0]) && /^[a-z]{2}$/.test(rest[1]);
+  }
+  return false;
 }
 
 function httpUrl(raw) {

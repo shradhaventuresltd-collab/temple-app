@@ -13,12 +13,18 @@
  * `images` object whose `url` equals that cover, or whose recorded mirror
  * source equals it. That source is the original URL
  * `patch_image_url_mirror` copied from, when the object stores it on
- * `source`, `sourceUrl`, `source_url`, or `mirroredFrom`. A different
- * file's credit is not used. Otherwise the doc is skipped with
- * `no-matching-credit`. A real credit is a non-empty string of at most 200
- * characters. Licence must already be CC-BY, CC-BY-SA, CC0, Own, or
- * Permission. Those five are the values in firestore.rules and
- * PhotoLicence. Nothing is mapped, shortened, or defaulted. Two different
+ * `source`, `sourceUrl`, `source_url`, or `mirroredFrom`. A Storage mirror
+ * whose document has no such object is resolved through the photo-pack
+ * manifest: `temples/{id}/{frame}` must be that temple's id and a manifest
+ * filename for the seed document id `upload_research_pack.js` uses. Credit
+ * then comes from that frame, or from a `photos` or `images` object whose
+ * url is that frame's `source_url` or `downloaded_url`. A different file's
+ * credit is not used. `image_N.jpg` is not treated as a frame. Otherwise
+ * the doc is skipped with `no-matching-credit`. A real credit is a
+ * non-empty string of at most 200 characters. On a document object, licence
+ * must already be CC-BY, CC-BY-SA, CC0, Own, or Permission. A manifest
+ * licence is the Commons string for that same frame, mapped with the
+ * uploader's rules onto those five. Nothing is defaulted. Two different
  * pairs for the same cover are skipped as `ambiguous`.
  *
  * Apply re-reads each document in its own transaction, skips it when the
@@ -30,14 +36,17 @@
  *
  * prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { mapPhotoLicence, photoCredit } from "./photo_licence.js";
 import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard.js";
 import { changedFields, entryFromTemple, stateSlug, storageObjectFromUrl } from "./temple_index.js";
+import { resolveSeedDocId } from "./upload_research_pack.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const packsRoot = resolve(__dirname, "..", "tools", "photo-packs");
 
 /**
  * Wire values already accepted by firestore.rules and PhotoLicence.
@@ -152,17 +161,151 @@ function coversImage(item, imageUrl) {
   return false;
 }
 
-function attribution(temple, imageUrl) {
-  const matched = imageObjects(temple).filter((item) => coversImage(item, imageUrl));
-  if (matched.length === 0) return { ok: false, reason: "no-matching-credit" };
+/** Host and decoded path, without query or hash. Empty when it is not an http URL. */
+function canonicalImageUrl(raw) {
+  const trimmed = String(raw ?? "").trim();
+  if (!trimmed) return "";
+  let parsed;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return "";
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return "";
+  const path = parsed.pathname
+    .split("/")
+    .map((segment) => {
+      try {
+        return decodeURIComponent(segment);
+      } catch {
+        return segment;
+      }
+    })
+    .join("/");
+  return `${parsed.protocol}//${parsed.hostname.toLowerCase()}${path}`;
+}
+
+function manifestPair(photo) {
+  let licence;
+  try {
+    licence = mapPhotoLicence(photo.license);
+  } catch {
+    return { ok: false, reason: "licence" };
+  }
+  if (!PHOTO_LICENCES.includes(licence)) return { ok: false, reason: "licence" };
+  let credit = "";
+  try {
+    credit = photoCredit(photo.author || "", photo.license).trim();
+  } catch {
+    return { ok: false, reason: "licence" };
+  }
+  if (credit === "" || credit.length > MAX_CREDIT) return { ok: false, reason: "no-credit" };
+  return { ok: true, credit, licence };
+}
+
+function sourceUrlsFor(photo) {
+  const urls = new Set();
+  for (const key of ["source_url", "downloaded_url"]) {
+    const canonical = canonicalImageUrl(photo?.[key]);
+    if (canonical) urls.add(canonical);
+  }
+  return urls;
+}
+
+/**
+ * Pack photos keyed by the seed document id the uploader writes under
+ * `temples/{id}/`. Built once from tools/photo-packs manifests.
+ */
+let packFrames;
+function framesByTempleId() {
+  if (packFrames) return packFrames;
+  const index = new Map();
+  if (!existsSync(packsRoot)) {
+    packFrames = index;
+    return index;
+  }
+  for (const entry of readdirSync(packsRoot, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const packDir = resolve(packsRoot, entry.name);
+    const manifestPath = resolve(packDir, "manifest.json");
+    if (!existsSync(manifestPath)) continue;
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+    const docId = resolveSeedDocId(packDir, manifest, null);
+    if (!docId) continue;
+    const list = index.get(docId) ?? [];
+    const photos = Array.isArray(manifest.photos) ? manifest.photos : [];
+    for (const photo of photos) {
+      if (!photo || typeof photo.filename !== "string" || photo.filename === "") continue;
+      const pair = manifestPair(photo);
+      list.push({
+        filename: photo.filename,
+        pair: pair.ok ? { credit: pair.credit, licence: pair.licence } : null,
+        reason: pair.ok ? null : pair.reason,
+        sourceUrls: sourceUrlsFor(photo),
+      });
+    }
+    index.set(docId, list);
+  }
+  packFrames = index;
+  return index;
+}
+
+/**
+ * The manifest frame named by a Storage cover, when the object path is
+ * `temples/{templeId}/{filename}` and that filename is in that temple's pack.
+ * A different slug or a Places `image_N.jpg` name does not match.
+ */
+function packFrameForCover(templeId, imageUrl) {
+  const located = storageObjectFromUrl(imageUrl);
+  if (!located) return null;
+  const parts = located.objectPath.split("/").filter(Boolean);
+  if (parts.length !== 3 || parts[0] !== "temples") return null;
+  const slug = parts[1];
+  const filename = parts[2];
+  if (String(templeId ?? "") !== slug) return null;
+  const frames = framesByTempleId().get(slug) ?? [];
+  const matches = frames.filter((frame) => frame.filename === filename);
+  if (matches.length === 0) return null;
+  const usable = matches.filter((frame) => frame.pair);
+  if (usable.length === 0) {
+    const reason = matches.some((frame) => frame.reason === "no-credit") ? "no-credit" : "licence";
+    return { ok: false, reason };
+  }
+  const first = usable[0].pair;
+  const mixed = usable.some(
+    (frame) => frame.pair.credit !== first.credit || frame.pair.licence !== first.licence,
+  );
+  if (mixed) return { ok: false, reason: "ambiguous" };
+  const sourceUrls = new Set();
+  for (const frame of usable) {
+    for (const url of frame.sourceUrls) sourceUrls.add(url);
+  }
+  return { ok: true, ...first, sourceUrls };
+}
+
+function itemMatchesSources(item, sourceUrls) {
+  if (!sourceUrls || sourceUrls.size === 0) return false;
+  const keys = ["url", ...MIRROR_SOURCE_KEYS];
+  for (const key of keys) {
+    if (typeof item[key] !== "string") continue;
+    const canonical = canonicalImageUrl(item[key]);
+    if (canonical && sourceUrls.has(canonical)) return true;
+  }
+  return false;
+}
+
+function decidePairs(items) {
   const found = [];
   const problems = [];
-  for (const source of matched) {
+  let saw = false;
+  for (const source of items) {
     const pair = pairFrom(source);
     if (!pair) continue;
+    saw = true;
     if (pair.ok) found.push(pair);
     else problems.push(pair.reason);
   }
+  if (!saw) return null;
   if (found.length === 0) {
     if (problems.includes("no-credit")) return { ok: false, reason: "no-credit" };
     if (problems.includes("licence")) return { ok: false, reason: "licence" };
@@ -172,6 +315,20 @@ function attribution(temple, imageUrl) {
   const mixed = found.some((pair) => pair.credit !== first.credit || pair.licence !== first.licence);
   if (mixed) return { ok: false, reason: "ambiguous" };
   return first;
+}
+
+function attribution(temple, imageUrl) {
+  const objects = imageObjects(temple);
+  const direct = decidePairs(objects.filter((item) => coversImage(item, imageUrl)));
+  if (direct) return direct;
+
+  const frame = packFrameForCover(temple?.id, imageUrl);
+  if (!frame) return { ok: false, reason: "no-matching-credit" };
+  if (!frame.ok) return frame;
+
+  const fromSource = decidePairs(objects.filter((item) => itemMatchesSources(item, frame.sourceUrls)));
+  if (fromSource) return fromSource;
+  return { ok: true, credit: frame.credit, licence: frame.licence };
 }
 
 function photosShape(photos) {

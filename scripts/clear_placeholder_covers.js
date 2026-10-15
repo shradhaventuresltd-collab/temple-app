@@ -1,15 +1,15 @@
 /**
- * Clear placeholder-host URLs from temple image fields.
+ * Clear placeholder-host and unlicensed stock-host URLs from temple image fields.
  *
  * Dry-run is the default. It reads temple documents and prints which covers
- * would lose a placeholder host or subdomain. It does not write.
- * The app then shows Photo pending for that temple.
+ * would lose a placeholder host or subdomain, or an unlicensed stock host.
+ * It does not write. The app then shows Photo pending for that temple.
  *
  *   node scripts/clear_placeholder_covers.js --project temple-directory-india
  *
- * imageUrl is set to an empty string when it is a placeholder host. Matching
- * strings are removed from images. photos entries whose url is a placeholder
- * host are removed. A placeholder thumbUrl is removed and the photo stays.
+ * imageUrl is set to an empty string when it is a placeholder or stock host.
+ * Matching strings are removed from images. photos entries whose url is one
+ * of those hosts are removed. A matching thumbUrl is removed and the photo stays.
  *
  * Apply re-reads each document in its own transaction, skips it when the
  * placeholder set changed, and writes the cleared fields plus that temple's
@@ -24,7 +24,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard.js";
-import { isPlaceholderImageUrl } from "./state_batch.js";
+import { isPlaceholderImageUrl, isUnlicensedStockImageUrl } from "./state_batch.js";
 import { entryFromTemple, stateSlug } from "./temple_index.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -35,12 +35,15 @@ Usage:
   node clear_placeholder_covers.js [--dry-run] [--project <firebase-project-id>]
   node clear_placeholder_covers.js --apply --project <firebase-project-id>
 
-Default is dry-run: list temples whose imageUrl, images, or photos use an
+Default is dry-run: list temples whose imageUrl, images, or photos use a
 placeholder host or its subdomain (picsum.photos, placeholder.com,
 placehold.co, placehold.it, dummyimage.com, lorempixel.com, loremflickr.com,
-placekitten.com, fakeimg.pl, placeimg.com). source.unsplash.com is exact.
+placekitten.com, fakeimg.pl, placeimg.com) or an unlicensed stock host
+(shutterstock.com, istockphoto.com, istock.com, pexels.com, stock.adobe.com,
+alamy.com, dreamstime.com, 123rf.com, depositphotos.com, freepik.com, and
+gettyimages as the site name). source.unsplash.com is exact.
 A path containing "placeholder" or "picsum" is kept. images.unsplash.com
-and shutterstock are kept. Nothing is written.
+and adobe.com are kept. Nothing is written.
 prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
 Prod apply prompts for the project id.
 Set FIRESTORE_EMULATOR_HOST to use the emulator without that prompt.
@@ -96,15 +99,27 @@ export function placeholderHostUrl(raw) {
   return isPlaceholderImageUrl(url);
 }
 
+/** http(s) URL on an unlicensed stock host. Empty and non-URL strings stay put. */
+export function stockHostUrl(raw) {
+  const url = String(raw ?? "").trim();
+  if (!url.startsWith("http://") && !url.startsWith("https://")) return false;
+  return isUnlicensedStockImageUrl(url);
+}
+
+/** Placeholder or unlicensed stock URL that clear removes. */
+export function removableImageUrl(raw) {
+  return placeholderHostUrl(raw) || stockHostUrl(raw);
+}
+
 /**
- * Fields to clear on one temple. `ready` means no placeholder host URL.
+ * Fields to clear on one temple. `ready` means no placeholder or stock host URL.
  */
 export function planClearCover(temple) {
   const id = String(temple?.id ?? "");
   const removed = [];
   const patch = {};
   const imageUrl = temple?.imageUrl;
-  if (typeof imageUrl === "string" && placeholderHostUrl(imageUrl)) {
+  if (typeof imageUrl === "string" && removableImageUrl(imageUrl)) {
     removed.push(imageUrl.trim());
     patch.imageUrl = "";
   }
@@ -112,7 +127,7 @@ export function planClearCover(temple) {
     let changed = false;
     const next = [];
     for (const item of temple.images) {
-      if (typeof item === "string" && placeholderHostUrl(item)) {
+      if (typeof item === "string" && removableImageUrl(item)) {
         removed.push(item.trim());
         changed = true;
         continue;
@@ -122,7 +137,7 @@ export function planClearCover(temple) {
         typeof item === "object" &&
         !Array.isArray(item) &&
         typeof item.url === "string" &&
-        placeholderHostUrl(item.url)
+        removableImageUrl(item.url)
       ) {
         removed.push(item.url.trim());
         changed = true;
@@ -140,7 +155,7 @@ export function planClearCover(temple) {
         photo &&
         typeof photo === "object" &&
         typeof photo.url === "string" &&
-        placeholderHostUrl(photo.url)
+        removableImageUrl(photo.url)
       ) {
         removed.push(photo.url.trim());
         changed = true;
@@ -150,7 +165,7 @@ export function planClearCover(temple) {
         photo &&
         typeof photo === "object" &&
         typeof photo.thumbUrl === "string" &&
-        placeholderHostUrl(photo.thumbUrl)
+        removableImageUrl(photo.thumbUrl)
       ) {
         removed.push(photo.thumbUrl.trim());
         const copy = { ...photo };

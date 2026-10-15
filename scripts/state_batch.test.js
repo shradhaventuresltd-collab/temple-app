@@ -226,6 +226,9 @@ test("validator rejects placeholder image URLs and ignores sources and Stockholm
     "https://cdn.source.unsplash.com/random",
     "https://upload.wikimedia.org/wikipedia/commons/x/xx/Placeholder_temple.jpg",
     "https://storage.googleapis.com/bucket/temples/placeholder-x.jpg",
+    "https://gettyimages.example.com/photo.jpg",
+    "https://cdn.gettyimages.example.com/a.jpg",
+    "https://www.gettyimages.co.uk.evil.com/photo.jpg",
   ];
   for (const url of kept) {
     const row = temple();

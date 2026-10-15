@@ -139,7 +139,9 @@ const PLACEHOLDER_SUFFIX_HOSTS = [
 
 /**
  * Unlicensed stock hosts. Same list as detail_honesty.dart and temple_index.js.
- * Named hosts match the host or a subdomain. `gettyimages` is a host label.
+ * Named hosts match the host or a subdomain. `gettyimages` matches only as
+ * the site name (`gettyimages.com`, `media.gettyimages.com`,
+ * `www.gettyimages.co.uk`), not as a label inside another domain.
  * `stock.adobe.com` does not include `adobe.com`. Not a Firestore rule.
  */
 const STOCK_HOSTS = [
@@ -565,9 +567,28 @@ export function isUnlicensedStockImageUrl(raw) {
   return stockHost(parsed.hostname.toLowerCase());
 }
 
+/**
+ * `gettyimages.com`, `media.gettyimages.com`, and `www.gettyimages.co.uk`.
+ * `gettyimages.example.com` is a different registrable domain.
+ */
+function isGettyImagesHost(host) {
+  const labels = String(host ?? "")
+    .toLowerCase()
+    .split(".")
+    .filter(Boolean);
+  const index = labels.lastIndexOf("gettyimages");
+  if (index < 0 || index === labels.length - 1) return false;
+  const rest = labels.slice(index + 1);
+  if (rest.length === 1) return /^[a-z]{2,24}$/.test(rest[0]);
+  if (rest.length === 2) {
+    return /^(ac|co|com|edu|gob|gov|net|nic|org)$/.test(rest[0]) && /^[a-z]{2}$/.test(rest[1]);
+  }
+  return false;
+}
+
 function stockHost(host) {
   if (!host) return false;
-  if (host.split(".").includes("gettyimages")) return true;
+  if (isGettyImagesHost(host)) return true;
   return STOCK_HOSTS.some((stock) => host === stock || host.endsWith(`.${stock}`));
 }
 
