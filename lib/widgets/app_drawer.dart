@@ -14,6 +14,7 @@ import 'package:temple_app/widgets/banner_ad_widget.dart';
 import 'package:temple_app/widgets/directory_filter_bar.dart';
 import 'package:temple_app/widgets/home_mosaic_collage.dart';
 import 'package:temple_app/widgets/temple_browse_card.dart';
+import 'package:temple_app/widgets/unavailable_states_notice.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  APP DRAWER — shared across all screens, supports search + state/deity filters
@@ -485,9 +486,8 @@ class _TempleListScreenState extends State<TempleListScreen> {
   }
 
   void _onFiltersChanged(String? state, String? deity) {
-    final next = state == null &&
-            deity == null &&
-            widget.initialQuery.trim().isNotEmpty
+    final next =
+        state == null && deity == null && widget.initialQuery.trim().isNotEmpty
         ? 'Search'
         : directoryBrowseTitle(state: state, deity: deity);
     if (next == _title) return;
@@ -740,6 +740,7 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
                 showClear: _showClear,
               ),
             ),
+            const UnavailableStatesNotice(),
             if (showFilterBar)
               Padding(
                 padding: const EdgeInsets.fromLTRB(14, 10, 8, 0),
@@ -862,7 +863,10 @@ class _DirectorySearchField extends StatelessWidget {
             fontSize: 13,
             color: Colors.brown.shade300,
           ),
-          prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFFFF8F00)),
+          prefixIcon: const Icon(
+            Icons.search_rounded,
+            color: Color(0xFFFF8F00),
+          ),
           suffixIcon: showClear
               ? IconButton(
                   tooltip: 'Clear search',
@@ -1059,8 +1063,7 @@ class AdPrivacyChoicesTile extends StatelessWidget {
             if (navigator != null && navigator.canPop()) {
               navigator.pop();
             }
-            final show =
-                onShowPrivacyOptions ?? AdHelper.presentPrivacyOptions;
+            final show = onShowPrivacyOptions ?? AdHelper.presentPrivacyOptions;
             unawaited(show());
           },
         );

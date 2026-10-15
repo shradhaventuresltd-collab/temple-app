@@ -42,11 +42,7 @@ void main() {
     }
 
     final changed = _harness(
-      stamps: {
-        'bihar': _oldStamp,
-        'kerala': _oldStamp,
-        'odisha': _oldStamp,
-      },
+      stamps: {'bihar': _oldStamp, 'kerala': _oldStamp, 'odisha': _oldStamp},
       serverStamps: {
         'bihar': _newStamp,
         'kerala': _oldStamp,
@@ -76,15 +72,51 @@ void main() {
     expect(hung.log.fallbacks, ['sample']);
     expect(hung.log.fallbackCount, 1);
 
-    final cached = _harness(
-      hangMeta: true,
-      stamps: {'kerala': _oldStamp},
-    );
+    final cached = _harness(hangMeta: true, stamps: {'kerala': _oldStamp});
     final cachedRows = await cached.service.getTemples();
     expect(cachedRows.map((temple) => temple.id), ['kerala-temple']);
     expect(cached.fake.gets.where((get) => get.contains('temples')), isEmpty);
     expect(cached.log.fallbacks, ['index-cache']);
     expect(cached.fake.count('cache:temple_index/kerala'), 1);
+  });
+
+  test('15 shards of 12 temples are 16 cold reads and 1 warm read', () async {
+    final cold = _scale(applied: false);
+    final coldRows = await cold.service.getTemples();
+    expect(coldRows, hasLength(180));
+    expect(cold.log.serverReads, 16);
+
+    final warm = _scale(applied: true);
+    final warmRows = await warm.service.getTemples();
+    expect(warmRows, hasLength(180));
+    expect(warm.log.serverReads, 1);
+
+    final scan = _scale(metaExists: false);
+    await scan.service.getTemples();
+    expect(scan.log.serverReads - 1, 180);
+  });
+
+  test('a failed shard with no cache keeps that state', () async {
+    final harness = _harness(
+      serverStamps: {'bihar': _newStamp},
+      failServerShards: {'bihar'},
+      keepCache: false,
+    );
+    final rows = await harness.service.getTemples();
+    expect(rows, isNotEmpty);
+    expect(rows.every((temple) => temple.state == 'Bihar'), isTrue);
+    expect(harness.log.unavailableShards, isEmpty);
+    expect(harness.log.fallbacks, contains('sample'));
+
+    final gap = _harness(
+      serverStamps: {'atlantis': _newStamp, 'kerala': _oldStamp},
+      failServerShards: {'atlantis'},
+      keepCache: false,
+    );
+    final kept = await gap.service.getTemples();
+    expect(kept.map((temple) => temple.id), ['kerala-temple']);
+    expect(gap.log.unavailableShards, ['Atlantis']);
+    expect(gap.log.unavailableShardsMessage, contains('Atlantis'));
   });
 
   test('a failed shard fetch does not stick the new stamp', () async {
@@ -152,7 +184,10 @@ void main() {
     expect(await store.readApplied(), isEmpty);
     await store.writeApplied('bihar', _oldStamp);
     await store.writeApplied('kerala', _newStamp);
-    expect(await store.readApplied(), {'bihar': _oldStamp, 'kerala': _newStamp});
+    expect(await store.readApplied(), {
+      'bihar': _oldStamp,
+      'kerala': _newStamp,
+    });
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getString(IndexStampKeys.applied), contains('bihar'));
   });
@@ -161,7 +196,12 @@ void main() {
     final source = File(
       'lib/services/firestore_read_log.dart',
     ).readAsStringSync();
-    expect(source, contains('TODO(KAN-156): report this fallback as a Crashlytics non-fatal.'));
+    expect(
+      source,
+      contains(
+        'TODO(KAN-156): report this fallback as a Crashlytics non-fatal.',
+      ),
+    );
     expect(source, contains("debugPrint('index_fallback:\$marker')"));
     final log = FirestoreReadLog();
     log.recordFallback('sample');
@@ -221,7 +261,8 @@ class _FakeDirectory implements TempleDirectoryClient {
     } else {
       gets.add('server:$key');
       if (hangServer.contains(key)) return Completer<DirectoryDoc>().future;
-      if (collection == kTempleIndexCollection && failServerShards.contains(id)) {
+      if (collection == kTempleIndexCollection &&
+          failServerShards.contains(id)) {
         throw StateError('shard unavailable');
       }
     }
@@ -232,7 +273,11 @@ class _FakeDirectory implements TempleDirectoryClient {
     }
     final data = store[key];
     if (data == null) return DirectoryDoc(id: id, exists: false);
-    return DirectoryDoc(id: id, exists: true, data: Map<String, dynamic>.from(data));
+    return DirectoryDoc(
+      id: id,
+      exists: true,
+      data: Map<String, dynamic>.from(data),
+    );
   }
 
   @override
@@ -251,7 +296,11 @@ class _FakeDirectory implements TempleDirectoryClient {
       final data = entry.value;
       if (data == null) continue;
       docs.add(
-        DirectoryDoc(id: id, exists: true, data: Map<String, dynamic>.from(data)),
+        DirectoryDoc(
+          id: id,
+          exists: true,
+          data: Map<String, dynamic>.from(data),
+        ),
       );
     }
     return docs;
@@ -269,21 +318,28 @@ _harness({
   Map<String, int>? serverStamps,
   bool hangMeta = false,
   bool metaExists = true,
+  bool keepCache = true,
   Set<String> failServerShards = const {},
 }) {
-  final metaStamps = serverStamps ?? {for (final state in _states) state: _oldStamp};
+  final metaStamps =
+      serverStamps ?? {for (final state in _states) state: _oldStamp};
   final serverDocs = <String, Map<String, dynamic>?>{};
   final cacheDocs = <String, Map<String, dynamic>?>{};
   if (metaExists) {
     serverDocs['meta/temple_index'] = {'indexVersion': 1, 'shards': metaStamps};
   }
-  for (final state in _states) {
+  for (final state in metaStamps.keys) {
     final fresh = metaStamps[state] != _oldStamp;
     serverDocs['temple_index/$state'] = _shard(
       state,
       name: fresh ? _title(state, fresh: true) : _title(state, fresh: false),
     );
-    cacheDocs['temple_index/$state'] = _shard(state, name: _title(state, fresh: false));
+    if (keepCache) {
+      cacheDocs['temple_index/$state'] = _shard(
+        state,
+        name: _title(state, fresh: false),
+      );
+    }
   }
   final fake = _FakeDirectory(
     serverDocs: serverDocs,
@@ -317,6 +373,75 @@ Map<String, dynamic> _shard(String state, {required String name}) {
       },
     },
   };
+}
+
+const _fifteen = [
+  'andhra-pradesh',
+  'bihar',
+  'gujarat',
+  'himachal-pradesh',
+  'karnataka',
+  'kerala',
+  'madhya-pradesh',
+  'maharashtra',
+  'odisha',
+  'rajasthan',
+  'tamil-nadu',
+  'telangana',
+  'uttar-pradesh',
+  'west-bengal',
+  'jammu-and-kashmir',
+];
+
+({TempleService service, FirestoreReadLog log, _FakeDirectory fake}) _scale({
+  bool applied = false,
+  bool metaExists = true,
+}) {
+  const perState = 12;
+  final serverDocs = <String, Map<String, dynamic>?>{};
+  final cacheDocs = <String, Map<String, dynamic>?>{};
+  final stamps = <String, int>{};
+  if (metaExists) {
+    serverDocs['meta/temple_index'] = {
+      'indexVersion': 1,
+      'shards': {for (final state in _fifteen) state: _oldStamp},
+    };
+  }
+  for (final state in _fifteen) {
+    stamps[state] = _oldStamp;
+    final entries = <String, Map<String, dynamic>>{};
+    for (var i = 0; i < perState; i++) {
+      final id = '$state-$i';
+      entries[id] = {
+        'id': id,
+        'name': id,
+        'state': state,
+        'city': 'City',
+        'deity': 'Shiva',
+        'tradition': 'unspecified',
+        'framing': 'neutral',
+      };
+      if (!metaExists) {
+        serverDocs['temples/$id'] = {'name': id, 'state': state};
+      }
+    }
+    serverDocs['temple_index/$state'] = {'entries': entries};
+    cacheDocs['temple_index/$state'] = {'entries': entries};
+  }
+  final fake = _FakeDirectory(
+    serverDocs: serverDocs,
+    cacheDocs: cacheDocs,
+    hangServer: {},
+    failServerShards: {},
+  );
+  final log = FirestoreReadLog();
+  final service = TempleService(
+    directory: fake,
+    stamps: _MemoryStamps(applied ? stamps : {}),
+    readLog: log,
+    fetchTimeout: const Duration(milliseconds: 30),
+  );
+  return (service: service, log: log, fake: fake);
 }
 
 String _title(String state, {required bool fresh}) {

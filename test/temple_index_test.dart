@@ -128,7 +128,7 @@ void main() {
     expect(axis.lng, 80);
   });
 
-  test('cover prefers photos[0] thumb, then imageUrl, and caps at 500', () {
+  test('cover matches the first verified gallery image and caps at 500', () {
     const thumb = 'https://cdn.example/photos/shore_480.jpg';
     const full = 'https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg';
     expect(
@@ -139,7 +139,7 @@ void main() {
         'imageUrl': 'https://example.com/cover.jpg',
         'images': ['https://example.com/gallery.jpg'],
       }),
-      thumb,
+      'https://example.com/gallery.jpg',
     );
     const wide =
         'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/1280px-File.jpg';
@@ -176,10 +176,12 @@ void main() {
     );
   });
 
-  test('short address stops at 120 characters', () {
-    final long = '${'Gate, ' * 40}Madurai';
-    final short = shortTempleAddress(long);
+  test('short address keeps a search word that follows a comma', () {
+    const marker = 'DevakRiverbank';
+    final address = '${'a' * 50}, $marker ${'tail ' * 80}';
+    final short = shortTempleAddress(address);
     expect(short.length, lessThanOrEqualTo(kTempleIndexShortAddressMax));
+    expect(short, contains(marker));
     expect(short.endsWith(','), isFalse);
   });
 
@@ -513,6 +515,7 @@ void main() {
           'specialities': temple.specialities,
           'imageUrl': temple.imageUrl,
           'images': temple.images,
+          'photos': [for (final photo in temple.photos) photo.toJson()],
           'address': temple.location,
           'latitude': temple.latitude,
           'longitude': temple.longitude,
@@ -542,6 +545,7 @@ void main() {
       expect(js['deity'], dartEntry['deity'], reason: id);
       expect(js['address'], dartEntry['address'], reason: id);
       expect(js['coverThumb'], dartEntry['coverThumb'], reason: id);
+      expect(js['coverCaption'], dartEntry['coverCaption'], reason: id);
       final lng = dartEntry['lng'];
       final lat = dartEntry['lat'];
       expect(lng == null || lng is double, isTrue, reason: id);
@@ -593,6 +597,15 @@ void main() {
     expect(temple.location, 'Mahabalipuram, Tamil Nadu');
     expect(temple.latitude, 12.616);
     expect(temple.longitude, 80.199);
+    expect(temple.hasCoordinates, isTrue);
+    final missingPoint = templeFromIndexEntry({
+      'id': 'no-point',
+      'name': 'No Point',
+      'state': 'Goa',
+    });
+    expect(missingPoint.latitude, isNull);
+    expect(missingPoint.longitude, isNull);
+    expect(missingPoint.hasCoordinates, isFalse);
     expect(templeBrowseHonestyLabels(temple), ['Heritage visit']);
     expect(temple.coverCaption, 'Lithograph, 1847');
   });

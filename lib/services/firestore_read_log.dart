@@ -24,10 +24,25 @@ class FirestoreReadLog {
   /// Markers passed to [recordFallback], in order. Not cleared by [startLoad].
   final List<String> fallbacks = [];
 
+  /// State names whose shard could not be read and has no bundled sample.
+  final List<String> unavailableShards = [];
+
+  /// Banner text when [unavailableShards] is not empty.
+  String? get unavailableShardsMessage {
+    if (unavailableShards.isEmpty) return null;
+    return 'Could not load temples in ${unavailableShards.join(', ')}.';
+  }
+
   void startLoad() {
     serverReads = 0;
     cacheHits = 0;
     source = '';
+    unavailableShards.clear();
+  }
+
+  void noteUnavailableShard(String label) {
+    if (label.isEmpty || unavailableShards.contains(label)) return;
+    unavailableShards.add(label);
   }
 
   void serverRead([int count = 1]) {

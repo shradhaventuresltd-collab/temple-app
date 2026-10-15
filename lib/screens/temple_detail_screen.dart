@@ -44,7 +44,10 @@ class _TempleDetailScreenState extends State<TempleDetailScreen> {
     unawaited(_fetch(load, id));
   }
 
-  Future<void> _fetch(Future<Temple?> Function(String id) load, String id) async {
+  Future<void> _fetch(
+    Future<Temple?> Function(String id) load,
+    String id,
+  ) async {
     try {
       final full = await load(id);
       if (!mounted) return;
@@ -152,8 +155,11 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
       "Couldn't open directions on this device.";
 
   Future<void> _openGoogleMaps() async {
+    final lat = temple.latitude;
+    final lng = temple.longitude;
+    if (lat == null || lng == null) return;
     final url = Uri.parse(
-      'https://www.google.com/maps/search/?api=1&query=${temple.latitude},${temple.longitude}',
+      'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
     );
     final opened = await _tryOpenMaps(url);
     if (!opened && mounted) {
@@ -529,8 +535,9 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
                     _InfoCard(
                       title: 'Coordinates',
                       icon: Icons.explore_rounded,
-                      content:
-                          '${temple.latitude.toStringAsFixed(4)}° N, ${temple.longitude.toStringAsFixed(4)}° E',
+                      content: temple.hasCoordinates
+                          ? '${temple.latitude!.toStringAsFixed(4)}° N, ${temple.longitude!.toStringAsFixed(4)}° E'
+                          : 'Not listed in this entry.',
                     ),
 
                     // ── How to Reach ──
@@ -576,38 +583,40 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 14),
-                          SizedBox(
-                            width: double.infinity,
-                            child: Semantics(
-                              identifier: 'get-directions-button',
-                              child: ElevatedButton.icon(
-                                key: const Key('get-directions-button'),
-                                onPressed: _openGoogleMaps,
-                                icon: const Icon(
-                                  Icons.directions_rounded,
-                                  color: Colors.white,
-                                ),
-                                label: Text(
-                                  'Get Directions',
-                                  style: GoogleFonts.poppins(
+                          if (temple.hasCoordinates) ...[
+                            const SizedBox(height: 14),
+                            SizedBox(
+                              width: double.infinity,
+                              child: Semantics(
+                                identifier: 'get-directions-button',
+                                child: ElevatedButton.icon(
+                                  key: const Key('get-directions-button'),
+                                  onPressed: _openGoogleMaps,
+                                  icon: const Icon(
+                                    Icons.directions_rounded,
                                     color: Colors.white,
-                                    fontWeight: FontWeight.w600,
                                   ),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: _deepSaffron,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 14,
+                                  label: Text(
+                                    'Get Directions',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: _deepSaffron,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 0,
                                   ),
-                                  elevation: 0,
                                 ),
                               ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                     ),

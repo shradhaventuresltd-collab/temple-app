@@ -23,7 +23,9 @@ const int kTempleIndexMaxEntries = 400;
 const int kTempleIndexMaxShards = 48;
 
 /// Browse cards need a short line, not the 500-character temple address.
-const int kTempleIndexShortAddressMax = 120;
+/// Leading address kept for search. 400 max-size entries, plus a lithograph
+/// caption, still fit under 1 MiB. Temple documents may store up to 500.
+const int kTempleIndexShortAddressMax = 340;
 
 /// `coverThumb` is a URL, capped so a shard of summaries stays small.
 const int kTempleIndexCoverThumbMax = 500;
@@ -108,40 +110,64 @@ TempleIndexFlags templeIndexFlagsFor(Temple temple) {
   );
 }
 
-/// Collapses whitespace and keeps at most [kTempleIndexShortAddressMax]
-/// characters, breaking on a comma when that still leaves a useful line.
+/// Collapses whitespace and keeps the leading searchable text.
+///
+/// The cut is a word boundary inside [kTempleIndexShortAddressMax]. A comma
+/// inside that window stays, so a place name after the comma can still match
+/// search. Words that start past the cap do not fit in the shard budget.
 String shortTempleAddress(String raw) {
   final text = raw.trim().replaceAll(RegExp(r'\s+'), ' ');
   if (text.length <= kTempleIndexShortAddressMax) return text;
-  final cut = text.substring(0, kTempleIndexShortAddressMax);
-  final comma = cut.lastIndexOf(',');
-  if (comma >= 40) return cut.substring(0, comma).trimRight();
-  return cut.trimRight();
+  var cut = text.substring(0, kTempleIndexShortAddressMax);
+  final space = cut.lastIndexOf(' ');
+  if (space >= 40) cut = cut.substring(0, space);
+  return cut.trimRight().replaceFirst(RegExp(r'[,\s]+$'), '');
 }
 
 /// Browse cover for one temple document.
 ///
-/// Order: `photos[0].thumbUrl`, then a `_480` file on `photos[0]`, then
-/// `imageUrl`, then `images[0]`. Wikimedia `/thumb/` URLs wider than 480px
-/// are rewritten to `480px`. Placeholder hosts are skipped. The result is
-/// at most [kTempleIndexCoverThumbMax] characters.
+/// Same choice as [verifiedCoverUrl]: the first verified URL in `images`,
+/// or `imageUrl` when `images` is empty. Placeholder hosts are skipped.
+/// Wikimedia `/thumb/` URLs wider than 480px are rewritten to `480px`. The
+/// result is at most [kTempleIndexCoverThumbMax] characters.
 ///
-/// TODO(KAN-146): cover thumbnails are not generated yet. Until they exist,
-/// a full-size `imageUrl` or `images[0]` is stored instead of null.
+/// TODO(KAN-146): a generated thumbnail can replace this URL later. The
+/// photo that is chosen stays the browse gallery photo.
 String? coverThumbFor(Map<String, dynamic> data) {
-  final photo = _firstPhoto(data['photos']);
-  final photoThumb = photo == null ? null : photo['thumbUrl'];
-  final photoUrl = photo == null ? null : photo['url'];
-  final fromPhoto =
-      _usableCover(photoThumb, allowFull: true) ??
-      _usableCover(_is480File(photoUrl) ? photoUrl : null, allowFull: false);
-  if (fromPhoto != null) return fromPhoto;
-  final fromCover = _usableCover(data['imageUrl'], allowFull: true);
-  if (fromCover != null) return fromCover;
-  return _usableCover(_firstListItem(data['images']), allowFull: true);
+  final source = firstVerifiedGalleryUrl(data);
+  if (source == null) return null;
+  return _usableCover(source, allowFull: true);
 }
 
-/// URL list helper. Prefer [coverThumbFor] so `photos[0]` stays first.
+/// Unrewritten gallery URL [coverThumbFor] is taken from.
+String? firstVerifiedGalleryUrl(Map<String, dynamic> data) {
+  for (final url in _galleryCandidates(data)) {
+    if (!_httpUrl(url) || isPlaceholderImageUrl(url)) continue;
+    return url;
+  }
+  return null;
+}
+
+List<String> _galleryCandidates(Map<String, dynamic> data) {
+  final images = data['images'];
+  final urls = <String>[];
+  if (images is List) {
+    for (final item in images) {
+      if (item is! String) continue;
+      final trimmed = item.trim();
+      if (trimmed.isEmpty) continue;
+      urls.add(trimmed);
+    }
+  }
+  if (urls.isNotEmpty) return urls;
+  final imageUrl = data['imageUrl'];
+  if (imageUrl is String && imageUrl.trim().isNotEmpty) {
+    return [imageUrl.trim()];
+  }
+  return const [];
+}
+
+/// URL list helper. Prefer [coverThumbFor] so the gallery order stays put.
 String? coverThumbFromUrls(Iterable<Object?> urls) {
   for (final raw in urls) {
     final thumb = _browseThumb(raw);
@@ -153,29 +179,6 @@ String? coverThumbFromUrls(Iterable<Object?> urls) {
     if (full != null) return full;
   }
   return null;
-}
-
-Map<String, Object?>? _firstPhoto(Object? raw) {
-  if (raw is! List || raw.isEmpty) return null;
-  final first = raw.first;
-  if (first is Map) return Map<String, Object?>.from(first);
-  if (first is String) return {'url': first};
-  return null;
-}
-
-Object? _firstListItem(Object? raw) {
-  if (raw is! List || raw.isEmpty) return null;
-  return raw.first;
-}
-
-bool _is480File(Object? raw) {
-  if (raw is! String) return false;
-  final uri = Uri.tryParse(raw.trim());
-  if (uri == null) return false;
-  return RegExp(
-    r'[_-]480\.(jpe?g|png|webp)$',
-    caseSensitive: false,
-  ).hasMatch(Uri.decodeFull(uri.path));
 }
 
 String? _usableCover(Object? raw, {required bool allowFull}) {
@@ -299,17 +302,33 @@ Map<String, dynamic> templeIndexEntryFromMap(
   if (data.containsKey('hidden') && data['hidden'] is bool) {
     entry['hidden'] = data['hidden'];
   }
-  final caption = cover == null
-      ? null
-      : historicalCoverCaption(temple.photos, cover);
+  final source = firstVerifiedGalleryUrl(data);
+  final caption = _indexCoverCaption(temple.photos, source, cover);
   if (caption != null) entry['coverCaption'] = caption;
   return entry;
+}
+
+String? _indexCoverCaption(
+  List<TemplePhoto> photos,
+  String? source,
+  String? cover,
+) {
+  if (source != null) {
+    final fromSource = historicalCoverCaption(photos, source);
+    if (fromSource != null) return fromSource;
+  }
+  if (cover != null && cover != source) {
+    return historicalCoverCaption(photos, cover);
+  }
+  return null;
 }
 
 /// Browse card built from one `entries.{id}` value. Description, story, and
 /// timings stay empty; the detail screen loads `temples/{id}` for those.
 Temple templeFromIndexEntry(Map<String, dynamic> entry) {
-  final id = _text(entry['id']).isNotEmpty ? _text(entry['id']) : _text(entry['slug']);
+  final id = _text(entry['id']).isNotEmpty
+      ? _text(entry['id'])
+      : _text(entry['slug']);
   final cover = _text(entry['coverThumb']);
   final caption = _text(entry['coverCaption']);
   final coords = templeIndexCoordinates({
@@ -329,8 +348,8 @@ Temple templeFromIndexEntry(Map<String, dynamic> entry) {
     location: _text(entry['address']),
     timings: null,
     specialities: const [],
-    latitude: coords.lat ?? 0,
-    longitude: coords.lng ?? 0,
+    latitude: coords.lat,
+    longitude: coords.lng,
     indexTradition: _text(entry['tradition']).isEmpty
         ? 'unspecified'
         : _text(entry['tradition']),
@@ -485,6 +504,7 @@ int estimateTempleIndexShardBytes([int entryCount = kTempleIndexMaxEntries]) {
     'deity': kTempleIndexDeityMax,
     'address': kTempleIndexShortAddressMax,
     'coverThumb': kTempleIndexCoverThumbMax,
+    'coverCaption': 16,
     'tradition': 11,
     'framing': 8,
   };

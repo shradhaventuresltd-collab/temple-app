@@ -290,6 +290,11 @@ void _assertNoDisallowedFirestoreKeys(Map<String, dynamic> stored) {
   );
 }
 
+double? _preferCoordinate(double? current, double? stored) {
+  if (current == null || current == 0) return stored;
+  return current;
+}
+
 /// Builds the temple that will be written after an image upload.
 ///
 /// Model fields come from [current] (the Admin list item). Gallery URLs come
@@ -300,8 +305,8 @@ Temple coalesceTemple(Temple stored, Temple current) {
   return current.copyWith(
     imageUrl: pick(current.imageUrl, stored.imageUrl),
     images: stored.images.isNotEmpty ? stored.images : current.images,
-    latitude: current.latitude != 0 ? current.latitude : stored.latitude,
-    longitude: current.longitude != 0 ? current.longitude : stored.longitude,
+    latitude: _preferCoordinate(current.latitude, stored.latitude),
+    longitude: _preferCoordinate(current.longitude, stored.longitude),
   );
 }
 

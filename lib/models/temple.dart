@@ -12,8 +12,8 @@ class Temple {
     required this.location,
     required String? timings,
     required this.specialities,
-    required this.latitude,
-    required this.longitude,
+    this.latitude,
+    this.longitude,
     this.id = '',
     this.images = const [],
     this.photos = const [],
@@ -66,8 +66,12 @@ class Temple {
 
   bool get isIndexSummary => indexTradition != null && indexFraming != null;
 
-  final double latitude;
-  final double longitude;
+  /// Null when the listing has no coordinates. (0, 0) is that missing pair,
+  /// not a point in the Gulf of Guinea.
+  final double? latitude;
+  final double? longitude;
+
+  bool get hasCoordinates => latitude != null && longitude != null;
 
   bool get hasNetworkImage => imageUrl.trim().isNotEmpty;
 
@@ -96,8 +100,8 @@ class Temple {
       specialities: _stringList(data['specialities']),
       images: _stringList(data['images']),
       photos: _photoList(data['photos']),
-      latitude: (data['latitude'] as num?)?.toDouble() ?? 0.0,
-      longitude: (data['longitude'] as num?)?.toDouble() ?? 0.0,
+      latitude: _coordinatePair(data).lat,
+      longitude: _coordinatePair(data).lng,
     );
   }
 
@@ -128,8 +132,8 @@ class Temple {
       'story': story,
       'imageUrl': cover,
       'address': location,
-      'latitude': latitude,
-      'longitude': longitude,
+      'latitude': latitude ?? 0,
+      'longitude': longitude ?? 0,
       'timings': _timings,
       'specialities': specialities,
     };
@@ -205,4 +209,13 @@ class Temple {
     }
     return const [];
   }
+}
+
+/// Missing numbers and the (0, 0) placeholder are null.
+({double? lat, double? lng}) _coordinatePair(Map<String, dynamic> data) {
+  final lat = data['latitude'];
+  final lng = data['longitude'];
+  if (lat is! num || lng is! num) return (lat: null, lng: null);
+  if (lat == 0 && lng == 0) return (lat: null, lng: null);
+  return (lat: lat.toDouble(), lng: lng.toDouble());
 }

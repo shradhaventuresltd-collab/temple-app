@@ -16,6 +16,7 @@ import {
 } from "./rebuild_index.js";
 import {
   batchRounds,
+  changedFields,
   coverThumb,
   DOCUMENT_BYTE_LIMIT,
   diffIndex,
@@ -104,7 +105,7 @@ test("state-batch payload is a lean entry and is backfilled", () => {
   assert.equal(report.missing.find((item) => item.id === "lingaraj-temple").shard, "odisha");
 });
 
-test("cover thumb prefers photos[0], then imageUrl, and caps at 500", () => {
+test("cover thumb matches the first verified gallery image and caps at 500", () => {
   const full = "https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg";
   const thumb = "https://cdn.example/photos/shore_480.jpg";
   assert.equal(
@@ -113,7 +114,7 @@ test("cover thumb prefers photos[0], then imageUrl, and caps at 500", () => {
       imageUrl: "https://example.com/cover.jpg",
       images: ["https://example.com/gallery.jpg"],
     }),
-    thumb,
+    "https://example.com/gallery.jpg",
   );
   const wide =
     "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/1280px-File.jpg";
@@ -141,8 +142,41 @@ test("cover thumb prefers photos[0], then imageUrl, and caps at 500", () => {
       photos: [{ url: storage, licence: "CC0", order: 0 }],
       imageUrl: full,
     }),
-    storage,
+    full,
   );
+});
+
+test("cover caption is stored and is not drift when it matches", () => {
+  const url =
+    "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/68/Plate.jpg/500px-Plate.jpg";
+  const temple = {
+    id: "purmandal-temple",
+    name: "Purmandal Temple",
+    state: "Jammu and Kashmir",
+    city: "Samba",
+    deity: "Shiva",
+    address: "Purmandal, Samba",
+    imageUrl: url,
+    images: [url],
+    photos: [
+      {
+        url,
+        credit: "19th-century lithograph (1847 print). James Duffield Harding",
+        licence: "CC0",
+        order: 0,
+      },
+    ],
+    latitude: 32.6957,
+    longitude: 75.0609,
+    description: "A riverside temple.",
+    story: "A riverside temple.",
+  };
+  const entry = entryFromTemple(temple);
+  assert.equal(entry.coverCaption, "Lithograph, 1847");
+  assert.deepEqual(changedFields(entry, entry), []);
+  const wiped = { ...entry };
+  delete wiped.coverCaption;
+  assert.ok(changedFields(entry, wiped).includes("coverCaption"));
 });
 
 test("state slugs match the shared fixture", () => {

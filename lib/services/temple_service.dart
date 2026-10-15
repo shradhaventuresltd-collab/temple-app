@@ -48,9 +48,8 @@ class TempleService {
 
   IndexStampStore get _stampStore => _stamps ?? _ownedStamps;
 
-  late final TempleDirectoryClient _ownedClient = FirestoreTempleDirectoryClient(
-    _firestore ?? FirebaseFirestore.instance,
-  );
+  late final TempleDirectoryClient _ownedClient =
+      FirestoreTempleDirectoryClient(_firestore ?? FirebaseFirestore.instance);
 
   late final IndexStampStore _ownedStamps = SharedPreferencesIndexStampStore();
 
@@ -86,8 +85,15 @@ class TempleService {
     final rows = index.temples;
     if (rows != null) {
       if (index.servedStale) _readLog.recordFallback('index-cache');
+      if (index.servedSample) _readLog.recordFallback('sample');
       _readLog.finishLaunch(
-        index.servedStale && !index.servedFresh ? 'index-cache' : 'index',
+        index.servedFresh
+            ? 'index'
+            : index.servedStale
+            ? 'index-cache'
+            : index.servedSample
+            ? 'sample'
+            : 'index',
       );
       return rows;
     }
@@ -125,20 +131,25 @@ class TempleService {
     var anyDoc = false;
     var servedFresh = false;
     var servedStale = false;
+    var servedSample = false;
     for (final read in plan) {
       final loaded = await _readPlannedShard(read, serverStamps[read.slug]);
       if (loaded == null) continue;
       anyDoc = true;
       servedFresh = servedFresh || loaded.fresh;
       servedStale = servedStale || loaded.stale;
+      servedSample = servedSample || loaded.sample;
       temples.addAll(loaded.temples);
     }
-    if (!anyDoc) return const _ServerIndex.unavailable();
+    if (!anyDoc && _readLog.unavailableShards.isEmpty) {
+      return const _ServerIndex.unavailable();
+    }
     temples.sort((a, b) => a.id.compareTo(b.id));
     return _ServerIndex.rows(
       temples,
       servedFresh: servedFresh,
       servedStale: servedStale,
+      servedSample: servedSample,
     );
   }
 
@@ -146,7 +157,10 @@ class TempleService {
   /// server once and does not read the cache again. A changed shard is read
   /// from the server; the cache is a display fallback and does not become
   /// the applied stamp.
-  Future<_ShardRows?> _readPlannedShard(IndexShardRead read, Object? stamp) async {
+  Future<_ShardRows?> _readPlannedShard(
+    IndexShardRead read,
+    Object? stamp,
+  ) async {
     if (read.fromCache) {
       final cached = await _cachedShard(read.slug, stale: false);
       if (cached != null) return cached;
@@ -154,7 +168,34 @@ class TempleService {
     }
     final fresh = await _serverShard(read.slug, stamp);
     if (fresh != null) return fresh;
-    return _cachedShard(read.slug, stale: true);
+    final cached = await _cachedShard(read.slug, stale: true);
+    if (cached != null) return cached;
+    return _sampleForMissingShard(read.slug);
+  }
+
+  /// Bundled temples for [slug] when the shard could not be read. An empty
+  /// sample for that state is a visible gap, not a silent omission.
+  _ShardRows? _sampleForMissingShard(String slug) {
+    final temples = [
+      for (final temple in sampleTemples)
+        if (templeIndexStateSlug(temple.state) == slug) temple,
+    ];
+    if (temples.isEmpty) {
+      _readLog.noteUnavailableShard(_stateLabel(slug));
+      return null;
+    }
+    return _ShardRows(temples, fresh: false, stale: false, sample: true);
+  }
+
+  String _stateLabel(String slug) {
+    for (final temple in sampleTemples) {
+      if (templeIndexStateSlug(temple.state) == slug) return temple.state;
+    }
+    return slug
+        .split('-')
+        .where((part) => part.isNotEmpty)
+        .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+        .join(' ');
   }
 
   Future<_ShardRows?> _serverShard(String slug, Object? stamp) async {
@@ -198,7 +239,9 @@ class TempleService {
   Future<List<Temple>> _loadCollectionOrRescue() async {
     try {
       final rows = await _loadCollection();
-      _readLog.finishLaunch(identical(rows, sampleTemples) ? 'sample' : 'temples');
+      _readLog.finishLaunch(
+        identical(rows, sampleTemples) ? 'sample' : 'temples',
+      );
       return rows;
     } catch (_) {
       return _rescueFromAppliedCache();
@@ -250,32 +293,42 @@ class _ServerIndex {
     : confirmedMissing = true,
       temples = null,
       servedFresh = false,
-      servedStale = false;
+      servedStale = false,
+      servedSample = false;
 
   const _ServerIndex.unavailable()
     : confirmedMissing = false,
       temples = null,
       servedFresh = false,
-      servedStale = false;
+      servedStale = false,
+      servedSample = false;
 
   const _ServerIndex.rows(
     this.temples, {
     required this.servedFresh,
     required this.servedStale,
+    required this.servedSample,
   }) : confirmedMissing = false;
 
   final bool confirmedMissing;
   final List<Temple>? temples;
   final bool servedFresh;
   final bool servedStale;
+  final bool servedSample;
 }
 
 class _ShardRows {
-  const _ShardRows(this.temples, {required this.fresh, required this.stale});
+  const _ShardRows(
+    this.temples, {
+    required this.fresh,
+    required this.stale,
+    this.sample = false,
+  });
 
   final List<Temple> temples;
   final bool fresh;
   final bool stale;
+  final bool sample;
 }
 
 Map<String, Object?> _stampMap(Object? raw) {
