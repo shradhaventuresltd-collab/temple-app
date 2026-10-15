@@ -216,6 +216,24 @@ void main() {
       isNull,
     );
     expect(
+      wikimediaOriginalUrl(
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/480px-File.jpg',
+      ),
+      'https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg',
+    );
+    expect(
+      wikimediaOriginalUrl(
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/File.jpg/1280px-File.jpg',
+      ),
+      'https://upload.wikimedia.org/wikipedia/commons/7/76/File.jpg',
+    );
+    expect(
+      wikimediaOriginalUrl(
+        'https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg',
+      ),
+      isNull,
+    );
+    expect(
       fullCoverUrlFromThumb('https://cdn.example/photos/shore.jpg'),
       isNull,
     );

@@ -275,6 +275,31 @@ export function fullCoverUrlFromThumb(raw) {
   return publicStorageUrl(located, fullPath);
 }
 
+/**
+ * Original file behind a Wikimedia `/thumb/.../NNNpx-` URL.
+ * `thumb.wikimedia.org` is rewritten to `upload.wikimedia.org`.
+ * Null when [raw] is not a Wikimedia thumb. Cards use this after the
+ * 480px URL fails, so the full image is tried before the placeholder.
+ */
+export function wikimediaOriginalUrl(raw) {
+  const trimmed = typeof raw === "string" ? raw.trim() : "";
+  const noHash = trimmed.split("#")[0];
+  const noQuery = noHash.split("?")[0];
+  const match = /^(https:\/\/)([^/]+)(\/.*)$/i.exec(noQuery);
+  if (!match) return null;
+  let host = match[2].toLowerCase();
+  if (host !== "upload.wikimedia.org" && host !== "thumb.wikimedia.org") return null;
+  if (host === "thumb.wikimedia.org") host = "upload.wikimedia.org";
+  const parts = match[3].split("/");
+  if (parts.length < 4 || !/^\d+px-/.test(parts[parts.length - 1])) return null;
+  const thumbAt = parts.indexOf("thumb");
+  if (thumbAt <= 0 || thumbAt >= parts.length - 2) return null;
+  parts.splice(parts.length - 1, 1);
+  parts.splice(thumbAt, 1);
+  const result = `https://${host}${parts.join("/")}`;
+  return result === noQuery ? null : result;
+}
+
 function explicitThumb(data, source) {
   const photos = Array.isArray(data?.photos) ? data.photos : [];
   for (const photo of photos) {

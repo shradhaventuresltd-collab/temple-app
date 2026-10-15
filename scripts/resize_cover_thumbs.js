@@ -24,9 +24,12 @@
  * Stat, download, and upload use the bucket named in the cover URL, not the
  * app's default bucket. A cover with no photos[] entry for that URL is not
  * uploaded. Apply confirms the Firebase download URL (?alt=media and the
- * stored token) before it writes photos[].thumbUrl. Index entries for the
- * run are written once at the end, per shard, not once per temple. The
- * resume file is rewritten after each successful row.
+ * stored token) before it writes photos[].thumbUrl. That write re-reads
+ * the temple in a transaction. A cover that is no longer the same photo
+ * is skipped and reported. Only that photo's thumbUrl is set, on the
+ * fresh document. Index entries for the run are built from those fresh
+ * documents and written once at the end, per shard, not once per temple.
+ * The resume file is rewritten after each successful row.
  *
  * Encoding uses sharp, installed by Deployer
  * (`npm install --prefix scripts sharp`). Tests inject an encoder and never
@@ -330,6 +333,29 @@ export function withCoverThumbUrl(temple, thumbUrl) {
 }
 
 /**
+ * Set thumbUrl on the cover photo of a document read just now.
+ * [source] is the cover URL this row already resized. A different cover
+ * is `cover-changed` and is not written. When [updateTime] is passed and
+ * the fresh document's updateTime differs, the result is `changed` and
+ * nothing is written. Otherwise only the matching photo's thumbUrl is
+ * set; the other photo fields and the index entry come from [fresh].
+ */
+export function commitCoverThumb(fresh, { source, thumbUrl, updateTime } = {}) {
+  if (
+    updateTime != null &&
+    fresh != null &&
+    Object.prototype.hasOwnProperty.call(fresh, "updateTime") &&
+    fresh.updateTime !== updateTime
+  ) {
+    return { ok: false, reason: "changed" };
+  }
+  if (!source || firstVerifiedGalleryUrl(fresh) !== source) {
+    return { ok: false, reason: "cover-changed" };
+  }
+  return withCoverThumbUrl(fresh, thumbUrl);
+}
+
+/**
  * @param {object[]} plans from [planCoverThumbs]
  * @param {{
  *   dryRun: boolean,
@@ -338,10 +364,14 @@ export function withCoverThumbUrl(temple, thumbUrl) {
  *   encode?: (bytes: Buffer, ext: string) => Promise<Buffer>,
  *   upload?: (file: object) => Promise<{url: string}>,
  *   verifyPublic?: (url: string) => Promise<boolean>,
- *   writeThumbUrl?: (assigned: object) => Promise<void>,
+ *   writeThumbUrl?: (assigned: object) => Promise<object|void>,
+ *   reread?: (id: string) => Promise<object|null>,
  *   onResume?: (id: string) => Promise<void> | void,
  * }} deps
  * stat, download, and upload receive `{ bucket }` from the cover URL.
+ * [reread] loads the temple again before upload. A cover that moved is
+ * skipped. [writeThumbUrl] may return `{ ok: false }` to skip the resume
+ * line, or a fresh `{ temple, photos, entry }` for the index batch.
  * [onResume] runs after each row whose thumbUrl was stored.
  */
 export async function applyCoverThumbPlans(plans, deps) {
@@ -351,28 +381,42 @@ export async function applyCoverThumbPlans(plans, deps) {
       report.push({ ...plan, result: "skipped" });
       continue;
     }
-    if (!coverHasPhoto(plan.temple)) {
-      report.push({ ...plan, result: "skipped", reason: "no-photo" });
+    let current = plan;
+    if (!deps.dryRun && typeof deps.reread === "function") {
+      const fresh = await deps.reread(plan.id);
+      const freshId = fresh?.id ?? plan.id;
+      if (!fresh || firstVerifiedGalleryUrl(fresh) !== plan.source) {
+        report.push({ ...plan, result: "skipped", reason: "cover-changed" });
+        continue;
+      }
+      if (!coverHasPhoto(fresh, plan.source)) {
+        report.push({ ...plan, result: "skipped", reason: "no-photo" });
+        continue;
+      }
+      current = { ...plan, temple: { ...fresh, id: freshId } };
+    }
+    if (!coverHasPhoto(current.temple, current.source)) {
+      report.push({ ...current, result: "skipped", reason: "no-photo" });
       continue;
     }
-    const bucket = plan.bucket;
-    const sourceStat = await deps.stat(plan.objectPath, { bucket });
+    const bucket = current.bucket;
+    const sourceStat = await deps.stat(current.objectPath, { bucket });
     const generation = String(sourceStat?.generation ?? "");
     if (!/^\d+$/.test(generation)) {
-      report.push({ ...plan, result: "skipped", reason: "no-generation" });
+      report.push({ ...current, result: "skipped", reason: "no-generation" });
       continue;
     }
-    let thumbPath = thumbObjectPath(plan.objectPath, generation);
+    let thumbPath = thumbObjectPath(current.objectPath, generation);
     let thumbStat = thumbPath ? await deps.stat(thumbPath, { bucket }) : null;
     if (thumbStat && sourceIsNewer(sourceStat.updated, thumbStat.updated)) {
       const millis = Date.parse(sourceStat.updated);
       if (Number.isFinite(millis)) {
-        thumbPath = thumbObjectPath(plan.objectPath, generation, { updatedMillis: millis });
+        thumbPath = thumbObjectPath(current.objectPath, generation, { updatedMillis: millis });
         thumbStat = await deps.stat(thumbPath, { bucket });
       }
     }
     if (thumbStat && !sourceIsNewer(sourceStat.updated, thumbStat.updated)) {
-      const stored = await storeThumbUrl(plan, thumbStat.url ?? null, deps, {
+      const stored = await storeThumbUrl(current, thumbStat.url ?? null, deps, {
         result: "exists",
         thumbPath,
       });
@@ -380,10 +424,10 @@ export async function applyCoverThumbPlans(plans, deps) {
       continue;
     }
     if (deps.dryRun) {
-      report.push({ ...plan, result: "would-upload", thumbPath });
+      report.push({ ...current, result: "would-upload", thumbPath });
       continue;
     }
-    const bytes = await deps.download(plan.objectPath, { bucket });
+    const bytes = await deps.download(current.objectPath, { bucket });
     const thumb = await deps.encode(bytes, "jpg");
     if (!thumb || thumb.length === 0) {
       throw new Error(`Encoder returned an empty thumb for ${thumbPath}. No write.`);
@@ -392,11 +436,11 @@ export async function applyCoverThumbPlans(plans, deps) {
       path: thumbPath,
       bucket,
       bytes: thumb,
-      contentType: plan.contentType,
-      cacheControl: plan.cacheControl,
+      contentType: current.contentType,
+      cacheControl: current.cacheControl,
       ifGenerationMatch: 0,
     });
-    const stored = await storeThumbUrl(plan, uploaded?.url, deps, {
+    const stored = await storeThumbUrl(current, uploaded?.url, deps, {
       result: "uploaded",
       thumbPath,
       bytes: thumb.length,
@@ -425,7 +469,10 @@ async function storeThumbUrl(plan, thumbUrl, deps, extra) {
     if (!assigned.ok) {
       return { ...plan, ...extra, result: "skipped", reason: assigned.reason, thumbUrl: media };
     }
-    await deps.writeThumbUrl(assigned);
+    const written = await deps.writeThumbUrl({ ...assigned, source: plan.source });
+    if (written && written.ok === false) {
+      return { ...plan, ...extra, result: "skipped", reason: written.reason, thumbUrl: media };
+    }
     if (deps.onResume) await deps.onResume(plan.id);
     return { ...plan, ...extra, thumbUrl: media };
   }
@@ -550,10 +597,30 @@ async function loadTemples(project, env) {
   return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 }
 
-/** photos[].thumbUrl only. The index is applied later, for the whole run. */
+/**
+ * photos[].thumbUrl only, from a transaction re-read. The index is applied
+ * later, for the whole run, from the document this returns.
+ * A cover that moved returns `{ ok: false, reason: "cover-changed" }` and
+ * does not write. The photos array written is the fresh one with thumbUrl
+ * set on the cover photo.
+ */
 export async function persistCoverPhotos(db, assigned) {
-  const id = String(assigned.temple.id);
-  await db.collection("temples").doc(id).update({ photos: assigned.photos });
+  const source = assigned.source ?? firstVerifiedGalleryUrl(assigned.temple);
+  const thumbUrl = (assigned.photos ?? []).find(
+    (photo) => photo && typeof photo.url === "string" && photo.url.trim() === source && photo.thumbUrl,
+  )?.thumbUrl;
+  const id = String(assigned.temple?.id ?? "");
+  if (!id || typeof thumbUrl !== "string") return { ok: false, reason: "thumb-url" };
+  return db.runTransaction(async (tx) => {
+    const ref = db.collection("temples").doc(id);
+    const snap = await tx.get(ref);
+    if (!snap.exists) return { ok: false, reason: "missing" };
+    const fresh = { ...snap.data(), id: snap.id };
+    const committed = commitCoverThumb(fresh, { source, thumbUrl });
+    if (!committed.ok) return committed;
+    tx.update(ref, { photos: committed.photos });
+    return committed;
+  });
 }
 
 /**
@@ -652,15 +719,30 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
   if (!stat) throw new Error("Dry-run needs a Storage stat. No write.");
   const queued = [];
   const writeThumbUrl = async (assigned) => {
-    queued.push(assigned);
+    let stored = assigned;
     if (deps.writeThumbUrl) {
-      await deps.writeThumbUrl(assigned);
-      return;
+      const returned = await deps.writeThumbUrl(assigned);
+      if (returned && returned.ok === false) return returned;
+      if (returned?.entry && returned?.temple) stored = returned;
+    } else if (opts.apply) {
+      const admin = await openAdmin(project, env);
+      const returned = await persistCoverPhotos(admin.firestore(), assigned);
+      if (!returned || returned.ok === false) return returned ?? { ok: false, reason: "missing" };
+      stored = returned;
     }
-    if (!opts.apply) return;
-    const admin = await openAdmin(project, env);
-    await persistCoverPhotos(admin.firestore(), assigned);
+    queued.push(stored);
+    return stored;
   };
+  const reread =
+    deps.reread ??
+    (opts.apply && !deps.writeThumbUrl
+      ? async (id) => {
+          const admin = await openAdmin(project, env);
+          const snap = await admin.firestore().collection("temples").doc(id).get();
+          if (!snap.exists) return null;
+          return { ...snap.data(), id: snap.id };
+        }
+      : undefined);
   const onResume = opts.apply
     ? async (id) => {
         resumeIds.add(id);
@@ -683,6 +765,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
       upload: deps.upload ?? storage?.upload,
       verifyPublic: deps.verifyPublic ?? (opts.apply ? verifyPublicObject : undefined),
       writeThumbUrl,
+      reread,
       onResume,
     });
   } finally {

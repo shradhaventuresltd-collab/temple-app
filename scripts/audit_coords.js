@@ -5,10 +5,13 @@
  *
  *   node scripts/audit_coords.js --project temple-directory-india
  *
- * Apply nulls both latitude and longitude on those documents. Deployer runs
- * this before deploying the paired-coordinate rules, so an existing unpaired
- * document is not locked. CI cannot apply. A prod apply asks you to type the
- * project id. There is no default project. Apply does not deploy rules.
+ * Apply nulls both latitude and longitude on those documents. Each write
+ * re-reads the document in a transaction and skips it when the pair is
+ * already complete. The report prints the latitude and longitude that were
+ * discarded. Deployer runs this before deploying the paired-coordinate
+ * rules, so an existing unpaired document is not locked. CI cannot apply.
+ * A prod apply asks you to type the project id. There is no default
+ * project. Apply does not deploy rules.
  *
  *   node scripts/audit_coords.js --apply --project temple-directory-india
  *
@@ -95,13 +98,62 @@ export function planCoordinateAudit(temples) {
     const id = String(temple?.id ?? "");
     const reason = coordinateIssue(temple);
     if (!reason) return { id, action: "ok" };
+    const latitudePresent = Object.prototype.hasOwnProperty.call(temple, "latitude");
+    const longitudePresent = Object.prototype.hasOwnProperty.call(temple, "longitude");
     return {
       id,
       action: "null-both",
       reason,
-      latitude: temple.latitude ?? null,
-      longitude: temple.longitude ?? null,
+      latitude: latitudePresent ? (temple.latitude ?? null) : undefined,
+      longitude: longitudePresent ? (temple.longitude ?? null) : undefined,
+      latitudePresent,
+      longitudePresent,
     };
+  });
+}
+
+/**
+ * Null both axes on a document read just now, when they are still unpaired.
+ * When [updateTime] is passed and the fresh document's updateTime differs,
+ * the result is `changed` and nothing is patched. A pair that is already
+ * complete is `paired`. The returned latitude and longitude are the values
+ * that would be discarded.
+ */
+export function commitCoordinateNull(fresh, { updateTime } = {}) {
+  if (
+    updateTime != null &&
+    fresh != null &&
+    Object.prototype.hasOwnProperty.call(fresh, "updateTime") &&
+    fresh.updateTime !== updateTime
+  ) {
+    return { ok: false, reason: "changed" };
+  }
+  const reason = coordinateIssue(fresh);
+  if (!reason) return { ok: false, reason: "paired" };
+  const latitudePresent = Object.prototype.hasOwnProperty.call(fresh ?? {}, "latitude");
+  const longitudePresent = Object.prototype.hasOwnProperty.call(fresh ?? {}, "longitude");
+  return {
+    ok: true,
+    reason,
+    patch: { latitude: null, longitude: null },
+    latitude: latitudePresent ? (fresh.latitude ?? null) : undefined,
+    longitude: longitudePresent ? (fresh.longitude ?? null) : undefined,
+    latitudePresent,
+    longitudePresent,
+  };
+}
+
+/** Re-read [id] and null both axes only while they are still unpaired. */
+export async function persistCoordinateNull(db, id) {
+  return db.runTransaction(async (tx) => {
+    const ref = db.collection("temples").doc(String(id));
+    const snap = await tx.get(ref);
+    if (!snap.exists) return { ok: false, reason: "missing" };
+    const fresh = { ...snap.data(), id: snap.id };
+    const committed = commitCoordinateNull(fresh);
+    if (!committed.ok) return committed;
+    tx.update(ref, committed.patch);
+    return committed;
   });
 }
 
@@ -116,10 +168,34 @@ export async function applyCoordinatePlans(plans, deps) {
       report.push({ ...plan, result: "would-null" });
       continue;
     }
-    await deps.update(plan.id, { latitude: null, longitude: null });
-    report.push({ ...plan, result: "nulled" });
+    const written = await deps.update(plan.id, { latitude: null, longitude: null });
+    if (written && written.ok === false) {
+      report.push({ ...plan, result: "skipped", reason: written.reason });
+      continue;
+    }
+    const fresh = written && written.ok ? written : null;
+    report.push({
+      ...plan,
+      result: "nulled",
+      ...(fresh
+        ? {
+            reason: fresh.reason,
+            latitude: fresh.latitude,
+            longitude: fresh.longitude,
+            latitudePresent: fresh.latitudePresent,
+            longitudePresent: fresh.longitudePresent,
+          }
+        : {}),
+    });
   }
   return report;
+}
+
+function formatAxis(row, key) {
+  if (row[`${key}Present`] === false) return "missing";
+  const value = row[key];
+  if (value === null || value === undefined) return "null";
+  return JSON.stringify(value);
 }
 
 export function formatCoordinateReport(rows, { apply = false } = {}) {
@@ -127,7 +203,9 @@ export function formatCoordinateReport(rows, { apply = false } = {}) {
   const pending = rows.filter((row) => row.action === "null-both");
   lines.push(`temples: ${rows.length}  unpaired: ${pending.length}`);
   for (const row of pending) {
-    lines.push(`${row.result} ${row.id} ${row.reason}`);
+    lines.push(
+      `${row.result} ${row.id} ${row.reason} latitude=${formatAxis(row, "latitude")} longitude=${formatAxis(row, "longitude")}`,
+    );
   }
   if (!apply) lines.push("Dry-run only. No Firestore writes.");
   else lines.push("Unpaired coordinates set to null. Rules were not deployed.");
@@ -185,7 +263,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
   if (opts.apply && !update) {
     const admin = await openAdmin(project, env);
     const db = admin.firestore();
-    update = (id, data) => db.collection("temples").doc(id).update(data);
+    update = (id) => persistCoordinateNull(db, id);
   }
   const rows = await applyCoordinatePlans(plans, {
     dryRun: !opts.apply,

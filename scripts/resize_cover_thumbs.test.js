@@ -4,16 +4,25 @@ import { dirname, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { batchRounds, coverThumb, fullCoverUrlFromThumb, planOps, thumbObjectPath } from "./temple_index.js";
+import {
+  batchRounds,
+  coverThumb,
+  fullCoverUrlFromThumb,
+  planOps,
+  thumbObjectPath,
+  wikimediaOriginalUrl,
+} from "./temple_index.js";
 import {
   THUMB_CACHE_CONTROL,
   applyCoverThumbPlans,
   applyLimitAndResume,
   authorizeApply,
+  commitCoverThumb,
   firebaseMediaUrl,
   formatThumbReport,
   main,
   parseArgs,
+  persistCoverPhotos,
   planCoverThumb,
   sourceIsNewer,
   staysFullSizeWikimedia,
@@ -141,6 +150,18 @@ test("dry-run lists a missing thumb, counts not-storage, and does not upload", a
   assert.equal(
     fullCoverUrlFromThumb("https://storage.googleapis.com/bucket/temples/shore/01_480.jpg"),
     "https://storage.googleapis.com/bucket/temples/shore/01.jpg",
+  );
+  assert.equal(
+    wikimediaOriginalUrl(
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/480px-File.jpg",
+    ),
+    "https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg",
+  );
+  assert.equal(
+    wikimediaOriginalUrl(
+      "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/File.jpg/1280px-File.jpg",
+    ),
+    "https://upload.wikimedia.org/wikipedia/commons/7/76/File.jpg",
   );
 });
 
@@ -407,6 +428,153 @@ test("a failed later row keeps the resume line already written", async () => {
   assert.equal(indexBatches.length, 1);
   assert.equal(indexBatches[0].length, 1);
   assert.equal(indexBatches[0][0].temple.id, "a-temple");
+});
+
+test("a mid-run edit is kept and a replaced cover is not overwritten", async () => {
+  const kept = shore("kept-temple");
+  const moved = shore("moved-temple");
+  const live = {
+    "kept-temple": structuredClone(kept),
+    "moved-temple": structuredClone(moved),
+  };
+  const uploads = [];
+  const writes = [];
+  const resumes = [];
+  const indexBatches = [];
+  const rows = await main(["--apply", "--project", "demo-temple-index"], {
+    env: emulator,
+    log: () => {},
+    confirm: async () => "demo-temple-index",
+    load: async () => {
+      const snapshot = [structuredClone(live["kept-temple"]), structuredClone(live["moved-temple"])];
+      live["kept-temple"].name = "New Name";
+      live["kept-temple"].photos = [
+        { ...live["kept-temple"].photos[0], credit: "Admin" },
+        { url: "https://example.com/other.jpg", licence: "CC0", credit: "Keep", order: 1 },
+      ];
+      const other = "https://upload.wikimedia.org/wikipedia/commons/2/20/Other.jpg";
+      live["moved-temple"].images = [other];
+      live["moved-temple"].photos = [{ url: other, licence: "CC0", credit: "Moved", order: 0 }];
+      return snapshot;
+    },
+    reread: async (id) => structuredClone(live[id]),
+    stat: async (path) =>
+      path.endsWith("/01.jpg") ? { generation: "1", updated: "2024-01-01T00:00:00.000Z" } : null,
+    download: async () => Buffer.from("full"),
+    encode: async () => Buffer.from("thumb"),
+    upload: async (file) => {
+      uploads.push(file.path);
+      return {
+        url: `https://firebasestorage.googleapis.com/v0/b/bucket/o/${encodeURIComponent(file.path)}?alt=media&token=real`,
+      };
+    },
+    verifyPublic: async () => true,
+    writeThumbUrl: async (assigned) => {
+      const thumbUrl = assigned.photos.find((photo) => photo.thumbUrl)?.thumbUrl;
+      const committed = commitCoverThumb(live[assigned.temple.id], {
+        source: assigned.source,
+        thumbUrl,
+      });
+      writes.push(committed);
+      return committed;
+    },
+    writeResume: (body) => resumes.push(body),
+    applyIndex: async (assigned) => {
+      indexBatches.push(assigned);
+    },
+  });
+  assert.deepEqual(uploads, ["temples/kept-temple/01_480_g1.jpg"]);
+  assert.equal(rows.find((row) => row.id === "moved-temple").reason, "cover-changed");
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0].ok, true);
+  assert.equal(writes[0].temple.name, "New Name");
+  assert.equal(writes[0].photos[0].credit, "Admin");
+  assert.match(writes[0].photos[0].thumbUrl, /token=real/);
+  assert.equal(writes[0].photos[1].credit, "Keep");
+  assert.equal(writes[0].photos[1].thumbUrl, undefined);
+  assert.equal(writes[0].entry.name, "New Name");
+  assert.equal(writes[0].entry.coverThumb, writes[0].photos[0].thumbUrl);
+  assert.equal(resumes.length, 1);
+  assert.match(resumes[0], /kept-temple/);
+  assert.doesNotMatch(resumes[0], /moved-temple/);
+  assert.equal(indexBatches.length, 1);
+  assert.equal(indexBatches[0].length, 1);
+  assert.equal(indexBatches[0][0].entry.name, "New Name");
+  assert.equal(indexBatches[0][0].entry.coverThumb, writes[0].photos[0].thumbUrl);
+  assert.match(formatThumbReport(rows, { apply: true }), /skip moved-temple cover-changed/);
+});
+
+test("persistCoverPhotos writes thumbUrl onto the fresh photos", async () => {
+  const source = "https://storage.googleapis.com/bucket/temples/kept-temple/01.jpg";
+  const thumb = "https://firebasestorage.googleapis.com/v0/b/bucket/o/t?alt=media&token=real";
+  const assigned = { ...withCoverThumbUrl(shore("kept-temple"), thumb), source };
+  let payload = null;
+  const db = {
+    collection() {
+      return { doc() { return { id: "kept-temple" }; } };
+    },
+    async runTransaction(fn) {
+      return fn({
+        async get() {
+          return {
+            exists: true,
+            id: "kept-temple",
+            data: () => ({
+              ...shore("kept-temple"),
+              name: "New Name",
+              photos: [
+                { url: source, licence: "CC0", credit: "Admin", order: 0 },
+                { url: "https://example.com/other.jpg", credit: "Keep", order: 1 },
+              ],
+            }),
+          };
+        },
+        update(_ref, data) {
+          payload = data;
+        },
+      });
+    },
+  };
+  const committed = await persistCoverPhotos(db, assigned);
+  assert.equal(committed.temple.name, "New Name");
+  assert.equal(payload.photos[0].credit, "Admin");
+  assert.equal(payload.photos[0].thumbUrl, thumb);
+  assert.equal(payload.photos[1].credit, "Keep");
+  assert.equal(payload.photos[1].thumbUrl, undefined);
+  assert.deepEqual(Object.keys(payload), ["photos"]);
+  assert.equal(committed.entry.name, "New Name");
+
+  const moved = {
+    collection() {
+      return { doc() { return {}; } };
+    },
+    async runTransaction(fn) {
+      return fn({
+        async get() {
+          return {
+            exists: true,
+            id: "kept-temple",
+            data: () => ({
+              ...shore("kept-temple"),
+              images: ["https://upload.wikimedia.org/wikipedia/commons/2/20/Other.jpg"],
+            }),
+          };
+        },
+        update() {
+          throw new Error("cover change must not write");
+        },
+      });
+    },
+  };
+  const skipped = await persistCoverPhotos(moved, assigned);
+  assert.equal(skipped.ok, false);
+  assert.equal(skipped.reason, "cover-changed");
+  const changed = commitCoverThumb(
+    { ...shore("kept-temple"), updateTime: "t2" },
+    { source, thumbUrl: thumb, updateTime: "t1" },
+  );
+  assert.equal(changed.ok, false);
+  assert.equal(changed.reason, "changed");
 });
 
 test("apply stops before upload when the encoder returns nothing", async () => {

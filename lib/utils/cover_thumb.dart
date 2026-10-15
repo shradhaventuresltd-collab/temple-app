@@ -154,3 +154,34 @@ String? fullCoverUrlFromThumb(String? raw) {
   if (fullPath == null) return null;
   return _publicStorageUrl(located, fullPath);
 }
+
+final RegExp _wikiThumbSize = RegExp(r'^\d+px-');
+
+/// Original file behind a Wikimedia `/thumb/.../NNNpx-` URL.
+///
+/// `thumb.wikimedia.org` is rewritten to `upload.wikimedia.org`. Null when
+/// [raw] is not a Wikimedia thumb. A failed 480px card requests this once
+/// before the placeholder.
+String? wikimediaOriginalUrl(String? raw) {
+  final trimmed = raw?.trim() ?? '';
+  final noQuery = trimmed.split('#').first.split('?').first;
+  final match = RegExp(
+    r'^(https://)([^/]+)(/.*)$',
+    caseSensitive: false,
+  ).firstMatch(noQuery);
+  if (match == null) return null;
+  var host = match.group(2)!.toLowerCase();
+  if (host != 'upload.wikimedia.org' && host != 'thumb.wikimedia.org') {
+    return null;
+  }
+  if (host == 'thumb.wikimedia.org') host = 'upload.wikimedia.org';
+  final parts = match.group(3)!.split('/');
+  if (parts.length < 4 || !_wikiThumbSize.hasMatch(parts.last)) return null;
+  final thumbAt = parts.indexOf('thumb');
+  if (thumbAt <= 0 || thumbAt >= parts.length - 2) return null;
+  parts.removeLast();
+  parts.removeAt(thumbAt);
+  final result = 'https://$host${parts.join('/')}';
+  if (result == noQuery) return null;
+  return result;
+}

@@ -266,6 +266,26 @@ void main() {
     expect(placeholder, isA<TempleImagePlaceholder>());
   });
 
+  testWidgets('a failed wikimedia thumb falls back to the full image', (
+    tester,
+  ) async {
+    const thumb =
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/480px-File.jpg';
+    const full = 'https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg';
+    await pumpCard(tester, temple(imageUrl: thumb));
+    final image = tester.widget<CachedNetworkImage>(
+      find.byType(CachedNetworkImage),
+    );
+    expect(image.imageUrl, thumb);
+    final context = tester.element(find.byType(CachedNetworkImage));
+    final fallback = image.errorWidget!(context, thumb, Exception('missing'));
+    expect(fallback, isA<CachedNetworkImage>());
+    final next = fallback as CachedNetworkImage;
+    expect(next.imageUrl, full);
+    final placeholder = next.errorWidget!(context, full, Exception('missing'));
+    expect(placeholder, isA<TempleImagePlaceholder>());
+  });
+
   testWidgets('a guessed _480 url that fails falls back to the original', (
     tester,
   ) async {

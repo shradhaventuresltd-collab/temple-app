@@ -7,7 +7,9 @@ import 'package:temple_app/utils/cover_thumb.dart';
 ///
 /// When [fallbackUrl] is omitted, a `_480_g` Storage thumb falls back to the
 /// public URL of its original. That original is readable under the same
-/// Storage rule as the thumb.
+/// Storage rule as the thumb. A Wikimedia `/thumb/` URL falls back to the
+/// original file, including a `thumb.wikimedia.org` host rewritten to
+/// `upload.wikimedia.org`.
 class CoverNetworkImage extends StatelessWidget {
   const CoverNetworkImage({
     super.key,
@@ -37,7 +39,7 @@ class CoverNetworkImage extends StatelessWidget {
   String? get _fallback {
     final known = fallbackUrl?.trim() ?? '';
     if (known.startsWith('https://') && known != url) return known;
-    final derived = fullCoverUrlFromThumb(url);
+    final derived = fullCoverUrlFromThumb(url) ?? wikimediaOriginalUrl(url);
     if (derived != null && derived != url) return derived;
     return null;
   }
