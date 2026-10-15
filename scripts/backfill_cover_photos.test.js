@@ -14,6 +14,11 @@ import {
   main,
   parseArgs,
   bestCreditableFrame,
+  assertOneCoverOk,
+  coverFrameForPack,
+  assertFetchAvailable,
+  fetchPublicUrl,
+  PUBLIC_CHECK_TIMEOUT_MS,
   ensureCoverFrame,
   persistCoverPhoto,
   planCoverPhoto,
@@ -849,8 +854,21 @@ test("replacement is opt-in and only an uncredited image_N cover uses frame 01",
 
   const opted = planCoverPhoto(placesDoc, replaceOpts);
   assert.equal(opted.action, "replace");
-  assert.equal(opted.filename, "01_Hemakuta_Hills.jpg");
+  assert.equal(opted.filename, "04_Virupaksha_Temple_Tower.jpg");
   assert.equal(opted.oldImageUrl, placesUrl);
+
+  const excluded = planCoverPhoto(placesDoc, {
+    ...replaceOpts,
+    exclude: new Set(["virupaksha-temple"]),
+  });
+  assert.equal(excluded.action, "skip");
+  assert.equal(excluded.reason, "excluded");
+  assert.equal(excluded.photo, undefined);
+  const excludeIds = [
+    ...parseArgs(["--exclude", "iskcon-temple-bangalore, virupaksha-temple"]).exclude,
+  ].sort();
+  assert.deepEqual(excludeIds, ["iskcon-temple-bangalore", "virupaksha-temple"]);
+  assert.throws(() => parseArgs(["--exclude"]), /--exclude needs/);
 
   const credited = planCoverPhoto(
     {
@@ -912,6 +930,55 @@ test("replacement is opt-in and only an uncredited image_N cover uses frame 01",
     ]).filename,
     "04_b.jpg",
   );
+  assert.equal(
+    bestCreditableFrame(
+      [
+        { filename: "01_a.jpg", pair: { credit: "N", licence: "CC-BY" }, coverOk: false },
+        { filename: "02_b.jpg", pair: { credit: "N", licence: "CC-BY" }, coverOk: false },
+      ],
+      { noCoverFrame: true },
+    ),
+    null,
+  );
+  assert.equal(
+    coverFrameForPack({
+      temple_slug: "both-flags",
+      no_cover_frame: true,
+      photos: [
+        {
+          filename: "01_laundry.jpg",
+          author: "Ada Lovelace",
+          license: "CC BY 4.0",
+        },
+        {
+          filename: "03_south_side.jpg",
+          author: "Ada Lovelace",
+          license: "CC BY-SA 4.0",
+          cover_ok: true,
+        },
+      ],
+    }),
+    null,
+  );
+  assert.throws(
+    () =>
+      assertOneCoverOk("two-covers", [
+        { filename: "02_a.jpg", cover_ok: true },
+        { filename: "04_b.jpg", cover_ok: true },
+      ]),
+    /two-covers has 2 cover_ok photos \(02_a.jpg, 04_b.jpg\)/,
+  );
+  assert.throws(
+    () =>
+      coverFrameForPack({
+        temple_slug: "two-covers",
+        photos: [
+          { filename: "02_a.jpg", author: "Ada Lovelace", license: "CC BY 4.0", cover_ok: true },
+          { filename: "04_b.jpg", author: "Ada Lovelace", license: "CC BY 4.0", cover_ok: true },
+        ],
+      }),
+    /two-covers has 2 cover_ok photos/,
+  );
 });
 
 test("an uncredited image_N cover is replaced only by a creditable frame 01", () => {
@@ -922,6 +989,13 @@ test("an uncredited image_N cover is replaced only by a creditable frame 01", ()
     "shore-temple": "no-wave-pack",
     "mahabaleshwar-temple-gokarna": "no-creditable-frame",
     "chamundeshwari-temple": "not-places-cover",
+    "sri-manjunatha-temple-dharmasthala": "no-cover-frame",
+    "srikanteshwara-temple-nanjangud": "no-cover-frame",
+  };
+  const coverFrame = {
+    "iskcon-temple-bangalore": "04_ISKON_temple_in_Bengaluru.jpg",
+    "guruvayur-sri-krishna-temple": "03_009392022_Guruvayur_temple_Kerala_024.jpg",
+    "virupaksha-temple": "04_Virupaksha_Temple_Tower.jpg",
   };
   const plans = [];
   let replaced = 0;
@@ -953,7 +1027,8 @@ test("an uncredited image_N cover is replaced only by a creditable frame 01", ()
       continue;
     }
     assert.equal(plan.action, "replace", id);
-    assert.match(plan.filename, /^01(?:_|\.|$)/, id);
+    if (coverFrame[id]) assert.equal(plan.filename, coverFrame[id], id);
+    else assert.match(plan.filename, /^01(?:_|\.|$)/, id);
     assert.equal(plan.oldObject, `temples/${id}/${filename}`, id);
     assert.equal(plan.oldImageUrl, url, id);
     assert.equal(plan.imageUrl, mirrorUrl(id, plan.filename), id);
@@ -976,7 +1051,7 @@ test("an uncredited image_N cover is replaced only by a creditable frame 01", ()
     assert.equal(again.action, "ready", id);
     replaced += 1;
   }
-  assert.equal(replaced, 24);
+  assert.equal(replaced, 22);
   assert.equal(MIRROR_TEMPLE_IDS.length, 30);
 
   const otherBucket = planCoverPhoto(
@@ -1004,11 +1079,13 @@ test("an uncredited image_N cover is replaced only by a creditable frame 01", ()
 
   const report = formatCoverPhotoReport(plans);
   assert.equal(report.includes("https://"), false);
-  assert.match(report, /replaced: 24/);
+  assert.match(report, /replaced: 22/);
   assert.match(report, /would-replace virupaksha-temple/);
   assert.match(report, /old: temples\/virupaksha-temple\/image_1.jpg/);
-  assert.match(report, /new: 01_Hemakuta_Hills.jpg/);
-  assert.match(report, /credit: Arjun Dharne · CC BY-SA 4.0/);
+  assert.match(report, /new: 04_Virupaksha_Temple_Tower.jpg/);
+  assert.match(report, /credit: Krishnakulkarni36 · CC BY-SA 4.0/);
+  assert.match(report, /skip sri-manjunatha-temple-dharmasthala no-cover-frame/);
+  assert.match(report, /skip srikanteshwara-temple-nanjangud no-cover-frame/);
   assert.match(report, /licence: CC-BY-SA/);
   assert.match(report, /upload: if-missing/);
   assert.match(report, /skip anjengo-sree-durga-devi-temple no-wave-pack/);
@@ -1044,7 +1121,7 @@ test("apply uploads a missing frame, writes the cover once, and keeps the old ob
     write: (item) => persistCoverPhoto(db, item, { admin: indexAdmin }),
   });
   assert.equal(rows[0].result, "replaced");
-  assert.deepEqual(uploads, ["temples/virupaksha-temple/01_Hemakuta_Hills.jpg"]);
+  assert.deepEqual(uploads, ["temples/virupaksha-temple/04_Virupaksha_Temple_Tower.jpg"]);
   assert.equal(uploads.includes(plan.oldObject), false);
   assert.equal(db.ops.length, 1);
   const [writes] = db.ops;
@@ -1052,7 +1129,7 @@ test("apply uploads a missing frame, writes the cover once, and keeps the old ob
   assert.deepEqual(Object.keys(templeWrite.args[0]).sort(), ["imageUrl", "images", "photos"]);
   assert.equal(templeWrite.args[0].imageUrl, plan.imageUrl);
   assert.deepEqual(templeWrite.args[0].images, plan.images);
-  assert.equal(templeWrite.args[0].photos[0].credit, "Arjun Dharne · CC BY-SA 4.0");
+  assert.equal(templeWrite.args[0].photos[0].credit, "Krishnakulkarni36 · CC BY-SA 4.0");
   assert.equal(templeWrite.args[0].photos[0].licence, "CC-BY-SA");
   const index = writes.find((write) => write.path === "temple_index/karnataka");
   assert.equal(index.data.entries["virupaksha-temple"].coverThumb, plan.imageUrl);
@@ -1187,8 +1264,8 @@ test("apply uploads a missing frame, writes the cover once, and keeps the old ob
   const report = lines.join("\n");
   assert.match(report, /would-replace virupaksha-temple/);
   assert.match(report, /old: temples\/virupaksha-temple\/image_1.jpg/);
-  assert.match(report, /new: 01_Hemakuta_Hills.jpg/);
-  assert.match(report, /credit: Arjun Dharne · CC BY-SA 4.0/);
+  assert.match(report, /new: 04_Virupaksha_Temple_Tower.jpg/);
+  assert.match(report, /credit: Krishnakulkarni36 · CC BY-SA 4.0/);
   assert.match(report, /licence: CC-BY-SA/);
   assert.equal(report.includes("https://"), false);
 
@@ -1273,4 +1350,86 @@ test("a public-check network error skips that temple and the next one is still w
   assert.deepEqual(written, ["iskcon-temple-bangalore"]);
   assert.match(formatCoverPhotoReport(rows, { apply: true }), /skip virupaksha-temple public-check-failed/);
   assert.match(formatCoverPhotoReport(rows, { apply: true }), /replaced iskcon-temple-bangalore/);
+});
+
+test("a missing fetch fails before any write, and a hung public check times out", async () => {
+  assert.equal(PUBLIC_CHECK_TIMEOUT_MS, 10_000);
+  assert.throws(() => assertFetchAvailable(undefined), /no fetch/);
+  let loaded = 0;
+  await assert.rejects(
+    () =>
+      main(["--apply", "--replace-uncredited-cover", "--project", "demo-temple-index"], {
+        env: { FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080" },
+        fetchImpl: undefined,
+        load: async () => {
+          loaded += 1;
+          return [];
+        },
+        write: async () => {
+          throw new Error("write");
+        },
+      }),
+    /no fetch/,
+  );
+  assert.equal(loaded, 0);
+
+  const placesUrl = mirrorUrl("virupaksha-temple", "image_1.jpg");
+  const plan = planCoverPhoto(
+    { id: "virupaksha-temple", imageUrl: placesUrl, photos: [], images: [placesUrl] },
+    replaceOpts,
+  );
+  assert.equal(plan.action, "replace");
+  let signal;
+  const timedOutPromise = applyCoverPhotoPlans([plan], {
+    dryRun: false,
+    ensureUploaded: (item) =>
+      ensureCoverFrame(item, {
+        bucket: {
+          file() {
+            return {
+              async exists() {
+                return [true];
+              },
+            };
+          },
+        },
+        fetchImpl: (_url, init) =>
+          new Promise((_resolve, reject) => {
+            signal = init.signal;
+            init.signal.addEventListener("abort", () => {
+              const error = new Error("The operation was aborted due to timeout");
+              error.name = "TimeoutError";
+              reject(error);
+            });
+          }),
+        timeoutMs: 30,
+      }),
+    write: async () => {
+      throw new Error("write");
+    },
+  });
+  await new Promise((resolve) => setTimeout(resolve, 80));
+  const timedOut = await timedOutPromise;
+  assert.equal(timedOut[0].reason, "public-check-failed");
+  assert.equal(signal?.aborted, true);
+
+  const dry = [];
+  const warnings = [];
+  await main(
+    ["--replace-uncredited-cover", "--exclude", "virupaksha-temple,not-a-temple", "--project", "demo"],
+    {
+      env: { FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080" },
+      fetchImpl: undefined,
+      log: (line) => dry.push(line),
+      warn: (line) => warnings.push(line),
+      load: async () => [
+        { id: "virupaksha-temple", imageUrl: placesUrl, photos: [], images: [placesUrl] },
+      ],
+      write: async () => {
+        throw new Error("write");
+      },
+    },
+  );
+  assert.match(dry.join("\n"), /skip virupaksha-temple excluded/);
+  assert.deepEqual(warnings, ["exclude: unknown temple id not-a-temple"]);
 });

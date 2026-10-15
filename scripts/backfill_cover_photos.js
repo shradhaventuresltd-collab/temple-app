@@ -29,13 +29,20 @@
  * webp) in the temple-directory-india bucket, that temple is Wave A or
  * Wave B, and `photos[]` has no credit for that cover. Timestamp admin
  * uploads, custom names, and `_480` thumbs are reported and left in
- * place. The new cover is frame 01, or a manifest photo with `cover_ok`,
- * and only when that frame is creditable. A later frame is not used. The
- * new object is `temples/{id}/{filename}`. Apply uploads it only when it
+ * place. The new cover is a creditable photo marked `cover_ok`, or frame
+ * 01 when no photo has that flag. A later frame is not used unless it is
+ * `cover_ok`. `no_cover_frame` is checked first, so that pack is reported
+ * as `no-cover-frame` even when a photo is also `cover_ok`, and frame 01
+ * is left unused. A pack with two `cover_ok` photos fails validation.
+ * The new
+ * object is `temples/{id}/{filename}`. Apply uploads it only when it
  * is missing. Before the write, that same storage.googleapis.com URL must
  * return HTTP 200. A public object with no download token still passes.
  * A network error from that check skips the temple as
- * `public-check-failed` and the run continues.
+ * `public-check-failed` and the run continues. Apply checks once, before
+ * any temple, that `fetch` exists. Each check aborts after about 10 seconds,
+ * and that timeout is `public-check-failed` too. `--exclude id1,id2`
+ * skips those temple ids and warns when an id is not in the loaded set.
  * The transaction skips the doc when `imageUrl` is no longer the planned old
  * URL. The old Places object stays in Storage. A temple with no creditable
  * frame 01 is reported (`no-creditable-frame`, or `no-wave-pack`).
@@ -72,7 +79,6 @@ import { fileURLToPath } from "node:url";
 
 import { cleanAuthor, mapPhotoLicence, photoCredit } from "./photo_licence.js";
 import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard.js";
-import { verifyPublicObject } from "./resize_cover_thumbs.js";
 import { changedFields, entryFromTemple, stateSlug, storageObjectFromUrl } from "./temple_index.js";
 import {
   resolveSeedDocId,
@@ -106,13 +112,43 @@ const WAVE_PACK_SLUGS = new Set([...WAVE_A_TN_KL_PACKS, ...WAVE_B_KARNATAKA_PACK
 
 /** Places uploader names. Timestamp, custom, and `_480` names do not match. */
 const PLACES_COVER_FILE = /^image_\d+\.(?:jpe?g|png|webp)$/i;
+
+/** Abort a public GET that has not finished. */
+export const PUBLIC_CHECK_TIMEOUT_MS = 10_000;
+
+/**
+ * One startup check. A missing fetch fails the run before any temple is read.
+ */
+export function assertFetchAvailable(fetchImpl) {
+  const impl = arguments.length === 0 ? globalThis.fetch : fetchImpl;
+  if (typeof impl !== "function") {
+    throw new Error("This Node has no fetch. No Firestore write.");
+  }
+}
+
+/**
+ * GET the URL that will be written. `AbortSignal.timeout` stops a hung
+ * request. The caller turns that throw into `public-check-failed`.
+ */
+export async function fetchPublicUrl(url, deps = {}) {
+  const fetchImpl = deps.fetchImpl ?? globalThis.fetch;
+  const timeoutMs = deps.timeoutMs ?? PUBLIC_CHECK_TIMEOUT_MS;
+  const signal = deps.signal ?? AbortSignal.timeout(timeoutMs);
+  const response = await fetchImpl(url, { method: "GET", redirect: "follow", signal });
+  try {
+    await response.body?.cancel?.();
+  } catch {
+    // The status is what the check needs.
+  }
+  return response.status === 200;
+}
 const MAX_PHOTOS = 12;
 const MAX_URL = 2000;
 
 function printUsage() {
   console.log(`
 Usage:
-  node backfill_cover_photos.js [--dry-run] [--replace-uncredited-cover] [--project <firebase-project-id>]
+  node backfill_cover_photos.js [--dry-run] [--replace-uncredited-cover] [--exclude id1,id2] [--project <firebase-project-id>]
   node backfill_cover_photos.js --apply --project <firebase-project-id>
 
 Default is dry-run: list Storage covers that would gain photos[0].
@@ -132,6 +168,7 @@ export function parseArgs(argv) {
     dryRun: true,
     apply: false,
     replaceUncreditedCover: false,
+    exclude: new Set(),
     project: null,
     help: false,
   };
@@ -140,7 +177,16 @@ export function parseArgs(argv) {
     if (arg === "--help" || arg === "-h") opts.help = true;
     else if (arg === "--dry-run") opts.dryRun = true;
     else if (arg === "--replace-uncredited-cover") opts.replaceUncreditedCover = true;
-    else if (arg === "--apply") {
+    else if (arg === "--exclude" || arg.startsWith("--exclude=")) {
+      const raw = arg === "--exclude" ? argv[++i] : arg.slice("--exclude=".length);
+      if (typeof raw !== "string" || raw.trim() === "" || raw.startsWith("--")) {
+        throw new Error("--exclude needs a comma-separated list of temple ids");
+      }
+      for (const id of raw.split(",")) {
+        const trimmed = id.trim();
+        if (trimmed) opts.exclude.add(trimmed);
+      }
+    } else if (arg === "--apply") {
       opts.apply = true;
       opts.dryRun = false;
     } else if (arg === "--project") opts.project = argv[++i];
@@ -361,13 +407,16 @@ function sourceUrlsFor(photo) {
  */
 let packFrames;
 let waveDocIds;
+let noCoverFrameIds;
 function loadPacks() {
   if (packFrames) return;
   const index = new Map();
   const waves = new Set();
+  const declined = new Set();
   if (!existsSync(packsRoot)) {
     packFrames = index;
     waveDocIds = waves;
+    noCoverFrameIds = declined;
     return;
   }
   for (const entry of readdirSync(packsRoot, { withFileTypes: true })) {
@@ -379,8 +428,10 @@ function loadPacks() {
     const docId = resolveSeedDocId(packDir, manifest, null);
     if (!docId) continue;
     if (WAVE_PACK_SLUGS.has(entry.name)) waves.add(docId);
+    if (manifest.no_cover_frame === true) declined.add(docId);
     const list = index.get(docId) ?? [];
     const photos = Array.isArray(manifest.photos) ? manifest.photos : [];
+    assertOneCoverOk(docId, photos);
     for (const photo of photos) {
       if (!photo || typeof photo.filename !== "string" || photo.filename === "") continue;
       const pair = manifestPair(photo);
@@ -397,6 +448,7 @@ function loadPacks() {
   }
   packFrames = index;
   waveDocIds = waves;
+  noCoverFrameIds = declined;
 }
 
 function framesByTempleId() {
@@ -409,17 +461,61 @@ function waveTempleIds() {
   return waveDocIds;
 }
 
+function declinedCoverIds() {
+  loadPacks();
+  return noCoverFrameIds;
+}
+
+function isExcluded(exclude, id) {
+  if (!exclude || id === "") return false;
+  if (exclude instanceof Set) return exclude.has(id);
+  if (Array.isArray(exclude)) return exclude.includes(id);
+  return false;
+}
+
 /**
- * Frame 01 when it has a real author, or a creditable photo marked
- * `cover_ok`. A later frame is not a substitute.
+ * One `cover_ok` photo per pack. Two is a validation error, not a choice.
  */
-export function bestCreditableFrame(frames) {
+export function assertOneCoverOk(docId, photos) {
+  const flagged = (Array.isArray(photos) ? photos : []).filter((photo) => photo?.cover_ok === true);
+  if (flagged.length <= 1) return;
+  const names = flagged.map((photo) => photo.filename || "(unnamed)").join(", ");
+  throw new Error(`${docId} has ${flagged.length} cover_ok photos (${names}). One cover only.`);
+}
+
+/**
+ * `no_cover_frame` wins over `cover_ok` and over frame 01. Otherwise a
+ * creditable `cover_ok` photo, then frame 01 when it is creditable.
+ */
+export function bestCreditableFrame(frames, opts = {}) {
   if (!Array.isArray(frames) || frames.length === 0) return null;
+  if (opts.noCoverFrame === true) return null;
   const flagged = frames.find((frame) => frame.coverOk && frame.pair);
   if (flagged) return flagged;
   const cover = frames.find((frame) => /^01(?:_|\.|$)/.test(frame.filename));
   if (!cover?.pair) return null;
   return cover;
+}
+
+/**
+ * The frame a pack manifest would use as a replacement cover.
+ * `no_cover_frame` returns null even when a photo is `cover_ok`.
+ */
+export function coverFrameForPack(manifest) {
+  const photos = Array.isArray(manifest?.photos) ? manifest.photos : [];
+  const docId = String(manifest?.doc_id_hint || manifest?.temple_slug || "pack");
+  assertOneCoverOk(docId, photos);
+  const frames = [];
+  for (const photo of photos) {
+    if (!photo || typeof photo.filename !== "string" || photo.filename === "") continue;
+    const pair = manifestPair(photo);
+    frames.push({
+      filename: photo.filename,
+      coverOk: photo.cover_ok === true,
+      pair: pair.ok ? { credit: pair.credit, licence: pair.licence } : null,
+    });
+  }
+  return bestCreditableFrame(frames, { noCoverFrame: manifest?.no_cover_frame === true });
 }
 
 export function storageCoverUrl(docId, filename) {
@@ -572,12 +668,13 @@ function replacementPlan(temple, imageUrl, photos, failed) {
   if (!waveTempleIds().has(id)) {
     return { id, action: "skip", reason: "no-wave-pack", imageUrl, oldObject: located.objectPath };
   }
-  const best = bestCreditableFrame(frames);
+  const noCoverFrame = declinedCoverIds().has(id);
+  const best = bestCreditableFrame(frames, { noCoverFrame });
   if (!best || best.filename === located.filename) {
     return {
       id,
       action: "skip",
-      reason: "no-creditable-frame",
+      reason: noCoverFrame ? "no-cover-frame" : "no-creditable-frame",
       imageUrl,
       oldObject: located.objectPath,
     };
@@ -618,6 +715,7 @@ function replacementPlan(temple, imageUrl, photos, failed) {
 export function planCoverPhoto(temple, opts = {}) {
   const replaceUncredited = opts.replaceUncreditedCover === true;
   const id = String(temple?.id ?? "");
+  if (isExcluded(opts.exclude, id)) return { id, action: "skip", reason: "excluded" };
   const imageUrl = typeof temple?.imageUrl === "string" ? temple.imageUrl.trim() : "";
   const photos = Array.isArray(temple?.photos) ? temple.photos : [];
   if (!imageUrl || !storageObjectFromUrl(imageUrl)) {
@@ -841,7 +939,7 @@ export async function applyCoverPhotoPlans(plans, deps) {
 async function writtenUrlIsPublic(plan, deps) {
   const url = typeof plan?.imageUrl === "string" ? plan.imageUrl : "";
   if (!url.startsWith("https://")) return { ok: false, reason: "not-public" };
-  const check = deps.verifyPublic ?? verifyPublicObject;
+  const check = deps.verifyPublic ?? ((url) => fetchPublicUrl(url, deps));
   try {
     const ok = (await check(url)) === true;
     return ok ? { ok: true } : { ok: false, reason: "not-public" };
@@ -915,6 +1013,7 @@ async function loadTemples(project, env) {
 export async function main(argv = process.argv.slice(2), deps = {}) {
   const opts = parseArgs(argv);
   const log = deps.log ?? ((line) => console.log(line));
+  const warn = deps.warn ?? ((line) => console.warn(line));
   if (opts.help) {
     printUsage();
     return null;
@@ -922,11 +1021,20 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
   const env = deps.env ?? process.env;
   const project = resolveProject(opts, env);
   if (opts.apply) await authorizeApply(project, env, { confirm: deps.confirm });
+  const fetchImpl = Object.prototype.hasOwnProperty.call(deps, "fetchImpl")
+    ? deps.fetchImpl
+    : globalThis.fetch;
+  if (opts.apply && opts.replaceUncreditedCover) assertFetchAvailable(fetchImpl);
   const load = deps.load ?? loadTemples;
   const temples = await load(project, env);
   temples.sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  const knownIds = new Set(temples.map((temple) => String(temple?.id ?? "")));
+  for (const id of [...opts.exclude].sort()) {
+    if (!knownIds.has(id)) warn(`exclude: unknown temple id ${id}`);
+  }
   const plans = planCoverPhotos(temples, {
     replaceUncreditedCover: opts.replaceUncreditedCover === true,
+    exclude: opts.exclude,
   });
   const rows = await applyCoverPhotoPlans(plans, {
     dryRun: !opts.apply,
@@ -934,7 +1042,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
       deps.ensureUploaded ??
       (async (plan) => {
         const admin = await openAdmin(project, env);
-        return ensureCoverFrame(plan, { admin });
+        return ensureCoverFrame(plan, { admin, fetchImpl });
       }),
     write:
       deps.write ??
