@@ -3,9 +3,11 @@
  * Pure: no Firestore, no file writes.
  *
  * Schema of record: the state-expansion README (Hybrid C).
- * Seeded fields: name, city, state, deity, latitude, longitude, timings,
- * description, specialities. Research-only keys, never written as their own
- * Firestore fields: slug, sources, timings_note, photo_pack, review, dedupe.
+ * Seeded fields match sampleTemples: name, city, state, deity, latitude,
+ * longitude, timings, description, specialities, plus story and location
+ * (stored as address). Research-only keys are ignored by Seed and keep the
+ * README names: slug, sources, timings_note, dedupe, review, photo_pack,
+ * and the batch keys added and shortfall_note.
  * When timings is null, the seeded timings value is null. timings_note is
  * never copied into timings or written as a field.
  * story, location, festivals, pooja_schedule, and trip_planning are forbidden.
@@ -275,16 +277,8 @@ export function validateStateBatch(batch, existing = [], options = {}) {
 
     const latitude = requireNumber(raw.latitude, `${label}.latitude`, errors);
     const longitude = requireNumber(raw.longitude, `${label}.longitude`, errors);
-    if (latitude != null && decimalPlaces(latitude) > 4) {
-      errors.push(
-        `${label}.latitude ${latitude} must have at most 4 decimal places.`,
-      );
-    }
-    if (longitude != null && decimalPlaces(longitude) > 4) {
-      errors.push(
-        `${label}.longitude ${longitude} must have at most 4 decimal places.`,
-      );
-    }
+    noteCoordinatePrecision(latitude, `${label}.latitude`, id, errors, warnings);
+    noteCoordinatePrecision(longitude, `${label}.longitude`, id, errors, warnings);
     if (latitude != null && (latitude < LATITUDE_RANGE.min || latitude > LATITUDE_RANGE.max)) {
       errors.push(
         `${label}.latitude ${latitude} is outside ${LATITUDE_RANGE.min}..${LATITUDE_RANGE.max}.`,
@@ -355,9 +349,6 @@ export function validateStateBatch(batch, existing = [], options = {}) {
       latitude,
       longitude,
       photos: prior && update ? prior.photos ?? [] : [],
-      sources,
-      photo_pack: raw.photo_pack,
-      review: raw.review,
     });
   });
 
@@ -487,6 +478,31 @@ export function decimalPlaces(value) {
   if (/e/i.test(text)) return 99;
   const fraction = text.split(".")[1];
   return fraction ? fraction.length : 0;
+}
+
+/**
+ * 2 or fewer decimal places is a hard error. Exactly 3 is a warning.
+ * 4 or more are accepted. JSON numbers drop trailing zeros, so a 4-decimal
+ * value can arrive with fewer places.
+ */
+function noteCoordinatePrecision(value, label, id, errors, warnings) {
+  if (value == null) return;
+  const places = decimalPlaces(value);
+  if (places == null || places >= 4) return;
+  if (places <= 2) {
+    const noun = places === 1 ? "place" : "places";
+    errors.push(
+      `${label} ${value} has ${places} decimal ${noun}; coordinates need 4 or more.`,
+    );
+    return;
+  }
+  warnings.push({
+    id,
+    message: `${label} ${value} has 3 decimal places.`,
+    reviewNote:
+      `${label} ${value} has 3 decimal places. Four or more are accepted. ` +
+      `JSON drops trailing zeros, so confirm the cited source was not rounded further.`,
+  });
 }
 
 export function normaliseName(name) {
@@ -621,6 +637,8 @@ function readPhotoPack(raw, slug, label, errors) {
   if (path && path.toLowerCase() !== `photos/${slug}/`) {
     errors.push(`${label}.photo_pack.path must be photos/${slug}/.`);
   }
+  // Extra photo_pack keys (photos, photosShort, commons_category, …) are
+  // research-only. Seed does not read them.
   const statuses = ["READY", "SHORTFALL", "PENDING", "NO_CATEGORY"];
   if (!statuses.includes(raw.status)) {
     errors.push(

@@ -177,7 +177,7 @@ test("validator rejects placeholder image URLs and ignores sources and Stockholm
 
 test("a Bihar batch with Delhi coordinates warns and adds a review note", () => {
   const result = validateStateBatch(
-    batch([temple({ latitude: 28.6139, longitude: 77.209 })]),
+    batch([temple({ latitude: 28.6139, longitude: 77.2091 })]),
     [],
   );
   assert.equal(result.ok, true, result.errors.join("\n"));
@@ -195,20 +195,41 @@ test("a Bihar batch with Delhi coordinates warns and adds a review note", () => 
   assert.ok(STATE_BOUNDS.Delhi.latMin <= 28.6139 && STATE_BOUNDS.Delhi.latMax >= 28.6139);
 });
 
-test("coordinates may use up to 4 decimal places, and Diu is inside DNH and DD", () => {
-  for (const latitude of [26, 26.2, 26.095, 26.0951]) {
+test("coordinates reject 2 or fewer decimals, warn on 3, and accept 4 or more", () => {
+  for (const latitude of [26, 26.2, 26.09]) {
+    const result = validateStateBatch(
+      batch([temple({ latitude, longitude: 85.1372 })]),
+      [],
+    );
+    assert.equal(result.ok, false, String(latitude));
+    assert.ok(
+      result.errors.some((error) => error.includes("need 4 or more")),
+      result.errors.join("\n"),
+    );
+  }
+  const three = validateStateBatch(
+    batch([temple({ latitude: 26.095, longitude: 85.1372 })]),
+    [],
+  );
+  assert.equal(three.ok, true, three.errors.join("\n"));
+  assert.equal(three.summary.new.length, 1);
+  assert.ok(
+    three.warnings.some((warning) => warning.message.includes("has 3 decimal places")),
+    JSON.stringify(three.warnings),
+  );
+  assert.match(three.warnings[0].reviewNote, /3 decimal places/);
+  for (const latitude of [26.0951, 26.16645]) {
     const result = validateStateBatch(
       batch([temple({ latitude, longitude: 85.1372 })]),
       [],
     );
     assert.equal(result.ok, true, `${latitude}\n${result.errors.join("\n")}`);
+    assert.equal(
+      result.warnings.some((warning) => warning.message.includes("decimal")),
+      false,
+      `${latitude}\n${JSON.stringify(result.warnings)}`,
+    );
   }
-  const tooFine = validateStateBatch(
-    batch([temple({ latitude: 26.16645, longitude: 85.1372 })]),
-    [],
-  );
-  assert.equal(tooFine.ok, false);
-  assert.ok(tooFine.errors.some((error) => error.includes("at most 4 decimal places")));
 
   const diu = temple({
     state: "Dadra and Nagar Haveli and Daman and Diu",
@@ -564,8 +585,51 @@ test("trimmed research batches validate against the seeded directory", () => {
 });
 
 test("null timings round-trip as null in sample_data and are not the note", () => {
-  const validated = validateStateBatch(batch([temple()]), []);
+  const row = temple();
+  row.dedupe = { slug_clear: true, nearest_km: 4.2 };
+  row.photo_pack = {
+    ...row.photo_pack,
+    photosShort: true,
+    commons_category: null,
+    photos: [],
+  };
+  const validated = validateStateBatch(batch([row]), []);
+  assert.equal(validated.ok, true, validated.errors.join("\n"));
   assert.equal(validated.temples[0].timings, null);
+  const seeded = validated.temples[0];
+  for (const key of ["slug", "sources", "timings_note", "dedupe", "review", "photo_pack"]) {
+    assert.equal(Object.hasOwn(seeded, key), false, key);
+  }
+  const payload = firestoreWritePayload(seeded, null);
+  for (const key of [
+    "slug",
+    "sources",
+    "timings_note",
+    "dedupe",
+    "review",
+    "photo_pack",
+    "added",
+    "shortfall_note",
+  ]) {
+    assert.equal(Object.hasOwn(payload, key), false, key);
+  }
+  assert.deepEqual(
+    Object.keys(payload).sort(),
+    [
+      "address",
+      "city",
+      "deity",
+      "description",
+      "id",
+      "latitude",
+      "longitude",
+      "name",
+      "specialities",
+      "state",
+      "story",
+      "timings",
+    ].sort(),
+  );
   const source = `import 'package:temple_app/models/temple.dart';
 
 const List<Temple> sampleTemples = [
@@ -573,8 +637,13 @@ const List<Temple> sampleTemples = [
 `;
   const once = mergeTemplesIntoSource(source, validated.temples);
   assert.match(once, /timings: null,/);
+  assert.match(once, /location: 'Patna, Bihar',/);
   assert.doesNotMatch(once, /timings_note/);
   assert.doesNotMatch(once, /Hours are not published/);
+  assert.doesNotMatch(once, /photo_pack/);
+  assert.doesNotMatch(once, /sources:/);
+  assert.doesNotMatch(once, /dedupe/);
+  assert.doesNotMatch(once, /shortfall_note/);
   const parsed = parseSampleTemples(once);
   assert.equal(parsed[0].temple.timings, null);
   const twice = mergeTemplesIntoSource(once, validated.temples);
