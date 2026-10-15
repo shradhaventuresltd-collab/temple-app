@@ -32,9 +32,9 @@
  * place. The new cover is frame 01, or a manifest photo with `cover_ok`,
  * and only when that frame is creditable. A later frame is not used. The
  * new object is `temples/{id}/{filename}`. Apply uploads it only when it
- * is missing, and an object already in Storage must have a download token
- * whose Firebase URL returns HTTP 200 before anything is written. The
- * transaction skips the doc when `imageUrl` is no longer the planned old
+ * is missing. Before the write, that same storage.googleapis.com URL must
+ * return HTTP 200. A public object with no download token still passes.
+ * The transaction skips the doc when `imageUrl` is no longer the planned old
  * URL. The old Places object stays in Storage. A temple with no creditable
  * frame 01 is reported (`no-creditable-frame`, or `no-wave-pack`).
  * A placeholder author is `no-credit`: empty;
@@ -64,14 +64,13 @@
  *
  * prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
  */
-import { randomUUID } from "node:crypto";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { cleanAuthor, mapPhotoLicence, photoCredit } from "./photo_licence.js";
 import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard.js";
-import { firebaseDownloadUrl, verifyPublicObject } from "./resize_cover_thumbs.js";
+import { verifyPublicObject } from "./resize_cover_thumbs.js";
 import { changedFields, entryFromTemple, stateSlug, storageObjectFromUrl } from "./temple_index.js";
 import {
   resolveSeedDocId,
@@ -833,57 +832,44 @@ export async function applyCoverPhotoPlans(plans, deps) {
 }
 
 /**
- * Download token on an existing object, then HTTP 200 on its Firebase URL.
- * The same check resize uses before it writes. No token URL is returned.
+ * HTTP 200 on the URL this plan will write. A public storage.googleapis.com
+ * object passes with no download token.
  */
-async function downloadTokenIsPublic(file, objectPath, deps) {
-  let metadata;
-  try {
-    const loaded = await file.getMetadata();
-    metadata = Array.isArray(loaded) ? loaded[0] : loaded;
-  } catch {
-    return false;
-  }
-  const tokens = String(metadata?.metadata?.firebaseStorageDownloadTokens ?? "");
-  const token = tokens.split(",")[0].trim();
-  if (!token) return false;
-  const url = firebaseDownloadUrl(COVER_BUCKET, objectPath, token);
+async function writtenUrlIsPublic(plan, deps) {
+  const url = typeof plan?.imageUrl === "string" ? plan.imageUrl : "";
+  if (!url.startsWith("https://")) return false;
   const check = deps.verifyPublic ?? verifyPublicObject;
   return (await check(url)) === true;
 }
 
 /**
  * Upload `temples/{id}/{filename}` when that object is missing. An object
- * already in the bucket is kept only when its download token is public.
- * The previous cover object is not deleted.
+ * already in the bucket is kept when the URL that will be written returns
+ * HTTP 200. The previous cover object is not deleted.
  */
 export async function ensureCoverFrame(plan, deps = {}) {
   const objectPath = typeof plan?.objectPath === "string" ? plan.objectPath : "";
   const localPath = typeof plan?.localPath === "string" ? plan.localPath : "";
-  if (!objectPath || !localPath) return { ok: false, reason: "missing-file" };
+  const writtenUrl = typeof plan?.imageUrl === "string" ? plan.imageUrl : "";
+  if (!objectPath || !localPath || writtenUrl === "") return { ok: false, reason: "missing-file" };
   const bucket = deps.bucket ?? deps.admin.storage().bucket(COVER_BUCKET);
   const file = bucket.file(objectPath);
   const [exists] = await file.exists();
-  if (exists) {
-    const readable = await downloadTokenIsPublic(file, objectPath, deps);
-    if (!readable) return { ok: false, reason: "not-public" };
-    return { ok: true, uploaded: false };
+  if (!exists) {
+    if (!existsSync(localPath)) return { ok: false, reason: "missing-file" };
+    const contentType = localPath.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
+    await bucket.upload(localPath, {
+      destination: objectPath,
+      metadata: {
+        contentType,
+        cacheControl: "public, max-age=3600",
+      },
+    });
+    await file.makePublic();
   }
-  if (!existsSync(localPath)) return { ok: false, reason: "missing-file" };
-  const token = typeof deps.token === "string" && deps.token !== "" ? deps.token : randomUUID();
-  const contentType = localPath.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
-  await bucket.upload(localPath, {
-    destination: objectPath,
-    metadata: {
-      contentType,
-      cacheControl: "public, max-age=3600",
-      metadata: { firebaseStorageDownloadTokens: token },
-    },
-  });
-  await file.makePublic();
-  const readable = await downloadTokenIsPublic(file, objectPath, deps);
+  const readable = await writtenUrlIsPublic(plan, deps);
   if (!readable) return { ok: false, reason: "not-public" };
-  return { ok: true, uploaded: true };
+  return { ok: true, uploaded: !exists };
 }
 
 async function openAdmin(project, env) {

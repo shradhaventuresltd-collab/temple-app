@@ -1079,6 +1079,8 @@ test("apply uploads a missing frame, writes the cover once, and keeps the old ob
   assert.equal(moved.ops.length, 0);
   assert.equal(commitCoverPhoto({ ...fresh, imageUrl: movedUrl }, plan).reason, "changed");
 
+  assert.equal(plan.imageUrl, plan.photo.url);
+  assert.match(plan.imageUrl, /^https:\/\/storage\.googleapis\.com\//);
   const calls = [];
   const checks = [];
   const bucket = {
@@ -1090,7 +1092,7 @@ test("apply uploads a missing frame, writes the cover once, and keeps the old ob
         },
         async getMetadata() {
           calls.push("metadata");
-          return [{ metadata: { firebaseStorageDownloadTokens: "tok" } }];
+          return [{ metadata: {} }];
         },
         async makePublic() {
           calls.push("public");
@@ -1108,14 +1110,14 @@ test("apply uploads a missing frame, writes the cover once, and keeps the old ob
     bucket,
     verifyPublic: async (url) => {
       checks.push(url);
-      return true;
+      return url === plan.imageUrl;
     },
   });
+  assert.equal(present.ok, true);
   assert.equal(present.uploaded, false);
-  assert.deepEqual(calls, ["exists", "metadata"]);
-  assert.equal(checks.length, 1);
-  assert.match(checks[0], /alt=media&token=tok$/);
-  assert.equal(checks[0].includes(plan.objectPath) || checks[0].includes(encodeURIComponent(plan.objectPath)), true);
+  assert.deepEqual(calls, ["exists"]);
+  assert.deepEqual(checks, [plan.imageUrl]);
+  assert.equal(checks[0].includes("token="), false);
 
   const hidden = await ensureCoverFrame(plan, {
     bucket: {
@@ -1124,17 +1126,15 @@ test("apply uploads a missing frame, writes the cover once, and keeps the old ob
           async exists() {
             return [true];
           },
-          async getMetadata() {
-            return [{ metadata: {} }];
-          },
           async delete() {
             calls.push("delete");
           },
         };
       },
     },
-    verifyPublic: async () => {
-      throw new Error("unchecked");
+    verifyPublic: async (url) => {
+      assert.equal(url, plan.imageUrl);
+      return false;
     },
   });
   assert.equal(hidden.ok, false);
@@ -1146,9 +1146,6 @@ test("apply uploads a missing frame, writes the cover once, and keeps the old ob
         async exists() {
           return [false];
         },
-        async getMetadata() {
-          return [{ metadata: { firebaseStorageDownloadTokens: "new-tok" } }];
-        },
         async makePublic() {
           calls.push("public");
         },
@@ -1159,18 +1156,18 @@ test("apply uploads a missing frame, writes the cover once, and keeps the old ob
     },
     async upload(_local, options) {
       calls.push(`upload:${options.destination}`);
-      assert.equal(options.metadata.metadata.firebaseStorageDownloadTokens, "new-tok");
+      assert.equal(options.metadata.metadata, undefined);
     },
   };
   const uploaded = await ensureCoverFrame(plan, {
     bucket: absent,
-    token: "new-tok",
-    verifyPublic: async (url) => url.includes("token=new-tok"),
+    verifyPublic: async (url) => url === plan.imageUrl,
   });
   assert.equal(uploaded.uploaded, true);
   assert.equal(calls.includes("delete"), false);
   assert.equal(calls.includes(`upload:${plan.objectPath}`), true);
   assert.equal(calls.includes(`upload:${plan.oldObject}`), false);
+  assert.equal(calls.includes("public"), true);
 
   let dryUploads = 0;
   const lines = [];
