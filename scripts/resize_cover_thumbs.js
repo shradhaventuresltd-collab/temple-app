@@ -22,16 +22,18 @@
  * again even when an older thumb object exists. The upload uses
  * ifGenerationMatch: 0, so an object that is already there is not overwritten.
  * Stat, download, and upload use the bucket named in the cover URL, not the
- * app's default bucket. Apply confirms the new object is publicly readable
- * at its storage.googleapis.com URL before it writes photos[].thumbUrl or
- * the index entry.
+ * app's default bucket. A cover with no photos[] entry for that URL is not
+ * uploaded. Apply confirms the Firebase download URL (?alt=media and the
+ * stored token) before it writes photos[].thumbUrl. Index entries for the
+ * run are written once at the end, per shard, not once per temple. The
+ * resume file is rewritten after each successful row.
  *
  * Encoding uses sharp, installed by Deployer
  * (`npm install --prefix scripts sharp`). Tests inject an encoder and never
  * import sharp. Do not run --apply from CI or from an agent against production.
  */
 import { randomUUID } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -66,10 +68,12 @@ demo-temple-index when --project is omitted.
 
 --limit N stops after N covers that still need a thumb.
 --resume skips ids already recorded in scripts/.resize_cover_thumbs.resume.json
-for this project. Apply appends uploaded and current thumbs to that file.
+for this project. Apply rewrites that file after each uploaded or current thumb.
 
-Apply writes the thumb object, then photos[].thumbUrl, then the index entry
-through entryFromTemple. It does not deploy rules. Install sharp before apply:
+Apply writes the thumb object, checks its Firebase download URL, then
+photos[].thumbUrl. Index entries are batched per shard at the end of the run.
+A cover with no matching photos[] entry is listed as no-photo and not uploaded.
+It does not deploy rules. Install sharp before apply:
   npm install --prefix scripts sharp
 `);
 }
@@ -139,12 +143,27 @@ export function firebaseDownloadUrl(bucket, objectPath, token) {
   );
 }
 
-/** Unauthenticated object URL. Apply checks this before writing thumbUrl. */
-export function publicObjectUrl(bucket, objectPath) {
-  if (typeof bucket !== "string" || bucket.trim() === "") return null;
-  if (typeof objectPath !== "string" || objectPath.trim() === "") return null;
-  const segments = objectPath.split("/").map((part) => encodeURIComponent(part)).join("/");
-  return `https://storage.googleapis.com/${encodeURIComponent(bucket)}/${segments}`;
+/**
+ * The Firebase download URL Apply GETs before writing thumbUrl.
+ * storage.googleapis.com returns 403 on a Firebase bucket, so that host is
+ * not the check. The URL must be https and carry alt=media plus a token.
+ */
+export function firebaseMediaUrl(url) {
+  if (typeof url !== "string" || !url.startsWith("https://")) return null;
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+  const host = parsed.hostname.toLowerCase();
+  if (host !== "firebasestorage.googleapis.com" && !host.endsWith(".firebasestorage.app")) {
+    return null;
+  }
+  if (parsed.searchParams.get("alt") !== "media") return null;
+  const token = parsed.searchParams.get("token");
+  if (!token) return null;
+  return url;
 }
 
 /** Bucket named by the cover URL. Never the app default. */
@@ -190,7 +209,7 @@ export function staysFullSizeWikimedia(source) {
   return !/\/thumb\//i.test(path);
 }
 
-/** GET [url]. True only for an unauthenticated 200. */
+/** GET the Firebase download URL. True only for 200. */
 export async function verifyPublicObject(url, fetchImpl = globalThis.fetch) {
   if (typeof fetchImpl !== "function") {
     throw new Error("This Node has no fetch. No Firestore write.");
@@ -221,9 +240,23 @@ export function saveResume(project, ids) {
 }
 
 /**
+/**
+ * True when some photos[] url is the cover. Without that entry there is
+ * nowhere to store thumbUrl, and no new top-level field is added.
+ */
+export function coverHasPhoto(temple, source = firstVerifiedGalleryUrl(temple)) {
+  if (typeof source !== "string" || source === "") return false;
+  const photos = Array.isArray(temple?.photos) ? temple.photos : [];
+  return photos.some(
+    (photo) => photo && typeof photo.url === "string" && photo.url.trim() === source,
+  );
+}
+
+/**
  * One cover. `upload` means a full-size Storage object should gain a thumb.
- * Wikimedia and other non-Storage covers are `skip`. The download URL is not
- * guessed here; apply stores the URL Storage returns.
+ * Wikimedia and other non-Storage covers are `skip`. A Storage cover with no
+ * matching photos[] entry is `no-photo` and is not uploaded. The download
+ * URL is not guessed here; apply stores the URL Storage returns.
  */
 export function planCoverThumb(temple) {
   const id = String(temple?.id ?? "");
@@ -233,6 +266,9 @@ export function planCoverThumb(temple) {
   if (!located) {
     const reason = staysFullSizeWikimedia(source) ? "wikimedia-full" : "not-storage";
     return { id, action: "skip", reason, source, temple };
+  }
+  if (!coverHasPhoto(temple, source)) {
+    return { id, action: "skip", reason: "no-photo", source, temple };
   }
   if (!thumbObjectPath(located.objectPath, "1")) {
     return { id, action: "skip", reason: "already-thumb", source, temple };
@@ -303,14 +339,20 @@ export function withCoverThumbUrl(temple, thumbUrl) {
  *   upload?: (file: object) => Promise<{url: string}>,
  *   verifyPublic?: (url: string) => Promise<boolean>,
  *   writeThumbUrl?: (assigned: object) => Promise<void>,
+ *   onResume?: (id: string) => Promise<void> | void,
  * }} deps
  * stat, download, and upload receive `{ bucket }` from the cover URL.
+ * [onResume] runs after each row whose thumbUrl was stored.
  */
 export async function applyCoverThumbPlans(plans, deps) {
   const report = [];
   for (const plan of plans) {
     if (plan.action !== "upload") {
       report.push({ ...plan, result: "skipped" });
+      continue;
+    }
+    if (!coverHasPhoto(plan.temple)) {
+      report.push({ ...plan, result: "skipped", reason: "no-photo" });
       continue;
     }
     const bucket = plan.bucket;
@@ -330,22 +372,11 @@ export async function applyCoverThumbPlans(plans, deps) {
       }
     }
     if (thumbStat && !sourceIsNewer(sourceStat.updated, thumbStat.updated)) {
-      const thumbUrl = thumbStat.url ?? null;
-      if (!deps.dryRun && thumbUrl && deps.writeThumbUrl) {
-        const readable = await confirmPublicThumb(bucket, thumbPath, deps);
-        if (!readable.ok) {
-          report.push({
-            ...plan,
-            result: "not-public",
-            thumbPath,
-            publicUrl: readable.url,
-          });
-          continue;
-        }
-        const assigned = withCoverThumbUrl(plan.temple, thumbUrl);
-        if (assigned.ok) await deps.writeThumbUrl(assigned);
-      }
-      report.push({ ...plan, result: "exists", thumbPath, thumbUrl });
+      const stored = await storeThumbUrl(plan, thumbStat.url ?? null, deps, {
+        result: "exists",
+        thumbPath,
+      });
+      report.push(stored);
       continue;
     }
     if (deps.dryRun) {
@@ -365,57 +396,53 @@ export async function applyCoverThumbPlans(plans, deps) {
       cacheControl: plan.cacheControl,
       ifGenerationMatch: 0,
     });
-    const thumbUrl = uploaded?.url;
-    if (typeof thumbUrl !== "string" || !thumbUrl.startsWith("https://")) {
-      throw new Error(`Upload did not return a download URL for ${thumbPath}. No Firestore write.`);
-    }
-    const readable = await confirmPublicThumb(bucket, thumbPath, deps);
-    if (!readable.ok) {
-      report.push({
-        ...plan,
-        result: "not-public",
-        thumbPath,
-        thumbUrl,
-        publicUrl: readable.url,
-      });
-      continue;
-    }
-    const assigned = withCoverThumbUrl(plan.temple, thumbUrl);
-    if (!assigned.ok) {
-      report.push({
-        ...plan,
-        result: "uploaded",
-        thumbPath,
-        thumbUrl,
-        reason: assigned.reason,
-      });
-      continue;
-    }
-    await deps.writeThumbUrl(assigned);
-    report.push({
-      ...plan,
+    const stored = await storeThumbUrl(plan, uploaded?.url, deps, {
       result: "uploaded",
       thumbPath,
-      thumbUrl,
       bytes: thumb.length,
     });
+    report.push(stored);
   }
   return report;
 }
 
 /**
- * Public read at storage.googleapis.com. False skips the Firestore write.
+ * Check the Firebase download URL, then write photos[].thumbUrl.
+ * A URL that is not that download URL, or that does not return 200, is
+ * `not-public` and is not written. Resume is recorded only after the write.
+ */
+async function storeThumbUrl(plan, thumbUrl, deps, extra) {
+  const media = firebaseMediaUrl(thumbUrl);
+  if (!deps.dryRun && deps.writeThumbUrl) {
+    if (!media) {
+      return { ...plan, ...extra, result: "not-public", thumbUrl: thumbUrl ?? null, publicUrl: thumbUrl ?? null };
+    }
+    const readable = await confirmDownloadUrl(media, deps);
+    if (!readable.ok) {
+      return { ...plan, ...extra, result: "not-public", thumbUrl: media, publicUrl: readable.url };
+    }
+    const assigned = withCoverThumbUrl(plan.temple, media);
+    if (!assigned.ok) {
+      return { ...plan, ...extra, result: "skipped", reason: assigned.reason, thumbUrl: media };
+    }
+    await deps.writeThumbUrl(assigned);
+    if (deps.onResume) await deps.onResume(plan.id);
+    return { ...plan, ...extra, thumbUrl: media };
+  }
+  return { ...plan, ...extra, thumbUrl: media ?? thumbUrl ?? null };
+}
+
+/**
+ * GET the Firebase download URL. False skips the Firestore write.
  * Dry-run does not call this.
  */
-async function confirmPublicThumb(bucket, thumbPath, deps) {
-  const url = publicObjectUrl(bucket, thumbPath);
-  if (!url) return { ok: false, url: null };
+async function confirmDownloadUrl(downloadUrl, deps) {
   const check = deps.verifyPublic;
   if (typeof check !== "function") {
     throw new Error("Apply needs a public-read check. No Firestore write.");
   }
-  const ok = await check(url);
-  return { ok: ok === true, url };
+  const ok = await check(downloadUrl);
+  return { ok: ok === true, url: downloadUrl };
 }
 
 export function formatThumbReport(rows, { apply = false } = {}) {
@@ -423,9 +450,11 @@ export function formatThumbReport(rows, { apply = false } = {}) {
   const counts = { upload: 0, exists: 0, skip: 0, uploaded: 0 };
   let notStorage = 0;
   const fullSize = [];
+  const noPhoto = [];
   for (const row of rows) {
     if (row.reason === "not-storage" || row.reason === "wikimedia-full") notStorage += 1;
     if (row.reason === "wikimedia-full") fullSize.push(row);
+    if (row.reason === "no-photo") noPhoto.push(row);
     if (row.result === "would-upload" || row.result === "uploaded") counts.upload += 1;
     else if (row.result === "exists") counts.exists += 1;
     else counts.skip += 1;
@@ -439,6 +468,10 @@ export function formatThumbReport(rows, { apply = false } = {}) {
   for (const row of fullSize) {
     lines.push(`full-size ${row.id} ${row.source}`);
   }
+  lines.push(`no-photo: ${noPhoto.length}`);
+  for (const row of noPhoto) {
+    lines.push(`no-photo ${row.id} ${row.source ?? ""}`.trimEnd());
+  }
   for (const row of rows) {
     if (row.result === "would-upload" || row.result === "uploaded") {
       lines.push(`${row.result} ${row.id} ${row.thumbPath}`);
@@ -446,7 +479,7 @@ export function formatThumbReport(rows, { apply = false } = {}) {
       lines.push(`exists ${row.id} ${row.thumbPath}`);
     } else if (row.result === "not-public") {
       lines.push(`not-public ${row.id} ${row.publicUrl}`);
-    } else if (row.reason && row.reason !== "wikimedia-full") {
+    } else if (row.reason && row.reason !== "wikimedia-full" && row.reason !== "no-photo") {
       lines.push(`skip ${row.id} ${row.reason}`);
     }
   }
@@ -517,16 +550,43 @@ async function loadTemples(project, env) {
   return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 }
 
-export async function persistCoverThumb(db, assigned, deps = {}) {
-  const { diffIndex } = await import("./temple_index.js");
-  const { applyPlan } = await import("./rebuild_index.js");
+/** photos[].thumbUrl only. The index is applied later, for the whole run. */
+export async function persistCoverPhotos(db, assigned) {
   const id = String(assigned.temple.id);
   await db.collection("temples").doc(id).update({ photos: assigned.photos });
-  const shard = stateSlug(assigned.temple.state);
-  const snap = await db.collection("temple_index").doc(shard).get();
-  const entries = snap.exists ? (snap.data()?.entries ?? {}) : {};
-  const report = diffIndex([assigned.temple], { [shard]: entries });
-  await applyPlan(db, report, deps);
+}
+
+/**
+ * Index upserts for this run. Removals stay empty so sibling entries in the
+ * shard are not deleted. applyPlan then writes one entry per shard per round,
+ * and bumps meta once per round instead of once per temple.
+ */
+export function thumbIndexReport(assigned) {
+  const upserts = [];
+  for (const item of assigned ?? []) {
+    if (!item?.temple || !item?.entry) continue;
+    upserts.push({
+      shard: stateSlug(item.temple.state),
+      id: String(item.temple.id),
+      entry: item.entry,
+    });
+  }
+  return {
+    missing: [],
+    drifted: [],
+    moved: [],
+    stale: [],
+    unchanged: 0,
+    upserts,
+    removals: [],
+    counts: new Map(),
+    capViolations: [],
+  };
+}
+
+export async function applyThumbIndex(db, assigned, deps = {}) {
+  const { applyPlan } = await import("./rebuild_index.js");
+  return applyPlan(db, thumbIndexReport(assigned), deps);
 }
 
 function storageDeps(admin) {
@@ -590,30 +650,49 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
   }
   const stat = deps.stat ?? storage?.stat;
   if (!stat) throw new Error("Dry-run needs a Storage stat. No write.");
-  const writeThumbUrl =
-    deps.writeThumbUrl ??
-    (opts.apply
-      ? async (assigned) => {
-          const admin = await openAdmin(project, env);
-          await persistCoverThumb(admin.firestore(), assigned);
-        }
-      : async () => {});
-  const rows = await applyCoverThumbPlans(plans, {
-    dryRun: !opts.apply,
-    stat,
-    download: deps.download ?? storage?.download,
-    encode: deps.encode ?? storage?.encode,
-    upload: deps.upload ?? storage?.upload,
-    verifyPublic: deps.verifyPublic ?? (opts.apply ? verifyPublicObject : undefined),
-    writeThumbUrl,
-  });
-  if (opts.apply) {
-    for (const row of rows) {
-      if (row.result === "uploaded" || row.result === "exists") resumeIds.add(row.id);
+  const queued = [];
+  const writeThumbUrl = async (assigned) => {
+    queued.push(assigned);
+    if (deps.writeThumbUrl) {
+      await deps.writeThumbUrl(assigned);
+      return;
     }
-    const body = saveResume(project, resumeIds);
-    if (deps.writeResume) deps.writeResume(body);
-    else writeFileSync(RESUME_FILE, body);
+    if (!opts.apply) return;
+    const admin = await openAdmin(project, env);
+    await persistCoverPhotos(admin.firestore(), assigned);
+  };
+  const onResume = opts.apply
+    ? async (id) => {
+        resumeIds.add(id);
+        const body = saveResume(project, resumeIds);
+        if (deps.writeResume) deps.writeResume(body);
+        else {
+          const tmp = `${RESUME_FILE}.tmp`;
+          writeFileSync(tmp, body);
+          renameSync(tmp, RESUME_FILE);
+        }
+      }
+    : undefined;
+  let rows;
+  try {
+    rows = await applyCoverThumbPlans(plans, {
+      dryRun: !opts.apply,
+      stat,
+      download: deps.download ?? storage?.download,
+      encode: deps.encode ?? storage?.encode,
+      upload: deps.upload ?? storage?.upload,
+      verifyPublic: deps.verifyPublic ?? (opts.apply ? verifyPublicObject : undefined),
+      writeThumbUrl,
+      onResume,
+    });
+  } finally {
+    if (opts.apply && queued.length > 0) {
+      if (deps.applyIndex) await deps.applyIndex(queued);
+      else if (!deps.writeThumbUrl) {
+        const admin = await openAdmin(project, env);
+        await applyThumbIndex(admin.firestore(), queued);
+      }
+    }
   }
   log(formatThumbReport(rows, { apply: opts.apply }));
   return rows;

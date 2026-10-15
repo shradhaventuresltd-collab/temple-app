@@ -4,19 +4,20 @@ import { dirname, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { coverThumb, fullCoverUrlFromThumb, thumbObjectPath } from "./temple_index.js";
+import { batchRounds, coverThumb, fullCoverUrlFromThumb, planOps, thumbObjectPath } from "./temple_index.js";
 import {
   THUMB_CACHE_CONTROL,
   applyCoverThumbPlans,
   applyLimitAndResume,
   authorizeApply,
+  firebaseMediaUrl,
   formatThumbReport,
   main,
   parseArgs,
   planCoverThumb,
-  publicObjectUrl,
   sourceIsNewer,
   staysFullSizeWikimedia,
+  thumbIndexReport,
   thumbSaveOptions,
   withCoverThumbUrl,
 } from "./resize_cover_thumbs.js";
@@ -100,6 +101,11 @@ test("dry-run lists a missing thumb, counts not-storage, and does not upload", a
         id: "wiki-original",
         imageUrl: "https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg",
       },
+      (() => {
+        const bare = shore("bare-temple");
+        delete bare.photos;
+        return bare;
+      })(),
     ],
     stat: async (path) =>
       path.endsWith("/01.jpg")
@@ -126,6 +132,12 @@ test("dry-run lists a missing thumb, counts not-storage, and does not upload", a
     report,
     /full-size wiki-original https:\/\/upload\.wikimedia\.org\/wikipedia\/commons\/2\/20\/File\.jpg/,
   );
+  assert.match(report, /no-photo: 1/);
+  assert.match(
+    report,
+    /no-photo bare-temple https:\/\/storage\.googleapis\.com\/bucket\/temples\/bare-temple\/01\.jpg/,
+  );
+  assert.equal(report.includes("coverThumbUrl"), false);
   assert.equal(
     fullCoverUrlFromThumb("https://storage.googleapis.com/bucket/temples/shore/01_480.jpg"),
     "https://storage.googleapis.com/bucket/temples/shore/01.jpg",
@@ -135,13 +147,18 @@ test("dry-run lists a missing thumb, counts not-storage, and does not upload", a
 test("apply stores the download URL and does not skip a stale thumb", async () => {
   const uploads = [];
   const writes = [];
+  const resumes = [];
+  const indexBatches = [];
   const rows = await main(["--apply", "--project", "demo-temple-index"], {
     env: emulator,
     log: () => {},
     confirm: async () => {
       throw new Error("emulator apply must not prompt");
     },
-    writeResume: () => {},
+    writeResume: (body) => resumes.push(body),
+    applyIndex: async (assigned) => {
+      indexBatches.push(assigned);
+    },
     load: async () => [shore("new-temple"), shore("old-temple"), shore("stale-temple")],
     stat: async (path) => {
       if (path.endsWith("/01.jpg")) {
@@ -191,10 +208,18 @@ test("apply stores the download URL and does not skip a stale thumb", async () =
   assert.equal(rows.find((row) => row.id === "old-temple").result, "exists");
   assert.equal(rows.find((row) => row.id === "new-temple").result, "uploaded");
   const verified = writes.find((write) => write.verified);
-  assert.equal(
-    verified.verified,
-    publicObjectUrl("bucket", "temples/new-temple/01_480_g42.jpg"),
-  );
+  const download =
+    "https://firebasestorage.googleapis.com/v0/b/bucket/o/" +
+    `${encodeURIComponent("temples/new-temple/01_480_g42.jpg")}?alt=media&token=real`;
+  assert.equal(verified.verified, download);
+  assert.equal(firebaseMediaUrl(verified.verified), download);
+  assert.equal(firebaseMediaUrl("https://storage.googleapis.com/bucket/temples/new-temple/01_480_g42.jpg"), null);
+  assert.equal(resumes.length, 3);
+  assert.match(resumes[0], /new-temple/);
+  assert.doesNotMatch(resumes[0], /old-temple/);
+  assert.match(resumes[2], /stale-temple/);
+  assert.equal(indexBatches.length, 1);
+  assert.equal(indexBatches[0].length, 3);
   const stored = writes.find((write) => write.temple?.id === "new-temple");
   assert.equal(stored.photos[0].thumbUrl, stored.entry.coverThumb);
   assert.match(stored.entry.coverThumb, /token=real/);
@@ -275,10 +300,15 @@ test("a thumb that is not publicly readable is not written to the index", async 
     upload: async (file) => {
       assert.equal(file.ifGenerationMatch, 0);
       assert.equal(file.bucket, "bucket");
-      return { url: "https://example.com/t?token=1" };
+      return {
+        url: "https://firebasestorage.googleapis.com/v0/b/bucket/o/temples%2Fshore-temple%2F01_480_g3.jpg?alt=media&token=real",
+      };
     },
     verifyPublic: async (url) => {
-      assert.equal(url, publicObjectUrl("bucket", "temples/shore-temple/01_480_g3.jpg"));
+      assert.equal(
+        url,
+        "https://firebasestorage.googleapis.com/v0/b/bucket/o/temples%2Fshore-temple%2F01_480_g3.jpg?alt=media&token=real",
+      );
       return false;
     },
     writeThumbUrl: async (assigned) => {
@@ -290,12 +320,93 @@ test("a thumb that is not publicly readable is not written to the index", async 
   assert.match(formatThumbReport(rows, { apply: true }), /not-public shore-temple/);
 });
 
-test("a missing photo does not invent thumbUrl", () => {
+test("a missing photo does not invent thumbUrl", async () => {
   const temple = shore();
   delete temple.photos;
   const assigned = withCoverThumbUrl(temple, "https://example.com/thumb.jpg");
   assert.equal(assigned.ok, false);
   assert.equal(assigned.reason, "no-photo");
+  const planned = planCoverThumb(temple);
+  assert.equal(planned.action, "skip");
+  assert.equal(planned.reason, "no-photo");
+  const uploads = [];
+  const rows = await applyCoverThumbPlans([planned], {
+    dryRun: false,
+    stat: async () => {
+      throw new Error("no-photo must not read Storage");
+    },
+    upload: async (file) => {
+      uploads.push(file);
+      return { url: "https://example.com/t" };
+    },
+  });
+  assert.equal(uploads.length, 0);
+  assert.equal(rows[0].reason, "no-photo");
+  const report = formatThumbReport(rows);
+  assert.match(report, /no-photo shore-temple /);
+  assert.equal(report.includes("coverThumbUrl"), false);
+});
+
+test("resume is written after each row and the index is one batch", () => {
+  const first = withCoverThumbUrl(
+    shore("a-temple"),
+    "https://firebasestorage.googleapis.com/v0/b/bucket/o/a?alt=media&token=1",
+  );
+  const second = withCoverThumbUrl(
+    shore("b-temple"),
+    "https://firebasestorage.googleapis.com/v0/b/bucket/o/b?alt=media&token=1",
+  );
+  const kerala = shore("c-temple");
+  kerala.state = "Kerala";
+  const third = withCoverThumbUrl(
+    kerala,
+    "https://firebasestorage.googleapis.com/v0/b/bucket/o/c?alt=media&token=1",
+  );
+  const report = thumbIndexReport([first, second, third]);
+  assert.equal(report.removals.length, 0);
+  assert.equal(report.stale.length, 0);
+  assert.equal(report.upserts.length, 3);
+  const rounds = batchRounds(planOps(report));
+  assert.equal(rounds.length, 2);
+  assert.equal(rounds[0].length, 2);
+  assert.equal(new Set(rounds[0].map((op) => op.shard)).size, 2);
+});
+
+test("a failed later row keeps the resume line already written", async () => {
+  const resumes = [];
+  const indexBatches = [];
+  await assert.rejects(
+    () =>
+      main(["--apply", "--project", "demo-temple-index"], {
+        env: emulator,
+        log: () => {},
+        confirm: async () => "demo-temple-index",
+        load: async () => [shore("a-temple"), shore("b-temple")],
+        stat: async (path) =>
+          path.endsWith("/01.jpg") ? { generation: "1", updated: "2024-01-01T00:00:00.000Z" } : null,
+        download: async () => Buffer.from("full"),
+        encode: async () => Buffer.from("thumb"),
+        upload: async (file) => {
+          if (file.path.includes("b-temple")) throw new Error("boom");
+          return {
+            url: `https://firebasestorage.googleapis.com/v0/b/bucket/o/${encodeURIComponent(file.path)}?alt=media&token=real`,
+          };
+        },
+        verifyPublic: async () => true,
+        writeThumbUrl: async () => {},
+        writeResume: (body) => resumes.push(body),
+        applyIndex: async (assigned) => {
+          indexBatches.push(assigned);
+        },
+      }),
+    /boom/,
+  );
+  assert.equal(resumes.length, 1);
+  assert.match(resumes[0], /a-temple/);
+  assert.doesNotMatch(resumes[0], /b-temple/);
+  assert.equal(indexBatches.length, 1);
+  assert.equal(indexBatches[0].length, 1);
+  assert.equal(indexBatches[0][0].temple.id, "a-temple");
 });
 
 test("apply stops before upload when the encoder returns nothing", async () => {
