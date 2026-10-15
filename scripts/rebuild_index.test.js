@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import { firestoreWritePayload } from "./seed_state_batch.js";
 import {
+  applyPlan,
   authorizeApply,
   credentialMode,
   formatReport,
@@ -18,9 +19,12 @@ import {
   coverThumb,
   diffIndex,
   entryFromTemple,
+  entryListed,
   indexFlags,
   planOps,
+  planSeedIndexBatches,
   stateSlug,
+  writeNeeded,
 } from "./temple_index.js";
 
 const repoRoot = resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
@@ -97,29 +101,83 @@ test("state-batch payload is a lean entry and is backfilled", () => {
   assert.equal(report.missing.find((item) => item.id === "lingaraj-temple").shard, "odisha");
 });
 
-test("cover thumb drops full image URLs and rewrites wide Wikimedia thumbs", () => {
+test("cover thumb prefers photos[0], then imageUrl, and caps at 500", () => {
+  const full = "https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg";
+  const thumb = "https://cdn.example/photos/shore_480.jpg";
   assert.equal(
     coverThumb({
-      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg",
+      photos: [{ url: full, thumbUrl: thumb, licence: "CC0", order: 0 }],
+      imageUrl: "https://example.com/cover.jpg",
+      images: ["https://example.com/gallery.jpg"],
     }),
-    null,
+    thumb,
   );
+  const wide =
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/1280px-File.jpg";
   assert.equal(
-    coverThumb({
-      imageUrl:
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/1280px-File.jpg",
-    }),
+    coverThumb({ imageUrl: wide }),
     "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/480px-File.jpg",
   );
+  // TODO(KAN-146): full URL until thumbnails exist.
+  assert.equal(coverThumb({ imageUrl: full }), full);
   assert.equal(
     coverThumb({
       imageUrl: "https://picsum.photos/seed/temple/800/600",
+      images: ["https://example.com/gallery.jpg"],
     }),
-    null,
+    "https://example.com/gallery.jpg",
   );
+  assert.equal(coverThumb({ imageUrl: "https://picsum.photos/seed/temple/800/600" }), null);
+  const tooLong = `https://example.com/${"a".repeat(500)}.jpg`;
+  assert.ok(tooLong.length > 500);
+  assert.equal(coverThumb({ imageUrl: tooLong, images: [full] }), full);
   const storage =
     "https://firebasestorage.googleapis.com/v0/b/app/o/temples%2Fid%2F171000_480.jpg?alt=media";
-  assert.equal(coverThumb({ imageUrl: storage }), storage);
+  assert.equal(
+    coverThumb({
+      photos: [{ url: storage, licence: "CC0", order: 0 }],
+      imageUrl: full,
+    }),
+    storage,
+  );
+});
+
+test("state slugs match the shared fixture", () => {
+  const rows = JSON.parse(
+    readFileSync(resolve(repoRoot, "scripts/fixtures/temple_index_slugs.json"), "utf8"),
+  );
+  assert.ok(rows.length > 0);
+  for (const row of rows) {
+    assert.equal(stateSlug(row.state), row.slug, row.state);
+  }
+});
+
+test("hidden and published flags filter an index entry", () => {
+  assert.equal(entryListed({ id: "a" }), true);
+  assert.equal(entryListed({ id: "a", published: true, hidden: false }), true);
+  assert.equal(entryListed({ id: "a", published: false }), false);
+  assert.equal(entryListed({ id: "a", hidden: true }), false);
+});
+
+test("seed batches are one shard each and stay under 500 ops", () => {
+  const bihar = (id) => ({ id, state: "Bihar", name: id });
+  const rounds = planSeedIndexBatches([
+    bihar("patan-devi-temple"),
+    bihar("mahavir-mandir-patna"),
+    { id: "lingaraj-temple", state: "Odisha", name: "Lingaraj" },
+  ]);
+  assert.equal(rounds.length, 2);
+  assert.equal(rounds[0].shard, "bihar");
+  assert.deepEqual(
+    rounds[0].temples.map((temple) => temple.id),
+    ["patan-devi-temple", "mahavir-mandir-patna"],
+  );
+  assert.equal(rounds[0].ops, 4);
+  assert.equal(rounds[1].shard, "odisha");
+  assert.equal(rounds[1].ops, 3);
+  assert.ok(rounds.every((round) => round.ops <= 500));
+  const heavy = Array.from({ length: 401 }, (_, i) => bihar(`temple-${i}`));
+  assert.throws(() => planSeedIndexBatches(heavy), /max is 400/);
 });
 
 test("coordinates are null when missing or 0,0", () => {
@@ -364,11 +422,95 @@ test("apply in CI does not load or write", async () => {
   );
 });
 
+test("apply re-reads each shard before writing and skips a fresh match", async () => {
+  const gets = [];
+  const commits = [];
+  class FieldPath {
+    constructor(...parts) {
+      this.parts = parts;
+    }
+  }
+  const admin = {
+    firestore: {
+      FieldPath,
+      FieldValue: {
+        delete: () => "delete",
+        serverTimestamp: () => "server",
+        increment: (n) => ({ increment: n }),
+      },
+    },
+  };
+  const shards = {
+    bihar: { "patan-devi-temple": { id: "patan-devi-temple", name: "Old" } },
+  };
+  function db() {
+    return {
+      collection(name) {
+        return {
+          doc(id) {
+            const ref = {
+              path: `${name}/${id}`,
+              async get() {
+                gets.push(ref.path);
+                const entries = shards[id];
+                return {
+                  exists: entries != null,
+                  data: () => ({ entries }),
+                };
+              },
+            };
+            return ref;
+          },
+        };
+      },
+      batch() {
+        const ops = [];
+        return {
+          set(ref, data, opts) {
+            ops.push({ op: "set", path: ref.path, data, opts });
+          },
+          update(ref, field, value) {
+            ops.push({ op: "update", path: ref.path, field, value });
+          },
+          async commit() {
+            commits.push(ops);
+          },
+        };
+      },
+    };
+  }
+  const entry = { id: "patan-devi-temple", name: "Patan Devi", v: 1 };
+  const report = {
+    removals: [],
+    upserts: [{ shard: "bihar", id: "patan-devi-temple", entry }],
+  };
+  const count = await applyPlan(db(), report, { admin });
+  assert.equal(count, 1);
+  assert.deepEqual(gets, ["temple_index/bihar"]);
+  assert.equal(commits.length, 1);
+  assert.equal(commits[0][0].path, "temple_index/bihar");
+  assert.deepEqual(commits[0][0].opts.mergeFields[0].parts, ["entries", "patan-devi-temple"]);
+  assert.equal(commits[0][1].path, "meta/temple_index");
+
+  gets.length = 0;
+  commits.length = 0;
+  shards.bihar["patan-devi-temple"] = { ...entry, updatedAt: "already" };
+  const skipped = await applyPlan(db(), report, { admin });
+  assert.equal(skipped, 0);
+  assert.deepEqual(gets, ["temple_index/bihar"]);
+  assert.equal(commits.length, 0);
+  assert.equal(writeNeeded({ op: "delete", id: "gone" }, shards.bihar), false);
+  assert.equal(writeNeeded({ op: "delete", id: "patan-devi-temple" }, shards.bihar), true);
+});
+
 test("CI workflow runs the unit test and never the apply tool", () => {
   const ci = readFileSync(resolve(repoRoot, ".github/workflows/ci.yml"), "utf8");
   assert.match(ci, /rebuild_index\.test\.js/);
+  assert.match(ci, /temple_index_rules\.test\.js/);
+  assert.match(ci, /emulators:exec --only firestore --project demo-temple-index/);
   assert.doesNotMatch(ci, /rebuild_index\.js/);
   assert.doesNotMatch(ci, /--apply/);
+  assert.doesNotMatch(ci, /temple-directory-india/);
   const source = readFileSync(resolve(repoRoot, "scripts/rebuild_index.js"), "utf8");
   assert.match(source, /confirmProject/);
   assert.match(source, /assertNotCi/);

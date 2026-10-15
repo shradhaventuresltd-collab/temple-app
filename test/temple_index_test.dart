@@ -35,9 +35,13 @@ Temple _temple({
 
 void main() {
   test('flag fixture matches DetailHonesty', () {
-    final rows = jsonDecode(
-      File('scripts/fixtures/temple_index_flags.json').readAsStringSync(),
-    ) as List<dynamic>;
+    final rows =
+        jsonDecode(
+              File(
+                'scripts/fixtures/temple_index_flags.json',
+              ).readAsStringSync(),
+            )
+            as List<dynamic>;
     for (final raw in rows) {
       final row = Map<String, dynamic>.from(raw as Map);
       final specialities = [
@@ -121,20 +125,52 @@ void main() {
     expect(axis.lng, 80);
   });
 
-  test('full-size and placeholder covers are not stored as thumbs', () {
+  test('cover prefers photos[0] thumb, then imageUrl, and caps at 500', () {
+    const thumb = 'https://cdn.example/photos/shore_480.jpg';
+    const full = 'https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg';
     expect(
-      coverThumbFromUrls([
-        'https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg',
-      ]),
-      isNull,
+      coverThumbFor({
+        'photos': [
+          {'url': full, 'thumbUrl': thumb, 'licence': 'CC0', 'order': 0},
+        ],
+        'imageUrl': 'https://example.com/cover.jpg',
+        'images': ['https://example.com/gallery.jpg'],
+      }),
+      thumb,
+    );
+    const wide =
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/1280px-File.jpg';
+    expect(
+      coverThumbFor({
+        'photos': [
+          {'url': wide, 'licence': 'CC0', 'order': 0},
+        ],
+        'imageUrl': wide,
+      }),
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/480px-File.jpg',
+    );
+    // TODO(KAN-146): this full URL is a stand-in until thumbnails exist.
+    expect(coverThumbFor({'imageUrl': full}), full);
+    expect(
+      coverThumbFor({
+        'imageUrl': 'https://picsum.photos/seed/temple/800/600',
+        'images': ['https://example.com/gallery.jpg'],
+      }),
+      'https://example.com/gallery.jpg',
     );
     expect(
-      coverThumbFromUrls(['https://picsum.photos/seed/temple/800/600']),
+      coverThumbFor({'imageUrl': 'https://picsum.photos/seed/temple/800/600'}),
       isNull,
     );
-    const storage =
-        'https://firebasestorage.googleapis.com/v0/b/app/o/temples%2Fid%2F171000_480.jpg?alt=media';
-    expect(coverThumbFromUrls([storage]), storage);
+    final tooLong = 'https://example.com/${'a' * 500}.jpg';
+    expect(tooLong.length, greaterThan(kTempleIndexCoverThumbMax));
+    expect(
+      coverThumbFor({
+        'imageUrl': tooLong,
+        'images': [full],
+      }),
+      full,
+    );
   });
 
   test('short address stops at 120 characters', () {
@@ -175,14 +211,32 @@ void main() {
     expect(flagged.containsKey('hidden'), isFalse);
   });
 
-  test('state slug matches the temple document slug rule', () {
-    expect(templeIndexStateSlug('Tamil Nadu'), 'tamil-nadu');
-    expect(
-      templeIndexStateSlug('Dadra and Nagar Haveli and Daman and Diu'),
-      'dadra-and-nagar-haveli-and-daman-and-diu',
-    );
-    expect(templeIndexStateSlug('   '), 'unknown');
+  test('state slug matches the shared fixture', () {
+    final rows =
+        jsonDecode(
+              File(
+                'scripts/fixtures/temple_index_slugs.json',
+              ).readAsStringSync(),
+            )
+            as List<dynamic>;
+    expect(rows, isNotEmpty);
+    for (final raw in rows) {
+      final row = Map<String, dynamic>.from(raw as Map);
+      expect(
+        templeIndexStateSlug(row['state'] as String),
+        row['slug'],
+        reason: row['state'] as String,
+      );
+    }
     expect(() => assertTempleIndexId('bad.id'), throwsA(isA<StateError>()));
+  });
+
+  test('hidden and published flags filter the index entry', () {
+    expect(templeIndexEntryListed({'id': 'a'}), isTrue);
+    expect(templeIndexEntryListed({'id': 'a', 'published': true}), isTrue);
+    expect(templeIndexEntryListed({'id': 'a', 'hidden': false}), isTrue);
+    expect(templeIndexEntryListed({'id': 'a', 'published': false}), isFalse);
+    expect(templeIndexEntryListed({'id': 'a', 'hidden': true}), isFalse);
   });
 
   test('a state move plans one new field and a delete on the old shard', () {
@@ -228,7 +282,7 @@ void main() {
     expect(entry['state'], 'Tamil Nadu');
     expect(entry['lat'], 12.616);
     expect(entry['lng'], 80.199);
-    expect(entry['coverThumb'], isNull);
+    expect(entry['coverThumb'], 'https://example.com/shore.jpg');
     expect(entry['updatedAt'], 'server');
     expect(entry.containsKey('description'), isFalse);
     expect(store.indexVersion, 1);
@@ -347,28 +401,24 @@ void main() {
   });
 
   test('Firebase writer uses one batch and a single entry field path', () {
-    final source = File('lib/services/admin_temple_service.dart')
-        .readAsStringSync();
+    final source = File(
+      'lib/services/temple_write_store.dart',
+    ).readAsStringSync();
     expect(source, contains('batch.commit()'));
     expect(source, contains("FieldPath(['entries', id])"));
-    expect(source, contains('FieldValue.increment(1)'));
+    expect(source, contains('current is int ? current + 1 : 1'));
     expect(source, contains('FieldValue.delete()'));
     expect(source, contains('mergeFields'));
     expect(source, contains('collection(kTempleIndexCollection)'));
     expect(source, contains('kTempleIndexMetaDocId'));
     expect(source, contains('oldSnap.exists'));
     expect(source, isNot(contains('oldSnap.data()')));
+    expect(source, isNot(contains('FieldValue.increment')));
   });
 
   test('browse still reads temples, not the index', () {
     final source = File('lib/services/temple_service.dart').readAsStringSync();
     expect(source, contains("collection('temples')"));
     expect(source, isNot(contains('temple_index')));
-  });
-
-  test('rules cap matches the writer constant', () {
-    final rules = File('firestore.rules').readAsStringSync();
-    expect(rules, contains('keys().size() <= $kTempleIndexMaxEntries'));
-    expect(rules, contains('keys().size() <= $kTempleIndexMaxShards'));
   });
 }

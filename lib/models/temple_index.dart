@@ -23,6 +23,9 @@ const int kTempleIndexMaxShards = 48;
 /// Browse cards need a short line, not the 500-character temple address.
 const int kTempleIndexShortAddressMax = 120;
 
+/// `coverThumb` is a URL, capped so a shard of summaries stays small.
+const int kTempleIndexCoverThumbMax = 500;
+
 const int kTempleIndexAltNameMax = 8;
 const int kTempleIndexAltNameLength = 80;
 
@@ -90,28 +93,83 @@ String shortTempleAddress(String raw) {
   return cut.trimRight();
 }
 
-/// Browse thumb URL, or null when the only art is a full-size image.
+/// Browse cover for one temple document.
 ///
-/// Wikimedia `/thumb/` URLs wider than 480px are rewritten to `480px`.
-/// A Storage object whose file name ends in `_480` is kept. Placeholder
-/// hosts and original `imageUrl` values are not copied.
+/// Order: `photos[0].thumbUrl`, then a `_480` file on `photos[0]`, then
+/// `imageUrl`, then `images[0]`. Wikimedia `/thumb/` URLs wider than 480px
+/// are rewritten to `480px`. Placeholder hosts are skipped. The result is
+/// at most [kTempleIndexCoverThumbMax] characters.
+///
+/// TODO(KAN-146): cover thumbnails are not generated yet. Until they exist,
+/// a full-size `imageUrl` or `images[0]` is stored instead of null.
+String? coverThumbFor(Map<String, dynamic> data) {
+  final photo = _firstPhoto(data['photos']);
+  final photoThumb = photo == null ? null : photo['thumbUrl'];
+  final photoUrl = photo == null ? null : photo['url'];
+  final fromPhoto =
+      _usableCover(photoThumb, allowFull: true) ??
+      _usableCover(_is480File(photoUrl) ? photoUrl : null, allowFull: false);
+  if (fromPhoto != null) return fromPhoto;
+  final fromCover = _usableCover(data['imageUrl'], allowFull: true);
+  if (fromCover != null) return fromCover;
+  return _usableCover(_firstListItem(data['images']), allowFull: true);
+}
+
+/// URL list helper. Prefer [coverThumbFor] so `photos[0]` stays first.
 String? coverThumbFromUrls(Iterable<Object?> urls) {
   for (final raw in urls) {
-    if (raw is! String) continue;
     final thumb = _browseThumb(raw);
     if (thumb != null) return thumb;
+  }
+  // TODO(KAN-146): drop the full-URL fallback once thumbs exist.
+  for (final raw in urls) {
+    final full = _usableCover(raw, allowFull: true);
+    if (full != null) return full;
   }
   return null;
 }
 
-String? _browseThumb(String raw) {
+Map<String, Object?>? _firstPhoto(Object? raw) {
+  if (raw is! List || raw.isEmpty) return null;
+  final first = raw.first;
+  if (first is Map) return Map<String, Object?>.from(first);
+  if (first is String) return {'url': first};
+  return null;
+}
+
+Object? _firstListItem(Object? raw) {
+  if (raw is! List || raw.isEmpty) return null;
+  return raw.first;
+}
+
+bool _is480File(Object? raw) {
+  if (raw is! String) return false;
+  final uri = Uri.tryParse(raw.trim());
+  if (uri == null) return false;
+  return RegExp(
+    r'[_-]480\.(jpe?g|png|webp)$',
+    caseSensitive: false,
+  ).hasMatch(Uri.decodeFull(uri.path));
+}
+
+String? _usableCover(Object? raw, {required bool allowFull}) {
+  final thumb = _browseThumb(raw);
+  if (thumb != null) return thumb;
+  if (!allowFull) return null;
+  if (raw is! String) return null;
   final trimmed = raw.trim();
-  if (trimmed.isEmpty || isPlaceholderImageUrl(trimmed)) return null;
-  if (trimmed.length > 2000) return null;
+  if (!_httpUrl(trimmed) || isPlaceholderImageUrl(trimmed)) return null;
+  if (trimmed.length > kTempleIndexCoverThumbMax) return null;
+  return trimmed;
+}
+
+String? _browseThumb(Object? raw) {
+  if (raw is! String) return null;
+  final trimmed = raw.trim();
+  if (!_httpUrl(trimmed) || isPlaceholderImageUrl(trimmed)) return null;
+  if (trimmed.length > kTempleIndexCoverThumbMax) return null;
   final uri = Uri.tryParse(trimmed);
-  if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
-    return null;
-  }
+  if (uri == null) return null;
   final decodedPath = Uri.decodeFull(uri.path);
   if (RegExp(
     r'[_-]480\.(jpe?g|png|webp)$',
@@ -125,6 +183,12 @@ String? _browseThumb(String raw) {
     if (width <= 480) return match.group(0)!;
     return '/480px-${match.group(2)}';
   });
+}
+
+bool _httpUrl(String trimmed) {
+  if (trimmed.isEmpty) return false;
+  final uri = Uri.tryParse(trimmed);
+  return uri != null && (uri.scheme == 'http' || uri.scheme == 'https');
 }
 
 /// `lat`/`lng` for an index entry. Missing numbers and the (0, 0) placeholder
@@ -185,10 +249,7 @@ Map<String, dynamic> templeIndexEntryFromMap(
     'state': _text(data['state']),
     'deity': _text(data['deity']),
     'address': address,
-    'coverThumb': coverThumbFromUrls([
-      data['imageUrl'],
-      if (data['images'] is List) ...(data['images'] as List),
-    ]),
+    'coverThumb': coverThumbFor(data),
     'lat': coords.lat,
     'lng': coords.lng,
     'updatedAt': null,
@@ -205,6 +266,18 @@ Map<String, dynamic> templeIndexEntryFromMap(
     entry['hidden'] = data['hidden'];
   }
   return entry;
+}
+
+/// Browse filter hook for KAN-145. The client still reads `temples` and does
+/// not call this yet.
+///
+/// When `hidden` or `published` is present on an entry, the index lists the
+/// temple only if it is not hidden and not explicitly unpublished. Missing
+/// flags stay listed.
+bool templeIndexEntryListed(Map<String, dynamic> entry) {
+  if (entry['hidden'] == true) return false;
+  if (entry['published'] == false) return false;
+  return true;
 }
 
 /// What one admin commit does to the index. The entries map is not loaded.

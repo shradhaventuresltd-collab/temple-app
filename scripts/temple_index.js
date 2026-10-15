@@ -9,6 +9,8 @@ export const ENTRY_VERSION = 1;
 export const MAX_ENTRIES = 400;
 export const MAX_SHARDS = 48;
 export const SHORT_ADDRESS_MAX = 120;
+export const COVER_THUMB_MAX = 500;
+export const FIRESTORE_BATCH_LIMIT = 500;
 
 const INDEX_ID = /^[A-Za-z0-9_-]{1,200}$/;
 
@@ -122,9 +124,33 @@ function placeholder(url) {
   return blob.includes("placeholder") || blob.includes("picsum");
 }
 
-function browseThumb(raw) {
+function httpUrl(raw) {
   const trimmed = String(raw ?? "").trim();
-  if (!trimmed || placeholder(trimmed) || trimmed.length > 2000) return null;
+  if (!trimmed) return null;
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+    return trimmed;
+  } catch {
+    return null;
+  }
+}
+
+function is480File(raw) {
+  const trimmed = httpUrl(raw);
+  if (!trimmed) return false;
+  let pathname = trimmed;
+  try {
+    pathname = decodeURIComponent(new URL(trimmed).pathname);
+  } catch {
+    return false;
+  }
+  return /[_-]480\.(jpe?g|png|webp)$/i.test(pathname);
+}
+
+function browseThumb(raw) {
+  const trimmed = httpUrl(raw);
+  if (!trimmed || placeholder(trimmed) || trimmed.length > COVER_THUMB_MAX) return null;
   let pathname = trimmed;
   try {
     pathname = decodeURIComponent(new URL(trimmed).pathname);
@@ -140,14 +166,48 @@ function browseThumb(raw) {
   });
 }
 
-export function coverThumb(data) {
-  const urls = [data?.imageUrl];
-  if (Array.isArray(data?.images)) urls.push(...data.images);
-  for (const url of urls) {
-    const thumb = browseThumb(url);
-    if (thumb) return thumb;
-  }
+function usableCover(raw, { allowFull }) {
+  const thumb = browseThumb(raw);
+  if (thumb) return thumb;
+  if (!allowFull) return null;
+  const trimmed = httpUrl(raw);
+  if (!trimmed || placeholder(trimmed) || trimmed.length > COVER_THUMB_MAX) return null;
+  return trimmed;
+}
+
+function firstPhoto(raw) {
+  if (!Array.isArray(raw) || raw.length === 0) return null;
+  const first = raw[0];
+  if (first && typeof first === "object") return first;
+  if (typeof first === "string") return { url: first };
   return null;
+}
+
+/**
+ * photos[0].thumbUrl, then a _480 file on photos[0], then imageUrl, then images[0].
+ * TODO(KAN-146): thumbnails are not generated yet. Until they exist, a full-size
+ * imageUrl or images[0] is stored instead of null. Result is at most 500 characters.
+ */
+export function coverThumb(data) {
+  const photo = firstPhoto(data?.photos);
+  const fromPhoto =
+    usableCover(photo?.thumbUrl, { allowFull: true }) ||
+    usableCover(is480File(photo?.url) ? photo.url : null, { allowFull: false });
+  if (fromPhoto) return fromPhoto;
+  const fromCover = usableCover(data?.imageUrl, { allowFull: true });
+  if (fromCover) return fromCover;
+  const gallery = Array.isArray(data?.images) ? data.images[0] : null;
+  return usableCover(gallery, { allowFull: true });
+}
+
+/**
+ * KAN-145 browse filter. hidden:true or published:false drops the entry.
+ * Missing flags stay listed. The client does not apply this yet.
+ */
+export function entryListed(entry) {
+  if (entry?.hidden === true) return false;
+  if (entry?.published === false) return false;
+  return true;
 }
 
 export function coordinates(data) {
@@ -513,6 +573,46 @@ export function assertShardCaps(temples) {
   throw new Error(
     `Shard cap ${MAX_ENTRIES} exceeded (${detail}). No write. Split the state before applying.`,
   );
+}
+
+/**
+ * One Firestore batch per state shard for seed_state_batch --apply.
+ * Each batch creates the temple docs, one shard doc whose `entries` map is
+ * keyed by temple id, and the meta bump. Temple count + 2 stays under
+ * [maxOps] (500). A shard over the 400-key cap is refused.
+ */
+export function planSeedIndexBatches(temples, maxOps = FIRESTORE_BATCH_LIMIT) {
+  const byShard = new Map();
+  for (const temple of temples) {
+    const shard = stateSlug(temple?.state);
+    const list = byShard.get(shard) ?? [];
+    list.push(temple);
+    byShard.set(shard, list);
+  }
+  const batches = [];
+  for (const [shard, list] of byShard) {
+    if (list.length > MAX_ENTRIES) {
+      throw new Error(
+        `Shard ${shard} has ${list.length} temples; max is ${MAX_ENTRIES}. No write.`,
+      );
+    }
+    const ops = list.length + 2;
+    if (ops > maxOps) {
+      throw new Error(
+        `Shard ${shard} needs ${ops} ops; a batch holds at most ${maxOps}. No write.`,
+      );
+    }
+    batches.push({ shard, temples: list, ops });
+  }
+  return batches;
+}
+
+/** True when a fresh shard read still needs this field-path write. */
+export function writeNeeded(op, freshEntries) {
+  const current = freshEntries?.[op.id];
+  if (op.op === "delete") return current != null;
+  if (current == null) return true;
+  return changedFields(current, op.entry).length > 0;
 }
 
 /** One write per shard document per round. Firestore allows one write per doc per batch. */

@@ -823,9 +823,13 @@ test("apply omits image fields and refuses to overwrite an existing document", (
   const source = readFileSync(join(here, "seed_state_batch.js"), "utf8");
   assert.match(source, /firestoreWritePayload\(temple, null\)/);
   assert.match(source, /getAll\(/);
-  assert.match(source, /batch\.create\(/);
+  assert.match(source, /batch\.create\(db\.collection\("temples"\)\.doc\(temple\.id\)/);
+  assert.match(source, /batch\.create\(db\.collection\("temple_index"\)\.doc\(round\.shard\)/);
+  assert.match(source, /batch\.create\(meta/);
+  assert.match(source, /planSeedIndexBatches/);
   assert.match(source, /assertIdsAbsent/);
-  assert.doesNotMatch(source, /\.set\(/);
+  assert.doesNotMatch(source, /collection\("temples"\)[\s\S]{0,160}\.set\(/);
+  assert.doesNotMatch(source, /collection\("temples"\)[\s\S]{0,160}\.update\(/);
   assert.doesNotMatch(source, /\.update\(/);
   assert.doesNotMatch(source, /--update/);
   assert.equal(Object.hasOwn(parseArgs(["batch.json"]), "update"), false);

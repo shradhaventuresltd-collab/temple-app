@@ -34,6 +34,12 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      # Local Firestore emulator only. demo-* never reaches production.
+      - name: temple index emulator rules
+        run: |
+          npm ci --prefix scripts
+          scripts/node_modules/.bin/firebase emulators:exec --only firestore --project demo-temple-index "node --test scripts/temple_index_rules.test.js"
+
       # No upload key in CI. This exercises the guard, not a signed AAB.
       - name: Play AAB guard
         run: |

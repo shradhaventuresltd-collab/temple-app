@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:temple_app/config/build_flags.dart';
 import 'package:temple_app/data/sample_data.dart';
 import 'package:temple_app/services/admin_auth.dart';
+import 'package:temple_app/services/temple_write_store.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
 
 /// Stable Firestore document ID for a temple name.
@@ -125,12 +126,22 @@ class SeedResult {
   }
 }
 
+Future<Map<String, Map<String, dynamic>>> _existingTempleDocs(
+  FirebaseFirestore db,
+) async {
+  final existingSnap = await db.collection('temples').get();
+  return {for (final doc in existingSnap.docs) doc.id: doc.data()};
+}
+
 /// Uploads all temples from [sampleTemples] to the Firestore `temples`
 /// collection.
 ///
 /// **Idempotency:** each document ID is a slug of the temple name
 /// ([templeDocumentId]), so re-running overwrites/merges the same docs
-/// instead of inserting duplicates. Image fields go through
+/// instead of inserting duplicates. Each temple is one
+/// [FirebaseTempleWriteStore] commit (`_commitTemple`): the temple document,
+/// `entries.{id}`, and the `meta/temple_index` bump. A state change removes
+/// the old shard field in that same batch. Image fields go through
 /// [seedHonestyImageFields]: picsum is never written, and a verified
 /// existing gallery is kept so admin / Storage uploads are not wiped.
 /// `imageUrl` is that gallery's first URL. [seedImageFieldsWithPack] fills
@@ -144,6 +155,8 @@ class SeedResult {
 /// (rules reject the write otherwise). Pass [isAdmin] in tests.
 Future<SeedResult> seedTempleData({
   FirebaseFirestore? firestore,
+  TempleWriteStore? store,
+  Map<String, Map<String, dynamic>>? existingDocs,
   Future<bool> Function()? isAdmin,
 }) async {
   if (!kAdminToolsEnabled) {
@@ -160,18 +173,15 @@ Future<SeedResult> seedTempleData({
     );
   }
 
-  final db = firestore ?? FirebaseFirestore.instance;
-  final collection = db.collection('temples');
-  final existingSnap = await collection.get();
-  final existing = {for (final doc in existingSnap.docs) doc.id: doc.data()};
+  final db = firestore ?? (store == null ? FirebaseFirestore.instance : null);
+  final existing = existingDocs ?? await _existingTempleDocs(db!);
+  final writer = store ?? FirebaseTempleWriteStore(firestore: db);
 
-  final batch = db.batch();
   var created = 0;
   var updated = 0;
 
   for (final temple in sampleTemples) {
     final docId = templeDocumentId(temple.name);
-    final docRef = collection.doc(docId);
     final already = existing[docId];
     final isNew = already == null;
     if (isNew) {
@@ -185,10 +195,6 @@ Future<SeedResult> seedTempleData({
       includeImages: false,
     );
 
-    if (isNew) {
-      data['createdAt'] = FieldValue.serverTimestamp();
-    }
-
     final existingImages = already == null
         ? const <String>[]
         : templeSeedImagesFromFirestore(already['images']);
@@ -201,10 +207,17 @@ Future<SeedResult> seedTempleData({
     data['imageUrl'] = honesty['imageUrl'];
     data['images'] = honesty['images'];
 
-    batch.set(docRef, data, SetOptions(merge: true));
+    // One _commitTemple batch per temple. Do not gather these into one
+    // batch: a shard document can be written once per batch, and rules
+    // allow only one entry key to change.
+    await writer.set(
+      docId,
+      data,
+      isNew: isNew,
+      previous: already == null ? null : Map<String, dynamic>.from(already),
+    );
   }
 
-  await batch.commit();
   return SeedResult(
     writtenCount: created + updated,
     createdCount: created,

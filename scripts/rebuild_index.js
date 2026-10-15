@@ -16,8 +16,8 @@
  * Deploy rules before the first apply:
  *   firebase deploy --only firestore:rules --project temple-directory-india
  *
- * Seed and scripts/seed_state_batch.js --apply write temples only.
- * Run this after those writes so state-batch temples are in the index.
+ * Seed and scripts/seed_state_batch.js --apply write the index themselves.
+ * This tool is a repair and backfill only. It is not a required step.
  * Do not run this in CI. Do not point --apply at production from an agent.
  */
 import { existsSync, readFileSync } from "node:fs";
@@ -30,6 +30,7 @@ import {
   batchRounds,
   diffIndex,
   planOps,
+  writeNeeded,
 } from "./temple_index.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -47,8 +48,9 @@ Set FIRESTORE_EMULATOR_HOST to use the emulator without that prompt.
 --project is required against prod. The emulator falls back to
 demo-temple-index when --project is omitted.
 
-Deploy firestore.rules before applying. This backfills every temples/*
-document, including state-batch seeds. It does not switch the app read path.
+Deploy firestore.rules before applying. This repairs drift and backfills
+temples that were written before the index existed. It does not switch
+the app read path. --apply re-reads each shard immediately before writing it.
 `);
 }
 
@@ -189,8 +191,8 @@ export async function loadTemplesAndIndex(project, env = process.env) {
   return { temples, shards, db };
 }
 
-export async function applyPlan(db, report) {
-  const admin = (await import("firebase-admin")).default;
+export async function applyPlan(db, report, deps = {}) {
+  const admin = deps.admin ?? (await import("firebase-admin")).default;
   const ops = planOps(report);
   if (ops.length === 0) return 0;
   const rounds = batchRounds(ops);
@@ -200,6 +202,11 @@ export async function applyPlan(db, report) {
     const touched = [];
     for (const op of round) {
       const ref = db.collection("temple_index").doc(op.shard);
+      // Re-read this shard immediately before staging its field path.
+      // The batch commits after every shard in the round has been read.
+      const snap = await ref.get();
+      const fresh = snap.exists ? (snap.data()?.entries ?? {}) : {};
+      if (!writeNeeded(op, fresh)) continue;
       if (op.op === "delete") {
         batch.update(ref, new admin.firestore.FieldPath("entries", op.id), admin.firestore.FieldValue.delete());
       } else {
@@ -213,6 +220,7 @@ export async function applyPlan(db, report) {
       touched.push(op.shard);
       written += 1;
     }
+    if (touched.length === 0) continue;
     const stamps = {};
     for (const shard of touched) {
       stamps[shard] = admin.firestore.FieldValue.serverTimestamp();

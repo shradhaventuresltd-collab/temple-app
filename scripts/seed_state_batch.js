@@ -16,14 +16,18 @@
  * timings null is stored as null. timings_note is never written.
  * story is the sourced description (2–4 sentences).
  * Only review.status "approved" is seeded. Image fields are never written.
- * --apply pre-checks every id, then writes with create() in one batch.
- * If any id already exists, the whole batch is aborted before any write.
+ * --apply pre-checks every id, then create()s each temple together with
+ * entries.{id} on temple_index/{stateSlug} and the meta/temple_index bump.
+ * One batch per state shard, under 500 ops. If any id already exists, the
+ * whole apply is aborted before any write. rebuild_index.js is a repair
+ * tool, not a required follow-up.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { confirmProject } from "./prod_guard.js";
+import { entryFromTemple, planSeedIndexBatches } from "./temple_index.js";
 import {
   formatInfo,
   formatSummary,
@@ -48,12 +52,14 @@ Usage:
 
 Default is dry-run. Existing slugs are always rejected (no overwrite, no rename).
 --write merges approved temples into lib/data/sample_data.dart (repo only).
---apply writes Firestore temples/{id} for Deployer only. It prompts for the
-project id, refuses CI, and does not run unless --project is explicit.
-Only review.status "approved" is seeded. timings null stays null.
+--apply writes Firestore temples/{id} for Deployer only, plus the matching
+temple_index shard and meta/temple_index bump in the same create() batches.
+It prompts for the project id, refuses CI, and does not run unless --project
+is explicit. Only review.status "approved" is seeded. timings null stays null.
 story is copied from the description. Deploy firestore.rules before writing
 any null-timings document. --apply checks that every id is absent, then
-creates them together. One existing id aborts the batch before any write.
+creates them with their index entries, one batch per state shard, under 500
+ops. One existing id aborts the apply before any write.
 Do not combine this with Seed or upload_research_pack.js --patch-firestore.
 `);
 }
@@ -167,16 +173,48 @@ async function applyToFirestore(project, temples) {
     new Set(snaps.filter((snap) => snap.exists).map((snap) => snap.id)),
   );
   if (temples.length === 0) return;
-  const batch = db.batch();
-  for (const temple of temples) {
-    const data = firestoreWritePayload(temple, null);
-    batch.create(db.collection("temples").doc(temple.id), {
-      ...data,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+  const rounds = planSeedIndexBatches(temples);
+  let metaExists = false;
+  for (const round of rounds) {
+    const batch = db.batch();
+    const entries = {};
+    for (const temple of round.temples) {
+      const data = firestoreWritePayload(temple, null);
+      batch.create(db.collection("temples").doc(temple.id), {
+        ...data,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      const entry = entryFromTemple({ ...data, id: temple.id });
+      entry.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+      entries[temple.id] = entry;
+      console.log(`created temples/${temple.id}`);
+    }
+    batch.create(db.collection("temple_index").doc(round.shard), { entries });
+    const stamp = admin.firestore.FieldValue.serverTimestamp();
+    const meta = db.collection("meta").doc("temple_index");
+    if (!metaExists) {
+      batch.create(meta, {
+        indexVersion: 1,
+        shards: { [round.shard]: stamp },
+      });
+      metaExists = true;
+    } else {
+      batch.set(
+        meta,
+        {
+          indexVersion: admin.firestore.FieldValue.increment(1),
+          shards: { [round.shard]: stamp },
+        },
+        {
+          mergeFields: [
+            "indexVersion",
+            new admin.firestore.FieldPath("shards", round.shard),
+          ],
+        },
+      );
+    }
+    await batch.commit();
   }
-  await batch.commit();
-  for (const temple of temples) console.log(`created temples/${temple.id}`);
 }
 
 async function main(argv = process.argv.slice(2)) {

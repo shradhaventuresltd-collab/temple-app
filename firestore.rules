@@ -39,7 +39,7 @@ service cloud.firestore {
     //   Shard id is the state slug (tamil-nadu). One field:
     //   - entries: map keyed by temple id. Each value is a browse summary:
     //       id, slug, name, city, state, deity, address (short),
-    //       coverThumb (thumb URL or null — never the full imageUrl),
+    //       coverThumb (thumb URL, or the full image URL until KAN-146; max 500),
     //       lat, lng (null when missing, never 0,0), updatedAt, v,
     //       tradition, living, framing.
     //       altNames, published, and hidden are copied only when the temple
@@ -147,9 +147,7 @@ service cloud.firestore {
       return photo is map &&
         photo.keys().hasAll(['url', 'licence', 'order']) &&
         photo.keys().hasOnly(['url', 'credit', 'licence', 'order']) &&
-        photo.url is string &&
-        photo.url.size() <= 2000 &&
-        photo.url.matches('^https://.*') &&
+        httpsUrl(photo.url) &&
         isPhotoLicence(photo.licence) &&
         photo.order is int &&
         photo.order >= 0 &&
@@ -173,6 +171,13 @@ service cloud.firestore {
         (photos.size() < 10 || isValidPhoto(photos[9])) &&
         (photos.size() < 11 || isValidPhoto(photos[10])) &&
         (photos.size() < 12 || isValidPhoto(photos[11]));
+    }
+
+    function httpsUrl(value) {
+      return value is string &&
+        value.size() <= 2000 &&
+        value.size() >= 8 &&
+        value[0:8] == 'https://';
     }
 
     function optionalValidPhotos(data) {
