@@ -33,8 +33,9 @@ screenshot() {
 }
 
 hierarchy() {
-  adb shell uiautomator dump /sdcard/uidump.xml >/dev/null 2>&1 || return 0
-  adb exec-out cat /sdcard/uidump.xml >"$OUT/uidump.xml" 2>/dev/null || true
+  # A stuck dump has taken the emulator offline. Cap it.
+  timeout 10s adb shell uiautomator dump /sdcard/uidump.xml >/dev/null 2>&1 || return 0
+  timeout 8s adb exec-out cat /sdcard/uidump.xml >"$OUT/uidump.xml" 2>/dev/null || true
 }
 
 # Prints "x y" for the first node whose text, content-desc, or resource-id
@@ -59,11 +60,12 @@ for node in pattern.findall(xml):
     x1, y1, x2, y2 = map(int, match.groups())
     x = (x1 + x2) // 2
     y = (y1 + y2) // 2
-    # App-bar actions are drawn under the status bar. Their center
-    # (More is about y=74) never lands. Use the bottom edge of those
-    # nodes only; controls further down keep their center.
+    # App-bar actions are drawn under the status bar. The center
+    # (More is about y=74) never lands, and the last few pixels miss
+    # the hit target. A point about a fifth up from the bottom does.
     if y2 < 200 and y < 140:
-        y = y2 - 4
+        inset = max(8, (y2 - y1) // 5)
+        y = y2 - inset
         if y <= y1:
             y = (y1 + y2) // 2
     print(x, y)
@@ -255,15 +257,18 @@ else
     else
       sleep 1
       hierarchy
-      if ! grep -q "Admin sign-in" "$OUT/uidump.xml"; then
-        # The first tap can hit the status bar. The menu is still closed,
-        # so tapping More again opens it instead of dismissing it.
-        tap_needle "More" || true
+      if [[ -f "$OUT/uidump.xml" ]] && ! grep -q "Admin sign-in" "$OUT/uidump.xml"; then
+        # The item is a button just under the app bar, right-aligned.
+        # Tap there once when the dump has not exposed the label yet.
+        adb shell input tap 960 210 || true
         sleep 1
       fi
       if ! tap_needle "Admin sign-in" && ! tap_needle "Admin Panel"; then
         sleep 1
-        if ! tap_needle "Admin sign-in"; then
+        if ! adb get-state 2>/dev/null | grep -q '^device$'; then
+          echo "adb device is gone before Admin sign-in"
+          status=1
+        elif ! tap_needle "Admin sign-in"; then
           echo "Admin entry was not on Home"
           status=1
         fi
