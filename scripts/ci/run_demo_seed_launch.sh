@@ -55,7 +55,14 @@ for node in pattern.findall(xml):
     if not match:
         continue
     x1, y1, x2, y2 = map(int, match.groups())
-    print((x1 + x2) // 2, (y1 + y2) // 2)
+    # Bias toward the lower part of the node. The Home overflow item is
+    # drawn from y=42, and tapping its geometric center (about y=105)
+    # drops the emulator offline.
+    span = max(1, y2 - y1)
+    y = y2 - max(12, span // 5)
+    if y <= y1:
+        y = (y1 + y2) // 2
+    print((x1 + x2) // 2, y)
     break
 ' "$needle" <"$OUT/uidump.xml" || true
 }
@@ -194,20 +201,29 @@ else
     if ! tap_needle "More"; then
       echo "Admin overflow was not on Home"
       status=1
-    elif ! wait_for "Admin sign-in" 8; then
-      echo "Admin sign-in was not in the overflow"
-      status=1
-    elif ! tap_needle "Admin sign-in" && ! tap_needle "Admin Panel"; then
-      echo "Admin entry was not on Home"
-      status=1
-    elif ! wait_for "Admin sign-in required" 15; then
-      echo "Admin panel did not open"
-      status=1
     else
-      screenshot admin
-      if visible "Seed sample temples"; then
-        echo "Seed write button opened; not tapping it"
+      # One dump per try. The old 8-step wait dumped twice per pass and
+      # held the popup open long enough for the emulator to drop offline.
+      admin_open=0
+      for _try in 1 2 3 4; do
+        sleep 1
+        if tap_needle "Admin sign-in" || tap_needle "Admin Panel"; then
+          admin_open=1
+          break
+        fi
+      done
+      if [[ "$admin_open" -ne 1 ]]; then
+        echo "Admin entry was not on Home"
         status=1
+      elif ! wait_for "Admin sign-in required" 15; then
+        echo "Admin panel did not open"
+        status=1
+      else
+        screenshot admin
+        if visible "Seed sample temples"; then
+          echo "Seed write button opened; not tapping it"
+          status=1
+        fi
       fi
     fi
   fi
