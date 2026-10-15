@@ -634,6 +634,7 @@ test("CI workflow runs the unit test and never the apply tool", () => {
     "scripts/apply_field_patches.js",
     "scripts/seed_state_batch.js",
     "scripts/backfill_cover_photos.js",
+    "scripts/clear_placeholder_covers.js",
   ]) {
     const text = readFileSync(resolve(repoRoot, file), "utf8");
     assert.ok(text.includes(policy), file);

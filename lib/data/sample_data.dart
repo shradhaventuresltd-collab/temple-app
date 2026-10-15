@@ -1537,7 +1537,7 @@ const List<Temple> sampleTemples = [
     state: 'Kerala',
     city: 'Thiruvananthapuram',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/anjengo/800/600',
+    imageUrl: '',
     description:
         'Local Durga Devi shrine at historic Anchuthengu (Anjengo) on the Thiruvananthapuram '
         'coast, set beside the ruins of Anjengo Fort — site of the English East India Company’s '
@@ -6986,7 +6986,7 @@ const List<Temple> sampleTemples = [
     state: 'Jammu and Kashmir',
     city: 'Jammu',
     deity: 'Devi',
-    imageUrl: 'https://picsum.photos/seed/mahamaya-temple/800/600',
+    imageUrl: '',
     description:
         'Ancient local Devi shrine of Mahamaya in the wooded city forest behind '
         'Bahu Fort, overlooking the Tawi; often visited together with the Bahu '
@@ -7032,7 +7032,7 @@ const List<Temple> sampleTemples = [
     state: 'Jammu and Kashmir',
     city: 'Jammu',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/ranbireshwar-temple/800/600',
+    imageUrl: '',
     description:
         'Major Dogra-era Shiva temple built by Maharaja Ranbir Singh in 1883, '
         'noted for a very large central lingam and twelve crystal lingams.',
@@ -7197,7 +7197,7 @@ const List<Temple> sampleTemples = [
     state: 'Jammu and Kashmir',
     city: 'Udhampur',
     deity: 'Shiva',
-    imageUrl: 'https://picsum.photos/seed/sudh-mahadev-temple/800/600',
+    imageUrl: '',
     description:
         'Ancient hill Shiva shrine near Patnitop at about 1,225 m, housing a '
         'black marble lingam, a trishul, and associated with Gauri Kund and the '

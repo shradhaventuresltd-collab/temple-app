@@ -97,8 +97,8 @@ void main() {
         final sample = _named(name);
         expect(
           sample.imageUrl,
-          contains('picsum.photos'),
-          reason: '$name fixture still uses picsum in sample_data',
+          isEmpty,
+          reason: '$name fixture has no cover',
         );
         await pumpCard(tester, sample);
         expect(

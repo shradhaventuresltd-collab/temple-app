@@ -148,6 +148,10 @@ test("validator rejects placeholder image URLs and ignores sources and Stockholm
     "https://images.unsplash.com/photo-1",
     "https://www.shutterstock.com/image-photo/temple-1",
     "https://lorempixel.com/800/600/city",
+    "https://source.unsplash.com/random",
+    "https://dummyimage.com/600x400/000/fff",
+    "https://placehold.it/600x400",
+    "https://placeholder.com/600",
   ];
   for (const url of urls) {
     const row = temple();

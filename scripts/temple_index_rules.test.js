@@ -411,6 +411,90 @@ test("an admin save without coordinates writes null", async () => {
   );
 });
 
+test("placeholder hosts are rejected on image URL fields", async () => {
+  const db = adminDb("admin-placeholder-hosts");
+  const hosts = [
+    "https://picsum.photos/seed/anjengo/800/600",
+    "https://placeholder.com/800",
+    "https://via.placeholder.com/800x600",
+    "https://source.unsplash.com/random",
+    "https://lorempixel.com/800/600",
+    "https://dummyimage.com/600x400",
+    "https://placehold.co/800x600",
+    "https://placehold.it/800x600",
+    "https://fastly.picsum.photos/id/1/800/600",
+  ];
+  for (const url of hosts) {
+    await assertFails(
+      setDoc(at(db, "temples/placeholder-cover"), templePayload("placeholder-cover", { imageUrl: url })),
+    );
+    await assertFails(
+      setDoc(
+        at(db, "temples/placeholder-images"),
+        templePayload("placeholder-images", { images: [url] }),
+      ),
+    );
+    await assertFails(
+      setDoc(
+        at(db, "temples/placeholder-photo"),
+        templePayload("placeholder-photo", {
+          photos: [{ url, licence: "CC0", order: 0 }],
+        }),
+      ),
+    );
+  }
+  await assertSucceeds(
+    setDoc(at(db, "temples/photo-pending"), templePayload("photo-pending", { imageUrl: "", images: [] })),
+  );
+  await assertSucceeds(
+    setDoc(
+      at(db, "temples/commons-cover"),
+      templePayload("commons-cover", {
+        imageUrl: "https://upload.wikimedia.org/wikipedia/commons/a/a1/Keesara_gutta_main_temple_gate.jpg",
+        images: ["https://upload.wikimedia.org/wikipedia/commons/a/a1/Keesara_gutta_main_temple_gate.jpg"],
+      }),
+    ),
+  );
+  await assertSucceeds(
+    setDoc(at(db, "temples/photo-pending"), { city: "Anchuthengu" }, { merge: true }),
+  );
+  const gallery = Array.from({ length: 8 }, (_, i) => `https://example.com/gallery-${i}.jpg`);
+  const photos = [0, 1, 2].map((i) => ({
+    url: gallery[i],
+    licence: "CC0",
+    order: i,
+  }));
+  await assertSucceeds(
+    setDoc(
+      at(db, "temples/full-gallery"),
+      templePayload("full-gallery", { imageUrl: gallery[0], images: gallery, photos }),
+    ),
+  );
+  const latePhotos = photos.map((photo) => ({ ...photo }));
+  latePhotos[2] = { url: "https://placehold.co/800x600", licence: "CC0", order: 2 };
+  await assertFails(
+    setDoc(
+      at(db, "temples/late-photo"),
+      templePayload("late-photo", { photos: latePhotos }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      at(db, "temples/extra-photo-key"),
+      templePayload("extra-photo-key", {
+        photos: [{
+          url: "https://example.com/full.jpg",
+          licence: "CC0",
+          order: 0,
+          credit: "Ada",
+          thumbUrl: "https://example.com/t.jpg",
+          extra: true,
+        }],
+      }),
+    ),
+  );
+});
+
 test("httpsUrl rejects a photo url that contains whitespace", async () => {
   const db = adminDb("admin-url");
   const spaced = templePayload("spaced-url", {

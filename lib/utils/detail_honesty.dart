@@ -164,6 +164,7 @@ bool isPlaceholderImageUrl(String raw) {
   const hosts = <String>[
     'picsum.photos',
     'placeholder.com',
+    'via.placeholder.com',
     'placehold.co',
     'placehold.it',
     'dummyimage.com',
@@ -172,6 +173,17 @@ bool isPlaceholderImageUrl(String raw) {
     'fakeimg.pl',
     'placeimg.com',
     'lorempixel.com',
+    'unsplash.com',
+    'source.unsplash.com',
+    'shutterstock.com',
+    'istockphoto.com',
+    'gettyimages.com',
+    'pexels.com',
+    'stock.adobe.com',
+    'freepik.com',
+    'dreamstime.com',
+    '123rf.com',
+    'depositphotos.com',
   ];
   for (final known in hosts) {
     if (host == known || host.endsWith('.$known')) return true;

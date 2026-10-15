@@ -200,8 +200,9 @@ export function thumbSaveOptions(file) {
 }
 
 /**
- * A Wikimedia file URL that coverThumb leaves at full size. Thumb paths are
- * rewritten to 480px when they are wider, so they are not listed here.
+ * A Wikimedia original (no `/thumb/` in the path). Browse coverThumb may
+ * rewrite it to a Commons 480px URL. This planner still skips it: the file
+ * is not in Storage, and this script does not upload a thumb.
  */
 export function staysFullSizeWikimedia(source) {
   if (typeof source !== "string" || !source.startsWith("https://")) return false;

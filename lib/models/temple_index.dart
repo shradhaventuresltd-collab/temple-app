@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
@@ -130,9 +133,12 @@ String shortTempleAddress(String raw) {
 /// or `imageUrl` when `images` is empty. Placeholder hosts are skipped.
 ///
 /// A stored `photos[].thumbUrl` for that photo is used as written. Otherwise
-/// a Wikimedia thumb wider than 480px is rewritten, and anything else stays
-/// the full URL. Storage siblings are not invented. The result is at most
-/// [kTempleIndexCoverThumbMax] characters. Detail keeps the full gallery URL.
+/// a Wikimedia `/thumb/` wider than 480px is narrowed. A Commons original
+/// `.../commons/<h>/<hh>/<name>` becomes a 480px thumb when `<h>/<hh>` match
+/// the MD5 of the underscored filename. An SVG thumb appends `.png`.
+/// Anything else stays the full URL. Storage siblings are not invented. The
+/// result is at most [kTempleIndexCoverThumbMax] characters. Detail keeps
+/// the full gallery URL.
 String? coverThumbFor(Map<String, dynamic> data) {
   final source = firstVerifiedGalleryUrl(data);
   if (source == null) return null;
@@ -213,19 +219,92 @@ String? _fullCover(Object? raw) {
   return trimmed;
 }
 
-/// Wikimedia `/thumb/` URL at 480px, or null when [raw] is not one.
+/// Wikimedia URL at 480px, or null when [raw] is not a Commons file.
+///
+/// An existing `/thumb/` wider than 480px is narrowed. An original
+/// `.../commons/<h>/<hh>/<name>` becomes that 480px thumb.
 String? _wikimedia480(Object? raw) {
   final trimmed = _fullCover(raw);
   if (trimmed == null) return null;
   final uri = Uri.tryParse(trimmed);
   if (uri == null) return null;
   final decodedPath = Uri.decodeFull(uri.path);
-  if (!decodedPath.contains('/thumb/')) return null;
+  if (!decodedPath.contains('/thumb/')) return _commonsOriginal480(trimmed);
   return trimmed.replaceFirstMapped(RegExp(r'/(\d+)px-([^/?#]+)'), (match) {
     final width = int.tryParse(match.group(1)!) ?? 0;
     if (width <= 480) return match.group(0)!;
     return '/480px-${match.group(2)}';
   });
+}
+
+String? _commonsOriginal480(String trimmed) {
+  final uri = Uri.tryParse(trimmed);
+  if (uri == null || uri.host.toLowerCase() != 'upload.wikimedia.org') {
+    return null;
+  }
+  final raw = RegExp(
+    r'^[a-z][a-z0-9+.-]*://[^/?#]+([^?#]*)',
+    caseSensitive: false,
+  ).firstMatch(trimmed);
+  if (raw == null) return null;
+  final parts = raw.group(1)!.split('/');
+  if (parts.length < 4 ||
+      parts[1].toLowerCase() != 'wikipedia' ||
+      parts[2].toLowerCase() != 'commons') {
+    return null;
+  }
+  if (parts.contains('thumb')) return null;
+  final String rawName;
+  String? givenH;
+  String? givenHh;
+  if (parts.length == 4) {
+    rawName = parts[3];
+  } else if (parts.length == 6) {
+    givenH = parts[3];
+    givenHh = parts[4];
+    rawName = parts[5];
+  } else {
+    return null;
+  }
+  if (rawName.isEmpty) return null;
+  final decoded = _commonsDecode(rawName).replaceAll(' ', '_');
+  if (decoded.isEmpty || decoded.contains('/') || decoded.contains('\\')) {
+    return null;
+  }
+  final digest = md5.convert(utf8.encode(decoded)).toString();
+  final h = digest[0];
+  final hh = digest.substring(0, 2);
+  if (givenH != null &&
+      (givenH.toLowerCase() != h || givenHh!.toLowerCase() != hh)) {
+    return null;
+  }
+  final encoded = _commonsEncode(decoded);
+  final thumbFile = decoded.toLowerCase().endsWith('.svg')
+      ? '480px-$encoded.png'
+      : '480px-$encoded';
+  final next =
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/$h/$hh/$encoded/$thumbFile';
+  if (next.length > kTempleIndexCoverThumbMax) return null;
+  return next;
+}
+
+String _commonsDecode(String value) {
+  try {
+    return Uri.decodeComponent(value);
+  } catch (_) {
+    return value;
+  }
+}
+
+/// MediaWiki path encoding. Commas stay literal so Dart and JS match.
+String _commonsEncode(String name) {
+  return Uri.encodeComponent(name).replaceAllMapped(
+    RegExp(
+      r'%27|%21|%2A|%28|%29|%7E|%3B|%40|%24|%2C|%3A',
+      caseSensitive: false,
+    ),
+    (match) => Uri.decodeComponent(match.group(0)!),
+  );
 }
 
 bool _httpUrl(String trimmed) {

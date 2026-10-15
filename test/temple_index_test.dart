@@ -234,6 +234,12 @@ void main() {
       isNull,
     );
     expect(
+      wikimediaOriginalUrl(
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Example.svg/480px-Example.svg.png',
+      ),
+      'https://upload.wikimedia.org/wikipedia/commons/8/84/Example.svg',
+    );
+    expect(
       fullCoverUrlFromThumb('https://cdn.example/photos/shore.jpg'),
       isNull,
     );

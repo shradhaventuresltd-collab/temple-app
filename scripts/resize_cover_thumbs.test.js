@@ -249,6 +249,12 @@ test("dry-run lists a missing thumb, counts not-storage, and does not upload", a
     ),
     "https://upload.wikimedia.org/wikipedia/commons/7/76/File.jpg",
   );
+  assert.equal(
+    wikimediaOriginalUrl(
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Example.svg/480px-Example.svg.png",
+    ),
+    "https://upload.wikimedia.org/wikipedia/commons/8/84/Example.svg",
+  );
 });
 
 test("apply stores the download URL and does not skip a stale thumb", async () => {

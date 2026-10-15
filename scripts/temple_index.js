@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 /**
  * Pure temple_index projection. No Firestore client.
  * Entry shape matches lib/models/temple_index.dart.
@@ -115,6 +117,7 @@ function placeholder(url) {
   const hosts = [
     "picsum.photos",
     "placeholder.com",
+    "via.placeholder.com",
     "placehold.co",
     "placehold.it",
     "dummyimage.com",
@@ -123,6 +126,17 @@ function placeholder(url) {
     "fakeimg.pl",
     "placeimg.com",
     "lorempixel.com",
+    "unsplash.com",
+    "source.unsplash.com",
+    "shutterstock.com",
+    "istockphoto.com",
+    "gettyimages.com",
+    "pexels.com",
+    "stock.adobe.com",
+    "freepik.com",
+    "dreamstime.com",
+    "123rf.com",
+    "depositphotos.com",
   ];
   if (hosts.some((known) => host === known || host.endsWith(`.${known}`))) {
     return true;
@@ -150,7 +164,69 @@ function knownThumbUrl(raw) {
   return trimmed;
 }
 
-/** Wikimedia `/thumb/` URL at 480px, or null when [raw] is not one. */
+function commonsMd5(filename) {
+  return createHash("md5").update(filename, "utf8").digest("hex");
+}
+
+/** MediaWiki path encoding. Commas stay literal so Dart and JS match. */
+function commonsEncode(name) {
+  return encodeURIComponent(name).replace(
+    /%(3B|40|24|21|2A|28|29|2C|7E|3A)/gi,
+    (token) => String.fromCharCode(Number.parseInt(token.slice(1), 16)),
+  );
+}
+
+/**
+ * 480px thumb for a Commons original, or null.
+ * `h`/`hh` are the MD5 of the underscored filename. Existing segments must
+ * match that digest. An SVG thumb appends `.png`.
+ */
+function commonsOriginal480(trimmed) {
+  let parsed;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return null;
+  }
+  if (parsed.hostname.toLowerCase() !== "upload.wikimedia.org") return null;
+  const parts = rawUrlPath(trimmed).split("/");
+  if (parts.length < 4 || parts[1].toLowerCase() !== "wikipedia" || parts[2].toLowerCase() !== "commons") {
+    return null;
+  }
+  if (parts.includes("thumb")) return null;
+  let rawName;
+  let givenH = null;
+  let givenHh = null;
+  if (parts.length === 4) {
+    rawName = parts[3];
+  } else if (parts.length === 6) {
+    givenH = parts[3];
+    givenHh = parts[4];
+    rawName = parts[5];
+  } else {
+    return null;
+  }
+  if (!rawName) return null;
+  const decoded = safeDecode(rawName).replace(/ /g, "_");
+  if (!decoded || decoded.includes("/") || decoded.includes("\\")) return null;
+  const digest = commonsMd5(decoded);
+  const h = digest[0];
+  const hh = digest.slice(0, 2);
+  if (givenH != null && (givenH.toLowerCase() !== h || givenHh.toLowerCase() !== hh)) {
+    return null;
+  }
+  const encoded = commonsEncode(decoded);
+  const thumbFile = /\.svg$/i.test(decoded) ? `480px-${encoded}.png` : `480px-${encoded}`;
+  const next = `https://upload.wikimedia.org/wikipedia/commons/thumb/${h}/${hh}/${encoded}/${thumbFile}`;
+  if (next.length > COVER_THUMB_MAX) return null;
+  return next;
+}
+
+/**
+ * Wikimedia URL at 480px, or null when [raw] is not a Commons file.
+ * An existing `/thumb/` wider than 480px is narrowed. An original
+ * `.../commons/<h>/<hh>/<name>` becomes that 480px thumb.
+ */
 function wikimedia480(raw) {
   const trimmed = knownThumbUrl(raw);
   if (!trimmed) return null;
@@ -160,7 +236,7 @@ function wikimedia480(raw) {
   } catch {
     return null;
   }
-  if (!pathname.includes("/thumb/")) return null;
+  if (!pathname.includes("/thumb/")) return commonsOriginal480(trimmed);
   return trimmed.replace(/\/(\d+)px-([^/?#]+)/, (full, width, rest) => {
     const parsed = Number(width);
     if (!Number.isFinite(parsed) || parsed <= 480) return full;
@@ -407,9 +483,11 @@ export function firstThumbSource(data) {
  * `imageUrl` when `images` is empty.
  *
  * A stored `photos[].thumbUrl` for that photo is used as written. Otherwise
- * a Wikimedia thumb wider than 480px is rewritten, and anything else stays
- * the full URL. Storage siblings are not invented. Result is at most 500
- * characters. Detail keeps the full gallery URL.
+ * a Wikimedia `/thumb/` wider than 480px is narrowed. A Commons original
+ * `.../commons/<h>/<hh>/<name>` becomes a 480px thumb when `<h>/<hh>` match
+ * the MD5 of the underscored filename. An SVG thumb appends `.png`.
+ * Anything else stays the full URL. Storage siblings are not invented.
+ * Result is at most 500 characters. Detail keeps the full gallery URL.
  */
 export function coverThumb(data) {
   const source = firstVerifiedGalleryUrl(data);

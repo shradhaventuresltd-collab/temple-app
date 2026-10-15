@@ -56,6 +56,14 @@ void main() {
       isTrue,
     );
     expect(isPlaceholderImageUrl('https://placehold.co/800x600'), isTrue);
+    expect(isPlaceholderImageUrl('https://placehold.it/800x600'), isTrue);
+    expect(isPlaceholderImageUrl('https://dummyimage.com/800x600'), isTrue);
+    expect(isPlaceholderImageUrl('https://lorempixel.com/800/600'), isTrue);
+    expect(
+      isPlaceholderImageUrl('https://source.unsplash.com/random'),
+      isTrue,
+    );
+    expect(isPlaceholderImageUrl('https://placeholder.com/800'), isTrue);
     expect(
       isPlaceholderImageUrl('https://via.placeholder.com/800x600'),
       isTrue,
@@ -842,11 +850,7 @@ void main() {
   test('imageUrl matches images[0] for every gallery', () {
     for (final temple in sampleTemples) {
       if (temple.images.isEmpty) {
-        expect(
-          temple.imageUrl,
-          contains('picsum.photos'),
-          reason: temple.name,
-        );
+        expect(temple.imageUrl, isEmpty, reason: temple.name);
         continue;
       }
       expect(temple.imageUrl, temple.images.first, reason: temple.name);

@@ -116,5 +116,47 @@
       "imageUrl": "https://picsum.photos/seed/temple/800/600"
     },
     "expect": null
+  },
+  {
+    "name": "commons original becomes a 480px thumb from the md5 path",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a1/Keesara_gutta_main_temple_gate.jpg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/480px-Keesara_gutta_main_temple_gate.jpg"
+  },
+  {
+    "name": "commons original without hash segments uses the md5 path",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/Keesara_gutta_main_temple_gate.jpg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/480px-Keesara_gutta_main_temple_gate.jpg"
+  },
+  {
+    "name": "commons original with a comma uses the underscored md5 name",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a5/Biraja_Temple%2C_Jajpur%2C_Odisha%2C_India%2C_13th_century.jpg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Biraja_Temple,_Jajpur,_Odisha,_India,_13th_century.jpg/480px-Biraja_Temple,_Jajpur,_Odisha,_India,_13th_century.jpg"
+  },
+  {
+    "name": "commons original with spaces is underscored before the md5",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/My%20File.jpg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/My_File.jpg/480px-My_File.jpg"
+  },
+  {
+    "name": "commons svg original appends png on the thumb",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/8/84/Example.svg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Example.svg/480px-Example.svg.png"
+  },
+  {
+    "name": "commons original with a hash path that is not the md5 stays full size",
+    "data": {
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg"
+    },
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg"
   }
 ]

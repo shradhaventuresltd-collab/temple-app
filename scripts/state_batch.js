@@ -122,6 +122,7 @@ const FORBIDDEN = [
 const PLACEHOLDER_HOSTS = [
   "picsum.photos",
   "placeholder.com",
+  "via.placeholder.com",
   "placehold.co",
   "placehold.it",
   "dummyimage.com",
@@ -130,6 +131,7 @@ const PLACEHOLDER_HOSTS = [
   "fakeimg.pl",
   "placeimg.com",
   "unsplash.com",
+  "source.unsplash.com",
   "shutterstock.com",
   "istockphoto.com",
   "gettyimages.com",

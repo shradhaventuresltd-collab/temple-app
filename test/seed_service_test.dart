@@ -142,14 +142,15 @@ void main() {
     expect(brihadFresh['images'], brihad.images);
     expect((brihadFresh['images'] as List).length, 6);
 
-    final picsumCover = sampleTemples.firstWhere(
+    final pendingCover = sampleTemples.firstWhere(
       (t) => t.name == 'Anjengo Sree Durga Devi Temple',
     );
-    expect(picsumCover.imageUrl, contains('picsum.photos'));
+    expect(pendingCover.imageUrl, isEmpty);
+    expect(pendingCover.images, isEmpty);
     expect(
       seedImageFieldsWithPack(
-        bundledImageUrl: picsumCover.imageUrl,
-        bundledImages: picsumCover.images,
+        bundledImageUrl: 'https://picsum.photos/seed/anjengo/800/600',
+        bundledImages: pendingCover.images,
       ),
       {'imageUrl': '', 'images': <String>[]},
     );
@@ -169,8 +170,8 @@ void main() {
     expect(kept['imageUrl'], storage.single);
 
     final picsumBesideStorage = seedImageFieldsWithPack(
-      bundledImageUrl: picsumCover.imageUrl,
-      bundledImages: picsumCover.images,
+      bundledImageUrl: 'https://picsum.photos/seed/anjengo/800/600',
+      bundledImages: pendingCover.images,
       existingImageUrl: 'https://picsum.photos/seed/old/800/600',
       existingImages: const [
         'https://picsum.photos/seed/gallery/800/600',
