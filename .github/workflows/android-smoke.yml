@@ -122,15 +122,11 @@ jobs:
       - name: flutter pub get
         run: flutter pub get
 
-      # The committed -Xmx8G is for local builds. This runner has 7.8GiB
-      # plus 3GiB of swap. An 8G daemon fills both, and the emulator then
-      # raises guest RAM to 2560MB. Cap the daemon and the Kotlin compiler
-      # before the build so the release/profile heap cannot fill swap.
-      - name: Cap Gradle heap for the hosted runner
-        run: |
-          sed -i 's/^org\.gradle\.jvmargs=.*/org.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=1g -XX:ReservedCodeCacheSize=256m -Dfile.encoding=UTF-8/' android/gradle.properties
-          grep -q '^kotlin.daemon.jvmargs=' android/gradle.properties \
-            || echo 'kotlin.daemon.jvmargs=-Xmx1g' >> android/gradle.properties
+      # Profile keeps the committed -Xmx8G. On 8f50ccd that daemon left
+      # about 3.6GiB available and an empty swap. Capping it at 3g stretched
+      # this build from about 2 minutes to 3m50s and the 15-minute job
+      # then cancelled Maestro. The release build in demo-seed-launch is
+      # the one that fills RAM, and that workflow caps the heap.
 
       # Profile starts much faster than debug on a cold emulator, and
       # x86_64 matches the AVD. DEMO_BUILD forces test ad units. Do not

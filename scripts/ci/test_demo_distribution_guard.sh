@@ -279,15 +279,17 @@ require "android-smoke job limit stays 15 minutes" \
   'timeout-minutes: 15' .github/workflows/android-smoke.yml
 require "committed Gradle heap stays 8G for local builds" \
   '^org\.gradle\.jvmargs=-Xmx8G ' android/gradle.properties
-for heap_workflow in \
-  .github/workflows/android-smoke.yml \
-  .github/workflows/demo-seed-launch.yml
-do
-  require "workflow caps the hosted Gradle heap" \
-    'org.gradle.jvmargs=-Xmx3g' "$heap_workflow"
-  require "workflow caps the Kotlin daemon" \
-    'kotlin.daemon.jvmargs=-Xmx1g' "$heap_workflow"
-done
+require "seed-launch caps the hosted Gradle heap" \
+  'org.gradle.jvmargs=-Xmx3g' .github/workflows/demo-seed-launch.yml
+require "seed-launch caps the Kotlin daemon" \
+  'kotlin.daemon.jvmargs=-Xmx1g' .github/workflows/demo-seed-launch.yml
+if grep -q 'org.gradle.jvmargs=-Xmx3g' .github/workflows/android-smoke.yml; then
+  echo "FAIL: android-smoke must keep the committed Gradle heap" >&2
+  exit 1
+fi
+echo "ok: android-smoke keeps the committed Gradle heap"
+require "smoke keeps dismissing the system ANR until Terms is visible" \
+  'notVisible:' .maestro/read_only_smoke.yaml
 if ! grep -F -q 'labels=$'"'"'Wait'"'"'' scripts/ci/run_android_smoke.sh; then
   echo "FAIL: smoke must tap Wait only on the system ANR dialog" >&2
   exit 1

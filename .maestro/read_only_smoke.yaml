@@ -8,8 +8,8 @@ appId: com.shradhaventures.temple
 # fails the flow.
 
 # clearState on every try wipes the local Terms acceptance, so the gate
-# is shown again. maxRetries 2 means two relaunches after the first 60s
-# wait misses the gate or the home anchor.
+# is shown again. maxRetries 2 means two relaunches after the first wait
+# misses the gate or the home anchor.
 # Tap the accept control by semantics id. Its accessibility text also
 # includes the hint, so a text match on "Accept & continue" misses it.
 - retry:
@@ -18,33 +18,40 @@ appId: com.shradhaventures.temple
     commands:
       - launchApp:
           clearState: true
-      # Pixel Launcher ANR, and the system_server ANR that covers the
-      # Terms gate when the emulator is short of RAM. Wait/Close on this
-      # app's own "isn't responding" dialog must not be tapped. Close app
-      # on the system dialog would kill system_server, so only Wait.
-      - runFlow:
-          when:
-            visible: "Pixel Launcher isn't responding"
-          optional: true
+      # The system dialog can come back after one Wait tap and cover the
+      # Terms gate for the whole 60s assert. Keep dismissing it until the
+      # accept control is visible. Close app on that dialog kills
+      # system_server. Wait/Close on this app's own dialog is not tapped.
+      - repeat:
+          times: 12
+          while:
+            notVisible:
+              id: "policy-accept-button"
           commands:
-            - tapOn:
-                text: "Wait"
+            - runFlow:
+                when:
+                  visible: "Pixel Launcher isn't responding"
                 optional: true
-            - tapOn:
-                text: "Close app"
+                commands:
+                  - tapOn:
+                      text: "Wait"
+                      optional: true
+                  - tapOn:
+                      text: "Close app"
+                      optional: true
+            - runFlow:
+                when:
+                  visible: "Process system isn't responding"
                 optional: true
-      - runFlow:
-          when:
-            visible: "Process system isn't responding"
-          optional: true
-          commands:
-            - tapOn:
-                text: "Wait"
+                commands:
+                  - tapOn:
+                      text: "Wait"
+                      optional: true
+            - extendedWaitUntil:
+                visible:
+                  id: "policy-accept-button"
+                timeout: 5000
                 optional: true
-      - extendedWaitUntil:
-          visible:
-            id: "policy-accept-button"
-          timeout: 60000
       - tapOn:
           id: "policy-accept-button"
       - extendedWaitUntil:
