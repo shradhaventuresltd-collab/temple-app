@@ -90,7 +90,12 @@ jobs:
       # Gradle, AVD, system-image, and Flutter caches, plus the Maestro debug artifact.
       actions: write
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 30 covers a cold Gradle cache. The key includes android/**/*.gradle*,
+    # so the first run after that file changes rebuilds from scratch (~8 min
+    # vs ~2 min warm) and must still finish the 12m smoke script and save
+    # the new cache. A warm run stays near 12 minutes. The 12m script cap
+    # is what fails a hang; this limit is only the outer bound.
+    timeout-minutes: 30
     steps:
       # $SECONDS inside the smoke script starts when that script starts, after
       # the APK build. Screenshot decisions use this job clock instead.
@@ -199,9 +204,10 @@ jobs:
           # for sys.boot_completed and installs the APK with adb.
           emulator-options: -no-snapshot-save -no-snapshot-load -no-boot-anim -gpu swiftshader_indirect -no-window -noaudio -camera-back none -camera-front none
           # One dash-safe command. The action runs this with /usr/bin/sh.
-          # 12m is under the 15-minute job limit. --kill-after sends SIGKILL
-          # if SIGTERM is ignored, so a hang exits non-zero and the job
-          # concludes failure. timeout-minutes itself concludes cancelled.
+          # 12m is under the 30-minute job limit, including a cold Gradle
+          # preamble. --kill-after sends SIGKILL if SIGTERM is ignored, so
+          # a hang exits non-zero and the job concludes failure.
+          # timeout-minutes itself concludes cancelled.
           script: timeout --kill-after=30s 12m bash scripts/ci/run_android_smoke.sh
 
       - name: Upload Maestro debug output
