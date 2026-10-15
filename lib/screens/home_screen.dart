@@ -147,21 +147,41 @@ class _HomeAdminOverflow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
+    return IconButton(
       key: const Key('home-admin-menu'),
       tooltip: 'More',
       icon: const Icon(Icons.more_vert),
-      onSelected: (value) {
-        if (value == 'admin') onOpenAdmin();
-      },
-      itemBuilder: (context) => const [
-        PopupMenuItem<String>(
-          key: Key('home-admin-sign-in'),
-          value: 'admin',
-          child: Text('Admin sign-in'),
-        ),
-      ],
+      onPressed: () => _openMenu(context),
     );
+  }
+
+  Future<void> _openMenu(BuildContext context) async {
+    // A normal button under the app bar. PopupMenuButton reports the item
+    // inside the status bar, and an adb tap there never activates it.
+    final selected = await showDialog<String>(
+      context: context,
+      barrierColor: const Color(0x66000000),
+      builder: (dialogContext) {
+        final top = MediaQuery.paddingOf(dialogContext).top + kToolbarHeight;
+        return Align(
+          alignment: Alignment.topRight,
+          child: Padding(
+            padding: EdgeInsets.only(top: top, right: 8),
+            child: Material(
+              color: Colors.white,
+              elevation: 6,
+              borderRadius: BorderRadius.circular(8),
+              child: TextButton(
+                key: const Key('home-admin-sign-in'),
+                onPressed: () => Navigator.of(dialogContext).pop('admin'),
+                child: const Text('Admin sign-in'),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    if (selected == 'admin') onOpenAdmin();
   }
 }
 

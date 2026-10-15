@@ -131,6 +131,10 @@ wait_for() {
   local tries="${2:-20}"
   local i
   for i in $(seq 1 "$tries"); do
+    if ! adb get-state 2>/dev/null | grep -q '^device$'; then
+      echo "adb device is gone while waiting for: $needle" >&2
+      return 1
+    fi
     dismiss_system_anr
     if visible "$needle"; then
       echo "visible: $needle"
