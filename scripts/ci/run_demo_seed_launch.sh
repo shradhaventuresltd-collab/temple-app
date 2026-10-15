@@ -81,11 +81,50 @@ tap_needle() {
   adb shell input tap $point
 }
 
+# Tap Wait on OS dialogs and on Google Play services
+# (com.google.android.gms and its processes): "Process system isn't
+# responding", "Pixel Launcher isn't responding", "System UI isn't
+# responding", and "Google Play services isn't responding". Any other
+# isn't-responding dialog is this app's ANR: save a screenshot and fail.
+dismiss_system_anr() {
+  hierarchy
+  [[ -f "$OUT/uidump.xml" ]] || return 0
+  local os_dialog dialog pattern
+  for os_dialog in \
+    "Process system isn't responding" \
+    "Pixel Launcher isn't responding" \
+    "System UI isn't responding" \
+    "Google Play services isn't responding"
+  do
+    if grep -q "$os_dialog" "$OUT/uidump.xml"; then
+      echo "Dismissing $os_dialog"
+      tap_needle "Wait" || true
+      return 0
+    fi
+  done
+  if grep -q "isn't responding" "$OUT/uidump.xml"; then
+    pattern='[^"]*isn'"'"'t responding'
+    dialog="$(grep -o "$pattern" "$OUT/uidump.xml" | head -n 1 || true)"
+    if [[ "$dialog" == *com.google.android.gms* ]]; then
+      echo "Dismissing $dialog"
+      tap_needle "Wait" || true
+      return 0
+    fi
+    if [[ -z "$dialog" ]]; then
+      dialog="an isn't-responding dialog is on screen"
+    fi
+    echo "App ANR: ${dialog}. Failing the job." >&2
+    screenshot app-anr
+    exit 1
+  fi
+}
+
 wait_for() {
   local needle="$1"
   local tries="${2:-20}"
   local i
   for i in $(seq 1 "$tries"); do
+    dismiss_system_anr
     if visible "$needle"; then
       echo "visible: $needle"
       return 0

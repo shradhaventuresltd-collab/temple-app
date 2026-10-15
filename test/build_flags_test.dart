@@ -22,6 +22,47 @@ void main() {
     );
   });
 
+  group('androidDemoUsesGoogleServices', () {
+    test('distribution Android reads the .demo google-services client', () {
+      expect(
+        androidDemoUsesGoogleServices(
+          demoAppIdSuffix: true,
+          isWeb: false,
+          isAndroid: true,
+        ),
+        isTrue,
+      );
+    });
+    test('DEMO_BUILD without the suffix keeps firebase_options.dart', () {
+      expect(
+        androidDemoUsesGoogleServices(
+          demoAppIdSuffix: false,
+          isWeb: false,
+          isAndroid: true,
+        ),
+        isFalse,
+      );
+    });
+    test('suffix on web and non-Android keeps firebase_options.dart', () {
+      expect(
+        androidDemoUsesGoogleServices(
+          demoAppIdSuffix: true,
+          isWeb: true,
+          isAndroid: true,
+        ),
+        isFalse,
+      );
+      expect(
+        androidDemoUsesGoogleServices(
+          demoAppIdSuffix: true,
+          isWeb: false,
+          isAndroid: false,
+        ),
+        isFalse,
+      );
+    });
+  });
+
   test('ENABLE_ADMIN_TOOLS define is read from --dart-define', () {
     // Must be const: fromEnvironment only reads the define in a const context.
     // Passes without the flag (false) and with

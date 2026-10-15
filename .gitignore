@@ -49,6 +49,7 @@ app.*.map.json
 service-account.json
 scripts/service-account.json
 scripts/node_modules/
+scripts/ci/firebase-cli/node_modules/
 
 # Android Play upload key. Also ignored under android/.gitignore.
 android/key.properties
