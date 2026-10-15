@@ -142,6 +142,67 @@ TemplePhotoMirror deriveTemplePhotoMirror(List<TemplePhoto> photos) {
   );
 }
 
+/// Credit or caption shown under a gallery frame.
+///
+/// CC-BY and CC-BY-SA show their attribution. A stored credit that records
+/// the frame as a historical print is also shown, so a public-domain
+/// lithograph is not presented as a photograph. Other CC0, Own, and
+/// Permission credits, a blank credit, and a URL with no matching photo
+/// stay silent. The detail screen calls this with the visible frame URL.
+String? visiblePhotoCredit(List<TemplePhoto> photos, String url) {
+  for (final photo in photos) {
+    if (photo.url != url) continue;
+    final credit = photo.credit.trim();
+    if (credit.isEmpty) return null;
+    if (photo.licence?.requiresCredit == true) return credit;
+    if (_isHistoricalPrintCaption(credit)) return credit;
+    return null;
+  }
+  return null;
+}
+
+bool _isHistoricalPrintCaption(String credit) {
+  final lower = credit.toLowerCase();
+  return lower.contains('lithograph') || lower.contains('1847 print');
+}
+
+/// Year 1500–2099 sitting next to lithograph or print wording.
+///
+/// An unrelated 4-digit number in the credit, such as an accession or a
+/// catalogue id, is not a caption year.
+String? _printYear(String credit) {
+  final match = RegExp(
+    r'\b(1[5-9]\d{2}|20\d{2})\b\s*(?:lithographs?|lithographic|prints?)\b'
+    r'|'
+    r'\b(?:lithographs?|lithographic|prints?)\b'
+    r'(?:\s*[\(,:\-–]|\s+(?:of|from|circa|c\.|ca\.|dated|in)\s+)'
+    r'\s*(1[5-9]\d{2}|20\d{2})\b',
+    caseSensitive: false,
+  ).firstMatch(credit);
+  final year = match?.group(1) ?? match?.group(2);
+  if (year == null) return null;
+  final value = int.tryParse(year);
+  if (value == null || value < 1500 || value > 2099) return null;
+  return year;
+}
+
+/// Short label for a cover that is a historical print, not a photograph.
+///
+/// Browse cards and the home collage use this so a lithograph is not shown
+/// as a photo of the temple. The year comes from the credit text. A
+/// lithograph credit with no year is labelled "Lithograph".
+String? historicalCoverCaption(List<TemplePhoto> photos, String url) {
+  for (final photo in photos) {
+    if (photo.url != url) continue;
+    final credit = photo.credit.trim();
+    if (!_isHistoricalPrintCaption(credit)) return null;
+    final year = _printYear(credit);
+    if (year == null) return 'Lithograph';
+    return 'Lithograph, $year';
+  }
+  return null;
+}
+
 /// Storage object path for an admin photo upload.
 String templePhotoStoragePath({
   required String docId,

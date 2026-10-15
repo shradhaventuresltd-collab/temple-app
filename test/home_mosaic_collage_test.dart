@@ -160,4 +160,17 @@ void main() {
     expect(find.textContaining('temples across India'), findsNothing);
     expect(find.byType(TempleImagePlaceholder), findsOneWidget);
   });
+
+  testWidgets('Purmandal lithograph tiles show the 1847 caption', (tester) async {
+    final purmandal = sampleTemples.firstWhere(
+      (temple) => temple.name == 'Purmandal Temple',
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: HomeMosaicCollage(temples: [purmandal])),
+      ),
+    );
+    expect(find.text('Lithograph, 1847'), findsWidgets);
+    expect(find.byKey(const Key('cover-caption')), findsWidgets);
+  });
 }

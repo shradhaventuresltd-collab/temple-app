@@ -8,6 +8,11 @@ files listed in the manifest, and `photo_candidates.json`.
 Sanu runs `scripts/upload_research_pack.js` with a local `service-account.json`
 (repo root or `scripts/`, gitignored).
 
+Seven promoted galleries (Akshardham Gandhinagar, Chintaman Ganesh, Janaki
+Sitamarhi, Kaleshwara Mukteswara, Mangala Gauri, Purmandal, Ugratara) have
+`ATTRIBUTION.md` only. They have no `manifest.json` and no local jpgs, so
+`--all-packs` ignores those folders and does not require the files.
+
 ## Sanu runbook
 
 Debug Seed (or an existing `temples/{id}` doc) must exist before
@@ -88,6 +93,7 @@ from this branch.
 | `banashankari-temple-bengaluru` | Badami / Cholachagudda frames | 6 Bengaluru / Kanakapura Road photos. `site_verified`. |
 | `talakaveri-temple` | Brihadeeswara and Srirangam | 5 Talakaveri / Kodagu photos. `site_verified`. |
 | `mahabaleshwar-temple-gokarna` | Kathmandu Gokarneshwor | 6 Gokarna, Karnataka photos. `site_verified`. |
+| `pashupatinath-temple-mandsaur` | `The_Pashupatinath_Temple_27.jpg`, the Kathmandu Maha Shivaratri sadhu frame (Nabin K. Sapkota, Bijay Chaurasia), and the access-road arch with the bank advertisement | 6 photos from Category:Pashupatinath Temple, Mandsaur. Cover is 01. Kathmandu frames are not in the pack. |
 | `sri-krishna-matha-udupi` | Parashurama temple, theatre, railway station, generic city frame | 8 Matha-only photos. `site_verified`. |
 
 ## Tamil Nadu + Kerala Wave A
@@ -236,7 +242,7 @@ K.vishnupranay).
 | `naina-devi-temple-bilaspur` | `naina-devi-temple` | Naina Devi Temple | Himachal Pradesh | 5 |
 | `omkareshwar-temple` | same | Omkareshwar Temple | Madhya Pradesh | 5 |
 | `panchvaktra-temple-mandi` | `panchvaktra-temple` | Panchvaktra Temple | Himachal Pradesh | 5 |
-| `pashupatinath-temple-mandsaur` | `pashupatinath-temple` | Pashupatinath Temple | Madhya Pradesh | 5 |
+| `pashupatinath-temple-mandsaur` | `pashupatinath-temple` | Pashupatinath Temple | Madhya Pradesh | 6 |
 | `patan-devi-temple` | same | Patan Devi Temple | Bihar | 5 |
 | `prem-mandir-vrindavan` | `prem-mandir` | Prem Mandir | Uttar Pradesh | 5 |
 | `raghunath-temple-jammu` | `raghunath-temple` | Raghunath Temple | Jammu and Kashmir | 5 |

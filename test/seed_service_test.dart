@@ -69,7 +69,8 @@ void main() {
         ],
       ),
       {
-        'imageUrl': '',
+        'imageUrl':
+            'https://firebasestorage.googleapis.com/v0/b/app/o/real.jpg?alt=media',
         'images': [
           'https://firebasestorage.googleapis.com/v0/b/app/o/real.jpg?alt=media',
         ],
@@ -155,8 +156,8 @@ void main() {
     const storage = [
       'https://storage.googleapis.com/temple-directory-india.firebasestorage.app/temples/mahabodhi-temple/01.jpg',
     ];
-    // #18 keeps the verified gallery. Bundled Commons cover is verified, so
-    // imageUrl follows seedHonestyImageFields (bundled cover), not the pack list.
+    // A verified live gallery stays. imageUrl follows images[0], so a
+    // bundled Commons cover cannot reintroduce a mirror mismatch.
     final kept = seedImageFieldsWithPack(
       bundledImageUrl: mahabodhi.imageUrl,
       bundledImages: mahabodhi.images,
@@ -164,8 +165,7 @@ void main() {
       existingImages: storage,
     );
     expect(kept['images'], storage);
-    expect(kept['imageUrl'], mahabodhi.imageUrl);
-    expect((kept['images'] as List).contains(storage.single), isTrue);
+    expect(kept['imageUrl'], storage.single);
 
     final picsumBesideStorage = seedImageFieldsWithPack(
       bundledImageUrl: picsumCover.imageUrl,
@@ -176,7 +176,10 @@ void main() {
         'https://firebasestorage.googleapis.com/v0/b/app/o/real.jpg?alt=media',
       ],
     );
-    expect(picsumBesideStorage['imageUrl'], '');
+    expect(
+      picsumBesideStorage['imageUrl'],
+      'https://firebasestorage.googleapis.com/v0/b/app/o/real.jpg?alt=media',
+    );
     expect(picsumBesideStorage['images'], [
       'https://firebasestorage.googleapis.com/v0/b/app/o/real.jpg?alt=media',
     ]);

@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/screens/temple_detail_screen.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
 import 'package:temple_app/widgets/temple_image_placeholder.dart';
@@ -196,35 +197,76 @@ class _BrowseCover extends StatelessWidget {
         final width = constraints.maxWidth.isFinite && constraints.maxWidth > 0
             ? constraints.maxWidth
             : MediaQuery.sizeOf(context).width;
-        return CachedNetworkImage(
-          imageUrl: coverUrl,
-          height: TempleBrowseCard.coverHeight,
-          width: double.infinity,
-          fit: BoxFit.cover,
-          memCacheWidth: (width * dpr).round().clamp(1, 1600),
-          memCacheHeight: (TempleBrowseCard.coverHeight * dpr).round().clamp(
-            1,
-            1200,
-          ),
-          fadeInDuration: const Duration(milliseconds: 300),
-          placeholder: (context, url) => const ColoredBox(
-            color: Color(0xFFFFF8EE),
-            child: Center(
-              child: SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: TempleBrowseCard.saffron,
+        final caption = historicalCoverCaption(temple.photos, coverUrl);
+        return Stack(
+          children: [
+            CachedNetworkImage(
+              imageUrl: coverUrl,
+              height: TempleBrowseCard.coverHeight,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              memCacheWidth: (width * dpr).round().clamp(1, 1600),
+              memCacheHeight: (TempleBrowseCard.coverHeight * dpr).round().clamp(
+                1,
+                1200,
+              ),
+              fadeInDuration: const Duration(milliseconds: 300),
+              placeholder: (context, url) => const ColoredBox(
+                color: Color(0xFFFFF8EE),
+                child: Center(
+                  child: SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: TempleBrowseCard.saffron,
+                    ),
+                  ),
                 ),
               ),
+              errorWidget: (context, url, error) => const TempleImagePlaceholder(
+                height: TempleBrowseCard.coverHeight,
+              ),
             ),
-          ),
-          errorWidget: (context, url, error) => const TempleImagePlaceholder(
-            height: TempleBrowseCard.coverHeight,
-          ),
+            if (caption != null)
+              Positioned(
+                left: 8,
+                bottom: 8,
+                child: _CoverCaptionChip(label: caption),
+              ),
+          ],
         );
       },
+    );
+  }
+}
+
+class _CoverCaptionChip extends StatelessWidget {
+  const _CoverCaptionChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      key: const Key('cover-caption'),
+      decoration: BoxDecoration(
+        color: const Color(0xF2FFF8EE),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: TempleBrowseCard.gold),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        child: Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF6D4C41),
+            height: 1.2,
+          ),
+        ),
+      ),
     );
   }
 }

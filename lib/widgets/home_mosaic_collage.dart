@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
 import 'package:temple_app/widgets/temple_image_placeholder.dart';
 
@@ -49,6 +50,12 @@ class HomeMosaicCollage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final images = verifiedImages;
+    final captions = <String, String>{
+      for (final temple in temples)
+        for (final url in verifiedGalleryUrls(temple))
+          if (historicalCoverCaption(temple.photos, url) != null)
+            url: historicalCoverCaption(temple.photos, url)!,
+    };
     final count = temples.length;
 
     return SizedBox(
@@ -59,7 +66,7 @@ class HomeMosaicCollage extends StatelessWidget {
           if (images.isEmpty)
             const TempleImagePlaceholder(expand: true)
           else
-            _MosaicGrid(images: images),
+            _MosaicGrid(images: images, captions: captions),
           const _MosaicScrim(),
           Positioned(
             left: 24,
@@ -74,9 +81,10 @@ class HomeMosaicCollage extends StatelessWidget {
 }
 
 class _MosaicGrid extends StatelessWidget {
-  const _MosaicGrid({required this.images});
+  const _MosaicGrid({required this.images, required this.captions});
 
   final List<String> images;
+  final Map<String, String> captions;
 
   @override
   Widget build(BuildContext context) {
@@ -88,7 +96,10 @@ class _MosaicGrid extends StatelessWidget {
             children: [
               Expanded(
                 flex: 2,
-                child: _MosaicTile(url: images[0 % images.length]),
+                child: _MosaicTile(
+                  url: images[0 % images.length],
+                  caption: captions[images[0 % images.length]],
+                ),
               ),
               const SizedBox(width: 2),
               Expanded(
@@ -96,11 +107,17 @@ class _MosaicGrid extends StatelessWidget {
                 child: Column(
                   children: [
                     Expanded(
-                      child: _MosaicTile(url: images[1 % images.length]),
+                      child: _MosaicTile(
+                        url: images[1 % images.length],
+                        caption: captions[images[1 % images.length]],
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Expanded(
-                      child: _MosaicTile(url: images[2 % images.length]),
+                      child: _MosaicTile(
+                        url: images[2 % images.length],
+                        caption: captions[images[2 % images.length]],
+                      ),
                     ),
                   ],
                 ),
@@ -116,7 +133,10 @@ class _MosaicGrid extends StatelessWidget {
               for (int i = 3; i < 7; i++) ...[
                 if (i > 3) const SizedBox(width: 2),
                 Expanded(
-                  child: _MosaicTile(url: images[i % images.length]),
+                  child: _MosaicTile(
+                    url: images[i % images.length],
+                    caption: captions[images[i % images.length]],
+                  ),
                 ),
               ],
             ],
@@ -132,11 +152,17 @@ class _MosaicGrid extends StatelessWidget {
                 child: Column(
                   children: [
                     Expanded(
-                      child: _MosaicTile(url: images[7 % images.length]),
+                      child: _MosaicTile(
+                        url: images[7 % images.length],
+                        caption: captions[images[7 % images.length]],
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Expanded(
-                      child: _MosaicTile(url: images[8 % images.length]),
+                      child: _MosaicTile(
+                        url: images[8 % images.length],
+                        caption: captions[images[8 % images.length]],
+                      ),
                     ),
                   ],
                 ),
@@ -144,7 +170,10 @@ class _MosaicGrid extends StatelessWidget {
               const SizedBox(width: 2),
               Expanded(
                 flex: 2,
-                child: _MosaicTile(url: images[9 % images.length]),
+                child: _MosaicTile(
+                  url: images[9 % images.length],
+                  caption: captions[images[9 % images.length]],
+                ),
               ),
             ],
           ),
@@ -157,9 +186,10 @@ class _MosaicGrid extends StatelessWidget {
 /// Single mosaic cell. Placeholder hosts never reach here from
 /// [HomeMosaicCollage]; defense-in-depth still refuses them.
 class _MosaicTile extends StatelessWidget {
-  const _MosaicTile({required this.url});
+  const _MosaicTile({required this.url, this.caption});
 
   final String url;
+  final String? caption;
 
   @override
   Widget build(BuildContext context) {
@@ -172,22 +202,51 @@ class _MosaicTile extends StatelessWidget {
       );
     }
 
-    return CachedNetworkImage(
-      imageUrl: url,
-      fit: BoxFit.cover,
-      width: double.infinity,
-      height: double.infinity,
-      fadeInDuration: const Duration(milliseconds: 400),
-      placeholder: (context, url) =>
-          ColoredBox(color: Colors.brown.shade100),
-      errorWidget: (context, url, error) => ColoredBox(
-        color: Colors.brown.shade200,
-        child: const Icon(
-          Icons.photo_outlined,
-          color: Colors.white54,
-          size: 28,
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        CachedNetworkImage(
+          imageUrl: url,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+          fadeInDuration: const Duration(milliseconds: 400),
+          placeholder: (context, url) =>
+              ColoredBox(color: Colors.brown.shade100),
+          errorWidget: (context, url, error) => ColoredBox(
+            color: Colors.brown.shade200,
+            child: const Icon(
+              Icons.photo_outlined,
+              color: Colors.white54,
+              size: 28,
+            ),
+          ),
         ),
-      ),
+        if (caption != null)
+          Positioned(
+            left: 4,
+            bottom: 4,
+            child: DecoratedBox(
+              key: const Key('cover-caption'),
+              decoration: BoxDecoration(
+                color: const Color(0xF2FFF8EE),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                child: Text(
+                  caption!,
+                  style: GoogleFonts.poppins(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF6D4C41),
+                    height: 1.1,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

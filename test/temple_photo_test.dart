@@ -85,6 +85,127 @@ void main() {
     expect(fromDoc.writePhotos, isFalse);
   });
 
+  test('visible credit is only the CC-BY and CC-BY-SA line', () {
+    const url = 'https://example.com/a.jpg';
+    expect(
+      visiblePhotoCredit(const [
+        TemplePhoto(
+          url: url,
+          credit: 'Ada · CC BY 4.0',
+          licence: PhotoLicence.ccBy,
+          order: 0,
+        ),
+      ], url),
+      'Ada · CC BY 4.0',
+    );
+    expect(
+      visiblePhotoCredit(const [
+        TemplePhoto(
+          url: url,
+          credit: 'Ada',
+          licence: PhotoLicence.cc0,
+          order: 0,
+        ),
+      ], url),
+      isNull,
+    );
+    expect(
+      visiblePhotoCredit(const [
+        TemplePhoto(
+          url: url,
+          credit:
+              '19th-century lithograph (1847 print). James Duffield Harding',
+          licence: PhotoLicence.cc0,
+          order: 0,
+        ),
+      ], url),
+      '19th-century lithograph (1847 print). James Duffield Harding',
+    );
+    expect(
+      visiblePhotoCredit(const [
+        TemplePhoto(
+          url: url,
+          credit: '   ',
+          licence: PhotoLicence.ccBySa,
+          order: 0,
+        ),
+      ], url),
+      isNull,
+    );
+    expect(visiblePhotoCredit(const [], url), isNull);
+  });
+
+  test('lithograph cover caption takes its year from the credit', () {
+    const url = 'https://example.com/plate.jpg';
+    expect(
+      historicalCoverCaption(const [
+        TemplePhoto(
+          url: url,
+          credit:
+              '19th-century lithograph (1847 print). James Duffield Harding',
+          licence: PhotoLicence.cc0,
+          order: 0,
+        ),
+      ], url),
+      'Lithograph, 1847',
+    );
+    expect(
+      historicalCoverCaption(const [
+        TemplePhoto(
+          url: url,
+          credit: 'Colour lithograph (1903 print)',
+          licence: PhotoLicence.cc0,
+          order: 0,
+        ),
+      ], url),
+      'Lithograph, 1903',
+    );
+    expect(
+      historicalCoverCaption(const [
+        TemplePhoto(
+          url: url,
+          credit: 'A lithograph of the shrine',
+          licence: PhotoLicence.cc0,
+          order: 0,
+        ),
+      ], url),
+      'Lithograph',
+    );
+    expect(
+      historicalCoverCaption(const [
+        TemplePhoto(
+          url: url,
+          credit: 'Rohit MDS · CC BY-SA 4.0',
+          licence: PhotoLicence.ccBySa,
+          order: 0,
+        ),
+      ], url),
+      isNull,
+    );
+    expect(
+      historicalCoverCaption(const [
+        TemplePhoto(
+          url: url,
+          credit: 'A lithograph of the shrine. Catalogue 1847.',
+          licence: PhotoLicence.cc0,
+          order: 0,
+        ),
+      ], url),
+      'Lithograph',
+    );
+    expect(
+      historicalCoverCaption(const [
+        TemplePhoto(
+          url: url,
+          credit: '1499 lithograph',
+          licence: PhotoLicence.cc0,
+          order: 0,
+        ),
+      ], url),
+      'Lithograph',
+    );
+  });
+
   test('credit is required for CC-BY and CC-BY-SA only', () {
     expect(
       templePhotoValidationError(

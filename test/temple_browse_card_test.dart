@@ -269,6 +269,12 @@ void main() {
       (TempleBrowseCard.coverHeight * dpr).round().clamp(1, 1200),
     );
   });
+
+  testWidgets('Purmandal cover shows the 1847 lithograph caption', (tester) async {
+    await pumpCard(tester, _named('Purmandal Temple'));
+    expect(find.byKey(const Key('cover-caption')), findsOneWidget);
+    expect(find.text('Lithograph, 1847'), findsOneWidget);
+  });
 }
 
 Temple _named(String name) {
