@@ -1,4 +1,5 @@
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
 
 /// `temple_index/{stateSlug}` — one shard per state.
@@ -22,7 +23,9 @@ const int kTempleIndexMaxEntries = 400;
 const int kTempleIndexMaxShards = 48;
 
 /// Browse cards need a short line, not the 500-character temple address.
-const int kTempleIndexShortAddressMax = 120;
+/// Leading address kept for search. 400 max-size entries, plus a lithograph
+/// caption, still fit under 1 MiB. Temple documents may store up to 500.
+const int kTempleIndexShortAddressMax = 340;
 
 /// `coverThumb` is a URL, capped so a shard of summaries stays small.
 const int kTempleIndexCoverThumbMax = 500;
@@ -107,40 +110,64 @@ TempleIndexFlags templeIndexFlagsFor(Temple temple) {
   );
 }
 
-/// Collapses whitespace and keeps at most [kTempleIndexShortAddressMax]
-/// characters, breaking on a comma when that still leaves a useful line.
+/// Collapses whitespace and keeps the leading searchable text.
+///
+/// The cut is a word boundary inside [kTempleIndexShortAddressMax]. A comma
+/// inside that window stays, so a place name after the comma can still match
+/// search. Words that start past the cap do not fit in the shard budget.
 String shortTempleAddress(String raw) {
   final text = raw.trim().replaceAll(RegExp(r'\s+'), ' ');
   if (text.length <= kTempleIndexShortAddressMax) return text;
-  final cut = text.substring(0, kTempleIndexShortAddressMax);
-  final comma = cut.lastIndexOf(',');
-  if (comma >= 40) return cut.substring(0, comma).trimRight();
-  return cut.trimRight();
+  var cut = text.substring(0, kTempleIndexShortAddressMax);
+  final space = cut.lastIndexOf(' ');
+  if (space >= 40) cut = cut.substring(0, space);
+  return cut.trimRight().replaceFirst(RegExp(r'[,\s]+$'), '');
 }
 
 /// Browse cover for one temple document.
 ///
-/// Order: `photos[0].thumbUrl`, then a `_480` file on `photos[0]`, then
-/// `imageUrl`, then `images[0]`. Wikimedia `/thumb/` URLs wider than 480px
-/// are rewritten to `480px`. Placeholder hosts are skipped. The result is
-/// at most [kTempleIndexCoverThumbMax] characters.
+/// Same choice as [verifiedCoverUrl]: the first verified URL in `images`,
+/// or `imageUrl` when `images` is empty. Placeholder hosts are skipped.
+/// Wikimedia `/thumb/` URLs wider than 480px are rewritten to `480px`. The
+/// result is at most [kTempleIndexCoverThumbMax] characters.
 ///
-/// TODO(KAN-146): cover thumbnails are not generated yet. Until they exist,
-/// a full-size `imageUrl` or `images[0]` is stored instead of null.
+/// TODO(KAN-146): a generated thumbnail can replace this URL later. The
+/// photo that is chosen stays the browse gallery photo.
 String? coverThumbFor(Map<String, dynamic> data) {
-  final photo = _firstPhoto(data['photos']);
-  final photoThumb = photo == null ? null : photo['thumbUrl'];
-  final photoUrl = photo == null ? null : photo['url'];
-  final fromPhoto =
-      _usableCover(photoThumb, allowFull: true) ??
-      _usableCover(_is480File(photoUrl) ? photoUrl : null, allowFull: false);
-  if (fromPhoto != null) return fromPhoto;
-  final fromCover = _usableCover(data['imageUrl'], allowFull: true);
-  if (fromCover != null) return fromCover;
-  return _usableCover(_firstListItem(data['images']), allowFull: true);
+  final source = firstVerifiedGalleryUrl(data);
+  if (source == null) return null;
+  return _usableCover(source, allowFull: true);
 }
 
-/// URL list helper. Prefer [coverThumbFor] so `photos[0]` stays first.
+/// Unrewritten gallery URL [coverThumbFor] is taken from.
+String? firstVerifiedGalleryUrl(Map<String, dynamic> data) {
+  for (final url in _galleryCandidates(data)) {
+    if (!_httpUrl(url) || isPlaceholderImageUrl(url)) continue;
+    return url;
+  }
+  return null;
+}
+
+List<String> _galleryCandidates(Map<String, dynamic> data) {
+  final images = data['images'];
+  final urls = <String>[];
+  if (images is List) {
+    for (final item in images) {
+      if (item is! String) continue;
+      final trimmed = item.trim();
+      if (trimmed.isEmpty) continue;
+      urls.add(trimmed);
+    }
+  }
+  if (urls.isNotEmpty) return urls;
+  final imageUrl = data['imageUrl'];
+  if (imageUrl is String && imageUrl.trim().isNotEmpty) {
+    return [imageUrl.trim()];
+  }
+  return const [];
+}
+
+/// URL list helper. Prefer [coverThumbFor] so the gallery order stays put.
 String? coverThumbFromUrls(Iterable<Object?> urls) {
   for (final raw in urls) {
     final thumb = _browseThumb(raw);
@@ -152,29 +179,6 @@ String? coverThumbFromUrls(Iterable<Object?> urls) {
     if (full != null) return full;
   }
   return null;
-}
-
-Map<String, Object?>? _firstPhoto(Object? raw) {
-  if (raw is! List || raw.isEmpty) return null;
-  final first = raw.first;
-  if (first is Map) return Map<String, Object?>.from(first);
-  if (first is String) return {'url': first};
-  return null;
-}
-
-Object? _firstListItem(Object? raw) {
-  if (raw is! List || raw.isEmpty) return null;
-  return raw.first;
-}
-
-bool _is480File(Object? raw) {
-  if (raw is! String) return false;
-  final uri = Uri.tryParse(raw.trim());
-  if (uri == null) return false;
-  return RegExp(
-    r'[_-]480\.(jpe?g|png|webp)$',
-    caseSensitive: false,
-  ).hasMatch(Uri.decodeFull(uri.path));
 }
 
 String? _usableCover(Object? raw, {required bool allowFull}) {
@@ -265,6 +269,7 @@ Map<String, dynamic> templeIndexEntryFromMap(
   final temple = Temple.fromMap(id, data);
   final flags = templeIndexFlagsFor(temple);
   final coords = templeIndexCoordinates(data);
+  final cover = coverThumbFor(data);
   final address = shortTempleAddress(
     _text(data['address']).isNotEmpty
         ? _text(data['address'])
@@ -281,7 +286,7 @@ Map<String, dynamic> templeIndexEntryFromMap(
     'state': _clip(data['state'], kTempleIndexStateMax),
     'deity': _clip(data['deity'], kTempleIndexDeityMax),
     'address': address,
-    'coverThumb': coverThumbFor(data),
+    'coverThumb': cover,
     'lat': coords.lat,
     'lng': coords.lng,
     'updatedAt': null,
@@ -297,11 +302,122 @@ Map<String, dynamic> templeIndexEntryFromMap(
   if (data.containsKey('hidden') && data['hidden'] is bool) {
     entry['hidden'] = data['hidden'];
   }
+  final source = firstVerifiedGalleryUrl(data);
+  final caption = _indexCoverCaption(temple.photos, source, cover);
+  if (caption != null) entry['coverCaption'] = caption;
   return entry;
 }
 
-/// Browse filter hook for KAN-145. The client still reads `temples` and does
-/// not call this yet.
+String? _indexCoverCaption(
+  List<TemplePhoto> photos,
+  String? source,
+  String? cover,
+) {
+  if (source != null) {
+    final fromSource = historicalCoverCaption(photos, source);
+    if (fromSource != null) return fromSource;
+  }
+  if (cover != null && cover != source) {
+    return historicalCoverCaption(photos, cover);
+  }
+  return null;
+}
+
+/// Browse card built from one `entries.{id}` value. Description, story, and
+/// timings stay empty; the detail screen loads `temples/{id}` for those.
+Temple templeFromIndexEntry(Map<String, dynamic> entry) {
+  final id = _text(entry['id']).isNotEmpty
+      ? _text(entry['id'])
+      : _text(entry['slug']);
+  final cover = _text(entry['coverThumb']);
+  final caption = _text(entry['coverCaption']);
+  final coords = templeIndexCoordinates({
+    'latitude': entry['lat'],
+    'longitude': entry['lng'],
+  });
+  return Temple(
+    id: id,
+    name: _text(entry['name']),
+    state: _text(entry['state']),
+    city: _text(entry['city']),
+    deity: _text(entry['deity']),
+    imageUrl: cover,
+    images: cover.isEmpty ? const [] : [cover],
+    description: '',
+    story: '',
+    location: _text(entry['address']),
+    timings: null,
+    specialities: const [],
+    latitude: coords.lat,
+    longitude: coords.lng,
+    indexTradition: _text(entry['tradition']).isEmpty
+        ? 'unspecified'
+        : _text(entry['tradition']),
+    indexFraming: _text(entry['framing']).isEmpty
+        ? 'neutral'
+        : _text(entry['framing']),
+    coverCaption: caption.isEmpty ? null : caption,
+  );
+}
+
+/// Milliseconds for a meta shard stamp. Null when the value is not a time.
+int? indexStampMillis(Object? value) {
+  if (value == null) return null;
+  if (value is DateTime) return value.millisecondsSinceEpoch;
+  if (value is int) return value;
+  final millis = _tryMillis(value);
+  return millis;
+}
+
+int? _tryMillis(Object value) {
+  try {
+    final dynamic stamp = value;
+    final dynamic millis = stamp.millisecondsSinceEpoch;
+    if (millis is int) return millis;
+  } catch (_) {}
+  return null;
+}
+
+/// True when both stamps are times and name the same instant.
+bool sameIndexStamp(Object? cached, Object? server) {
+  final left = indexStampMillis(cached);
+  final right = indexStampMillis(server);
+  if (left == null || right == null) return false;
+  return left == right;
+}
+
+/// One shard the browse load will read.
+class IndexShardRead {
+  const IndexShardRead({required this.slug, required this.fromCache});
+
+  final String slug;
+
+  /// True when this device already applied the server stamp.
+  final bool fromCache;
+}
+
+/// Shards to read after the server meta.
+///
+/// A shard comes from the local cache only when the stamp this device last
+/// applied matches the server meta stamp. The cached meta document is not
+/// consulted: a failed shard fetch must not look applied. Anything else is
+/// a server read. Slugs are sorted so the browse order does not depend on
+/// map order.
+List<IndexShardRead> planIndexShardReads({
+  required Map<String, int> appliedStamps,
+  required Map<String, Object?> serverStamps,
+}) {
+  final slugs = serverStamps.keys.toList()..sort();
+  return [
+    for (final slug in slugs)
+      IndexShardRead(
+        slug: slug,
+        fromCache: sameIndexStamp(appliedStamps[slug], serverStamps[slug]),
+      ),
+  ];
+}
+
+/// Browse filter. The client drops hidden or explicitly unpublished entries.
 ///
 /// When `hidden` or `published` is present on an entry, the index lists the
 /// temple only if it is not hidden and not explicitly unpublished. Missing
@@ -388,6 +504,7 @@ int estimateTempleIndexShardBytes([int entryCount = kTempleIndexMaxEntries]) {
     'deity': kTempleIndexDeityMax,
     'address': kTempleIndexShortAddressMax,
     'coverThumb': kTempleIndexCoverThumbMax,
+    'coverCaption': 16,
     'tradition': 11,
     'framing': 8,
   };

@@ -8,7 +8,9 @@ import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/services/temple_service.dart';
 import 'package:temple_app/widgets/app_drawer.dart';
 import 'package:temple_app/widgets/debug_home_admin_actions.dart';
+import 'package:temple_app/services/firestore_read_log.dart';
 import 'package:temple_app/widgets/home_mosaic_collage.dart';
+import 'package:temple_app/widgets/unavailable_states_notice.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  HOME SCREEN
@@ -43,10 +45,10 @@ class _HomeScreenState extends State<HomeScreen> {
   final TempleService _templeService = TempleService();
   late Future<List<Temple>> _templesFuture;
 
-  Future<List<Temple>> _loadTemples() {
+  Future<List<Temple>> _loadTemples({bool refresh = false}) {
     final loader = widget.templesLoader;
     if (loader != null) return loader();
-    return _templeService.getTemples();
+    return _templeService.getTemples(refresh: refresh);
   }
 
   @override
@@ -56,7 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _reloadTemples() {
-    setState(() => _templesFuture = _loadTemples());
+    setState(() => _templesFuture = _loadTemples(refresh: true));
   }
 
   AdminAuth get _auth => widget.adminAuth ?? AdminAuth.instance;
@@ -113,7 +115,11 @@ class _HomeScreenState extends State<HomeScreen> {
           }
 
           final allTemples = snapshot.data ?? [];
+          final missing = FirestoreReadLog.instance.unavailableShardsMessage;
           if (allTemples.isEmpty) {
+            if (missing != null) {
+              return _HomeErrorBody(onRetry: _reloadTemples, detail: missing);
+            }
             return _HomeEmptyBody(onRetry: _reloadTemples);
           }
 
@@ -184,9 +190,10 @@ class _HomeLoadingBody extends StatelessWidget {
 }
 
 class _HomeErrorBody extends StatelessWidget {
-  const _HomeErrorBody({required this.onRetry});
+  const _HomeErrorBody({required this.onRetry, this.detail});
 
   final VoidCallback onRetry;
+  final String? detail;
 
   @override
   Widget build(BuildContext context) {
@@ -196,8 +203,11 @@ class _HomeErrorBody extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline_rounded,
-                size: 56, color: Colors.brown.shade300),
+            Icon(
+              Icons.error_outline_rounded,
+              size: 56,
+              color: Colors.brown.shade300,
+            ),
             const SizedBox(height: 12),
             Text(
               'Could not load temples.',
@@ -209,7 +219,7 @@ class _HomeErrorBody extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Check your connection and try again.',
+              detail ?? 'Check your connection and try again.',
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 color: Colors.brown.shade500,
@@ -217,10 +227,7 @@ class _HomeErrorBody extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            TextButton(
-              onPressed: onRetry,
-              child: const Text('Retry'),
-            ),
+            TextButton(onPressed: onRetry, child: const Text('Retry')),
           ],
         ),
       ),
@@ -241,8 +248,11 @@ class _HomeEmptyBody extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.temple_hindu_outlined,
-                size: 56, color: Colors.brown.shade300),
+            Icon(
+              Icons.temple_hindu_outlined,
+              size: 56,
+              color: Colors.brown.shade300,
+            ),
             const SizedBox(height: 12),
             Text(
               'No temples available yet.',
@@ -262,10 +272,7 @@ class _HomeEmptyBody extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            TextButton(
-              onPressed: onRetry,
-              child: const Text('Retry'),
-            ),
+            TextButton(onPressed: onRetry, child: const Text('Retry')),
           ],
         ),
       ),
@@ -278,10 +285,7 @@ class _HomeEmptyBody extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _HomeBody extends StatelessWidget {
-  const _HomeBody({
-    required this.allTemples,
-    required this.onBrowseTemples,
-  });
+  const _HomeBody({required this.allTemples, required this.onBrowseTemples});
 
   final List<Temple> allTemples;
   final VoidCallback onBrowseTemples;
@@ -290,10 +294,9 @@ class _HomeBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return CustomScrollView(
       slivers: [
+        const SliverToBoxAdapter(child: UnavailableStatesNotice()),
         // Verified-photo mosaic (KAN-73) — picsum never shown as temple art.
-        SliverToBoxAdapter(
-          child: HomeMosaicCollage(temples: allTemples),
-        ),
+        SliverToBoxAdapter(child: HomeMosaicCollage(temples: allTemples)),
 
         // ── Browse directory (temple cards live here / in the drawer) ──
         SliverToBoxAdapter(
@@ -314,10 +317,7 @@ class _HomeBody extends StatelessWidget {
 }
 
 class _BrowseTemplesCta extends StatelessWidget {
-  const _BrowseTemplesCta({
-    required this.templeCount,
-    required this.onPressed,
-  });
+  const _BrowseTemplesCta({required this.templeCount, required this.onPressed});
 
   final int templeCount;
   final VoidCallback onPressed;
@@ -414,8 +414,7 @@ class _HeritageWriteUp extends StatelessWidget {
           // Title
           Row(
             children: [
-              const Icon(Icons.auto_stories_rounded,
-                  color: _saffron, size: 26),
+              const Icon(Icons.auto_stories_rounded, color: _saffron, size: 26),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -485,28 +484,25 @@ class _OrnamentDivider extends StatelessWidget {
             height: 1,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  Colors.transparent,
-                  Color(0xFFFFD54F),
-                ],
+                colors: [Colors.transparent, Color(0xFFFFD54F)],
               ),
             ),
           ),
         ),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 10),
-          child: Icon(Icons.temple_hindu_rounded,
-              size: 18, color: Color(0xFFFF8F00)),
+          child: Icon(
+            Icons.temple_hindu_rounded,
+            size: 18,
+            color: Color(0xFFFF8F00),
+          ),
         ),
         Expanded(
           child: Container(
             height: 1,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  Color(0xFFFFD54F),
-                  Colors.transparent,
-                ],
+                colors: [Color(0xFFFFD54F), Colors.transparent],
               ),
             ),
           ),
@@ -515,4 +511,3 @@ class _OrnamentDivider extends StatelessWidget {
     );
   }
 }
-

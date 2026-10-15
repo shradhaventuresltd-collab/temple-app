@@ -261,25 +261,35 @@ async function commitTemple(db, { id, data, isNew, previous, deleteTemple = fals
   if (metaShards.length > 0) {
     const metaRef = at(db, "meta/temple_index");
     const metaSnap = await getDoc(metaRef);
-    const stamps = {};
     if (metaSnap.exists()) {
-      const existing = metaSnap.data()?.shards ?? {};
-      for (const [key, value] of Object.entries(existing)) stamps[key] = value;
+      // Field paths only. Resending the whole shards map would rewrite
+      // sibling timestamps. increment under mergeFields resets indexVersion.
+      const patch = { indexVersion: increment(1) };
+      for (const name of metaShards) {
+        patch[`shards.${name}`] = serverTimestamp();
+      }
+      batch.update(metaRef, patch);
+    } else {
+      const stamps = {};
+      for (const name of metaShards) stamps[name] = serverTimestamp();
+      batch.set(metaRef, { indexVersion: 1, shards: stamps });
     }
-    for (const name of metaShards) stamps[name] = serverTimestamp();
-    // merge: true. increment under mergeFields resets indexVersion in this
-    // SDK, and the rules then deny the batch on the next edit.
-    batch.set(
-      metaRef,
-      {
-        indexVersion: metaSnap.exists() ? increment(1) : 1,
-        shards: stamps,
-      },
-      { merge: true },
-    );
   }
   await batch.commit();
 }
+
+test("an admin save without coordinates writes null", async () => {
+  const db = adminDb("admin-null-coords");
+  const id = "unplaced-temple";
+  const payload = templePayload(id, { latitude: null, longitude: null });
+  await assertSucceeds(setDoc(at(db, `temples/${id}`), payload));
+  const saved = await getDoc(at(db, `temples/${id}`));
+  assert.equal(saved.data().latitude, null);
+  assert.equal(saved.data().longitude, null);
+  await assertFails(
+    setDoc(at(db, "temples/bad-lat"), templePayload("bad-lat", { latitude: "north" })),
+  );
+});
 
 test("httpsUrl rejects a photo url that contains whitespace", async () => {
   const db = adminDb("admin-url");
@@ -305,7 +315,8 @@ test("create, update, state move, and delete keep the entry and meta", async () 
   let entries = shard.data().entries;
   assert.equal(entries["other-temple"].name, "Other");
   assert.deepEqual(withoutUpdatedAt(entries[id]), withoutUpdatedAt(entryFromTemple(created)));
-  assert.equal(entries[id].coverThumb, created.imageUrl);
+  // Browse uses the first verified gallery image, not imageUrl, when images[] is set.
+  assert.equal(entries[id].coverThumb, "https://example.com/gallery.jpg");
   assert.equal(Object.hasOwn(entries[id], "description"), false);
   assert.equal(Object.hasOwn(entries[id], "photos"), false);
   assert.ok(entries[id].updatedAt);

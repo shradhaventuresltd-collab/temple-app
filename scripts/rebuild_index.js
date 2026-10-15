@@ -224,20 +224,23 @@ export async function applyPlan(db, report, deps = {}) {
     if (touched.length === 0) continue;
     const metaRef = db.collection("meta").doc("temple_index");
     const metaSnap = await metaRef.get();
-    const existing = metaSnap.exists ? (metaSnap.data()?.shards ?? {}) : {};
-    const stamps = { ...existing };
-    for (const shard of touched) {
-      stamps[shard] = admin.firestore.FieldValue.serverTimestamp();
-    }
-    // merge: true. mergeFields + increment resets indexVersion.
-    batch.set(
-      metaRef,
-      {
+    const uniqueTouched = [...new Set(touched)];
+    if (!metaSnap.exists) {
+      const stamps = {};
+      for (const shard of uniqueTouched) {
+        stamps[shard] = admin.firestore.FieldValue.serverTimestamp();
+      }
+      batch.set(metaRef, { indexVersion: 1, shards: stamps }, { merge: true });
+    } else {
+      // Only the shards this round changed. Sibling timestamps stay put.
+      const patch = {
         indexVersion: admin.firestore.FieldValue.increment(1),
-        shards: stamps,
-      },
-      { merge: true },
-    );
+      };
+      for (const shard of uniqueTouched) {
+        patch[`shards.${shard}`] = admin.firestore.FieldValue.serverTimestamp();
+      }
+      batch.update(metaRef, patch);
+    }
     await batch.commit();
   }
   return written;

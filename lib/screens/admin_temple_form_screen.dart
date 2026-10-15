@@ -84,10 +84,14 @@ class _AdminTempleFormScreenState extends State<AdminTempleFormScreen> {
       _drafts[i].order = i;
     }
     _latitude = TextEditingController(
-      text: t == null || t.latitude == 0 ? '' : t.latitude.toString(),
+      text: t == null || t.latitude == null || t.latitude == 0
+          ? ''
+          : t.latitude.toString(),
     );
     _longitude = TextEditingController(
-      text: t == null || t.longitude == 0 ? '' : t.longitude.toString(),
+      text: t == null || t.longitude == null || t.longitude == 0
+          ? ''
+          : t.longitude.toString(),
     );
   }
 

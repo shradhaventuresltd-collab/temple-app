@@ -21,16 +21,25 @@
  * plus new entry keys stay at or under 400. Any failure aborts with no
  * write, including other states in the same run. Only then does it
  * create() each temple and merge entries.{id}. An existing shard is not
- * replaced. meta is bumped with increment and merge, one batch per state
- * shard, under 500 ops. rebuild_index.js is a repair tool, not a
- * required follow-up.
+ * replaced. The meta write sets indexVersion and only the touched shards'
+ * timestamps. When the creates, shard merges, and that one meta write fit
+ * in 500 operations, they commit together. A larger run is one batch per
+ * state shard. Each of those later commits can succeed after an earlier
+ * one has already landed, so a crash mid-run can leave the earlier states
+ * written. The pre-check cannot roll back a commit that already succeeded.
+ * rebuild_index.js is a repair tool, not a required follow-up.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { confirmProject } from "./prod_guard.js";
-import { entryFromTemple, MAX_ENTRIES, planSeedIndexBatches } from "./temple_index.js";
+import {
+  entryFromTemple,
+  FIRESTORE_BATCH_LIMIT,
+  MAX_ENTRIES,
+  planSeedIndexBatches,
+} from "./temple_index.js";
 import {
   formatInfo,
   formatSummary,
@@ -64,7 +73,9 @@ any null-timings document. --apply reads every temple id, meta, and each target 
 An existing id, or a shard whose existing plus new keys would pass 400,
 aborts the whole run before the first commit. Nothing is written for the
 other states either. It then creates the temple docs and merges the
-entries, one batch per state shard, under 500 ops.
+entries. When those writes fit in 500 operations they commit as one
+batch. A larger run is one batch per state shard. A later commit can
+fail after an earlier one has landed.
 Do not combine this with Seed or upload_research_pack.js --patch-firestore.
 `);
 }
@@ -184,7 +195,8 @@ async function openSeedFirestore(project, admin) {
  * Pre-checks every state before the first commit: temple ids are absent,
  * meta and each target shard are read, and existing plus new keys stay at
  * or under 400. Any failure throws with no write. Shard writes are
- * set(mergeFields) on entries.{id}. Meta uses increment and merge.
+ * set(mergeFields) on entries.{id}. The meta write sends only the touched
+ * shards' timestamps. Rounds that fit in 500 operations share one batch.
  *
  * @param {FirebaseFirestore.Firestore} db
  * @param {object[]} temples normalised temples (id, name, state, ...)
@@ -195,10 +207,6 @@ export async function applySeedBatches(db, temples, admin) {
   const rounds = planSeedIndexBatches(temples);
   const metaRef = db.collection("meta").doc("temple_index");
   const metaSnap = await metaRef.get();
-  const baseShards =
-    metaSnap.exists && metaSnap.data()?.shards && typeof metaSnap.data().shards === "object"
-      ? { ...metaSnap.data().shards }
-      : {};
 
   const refs = temples.map((temple) => db.collection("temples").doc(temple.id));
   const snaps = refs.length === 0 ? [] : await db.getAll(...refs);
@@ -239,38 +247,58 @@ export async function applySeedBatches(db, temples, admin) {
     staged.push({ shard: round.shard, entries, creates });
   }
 
-  const touched = [];
-  for (const round of staged) {
+  let metaExists = metaSnap.exists;
+  for (const group of planSeedCommits(staged)) {
     const batch = db.batch();
-    for (const temple of round.creates) {
-      batch.create(db.collection("temples").doc(temple.id), {
-        ...temple.data,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
+    const touched = [];
+    for (const round of group) {
+      for (const temple of round.creates) {
+        batch.create(db.collection("temples").doc(temple.id), {
+          ...temple.data,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+      batch.set(
+        db.collection("temple_index").doc(round.shard),
+        { entries: round.entries },
+        { mergeFields: Object.keys(round.entries).map((id) => `entries.${id}`) },
+      );
+      touched.push(round.shard);
     }
-    batch.set(
-      db.collection("temple_index").doc(round.shard),
-      { entries: round.entries },
-      { mergeFields: Object.keys(round.entries).map((id) => `entries.${id}`) },
-    );
-    touched.push(round.shard);
-    const shards = { ...baseShards };
-    for (const name of touched) {
-      shards[name] = admin.firestore.FieldValue.serverTimestamp();
-    }
-    batch.set(
-      metaRef,
-      {
-        indexVersion: admin.firestore.FieldValue.increment(1),
-        shards,
-      },
-      { merge: true },
-    );
+    writeSeedMeta(batch, metaRef, metaExists, touched, admin);
     await batch.commit();
-    for (const temple of round.creates) {
-      console.log(`created temples/${temple.id}`);
+    metaExists = true;
+    for (const round of group) {
+      for (const temple of round.creates) {
+        console.log(`created temples/${temple.id}`);
+      }
     }
   }
+}
+
+/**
+ * One group when every create, shard merge, and the single meta write fit
+ * in [maxOps]. Otherwise one group per state, which is several commits.
+ * @param {{ shard: string, creates: object[] }[]} rounds
+ * @param {number} [maxOps]
+ */
+export function planSeedCommits(rounds, maxOps = FIRESTORE_BATCH_LIMIT) {
+  const ops = rounds.reduce((sum, round) => sum + round.creates.length + 1, 1);
+  if (rounds.length <= 1 || ops <= maxOps) return [rounds];
+  return rounds.map((round) => [round]);
+}
+
+function writeSeedMeta(batch, metaRef, exists, shards, admin) {
+  const stamp = () => admin.firestore.FieldValue.serverTimestamp();
+  if (!exists) {
+    const map = {};
+    for (const name of shards) map[name] = stamp();
+    batch.set(metaRef, { indexVersion: 1, shards: map });
+    return;
+  }
+  const patch = { indexVersion: admin.firestore.FieldValue.increment(1) };
+  for (const name of shards) patch[`shards.${name}`] = stamp();
+  batch.update(metaRef, patch);
 }
 
 async function applyToFirestore(project, temples) {

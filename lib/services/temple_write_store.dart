@@ -157,23 +157,27 @@ class FirebaseTempleWriteStore implements TempleWriteStore {
           .collection(kTempleIndexMetaCollection)
           .doc(kTempleIndexMetaDocId);
       final metaSnap = await metaRef.get();
-      // mergeFields + increment resets indexVersion in the emulator's web
-      // SDK, and the rules then deny the whole batch. merge: true keeps the
-      // +1. Copy sibling shard stamps so the replaced map does not drop them.
-      final stamps = <String, dynamic>{};
-      final existing = metaSnap.data()?['shards'];
-      if (existing is Map) {
-        for (final entry in existing.entries) {
-          stamps[entry.key.toString()] = entry.value;
+      // update() patches shards.{slug}. set()+merge replaces the whole map,
+      // so a create sends only this write's stamps. increment under
+      // mergeFields resets indexVersion in the web SDK; update() keeps +1.
+      if (metaSnap.exists) {
+        // State slugs have no dots, so shards.$slug is one field.
+        final patch = <String, dynamic>{
+          'indexVersion': FieldValue.increment(1),
+        };
+        for (final slug in plan.metaShards) {
+          patch['shards.$slug'] = FieldValue.serverTimestamp();
         }
+        batch.update(metaRef, patch);
+      } else {
+        batch.set(metaRef, {
+          'indexVersion': 1,
+          'shards': {
+            for (final slug in plan.metaShards)
+              slug: FieldValue.serverTimestamp(),
+          },
+        });
       }
-      for (final slug in plan.metaShards) {
-        stamps[slug] = FieldValue.serverTimestamp();
-      }
-      batch.set(metaRef, {
-        'indexVersion': metaSnap.exists ? FieldValue.increment(1) : 1,
-        'shards': stamps,
-      }, SetOptions(merge: true));
     }
     await batch.commit();
   }

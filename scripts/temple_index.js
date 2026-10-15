@@ -8,7 +8,7 @@
 export const ENTRY_VERSION = 1;
 export const MAX_ENTRIES = 400;
 export const MAX_SHARDS = 48;
-export const SHORT_ADDRESS_MAX = 120;
+export const SHORT_ADDRESS_MAX = 340;
 export const COVER_THUMB_MAX = 500;
 export const NAME_MAX = 80;
 export const CITY_MAX = 40;
@@ -96,10 +96,10 @@ export function shortAddress(raw) {
     .trim()
     .replace(/\s+/g, " ");
   if (text.length <= SHORT_ADDRESS_MAX) return text;
-  const cut = text.slice(0, SHORT_ADDRESS_MAX);
-  const comma = cut.lastIndexOf(",");
-  if (comma >= 40) return cut.slice(0, comma).trimEnd();
-  return cut.trimEnd();
+  let cut = text.slice(0, SHORT_ADDRESS_MAX);
+  const space = cut.lastIndexOf(" ");
+  if (space >= 40) cut = cut.slice(0, space);
+  return cut.trimEnd().replace(/[,\s]+$/, "");
 }
 
 function placeholder(url) {
@@ -144,18 +144,6 @@ function httpUrl(raw) {
   }
 }
 
-function is480File(raw) {
-  const trimmed = httpUrl(raw);
-  if (!trimmed) return false;
-  let pathname = trimmed;
-  try {
-    pathname = decodeURIComponent(new URL(trimmed).pathname);
-  } catch {
-    return false;
-  }
-  return /[_-]480\.(jpe?g|png|webp)$/i.test(pathname);
-}
-
 function browseThumb(raw) {
   const trimmed = httpUrl(raw);
   if (!trimmed || placeholder(trimmed) || trimmed.length > COVER_THUMB_MAX) return null;
@@ -183,29 +171,69 @@ function usableCover(raw, { allowFull }) {
   return trimmed;
 }
 
-function firstPhoto(raw) {
-  if (!Array.isArray(raw) || raw.length === 0) return null;
-  const first = raw[0];
-  if (first && typeof first === "object") return first;
-  if (typeof first === "string") return { url: first };
+function galleryCandidates(data) {
+  const images = Array.isArray(data?.images) ? data.images : [];
+  const urls = [];
+  for (const item of images) {
+    if (typeof item !== "string") continue;
+    const trimmed = item.trim();
+    if (trimmed) urls.push(trimmed);
+  }
+  if (urls.length > 0) return urls;
+  const imageUrl = typeof data?.imageUrl === "string" ? data.imageUrl.trim() : "";
+  return imageUrl ? [imageUrl] : [];
+}
+
+/** First verified gallery URL, before a 480px rewrite. Matches browse. */
+export function firstVerifiedGalleryUrl(data) {
+  for (const url of galleryCandidates(data)) {
+    if (!httpUrl(url) || placeholder(url)) continue;
+    return url;
+  }
   return null;
 }
 
 /**
- * photos[0].thumbUrl, then a _480 file on photos[0], then imageUrl, then images[0].
- * TODO(KAN-146): thumbnails are not generated yet. Until they exist, a full-size
- * imageUrl or images[0] is stored instead of null. Result is at most 500 characters.
+ * Same photo as browse: first verified `images` URL, or `imageUrl` when
+ * `images` is empty. Wikimedia thumbs wider than 480px are rewritten.
+ * TODO(KAN-146): a generated thumbnail can replace this URL later.
+ * Result is at most 500 characters.
  */
 export function coverThumb(data) {
-  const photo = firstPhoto(data?.photos);
-  const fromPhoto =
-    usableCover(photo?.thumbUrl, { allowFull: true }) ||
-    usableCover(is480File(photo?.url) ? photo.url : null, { allowFull: false });
-  if (fromPhoto) return fromPhoto;
-  const fromCover = usableCover(data?.imageUrl, { allowFull: true });
-  if (fromCover) return fromCover;
-  const gallery = Array.isArray(data?.images) ? data.images[0] : null;
-  return usableCover(gallery, { allowFull: true });
+  const source = firstVerifiedGalleryUrl(data);
+  if (!source) return null;
+  return usableCover(source, { allowFull: true });
+}
+
+function isHistoricalPrintCaption(credit) {
+  const lower = credit.toLowerCase();
+  return lower.includes("lithograph") || lower.includes("1847 print");
+}
+
+function printYear(credit) {
+  const match =
+    /\b(1[5-9]\d{2}|20\d{2})\b\s*(?:lithographs?|lithographic|prints?)\b|\b(?:lithographs?|lithographic|prints?)\b(?:\s*[\(,:\-–]|\s+(?:of|from|circa|c\.|ca\.|dated|in)\s+)\s*(1[5-9]\d{2}|20\d{2})\b/i.exec(
+      credit,
+    );
+  const year = match?.[1] ?? match?.[2];
+  if (!year) return null;
+  const value = Number(year);
+  if (!Number.isFinite(value) || value < 1500 || value > 2099) return null;
+  return year;
+}
+
+/** "Lithograph, 1847" when [url] is a historical print in [photos]. */
+export function historicalCoverCaption(photos, url) {
+  if (!Array.isArray(photos) || typeof url !== "string" || !url) return null;
+  for (const photo of photos) {
+    if (!photo || photo.url !== url) continue;
+    const credit = text(photo.credit);
+    if (!isHistoricalPrintCaption(credit)) return null;
+    const year = printYear(credit);
+    if (!year) return "Lithograph";
+    return `Lithograph, ${year}`;
+  }
+  return null;
 }
 
 /**
@@ -579,6 +607,11 @@ export function entryFromTemple(data) {
   const address = shortAddress(
     text(data.address) || text(data.location),
   );
+  const source = firstVerifiedGalleryUrl(data);
+  const cover = coverThumb(data);
+  const caption =
+    historicalCoverCaption(data.photos, source) ||
+    historicalCoverCaption(data.photos, cover);
   const entry = {
     id,
     slug: id,
@@ -587,7 +620,7 @@ export function entryFromTemple(data) {
     state: clip(data.state, STATE_MAX),
     deity: clip(data.deity, DEITY_MAX),
     address,
-    coverThumb: coverThumb(data),
+    coverThumb: cover,
     lat: point.lat,
     lng: point.lng,
     updatedAt: null,
@@ -604,6 +637,7 @@ export function entryFromTemple(data) {
   if (Object.prototype.hasOwnProperty.call(data, "hidden") && typeof data.hidden === "boolean") {
     entry.hidden = data.hidden;
   }
+  if (caption) entry.coverCaption = caption;
   return entry;
 }
 
@@ -751,6 +785,7 @@ export function estimateShardBytes(entryCount = MAX_ENTRIES) {
     deity: DEITY_MAX,
     address: SHORT_ADDRESS_MAX,
     coverThumb: COVER_THUMB_MAX,
+    coverCaption: 16,
     tradition: "unspecified".length,
     framing: "monument".length,
   };

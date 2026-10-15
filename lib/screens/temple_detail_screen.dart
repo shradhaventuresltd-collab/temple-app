@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_photo.dart';
+import 'package:temple_app/services/temple_service.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
 import 'package:temple_app/widgets/app_drawer.dart';
 import 'package:temple_app/widgets/temple_image_placeholder.dart';
@@ -13,17 +14,79 @@ import 'package:url_launcher/url_launcher.dart';
 const Color _saffron = Color(0xFFFF8F00);
 const Color _gold = Color(0xFFFFD54F);
 
-class TempleDetailScreen extends StatelessWidget {
-  const TempleDetailScreen({super.key, required this.temple});
+class TempleDetailScreen extends StatefulWidget {
+  const TempleDetailScreen({super.key, required this.temple, this.loadTemple});
 
+  /// Browse summary, or a full document when the caller already has one.
   final Temple temple;
+
+  /// Loads `temples/{id}`. Tests pass a fake. Index summaries fetch; a full
+  /// document passed in is shown as-is.
+  final Future<TempleDetailLoad> Function(String id)? loadTemple;
+
+  @override
+  State<TempleDetailScreen> createState() => _TempleDetailScreenState();
+}
+
+class _TempleDetailScreenState extends State<TempleDetailScreen> {
+  late Temple _temple;
+  var _loading = false;
+  var _missing = false;
+  var _fromCache = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _temple = widget.temple;
+    final id = widget.temple.id.trim();
+    if (!widget.temple.isIndexSummary || id.isEmpty) return;
+    _loading = true;
+    final load = widget.loadTemple ?? TempleService().getTemple;
+    unawaited(_fetch(load, id));
+  }
+
+  Future<void> _fetch(
+    Future<TempleDetailLoad> Function(String id) load,
+    String id,
+  ) async {
+    try {
+      final loaded = await load(id);
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        final full = loaded.temple;
+        if (full == null) {
+          _missing = true;
+        } else {
+          _temple = full;
+          _fromCache = loaded.fromCache;
+        }
+      });
+    } catch (e, st) {
+      debugPrint('Temple detail read failed: $e\n$st');
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _missing = true;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFFFBF2),
       drawer: const AppDrawer(),
-      body: TempleDetailBody(temple: temple),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator(color: _saffron))
+          : _missing
+          ? Center(
+              child: Text(
+                'Could not load this temple.',
+                style: GoogleFonts.poppins(color: Colors.brown.shade700),
+              ),
+            )
+          : TempleDetailBody(temple: _temple, fromCache: _fromCache),
     );
   }
 }
@@ -31,9 +94,17 @@ class TempleDetailScreen extends StatelessWidget {
 /// Scrollable detail content. Separated so honesty UI can be tested without
 /// opening the shared drawer (which reads Firestore).
 class TempleDetailBody extends StatefulWidget {
-  const TempleDetailBody({super.key, required this.temple});
+  const TempleDetailBody({
+    super.key,
+    required this.temple,
+    this.fromCache = false,
+  });
 
   final Temple temple;
+
+  /// True when [temple] was read from the local cache after the server read
+  /// failed. The page says it may be out of date.
+  final bool fromCache;
 
   @override
   State<TempleDetailBody> createState() => _TempleDetailBodyState();
@@ -95,8 +166,11 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
       "Couldn't open directions on this device.";
 
   Future<void> _openGoogleMaps() async {
+    final lat = temple.latitude;
+    final lng = temple.longitude;
+    if (lat == null || lng == null) return;
     final url = Uri.parse(
-      'https://www.google.com/maps/search/?api=1&query=${temple.latitude},${temple.longitude}',
+      'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
     );
     final opened = await _tryOpenMaps(url);
     if (!opened && mounted) {
@@ -450,6 +524,19 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (widget.fromCache) ...[
+                      Text(
+                        'This page may be out of date.',
+                        key: const Key('detail-cache-hint'),
+                        style: GoogleFonts.poppins(
+                          fontSize: 13.5,
+                          height: 1.4,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.brown.shade800,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                     _InfoCard(
                       title: 'Location',
                       icon: Icons.location_on_rounded,
@@ -472,8 +559,9 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
                     _InfoCard(
                       title: 'Coordinates',
                       icon: Icons.explore_rounded,
-                      content:
-                          '${temple.latitude.toStringAsFixed(4)}° N, ${temple.longitude.toStringAsFixed(4)}° E',
+                      content: temple.hasCoordinates
+                          ? '${temple.latitude!.toStringAsFixed(4)}° N, ${temple.longitude!.toStringAsFixed(4)}° E'
+                          : 'Not listed in this entry.',
                     ),
 
                     // ── How to Reach ──
@@ -519,38 +607,40 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 14),
-                          SizedBox(
-                            width: double.infinity,
-                            child: Semantics(
-                              identifier: 'get-directions-button',
-                              child: ElevatedButton.icon(
-                                key: const Key('get-directions-button'),
-                                onPressed: _openGoogleMaps,
-                                icon: const Icon(
-                                  Icons.directions_rounded,
-                                  color: Colors.white,
-                                ),
-                                label: Text(
-                                  'Get Directions',
-                                  style: GoogleFonts.poppins(
+                          if (temple.hasCoordinates) ...[
+                            const SizedBox(height: 14),
+                            SizedBox(
+                              width: double.infinity,
+                              child: Semantics(
+                                identifier: 'get-directions-button',
+                                child: ElevatedButton.icon(
+                                  key: const Key('get-directions-button'),
+                                  onPressed: _openGoogleMaps,
+                                  icon: const Icon(
+                                    Icons.directions_rounded,
                                     color: Colors.white,
-                                    fontWeight: FontWeight.w600,
                                   ),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: _deepSaffron,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 14,
+                                  label: Text(
+                                    'Get Directions',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: _deepSaffron,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 0,
                                   ),
-                                  elevation: 0,
                                 ),
                               ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                     ),

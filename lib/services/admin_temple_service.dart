@@ -290,6 +290,11 @@ void _assertNoDisallowedFirestoreKeys(Map<String, dynamic> stored) {
   );
 }
 
+double? _preferCoordinate(double? current, double? stored) {
+  if (current == null || current == 0) return stored;
+  return current;
+}
+
 /// Builds the temple that will be written after an image upload.
 ///
 /// Model fields come from [current] (the Admin list item). Gallery URLs come
@@ -300,8 +305,8 @@ Temple coalesceTemple(Temple stored, Temple current) {
   return current.copyWith(
     imageUrl: pick(current.imageUrl, stored.imageUrl),
     images: stored.images.isNotEmpty ? stored.images : current.images,
-    latitude: current.latitude != 0 ? current.latitude : stored.latitude,
-    longitude: current.longitude != 0 ? current.longitude : stored.longitude,
+    latitude: _preferCoordinate(current.latitude, stored.latitude),
+    longitude: _preferCoordinate(current.longitude, stored.longitude),
   );
 }
 
@@ -406,14 +411,15 @@ void assertTemplePayloadValidForRules(Map<String, dynamic> data) {
   requireList('images', 50);
   _requirePhotos(data['photos']);
 
-  final lat = data['latitude'];
-  final lng = data['longitude'];
-  if (lat is! num || lat < -90 || lat > 90) {
-    throw StateError('Temple "latitude" must be a number between -90 and 90.');
-  }
-  if (lng is! num || lng < -180 || lng > 180) {
+  _requireCoordinate(data['latitude'], 'latitude', -90, 90);
+  _requireCoordinate(data['longitude'], 'longitude', -180, 180);
+}
+
+void _requireCoordinate(Object? value, String field, num min, num max) {
+  if (value == null) return;
+  if (value is! num || value < min || value > max) {
     throw StateError(
-      'Temple "longitude" must be a number between -180 and 180.',
+      'Temple "$field" must be null or a number between $min and $max.',
     );
   }
 }

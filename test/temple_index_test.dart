@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:temple_app/data/sample_data.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_index.dart';
+import 'package:temple_app/widgets/temple_browse_card.dart';
 import 'package:temple_app/services/admin_temple_service.dart';
 import 'package:temple_app/services/seed_service.dart';
 
@@ -127,7 +128,7 @@ void main() {
     expect(axis.lng, 80);
   });
 
-  test('cover prefers photos[0] thumb, then imageUrl, and caps at 500', () {
+  test('cover matches the first verified gallery image and caps at 500', () {
     const thumb = 'https://cdn.example/photos/shore_480.jpg';
     const full = 'https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg';
     expect(
@@ -138,7 +139,7 @@ void main() {
         'imageUrl': 'https://example.com/cover.jpg',
         'images': ['https://example.com/gallery.jpg'],
       }),
-      thumb,
+      'https://example.com/gallery.jpg',
     );
     const wide =
         'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/1280px-File.jpg';
@@ -175,10 +176,12 @@ void main() {
     );
   });
 
-  test('short address stops at 120 characters', () {
-    final long = '${'Gate, ' * 40}Madurai';
-    final short = shortTempleAddress(long);
+  test('short address keeps a search word that follows a comma', () {
+    const marker = 'DevakRiverbank';
+    final address = '${'a' * 50}, $marker ${'tail ' * 80}';
+    final short = shortTempleAddress(address);
     expect(short.length, lessThanOrEqualTo(kTempleIndexShortAddressMax));
+    expect(short, contains(marker));
     expect(short.endsWith(','), isFalse);
   });
 
@@ -397,6 +400,9 @@ void main() {
       isDebug: true,
     );
     await service.createTemple(_temple(latitude: 0, longitude: 0));
+    final doc = store.docs['new-shore-temple']!;
+    expect(doc['latitude'], isNull);
+    expect(doc['longitude'], isNull);
     final entry = store.shards['tamil-nadu']!['new-shore-temple']!;
     expect(entry['lat'], isNull);
     expect(entry['lng'], isNull);
@@ -512,6 +518,7 @@ void main() {
           'specialities': temple.specialities,
           'imageUrl': temple.imageUrl,
           'images': temple.images,
+          'photos': [for (final photo in temple.photos) photo.toJson()],
           'address': temple.location,
           'latitude': temple.latitude,
           'longitude': temple.longitude,
@@ -541,6 +548,7 @@ void main() {
       expect(js['deity'], dartEntry['deity'], reason: id);
       expect(js['address'], dartEntry['address'], reason: id);
       expect(js['coverThumb'], dartEntry['coverThumb'], reason: id);
+      expect(js['coverCaption'], dartEntry['coverCaption'], reason: id);
       final lng = dartEntry['lng'];
       final lat = dartEntry['lat'];
       expect(lng == null || lng is double, isTrue, reason: id);
@@ -571,9 +579,59 @@ void main() {
     await dir.delete(recursive: true);
   });
 
-  test('browse still reads temples, not the index', () {
+  test('an index entry becomes a browse temple with stored honesty', () {
+    final temple = templeFromIndexEntry({
+      'id': 'shore-temple',
+      'name': 'Shore Temple',
+      'state': 'Tamil Nadu',
+      'city': 'Mahabalipuram',
+      'deity': 'Shiva',
+      'address': 'Mahabalipuram, Tamil Nadu',
+      'coverThumb': 'https://example.com/shore.jpg',
+      'coverCaption': 'Lithograph, 1847',
+      'lat': 12.616,
+      'lng': 80.199,
+      'tradition': 'unspecified',
+      'framing': 'monument',
+    });
+    expect(temple.isIndexSummary, isTrue);
+    expect(temple.description, isEmpty);
+    expect(temple.imageUrl, 'https://example.com/shore.jpg');
+    expect(temple.location, 'Mahabalipuram, Tamil Nadu');
+    expect(temple.latitude, 12.616);
+    expect(temple.longitude, 80.199);
+    expect(temple.hasCoordinates, isTrue);
+    final missingPoint = templeFromIndexEntry({
+      'id': 'no-point',
+      'name': 'No Point',
+      'state': 'Goa',
+    });
+    expect(missingPoint.latitude, isNull);
+    expect(missingPoint.longitude, isNull);
+    expect(missingPoint.hasCoordinates, isFalse);
+    expect(templeBrowseHonestyLabels(temple), ['Heritage visit']);
+    expect(temple.coverCaption, 'Lithograph, 1847');
+  });
+
+  test('unchanged applied stamps stay on cache and a new stamp is fetched', () {
+    final stamp = DateTime.utc(2026, 1, 2);
+    final plan = planIndexShardReads(
+      appliedStamps: {
+        'bihar': stamp.millisecondsSinceEpoch,
+        'kerala': stamp.millisecondsSinceEpoch,
+      },
+      serverStamps: {'kerala': stamp, 'bihar': DateTime.utc(2026, 2, 2)},
+    );
+    expect(plan.map((read) => read.slug), ['bihar', 'kerala']);
+    expect(plan[0].fromCache, isFalse);
+    expect(plan[1].fromCache, isTrue);
+  });
+
+  test('browse reads the index and falls back to temples', () {
     final source = File('lib/services/temple_service.dart').readAsStringSync();
     expect(source, contains("collection('temples')"));
-    expect(source, isNot(contains('temple_index')));
+    expect(source, contains('kTempleIndexCollection'));
+    expect(source, contains('Source.cache'));
+    expect(source, contains('Source.server'));
   });
 }

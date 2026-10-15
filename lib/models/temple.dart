@@ -12,12 +12,15 @@ class Temple {
     required this.location,
     required String? timings,
     required this.specialities,
-    required this.latitude,
-    required this.longitude,
+    this.latitude,
+    this.longitude,
     this.id = '',
     this.images = const [],
     this.photos = const [],
     this.writePhotos = false,
+    this.indexTradition,
+    this.indexFraming,
+    this.coverCaption,
   }) : _timings = timings;
 
   final String id;
@@ -50,8 +53,29 @@ class Temple {
   /// false so existing docs are not backfilled.
   final bool writePhotos;
 
-  final double latitude;
-  final double longitude;
+  /// Set when this value came from a `temple_index` entry, not a full document.
+  ///
+  /// Browse cards use these instead of re-reading description text. Detail
+  /// loads `temples/{id}` and builds a [Temple] without them.
+  final String? indexTradition;
+  final String? indexFraming;
+
+  /// Lithograph label already computed for [imageUrl]. Null on full documents;
+  /// the card then reads [photos].
+  final String? coverCaption;
+
+  bool get isIndexSummary => indexTradition != null && indexFraming != null;
+
+  /// Null when the listing has no coordinates. (0, 0) is that missing pair,
+  /// not a point in the Gulf of Guinea.
+  final double? latitude;
+  final double? longitude;
+
+  bool get hasCoordinates {
+    if (latitude == null || longitude == null) return false;
+    if (latitude == 0 && longitude == 0) return false;
+    return true;
+  }
 
   bool get hasNetworkImage => imageUrl.trim().isNotEmpty;
 
@@ -80,8 +104,8 @@ class Temple {
       specialities: _stringList(data['specialities']),
       images: _stringList(data['images']),
       photos: _photoList(data['photos']),
-      latitude: (data['latitude'] as num?)?.toDouble() ?? 0.0,
-      longitude: (data['longitude'] as num?)?.toDouble() ?? 0.0,
+      latitude: _coordinatePair(data).lat,
+      longitude: _coordinatePair(data).lng,
     );
   }
 
@@ -112,8 +136,8 @@ class Temple {
       'story': story,
       'imageUrl': cover,
       'address': location,
-      'latitude': latitude,
-      'longitude': longitude,
+      'latitude': hasCoordinates ? latitude : null,
+      'longitude': hasCoordinates ? longitude : null,
       'timings': _timings,
       'specialities': specialities,
     };
@@ -141,6 +165,9 @@ class Temple {
     List<String>? images,
     List<TemplePhoto>? photos,
     bool? writePhotos,
+    String? indexTradition,
+    String? indexFraming,
+    String? coverCaption,
     double? latitude,
     double? longitude,
   }) {
@@ -159,6 +186,9 @@ class Temple {
       images: images ?? this.images,
       photos: photos ?? this.photos,
       writePhotos: writePhotos ?? this.writePhotos,
+      indexTradition: indexTradition ?? this.indexTradition,
+      indexFraming: indexFraming ?? this.indexFraming,
+      coverCaption: coverCaption ?? this.coverCaption,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
     );
@@ -183,4 +213,13 @@ class Temple {
     }
     return const [];
   }
+}
+
+/// Missing numbers and the (0, 0) placeholder are null.
+({double? lat, double? lng}) _coordinatePair(Map<String, dynamic> data) {
+  final lat = data['latitude'];
+  final lng = data['longitude'];
+  if (lat is! num || lng is! num) return (lat: null, lng: null);
+  if (lat == 0 && lng == 0) return (lat: null, lng: null);
+  return (lat: lat.toDouble(), lng: lng.toDouble());
 }

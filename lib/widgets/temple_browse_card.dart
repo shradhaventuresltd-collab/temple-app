@@ -197,7 +197,8 @@ class _BrowseCover extends StatelessWidget {
         final width = constraints.maxWidth.isFinite && constraints.maxWidth > 0
             ? constraints.maxWidth
             : MediaQuery.sizeOf(context).width;
-        final caption = historicalCoverCaption(temple.photos, coverUrl);
+        final caption =
+            temple.coverCaption ?? historicalCoverCaption(temple.photos, coverUrl);
         return Stack(
           children: [
             CachedNetworkImage(

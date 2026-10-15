@@ -28,8 +28,8 @@ service cloud.firestore {
     //       credit: string, max 200, required for CC-BY and CC-BY-SA
     //     imageUrl and images are mirrors of photos, written in the same
     //     admin payload. Existing docs are not backfilled.
-    //   - latitude: number (required, -90 to 90)
-    //   - longitude: number (required, -180 to 180)
+    //   - latitude: number (-90 to 90) or null when coordinates are not listed
+    //   - longitude: number (-180 to 180) or null when coordinates are not listed
     //   - createdAt: timestamp (optional, immutable after creation)
     //
     // Access: Public read (this is a public temple directory).
@@ -263,10 +263,16 @@ service cloud.firestore {
         isValidList(data.specialities, 20) &&
         isValidList(data.images, 50) &&
         optionalValidPhotos(data) &&
-        data.latitude is number &&
-        data.latitude >= -90 && data.latitude <= 90 &&
-        data.longitude is number &&
-        data.longitude >= -180 && data.longitude <= 180;
+        validLatitude(data.latitude) &&
+        validLongitude(data.longitude);
+    }
+
+    function validLatitude(value) {
+      return value == null || (value is number && value >= -90 && value <= 90);
+    }
+
+    function validLongitude(value) {
+      return value == null || (value is number && value >= -180 && value <= 180);
     }
 
     // Relaxed validator for updates (including set-with-merge).
@@ -293,8 +299,8 @@ service cloud.firestore {
         optionalValidList('specialities', 20) &&
         optionalValidList('images', 50) &&
         optionalValidPhotos(data) &&
-        (!('latitude' in data) || (data.latitude is number && data.latitude >= -90 && data.latitude <= 90)) &&
-        (!('longitude' in data) || (data.longitude is number && data.longitude >= -180 && data.longitude <= 180));
+        (!('latitude' in data) || validLatitude(data.latitude)) &&
+        (!('longitude' in data) || validLongitude(data.longitude));
     }
 
     // ===============================================================

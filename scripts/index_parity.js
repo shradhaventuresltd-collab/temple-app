@@ -22,6 +22,7 @@ const out = temples.map((temple) => {
     deity: entry.deity,
     address: entry.address,
     coverThumb: entry.coverThumb,
+    coverCaption: entry.coverCaption ?? null,
     lat: entry.lat,
     lng: entry.lng,
   };

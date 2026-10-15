@@ -71,6 +71,18 @@ void main() {
     expect(result.errors['location'], 'Location / address is required.');
   });
 
+  test('empty coordinates stay null on the temple and in the write', () {
+    final result = validateTempleDraft(
+      draft(latitudeText: '', longitudeText: '  '),
+    );
+    expect(result.isValid, isTrue);
+    expect(result.temple!.latitude, isNull);
+    expect(result.temple!.longitude, isNull);
+    final data = result.temple!.toFirestoreData();
+    expect(data['latitude'], isNull);
+    expect(data['longitude'], isNull);
+  });
+
   test('invalid coordinates are rejected', () {
     expect(
       validateTempleDraft(draft(latitudeText: 'north')).errors['latitude'],
@@ -83,10 +95,7 @@ void main() {
   });
 
   test('parseTempleStringList splits mixed separators', () {
-    expect(
-      parseTempleStringList('one, two;\nthree'),
-      ['one', 'two', 'three'],
-    );
+    expect(parseTempleStringList('one, two;\nthree'), ['one', 'two', 'three']);
     expect(parseTempleStringList('  \n , '), isEmpty);
   });
 
@@ -94,8 +103,7 @@ void main() {
     final result = validateTempleDraft(
       draft(
         imageUrl: 'https://example.com/cover.jpg',
-        imagesText:
-            'https://example.com/a.jpg\nhttps://example.com/b.jpg',
+        imagesText: 'https://example.com/a.jpg\nhttps://example.com/b.jpg',
       ),
     );
     expect(result.temple!.images, [

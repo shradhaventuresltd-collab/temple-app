@@ -92,6 +92,46 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
   }
 
+  testWidgets('missing coordinates are not sent to maps', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: TempleDetailBody(
+            temple: Temple(
+              name: 'Unplaced',
+              state: 'Goa',
+              city: 'Panaji',
+              deity: 'Shiva',
+              imageUrl: '',
+              description: 'A place listed in the directory.',
+              story: 'Notes are still being checked.',
+              location: 'Temple Street',
+              timings: '6:00 AM–8:00 PM daily.',
+              specialities: ['Stone gateway'],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.byKey(const Key('get-directions-button')), findsNothing);
+    expect(find.text('Not listed in this entry.'), findsOneWidget);
+    expect(find.textContaining('0.0000'), findsNothing);
+    expect(find.text('This page may be out of date.'), findsNothing);
+  });
+
+  testWidgets('a cached detail says it may be out of date', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TempleDetailBody(temple: _temple(), fromCache: true),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.text('This page may be out of date.'), findsOneWidget);
+  });
+
   testWidgets('shows a snackbar when no app can open the maps link', (
     tester,
   ) async {

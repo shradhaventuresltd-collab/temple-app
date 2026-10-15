@@ -58,7 +58,7 @@ List<String> parseTempleStringList(String raw) {
 }
 
 /// Validates core temple fields used by the app. Empty optional fields are
-/// stored as empty strings / `0.0` coordinates, matching bundled sample docs.
+/// stored as empty strings. Empty coordinates are null, not 0,0.
 TempleFormValidation validateTempleDraft(TempleDraft draft) {
   final errors = <String, String>{};
 
@@ -90,6 +90,12 @@ TempleFormValidation validateTempleDraft(TempleDraft draft) {
     min: -180,
     max: 180,
   );
+  if (latitude == null && longitude != null) {
+    errors['latitude'] = 'Enter a latitude.';
+  }
+  if (longitude == null && latitude != null) {
+    errors['longitude'] = 'Enter a longitude.';
+  }
 
   if (errors.isNotEmpty) {
     return TempleFormValidation(errors: errors);
@@ -121,7 +127,7 @@ TempleFormValidation validateTempleDraft(TempleDraft draft) {
   );
 }
 
-double _parseCoordinate(
+double? _parseCoordinate(
   String raw, {
   required Map<String, String> errors,
   required String field,
@@ -130,7 +136,7 @@ double _parseCoordinate(
   required double max,
 }) {
   final text = raw.trim();
-  if (text.isEmpty) return 0;
+  if (text.isEmpty) return null;
 
   final value = double.tryParse(text);
   if (value == null) {
@@ -138,8 +144,7 @@ double _parseCoordinate(
     return 0;
   }
   if (value < min || value > max) {
-    errors[field] =
-        '$label must be between ${min.toInt()} and ${max.toInt()}.';
+    errors[field] = '$label must be between ${min.toInt()} and ${max.toInt()}.';
     return 0;
   }
   return value;

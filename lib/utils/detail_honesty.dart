@@ -33,8 +33,12 @@ class DetailHonesty {
 
   factory DetailHonesty.of(Temple temple) {
     final corpus = _corpus(temple);
-    final tradition = _tradition(temple);
-    final framing = _framing(temple, corpus, tradition);
+    final tradition = temple.indexTradition != null
+        ? _traditionFromIndex(temple.indexTradition!)
+        : _tradition(temple);
+    final framing = temple.indexFraming != null
+        ? _framingFromIndex(temple.indexFraming!)
+        : _framing(temple, corpus, tradition);
     final timings = temple.timings;
     final caveat = _timingsCaveat(timings);
     return DetailHonesty(
@@ -176,6 +180,23 @@ bool isPlaceholderImageUrl(String raw) {
   final blob = '${uri.path} ${uri.query}'.toLowerCase();
   if (blob.contains('placeholder') || blob.contains('picsum')) return true;
   return false;
+}
+
+SiteTradition _traditionFromIndex(String value) {
+  return switch (value) {
+    'jain' => SiteTradition.jain,
+    'buddhist' => SiteTradition.buddhist,
+    'sikh' => SiteTradition.sikh,
+    _ => SiteTradition.unspecified,
+  };
+}
+
+SiteFraming _framingFromIndex(String value) {
+  return switch (value) {
+    'living' => SiteFraming.livingTemple,
+    'monument' => SiteFraming.monumentVisit,
+    _ => SiteFraming.neutral,
+  };
 }
 
 String _corpus(Temple temple) {
