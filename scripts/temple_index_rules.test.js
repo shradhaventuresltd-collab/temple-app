@@ -302,7 +302,8 @@ test("create, update, state move, and delete keep the entry and meta", async () 
   let entries = shard.data().entries;
   assert.equal(entries["other-temple"].name, "Other");
   assert.deepEqual(withoutUpdatedAt(entries[id]), withoutUpdatedAt(entryFromTemple(created)));
-  assert.equal(entries[id].coverThumb, created.imageUrl);
+  // Browse uses the first verified gallery image, not imageUrl, when images[] is set.
+  assert.equal(entries[id].coverThumb, "https://example.com/gallery.jpg");
   assert.equal(Object.hasOwn(entries[id], "description"), false);
   assert.equal(Object.hasOwn(entries[id], "photos"), false);
   assert.ok(entries[id].updatedAt);
