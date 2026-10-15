@@ -71,7 +71,11 @@ class Temple {
   final double? latitude;
   final double? longitude;
 
-  bool get hasCoordinates => latitude != null && longitude != null;
+  bool get hasCoordinates {
+    if (latitude == null || longitude == null) return false;
+    if (latitude == 0 && longitude == 0) return false;
+    return true;
+  }
 
   bool get hasNetworkImage => imageUrl.trim().isNotEmpty;
 
@@ -132,8 +136,8 @@ class Temple {
       'story': story,
       'imageUrl': cover,
       'address': location,
-      'latitude': latitude ?? 0,
-      'longitude': longitude ?? 0,
+      'latitude': hasCoordinates ? latitude : null,
+      'longitude': hasCoordinates ? longitude : null,
       'timings': _timings,
       'specialities': specialities,
     };

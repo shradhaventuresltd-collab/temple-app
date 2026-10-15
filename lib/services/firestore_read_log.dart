@@ -27,10 +27,27 @@ class FirestoreReadLog {
   /// State names whose shard could not be read and has no bundled sample.
   final List<String> unavailableShards = [];
 
-  /// Banner text when [unavailableShards] is not empty.
+  /// State names filled from the bundled sample after the state query failed.
+  final List<String> sampleStates = [];
+
+  /// True when this load is showing any bundled sample, including the
+  /// whole directory after a meta timeout.
+  bool offlineSample = false;
+
+  /// Banner text when a state is missing or a sample is on screen.
   String? get unavailableShardsMessage {
-    if (unavailableShards.isEmpty) return null;
-    return 'Could not load temples in ${unavailableShards.join(', ')}.';
+    final parts = <String>[];
+    if (offlineSample) {
+      final where = sampleStates.isEmpty
+          ? 'temples'
+          : 'temples in ${sampleStates.join(', ')}';
+      parts.add('Could not load $where. Showing the offline sample.');
+    }
+    if (unavailableShards.isNotEmpty) {
+      parts.add('Could not load temples in ${unavailableShards.join(', ')}.');
+    }
+    if (parts.isEmpty) return null;
+    return parts.join(' ');
   }
 
   void startLoad() {
@@ -38,11 +55,20 @@ class FirestoreReadLog {
     cacheHits = 0;
     source = '';
     unavailableShards.clear();
+    sampleStates.clear();
+    offlineSample = false;
   }
 
   void noteUnavailableShard(String label) {
     if (label.isEmpty || unavailableShards.contains(label)) return;
     unavailableShards.add(label);
+  }
+
+  /// [state] is omitted when the whole bundled directory is on screen.
+  void noteOfflineSample([String? state]) {
+    offlineSample = true;
+    if (state == null || state.isEmpty || sampleStates.contains(state)) return;
+    sampleStates.add(state);
   }
 
   void serverRead([int count = 1]) {

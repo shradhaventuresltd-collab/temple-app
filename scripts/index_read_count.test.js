@@ -4,6 +4,9 @@
  * Before: one server read of every temples/{id} document.
  * After cold: meta/temple_index plus each shard.
  * After warm: meta from the server, shards from cache.
+ *
+ * Project id demo-temple-index-reads. CI starts a fresh emulator for this
+ * file so rules tests cannot leave documents behind.
  */
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -21,7 +24,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 
-const PROJECT_ID = "demo-temple-index";
+const PROJECT_ID = "demo-temple-index-reads";
 const STATES = [
   "andhra-pradesh",
   "bihar",

@@ -278,6 +278,19 @@ async function commitTemple(db, { id, data, isNew, previous, deleteTemple = fals
   await batch.commit();
 }
 
+test("an admin save without coordinates writes null", async () => {
+  const db = adminDb("admin-null-coords");
+  const id = "unplaced-temple";
+  const payload = templePayload(id, { latitude: null, longitude: null });
+  await assertSucceeds(setDoc(at(db, `temples/${id}`), payload));
+  const saved = await getDoc(at(db, `temples/${id}`));
+  assert.equal(saved.data().latitude, null);
+  assert.equal(saved.data().longitude, null);
+  await assertFails(
+    setDoc(at(db, "temples/bad-lat"), templePayload("bad-lat", { latitude: "north" })),
+  );
+});
+
 test("httpsUrl rejects a photo url that contains whitespace", async () => {
   const db = adminDb("admin-url");
   const spaced = templePayload("spaced-url", {

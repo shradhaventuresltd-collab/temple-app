@@ -14,7 +14,19 @@ class DirectoryDoc {
 abstract class TempleDirectoryClient {
   Future<DirectoryDoc> getDoc(String collection, String id, {Source? source});
 
-  Future<List<DirectoryDoc>> getDocs(String collection, {required Source source});
+  Future<List<DirectoryDoc>> getDocs(
+    String collection, {
+    required Source source,
+  });
+
+  /// Documents in [collection] whose [field] equals [value]. One state, not
+  /// the whole directory.
+  Future<List<DirectoryDoc>> getDocsWhere(
+    String collection, {
+    required String field,
+    required String value,
+    required Source source,
+  });
 }
 
 /// Live Firestore reads for [TempleDirectoryClient].
@@ -29,9 +41,10 @@ class FirestoreTempleDirectoryClient implements TempleDirectoryClient {
     String id, {
     Source? source,
   }) async {
-    final snap = await _firestore.collection(collection).doc(id).get(
-      source == null ? const GetOptions() : GetOptions(source: source),
-    );
+    final snap = await _firestore
+        .collection(collection)
+        .doc(id)
+        .get(source == null ? const GetOptions() : GetOptions(source: source));
     return DirectoryDoc(id: snap.id, exists: snap.exists, data: snap.data());
   }
 
@@ -40,9 +53,26 @@ class FirestoreTempleDirectoryClient implements TempleDirectoryClient {
     String collection, {
     required Source source,
   }) async {
-    final snapshot = await _firestore.collection(collection).get(
-      GetOptions(source: source),
-    );
+    final snapshot = await _firestore
+        .collection(collection)
+        .get(GetOptions(source: source));
+    return [
+      for (final doc in snapshot.docs)
+        DirectoryDoc(id: doc.id, exists: true, data: doc.data()),
+    ];
+  }
+
+  @override
+  Future<List<DirectoryDoc>> getDocsWhere(
+    String collection, {
+    required String field,
+    required String value,
+    required Source source,
+  }) async {
+    final snapshot = await _firestore
+        .collection(collection)
+        .where(field, isEqualTo: value)
+        .get(GetOptions(source: source));
     return [
       for (final doc in snapshot.docs)
         DirectoryDoc(id: doc.id, exists: true, data: doc.data()),

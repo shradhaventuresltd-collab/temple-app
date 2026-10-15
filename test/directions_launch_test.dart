@@ -117,6 +117,19 @@ void main() {
     expect(find.byKey(const Key('get-directions-button')), findsNothing);
     expect(find.text('Not listed in this entry.'), findsOneWidget);
     expect(find.textContaining('0.0000'), findsNothing);
+    expect(find.text('This page may be out of date.'), findsNothing);
+  });
+
+  testWidgets('a cached detail says it may be out of date', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TempleDetailBody(temple: _temple(), fromCache: true),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.text('This page may be out of date.'), findsOneWidget);
   });
 
   testWidgets('shows a snackbar when no app can open the maps link', (

@@ -400,6 +400,9 @@ void main() {
       isDebug: true,
     );
     await service.createTemple(_temple(latitude: 0, longitude: 0));
+    final doc = store.docs['new-shore-temple']!;
+    expect(doc['latitude'], isNull);
+    expect(doc['longitude'], isNull);
     final entry = store.shards['tamil-nadu']!['new-shore-temple']!;
     expect(entry['lat'], isNull);
     expect(entry['lng'], isNull);

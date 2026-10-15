@@ -22,7 +22,7 @@ class TempleDetailScreen extends StatefulWidget {
 
   /// Loads `temples/{id}`. Tests pass a fake. Index summaries fetch; a full
   /// document passed in is shown as-is.
-  final Future<Temple?> Function(String id)? loadTemple;
+  final Future<TempleDetailLoad> Function(String id)? loadTemple;
 
   @override
   State<TempleDetailScreen> createState() => _TempleDetailScreenState();
@@ -32,6 +32,7 @@ class _TempleDetailScreenState extends State<TempleDetailScreen> {
   late Temple _temple;
   var _loading = false;
   var _missing = false;
+  var _fromCache = false;
 
   @override
   void initState() {
@@ -45,18 +46,20 @@ class _TempleDetailScreenState extends State<TempleDetailScreen> {
   }
 
   Future<void> _fetch(
-    Future<Temple?> Function(String id) load,
+    Future<TempleDetailLoad> Function(String id) load,
     String id,
   ) async {
     try {
-      final full = await load(id);
+      final loaded = await load(id);
       if (!mounted) return;
       setState(() {
         _loading = false;
+        final full = loaded.temple;
         if (full == null) {
           _missing = true;
         } else {
           _temple = full;
+          _fromCache = loaded.fromCache;
         }
       });
     } catch (e, st) {
@@ -83,7 +86,7 @@ class _TempleDetailScreenState extends State<TempleDetailScreen> {
                 style: GoogleFonts.poppins(color: Colors.brown.shade700),
               ),
             )
-          : TempleDetailBody(temple: _temple),
+          : TempleDetailBody(temple: _temple, fromCache: _fromCache),
     );
   }
 }
@@ -91,9 +94,17 @@ class _TempleDetailScreenState extends State<TempleDetailScreen> {
 /// Scrollable detail content. Separated so honesty UI can be tested without
 /// opening the shared drawer (which reads Firestore).
 class TempleDetailBody extends StatefulWidget {
-  const TempleDetailBody({super.key, required this.temple});
+  const TempleDetailBody({
+    super.key,
+    required this.temple,
+    this.fromCache = false,
+  });
 
   final Temple temple;
+
+  /// True when [temple] was read from the local cache after the server read
+  /// failed. The page says it may be out of date.
+  final bool fromCache;
 
   @override
   State<TempleDetailBody> createState() => _TempleDetailBodyState();
@@ -513,6 +524,19 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (widget.fromCache) ...[
+                      Text(
+                        'This page may be out of date.',
+                        key: const Key('detail-cache-hint'),
+                        style: GoogleFonts.poppins(
+                          fontSize: 13.5,
+                          height: 1.4,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.brown.shade800,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                     _InfoCard(
                       title: 'Location',
                       icon: Icons.location_on_rounded,

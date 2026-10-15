@@ -11,11 +11,15 @@ import 'package:temple_app/services/temple_directory_client.dart';
 /// Browse, search, and home lists, plus the detail document.
 ///
 /// The list reads server `meta/temple_index`, then each shard whose server
-/// stamp differs from the stamp this device last applied. `collection('temples')`
-/// runs only when that server read confirms the meta document is absent or
-/// its shard map is empty. A timeout or other error serves the applied shards
-/// from the local cache when they exist, otherwise the bundled sample, and
-/// the next launch tries the server again.
+/// stamp differs from the stamp this device last applied. The full
+/// `collection('temples')` scan runs only when that server read confirms the
+/// meta document is absent or its shard map is empty. A timeout or other
+/// error serves the applied shards from the local cache when they exist,
+/// otherwise the bundled sample, and the next launch tries the server again.
+/// When one shard misses on both the server and the cache, the client queries
+/// `temples` where `state` equals that state. The bundled sample for the
+/// state is used only if that query also fails, and the screen says it is
+/// showing the offline sample.
 ///
 /// Web launches are always cold. The web Firestore cache is memory-only, so
 /// a new page load has no shard documents even when [IndexStampStore] still
@@ -65,17 +69,23 @@ class TempleService {
   /// Full `temples/{id}` document for the detail screen.
   ///
   /// Uses the default Firestore source, with a timeout. A timeout or other
-  /// error reads the cache. This read is not part of the launch total.
-  Future<Temple?> getTemple(String id) async {
+  /// error reads the cache and [TempleDetailLoad.fromCache] is true. This
+  /// read is not part of the launch total.
+  Future<TempleDetailLoad> getTemple(String id) async {
     DirectoryDoc snap;
+    var fromCache = false;
     try {
       snap = await _client.getDoc('temples', id).timeout(fetchTimeout);
     } catch (_) {
+      fromCache = true;
       snap = await _client.getDoc('temples', id, source: Source.cache);
     }
     _readLog.detailRead(id);
-    if (!snap.exists) return null;
-    return Temple.fromMap(snap.id, snap.data ?? {});
+    if (!snap.exists) return const TempleDetailLoad();
+    return TempleDetailLoad(
+      temple: Temple.fromMap(snap.id, snap.data ?? {}),
+      fromCache: fromCache,
+    );
   }
 
   Future<List<Temple>> _load() async {
@@ -164,26 +174,61 @@ class TempleService {
     if (read.fromCache) {
       final cached = await _cachedShard(read.slug, stale: false);
       if (cached != null) return cached;
-      return _serverShard(read.slug, stamp);
+      final fresh = await _serverShard(read.slug, stamp);
+      if (fresh != null) return fresh;
+      return _stateOrSample(read.slug);
     }
     final fresh = await _serverShard(read.slug, stamp);
     if (fresh != null) return fresh;
     final cached = await _cachedShard(read.slug, stale: true);
     if (cached != null) return cached;
-    return _sampleForMissingShard(read.slug);
+    return _stateOrSample(read.slug);
   }
 
-  /// Bundled temples for [slug] when the shard could not be read. An empty
-  /// sample for that state is a visible gap, not a silent omission.
+  /// One state's `temples` documents. The bundled sample is only for a failed
+  /// query, and that sample is always announced.
+  Future<_ShardRows?> _stateOrSample(String slug) async {
+    final fromState = await _templesForState(slug);
+    if (fromState != null) return fromState;
+    return _sampleForMissingShard(slug);
+  }
+
+  Future<_ShardRows?> _templesForState(String slug) async {
+    final state = _stateLabel(slug);
+    try {
+      final docs = await _client
+          .getDocsWhere(
+            'temples',
+            field: 'state',
+            value: state,
+            source: Source.server,
+          )
+          .timeout(fetchTimeout);
+      _readLog.serverRead(docs.isEmpty ? 1 : docs.length);
+      final temples = [
+        for (final doc in docs) Temple.fromMap(doc.id, doc.data ?? {}),
+      ];
+      temples.sort((a, b) => a.id.compareTo(b.id));
+      return _ShardRows(temples, fresh: true, stale: false);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Bundled temples for [slug] when the state query failed. An empty sample
+  /// for that state is a visible gap, not a silent omission. A non-empty
+  /// sample is still announced as offline.
   _ShardRows? _sampleForMissingShard(String slug) {
+    final label = _stateLabel(slug);
     final temples = [
       for (final temple in sampleTemples)
         if (templeIndexStateSlug(temple.state) == slug) temple,
     ];
     if (temples.isEmpty) {
-      _readLog.noteUnavailableShard(_stateLabel(slug));
+      _readLog.noteUnavailableShard(label);
       return null;
     }
+    _readLog.noteOfflineSample(label);
     return _ShardRows(temples, fresh: false, stale: false, sample: true);
   }
 
@@ -255,6 +300,7 @@ class TempleService {
       _readLog.finishLaunch('index-cache');
       return cached;
     }
+    _readLog.noteOfflineSample();
     _readLog.recordFallback('sample');
     _readLog.finishLaunch('sample');
     return sampleTemples;
@@ -329,6 +375,14 @@ class _ShardRows {
   final bool fresh;
   final bool stale;
   final bool sample;
+}
+
+/// Detail document, and whether it came from the cache fallback.
+class TempleDetailLoad {
+  const TempleDetailLoad({this.temple, this.fromCache = false});
+
+  final Temple? temple;
+  final bool fromCache;
 }
 
 Map<String, Object?> _stampMap(Object? raw) {

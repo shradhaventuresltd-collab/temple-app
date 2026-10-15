@@ -70,6 +70,7 @@ void main() {
     expect(hung.fake.gets.where((get) => get.contains('temples')), isEmpty);
     expect(hung.log.serverReads, 0);
     expect(hung.log.fallbacks, ['sample']);
+    expect(hung.log.unavailableShardsMessage, contains('offline sample'));
     expect(hung.log.fallbackCount, 1);
 
     final cached = _harness(hangMeta: true, stamps: {'kerala': _oldStamp});
@@ -101,22 +102,77 @@ void main() {
       serverStamps: {'bihar': _newStamp},
       failServerShards: {'bihar'},
       keepCache: false,
+      failStateQueries: {'Bihar'},
     );
     final rows = await harness.service.getTemples();
-    expect(rows, isNotEmpty);
-    expect(rows.every((temple) => temple.state == 'Bihar'), isTrue);
-    expect(harness.log.unavailableShards, isEmpty);
+    final serverAt = harness.fake.gets.indexOf('server:temple_index/bihar');
+    final cacheAt = harness.fake.gets.indexOf('cache:temple_index/bihar');
+    final queryAt = harness.fake.gets.indexOf(
+      'query:Source.server:temples:state=Bihar',
+    );
+    expect(serverAt, greaterThanOrEqualTo(0));
+    expect(cacheAt, greaterThan(serverAt));
+    expect(queryAt, greaterThan(cacheAt));
+    expect(
+      harness.fake.gets.where((get) => get == 'query:Source.server:temples'),
+      isEmpty,
+    );
+    expect(rows.map((temple) => temple.name), [
+      for (final temple in sampleTemples)
+        if (temple.state == 'Bihar') temple.name,
+    ]);
     expect(harness.log.fallbacks, contains('sample'));
+    expect(harness.log.unavailableShardsMessage, contains('Could not load'));
+    expect(harness.log.unavailableShardsMessage, contains('Bihar'));
+    expect(harness.log.unavailableShardsMessage, contains('offline sample'));
 
     final gap = _harness(
       serverStamps: {'atlantis': _newStamp, 'kerala': _oldStamp},
       failServerShards: {'atlantis'},
       keepCache: false,
+      failStateQueries: {'Atlantis'},
     );
     final kept = await gap.service.getTemples();
     expect(kept.map((temple) => temple.id), ['kerala-temple']);
+    expect(
+      gap.fake.gets,
+      contains('query:Source.server:temples:state=Atlantis'),
+    );
     expect(gap.log.unavailableShards, ['Atlantis']);
+    expect(gap.log.unavailableShardsMessage, contains('Could not load'));
     expect(gap.log.unavailableShardsMessage, contains('Atlantis'));
+    expect(gap.log.unavailableShardsMessage, isNot(contains('offline sample')));
+  });
+
+  test('a failed shard uses that state when the query succeeds', () async {
+    final harness = _harness(
+      serverStamps: {'bihar': _newStamp},
+      failServerShards: {'bihar'},
+      keepCache: false,
+    );
+    harness.fake.serverDocs['temples/live-bihar'] = {
+      'name': 'Live Bihar',
+      'state': 'Bihar',
+      'city': 'Patna',
+      'deity': 'Shiva',
+    };
+    harness.fake.serverDocs['temples/other-state'] = {
+      'name': 'Other',
+      'state': 'Kerala',
+    };
+    final rows = await harness.service.getTemples();
+    expect(rows.map((temple) => temple.id), ['live-bihar']);
+    expect(
+      harness.fake.gets,
+      contains('query:Source.server:temples:state=Bihar'),
+    );
+    expect(
+      harness.fake.gets.where((get) => get == 'query:Source.server:temples'),
+      isEmpty,
+    );
+    expect(harness.log.unavailableShardsMessage, isNull);
+    expect(harness.log.fallbacks, isEmpty);
+    expect(harness.log.serverReads, 2);
   });
 
   test('a failed shard fetch does not stick the new stamp', () async {
@@ -169,8 +225,9 @@ void main() {
       'name': 'Shore Temple',
       'description': 'A full document',
     };
-    final temple = await harness.service.getTemple('shore-temple');
-    expect(temple?.description, 'A full document');
+    final loaded = await harness.service.getTemple('shore-temple');
+    expect(loaded.temple?.description, 'A full document');
+    expect(loaded.fromCache, isTrue);
     expect(harness.fake.gets, [
       'default:temples/shore-temple',
       'cache:temples/shore-temple',
@@ -235,6 +292,7 @@ class _FakeDirectory implements TempleDirectoryClient {
     required this.cacheDocs,
     required this.hangServer,
     required this.failServerShards,
+    this.failStateQueries = const {},
   });
 
   final Map<String, Map<String, dynamic>?> serverDocs;
@@ -242,6 +300,7 @@ class _FakeDirectory implements TempleDirectoryClient {
   final Set<String> hangServer;
   final Set<String> hangDefault = {};
   final Set<String> failServerShards;
+  final Set<String> failStateQueries;
   final List<String> gets = [];
 
   int count(String get) => gets.where((entry) => entry == get).length;
@@ -305,6 +364,37 @@ class _FakeDirectory implements TempleDirectoryClient {
     }
     return docs;
   }
+
+  @override
+  Future<List<DirectoryDoc>> getDocsWhere(
+    String collection, {
+    required String field,
+    required String value,
+    required Source source,
+  }) async {
+    gets.add('query:$source:$collection:$field=$value');
+    if (failStateQueries.contains(value)) {
+      throw StateError('state query failed');
+    }
+    final prefix = '$collection/';
+    final store = source == Source.cache ? cacheDocs : serverDocs;
+    final docs = <DirectoryDoc>[];
+    for (final entry in store.entries) {
+      if (!entry.key.startsWith(prefix)) continue;
+      final id = entry.key.substring(prefix.length);
+      if (id.contains('/')) continue;
+      final data = entry.value;
+      if (data == null || data[field] != value) continue;
+      docs.add(
+        DirectoryDoc(
+          id: id,
+          exists: true,
+          data: Map<String, dynamic>.from(data),
+        ),
+      );
+    }
+    return docs;
+  }
 }
 
 ({
@@ -320,6 +410,7 @@ _harness({
   bool metaExists = true,
   bool keepCache = true,
   Set<String> failServerShards = const {},
+  Set<String> failStateQueries = const {},
 }) {
   final metaStamps =
       serverStamps ?? {for (final state in _states) state: _oldStamp};
@@ -346,6 +437,7 @@ _harness({
     cacheDocs: cacheDocs,
     hangServer: hangMeta ? {'meta/temple_index'} : {},
     failServerShards: failServerShards,
+    failStateQueries: failStateQueries,
   );
   final memory = _MemoryStamps(stamps);
   final log = FirestoreReadLog();
