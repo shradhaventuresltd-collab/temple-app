@@ -18,7 +18,7 @@ OUT="${DEMO_SEED_OUT:-${GITHUB_WORKSPACE:-/tmp}/demo-seed-launch}"
 mkdir -p "$OUT"
 
 dump_logcat() {
-  adb logcat -d -v time >"$OUT/logcat.txt" 2>/dev/null || true
+  timeout 20s adb logcat -d -v time >"$OUT/logcat.txt" 2>/dev/null || true
   echo "===== flutter / fatal excerpt ====="
   if [[ -f "$OUT/logcat.txt" ]]; then
     grep -E 'flutter|AndroidRuntime|FATAL|Exception|Error:' "$OUT/logcat.txt" | tail -n 160 || true
@@ -181,17 +181,23 @@ else
   if ! tap_needle "policy-accept-button"; then
     echo "Accept control was not tappable"
     status=1
-  elif ! wait_for "Admin sign-in" 20 && ! wait_for "Loading temples" 5; then
+  elif ! wait_for "More" 25 && ! wait_for "Temple Directory" 5; then
     echo "Home did not appear after Accept"
     status=1
   else
     screenshot home
-    # Admin tools build shows sign-in on Home. Do not tap Seed.
+    # Admin sign-in is in the Home overflow (tooltip More). Do not tap Seed.
     if visible "Seed sample temples"; then
       echo "Seed write button is on screen; refusing to tap it"
       status=1
     fi
-    if ! tap_needle "Admin sign-in" && ! tap_needle "Admin Panel"; then
+    if ! tap_needle "More"; then
+      echo "Admin overflow was not on Home"
+      status=1
+    elif ! wait_for "Admin sign-in" 8; then
+      echo "Admin sign-in was not in the overflow"
+      status=1
+    elif ! tap_needle "Admin sign-in" && ! tap_needle "Admin Panel"; then
       echo "Admin entry was not on Home"
       status=1
     elif ! wait_for "Admin sign-in required" 15; then
@@ -212,12 +218,14 @@ screenshot final
 # Second launch with the radios off. Bundled fonts must still paint the
 # gate. pm clear drops any acceptance from the online pass. Do not tap Seed.
 echo "===== offline relaunch ====="
-adb logcat -d -v time >"$OUT/logcat-online.txt" 2>/dev/null || true
-adb shell svc wifi disable || true
-adb shell svc data disable || true
-adb shell pm clear "$PKG" || true
-adb logcat -c || true
-adb shell am start -W -n "${PKG}/.MainActivity" || true
+# Bound these. A stuck logcat or am start used to hold the 18-minute
+# shell timeout after Home was already on screen.
+timeout 20s adb logcat -d -v time >"$OUT/logcat-online.txt" 2>/dev/null || true
+timeout 15s adb shell svc wifi disable || true
+timeout 15s adb shell svc data disable || true
+timeout 20s adb shell pm clear "$PKG" || true
+timeout 15s adb logcat -c || true
+timeout 30s adb shell am start -W -n "${PKG}/.MainActivity" || true
 if ! wait_for "Before you begin" 20; then
   echo "Terms gate did not appear with the network disabled"
   status=1

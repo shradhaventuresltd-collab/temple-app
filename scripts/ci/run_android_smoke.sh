@@ -120,10 +120,73 @@ dump_failure() {
   echo "===== maestro hierarchy ====="
   maestro hierarchy || true
   echo "===== logcat ====="
-  adb logcat -d -t 250 || true
+  if [[ -n "$attempt_dir" ]]; then
+    mkdir -p "$attempt_dir"
+    # Full buffer since the relaunch cleared logcat. A short tail rotates
+    # the crash out by the time Maestro's wait ends.
+    adb logcat -d >"${attempt_dir}/logcat.txt" || true
+    adb exec-out screencap -p >"${attempt_dir}/relaunch.png" || true
+    if [[ -s "${attempt_dir}/logcat.txt" ]]; then
+      grep -E 'flutter|FlutterJNI|AndroidRuntime|FATAL|core/no-app' \
+        "${attempt_dir}/logcat.txt" | tail -n 80 || true
+    fi
+  else
+    adb logcat -d -t 400 || true
+  fi
   if [[ -d "$attempt_dir" ]]; then
     find "$attempt_dir" -type f -name '*.log' -print -exec tail -n 80 {} \;
   fi
+}
+
+# Get Directions leaves the https stub resumed. Maestro's launchApp
+# force-stops this package and returns as soon as the start is issued,
+# so the hierarchy stays on the stub and the new process is not resumed.
+# force-stop does not clear app data.
+leave_directions_handoff() {
+  adb shell am force-stop com.android.fakesystemapp || true
+  adb shell am force-stop com.shradhaventures.handoff || true
+  adb shell input keyevent KEYCODE_HOME || true
+}
+
+temple_resumed() {
+  adb shell dumpsys activity activities \
+    | grep -E 'topResumedActivity|mResumedActivity' \
+    | grep -q "$PKG"
+}
+
+# Cold process start with Terms still accepted. Maestro then asserts Home
+# and must not stop the process again (stopApp: false in the flow).
+second_process_start() {
+  leave_directions_handoff
+  adb logcat -c || true
+  adb shell am force-stop "$PKG" || true
+  sleep 1
+  adb shell am start -W -n "${PKG}/.MainActivity" || true
+  local pid=""
+  local attempt
+  for attempt in $(seq 1 20); do
+    pid="$(adb shell pidof "$PKG" 2>/dev/null | tr -d '\r' || true)"
+    if [[ -n "$pid" ]]; then
+      break
+    fi
+    sleep 1
+  done
+  if [[ -z "$pid" ]]; then
+    echo "Second launch did not keep a process." >&2
+    return 1
+  fi
+  echo "second launch pid ${pid}"
+  for attempt in $(seq 1 15); do
+    if temple_resumed; then
+      echo "second launch is the resumed activity"
+      return 0
+    fi
+    leave_directions_handoff
+    adb shell am start -W -n "${PKG}/.MainActivity" || true
+    sleep 1
+  done
+  echo "Second launch process is not the resumed activity." >&2
+  return 1
 }
 
 warn_if_flow_retried() {
@@ -267,10 +330,20 @@ for attempt in 1 2; do
     second="${DEBUG_ROOT}/second-launch"
     mkdir -p "$second"
     set +e
+    second_process_start
+    start_status=$?
+    set -e
+    if [[ "$start_status" -ne 0 ]]; then
+      echo "Second launch did not resume Home." >&2
+      dump_failure "$second"
+      exit "$start_status"
+    fi
+    set +e
     maestro test --debug-output "$second" .maestro/second_launch_home.yaml \
       2>&1 | tee "${second}/maestro-stdout.log"
     second_status=$?
     set -e
+    adb exec-out screencap -p >"${second}/relaunch.png" || true
     if [[ "$second_status" -ne 0 ]]; then
       echo "Second launch showed an error or did not reach Home." >&2
       dump_failure "$second"

@@ -144,6 +144,18 @@ if ! grep -q 'No Firebase App' .maestro/second_launch_home.yaml; then
   echo "FAIL: the second launch must assert the Firebase no-app text is absent" >&2
   exit 1
 fi
+if ! grep -q 'stopApp: false' .maestro/second_launch_home.yaml; then
+  echo "FAIL: the second launch must not stop the process Maestro is asserting" >&2
+  exit 1
+fi
+if ! grep -q 'com.android.fakesystemapp' scripts/ci/run_android_smoke.sh; then
+  echo "FAIL: the smoke script must leave the directions stub before the second launch" >&2
+  exit 1
+fi
+if ! grep -q 'tap_needle "More"' scripts/ci/run_demo_seed_launch.sh; then
+  echo "FAIL: demo-seed must open the Home overflow before Admin sign-in" >&2
+  exit 1
+fi
 echo "ok: second launch keeps acceptance and rejects the error fallback"
 
 if minutes_at_or_over_threshold 1499.9; then
