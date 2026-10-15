@@ -2,14 +2,15 @@
  * Validate a Research state batch and classify it against existing temples.
  * Pure: no Firestore, no file writes.
  *
- * Research files use slug (not id). timings may be null when timings_note is
- * set. story and location are forbidden. sources, photo_pack, and review are
- * required. The NE research README was not in this repo; this is that
- * contract plus the directory fields a seed document still needs.
+ * Schema of record: the state-expansion README (Hybrid C).
+ * Seeded fields: name, city, state, deity, latitude, longitude, timings,
+ * description, specialities. Research-only keys, never written as their own
+ * Firestore fields: slug, sources, timings_note, photo_pack, review.
+ * story, location, festivals, pooja_schedule, and trip_planning are forbidden.
  */
 import { changedKeys, templeDocumentId } from "./temple_seed.js";
 
-export const MAX_TEMPLES_PER_BATCH = 50;
+export const MAX_TEMPLES_PER_BATCH = 100;
 export const DUPLICATE_DISTANCE_KM = 1;
 
 /** India, including island territories used by this directory. */
@@ -60,10 +61,40 @@ export const STATE_BOUNDS = Object.freeze({
   "West Bengal": box(21.5, 27.3, 85.8, 89.9),
 });
 
-const FORBIDDEN = ["id", "story", "location"];
+const BATCH_KEYS = [
+  "state",
+  "owner",
+  "generated",
+  "existing_in_prod",
+  "target",
+  "temples",
+];
 
-const CC_LICENCES = new Set(["CC-BY", "CC-BY-SA"]);
-const LICENCES = new Set(["CC-BY", "CC-BY-SA", "CC0", "Own", "Permission"]);
+const TEMPLE_KEYS = [
+  "slug",
+  "name",
+  "city",
+  "state",
+  "deity",
+  "latitude",
+  "longitude",
+  "timings",
+  "timings_note",
+  "description",
+  "specialities",
+  "sources",
+  "photo_pack",
+  "review",
+];
+
+const FORBIDDEN = [
+  "id",
+  "story",
+  "location",
+  "festivals",
+  "pooja_schedule",
+  "trip_planning",
+];
 
 const PLACEHOLDER_HOSTS = [
   "picsum.photos",
@@ -100,11 +131,28 @@ export function validateStateBatch(batch, existing = []) {
   if (!batch || typeof batch !== "object" || Array.isArray(batch)) {
     return fail(["Batch must be a JSON object with state and temples."]);
   }
+  for (const key of Object.keys(batch)) {
+    if (!BATCH_KEYS.includes(key)) {
+      errors.push(`Batch key "${key}" is not in the research schema.`);
+    }
+  }
   const state = batch.state;
   if (typeof state !== "string" || state.trim() === "") {
     errors.push("Batch state is required.");
   } else if (!STATE_BOUNDS[state]) {
     errors.push(`Batch state "${state}" has no bounding box.`);
+  }
+  if (typeof batch.owner !== "string" || batch.owner.trim() === "") {
+    errors.push("Batch owner is required.");
+  }
+  if (typeof batch.generated !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(batch.generated)) {
+    errors.push("Batch generated must be a YYYY-MM-DD date.");
+  }
+  if (!Number.isInteger(batch.existing_in_prod) || batch.existing_in_prod < 0) {
+    errors.push("Batch existing_in_prod must be a non-negative integer.");
+  }
+  if (!Number.isInteger(batch.target) || batch.target < 1) {
+    errors.push("Batch target must be a positive integer.");
   }
   if (!Array.isArray(batch.temples)) {
     errors.push("Batch temples must be a list.");
@@ -122,16 +170,19 @@ export function validateStateBatch(batch, existing = []) {
   const existingById = new Map(existing.map((temple) => [temple.id, temple]));
   const seenIds = new Set();
   const temples = [];
+  const located = [];
 
   batch.temples.forEach((raw, index) => {
     const label = `temples[${index}]`;
+    const before = errors.length;
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
       errors.push(`${label} must be an object.`);
       return;
     }
-    for (const key of FORBIDDEN) {
-      if (Object.prototype.hasOwnProperty.call(raw, key)) {
-        errors.push(`${label} must not include ${key}. Use slug, and omit story and location.`);
+    for (const key of Object.keys(raw)) {
+      if (!TEMPLE_KEYS.includes(key)) {
+        const banned = FORBIDDEN.includes(key) ? " It is not a seed field." : "";
+        errors.push(`${label} must not include ${key}.${banned}`);
       }
     }
     if (typeof raw.slug !== "string" || raw.slug.trim() === "") {
@@ -154,15 +205,23 @@ export function validateStateBatch(batch, existing = []) {
 
     requireString(raw.city, `${label}.city`, errors);
     requireString(raw.deity, `${label}.deity`, errors);
-    requireString(raw.description, `${label}.description`, errors);
+    const description = requireString(raw.description, `${label}.description`, errors);
+    if (description) {
+      const sentences = sentenceCount(description);
+      if (sentences < 2 || sentences > 4) {
+        errors.push(
+          `${label}.description must be 2–4 sentences (found ${sentences}).`,
+        );
+      }
+    }
     const timings = readTimings(raw, label, errors);
     const specialities = requireStringList(
       raw.specialities,
       `${label}.specialities`,
       errors,
     );
-    if (specialities && (specialities.length === 0 || specialities.length > 20)) {
-      errors.push(`${label}.specialities must have 1 to 20 entries.`);
+    if (specialities && (specialities.length < 3 || specialities.length > 5)) {
+      errors.push(`${label}.specialities must have 3 to 5 entries.`);
     }
     for (const item of specialities ?? []) {
       if (item.length > 200) {
@@ -170,28 +229,23 @@ export function validateStateBatch(batch, existing = []) {
       }
     }
 
-    const sources = requireStringList(raw.sources, `${label}.sources`, errors);
-    if (sources && sources.length === 0) {
-      errors.push(`${label}.sources must list at least one source.`);
-    }
-    for (const source of sources ?? []) {
-      if (source.trim() === "") errors.push(`${label}.sources has an empty entry.`);
-    }
-    if (!raw.photo_pack || typeof raw.photo_pack !== "object" || Array.isArray(raw.photo_pack)) {
-      errors.push(`${label}.photo_pack is required and must be an object.`);
-    }
-    if (!raw.review || typeof raw.review !== "object" || Array.isArray(raw.review)) {
-      errors.push(`${label}.review is required and must be an object.`);
-    } else if (!reviewHasContent(raw.review)) {
-      errors.push(`${label}.review needs a status, reviewer, or note.`);
-    }
-
-    const images = readImages(raw, label, errors);
-    const photos = readPhotos(raw, images, label, errors);
+    const sources = readSources(raw.sources, label, errors);
+    readPhotoPack(raw.photo_pack, id, label, errors);
+    readReview(raw.review, label, errors);
     rejectPlaceholderUrls(raw, label, errors);
 
     const latitude = requireNumber(raw.latitude, `${label}.latitude`, errors);
     const longitude = requireNumber(raw.longitude, `${label}.longitude`, errors);
+    if (latitude != null && decimalPlaces(latitude) !== 4) {
+      errors.push(
+        `${label}.latitude ${latitude} must be rounded to 4 decimal places.`,
+      );
+    }
+    if (longitude != null && decimalPlaces(longitude) !== 4) {
+      errors.push(
+        `${label}.longitude ${longitude} must be rounded to 4 decimal places.`,
+      );
+    }
     if (latitude != null && (latitude < LATITUDE_RANGE.min || latitude > LATITUDE_RANGE.max)) {
       errors.push(
         `${label}.latitude ${latitude} is outside ${LATITUDE_RANGE.min}..${LATITUDE_RANGE.max}.`,
@@ -217,36 +271,38 @@ export function validateStateBatch(batch, existing = []) {
       }
     }
 
-    if (!name || timings == null || !images || !photos || latitude == null || longitude == null) {
+    if (name && latitude != null && longitude != null) {
+      located.push({ id, name, latitude, longitude });
+    }
+    if (
+      !name ||
+      timings == null ||
+      !sources ||
+      latitude == null ||
+      longitude == null ||
+      errors.length > before
+    ) {
       return;
     }
 
     const prior = existingById.get(id);
     const keptGallery = prior && hasVerifiedGallery(prior);
-    const imageUrl = keptGallery
-      ? String(prior.imageUrl ?? "")
-      : images.length > 0
-        ? images[0]
-        : "";
-    const keptImages = keptGallery ? [...prior.images] : images;
-    const keptPhotos = keptGallery ? prior.photos ?? [] : photos;
-
     temples.push({
       id,
       name,
       state: templeState,
       city: String(raw.city),
       deity: String(raw.deity),
-      imageUrl,
-      images: keptImages,
-      description: String(raw.description),
+      imageUrl: keptGallery ? String(prior.imageUrl ?? "") : "",
+      images: keptGallery ? [...prior.images] : [],
+      description,
       story: prior?.story ?? "",
       location: prior?.location ?? `${raw.city}, ${templeState}`,
       timings,
       specialities: specialities ?? [],
       latitude,
       longitude,
-      photos: keptPhotos,
+      photos: keptGallery ? prior.photos ?? [] : [],
       sources,
       photo_pack: raw.photo_pack,
       review: raw.review,
@@ -254,19 +310,17 @@ export function validateStateBatch(batch, existing = []) {
   });
 
   const summary = { new: [], changed: [], unchanged: [] };
-  if (errors.length > 0) return { ok: false, errors, temples: [], summary };
-
   const nameOwners = new Map();
   for (const prior of existing) {
     const key = normaliseName(prior.name);
     if (key) nameOwners.set(key, prior);
   }
 
-  for (let i = 0; i < temples.length; i += 1) {
-    const temple = temples[i];
+  for (let i = 0; i < located.length; i += 1) {
+    const temple = located[i];
     const nameKey = normaliseName(temple.name);
     for (let j = 0; j < i; j += 1) {
-      const other = temples[j];
+      const other = located[j];
       if (normaliseName(other.name) === nameKey) {
         errors.push(
           `${temple.id} duplicates the normalised name of ${other.id}.`,
@@ -274,39 +328,47 @@ export function validateStateBatch(batch, existing = []) {
       }
       if (distanceKm(temple, other) <= DUPLICATE_DISTANCE_KM) {
         errors.push(
-          `${temple.id} is within ${DUPLICATE_DISTANCE_KM} km of ${other.id}.`,
+          `${temple.id} is within ${DUPLICATE_DISTANCE_KM} km of ${other.id} ` +
+            `(${distanceKm(temple, other).toFixed(3)} km).`,
         );
       }
     }
     const prior = existingById.get(temple.id);
-    if (!prior) {
-      const owner = nameOwners.get(nameKey);
-      if (owner && owner.id !== temple.id) {
+    if (prior) {
+      if (normaliseName(prior.name) !== nameKey) {
         errors.push(
-          `${temple.id} duplicates the normalised name of existing ${owner.id} ("${owner.name}").`,
+          `${temple.id} already exists as "${prior.name}" and cannot be reused for "${temple.name}".`,
         );
-      }
-      for (const other of existing) {
-        if (other.id === temple.id) continue;
-        if (
-          Number.isFinite(other.latitude) &&
-          Number.isFinite(other.longitude) &&
-          distanceKm(temple, other) <= DUPLICATE_DISTANCE_KM
-        ) {
-          errors.push(
-            `${temple.id} is within ${DUPLICATE_DISTANCE_KM} km of existing ${other.id}.`,
-          );
-        }
-      }
-      if (!errors.some((error) => error.startsWith(temple.id))) {
-        summary.new.push({ id: temple.id, name: temple.name });
       }
       continue;
     }
-    if (normaliseName(prior.name) !== nameKey) {
+    const owner = nameOwners.get(nameKey);
+    if (owner && owner.id !== temple.id) {
       errors.push(
-        `${temple.id} already exists as "${prior.name}" and cannot be reused for "${temple.name}".`,
+        `${temple.id} duplicates the normalised name of existing ${owner.id} ("${owner.name}").`,
       );
+    }
+    for (const other of existing) {
+      if (other.id === temple.id) continue;
+      if (
+        Number.isFinite(other.latitude) &&
+        Number.isFinite(other.longitude) &&
+        distanceKm(temple, other) <= DUPLICATE_DISTANCE_KM
+      ) {
+        errors.push(
+          `${temple.id} is within ${DUPLICATE_DISTANCE_KM} km of existing ${other.id} ` +
+            `(${distanceKm(temple, other).toFixed(3)} km).`,
+        );
+      }
+    }
+  }
+
+  if (errors.length > 0) return { ok: false, errors, temples: [], summary };
+
+  for (const temple of temples) {
+    const prior = existingById.get(temple.id);
+    if (!prior) {
+      summary.new.push({ id: temple.id, name: temple.name });
       continue;
     }
     const keys = changedKeys(prior, temple).filter(
@@ -319,7 +381,37 @@ export function validateStateBatch(batch, existing = []) {
     }
   }
 
-  return { ok: errors.length === 0, errors, temples, summary };
+  return { ok: true, errors, temples, summary };
+}
+
+export function targetShortfall(batch) {
+  if (!batch || typeof batch !== "object" || !Array.isArray(batch.temples)) return null;
+  const existingCount = Number.isInteger(batch.existing_in_prod) ? batch.existing_in_prod : 0;
+  const target = batch.target;
+  if (!Number.isInteger(target)) return null;
+  const have = existingCount + batch.temples.length;
+  if (have >= target) return null;
+  const state = typeof batch.state === "string" ? batch.state : "This batch";
+  return (
+    `${state} has ${batch.temples.length} temples in the file and ` +
+    `existing_in_prod ${existingCount} (${have} toward target ${target}).`
+  );
+}
+
+export function sentenceCount(text) {
+  return String(text ?? "")
+    .trim()
+    .split(/(?<=[.!?])\s+/)
+    .map((part) => part.trim())
+    .filter(Boolean).length;
+}
+
+export function decimalPlaces(value) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  const text = Object.is(value, -0) ? "0" : value.toString();
+  if (/e/i.test(text)) return 99;
+  const fraction = text.split(".")[1];
+  return fraction ? fraction.length : 0;
 }
 
 export function normaliseName(name) {
@@ -417,82 +509,73 @@ function readTimings(raw, label, errors) {
   return raw.timings;
 }
 
-function readImages(raw, label, errors) {
-  const pack = raw.photo_pack;
-  const fromPack =
-    pack && typeof pack === "object" && Array.isArray(pack.images) ? pack.images : null;
-  const fromTop = Array.isArray(raw.images) ? raw.images : null;
-  const chosen = fromPack ?? fromTop ?? [];
-  if (!Array.isArray(chosen) || chosen.some((item) => typeof item !== "string")) {
-    errors.push(`${label} image list must be strings.`);
+function readSources(raw, label, errors) {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    errors.push(`${label}.sources must list at least one {field, title, url}.`);
     return null;
   }
-  for (const url of chosen) {
-    if (!url.startsWith("https://")) {
-      errors.push(`${label} image URL must start with https://.`);
-    }
-  }
-  if (fromPack && fromTop && fromPack.length > 0 && fromTop.length > 0) {
-    if (fromPack.length !== fromTop.length || fromPack.some((url, i) => url !== fromTop[i])) {
-      errors.push(`${label}.images must match photo_pack.images.`);
-    }
-  }
-  return chosen;
-}
-
-function readPhotos(raw, images, label, errors) {
-  const pack = raw.photo_pack;
-  const rawPhotos =
-    pack && typeof pack === "object" && Array.isArray(pack.photos)
-      ? pack.photos
-      : Array.isArray(raw.photos)
-        ? raw.photos
-        : [];
-  if (!Array.isArray(rawPhotos)) {
-    errors.push(`${label}.photos must be a list.`);
-    return null;
-  }
-  if (images && rawPhotos.length > 0 && rawPhotos.length !== images.length) {
-    errors.push(`${label} photos must have one entry per image URL.`);
-  }
-  const photos = [];
-  rawPhotos.forEach((photo, index) => {
-    const where = `${label}.photos[${index}]`;
-    if (!photo || typeof photo !== "object") {
-      errors.push(`${where} must be an object.`);
+  const sources = [];
+  raw.forEach((source, index) => {
+    const where = `${label}.sources[${index}]`;
+    if (!source || typeof source !== "object" || Array.isArray(source)) {
+      errors.push(`${where} must be an object with field, title, and url.`);
       return;
     }
-    const url = typeof photo.url === "string" ? photo.url : "";
-    const credit = typeof photo.credit === "string" ? photo.credit : "";
-    const licence = typeof photo.licence === "string" ? photo.licence : "";
-    const order = photo.order;
-    if (!url.startsWith("https://")) errors.push(`${where}.url must start with https://.`);
-    if (images && images[index] && url !== images[index]) {
-      errors.push(`${where}.url must match the image URL at ${index}.`);
+    for (const key of Object.keys(source)) {
+      if (!["field", "title", "url"].includes(key)) {
+        errors.push(`${where} must not include ${key}.`);
+      }
     }
-    if (!LICENCES.has(licence)) {
-      errors.push(`${where}.licence must be CC-BY, CC-BY-SA, CC0, Own, or Permission.`);
+    const field = requireString(source.field, `${where}.field`, errors);
+    const title = requireString(source.title, `${where}.title`, errors);
+    const url = requireString(source.url, `${where}.url`, errors);
+    if (url && !url.startsWith("https://")) {
+      errors.push(`${where}.url must start with https://.`);
     }
-    if (CC_LICENCES.has(licence) && credit.trim() === "") {
-      errors.push(`${where} needs a credit because ${licence} requires attribution.`);
-    }
-    if (credit.length > 200) errors.push(`${where}.credit is longer than 200 characters.`);
-    if (!Number.isInteger(order) || order < 0 || order > 11) {
-      errors.push(`${where}.order must be an integer from 0 to 11.`);
-    } else if (order !== index) {
-      errors.push(`${where}.order must be ${index}.`);
-    }
-    photos.push({ url, credit, licence, order: Number(order) });
+    if (field && title && url) sources.push({ field, title, url });
   });
-  return photos;
+  return sources;
+}
+
+function readPhotoPack(raw, slug, label, errors) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    errors.push(`${label}.photo_pack is required and must be an object.`);
+    return;
+  }
+  const path = requireString(raw.path, `${label}.photo_pack.path`, errors);
+  if (path && path !== `photos/${slug}/`) {
+    errors.push(`${label}.photo_pack.path must be photos/${slug}/.`);
+  }
+  if (raw.status !== "READY" && raw.status !== "SHORTFALL") {
+    errors.push(`${label}.photo_pack.status must be READY or SHORTFALL.`);
+  }
+  if (!Number.isInteger(raw.count) || raw.count < 0) {
+    errors.push(`${label}.photo_pack.count must be a non-negative integer.`);
+  } else if (raw.status === "READY" && raw.count < 5) {
+    errors.push(`${label}.photo_pack.status is READY but count is ${raw.count} (need at least 5).`);
+  }
+}
+
+function readReview(raw, label, errors) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    errors.push(`${label}.review is required and must be an object.`);
+    return;
+  }
+  for (const key of Object.keys(raw)) {
+    if (!["status", "reviewer", "notes"].includes(key)) {
+      errors.push(`${label}.review must not include ${key}.`);
+    }
+  }
+  requireString(raw.status, `${label}.review.status`, errors);
+  requireString(raw.reviewer, `${label}.review.reviewer`, errors);
+  if (typeof raw.notes !== "string") {
+    errors.push(`${label}.review.notes must be a string.`);
+  }
 }
 
 function rejectPlaceholderUrls(raw, label, errors) {
   const urls = [];
-  collectUrls(raw.imageUrl, urls);
-  collectUrls(raw.images, urls);
-  collectUrls(raw.photos, urls);
-  collectUrls(raw.photo_pack, urls);
+  collectUrls(raw, urls);
   for (const url of urls) {
     if (isPlaceholderImageUrl(url)) {
       errors.push(`${label} rejects placeholder or stock image URL ${url}.`);
@@ -512,12 +595,6 @@ function collectUrls(value, urls) {
   if (value && typeof value === "object") {
     for (const nested of Object.values(value)) collectUrls(nested, urls);
   }
-}
-
-function reviewHasContent(review) {
-  return Object.values(review).some(
-    (value) => typeof value === "string" && value.trim() !== "",
-  );
 }
 
 function requireString(value, label, errors) {

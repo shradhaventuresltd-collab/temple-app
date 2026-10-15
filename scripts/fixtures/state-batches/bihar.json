@@ -1,0 +1,103 @@
+{
+  "state": "Bihar",
+  "owner": "Architect",
+  "generated": "2026-10-15",
+  "existing_in_prod": 10,
+  "target": 50,
+  "temples": [
+    {
+      "slug": "jaimangla-garh-temple",
+      "name": "Jaimangla Garh Temple",
+      "city": "Begusarai",
+      "state": "Bihar",
+      "deity": "Mangla Devi (Chandi)",
+      "latitude": 25.5922,
+      "longitude": 86.1613,
+      "timings": null,
+      "timings_note": "No official temple-trust / state tourism / ASI timings page found during research; left null.",
+      "description": "Jaimangla Garh is an ancient goddess temple in Begusarai district, ringed by the waters of Kanwar Lake. It enshrines an idol of Chandi Mangla Devi.",
+      "specialities": [
+        "Surrounded by Kanwar Lake",
+        "Dedicated to Chandi Mangla Devi",
+        "Ancient historical site"
+      ],
+      "sources": [
+        {
+          "field": "name,city,deity,description,specialities",
+          "title": "Jaimangla Garh Temple — Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Jaimangla_Garh_Temple"
+        },
+        {
+          "field": "latitude,longitude",
+          "title": "Wikidata Q12428229 (P625 coordinate location)",
+          "url": "https://www.wikidata.org/wiki/Q12428229"
+        },
+        {
+          "field": "latitude,longitude (state/district cross-check)",
+          "title": "OSM Nominatim reverse geocode: Begusarai, Bihar",
+          "url": "https://www.openstreetmap.org/?mlat=25.5922&mlon=86.1613#map=16/25.5922/86.1613"
+        }
+      ],
+      "photo_pack": {
+        "path": "photos/jaimangla-garh-temple/",
+        "status": "SHORTFALL",
+        "count": 0,
+        "photosShort": true,
+        "commons_category": null,
+        "photos": []
+      },
+      "review": {
+        "status": "ready_for_review",
+        "reviewer": "Research Pavi",
+        "notes": "Photo shortfall: 0/5 licensed site-verified Commons photos."
+      }
+    },
+    {
+      "slug": "ahalya-sthan",
+      "name": "Ahalya Sthan",
+      "city": "Kamtaul",
+      "state": "Bihar",
+      "deity": "Ahalya",
+      "latitude": 26.3125,
+      "longitude": 85.8145,
+      "timings": null,
+      "timings_note": "No official temple-trust / state tourism / ASI timings page found during research; left null.",
+      "description": "Ahalya Sthan, in Kamtaul in Darbhanga district, is a temple dedicated to Ahalya of the Ramayana. It is also spelt Ahilya Sthan or Ahilya Asthan.",
+      "specialities": [
+        "Dedicated to Ahalya",
+        "Linked to the Ramayana",
+        "Kamtaul, Darbhanga district"
+      ],
+      "sources": [
+        {
+          "field": "name,city,deity,description,specialities",
+          "title": "Ahalya Sthan — Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Ahalya_Sthan"
+        },
+        {
+          "field": "latitude,longitude",
+          "title": "Wikidata Q15644573 (P625 coordinate location)",
+          "url": "https://www.wikidata.org/wiki/Q15644573"
+        },
+        {
+          "field": "latitude,longitude (state/district cross-check)",
+          "title": "OSM Nominatim reverse geocode: Darbhanga, Bihar",
+          "url": "https://www.openstreetmap.org/?mlat=26.3125&mlon=85.8145#map=16/26.3125/85.8145"
+        }
+      ],
+      "photo_pack": {
+        "path": "photos/ahalya-sthan/",
+        "status": "SHORTFALL",
+        "count": 0,
+        "photosShort": true,
+        "commons_category": null,
+        "photos": []
+      },
+      "review": {
+        "status": "ready_for_review",
+        "reviewer": "Research Pavi",
+        "notes": "Coordinates appear minute-level precision in source; spot-check on map. Photo shortfall: 0/5 licensed site-verified Commons photos."
+      }
+    }
+  ]
+}

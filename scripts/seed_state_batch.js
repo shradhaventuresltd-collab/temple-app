@@ -21,7 +21,7 @@ import { fileURLToPath } from "node:url";
 import { confirmProject } from "./prod_guard.js";
 import {
   formatSummary,
-  hasVerifiedGallery,
+  targetShortfall,
   validateStateBatch,
 } from "./state_batch.js";
 import {
@@ -77,9 +77,10 @@ function parseArgs(argv) {
 
 /**
  * Firestore fields for one temple.
- * When [live] already has a verified gallery, imageUrl, images, and photos
- * are omitted so --apply cannot overwrite them. story and address are
- * omitted on update because research batches must not carry those fields.
+ * Research batches do not carry image URLs, so imageUrl, images, and photos
+ * are never part of the payload. An existing verified gallery stays as it is.
+ * story and address are omitted on update because those keys are forbidden
+ * in the research file.
  * @param {object} temple normalised batch temple
  * @param {object | null} live existing Firestore document, or null to create
  */
@@ -99,18 +100,6 @@ export function firestoreWritePayload(temple, live) {
   if (!live) {
     data.story = temple.story ?? "";
     data.address = temple.location ?? `${temple.city}, ${temple.state}`;
-  }
-  if (!hasVerifiedGallery(live) && Array.isArray(temple.images) && temple.images.length > 0) {
-    data.imageUrl = temple.images[0];
-    data.images = temple.images;
-    if (Array.isArray(temple.photos) && temple.photos.length > 0) {
-      data.photos = temple.photos.map((photo) => ({
-        url: photo.url,
-        credit: photo.credit,
-        licence: photo.licence,
-        order: photo.order,
-      }));
-    }
   }
   return data;
 }
@@ -174,6 +163,8 @@ async function main(argv = process.argv.slice(2)) {
     batch,
     temples.map((row) => row.temple),
   );
+  const shortfall = targetShortfall(batch);
+  if (shortfall) console.log(`Note: ${shortfall}`);
   if (!result.ok) {
     console.error("State batch is invalid:");
     for (const error of result.errors) console.error(`  - ${error}`);

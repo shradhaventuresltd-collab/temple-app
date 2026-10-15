@@ -1,0 +1,88 @@
+{
+  "state": "Sikkim",
+  "owner": "Reviewer",
+  "generated": "2026-10-15",
+  "existing_in_prod": 0,
+  "target": 50,
+  "temples": [
+    {
+      "slug": "hanuman-tok",
+      "name": "Hanuman Tok",
+      "city": "Gangtok",
+      "state": "Sikkim",
+      "deity": "Hanuman",
+      "latitude": 27.3478,
+      "longitude": 88.6286,
+      "timings": null,
+      "timings_note": "No official (temple trust / state tourism / ASI) timings page verified; left null.",
+      "description": "Hanuman Tok is a hilltop Hanuman temple complex in upper Gangtok, maintained by the Indian Army. It was built in 1950 by Appaji Pant over a revered stone.",
+      "specialities": [
+        "Dedicated to Lord Hanuman",
+        "Maintained by the Indian Army",
+        "Built in 1950"
+      ],
+      "sources": [
+        {
+          "field": "name,city,deity,description,specialities",
+          "title": "Hanuman Tok — Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Hanuman_Tok"
+        },
+        {
+          "field": "latitude,longitude",
+          "title": "Hanuman Tok — Wikipedia (coordinates)",
+          "url": "https://en.wikipedia.org/wiki/Hanuman_Tok"
+        }
+      ],
+      "photo_pack": {
+        "path": "photos/hanuman-tok/",
+        "status": "SHORTFALL",
+        "count": 0
+      },
+      "review": {
+        "status": "ready_for_review",
+        "reviewer": "Research Pavi",
+        "notes": ""
+      }
+    },
+    {
+      "slug": "rumtek-monastery",
+      "name": "Rumtek Monastery",
+      "city": "Gangtok",
+      "state": "Sikkim",
+      "deity": "Buddhist (Karma Kagyu)",
+      "latitude": 27.2886,
+      "longitude": 88.5614,
+      "timings": null,
+      "timings_note": "No official timings page verified; left null.",
+      "description": "Rumtek Monastery, also called the Dharma Chakra Centre, is a gompa near Gangtok. It was inaugurated in 1966 by the 16th Karmapa as the Karmapa's seat in exile. This is a Buddhist site, not a Hindu temple.",
+      "specialities": [
+        "tradition: Buddhist",
+        "Seat in exile of the Gyalwang Karmapa",
+        "Inaugurated in 1966",
+        "Also called the Dharma Chakra Centre"
+      ],
+      "sources": [
+        {
+          "field": "name,city,deity,description,specialities",
+          "title": "Rumtek Monastery — Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Rumtek_Monastery"
+        },
+        {
+          "field": "latitude,longitude",
+          "title": "Rumtek Monastery — Wikipedia (coordinates)",
+          "url": "https://en.wikipedia.org/wiki/Rumtek_Monastery"
+        }
+      ],
+      "photo_pack": {
+        "path": "photos/rumtek-monastery/",
+        "status": "SHORTFALL",
+        "count": 0
+      },
+      "review": {
+        "status": "ready_for_review",
+        "reviewer": "Research Pavi",
+        "notes": "Non-Hindu (Buddhist gompa) per Pavi ruling 2026-10-15."
+      }
+    }
+  ]
+}
