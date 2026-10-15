@@ -205,20 +205,15 @@ else
       echo "Admin overflow was not on Home"
       status=1
     else
-      # The menu button is autofocused. Enter activates it. A coordinate
-      # tap on this dialog is swallowed by the full-screen dismiss target.
       sleep 1
-      if ! wait_for "Admin sign-in" 4; then
-        echo "Admin sign-in was not in the overflow"
-        status=1
-      else
-        adb shell input keyevent 66 || true
+      if ! tap_needle "Admin sign-in" && ! tap_needle "Admin Panel"; then
         sleep 1
-        if ! visible "Admin sign-in required"; then
-          adb shell input keyevent 66 || true
+        if ! tap_needle "Admin sign-in"; then
+          echo "Admin entry was not on Home"
+          status=1
         fi
       fi
-      if ! wait_for "Admin sign-in required" 8; then
+      if [[ "$status" -eq 0 ]] && ! wait_for "Admin sign-in required" 8; then
         echo "Admin panel did not open"
         status=1
       else
