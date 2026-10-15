@@ -613,7 +613,7 @@ function readSources(raw, label, errors) {
   return sources;
 }
 
-/** On-disk root for research photo packs. Not state-expansion/photos. */
+/** On-disk root for research photo packs. photo_pack.path is photos/<slug>/ under this root. */
 export const TEMPLE_RESEARCH_ROOT = "/workspace/temple-research";
 
 /**
