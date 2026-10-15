@@ -4,145 +4,9 @@ import 'package:temple_app/config/build_flags.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/services/seed_service.dart';
+import 'package:temple_app/services/temple_write_store.dart';
 
-/// Persistence used by [AdminTempleService] so write paths can be tested
-/// without a live Firebase project.
-abstract class TempleWriteStore {
-  Future<bool> exists(String id);
-
-  /// Current `temples/{id}` map, or `null` if the document is missing.
-  Future<Map<String, dynamic>?> get(String id);
-
-  Future<void> set(String id, Map<String, dynamic> data, {required bool isNew});
-
-  Future<void> deleteDocument(String id);
-
-  /// Deletes objects under `temples/{docId}/`. Returns how many were removed.
-  /// External URLs (picsum seed images, etc.) are not Storage objects.
-  Future<int> deleteStoragePrefix(String docId);
-}
-
-/// Firestore + Storage implementation. Schema matches Seed / [Temple].
-class FirebaseTempleWriteStore implements TempleWriteStore {
-  FirebaseTempleWriteStore({
-    FirebaseFirestore? firestore,
-    FirebaseStorage? storage,
-  }) : _firestore = firestore ?? FirebaseFirestore.instance,
-       _storage = storage ?? FirebaseStorage.instance;
-
-  final FirebaseFirestore _firestore;
-  final FirebaseStorage _storage;
-
-  CollectionReference<Map<String, dynamic>> get _col =>
-      _firestore.collection('temples');
-
-  @override
-  Future<bool> exists(String id) async {
-    final snap = await _col.doc(id).get();
-    return snap.exists;
-  }
-
-  @override
-  Future<Map<String, dynamic>?> get(String id) async {
-    final snap = await _col.doc(id).get();
-    if (!snap.exists) return null;
-    return snap.data();
-  }
-
-  @override
-  Future<void> set(
-    String id,
-    Map<String, dynamic> data, {
-    required bool isNew,
-  }) async {
-    final payload = Map<String, dynamic>.from(data);
-    final ref = _col.doc(id);
-    if (isNew) {
-      payload['createdAt'] = FieldValue.serverTimestamp();
-      await ref.set(payload);
-    } else {
-      await ref.set(payload, SetOptions(merge: true));
-    }
-  }
-
-  @override
-  Future<void> deleteDocument(String id) => _col.doc(id).delete();
-
-  @override
-  Future<int> deleteStoragePrefix(String docId) {
-    return _deletePrefix(_storage.ref('temples/$docId'));
-  }
-
-  Future<int> _deletePrefix(Reference ref) async {
-    final listed = await ref.listAll();
-    var count = 0;
-    for (final item in listed.items) {
-      await item.delete();
-      count++;
-    }
-    for (final prefix in listed.prefixes) {
-      count += await _deletePrefix(prefix);
-    }
-    return count;
-  }
-}
-
-/// In-memory store for tests.
-class MemoryTempleWriteStore implements TempleWriteStore {
-  MemoryTempleWriteStore({
-    Map<String, Map<String, dynamic>>? docs,
-    this.storageObjectCounts = const {},
-  }) : docs = docs ?? {};
-
-  final Map<String, Map<String, dynamic>> docs;
-
-  /// How many Storage objects [deleteStoragePrefix] should report per doc id.
-  Map<String, int> storageObjectCounts;
-
-  Object? setError;
-  Object? deleteDocumentError;
-  Object? deleteStorageError;
-  int deleteStorageCalls = 0;
-
-  @override
-  Future<bool> exists(String id) async => docs.containsKey(id);
-
-  @override
-  Future<Map<String, dynamic>?> get(String id) async {
-    final data = docs[id];
-    if (data == null) return null;
-    return Map<String, dynamic>.from(data);
-  }
-
-  @override
-  Future<void> set(
-    String id,
-    Map<String, dynamic> data, {
-    required bool isNew,
-  }) async {
-    if (setError != null) throw setError!;
-    final payload = Map<String, dynamic>.from(data);
-    if (isNew) {
-      payload['createdAt'] = 'server';
-      docs[id] = payload;
-    } else {
-      docs[id] = {...?docs[id], ...payload};
-    }
-  }
-
-  @override
-  Future<void> deleteDocument(String id) async {
-    if (deleteDocumentError != null) throw deleteDocumentError!;
-    docs.remove(id);
-  }
-
-  @override
-  Future<int> deleteStoragePrefix(String docId) async {
-    deleteStorageCalls++;
-    if (deleteStorageError != null) throw deleteStorageError!;
-    return storageObjectCounts[docId] ?? 0;
-  }
-}
+export 'package:temple_app/services/temple_write_store.dart';
 
 class AdminDeleteResult {
   const AdminDeleteResult({
@@ -268,13 +132,19 @@ class AdminTempleService implements AdminTempleApi {
     if (temple.name.trim().isEmpty) {
       throw StateError('Name is required.');
     }
-    if (!await _store.exists(id)) {
+    final previous = await _store.get(id);
+    if (previous == null) {
       throw StateError(
         'Temple was not found. It may have already been deleted.',
       );
     }
 
-    await _store.set(id, _payload(temple, id), isNew: false);
+    await _store.set(
+      id,
+      _payload(temple, id),
+      isNew: false,
+      previous: previous,
+    );
   }
 
   /// Storage has already succeeded. Merge URLs, then `set(merge: true)` the
@@ -314,7 +184,7 @@ class AdminTempleService implements AdminTempleApi {
     assertTemplePayloadValidForRules(payload);
 
     try {
-      await _store.set(id, payload, isNew: false);
+      await _store.set(id, payload, isNew: false, previous: stored);
     } catch (e) {
       throw StateError(
         'Storage upload succeeded, but Firestore could not save the image '
@@ -350,7 +220,8 @@ class AdminTempleService implements AdminTempleApi {
     }
 
     try {
-      await _store.deleteDocument(docId);
+      final previous = await _store.get(docId);
+      await _store.deleteDocument(docId, previous: previous);
     } catch (e) {
       throw StateError(
         'Removed $storageDeleted Storage object(s), but the Firestore '

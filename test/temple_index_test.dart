@@ -1,0 +1,579 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:temple_app/data/sample_data.dart';
+import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/models/temple_index.dart';
+import 'package:temple_app/services/admin_temple_service.dart';
+import 'package:temple_app/services/seed_service.dart';
+
+Temple _temple({
+  String id = '',
+  String name = 'New Shore Temple',
+  String state = 'Tamil Nadu',
+  String location = 'Mahabalipuram',
+  double latitude = 12.616,
+  double longitude = 80.199,
+  String imageUrl = 'https://example.com/shore.jpg',
+}) {
+  return Temple(
+    id: id,
+    name: name,
+    state: state,
+    city: 'Mahabalipuram',
+    deity: 'Shiva',
+    imageUrl: imageUrl,
+    description: 'Pallava sea-shore shrine',
+    story: 'Built by Rajasimha',
+    location: location,
+    timings: '6:00 AM – 6:00 PM',
+    specialities: const ['UNESCO'],
+    images: [imageUrl],
+    latitude: latitude,
+    longitude: longitude,
+  );
+}
+
+void main() {
+  test('flag fixture matches DetailHonesty', () {
+    final rows =
+        jsonDecode(
+              File(
+                'scripts/fixtures/temple_index_flags.json',
+              ).readAsStringSync(),
+            )
+            as List<dynamic>;
+    for (final raw in rows) {
+      final row = Map<String, dynamic>.from(raw as Map);
+      final specialities = [
+        for (final item in row['specialities'] as List) item.toString(),
+      ];
+      final temple = Temple(
+        name: row['name'] as String,
+        state: 'Tamil Nadu',
+        city: 'Madurai',
+        deity: row['deity'] as String,
+        imageUrl: '',
+        description: row['description'] as String? ?? '',
+        story: row['story'] as String? ?? '',
+        location: 'Madurai',
+        timings: row['timings'] as String?,
+        specialities: specialities,
+        latitude: 9.9,
+        longitude: 78.1,
+      );
+      final flags = templeIndexFlagsFor(temple);
+      expect(flags.tradition, row['tradition'], reason: row['id'] as String);
+      expect(flags.living, row['living'], reason: row['id'] as String);
+      expect(flags.framing, row['framing'], reason: row['id'] as String);
+    }
+  });
+
+  test('entry keeps browse fields and drops the heavy document', () {
+    const thumb =
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/1280px-File.jpg';
+    final entry = templeIndexEntryFromMap('meenakshi-amman-temple', {
+      'name': 'Meenakshi Amman Temple',
+      'state': 'Tamil Nadu',
+      'city': 'Madurai',
+      'deity': 'Devi',
+      'address': 'Madurai Main, Madurai, Tamil Nadu 625001',
+      'imageUrl': thumb,
+      'images': [thumb],
+      'description': 'The shrine holds daily pooja for devotees. ' * 20,
+      'story': 'A long story. ' * 50,
+      'timings': '5:00 AM – 10:00 PM',
+      'specialities': ['Gopuram'],
+      'photos': [
+        {'url': thumb, 'licence': 'CC-BY', 'order': 0, 'credit': 'A'},
+      ],
+      'latitude': 9.9195,
+      'longitude': 78.1193,
+    });
+
+    expect(entry['id'], 'meenakshi-amman-temple');
+    expect(entry['slug'], 'meenakshi-amman-temple');
+    expect(entry['address'], 'Madurai Main, Madurai, Tamil Nadu 625001');
+    expect(
+      entry['coverThumb'],
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/480px-File.jpg',
+    );
+    expect(entry['lat'], 9.9195);
+    expect(entry['lng'], 78.1193);
+    expect(entry['v'], kTempleIndexEntryVersion);
+    expect(entry['updatedAt'], isNull);
+    expect(entry.containsKey('imageUrl'), isFalse);
+    expect(entry.containsKey('description'), isFalse);
+    expect(entry.containsKey('story'), isFalse);
+    expect(entry.containsKey('timings'), isFalse);
+    expect(entry.containsKey('photos'), isFalse);
+    expect(entry.containsKey('images'), isFalse);
+    expect(entry.containsKey('specialities'), isFalse);
+    expect(utf8.encode(jsonEncode(entry)).length, lessThan(800));
+  });
+
+  test('lat and lng are null when missing or exactly 0,0', () {
+    final missing = templeIndexCoordinates({'latitude': null, 'longitude': 78});
+    expect(missing.lat, isNull);
+    expect(missing.lng, isNull);
+
+    final zero = templeIndexCoordinates({'latitude': 0, 'longitude': 0.0});
+    expect(zero.lat, isNull);
+    expect(zero.lng, isNull);
+
+    final axis = templeIndexCoordinates({'latitude': 0, 'longitude': 80});
+    expect(axis.lat, 0);
+    expect(axis.lng, 80);
+  });
+
+  test('cover prefers photos[0] thumb, then imageUrl, and caps at 500', () {
+    const thumb = 'https://cdn.example/photos/shore_480.jpg';
+    const full = 'https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg';
+    expect(
+      coverThumbFor({
+        'photos': [
+          {'url': full, 'thumbUrl': thumb, 'licence': 'CC0', 'order': 0},
+        ],
+        'imageUrl': 'https://example.com/cover.jpg',
+        'images': ['https://example.com/gallery.jpg'],
+      }),
+      thumb,
+    );
+    const wide =
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/1280px-File.jpg';
+    expect(
+      coverThumbFor({
+        'photos': [
+          {'url': wide, 'licence': 'CC0', 'order': 0},
+        ],
+        'imageUrl': wide,
+      }),
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/480px-File.jpg',
+    );
+    // TODO(KAN-146): this full URL is a stand-in until thumbnails exist.
+    expect(coverThumbFor({'imageUrl': full}), full);
+    expect(
+      coverThumbFor({
+        'imageUrl': 'https://picsum.photos/seed/temple/800/600',
+        'images': ['https://example.com/gallery.jpg'],
+      }),
+      'https://example.com/gallery.jpg',
+    );
+    expect(
+      coverThumbFor({'imageUrl': 'https://picsum.photos/seed/temple/800/600'}),
+      isNull,
+    );
+    final tooLong = 'https://example.com/${'a' * 500}.jpg';
+    expect(tooLong.length, greaterThan(kTempleIndexCoverThumbMax));
+    expect(
+      coverThumbFor({
+        'imageUrl': tooLong,
+        'images': [full],
+      }),
+      full,
+    );
+  });
+
+  test('short address stops at 120 characters', () {
+    final long = '${'Gate, ' * 40}Madurai';
+    final short = shortTempleAddress(long);
+    expect(short.length, lessThanOrEqualTo(kTempleIndexShortAddressMax));
+    expect(short.endsWith(','), isFalse);
+  });
+
+  test('altNames, published, and hidden are copied only when present', () {
+    final plain = templeIndexEntryFromMap('plain-temple', {
+      'name': 'Plain',
+      'state': 'Goa',
+      'city': 'Panaji',
+      'deity': 'Shiva',
+      'address': 'Panaji',
+      'latitude': 15.5,
+      'longitude': 73.8,
+    });
+    expect(plain.containsKey('altNames'), isFalse);
+    expect(plain.containsKey('published'), isFalse);
+    expect(plain.containsKey('hidden'), isFalse);
+
+    final flagged = templeIndexEntryFromMap('flagged-temple', {
+      'name': 'Flagged',
+      'state': 'Goa',
+      'city': 'Panaji',
+      'deity': 'Shiva',
+      'address': 'Panaji',
+      'latitude': 15.5,
+      'longitude': 73.8,
+      'altNames': ['Alt Shrine', ''],
+      'published': false,
+      'hidden': 'yes',
+    });
+    expect(flagged['altNames'], ['Alt Shrine']);
+    expect(flagged['published'], isFalse);
+    expect(flagged.containsKey('hidden'), isFalse);
+  });
+
+  test('state slug matches the shared fixture', () {
+    final rows =
+        jsonDecode(
+              File(
+                'scripts/fixtures/temple_index_slugs.json',
+              ).readAsStringSync(),
+            )
+            as List<dynamic>;
+    expect(rows, isNotEmpty);
+    for (final raw in rows) {
+      final row = Map<String, dynamic>.from(raw as Map);
+      expect(
+        templeIndexStateSlug(row['state'] as String),
+        row['slug'],
+        reason: row['state'] as String,
+      );
+    }
+    expect(() => assertTempleIndexId('bad.id'), throwsA(isA<StateError>()));
+  });
+
+  test('hidden and published flags filter the index entry', () {
+    expect(templeIndexEntryListed({'id': 'a'}), isTrue);
+    expect(templeIndexEntryListed({'id': 'a', 'published': true}), isTrue);
+    expect(templeIndexEntryListed({'id': 'a', 'hidden': false}), isTrue);
+    expect(templeIndexEntryListed({'id': 'a', 'published': false}), isFalse);
+    expect(templeIndexEntryListed({'id': 'a', 'hidden': true}), isFalse);
+  });
+
+  test('a state move plans one new field and a delete on the old shard', () {
+    final plan = planTempleIndex(
+      id: 'new-shore-temple',
+      previous: {
+        'state': 'Tamil Nadu',
+        'altNames': ['Shore Temple'],
+      },
+      next: {
+        'name': 'New Shore Temple',
+        'state': 'Kerala',
+        'city': 'Mahabalipuram',
+        'deity': 'Shiva',
+        'address': 'Mahabalipuram',
+        'latitude': 12.6,
+        'longitude': 80.2,
+      },
+    );
+    expect(plan.upsertShard, 'kerala');
+    expect(plan.removeShard, 'tamil-nadu');
+    expect(plan.entry!['altNames'], ['Shore Temple']);
+    expect(plan.entry!.containsKey('description'), isFalse);
+    expect(plan.metaShards, ['kerala', 'tamil-nadu']);
+  });
+
+  test('create writes one entry field and does not wipe a sibling', () async {
+    final store = MemoryTempleWriteStore();
+    store.shards['tamil-nadu'] = {
+      'other-temple': {'id': 'other-temple', 'name': 'Other'},
+    };
+    final service = AdminTempleService(
+      store: store,
+      isAdmin: () async => true,
+      isDebug: true,
+    );
+
+    await service.createTemple(_temple());
+
+    expect(store.shards['tamil-nadu']!['other-temple']!['name'], 'Other');
+    final entry = store.shards['tamil-nadu']!['new-shore-temple']!;
+    expect(entry['name'], 'New Shore Temple');
+    expect(entry['state'], 'Tamil Nadu');
+    expect(entry['lat'], 12.616);
+    expect(entry['lng'], 80.199);
+    expect(entry['coverThumb'], 'https://example.com/shore.jpg');
+    expect(entry['updatedAt'], 'server');
+    expect(entry.containsKey('description'), isFalse);
+    expect(store.indexVersion, 1);
+    expect(store.shardStamps['tamil-nadu'], 'server');
+    expect(store.lastIndexFieldPaths, [
+      'temple_index/tamil-nadu/entries/new-shore-temple',
+      'meta/temple_index',
+    ]);
+  });
+
+  test('moving state removes only that entry from the old shard', () async {
+    final store = MemoryTempleWriteStore();
+    final service = AdminTempleService(
+      store: store,
+      isAdmin: () async => true,
+      isDebug: true,
+    );
+    await service.createTemple(_temple());
+    store.shards['tamil-nadu']!['other-temple'] = {'id': 'other-temple'};
+
+    await service.updateTemple(
+      _temple(id: 'new-shore-temple', state: 'Kerala'),
+    );
+
+    expect(
+      store.shards['tamil-nadu']!.containsKey('new-shore-temple'),
+      isFalse,
+    );
+    expect(store.shards['tamil-nadu']!['other-temple']!['id'], 'other-temple');
+    expect(store.shards['kerala']!['new-shore-temple']!['state'], 'Kerala');
+    expect(store.indexVersion, 2);
+    expect(store.shardStamps['kerala'], 'server');
+    expect(store.shardStamps['tamil-nadu'], 'server');
+    expect(
+      store.lastIndexFieldPaths,
+      contains('temple_index/tamil-nadu/entries/new-shore-temple delete'),
+    );
+  });
+
+  test(
+    'a state change before the index exists still writes the new shard',
+    () async {
+      final store = MemoryTempleWriteStore(
+        docs: {
+          'new-shore-temple': {
+            'name': 'New Shore Temple',
+            'state': 'Tamil Nadu',
+            'city': 'Mahabalipuram',
+            'deity': 'Shiva',
+            'address': 'Mahabalipuram',
+            'description': 'Pallava sea-shore shrine',
+            'story': 'Built by Rajasimha',
+            'timings': '6:00 AM – 6:00 PM',
+            'specialities': ['UNESCO'],
+            'imageUrl': 'https://example.com/shore.jpg',
+            'images': ['https://example.com/shore.jpg'],
+            'latitude': 12.616,
+            'longitude': 80.199,
+            'altNames': ['Shore Temple'],
+            'published': true,
+          },
+        },
+      );
+      final service = AdminTempleService(
+        store: store,
+        isAdmin: () async => true,
+        isDebug: true,
+      );
+
+      await service.updateTemple(
+        _temple(id: 'new-shore-temple', state: 'Kerala'),
+      );
+
+      expect(store.shards.containsKey('tamil-nadu'), isFalse);
+      final entry = store.shards['kerala']!['new-shore-temple']!;
+      expect(entry['altNames'], ['Shore Temple']);
+      expect(entry['published'], isTrue);
+      expect(entry.containsKey('hidden'), isFalse);
+      expect(
+        store.lastIndexFieldPaths.any((path) => path.endsWith(' delete')),
+        isFalse,
+      );
+    },
+  );
+
+  test('delete removes the index entry in the same commit', () async {
+    final store = MemoryTempleWriteStore();
+    final service = AdminTempleService(
+      store: store,
+      isAdmin: () async => true,
+      isDebug: true,
+    );
+    await service.createTemple(_temple());
+
+    await service.deleteTemple('new-shore-temple');
+
+    expect(store.docs.containsKey('new-shore-temple'), isFalse);
+    expect(
+      store.shards['tamil-nadu']!.containsKey('new-shore-temple'),
+      isFalse,
+    );
+    expect(store.indexVersion, 2);
+  });
+
+  test('0,0 from the admin form is stored as null lat/lng', () async {
+    final store = MemoryTempleWriteStore();
+    final service = AdminTempleService(
+      store: store,
+      isAdmin: () async => true,
+      isDebug: true,
+    );
+    await service.createTemple(_temple(latitude: 0, longitude: 0));
+    final entry = store.shards['tamil-nadu']!['new-shore-temple']!;
+    expect(entry['lat'], isNull);
+    expect(entry['lng'], isNull);
+  });
+
+  test('Firebase writer uses one batch and a single entry field path', () {
+    final source = File(
+      'lib/services/temple_write_store.dart',
+    ).readAsStringSync();
+    expect(source, contains('batch.commit()'));
+    expect(source, contains("FieldPath(['entries', id])"));
+    expect(source, contains('FieldValue.increment(1)'));
+    expect(source, contains('SetOptions(merge: true)'));
+    expect(source, contains('FieldValue.delete()'));
+    expect(source, contains('mergeFields'));
+    expect(source, contains('collection(kTempleIndexCollection)'));
+    expect(source, contains('kTempleIndexMetaDocId'));
+    expect(source, contains('oldSnap.exists'));
+    expect(source, isNot(contains('oldSnap.data()')));
+  });
+
+  test('a whole-degree longitude is a double and text fields are trimmed', () {
+    final entry = templeIndexEntryFromMap('whole-degree', {
+      'name': 'N' * 200,
+      'state': 'Tamil Nadu',
+      'city': 'C' * 80,
+      'deity': 'D' * 90,
+      'address': 'Mahabalipuram, Tamil Nadu',
+      'latitude': 12,
+      'longitude': 80,
+    });
+    expect(entry['lng'], isA<double>());
+    expect(entry['lat'], isA<double>());
+    expect(entry['lng'], 80.0);
+    expect(entry['lat'], 12.0);
+    expect((entry['name'] as String).length, kTempleIndexNameMax);
+    expect((entry['city'] as String).length, kTempleIndexCityMax);
+    expect((entry['deity'] as String).length, kTempleIndexDeityMax);
+    expect(
+      estimateTempleIndexShardBytes(),
+      lessThan(kTempleIndexDocumentByteLimit),
+    );
+  });
+
+  test(
+    'the 401st temple in a state is refused with a readable error',
+    () async {
+      final store = MemoryTempleWriteStore();
+      final shard = <String, Map<String, dynamic>>{};
+      for (var i = 0; i < kTempleIndexMaxEntries; i++) {
+        shard['temple-$i'] = {'id': 'temple-$i'};
+      }
+      store.shards['tamil-nadu'] = shard;
+      final service = AdminTempleService(
+        store: store,
+        isAdmin: () async => true,
+        isDebug: true,
+      );
+      await expectLater(
+        () => service.createTemple(_temple(name: 'One More Temple')),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            contains('This save was not written'),
+          ),
+        ),
+      );
+      expect(store.docs, isEmpty);
+      expect(
+        templeIndexShardFullMessage(state: 'Tamil Nadu', count: 400),
+        contains(
+          'Splitting one state across more than one shard is a later change',
+        ),
+      );
+    },
+  );
+
+  test('a living shrine beside fort ruins is not a monument', () {
+    final flags = templeIndexFlagsFor(
+      Temple(
+        name: 'Fort Side Shrine',
+        state: 'Kerala',
+        city: 'Anchuthengu',
+        deity: 'Devi',
+        imageUrl: '',
+        description:
+            'Daily puja at the shrine beside the fort ruins. The former factory ceased.',
+        story: 'Historic fort ruins stand next to the temple.',
+        location: 'Anchuthengu',
+        timings: '5:00 AM – 8:00 PM',
+        specialities: const [],
+        latitude: 8.6,
+        longitude: 76.7,
+      ),
+    );
+    expect(flags.framing, 'living');
+    expect(flags.living, isTrue);
+  });
+
+  test('Dart and JS index entries agree for every sample temple', () async {
+    final payload = [
+      for (final temple in sampleTemples)
+        {
+          'id': templeDocumentId(temple.name),
+          'name': temple.name,
+          'state': temple.state,
+          'city': temple.city,
+          'deity': temple.deity,
+          'description': temple.description,
+          'story': temple.story,
+          'timings': temple.timings,
+          'specialities': temple.specialities,
+          'imageUrl': temple.imageUrl,
+          'images': temple.images,
+          'address': temple.location,
+          'latitude': temple.latitude,
+          'longitude': temple.longitude,
+        },
+    ];
+    final dir = await Directory.systemTemp.createTemp('temple-index-parity');
+    final file = File('${dir.path}/temples.json');
+    await file.writeAsString(jsonEncode(payload));
+    final result = await Process.run('node', [
+      'scripts/index_parity.js',
+      file.path,
+    ]);
+    expect(result.exitCode, 0, reason: '${result.stderr}');
+    final jsRows = jsonDecode(result.stdout as String) as List<dynamic>;
+    expect(jsRows, hasLength(sampleTemples.length));
+    for (var i = 0; i < sampleTemples.length; i++) {
+      final id = payload[i]['id'] as String;
+      final dartEntry = templeIndexEntryFromMap(id, payload[i]);
+      final js = Map<String, dynamic>.from(jsRows[i] as Map);
+      expect(js['id'], id, reason: id);
+      expect(js['framing'], dartEntry['framing'], reason: id);
+      expect(js['tradition'], dartEntry['tradition'], reason: id);
+      expect(js['living'], dartEntry['living'], reason: id);
+      expect(js['name'], dartEntry['name'], reason: id);
+      expect(js['city'], dartEntry['city'], reason: id);
+      expect(js['state'], dartEntry['state'], reason: id);
+      expect(js['deity'], dartEntry['deity'], reason: id);
+      expect(js['address'], dartEntry['address'], reason: id);
+      expect(js['coverThumb'], dartEntry['coverThumb'], reason: id);
+      final lng = dartEntry['lng'];
+      final lat = dartEntry['lat'];
+      expect(lng == null || lng is double, isTrue, reason: id);
+      expect(lat == null || lat is double, isTrue, reason: id);
+      expect(lng, isNot(isA<int>()), reason: id);
+      expect(lat, isNot(isA<int>()), reason: id);
+      if (lng == null) {
+        expect(js['lng'], isNull, reason: id);
+      } else {
+        expect((js['lng'] as num).toDouble(), lng, reason: id);
+      }
+      if (lat == null) {
+        expect(js['lat'], isNull, reason: id);
+      } else {
+        expect((js['lat'] as num).toDouble(), lat, reason: id);
+      }
+      if (dartEntry['living'] == true) {
+        expect(dartEntry['framing'], 'living', reason: id);
+      }
+    }
+    final anjengo = templeIndexEntryFromMap(
+      'anjengo-sree-durga-devi-temple',
+      payload.firstWhere(
+        (row) => row['id'] == 'anjengo-sree-durga-devi-temple',
+      ),
+    );
+    expect(anjengo['framing'], 'neutral');
+    await dir.delete(recursive: true);
+  });
+
+  test('browse still reads temples, not the index', () {
+    final source = File('lib/services/temple_service.dart').readAsStringSync();
+    expect(source, contains("collection('temples')"));
+    expect(source, isNot(contains('temple_index')));
+  });
+}
