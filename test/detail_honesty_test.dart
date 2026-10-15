@@ -55,7 +55,97 @@ void main() {
       isPlaceholderImageUrl('https://fastly.picsum.photos/id/1/800/600'),
       isTrue,
     );
+    expect(
+      isPlaceholderImageUrl('https://i.picsum.photos/id/1/800/600'),
+      isTrue,
+    );
+    expect(isPlaceholderImageUrl('https://loremflickr.com/800/600'), isTrue);
+    expect(
+      isPlaceholderImageUrl('https://www.loremflickr.com/800/600'),
+      isTrue,
+    );
+    expect(isPlaceholderImageUrl('https://placekitten.com/800/600'), isTrue);
+    expect(isPlaceholderImageUrl('https://fakeimg.pl/800x600'), isTrue);
+    expect(isPlaceholderImageUrl('https://placeimg.com/800/600'), isTrue);
+    expect(isPlaceholderImageUrl('https://notpicsum.photos/800'), isFalse);
+    expect(
+      isPlaceholderImageUrl('https://cdn.source.unsplash.com/random'),
+      isFalse,
+    );
+    expect(
+      isPlaceholderImageUrl('https://images.unsplash.com/photo-1'),
+      isFalse,
+    );
+    expect(
+      isUnlicensedStockImageUrl('https://images.unsplash.com/photo-1'),
+      isFalse,
+    );
+    expect(
+      isPlaceholderImageUrl('https://www.shutterstock.com/image-photo/temple'),
+      isFalse,
+    );
+    expect(isUnlicensedStockImageUrl(''), isFalse);
+    expect(isUnlicensedStockImageUrl('not-a-url'), isFalse);
+    for (final url in [
+      'https://www.shutterstock.com/image-photo/temple',
+      'https://www.istockphoto.com/photo/temple',
+      'https://media.gettyimages.com/id/1/photo.jpg',
+      'https://www.gettyimages.co.uk/detail/photo/temple',
+      'https://www.pexels.com/photo/temple',
+      'https://stock.adobe.com/images/temple',
+      'https://www.alamy.com/temple.jpg',
+      'https://www.dreamstime.com/temple',
+      'https://www.123rf.com/photo_1.html',
+      'https://depositphotos.com/photo/temple.html',
+      'https://www.freepik.com/free-photo/temple',
+      'https://cdn.istock.com/photo/temple',
+    ]) {
+      expect(isUnlicensedStockImageUrl(url), isTrue, reason: url);
+      expect(isDisallowedImageUrl(url), isTrue, reason: url);
+    }
+    expect(
+      isUnlicensedStockImageUrl('https://www.adobe.com/image/temple.jpg'),
+      isFalse,
+    );
+    expect(
+      isUnlicensedStockImageUrl(
+        'https://example.com/photos/shutterstock-temple.jpg',
+      ),
+      isFalse,
+    );
+    expect(
+      verifiedGalleryUrls(
+        _draft(imageUrl: 'https://www.shutterstock.com/image-photo/temple'),
+      ),
+      isEmpty,
+    );
+    expect(
+      verifiedGalleryUrls(
+        _draft(imageUrl: 'https://images.unsplash.com/photo-1'),
+      ),
+      ['https://images.unsplash.com/photo-1'],
+    );
+    const wide =
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/1280px-File.jpg';
+    expect(verifiedGalleryUrls(_draft(imageUrl: wide)), [wide]);
+    expect(
+      isPlaceholderImageUrl(
+        'https://upload.wikimedia.org/wikipedia/commons/x/xx/Placeholder_temple.jpg',
+      ),
+      isFalse,
+    );
+    expect(
+      isPlaceholderImageUrl(
+        'https://storage.googleapis.com/bucket/temples/placeholder-x.jpg',
+      ),
+      isFalse,
+    );
     expect(isPlaceholderImageUrl('https://placehold.co/800x600'), isTrue);
+    expect(isPlaceholderImageUrl('https://placehold.it/800x600'), isTrue);
+    expect(isPlaceholderImageUrl('https://dummyimage.com/800x600'), isTrue);
+    expect(isPlaceholderImageUrl('https://lorempixel.com/800/600'), isTrue);
+    expect(isPlaceholderImageUrl('https://source.unsplash.com/random'), isTrue);
+    expect(isPlaceholderImageUrl('https://placeholder.com/800'), isTrue);
     expect(
       isPlaceholderImageUrl('https://via.placeholder.com/800x600'),
       isTrue,
@@ -842,11 +932,7 @@ void main() {
   test('imageUrl matches images[0] for every gallery', () {
     for (final temple in sampleTemples) {
       if (temple.images.isEmpty) {
-        expect(
-          temple.imageUrl,
-          contains('picsum.photos'),
-          reason: temple.name,
-        );
+        expect(temple.imageUrl, isEmpty, reason: temple.name);
         continue;
       }
       expect(temple.imageUrl, temple.images.first, reason: temple.name);

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/data/sample_data.dart';
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/services/client_cache.dart';
 import 'package:temple_app/widgets/temple_browse_card.dart';
 import 'package:temple_app/widgets/temple_image_placeholder.dart';
 
@@ -94,11 +95,7 @@ void main() {
 
       for (final name in names) {
         final sample = _named(name);
-        expect(
-          sample.imageUrl,
-          contains('picsum.photos'),
-          reason: '$name fixture still uses picsum in sample_data',
-        );
+        expect(sample.imageUrl, isEmpty, reason: '$name fixture has no cover');
         await pumpCard(tester, sample);
         expect(
           find.byType(TempleImagePlaceholder),
@@ -149,7 +146,7 @@ void main() {
           imageUrl: '',
           images: const [
             'https://picsum.photos/seed/desk/800/600',
-            'https://fastly.picsum.photos/id/1015/800/600',
+            'https://via.placeholder.com/800x600',
           ],
         ),
       );
@@ -286,6 +283,55 @@ void main() {
     expect(placeholder, isA<TempleImagePlaceholder>());
   });
 
+  testWidgets('a Commons thumb retries the original once, including under 500px', (
+    tester,
+  ) async {
+    const thumb =
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/480px-Keesara_gutta_main_temple_gate.jpg';
+    const full =
+        'https://upload.wikimedia.org/wikipedia/commons/a/a1/Keesara_gutta_main_temple_gate.jpg';
+
+    Future<void> expectRetry(String shown, String original) async {
+      await pumpCard(tester, temple(imageUrl: shown));
+      final image = tester.widget<CachedNetworkImage>(
+        find.byType(CachedNetworkImage),
+      );
+      expect(image.imageUrl, shown);
+      final context = tester.element(find.byType(CachedNetworkImage));
+      final fallback = image.errorWidget!(context, shown, Exception('missing'));
+      expect(fallback, isA<CachedNetworkImage>());
+      final next = fallback as CachedNetworkImage;
+      expect(next.imageUrl, original);
+      final placeholder = next.errorWidget!(
+        context,
+        original,
+        Exception('missing'),
+      );
+      expect(placeholder, isA<TempleImagePlaceholder>());
+    }
+
+    await expectRetry(thumb, full);
+  });
+
+  testWidgets('a Commons tiff thumb shows the placeholder without the original', (
+    tester,
+  ) async {
+    const tif =
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/Example.tif/200px-Example.tif.jpg';
+    const tiff =
+        'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/57/Example.tiff/200px-Example.tiff.jpg';
+    for (final shown in [tif, tiff]) {
+      await pumpCard(tester, temple(imageUrl: shown));
+      final image = tester.widget<CachedNetworkImage>(
+        find.byType(CachedNetworkImage),
+      );
+      expect(image.imageUrl, shown);
+      final context = tester.element(find.byType(CachedNetworkImage));
+      final fallback = image.errorWidget!(context, shown, Exception('missing'));
+      expect(fallback, isA<TempleImagePlaceholder>());
+    }
+  });
+
   testWidgets('a guessed _480 url that fails falls back to the original', (
     tester,
   ) async {
@@ -303,7 +349,7 @@ void main() {
     expect((fallback as CachedNetworkImage).imageUrl, full);
   });
 
-  testWidgets('verified covers decode at the card size', (tester) async {
+  testWidgets('verified covers decode at about 480px', (tester) async {
     await pumpCard(
       tester,
       temple(
@@ -318,12 +364,17 @@ void main() {
     final context = tester.element(find.byType(CachedNetworkImage));
     final dpr = MediaQuery.devicePixelRatioOf(context);
     final width = tester.getSize(find.byType(TempleBrowseCard)).width;
-
-    expect(image.memCacheWidth, (width * dpr).round().clamp(1, 1600));
-    expect(
-      image.memCacheHeight,
-      (TempleBrowseCard.coverHeight * dpr).round().clamp(1, 1200),
+    final decode = listImageDecodeSize(
+      logicalWidth: width,
+      logicalHeight: TempleBrowseCard.coverHeight,
+      devicePixelRatio: dpr,
     );
+
+    expect(image.memCacheWidth, decode.width);
+    expect(image.memCacheHeight, decode.height);
+    expect(image.memCacheWidth, lessThanOrEqualTo(ClientCache.listDecodePx));
+    expect(image.memCacheHeight, lessThanOrEqualTo(ClientCache.listDecodePx));
+    expect(image.cacheManager, same(ClientCache.images));
   });
 
   testWidgets('Purmandal cover shows the 1847 lithograph caption', (

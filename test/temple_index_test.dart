@@ -74,7 +74,7 @@ void main() {
 
   test('entry keeps browse fields and drops the heavy document', () {
     const thumb =
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/1280px-File.jpg';
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/800px-File.jpg';
     final entry = templeIndexEntryFromMap('meenakshi-amman-temple', {
       'name': 'Meenakshi Amman Temple',
       'state': 'Tamil Nadu',
@@ -99,7 +99,7 @@ void main() {
     expect(entry['address'], 'Madurai Main, Madurai, Tamil Nadu 625001');
     expect(
       entry['coverThumb'],
-      'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/480px-File.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/500px-File.jpg',
     );
     expect(entry['lat'], 9.9195);
     expect(entry['lng'], 78.1193);
@@ -143,7 +143,7 @@ void main() {
       'https://example.com/gallery.jpg',
     );
     const wide =
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/1280px-File.jpg';
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/800px-File.jpg';
     expect(
       coverThumbFor({
         'photos': [
@@ -151,7 +151,7 @@ void main() {
         ],
         'imageUrl': wide,
       }),
-      'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/480px-File.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/500px-File.jpg',
     );
     expect(coverThumbFor({'imageUrl': full}), full);
     expect(
@@ -217,7 +217,7 @@ void main() {
     );
     expect(
       wikimediaOriginalUrl(
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/480px-File.jpg',
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/File.jpg/500px-File.jpg',
       ),
       'https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg',
     );
@@ -234,7 +234,44 @@ void main() {
       isNull,
     );
     expect(
+      wikimediaOriginalUrl(
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Example.svg/480px-Example.svg.png',
+      ),
+      'https://upload.wikimedia.org/wikipedia/commons/8/84/Example.svg',
+    );
+    expect(
       fullCoverUrlFromThumb('https://cdn.example/photos/shore.jpg'),
+      isNull,
+    );
+    final stored =
+        jsonDecode(
+              File('scripts/fixtures/storage_url_cases.json').readAsStringSync(),
+            )
+            as List;
+    for (final raw in stored) {
+      final row = Map<String, dynamic>.from(raw as Map);
+      final located = storageObjectFromUrl(row['url'] as String);
+      expect(located, isNotNull, reason: row['name'] as String);
+      expect(located!.kind, row['kind'], reason: row['name'] as String);
+      expect(located.bucket, row['bucket'], reason: row['name'] as String);
+      expect(located.objectPath, row['objectPath'], reason: row['name'] as String);
+    }
+    expect(
+      storageObjectFromUrl(
+        'https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg',
+      ),
+      isNull,
+    );
+    expect(
+      storageObjectFromUrl(
+        'https://evil.example/v0/b/bucket/o/temples%2Fshore%2F01.jpg',
+      ),
+      isNull,
+    );
+    expect(
+      storageObjectFromUrl(
+        'https://bucket.firebasestorage.app.evil.com/o/temples%2Fshore%2F01.jpg',
+      ),
       isNull,
     );
   });

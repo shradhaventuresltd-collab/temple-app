@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 /**
  * Pure temple_index projection. No Firestore client.
  * Entry shape matches lib/models/temple_index.dart.
@@ -10,6 +12,24 @@ export const MAX_ENTRIES = 400;
 export const MAX_SHARDS = 48;
 export const SHORT_ADDRESS_MAX = 340;
 export const COVER_THUMB_MAX = 500;
+/** Wikimedia serves 500px and rejects 480px with HTTP 400. */
+export const COMMONS_THUMB_PX = 500;
+/** Hotlinked thumb widths from w.wiki/GHai ($wgThumbnailSteps). */
+const WIKIMEDIA_THUMB_STEPS = new Set([
+  20, 40, 60, 120, 250, 330, 500, 960, 1280, 1920, 3840,
+]);
+
+/**
+ * List covers only. Widths above 500, including 960, 1280, 1920, and 3840,
+ * become 500. 480 becomes 500. Any other non-standard width below 500
+ * becomes 330. A listed width of 500 or below stays. Detail keeps the
+ * stored gallery URL.
+ */
+function commonsThumbWidth(width) {
+  if (width === 480 || width > COMMONS_THUMB_PX) return COMMONS_THUMB_PX;
+  if (WIKIMEDIA_THUMB_STEPS.has(width)) return width;
+  return 330;
+}
 export const NAME_MAX = 80;
 export const CITY_MAX = 40;
 export const STATE_MAX = 40;
@@ -102,6 +122,34 @@ export function shortAddress(raw) {
   return cut.trimEnd().replace(/[,\s]+$/, "");
 }
 
+/** Same placeholder domains as state_batch.js. `source.unsplash.com` is exact. */
+const PLACEHOLDER_SUFFIX_HOSTS = [
+  "picsum.photos",
+  "placeholder.com",
+  "placehold.co",
+  "placehold.it",
+  "dummyimage.com",
+  "lorempixel.com",
+  "loremflickr.com",
+  "placekitten.com",
+  "fakeimg.pl",
+  "placeimg.com",
+];
+
+/** Same stock list as state_batch.js. Not applied by Firestore rules. */
+const STOCK_HOSTS = [
+  "shutterstock.com",
+  "istockphoto.com",
+  "istock.com",
+  "pexels.com",
+  "stock.adobe.com",
+  "alamy.com",
+  "dreamstime.com",
+  "123rf.com",
+  "depositphotos.com",
+  "freepik.com",
+];
+
 function placeholder(url) {
   let parsed;
   try {
@@ -112,24 +160,24 @@ function placeholder(url) {
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return true;
   const host = parsed.hostname.toLowerCase();
   if (!host) return true;
-  const hosts = [
-    "picsum.photos",
-    "placeholder.com",
-    "placehold.co",
-    "placehold.it",
-    "dummyimage.com",
-    "loremflickr.com",
-    "placekitten.com",
-    "fakeimg.pl",
-    "placeimg.com",
-    "lorempixel.com",
-  ];
-  if (hosts.some((known) => host === known || host.endsWith(`.${known}`))) {
-    return true;
+  if (host === "source.unsplash.com") return true;
+  return PLACEHOLDER_SUFFIX_HOSTS.some(
+    (known) => host === known || host.endsWith(`.${known}`),
+  );
+}
+
+function unlicensedStock(url) {
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
   }
-  if (host.includes("picsum.photos")) return true;
-  const blob = `${parsed.pathname} ${parsed.search}`.toLowerCase();
-  return blob.includes("placeholder") || blob.includes("picsum");
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
+  const host = parsed.hostname.toLowerCase();
+  if (!host) return false;
+  if (host.split(".").includes("gettyimages")) return true;
+  return STOCK_HOSTS.some((stock) => host === stock || host.endsWith(`.${stock}`));
 }
 
 function httpUrl(raw) {
@@ -146,11 +194,88 @@ function httpUrl(raw) {
 
 function knownThumbUrl(raw) {
   const trimmed = httpUrl(raw);
-  if (!trimmed || placeholder(trimmed) || trimmed.length > COVER_THUMB_MAX) return null;
+  if (!trimmed || placeholder(trimmed) || unlicensedStock(trimmed) || trimmed.length > COVER_THUMB_MAX) {
+    return null;
+  }
   return trimmed;
 }
 
-/** Wikimedia `/thumb/` URL at 480px, or null when [raw] is not one. */
+function commonsMd5(filename) {
+  return createHash("md5").update(filename, "utf8").digest("hex");
+}
+
+/** MediaWiki path encoding. Commas stay literal so Dart and JS match. */
+function commonsEncode(name) {
+  return encodeURIComponent(name).replace(
+    /%(3B|40|24|21|2A|28|29|2C|7E|3A)/gi,
+    (token) => String.fromCharCode(Number.parseInt(token.slice(1), 16)),
+  );
+}
+
+/**
+ * 500px thumb for a Commons original, or null.
+ * `h`/`hh` are the MD5 of the underscored filename. Existing segments must
+ * match that digest. An SVG thumb appends `.png`. A TIFF thumb appends
+ * `.jpg`. PDF, DjVu, WebM, and OGV stay the full URL.
+ */
+function commonsThumbName(decoded, encoded) {
+  const lower = decoded.toLowerCase();
+  const width = `${COMMONS_THUMB_PX}px`;
+  if (lower.endsWith(".svg")) return `${width}-${encoded}.png`;
+  if (lower.endsWith(".tif") || lower.endsWith(".tiff")) return `${width}-${encoded}.jpg`;
+  if (/\.(pdf|djvu|webm|ogv)$/i.test(lower)) return null;
+  return `${width}-${encoded}`;
+}
+
+function commonsOriginal480(trimmed) {
+  let parsed;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return null;
+  }
+  if (parsed.hostname.toLowerCase() !== "upload.wikimedia.org") return null;
+  const parts = rawUrlPath(trimmed).split("/");
+  if (parts.length < 4 || parts[1].toLowerCase() !== "wikipedia" || parts[2].toLowerCase() !== "commons") {
+    return null;
+  }
+  if (parts.includes("thumb")) return null;
+  let rawName;
+  let givenH = null;
+  let givenHh = null;
+  if (parts.length === 4) {
+    rawName = parts[3];
+  } else if (parts.length === 6) {
+    givenH = parts[3];
+    givenHh = parts[4];
+    rawName = parts[5];
+  } else {
+    return null;
+  }
+  if (!rawName) return null;
+  const decoded = safeDecode(rawName).replace(/ /g, "_");
+  if (!decoded || decoded.includes("/") || decoded.includes("\\")) return null;
+  const digest = commonsMd5(decoded);
+  const h = digest[0];
+  const hh = digest.slice(0, 2);
+  if (givenH != null && (givenH.toLowerCase() !== h || givenHh.toLowerCase() !== hh)) {
+    return null;
+  }
+  const encoded = commonsEncode(decoded);
+  const thumbFile = commonsThumbName(decoded, encoded);
+  if (!thumbFile) return null;
+  const next = `https://upload.wikimedia.org/wikipedia/commons/thumb/${h}/${hh}/${encoded}/${thumbFile}`;
+  if (next.length > COVER_THUMB_MAX) return null;
+  return next;
+}
+
+/**
+ * Wikimedia URL on the thumbnail ladder, or null when [raw] is not a
+ * Commons file. An existing `/thumb/` above 500px, including 960, 1280,
+ * 1920, and 3840, becomes 500px. 480px becomes 500px. Any other
+ * non-standard width below 500 becomes 330px. A listed width of 500 or
+ * below stays. An original becomes a 500px thumb.
+ */
 function wikimedia480(raw) {
   const trimmed = knownThumbUrl(raw);
   if (!trimmed) return null;
@@ -160,11 +285,13 @@ function wikimedia480(raw) {
   } catch {
     return null;
   }
-  if (!pathname.includes("/thumb/")) return null;
+  if (!pathname.includes("/thumb/")) return commonsOriginal480(trimmed);
   return trimmed.replace(/\/(\d+)px-([^/?#]+)/, (full, width, rest) => {
     const parsed = Number(width);
-    if (!Number.isFinite(parsed) || parsed <= 480) return full;
-    return `/480px-${rest}`;
+    if (!Number.isFinite(parsed)) return full;
+    const next = commonsThumbWidth(parsed);
+    if (next === parsed) return full;
+    return `/${next}px-${rest}`;
   });
 }
 
@@ -202,32 +329,87 @@ export function thumbObjectPath(objectPath, generation, { updatedMillis } = {}) 
   return `temples/${id}/${ext[1]}_480_g${gen}${bust}${suffix}.jpg`;
 }
 
+function firebaseDownloadHost(host) {
+  const lower = String(host ?? "").toLowerCase();
+  return lower === "firebasestorage.googleapis.com" || lower.endsWith(".firebasestorage.app");
+}
+
+/** Path after the host, before `?` or `#`, still percent-encoded. */
+function rawUrlPath(trimmed) {
+  const match = /^[a-z][a-z0-9+.-]*:\/\/[^/?#]+([^?#]*)/i.exec(trimmed);
+  return match ? match[1] : "";
+}
+
+/**
+ * Object name on `https://<bucket>.firebasestorage.app`.
+ * `/o/<encoded>` is one Storage object (`%2F` stays inside the name).
+ * `/o/temples/...` and `/temples/...` are the same object with slashes left in the path.
+ */
+function firebaseHostObjectPath(rawPath) {
+  if (!rawPath) return null;
+  const path = rawPath.replace(/\/+$/, "");
+  const encoded = /^\/o\/([^/]+)$/i.exec(path);
+  if (encoded) {
+    const decoded = safeDecode(encoded[1]).replace(/^\/+|\/+$/g, "");
+    return decoded || null;
+  }
+  let body = path.replace(/^\/+/, "");
+  if (/^o\//i.test(body)) body = body.slice(2);
+  if (!body) return null;
+  return body.split("/").map(safeDecode).join("/");
+}
+
 /**
  * Firebase or Cloud Storage object named by [raw]. The path is taken from
  * the raw URL so a `%2F` inside the Firebase object name stays one object.
+ * Forms: `firebasestorage.googleapis.com/v0/b/<bucket>/o/<encoded>`,
+ * `https://<bucket>.firebasestorage.app/...`, `gs://<bucket>/<path>`, and
+ * `storage.googleapis.com/<bucket>/<path>`.
  * @returns {{ kind: "firebase" | "gcs", bucket: string, objectPath: string } | null}
  */
 export function storageObjectFromUrl(raw) {
-  const trimmed = httpUrl(raw);
+  const trimmed = String(raw ?? "").trim();
   if (!trimmed) return null;
+  if (/^gs:\/\//i.test(trimmed)) {
+    const gs = /^gs:\/\/([^/?#]+)\/([^?#]+)/i.exec(trimmed);
+    if (!gs) return null;
+    const objectPath = gs[2].replace(/\/+$/, "").split("/").map(safeDecode).join("/");
+    const bucket = safeDecode(gs[1]);
+    if (!bucket || !objectPath) return null;
+    return { kind: "gcs", bucket, objectPath };
+  }
+  if (!httpUrl(trimmed) || !trimmed.toLowerCase().startsWith("https://")) return null;
   const firebase = /^https:\/\/([^/?#]+)\/v0\/b\/([^/?#]+)\/o\/([^?#]+)/i.exec(trimmed);
   if (firebase) {
-    const host = firebase[1].toLowerCase();
-    if (host !== "firebasestorage.googleapis.com" && !host.endsWith(".firebasestorage.app")) {
-      return null;
-    }
+    if (!firebaseDownloadHost(firebase[1])) return null;
+    const objectPath = safeDecode(firebase[3]);
+    if (!objectPath) return null;
     return {
       kind: "firebase",
       bucket: safeDecode(firebase[2]),
-      objectPath: safeDecode(firebase[3]),
+      objectPath,
     };
+  }
+  let parsed;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return null;
+  }
+  const host = parsed.hostname.toLowerCase();
+  if (host.endsWith(".firebasestorage.app")) {
+    const objectPath = firebaseHostObjectPath(rawUrlPath(trimmed));
+    if (!objectPath) return null;
+    return { kind: "firebase", bucket: host, objectPath };
   }
   const gcs = /^https:\/\/storage\.googleapis\.com\/([^/?#]+)\/([^?#]+)/i.exec(trimmed);
   if (!gcs) return null;
+  const objectPath = gcs[2].split("/").map(safeDecode).join("/");
+  if (!objectPath) return null;
   return {
     kind: "gcs",
     bucket: safeDecode(gcs[1]),
-    objectPath: gcs[2].split("/").map(safeDecode).join("/"),
+    objectPath,
   };
 }
 
@@ -278,8 +460,8 @@ export function fullCoverUrlFromThumb(raw) {
 /**
  * Original file behind a Wikimedia `/thumb/.../NNNpx-` URL.
  * `thumb.wikimedia.org` is rewritten to `upload.wikimedia.org`.
- * Null when [raw] is not a Wikimedia thumb. Cards use this after the
- * 480px URL fails, so the full image is tried before the placeholder.
+ * Null when [raw] is not a Wikimedia thumb. Cards use this after a
+ * thumb URL fails, so the full image is tried before the placeholder.
  */
 export function wikimediaOriginalUrl(raw) {
   const trimmed = typeof raw === "string" ? raw.trim() : "";
@@ -324,10 +506,24 @@ function galleryCandidates(data) {
   return imageUrl ? [imageUrl] : [];
 }
 
-/** First verified gallery URL, before a 480px rewrite. Matches browse. */
+/** First verified gallery URL, before a 500px rewrite. Matches browse. */
 export function firstVerifiedGalleryUrl(data) {
   for (const url of galleryCandidates(data)) {
-    if (!httpUrl(url) || placeholder(url)) continue;
+    if (!httpUrl(url) || placeholder(url) || unlicensedStock(url)) continue;
+    return url;
+  }
+  return null;
+}
+
+/**
+ * Cover the thumb planner resizes. Same order as [firstVerifiedGalleryUrl].
+ * A `gs://` object in that position is kept. Browse still skips `gs://`
+ * because a card cannot load it.
+ */
+export function firstThumbSource(data) {
+  for (const url of galleryCandidates(data)) {
+    if (storageObjectFromUrl(url)) return url;
+    if (!httpUrl(url) || placeholder(url) || unlicensedStock(url)) continue;
     return url;
   }
   return null;
@@ -337,16 +533,22 @@ export function firstVerifiedGalleryUrl(data) {
  * Browse cover. Same photo as the gallery: first verified `images` URL, or
  * `imageUrl` when `images` is empty.
  *
- * A stored `photos[].thumbUrl` for that photo is used as written. Otherwise
- * a Wikimedia thumb wider than 480px is rewritten, and anything else stays
- * the full URL. Storage siblings are not invented. Result is at most 500
- * characters. Detail keeps the full gallery URL.
+ * A stored `photos[].thumbUrl` is used as written unless it is a Commons
+ * thumb, which is snapped the same way. Widths above 500, including 960,
+ * 1280, 1920, and 3840, become 500px. 480px becomes 500px. Any other
+ * non-standard width below 500 becomes 330px. A listed width of 500 or
+ * below stays. A Commons original
+ * `.../commons/<h>/<hh>/<name>` becomes a 500px thumb when `<h>/<hh>` match
+ * the MD5 of the underscored filename. An SVG thumb appends `.png`. A TIFF
+ * thumb appends `.jpg`. PDF, DjVu, WebM, and OGV stay the full URL.
+ * Anything else stays the full URL. Storage siblings are not invented.
+ * Result is at most 500 characters. Detail keeps the full gallery URL.
  */
 export function coverThumb(data) {
   const source = firstVerifiedGalleryUrl(data);
   if (!source) return null;
   const explicit = explicitThumb(data, source);
-  if (explicit) return explicit;
+  if (explicit) return wikimedia480(explicit) || explicit;
   const wiki = wikimedia480(source);
   if (wiki) return wiki;
   return knownThumbUrl(source);

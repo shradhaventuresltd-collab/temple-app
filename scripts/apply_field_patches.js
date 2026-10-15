@@ -1,5 +1,6 @@
 /**
- * Patch specific Firestore fields from a JSON file. Deployer only.
+ * Patch specific Firestore fields from a JSON file.
+ * prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
  *
  *   node apply_field_patches.js --patches <file>
  *   node apply_field_patches.js --apply --project <id> --patches <file>

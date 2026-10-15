@@ -25,6 +25,14 @@ final RegExp _gcsUrl = RegExp(
   r'^https://storage\.googleapis\.com/([^/?#]+)/([^?#]+)',
   caseSensitive: false,
 );
+final RegExp _gsUrl = RegExp(
+  r'^gs://([^/?#]+)/([^?#]+)',
+  caseSensitive: false,
+);
+final RegExp _rawPath = RegExp(
+  r'^[a-z][a-z0-9+.-]*://[^/?#]+([^?#]*)',
+  caseSensitive: false,
+);
 
 /// `firebase` (download URL) or `gcs` (`storage.googleapis.com`).
 class StorageObjectLocation {
@@ -80,25 +88,80 @@ String? thumbObjectPath(
   return 'temples/$id/${stem}_480_g$generation$bust$suffix.jpg';
 }
 
+/// Object name on `https://<bucket>.firebasestorage.app`.
+///
+/// `/o/<encoded>` is one Storage object. `/o/temples/...` and `/temples/...`
+/// name that object with the slashes left in the path.
+String? _firebaseHostObjectPath(String rawPath) {
+  if (rawPath.isEmpty) return null;
+  final path = rawPath.replaceAll(RegExp(r'/+$'), '');
+  final encoded = RegExp(r'^/o/([^/]+)$', caseSensitive: false).firstMatch(path);
+  if (encoded != null) {
+    final decoded = _decode(encoded.group(1)!).replaceAll(RegExp(r'^/+|/+$'), '');
+    return decoded.isEmpty ? null : decoded;
+  }
+  var body = path.replaceFirst(RegExp(r'^/+'), '');
+  if (RegExp(r'^o/', caseSensitive: false).hasMatch(body)) {
+    body = body.substring(2);
+  }
+  if (body.isEmpty) return null;
+  return body.split('/').map(_decode).join('/');
+}
+
 /// Firebase or Cloud Storage object named by [raw].
 ///
 /// The path is read from the raw string so `%2F` in a Firebase object name
-/// stays one object instead of extra URL segments.
+/// stays one object instead of extra URL segments. Accepts the download URL
+/// `firebasestorage.googleapis.com/v0/b/<bucket>/o/<encoded>`,
+/// `https://<bucket>.firebasestorage.app/...`, `gs://<bucket>/<path>`, and
+/// `storage.googleapis.com/<bucket>/<path>`.
 StorageObjectLocation? storageObjectFromUrl(String? raw) {
   final trimmed = raw?.trim() ?? '';
+  if (trimmed.isEmpty) return null;
+  if (trimmed.toLowerCase().startsWith('gs://')) {
+    final gs = _gsUrl.firstMatch(trimmed);
+    if (gs == null) return null;
+    final bucket = _decode(gs.group(1)!);
+    final objectPath = gs
+        .group(2)!
+        .replaceAll(RegExp(r'/+$'), '')
+        .split('/')
+        .map(_decode)
+        .join('/');
+    if (bucket.isEmpty || objectPath.isEmpty) return null;
+    return StorageObjectLocation(
+      kind: 'gcs',
+      bucket: bucket,
+      objectPath: objectPath,
+    );
+  }
   if (!trimmed.toLowerCase().startsWith('https://')) return null;
   final firebase = _firebaseUrl.firstMatch(trimmed);
   if (firebase != null) {
     if (!_firebaseHost(firebase.group(1)!)) return null;
+    final objectPath = _decode(firebase.group(3)!);
+    if (objectPath.isEmpty) return null;
     return StorageObjectLocation(
       kind: 'firebase',
       bucket: _decode(firebase.group(2)!),
-      objectPath: _decode(firebase.group(3)!),
+      objectPath: objectPath,
+    );
+  }
+  final uri = Uri.tryParse(trimmed);
+  final host = uri?.host.toLowerCase() ?? '';
+  if (host.endsWith('.firebasestorage.app')) {
+    final objectPath = _firebaseHostObjectPath(_rawPath.firstMatch(trimmed)?.group(1) ?? '');
+    if (objectPath == null || objectPath.isEmpty) return null;
+    return StorageObjectLocation(
+      kind: 'firebase',
+      bucket: host,
+      objectPath: objectPath,
     );
   }
   final gcs = _gcsUrl.firstMatch(trimmed);
   if (gcs == null) return null;
   final objectPath = gcs.group(2)!.split('/').map(_decode).join('/');
+  if (objectPath.isEmpty) return null;
   return StorageObjectLocation(
     kind: 'gcs',
     bucket: _decode(gcs.group(1)!),
@@ -160,8 +223,8 @@ final RegExp _wikiThumbSize = RegExp(r'^\d+px-');
 /// Original file behind a Wikimedia `/thumb/.../NNNpx-` URL.
 ///
 /// `thumb.wikimedia.org` is rewritten to `upload.wikimedia.org`. Null when
-/// [raw] is not a Wikimedia thumb. A failed 480px card requests this once
-/// before the placeholder.
+/// [raw] is not a Wikimedia thumb. A failed Commons thumb requests this
+/// once before the placeholder.
 String? wikimediaOriginalUrl(String? raw) {
   final trimmed = raw?.trim() ?? '';
   final noQuery = trimmed.split('#').first.split('?').first;

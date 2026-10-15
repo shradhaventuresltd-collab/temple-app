@@ -4,7 +4,13 @@ import { dirname, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { coverThumb, fullCoverUrlFromThumb, thumbObjectPath, wikimediaOriginalUrl } from "./temple_index.js";
+import {
+  coverThumb,
+  fullCoverUrlFromThumb,
+  storageObjectFromUrl,
+  thumbObjectPath,
+  wikimediaOriginalUrl,
+} from "./temple_index.js";
 import {
   THUMB_CACHE_CONTROL,
   applyCoverThumbPlans,
@@ -13,10 +19,12 @@ import {
   commitCoverThumb,
   firebaseMediaUrl,
   formatThumbReport,
+  loadResume,
   main,
   parseArgs,
   persistCoverPhotos,
   planCoverThumb,
+  saveResume,
   sourceIsNewer,
   staysFullSizeWikimedia,
   thumbSaveOptions,
@@ -89,6 +97,53 @@ test("cover thumb fixture matches the Dart writer", () => {
     assert.equal(thumbObjectPath(row.objectPath, row.generation), row.thumbPath);
     assert.equal(fullCoverUrlFromThumb(row.thumbUrl), row.fullUrl);
   }
+});
+
+test("every stored storage url form names the object", () => {
+  const cases = JSON.parse(readFileSync(resolve(here, "fixtures/storage_url_cases.json"), "utf8"));
+  for (const row of cases) {
+    const located = storageObjectFromUrl(row.url);
+    if (row.objectPath == null) {
+      assert.equal(located, null, row.name);
+      continue;
+    }
+    assert.equal(located?.kind, row.kind, row.name);
+    assert.equal(located?.bucket, row.bucket, row.name);
+    assert.equal(located?.objectPath, row.objectPath, row.name);
+    const temple = {
+      id: "shore-temple",
+      images: [row.url],
+      photos: [{ url: row.url, licence: "CC0", order: 0 }],
+    };
+    const plan = planCoverThumb(temple);
+    assert.equal(plan.action, "upload", row.name);
+    assert.equal(plan.bucket, row.bucket, row.name);
+    assert.equal(plan.objectPath, row.objectPath, row.name);
+    assert.notEqual(plan.reason, "not-storage", row.name);
+  }
+  for (const url of [
+    "https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg",
+    "https://evil.example/v0/b/bucket/o/temples%2Fshore-temple%2F01.jpg",
+    "https://bucket.firebasestorage.app.evil.com/o/temples%2Fshore-temple%2F01.jpg",
+    "http://storage.googleapis.com/bucket/temples/shore-temple/01.jpg",
+  ]) {
+    assert.equal(storageObjectFromUrl(url), null, url);
+  }
+});
+
+test("a wiki cover stays not-storage when a storage url is later in the gallery", () => {
+  const wiki = "https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg";
+  const storage = "gs://bucket/temples/shore-temple/01.jpg";
+  const plan = planCoverThumb({
+    id: "shore-temple",
+    images: [wiki, storage],
+    photos: [
+      { url: wiki, licence: "CC0", order: 0 },
+      { url: storage, licence: "CC0", order: 1 },
+    ],
+  });
+  assert.equal(plan.action, "skip");
+  assert.equal(plan.reason, "wikimedia-full");
 });
 
 test("a storage cover plans an upload and a wikimedia cover does not", () => {
@@ -193,6 +248,12 @@ test("dry-run lists a missing thumb, counts not-storage, and does not upload", a
       "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/File.jpg/1280px-File.jpg",
     ),
     "https://upload.wikimedia.org/wikipedia/commons/7/76/File.jpg",
+  );
+  assert.equal(
+    wikimediaOriginalUrl(
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Example.svg/480px-Example.svg.png",
+    ),
+    "https://upload.wikimedia.org/wikipedia/commons/8/84/Example.svg",
   );
 });
 
@@ -363,7 +424,11 @@ test("a thumb that is not publicly readable is not written to the index", async 
   });
   assert.equal(writes.length, 0);
   assert.equal(rows[0].result, "not-public");
-  assert.match(formatThumbReport(rows, { apply: true }), /not-public shore-temple/);
+  assert.equal(rows[0].publicUrl, "temples/shore-temple/01_480_g3.jpg");
+  const report = formatThumbReport(rows, { apply: true });
+  assert.match(report, /not-public shore-temple temples\/shore-temple\/01_480_g3\.jpg/);
+  assert.doesNotMatch(report, /token=/);
+  assert.doesNotMatch(report, /alt=media/);
 });
 
 test("a missing photo does not invent thumbUrl", async () => {
@@ -557,12 +622,12 @@ test("persistCoverPhotos writes the fresh thumb and index in one transaction", a
   assert.equal(skipped.ok, false);
   assert.equal(skipped.reason, "cover-changed");
   assert.equal(moved.ops.length, 0);
-  const changed = commitCoverThumb(
+  const sameCover = commitCoverThumb(
     { ...shore("kept-temple"), updateTime: "t2" },
-    { source, thumbUrl: thumb, updateTime: "t1" },
+    { source, thumbUrl: thumb },
   );
-  assert.equal(changed.ok, false);
-  assert.equal(changed.reason, "changed");
+  assert.equal(sameCover.ok, true);
+  assert.equal(sameCover.temple.photos[0].thumbUrl, thumb);
 });
 
 test("apply stops before upload when the encoder returns nothing", async () => {
@@ -589,4 +654,77 @@ test("source updated time decides a stale thumb", () => {
   assert.equal(sourceIsNewer("2024-02-01T00:00:00.000Z", "2024-01-01T00:00:00.000Z"), true);
   assert.equal(sourceIsNewer("2024-01-01T00:00:00.000Z", "2024-02-01T00:00:00.000Z"), false);
   assert.equal(sourceIsNewer(undefined, "2024-01-01T00:00:00.000Z"), false);
+});
+
+test("resume re-processes a temple whose cover changed", async () => {
+  const same = shore("same-cover");
+  const previous = shore("moved-cover");
+  const next = "https://storage.googleapis.com/bucket/temples/moved-cover/02.jpg";
+  const changed = {
+    ...previous,
+    images: [next],
+    photos: [{ url: next, licence: "CC0", credit: "New", order: 0 }],
+  };
+  const recorded = loadResume(
+    saveResume(
+      "demo-temple-index",
+      new Map([
+        ["same-cover", same.images[0]],
+        ["moved-cover", previous.images[0]],
+      ]),
+    ),
+    "demo-temple-index",
+  );
+  const plans = applyLimitAndResume([planCoverThumb(changed), planCoverThumb(same)], {
+    resumeCovers: recorded,
+  });
+  assert.equal(plans[0].action, "upload");
+  assert.equal(plans[0].source, next);
+  assert.equal(plans[1].reason, "resume");
+
+  const legacy = loadResume(
+    JSON.stringify({ project: "demo-temple-index", ids: ["same-cover"] }),
+    "demo-temple-index",
+  );
+  assert.equal(applyLimitAndResume([planCoverThumb(same)], { resumeCovers: legacy })[0].reason, "resume");
+
+  const uploads = [];
+  const resumes = [];
+  const rows = await main(["--apply", "--resume", "--project", "demo-temple-index"], {
+    env: emulator,
+    log: () => {},
+    confirm: async () => {
+      throw new Error("emulator apply must not prompt");
+    },
+    readResume: () =>
+      saveResume(
+        "demo-temple-index",
+        new Map([
+          ["same-cover", same.images[0]],
+          ["moved-cover", previous.images[0]],
+        ]),
+      ),
+    load: async () => [changed, same],
+    stat: async (path) =>
+      path.includes("_480") ? null : { generation: "7", updated: "2024-01-01T00:00:00.000Z" },
+    download: async () => Buffer.from("full"),
+    encode: async () => Buffer.from("thumb"),
+    upload: async (file) => {
+      uploads.push(file.path);
+      return {
+        url: `https://firebasestorage.googleapis.com/v0/b/bucket/o/${encodeURIComponent(file.path)}?alt=media&token=real`,
+      };
+    },
+    verifyPublic: async () => true,
+    writeThumbUrl: async () => {},
+    writeResume: (body) => resumes.push(body),
+  });
+  assert.deepEqual(uploads, ["temples/moved-cover/02_480_g7.jpg"]);
+  assert.equal(rows.find((row) => row.id === "same-cover").reason, "resume");
+  assert.equal(rows.find((row) => row.id === "moved-cover").result, "uploaded");
+  assert.equal(resumes.length, 1);
+  const saved = JSON.parse(resumes[0]);
+  assert.equal(saved.covers["moved-cover"], next);
+  assert.equal(saved.covers["same-cover"], same.images[0]);
+  assert.equal(JSON.stringify(saved).includes("token"), false);
 });

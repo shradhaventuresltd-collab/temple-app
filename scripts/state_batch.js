@@ -119,27 +119,40 @@ const FORBIDDEN = [
   "trip_planning",
 ];
 
-const PLACEHOLDER_HOSTS = [
+/**
+ * Placeholder-only domains. The host or a subdomain matches.
+ * `source.unsplash.com` is exact. Same list as detail_honesty.dart
+ * and temple_index.js. A path is never matched.
+ */
+const PLACEHOLDER_SUFFIX_HOSTS = [
   "picsum.photos",
   "placeholder.com",
   "placehold.co",
   "placehold.it",
   "dummyimage.com",
+  "lorempixel.com",
   "loremflickr.com",
   "placekitten.com",
   "fakeimg.pl",
   "placeimg.com",
-  "unsplash.com",
+];
+
+/**
+ * Unlicensed stock hosts. Same list as detail_honesty.dart and temple_index.js.
+ * Named hosts match the host or a subdomain. `gettyimages` is a host label.
+ * `stock.adobe.com` does not include `adobe.com`. Not a Firestore rule.
+ */
+const STOCK_HOSTS = [
   "shutterstock.com",
   "istockphoto.com",
-  "gettyimages.com",
+  "istock.com",
   "pexels.com",
   "stock.adobe.com",
-  "freepik.com",
+  "alamy.com",
   "dreamstime.com",
   "123rf.com",
   "depositphotos.com",
-  "lorempixel.com",
+  "freepik.com",
 ];
 
 function box(latMin, latMax, lngMin, lngMax) {
@@ -501,10 +514,10 @@ export function normaliseName(name) {
 export function hasVerifiedGallery(doc) {
   if (!doc || typeof doc !== "object") return false;
   const images = Array.isArray(doc.images) ? doc.images : [];
-  if (images.some((url) => typeof url === "string" && !isPlaceholderImageUrl(url))) {
+  if (images.some((url) => typeof url === "string" && !isDisallowedImageUrl(url))) {
     return true;
   }
-  if (typeof doc.imageUrl === "string" && !isPlaceholderImageUrl(doc.imageUrl)) {
+  if (typeof doc.imageUrl === "string" && !isDisallowedImageUrl(doc.imageUrl)) {
     return true;
   }
   const photos = Array.isArray(doc.photos) ? doc.photos : [];
@@ -512,7 +525,7 @@ export function hasVerifiedGallery(doc) {
     (photo) =>
       photo &&
       typeof photo.url === "string" &&
-      !isPlaceholderImageUrl(photo.url),
+      !isDisallowedImageUrl(photo.url),
   );
 }
 
@@ -528,16 +541,39 @@ export function isPlaceholderImageUrl(raw) {
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return true;
   const host = parsed.hostname.toLowerCase();
   if (host === "") return true;
-  for (const known of PLACEHOLDER_HOSTS) {
-    if (host === known || host.endsWith(`.${known}`) || host.includes("picsum.photos")) {
-      return true;
-    }
+  return placeholderHost(host);
+}
+
+function placeholderHost(host) {
+  if (host === "source.unsplash.com") return true;
+  return PLACEHOLDER_SUFFIX_HOSTS.some(
+    (known) => host === known || host.endsWith(`.${known}`),
+  );
+}
+
+/** Unlicensed stock host. Empty and non-HTTP values are not stock. */
+export function isUnlicensedStockImageUrl(raw) {
+  const url = String(raw ?? "").trim();
+  if (url === "") return false;
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
   }
-  const blob = `${parsed.pathname} ${parsed.search}`.toLowerCase();
-  if (blob.includes("placeholder") || blob.includes("picsum")) {
-    return true;
-  }
-  return false;
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
+  return stockHost(parsed.hostname.toLowerCase());
+}
+
+function stockHost(host) {
+  if (!host) return false;
+  if (host.split(".").includes("gettyimages")) return true;
+  return STOCK_HOSTS.some((stock) => host === stock || host.endsWith(`.${stock}`));
+}
+
+/** Placeholder host or unlicensed stock host. Empty values count. */
+export function isDisallowedImageUrl(raw) {
+  return isPlaceholderImageUrl(raw) || isUnlicensedStockImageUrl(raw);
 }
 
 export function distanceKm(left, right) {
@@ -706,6 +742,8 @@ function rejectPlaceholderUrls(raw, label, errors) {
   for (const url of urls) {
     if (isPlaceholderImageUrl(url)) {
       errors.push(`${label} rejects placeholder or stock image URL ${url}.`);
+    } else if (isUnlicensedStockImageUrl(url)) {
+      errors.push(`${label} rejects unlicensed stock image URL ${url}.`);
     }
   }
 }

@@ -19,5 +19,19 @@
     "thumbPath": "temples/shore/cover_480_g7_jpeg.jpg",
     "thumbUrl": "https://firebasestorage.googleapis.com/v0/b/app/o/temples%2Fshore%2Fcover_480_g7_jpeg.jpg?alt=media&token=abc",
     "fullUrl": "https://firebasestorage.googleapis.com/v0/b/app/o/temples%2Fshore%2Fcover.jpeg?alt=media"
+  },
+  {
+    "objectPath": "temples/shore/01.jpg",
+    "generation": "42",
+    "thumbPath": "temples/shore/01_480_g42.jpg",
+    "thumbUrl": "https://app.firebasestorage.app/o/temples%2Fshore%2F01_480_g42.jpg?alt=media&token=abc",
+    "fullUrl": "https://firebasestorage.googleapis.com/v0/b/app.firebasestorage.app/o/temples%2Fshore%2F01.jpg?alt=media"
+  },
+  {
+    "objectPath": "temples/shore/01.jpg",
+    "generation": "42",
+    "thumbPath": "temples/shore/01_480_g42.jpg",
+    "thumbUrl": "gs://bucket/temples/shore/01_480_g42.jpg",
+    "fullUrl": "https://storage.googleapis.com/bucket/temples/shore/01.jpg"
   }
 ]

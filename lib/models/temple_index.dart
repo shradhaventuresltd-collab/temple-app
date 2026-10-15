@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
@@ -29,6 +32,36 @@ const int kTempleIndexShortAddressMax = 340;
 
 /// `coverThumb` is a URL, capped so a shard of summaries stays small.
 const int kTempleIndexCoverThumbMax = 500;
+
+/// Commons thumb width requested for a non-standard or full-size original.
+/// Wikimedia's ladder includes 500 and rejects 480 with HTTP 400. Cards
+/// still decode at about 480px.
+const int kCommonsThumbPx = 500;
+
+/// Widths Wikimedia serves for a hotlinked thumb (w.wiki/GHai).
+const Set<int> kWikimediaThumbSteps = {
+  20,
+  40,
+  60,
+  120,
+  250,
+  330,
+  500,
+  960,
+  1280,
+  1920,
+  3840,
+};
+
+/// List covers only. Widths above 500, including 960, 1280, 1920, and
+/// 3840, become 500. 480 becomes 500. Any other non-standard width below
+/// 500 becomes 330. A listed width of 500 or below stays. Detail still
+/// shows the stored gallery URL.
+int _commonsThumbWidth(int width) {
+  if (width == 480 || width > kCommonsThumbPx) return kCommonsThumbPx;
+  if (kWikimediaThumbSteps.contains(width)) return width;
+  return 330;
+}
 
 /// Trimmed so 400 entries stay under 1 MiB. Ids are not trimmed; they are
 /// the map key and already limited to 200 characters.
@@ -129,15 +162,22 @@ String shortTempleAddress(String raw) {
 /// Same photo as [verifiedCoverUrl]: the first verified URL in `images`,
 /// or `imageUrl` when `images` is empty. Placeholder hosts are skipped.
 ///
-/// A stored `photos[].thumbUrl` for that photo is used as written. Otherwise
-/// a Wikimedia thumb wider than 480px is rewritten, and anything else stays
-/// the full URL. Storage siblings are not invented. The result is at most
-/// [kTempleIndexCoverThumbMax] characters. Detail keeps the full gallery URL.
+/// A stored `photos[].thumbUrl` is used as written unless it is a Commons
+/// thumb, which is snapped the same way. Widths above 500, including 960,
+/// 1280, 1920, and 3840, become 500px. 480px becomes 500px. Any other
+/// non-standard width below 500 becomes 330px. A listed width of 500 or
+/// below stays. A Commons original
+/// `.../commons/<h>/<hh>/<name>` becomes a 500px thumb when `<h>/<hh>`
+/// match the MD5 of the underscored filename. An SVG thumb appends `.png`.
+/// A TIFF thumb appends `.jpg`. PDF, DjVu, WebM, OGV, and anything else
+/// stay the full URL. Storage siblings are not invented. The
+/// result is at most [kTempleIndexCoverThumbMax] characters. Detail keeps
+/// the full gallery URL.
 String? coverThumbFor(Map<String, dynamic> data) {
   final source = firstVerifiedGalleryUrl(data);
   if (source == null) return null;
   final explicit = _explicitThumb(data, source);
-  if (explicit != null) return explicit;
+  if (explicit != null) return _wikimedia480(explicit) ?? explicit;
   final wiki = _wikimedia480(source);
   if (wiki != null) return wiki;
   return _fullCover(source);
@@ -159,7 +199,7 @@ String? _explicitThumb(Map<String, dynamic> data, String source) {
 /// Unrewritten gallery URL [coverThumbFor] is taken from.
 String? firstVerifiedGalleryUrl(Map<String, dynamic> data) {
   for (final url in _galleryCandidates(data)) {
-    if (!_httpUrl(url) || isPlaceholderImageUrl(url)) continue;
+    if (!_httpUrl(url) || isDisallowedImageUrl(url)) continue;
     return url;
   }
   return null;
@@ -186,7 +226,9 @@ List<String> _galleryCandidates(Map<String, dynamic> data) {
 
 /// URL list helper. Prefer [coverThumbFor] so the gallery order stays put.
 ///
-/// Wikimedia thumbs are rewritten to 480px. Other URLs stay full size.
+/// Wikimedia thumbs that are not on [kWikimediaThumbSteps] are rewritten
+/// to 500px, or to 330px when the stored width is below 500 and is not 480.
+/// Other URLs stay full size.
 String? coverThumbFromUrls(Iterable<Object?> urls) {
   for (final raw in urls) {
     if (raw is! String) continue;
@@ -208,24 +250,117 @@ String? _knownThumbUrl(Object? raw) {
 String? _fullCover(Object? raw) {
   if (raw is! String) return null;
   final trimmed = raw.trim();
-  if (!_httpUrl(trimmed) || isPlaceholderImageUrl(trimmed)) return null;
+  if (!_httpUrl(trimmed) || isDisallowedImageUrl(trimmed)) return null;
   if (trimmed.length > kTempleIndexCoverThumbMax) return null;
   return trimmed;
 }
 
-/// Wikimedia `/thumb/` URL at 480px, or null when [raw] is not one.
+/// Wikimedia URL on the thumbnail ladder, or null when [raw] is not a
+/// Commons file.
+///
+/// An existing `/thumb/` above 500px, including 960, 1280, 1920, and 3840,
+/// becomes 500px. 480px becomes 500px. Any other non-standard width below
+/// 500 becomes 330px. A listed width of 500 or below stays. An original
+/// `.../commons/<h>/<hh>/<name>` becomes a 500px thumb.
 String? _wikimedia480(Object? raw) {
   final trimmed = _fullCover(raw);
   if (trimmed == null) return null;
   final uri = Uri.tryParse(trimmed);
   if (uri == null) return null;
   final decodedPath = Uri.decodeFull(uri.path);
-  if (!decodedPath.contains('/thumb/')) return null;
+  if (!decodedPath.contains('/thumb/')) return _commonsOriginal480(trimmed);
   return trimmed.replaceFirstMapped(RegExp(r'/(\d+)px-([^/?#]+)'), (match) {
     final width = int.tryParse(match.group(1)!) ?? 0;
-    if (width <= 480) return match.group(0)!;
-    return '/480px-${match.group(2)}';
+    final next = _commonsThumbWidth(width);
+    if (next == width) return match.group(0)!;
+    return '/${next}px-${match.group(2)}';
   });
+}
+
+String? _commonsOriginal480(String trimmed) {
+  final uri = Uri.tryParse(trimmed);
+  if (uri == null || uri.host.toLowerCase() != 'upload.wikimedia.org') {
+    return null;
+  }
+  final raw = RegExp(
+    r'^[a-z][a-z0-9+.-]*://[^/?#]+([^?#]*)',
+    caseSensitive: false,
+  ).firstMatch(trimmed);
+  if (raw == null) return null;
+  final parts = raw.group(1)!.split('/');
+  if (parts.length < 4 ||
+      parts[1].toLowerCase() != 'wikipedia' ||
+      parts[2].toLowerCase() != 'commons') {
+    return null;
+  }
+  if (parts.contains('thumb')) return null;
+  final String rawName;
+  String? givenH;
+  String? givenHh;
+  if (parts.length == 4) {
+    rawName = parts[3];
+  } else if (parts.length == 6) {
+    givenH = parts[3];
+    givenHh = parts[4];
+    rawName = parts[5];
+  } else {
+    return null;
+  }
+  if (rawName.isEmpty) return null;
+  final decoded = _commonsDecode(rawName).replaceAll(' ', '_');
+  if (decoded.isEmpty || decoded.contains('/') || decoded.contains('\\')) {
+    return null;
+  }
+  final digest = md5.convert(utf8.encode(decoded)).toString();
+  final h = digest[0];
+  final hh = digest.substring(0, 2);
+  if (givenH != null &&
+      (givenH.toLowerCase() != h || givenHh!.toLowerCase() != hh)) {
+    return null;
+  }
+  final encoded = _commonsEncode(decoded);
+  final thumbFile = _commonsThumbName(decoded, encoded);
+  if (thumbFile == null) return null;
+  final next =
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/$h/$hh/$encoded/$thumbFile';
+  if (next.length > kTempleIndexCoverThumbMax) return null;
+  return next;
+}
+
+String _commonsDecode(String value) {
+  try {
+    return Uri.decodeComponent(value);
+  } catch (_) {
+    return value;
+  }
+}
+
+/// Thumb filename for a Commons original. SVG becomes PNG. TIFF becomes
+/// JPEG. PDF, DjVu, WebM, and OGV are not rewritten.
+String? _commonsThumbName(String decoded, String encoded) {
+  final lower = decoded.toLowerCase();
+  if (lower.endsWith('.svg')) return '${kCommonsThumbPx}px-$encoded.png';
+  if (lower.endsWith('.tif') || lower.endsWith('.tiff')) {
+    return '${kCommonsThumbPx}px-$encoded.jpg';
+  }
+  if (lower.endsWith('.pdf') ||
+      lower.endsWith('.djvu') ||
+      lower.endsWith('.webm') ||
+      lower.endsWith('.ogv')) {
+    return null;
+  }
+  return '${kCommonsThumbPx}px-$encoded';
+}
+
+/// MediaWiki path encoding. Commas stay literal so Dart and JS match.
+String _commonsEncode(String name) {
+  return Uri.encodeComponent(name).replaceAllMapped(
+    RegExp(
+      r'%27|%21|%2A|%28|%29|%7E|%3B|%40|%24|%2C|%3A',
+      caseSensitive: false,
+    ),
+    (match) => Uri.decodeComponent(match.group(0)!),
+  );
 }
 
 bool _httpUrl(String trimmed) {

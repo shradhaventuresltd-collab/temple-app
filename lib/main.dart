@@ -11,6 +11,8 @@ import 'package:temple_app/screens/home_screen.dart';
 import 'package:temple_app/screens/policy_acceptance_gate.dart';
 import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/services/app_bootstrap.dart';
+import 'package:temple_app/services/client_cache.dart';
+import 'package:temple_app/services/offline_link.dart';
 import 'package:temple_app/services/policy_acceptance_store.dart';
 import 'package:temple_app/services/policy_link_launcher.dart';
 import 'package:temple_app/services/temple_service.dart';
@@ -28,10 +30,14 @@ Future<void> main() async {
   installFontLoadErrorLogging();
   registerBundledFontLicenses();
   GoogleFonts.config.allowRuntimeFetching = false;
+  // Cap decoded bitmaps before the first list paints full-size covers.
+  ClientCache.installImageMemoryLimits();
+  DirectoryLink.listen(directoryConnectivity());
   // Firebase before the first frame, on every flavour (Play, demo
-  // distribution, and demo-seed). A timeout or a bad config still launches;
-  // Home then reads cache or the bundled sample. Ads stay after Terms
-  // (KAN-75, KAN-93) and are not awaited here.
+  // distribution, and demo-seed). The 4s cap keeps a hung init from
+  // holding the saffron splash (KAN-75). A timeout or a bad config still
+  // launches; Home then reads cache or the bundled sample. Ads stay after
+  // Terms (KAN-93) and are not awaited here.
   final firebaseReady = await AppBootstrap.initializeFirebase();
   runApp(TempleDirectoryApp(firebaseReady: firebaseReady));
 }

@@ -40,8 +40,9 @@ service cloud.firestore {
     //   Shard id is the state slug (tamil-nadu). One field:
     //   - entries: map keyed by temple id. Each value is a browse summary:
     //       id, slug, name, city, state, deity, address (short),
-    //       coverThumb (stored photos[].thumbUrl, else a Wikimedia 480px
-    //       thumb, else the full URL; max 500),
+    //       coverThumb (stored photos[].thumbUrl, else a Wikimedia thumb
+    //       on the w.wiki/GHai steps, with 480px rewritten to 500px, else
+    //       the full URL; max 500),
     //       lat, lng (null when missing, never 0,0), updatedAt, v,
     //       tradition, living, framing.
     //       altNames, published, and hidden are copied only when the temple
@@ -155,8 +156,6 @@ service cloud.firestore {
         photo.order >= 0 &&
         photo.order <= 11 &&
         photoCreditOk(photo) &&
-        // thumbUrl is optional. When present it is an https URL, length-capped
-        // the same way as the photo url (2000).
         (!('thumbUrl' in photo) || (
           photo.thumbUrl is string &&
           photo.thumbUrl.size() <= 2000 &&
@@ -186,6 +185,25 @@ service cloud.firestore {
       return value is string &&
         value.size() <= 2000 &&
         value.matches('^https://[^\\s]+$');
+    }
+
+    // Exact placeholder hosts, on imageUrl and images[0] only. A matches()
+    // inside isValidPhoto runs for every photo slot and crosses the
+    // 1000-expression limit. Photos rely on the app and the seed validator.
+    // A path containing "placeholder" or "picsum" is allowed. Stock hosts
+    // such as shutterstock are not in this regex; the app rejects those.
+    function placeholderHost(url) {
+      return url is string && url.matches('(?i)^https?://(picsum\\.photos|fastly\\.picsum\\.photos|i\\.picsum\\.photos|placeholder\\.com|via\\.placeholder\\.com|placehold\\.co|placehold\\.it|dummyimage\\.com|lorempixel\\.com|source\\.unsplash\\.com)([/?#].*)?$');
+    }
+
+    function imageListOk(list) {
+      return list is list &&
+        list.size() <= 50 &&
+        (list.size() < 1 || !placeholderHost(list[0]));
+    }
+
+    function optionalImageList(data) {
+      return !('images' in data) || imageListOk(data.images);
     }
 
     function optionalValidPhotos(data) {
@@ -265,12 +283,13 @@ service cloud.firestore {
         validStringLength('city', 1, 100) &&
         validStringLength('deity', 1, 100) &&
         data.imageUrl is string && data.imageUrl.size() <= 2000 &&
+        !placeholderHost(data.imageUrl) &&
         validStringLength('description', 1, 10000) &&
         validStringLength('story', 1, 20000) &&
         validStringLength('address', 1, 500) &&
         validTimings() &&
         isValidList(data.specialities, 20) &&
-        isValidList(data.images, 50) &&
+        imageListOk(data.images) &&
         optionalValidPhotos(data) &&
         validLatitude(data.latitude) &&
         validLongitude(data.longitude) &&
@@ -322,12 +341,13 @@ service cloud.firestore {
         optionalStringLength('city', 1, 100) &&
         optionalStringLength('deity', 1, 100) &&
         optionalStringLength('imageUrl', 0, 2000) &&
+        (!('imageUrl' in data) || !placeholderHost(data.imageUrl)) &&
         optionalStringLength('description', 1, 10000) &&
         optionalStringLength('story', 1, 20000) &&
         optionalStringLength('address', 1, 500) &&
         optionalTimings() &&
         optionalValidList('specialities', 20) &&
-        optionalValidList('images', 50) &&
+        optionalImageList(data) &&
         optionalValidPhotos(data) &&
         (!('latitude' in data) || validLatitude(data.latitude)) &&
         (!('longitude' in data) || validLongitude(data.longitude)) &&

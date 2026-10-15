@@ -11,10 +11,9 @@
  *   node scripts/resize_cover_thumbs.js --project temple-directory-india
  *   node scripts/resize_cover_thumbs.js --limit 25 --resume --project temple-directory-india
  *
- * Apply is hand-run only. CI cannot apply. A prod apply asks you to type
- * the project id. There is no default project. Apply uploads thumbs and
- * writes `photos[].thumbUrl` plus that temple's index entry. It does not
- * deploy.
+ * A prod apply asks you to type the project id. There is no default
+ * project. Apply uploads thumbs and writes `photos[].thumbUrl` plus that
+ * temple's index entry. It does not deploy.
  *
  *   node scripts/resize_cover_thumbs.js --apply --project temple-directory-india
  *
@@ -24,15 +23,19 @@
  * Stat, download, and upload use the bucket named in the cover URL, not the
  * app's default bucket. A cover with no photos[] entry for that URL is not
  * uploaded. Apply confirms the Firebase download URL (?alt=media and the
- * stored token) before it writes photos[].thumbUrl. Each successful row
- * is one transaction: re-read the temple, skip it when the cover photo
- * changed, set thumbUrl only on that photo, and write that temple's
- * index entry from the fresh document. The index is not batched at the
- * end of the run. The resume file is rewritten after each successful row.
+ * stored token) before it writes photos[].thumbUrl. A check that is not
+ * HTTP 200 logs the storage object path, not the token URL. Each
+ * successful row is one transaction: re-read the temple, skip it when
+ * the cover photo changed, set thumbUrl only on that photo, and write
+ * that temple's index entry from the fresh document. The index is not
+ * batched at the end of the run. The resume file is rewritten after
+ * each successful row and records the cover URL. --resume processes a
+ * recorded temple again when that cover has changed.
  *
  * Encoding uses sharp, installed by Deployer
  * (`npm install --prefix scripts sharp`). Tests inject an encoder and never
- * import sharp. Do not run --apply from CI or from an agent against production.
+ * import sharp.
+ * prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
  */
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
@@ -42,7 +45,7 @@ import { fileURLToPath } from "node:url";
 import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard.js";
 import {
   entryFromTemple,
-  firstVerifiedGalleryUrl,
+  firstThumbSource,
   stateSlug,
   storageObjectFromUrl,
   thumbObjectPath,
@@ -62,15 +65,18 @@ Usage:
   node resize_cover_thumbs.js --apply [--limit N] [--resume] --project <id>
 
 Default is dry-run: list cover objects that still need a _480 sibling.
-Nothing is written. --apply is for Deployer, in a terminal, after merge.
-CI is refused. Prod apply prompts for the project id.
+Nothing is written. prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
+Prod apply prompts for the project id.
 Set FIRESTORE_EMULATOR_HOST to use the emulator without that prompt.
 --project is required against prod. The emulator falls back to
 demo-temple-index when --project is omitted.
 
 --limit N stops after N covers that still need a thumb.
---resume skips ids already recorded in scripts/.resize_cover_thumbs.resume.json
-for this project. Apply rewrites that file after each uploaded or current thumb.
+--resume skips a temple only when scripts/.resize_cover_thumbs.resume.json
+records the same cover URL for this project. A recorded temple whose cover
+changed is processed again. Legacy files that list ids without covers still
+skip those ids. Apply rewrites the file after each uploaded or current thumb.
+A download check that is not HTTP 200 logs the storage object path.
 
 Apply writes the thumb object, checks its Firebase download URL, then
 one transaction per temple for photos[].thumbUrl and that temple's index
@@ -194,8 +200,9 @@ export function thumbSaveOptions(file) {
 }
 
 /**
- * A Wikimedia file URL that coverThumb leaves at full size. Thumb paths are
- * rewritten to 480px when they are wider, so they are not listed here.
+ * A Wikimedia original (no `/thumb/` in the path). Browse coverThumb may
+ * rewrite it to a Commons 500px URL. This planner still skips it: the file
+ * is not in Storage, and this script does not upload a thumb.
  */
 export function staysFullSizeWikimedia(source) {
   if (typeof source !== "string" || !source.startsWith("https://")) return false;
@@ -226,20 +233,39 @@ export async function verifyPublicObject(url, fetchImpl = globalThis.fetch) {
   return response.status === 200;
 }
 
+/**
+ * Resume rows for [project]. The map value is the cover URL that was
+ * stored. `null` is a legacy id with no cover, which still skips.
+ * A later cover that differs from the stored URL is processed again.
+ */
 export function loadResume(raw, project) {
-  if (raw == null || String(raw).trim() === "") return new Set();
+  if (raw == null || String(raw).trim() === "") return new Map();
   let parsed;
   try {
     parsed = JSON.parse(raw);
   } catch {
-    return new Set();
+    return new Map();
   }
-  if (!parsed || parsed.project !== project || !Array.isArray(parsed.ids)) return new Set();
-  return new Set(parsed.ids.filter((id) => typeof id === "string" && id !== ""));
+  if (!parsed || parsed.project !== project) return new Map();
+  const covers = new Map();
+  if (parsed.covers && typeof parsed.covers === "object" && !Array.isArray(parsed.covers)) {
+    for (const [id, cover] of Object.entries(parsed.covers)) {
+      if (!id) continue;
+      covers.set(id, typeof cover === "string" ? cover : "");
+    }
+    return covers;
+  }
+  if (Array.isArray(parsed.ids)) {
+    for (const id of parsed.ids) {
+      if (typeof id === "string" && id !== "") covers.set(id, null);
+    }
+  }
+  return covers;
 }
 
-export function saveResume(project, ids) {
-  return `${JSON.stringify({ project, ids: [...ids].sort() }, null, 2)}\n`;
+export function saveResume(project, covers) {
+  const entries = [...covers.entries()].sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+  return `${JSON.stringify({ project, covers: Object.fromEntries(entries) }, null, 2)}\n`;
 }
 
 /**
@@ -247,7 +273,7 @@ export function saveResume(project, ids) {
  * True when some photos[] url is the cover. Without that entry there is
  * nowhere to store thumbUrl, and no new top-level field is added.
  */
-export function coverHasPhoto(temple, source = firstVerifiedGalleryUrl(temple)) {
+export function coverHasPhoto(temple, source = firstThumbSource(temple)) {
   if (typeof source !== "string" || source === "") return false;
   const photos = Array.isArray(temple?.photos) ? temple.photos : [];
   return photos.some(
@@ -263,7 +289,7 @@ export function coverHasPhoto(temple, source = firstVerifiedGalleryUrl(temple)) 
  */
 export function planCoverThumb(temple) {
   const id = String(temple?.id ?? "");
-  const source = firstVerifiedGalleryUrl(temple);
+  const source = firstThumbSource(temple);
   if (!source) return { id, action: "skip", reason: "no-cover", temple };
   const located = storageObjectFromUrl(source);
   if (!located) {
@@ -292,11 +318,23 @@ export function planCoverThumbs(temples) {
   return (temples ?? []).map((temple) => planCoverThumb(temple));
 }
 
-export function applyLimitAndResume(plans, { limit = null, resumeIds = new Set() } = {}) {
+function recordedCoverSkips(plan, covers) {
+  if (!covers.has(plan.id)) return false;
+  const recorded = covers.get(plan.id);
+  // Legacy id with no cover: the change cannot be detected, so skip.
+  if (recorded == null) return true;
+  return recorded === plan.source;
+}
+
+export function applyLimitAndResume(
+  plans,
+  { limit = null, resumeIds = new Set(), resumeCovers = null } = {},
+) {
+  const covers = resumeCovers ?? new Map([...resumeIds].map((id) => [id, null]));
   let uploads = 0;
   return plans.map((plan) => {
     if (plan.action !== "upload") return plan;
-    if (resumeIds.has(plan.id)) return { ...plan, action: "skip", reason: "resume" };
+    if (recordedCoverSkips(plan, covers)) return { ...plan, action: "skip", reason: "resume" };
     if (limit != null && uploads >= limit) return { ...plan, action: "skip", reason: "limit" };
     uploads += 1;
     return plan;
@@ -315,7 +353,7 @@ export function sourceIsNewer(sourceUpdated, thumbUpdated) {
  * is `entryFromTemple`, the same projection rebuild_index writes.
  */
 export function withCoverThumbUrl(temple, thumbUrl) {
-  const source = firstVerifiedGalleryUrl(temple);
+  const source = firstThumbSource(temple);
   if (typeof thumbUrl !== "string" || !thumbUrl.startsWith("https://") || !source) {
     return { ok: false, reason: "thumb-url" };
   }
@@ -335,21 +373,13 @@ export function withCoverThumbUrl(temple, thumbUrl) {
 /**
  * Set thumbUrl on the cover photo of a document read just now.
  * [source] is the cover URL this row already resized. A different cover
- * is `cover-changed` and is not written. When [updateTime] is passed and
- * the fresh document's updateTime differs, the result is `changed` and
- * nothing is written. Otherwise only the matching photo's thumbUrl is
- * set; the other photo fields and the index entry come from [fresh].
+ * is `cover-changed` and is not written. Only the matching photo's
+ * thumbUrl is set; the other photo fields and the index entry come from
+ * [fresh]. A differing updateTime is not a separate skip: the apply path
+ * never had a read stamp to compare, and the cover URL is the check.
  */
-export function commitCoverThumb(fresh, { source, thumbUrl, updateTime } = {}) {
-  if (
-    updateTime != null &&
-    fresh != null &&
-    Object.prototype.hasOwnProperty.call(fresh, "updateTime") &&
-    fresh.updateTime !== updateTime
-  ) {
-    return { ok: false, reason: "changed" };
-  }
-  if (!source || firstVerifiedGalleryUrl(fresh) !== source) {
+export function commitCoverThumb(fresh, { source, thumbUrl } = {}) {
+  if (!source || firstThumbSource(fresh) !== source) {
     return { ok: false, reason: "cover-changed" };
   }
   return withCoverThumbUrl(fresh, thumbUrl);
@@ -386,7 +416,7 @@ export async function applyCoverThumbPlans(plans, deps) {
     if (!deps.dryRun && typeof deps.reread === "function") {
       const fresh = await deps.reread(plan.id);
       const freshId = fresh?.id ?? plan.id;
-      if (!fresh || firstVerifiedGalleryUrl(fresh) !== plan.source) {
+      if (!fresh || firstThumbSource(fresh) !== plan.source) {
         report.push({ ...plan, result: "skipped", reason: "cover-changed" });
         continue;
       }
@@ -454,17 +484,34 @@ export async function applyCoverThumbPlans(plans, deps) {
 /**
  * Check the Firebase download URL, then write photos[].thumbUrl.
  * A URL that is not that download URL, or that does not return 200, is
- * `not-public` and is not written. Resume is recorded only after the write.
+ * `not-public` and is not written. The report names the storage object
+ * path, not the token URL. Resume is recorded only after the write.
  */
+function storagePathForReport(plan, extra) {
+  if (typeof extra?.thumbPath === "string" && extra.thumbPath !== "") return extra.thumbPath;
+  if (typeof plan?.objectPath === "string" && plan.objectPath !== "") return plan.objectPath;
+  return "";
+}
+
 async function storeThumbUrl(plan, thumbUrl, deps, extra) {
   const media = firebaseMediaUrl(thumbUrl);
   if (!deps.dryRun && deps.writeThumbUrl) {
     if (!media) {
-      return { ...plan, ...extra, result: "not-public", thumbUrl: thumbUrl ?? null, publicUrl: thumbUrl ?? null };
+      return {
+        ...plan,
+        ...extra,
+        result: "not-public",
+        publicUrl: storagePathForReport(plan, extra),
+      };
     }
     const readable = await confirmDownloadUrl(media, deps);
     if (!readable.ok) {
-      return { ...plan, ...extra, result: "not-public", thumbUrl: media, publicUrl: readable.url };
+      return {
+        ...plan,
+        ...extra,
+        result: "not-public",
+        publicUrl: storagePathForReport(plan, extra),
+      };
     }
     const assigned = withCoverThumbUrl(plan.temple, media);
     if (!assigned.ok) {
@@ -478,7 +525,7 @@ async function storeThumbUrl(plan, thumbUrl, deps, extra) {
     if (written && written.ok === false) {
       return { ...plan, ...extra, result: "skipped", reason: written.reason, thumbUrl: media };
     }
-    if (deps.onResume) await deps.onResume(plan.id);
+    if (deps.onResume) await deps.onResume(plan.id, plan.source);
     return { ...plan, ...extra, thumbUrl: media };
   }
   return { ...plan, ...extra, thumbUrl: media ?? thumbUrl ?? null };
@@ -530,7 +577,8 @@ export function formatThumbReport(rows, { apply = false } = {}) {
     } else if (row.result === "exists") {
       lines.push(`exists ${row.id} ${row.thumbPath}`);
     } else if (row.result === "not-public") {
-      lines.push(`not-public ${row.id} ${row.publicUrl}`);
+      const path = row.thumbPath || row.objectPath || row.publicUrl || "";
+      lines.push(`not-public ${row.id} ${path}`.trimEnd());
     } else if (row.reason && row.reason !== "wikimedia-full" && row.reason !== "no-photo") {
       lines.push(`skip ${row.id} ${row.reason}`);
     }
@@ -610,7 +658,7 @@ async function loadTemples(project, env) {
  */
 export async function persistCoverPhotos(db, assigned, deps = {}) {
   const admin = deps.admin ?? (await import("firebase-admin")).default;
-  const source = assigned.source ?? firstVerifiedGalleryUrl(assigned.temple);
+  const source = assigned.source ?? firstThumbSource(assigned.temple);
   const thumbUrl = (assigned.photos ?? []).find(
     (photo) => photo && typeof photo.url === "string" && photo.url.trim() === source && photo.thumbUrl,
   )?.thumbUrl;
@@ -625,7 +673,6 @@ export async function persistCoverPhotos(db, assigned, deps = {}) {
     const committed = commitCoverThumb(fresh, {
       source,
       thumbUrl,
-      updateTime: assigned.updateTime,
     });
     if (!committed.ok) return committed;
     const shard = stateSlug(committed.temple.state);
@@ -718,10 +765,10 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
   const resumeRaw = opts.resume
     ? (deps.readResume ?? (() => (existsSync(RESUME_FILE) ? readFileSync(RESUME_FILE, "utf8") : "")))()
     : "";
-  const resumeIds = opts.resume ? loadResume(resumeRaw, project) : new Set();
+  const resumeCovers = opts.resume ? loadResume(resumeRaw, project) : new Map();
   const plans = applyLimitAndResume(planCoverThumbs(temples), {
     limit: opts.limit,
-    resumeIds,
+    resumeCovers,
   });
   let storage = deps.storage ?? null;
   const needsBucket = !deps.stat;
@@ -750,9 +797,9 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
         }
       : undefined);
   const onResume = opts.apply
-    ? async (id) => {
-        resumeIds.add(id);
-        const body = saveResume(project, resumeIds);
+    ? async (id, source) => {
+        resumeCovers.set(id, typeof source === "string" ? source : "");
+        const body = saveResume(project, resumeCovers);
         if (deps.writeResume) deps.writeResume(body);
         else {
           const tmp = `${RESUME_FILE}.tmp`;
