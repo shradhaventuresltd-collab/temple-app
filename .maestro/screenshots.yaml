@@ -7,16 +7,56 @@ appId: com.shradhaventures.temple
 - launchApp
 # The smoke gate accepts Terms on a clearState launch. This launch keeps
 # that acceptance. If the gate is still up, accept it before Home.
-- runFlow:
-    when:
-      visible: "Pixel Launcher isn't responding"
-    optional: true
+- repeat:
+    times: 4
+    while:
+      notVisible:
+        id: "policy-accept-button"
     commands:
-      - tapOn:
-          text: "Wait"
+      - runFlow:
+          when:
+            visible: "Pixel Launcher isn't responding"
           optional: true
-      - tapOn:
-          text: "Close app"
+          commands:
+            - tapOn:
+                text: "Wait"
+                optional: true
+      - runFlow:
+          when:
+            visible: "Process system isn't responding"
+          optional: true
+          commands:
+            - tapOn:
+                text: "Wait"
+                optional: true
+      - runFlow:
+          when:
+            visible: "System UI isn't responding"
+          optional: true
+          commands:
+            - tapOn:
+                text: "Wait"
+                optional: true
+      - runFlow:
+          when:
+            visible: "Google Play services isn't responding"
+          optional: true
+          commands:
+            - tapOn:
+                text: "Wait"
+                optional: true
+      - runFlow:
+          when:
+            visible: "com\\.google\\.android\\.gms.*isn't responding"
+          optional: true
+          commands:
+            - tapOn:
+                text: "Wait"
+                optional: true
+      - extendedWaitUntil:
+          visible:
+            id: "policy-accept-button"
+          timeout: 3000
           optional: true
 - extendedWaitUntil:
     visible:
@@ -109,8 +149,7 @@ appId: com.shradhaventures.temple
       - eraseText:
           optional: true
       - inputText: "Martand Sun Temple"
-      - hideKeyboard:
-          optional: true
+      # hideKeyboard sends Back on google_atd and pops the directory.
       # "Martand" also matches Jejuri Khandoba: its address is
       # "Shri Martand Dev Sansthan...". The full name matches one
       # temple, and the count node is then exactly "1 temple".
@@ -172,8 +211,7 @@ appId: com.shradhaventures.temple
       - eraseText:
           optional: true
       - inputText: "Jejuri Khandoba Temple"
-      - hideKeyboard:
-          optional: true
+      # hideKeyboard sends Back on google_atd and pops the directory.
       - extendedWaitUntil:
           visible: "1 temple"
           timeout: 8000
@@ -216,8 +254,7 @@ appId: com.shradhaventures.temple
       - eraseText:
           optional: true
       - inputText: "Dilwara"
-      - hideKeyboard:
-          optional: true
+      # hideKeyboard sends Back on google_atd and pops the directory.
       - extendedWaitUntil:
           visible: "\\d+ temples?"
           timeout: 8000
@@ -255,8 +292,7 @@ appId: com.shradhaventures.temple
       - eraseText:
           optional: true
       - inputText: "Mahabodhi"
-      - hideKeyboard:
-          optional: true
+      # hideKeyboard sends Back on google_atd and pops the directory.
       - extendedWaitUntil:
           visible: "\\d+ temples?"
           timeout: 8000
@@ -309,8 +345,7 @@ appId: com.shradhaventures.temple
       - eraseText:
           optional: true
       - inputText: "Shore Temple"
-      - hideKeyboard:
-          optional: true
+      # hideKeyboard sends Back on google_atd and pops the directory.
       - extendedWaitUntil:
           visible: "\\d+ temples?"
           timeout: 8000
@@ -363,8 +398,7 @@ appId: com.shradhaventures.temple
       - eraseText:
           optional: true
       - inputText: "Meenakshi"
-      - hideKeyboard:
-          optional: true
+      # hideKeyboard sends Back on google_atd and pops the directory.
       - extendedWaitUntil:
           visible: "\\d+ temples?"
           timeout: 8000

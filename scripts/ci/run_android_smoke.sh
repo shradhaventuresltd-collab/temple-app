@@ -45,9 +45,10 @@ done
 
 adb shell input keyevent KEYCODE_WAKEUP || true
 adb shell wm dismiss-keyguard || true
-# A Pixel Launcher ANR covers the temple app. Do not set
-# hide_error_dialogs: that flag hides every ANR, including one from
-# com.shradhaventures.temple. Only a Pixel Launcher dialog is dismissed.
+# An OS ANR dialog covers the temple app. Do not set hide_error_dialogs:
+# that flag hides every ANR, including one from com.shradhaventures.temple.
+# Wait is tapped for Process system, Pixel Launcher, System UI, and
+# Google Play services (com.google.android.gms). An ANR from this app fails.
 # The runner also disables animations. Set them again after boot so a
 # late settings restart cannot leave window animations on.
 adb shell settings put global window_animation_scale 0 || true
@@ -133,24 +134,66 @@ warn_if_flow_retried() {
   fi
 }
 
-# Tap Wait (or Close app) only on the Pixel Launcher ANR dialog.
-# An ANR from this app ("Temple Directory India isn't responding") stays up.
+# Tap Wait on "Process system isn't responding",
+# "Pixel Launcher isn't responding", "System UI isn't responding",
+# and "Google Play services isn't responding" (including a dialog whose
+# text names com.google.android.gms). Any other isn't-responding dialog
+# is this app's ANR: save a screenshot and fail the job.
 dismiss_anr_dialog() {
   adb shell uiautomator dump /sdcard/uidump.xml >/dev/null 2>&1 || return 0
-  local xml
+  local xml labels os_dialog candidate dialog pattern
   xml="$(adb exec-out cat /sdcard/uidump.xml 2>/dev/null || true)"
-  if ! grep -q "Pixel Launcher isn't responding" <<<"$xml"; then
+  os_dialog=""
+  for candidate in \
+    "Process system isn't responding" \
+    "Pixel Launcher isn't responding" \
+    "System UI isn't responding" \
+    "Google Play services isn't responding"
+  do
+    if grep -q "$candidate" <<<"$xml"; then
+      os_dialog="$candidate"
+      break
+    fi
+  done
+  if [[ -z "$os_dialog" ]] && grep -q "isn't responding" <<<"$xml"; then
+    pattern='[^"]*isn'"'"'t responding'
+    dialog="$(grep -o "$pattern" <<<"$xml" | head -n 1 || true)"
+    if [[ "$dialog" == *com.google.android.gms* ]]; then
+      os_dialog="$dialog"
+    fi
+  fi
+  if [[ -n "$os_dialog" ]]; then
+    warn "Dismissing ${os_dialog} before Maestro"
+    labels=$'Wait'
+  elif grep -q "isn't responding" <<<"$xml"; then
+    pattern='[^"]*isn'"'"'t responding'
+    dialog="$(grep -o "$pattern" <<<"$xml" | head -n 1 || true)"
+    if [[ -z "$dialog" ]]; then
+      dialog="an isn't-responding dialog is on screen"
+    fi
+    echo "App ANR: ${dialog}. Failing the job." >&2
+    mkdir -p "${GITHUB_WORKSPACE:-/tmp}/screenshots"
+    adb exec-out screencap -p >"${GITHUB_WORKSPACE:-/tmp}/screenshots/app-anr.png" || true
+    exit 1
+  else
     return 0
   fi
-  warn "Dismissing the Pixel Launcher isn't-responding dialog before Maestro"
   local point
-  point="$(python3 -c '
-import re, sys
+  point="$(ANR_LABELS="$labels" python3 -c '
+import os, re, sys
 xml = sys.stdin.read()
-for label in ("Wait", "Close app"):
-    m = re.search(r"text=\"" + label + r"\"[^>]*bounds=\"\[(\d+),(\d+)\]\[(\d+),(\d+)\]\"", xml)
+for label in os.environ["ANR_LABELS"].splitlines():
+    if not label:
+        continue
+    m = re.search(
+        r"text=\"" + re.escape(label) + r"\"[^>]*bounds=\"\[(\d+),(\d+)\]\[(\d+),(\d+)\]\"",
+        xml,
+    )
     if not m:
-        m = re.search(r"bounds=\"\[(\d+),(\d+)\]\[(\d+),(\d+)\]\"[^>]*text=\"" + label + r"\"", xml)
+        m = re.search(
+            r"bounds=\"\[(\d+),(\d+)\]\[(\d+),(\d+)\]\"[^>]*text=\"" + re.escape(label) + r"\"",
+            xml,
+        )
     if m:
         x1, y1, x2, y2 = map(int, m.groups())
         print((x1 + x2) // 2, (y1 + y2) // 2)
@@ -210,6 +253,10 @@ for attempt in 1 2; do
   maestro test --debug-output "$out" .maestro/read_only_smoke.yaml 2>&1 | tee "${out}/maestro-stdout.log"
   status=$?
   set -e
+  if grep -q "App ANR:" "${out}/maestro-stdout.log"; then
+    echo "App ANR: Temple Directory India isn't responding. Failing the job." >&2
+    exit 1
+  fi
   warn_if_flow_retried "${out}/maestro-stdout.log" "$attempt"
   if [[ "$status" -eq 0 ]]; then
     # The workflow kills this script at 12 minutes. The screenshot budget

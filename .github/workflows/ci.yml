@@ -40,11 +40,13 @@ jobs:
           npm ci --prefix scripts
           scripts/node_modules/.bin/firebase emulators:exec --only firestore --project demo-temple-index "node --test scripts/temple_index_rules.test.js && node --test --test-name-pattern \"existing meta and shard|would pass 400|temple id exists\" scripts/state_batch.test.js"
 
-      # No upload key in CI. This exercises the guard, not a signed AAB.
+      # No upload key in CI. This exercises the guards, not a signed AAB.
+      # The demo distribution check does not build an APK or call Firebase.
       - name: Play AAB guard
         run: |
           bash scripts/test_play_aab_guard.sh
           bash scripts/ci/test_ci_guards.sh
+          bash scripts/ci/test_demo_distribution_guard.sh
 
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:

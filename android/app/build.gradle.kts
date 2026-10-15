@@ -27,6 +27,9 @@ val releaseStoreFilePath = keystoreProperty("storeFile")
 val releaseStorePassword = keystoreProperty("storePassword")
 val releaseKeyAlias = keystoreProperty("keyAlias")
 val releaseKeyPassword = keystoreProperty("keyPassword")
+// Optional. Play key.properties omits this and keeps the AGP default.
+// The demo distribution workflow sets PKCS12 for its demo keystore.
+val releaseStoreType = keystoreProperty("storeType")
 val missingSigningKeys = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
     .filter { keystoreProperty(it) == null }
 val releaseStoreFile = releaseStoreFilePath?.let { file(it) }
@@ -54,6 +57,11 @@ fun dartDefines(): Map<String, String> {
 }
 
 val demoBuild = dartDefines()["DEMO_BUILD"] == "true"
+// Separate from DEMO_BUILD. android-smoke and demo-seed-launch pass
+// DEMO_BUILD and must keep com.shradhaventures.temple. Only
+// demo-app-distribution sets DEMO_APP_ID_SUFFIX (or -Pdemo_suffix=true).
+val demoAppIdSuffix = dartDefines()["DEMO_APP_ID_SUFFIX"] == "true" ||
+    (findProperty("demo_suffix") as? String) == "true"
 
 fun releaseSigningError(): String {
     val problem = when {
@@ -94,16 +102,29 @@ android {
                 // Resolved from android/app, so ../upload-keystore.jks is android/upload-keystore.jks.
                 storeFile = file(releaseStoreFilePath!!)
                 storePassword = releaseStorePassword
+                if (releaseStoreType != null) {
+                    storeType = releaseStoreType
+                }
             }
         }
     }
 
     defaultConfig {
         applicationId = "com.shradhaventures.temple"
+        // The distributed tester APK must not install as the Play app.
+        // Smoke, seed-launch, and the Play AAB do not set this flag.
+        if (demoAppIdSuffix) {
+            applicationIdSuffix = ".demo"
+        }
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["appLabel"] = if (demoAppIdSuffix) {
+            "Temple Directory India Demo"
+        } else {
+            "Temple Directory India"
+        }
         manifestPlaceholders["admobAppId"] = if (demoBuild) {
             "ca-app-pub-3940256099942544~3347511713"
         } else {
