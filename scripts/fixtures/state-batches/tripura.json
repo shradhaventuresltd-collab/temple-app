@@ -1,0 +1,89 @@
+{
+  "state": "Tripura",
+  "owner": "Reviewer",
+  "generated": "2026-10-15",
+  "existing_in_prod": 0,
+  "target": 50,
+  "temples": [
+    {
+      "slug": "tripura-sundari-temple",
+      "name": "Tripura Sundari Temple",
+      "city": "Udaipur",
+      "state": "Tripura",
+      "deity": "Tripura Sundari (Tripureshwari)",
+      "latitude": 23.5089,
+      "longitude": 91.4981,
+      "timings": null,
+      "timings_note": "No official (temple trust / state tourism / ASI) timings page verified; left null.",
+      "description": "Tripura Sundari Temple, known locally as Matabari, stands on a tortoise-shaped hillock in Udaipur, about 55 km from Agartala. It is among the most visited temples in North-East India and gives the state its name.",
+      "specialities": [
+        "State named after the temple",
+        "Popularly called Matabari",
+        "Built on a tortoise-hump (Kurmapristha) hillock",
+        "Second only to Kamakhya in NE visitor numbers"
+      ],
+      "sources": [
+        {
+          "field": "name,city,deity,description,specialities",
+          "title": "Tripura Sundari Temple — Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Tripura_Sundari_Temple"
+        },
+        {
+          "field": "latitude,longitude",
+          "title": "Wikidata Q7843873 (P625)",
+          "url": "https://www.wikidata.org/wiki/Q7843873"
+        }
+      ],
+      "photo_pack": {
+        "path": "photos/tripura-sundari-temple/",
+        "status": "SHORTFALL",
+        "count": 0
+      },
+      "review": {
+        "status": "approved",
+        "reviewer": "fixture",
+        "notes": ""
+      }
+    },
+    {
+      "slug": "chaturdasha-devata-temple",
+      "name": "Chaturdasha Devata Temple",
+      "city": "Agartala",
+      "state": "Tripura",
+      "deity": "Chaturdasha Devata (fourteen deities)",
+      "latitude": 23.8414,
+      "longitude": 91.3452,
+      "timings": null,
+      "timings_note": "No official (temple trust / state tourism / ASI) timings page verified; left null.",
+      "description": "Chaturdasha Devata Temple in Agartala honours fourteen deities. King Krishna Manikya built it in 1760, and its Tripuri dome is modelled on village hut roofs.",
+      "specialities": [
+        "Honours fourteen deities",
+        "Built in 1760 by Krishna Manikya",
+        "Focus of the Kharchi festival",
+        "Tripuri-style dome"
+      ],
+      "sources": [
+        {
+          "field": "name,city,deity,description,specialities",
+          "title": "Chaturdasha Temple — Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Chaturdasha_Temple"
+        },
+        {
+          "field": "latitude,longitude",
+          "title": "Wikidata Q5087990 (P625)",
+          "url": "https://www.wikidata.org/wiki/Q5087990"
+        }
+      ],
+      "photo_pack": {
+        "path": "photos/chaturdasha-devata-temple/",
+        "status": "SHORTFALL",
+        "count": 0
+      },
+      "review": {
+        "status": "rejected",
+        "reviewer": "fixture",
+        "notes": "Rejected in review. Not for seeding."
+      }
+    }
+  ]
+}

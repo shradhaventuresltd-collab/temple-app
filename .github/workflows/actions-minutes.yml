@@ -1,14 +1,17 @@
 name: actions-minutes
 
-# Weekly check against the 2,000 free private Actions minutes.
-# Alerts at or above 75% (1,500 minutes). See scripts/ci/check_actions_minutes.sh.
+# Weekly check of this repository's minutes against the 2,000 free
+# private Actions minutes. Those 2,000 minutes are shared across the
+# account. Other repositories use the same quota and are not included.
+# The total is every workflow the Actions API lists, including
+# demo-seed-launch.yml and this workflow.
+# At or above 1,500 the issue says to change android-smoke to
+# cron '30 4,16 * * *' (10:00 and 22:00 IST). The smoke schedule
+# itself stays four runs a day. See scripts/ci/check_actions_minutes.sh.
 #
-# Secret Sanu adds (optional): BILLING_TOKEN
-#   Fine-grained PAT from the owner of this user-owned account.
-#   Account permission: Plan, Read-only.
-#   GITHUB_TOKEN cannot read billing here. Without BILLING_TOKEN the
-#   workflow estimates from this repository's run timings for the month,
-#   which misses minutes used by other private repositories.
+# Minutes come from each job's started_at and completed_at. The run
+# timing API and /settings/billing/usage are not called. An API error
+# fails the job, as does a workflow that has runs but totals 0 minutes.
 
 on:
   schedule:
@@ -33,5 +36,4 @@ jobs:
       - name: Check Actions minutes
         env:
           GH_TOKEN: ${{ github.token }}
-          BILLING_TOKEN: ${{ secrets.BILLING_TOKEN }}
         run: bash scripts/ci/check_actions_minutes.sh

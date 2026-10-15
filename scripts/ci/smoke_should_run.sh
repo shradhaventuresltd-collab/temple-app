@@ -6,15 +6,17 @@
 # must not apply the green/failed SHA skip to a labelled PR. A scheduled
 # run is skipped when main HEAD is the head_sha of the last successful
 # android-smoke job on main, or of the last failed attempt. A failure
-# conclusion counts. A cancelled conclusion counts only when that run was
-# triggered by schedule, because GitHub concludes a job that hits
-# timeout-minutes as cancelled. A workflow_dispatch cancel does not count
-# and does not block the next scheduled retry. The smoke script is wrapped
-# in `timeout --kill-after=30s 12m` so a hang is killed and the step exits
-# non-zero before the 15-minute job limit. A red SHA is not retried every slot.
+# conclusion counts. A cancelled conclusion on a schedule-triggered run
+# counts as failed. Setup usually takes about 6 to 7 minutes, so the
+# 15-minute job limit fires before the 12-minute shell timeout, and GitHub
+# concludes that job cancelled. Manually cancelling a scheduled run also
+# counts, so that SHA is not retried until a new commit or a
+# workflow_dispatch. A workflow_dispatch cancel does not count. A red SHA
+# is not retried every slot.
 
 # Echoes the SHA for conclusion "failure", and for "cancelled" when the
-# triggering event is "schedule". A workflow_dispatch cancel echoes nothing.
+# triggering event is "schedule" (the job limit, or a manual cancel of
+# that scheduled run). A workflow_dispatch cancel echoes nothing.
 failed_attempt_sha() {
   local conclusion="$1"
   local sha="$2"
