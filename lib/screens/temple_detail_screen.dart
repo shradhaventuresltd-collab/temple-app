@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
 import 'package:temple_app/widgets/app_drawer.dart';
 import 'package:temple_app/widgets/temple_image_placeholder.dart';
@@ -132,6 +133,9 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
   Widget build(BuildContext context) {
     final hasMultiple = gallery.length > 1;
     final topPadding = MediaQuery.of(context).padding.top;
+    final photoCredit = gallery.isEmpty
+        ? null
+        : visiblePhotoCredit(temple.photos, gallery[_currentPage]);
 
     final caveat = honesty.timingsCaveatText;
 
@@ -330,6 +334,20 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
                     ),
                 ],
               ),
+
+              if (photoCredit != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                  child: Text(
+                    photoCredit,
+                    key: const Key('detail-photo-credit'),
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      height: 1.35,
+                      color: Colors.black54,
+                    ),
+                  ),
+                ),
 
               // ── Temple name header ──
               Padding(

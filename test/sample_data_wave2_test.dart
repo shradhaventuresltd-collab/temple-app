@@ -307,7 +307,7 @@ void main() {
       _expectWaveCOrPicsum(
         temple,
         id,
-        stillPicsum: const {'chintaman-ganesh-temple'},
+        stillPicsum: const {},
       );
 
       final map = temple.toFirestoreData(documentId: id);
@@ -393,11 +393,7 @@ void main() {
         _expectWaveCOrPicsum(
           temple,
           id,
-          stillPicsum: const {
-            'mangala-gauri-temple',
-            'ugratara-temple',
-            'janaki-temple-sitamarhi',
-          },
+          stillPicsum: const {},
         );
       }
 

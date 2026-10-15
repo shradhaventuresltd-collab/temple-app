@@ -142,6 +142,30 @@ TemplePhotoMirror deriveTemplePhotoMirror(List<TemplePhoto> photos) {
   );
 }
 
+/// Credit or caption shown under a gallery frame.
+///
+/// CC-BY and CC-BY-SA show their attribution. A stored credit that records
+/// the frame as a historical print is also shown, so a public-domain
+/// lithograph is not presented as a photograph. Other CC0, Own, and
+/// Permission credits, a blank credit, and a URL with no matching photo
+/// stay silent. The detail screen calls this with the visible frame URL.
+String? visiblePhotoCredit(List<TemplePhoto> photos, String url) {
+  for (final photo in photos) {
+    if (photo.url != url) continue;
+    final credit = photo.credit.trim();
+    if (credit.isEmpty) return null;
+    if (photo.licence?.requiresCredit == true) return credit;
+    if (_isHistoricalPrintCaption(credit)) return credit;
+    return null;
+  }
+  return null;
+}
+
+bool _isHistoricalPrintCaption(String credit) {
+  final lower = credit.toLowerCase();
+  return lower.contains('lithograph') || lower.contains('1847 print');
+}
+
 /// Storage object path for an admin photo upload.
 String templePhotoStoragePath({
   required String docId,

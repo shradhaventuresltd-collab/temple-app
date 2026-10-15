@@ -1,7 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/data/sample_data.dart';
+import 'package:temple_app/models/photo_licence.dart';
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/screens/temple_detail_screen.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
 import 'package:flutter/material.dart';
@@ -835,6 +837,158 @@ void main() {
     expect(titleTop, lessThan(48));
     expect(tester.getRect(scrim).bottom, greaterThan(titleTop));
     expect(tester.takeException(), isNull);
+  });
+
+  test('imageUrl matches images[0] for every gallery', () {
+    for (final temple in sampleTemples) {
+      if (temple.images.isEmpty) {
+        expect(
+          temple.imageUrl,
+          contains('picsum.photos'),
+          reason: temple.name,
+        );
+        continue;
+      }
+      expect(temple.imageUrl, temple.images.first, reason: temple.name);
+    }
+  });
+
+  test('Amarnath timings are the SASB seasonal note verbatim', () {
+    const expected =
+        'SEASONAL ONLY — open only during the annual summer Shri Amarnathji Yatra (roughly July–August; 2026: 3 July–28 August, per SASB). Closed and inaccessible the rest of the year. Dates change every year — check jksasb.nic.in before planning.';
+    expect(_named('Amarnath Cave Temple').timings, expected);
+    expect(expected, isNot(contains('6:00 AM')));
+    expect(expected, isNot(contains('Baltal')));
+  });
+
+  test('Pashupatinath Mandsaur uses the category pack once each', () {
+    final temple = _named('Pashupatinath Temple');
+    expect(temple.city, 'Mandsaur');
+    expect(temple.images, hasLength(7));
+    expect(temple.images.toSet(), hasLength(7));
+    expect(temple.imageUrl, temple.images.first);
+    expect(
+      temple.imageUrl,
+      'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/Pashupatinath_Temple_Mandsaur.jpg/1280px-Pashupatinath_Temple_Mandsaur.jpg',
+    );
+    for (final url in temple.images) {
+      expect(url, isNot(contains('utm_')));
+      expect(url, isNot(contains('The_Pashupatinath_Temple_27')));
+      expect(url, isNot(contains('Sadhu_Giving_Blessings')));
+      expect(url, isNot(contains('Kathmandu')));
+    }
+  });
+
+  test('promoted photos keep full CC credits beside each URL', () {
+    const promoted = {
+      'Chintaman Ganesh Temple': 2,
+      'Janaki Temple Sitamarhi': 2,
+      'Kaleshwara Mukteswara Temple': 2,
+      'Mangala Gauri Temple': 1,
+      'Purmandal Temple': 1,
+      'Ugratara Temple': 3,
+      'Akshardham Temple': 2,
+    };
+    for (final entry in promoted.entries) {
+      final temple = _named(entry.key);
+      expect(temple.images, hasLength(entry.value), reason: entry.key);
+      expect(temple.photos, hasLength(entry.value), reason: entry.key);
+      expect(temple.imageUrl, contains('wikimedia.org'), reason: entry.key);
+      for (var i = 0; i < temple.photos.length; i++) {
+        final photo = temple.photos[i];
+        expect(photo.url, temple.images[i], reason: entry.key);
+        expect(photo.order, i, reason: entry.key);
+        expect(photo.credit, isNot(contains('…')), reason: entry.key);
+        expect(photo.credit, isNot(contains('...')), reason: entry.key);
+        if (photo.licence!.requiresCredit) {
+          expect(photo.credit.trim(), isNotEmpty, reason: entry.key);
+        }
+      }
+    }
+    final chintaman = _named('Chintaman Ganesh Temple');
+    expect(
+      chintaman.photos.every(
+        (photo) => photo.credit == 'Gyanendra Singh Chauhan · CC BY 3.0',
+      ),
+      isTrue,
+    );
+    expect(chintaman.photos.first.licence, PhotoLicence.ccBy);
+    final purmandal = _named('Purmandal Temple');
+    expect(
+      purmandal.photos.single.credit,
+      contains('19th-century lithograph (1847 print)'),
+    );
+    expect(
+      visiblePhotoCredit(purmandal.photos, purmandal.imageUrl),
+      contains('1847 print'),
+    );
+    final janaki = _named('Janaki Temple Sitamarhi');
+    expect(janaki.images.join('\n'), isNot(contains('Punaura_Sitamarhi')));
+    expect(janaki.images.join('\n'), isNot(contains('Punaura.gif')));
+    expect(janaki.images.first, contains('Punaura_Dham.jpg'));
+    expect(janaki.images.last, contains('Janaki_kund'));
+  });
+
+  test('gallery URLs do not carry utm query parameters', () {
+    for (final temple in sampleTemples) {
+      expect(temple.imageUrl, isNot(contains('utm_')), reason: temple.name);
+      for (final url in temple.images) {
+        expect(url, isNot(contains('utm_')), reason: temple.name);
+      }
+      for (final photo in temple.photos) {
+        expect(photo.url, isNot(contains('utm_')), reason: temple.name);
+      }
+    }
+  });
+
+  testWidgets('CC-BY gallery credit is visible and CC0 is not', (tester) async {
+    const url = 'https://upload.wikimedia.org/wikipedia/commons/example.jpg';
+    Temple credited(PhotoLicence licence, String credit) {
+      return Temple(
+        name: 'Credit Temple',
+        state: 'Gujarat',
+        city: 'Gandhinagar',
+        deity: 'Shiva',
+        imageUrl: url,
+        images: const [url],
+        description: 'A place listed in the directory.',
+        story: 'Notes are still being checked.',
+        location: 'Temple Street',
+        timings: '6:00 AM–8:00 PM daily.',
+        specialities: const ['Stone gateway'],
+        photos: [
+          TemplePhoto(url: url, credit: credit, licence: licence, order: 0),
+        ],
+        latitude: 23.2,
+        longitude: 72.6,
+      );
+    }
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TempleDetailBody(
+            temple: credited(PhotoLicence.ccBy, 'Ada Lovelace · CC BY 4.0'),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.byKey(const Key('detail-photo-credit')), findsOneWidget);
+    expect(find.text('Ada Lovelace · CC BY 4.0'), findsOneWidget);
+    expect(find.text('Photo pending'), findsNothing);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TempleDetailBody(
+            temple: credited(PhotoLicence.cc0, 'Ada Lovelace'),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.byKey(const Key('detail-photo-credit')), findsNothing);
   });
 
   testWidgets('a single stated window does not add a timings caveat', (

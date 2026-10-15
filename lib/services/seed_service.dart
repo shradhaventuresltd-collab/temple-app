@@ -19,8 +19,9 @@ String templeDocumentId(String name) {
 /// Cover + gallery fields for Seed writes.
 ///
 /// Drops picsum / placeholder hosts so Seed never stores stock URLs as
-/// photographs. Verified admin uploads in [existingImages] are kept; a
-/// verified [existingImageUrl] is kept when the bundled cover is a placeholder.
+/// photographs. Verified admin uploads in [existingImages] are kept. When
+/// that gallery is non-empty, [imageUrl] is `images.first` so a later Seed
+/// cannot point the cover at a different host than the gallery.
 Map<String, Object> seedHonestyImageFields({
   required String bundledImageUrl,
   String? existingImageUrl,
@@ -47,7 +48,8 @@ Map<String, Object> seedHonestyImageFields({
       ? verifiedImages
       : (imageUrl.isNotEmpty ? <String>[imageUrl] : <String>[]);
 
-  return {'imageUrl': imageUrl, 'images': images};
+  final cover = images.isNotEmpty ? images.first : imageUrl;
+  return {'imageUrl': cover, 'images': images};
 }
 
 /// Parses a Firestore `images` field into trimmed URL strings.
@@ -60,14 +62,13 @@ List<String> templeSeedImagesFromFirestore(Object? value) {
   ];
 }
 
-/// KAN-77 layer on top of [seedHonestyImageFields] (PR #18).
+/// KAN-77 layer on top of [seedHonestyImageFields].
 ///
-/// [seedHonestyImageFields] is unchanged: it never writes picsum, keeps a
-/// verified existing gallery, and keeps a verified existing cover when the
-/// bundled cover is a placeholder. This adds the Research pack gallery when
-/// that live gallery is empty or only placeholders, so Commons `images` are
-/// not collapsed to a single cover. A non-empty verified existing gallery is
-/// returned as #18 computed it (uploads are not replaced by the pack).
+/// Picsum is never written. A verified existing gallery is kept, and its
+/// cover is that gallery's first URL. This adds the Research pack gallery
+/// when the live gallery is empty or only placeholders, with `imageUrl` set
+/// to `images.first`. A non-empty verified existing gallery is not replaced
+/// by the pack.
 Map<String, Object> seedImageFieldsWithPack({
   required String bundledImageUrl,
   List<String> bundledImages = const [],
@@ -92,8 +93,7 @@ Map<String, Object> seedImageFieldsWithPack({
   ];
   if (pack.isEmpty) return honesty;
 
-  final cover = honesty['imageUrl'] as String;
-  return {'imageUrl': cover.isNotEmpty ? cover : pack.first, 'images': pack};
+  return {'imageUrl': pack.first, 'images': pack};
 }
 
 /// Outcome of [seedTempleData].
@@ -131,11 +131,12 @@ class SeedResult {
 /// **Idempotency:** each document ID is a slug of the temple name
 /// ([templeDocumentId]), so re-running overwrites/merges the same docs
 /// instead of inserting duplicates. Image fields go through
-/// [seedHonestyImageFields] (PR #18): picsum is never written, and a verified
+/// [seedHonestyImageFields]: picsum is never written, and a verified
 /// existing gallery is kept so admin / Storage uploads are not wiped.
-/// [seedImageFieldsWithPack] then fills an empty gallery from verified sample
-/// `images` (Commons packs) only when live has no verified URLs. `createdAt`
-/// is preserved. Other bundled fields (name, story, timings, …) are
+/// `imageUrl` is that gallery's first URL. [seedImageFieldsWithPack] fills
+/// an empty gallery from verified sample `images` (Commons packs) only when
+/// live has no verified URLs, again with `imageUrl` equal to `images.first`.
+/// `createdAt` is preserved. Other bundled fields (name, story, timings, …) are
 /// refreshed from sample data. Admin and Storage galleries are not replaced.
 ///
 /// Throws when admin tools are off (release/profile without ENABLE_ADMIN_TOOLS).
