@@ -439,6 +439,85 @@ test("unknown, unknown artist, and Unknown (note) pack frames are no-credit", ()
   assert.equal(entry.photo.licence, "CC-BY-SA");
 });
 
+test("See Commons and other non-name authors are no-credit", () => {
+  for (const author of [
+    "See Commons file page",
+    "see source",
+    "SEE the file page",
+    "N/A",
+    "n/a",
+    "-",
+    "?",
+    "various",
+    "author",
+    "Author",
+    "Myself",
+    "Wikimedia Commons",
+    "Commons",
+    "public domain",
+    "https://commons.wikimedia.org/wiki/File:Example.jpg",
+    "http://example.com/a.jpg",
+    "www.example.com/a.jpg",
+  ]) {
+    assert.equal(placeholderAuthor(author), true, author);
+  }
+  assert.equal(placeholderAuthor("Seetharaman"), false);
+  assert.equal(placeholderAuthor("Anonymous0006"), false);
+  assert.equal(placeholderAuthor("Rajesh Unknown"), false);
+  assert.equal(placeholderAuthor("Shanmugamp7"), false);
+  assert.equal(placeholderAuthor("Government of Odisha"), false);
+
+  const skipped = [
+    ["talakaveri-temple", "01_Thala_Cauvery__18125847938_.jpg"],
+    ["talakaveri-temple", "02_Thalakauvery-hillview-panorama.jpg"],
+    ["talakaveri-temple", "03_Talacauvery_panorama.jpg"],
+    ["talakaveri-temple", "06_Hills_surrounding_Thalakaveri.jpg"],
+    ["khatushyam-temple", "04_Khatushyamji_Pad_Yatra_from_Kota.jpg"],
+  ];
+  for (const [id, filename] of skipped) {
+    const plan = planCoverPhoto({
+      id,
+      imageUrl: mirrorUrl(id, filename),
+      photos: [],
+      images: [],
+    });
+    assert.equal(plan.action, "skip", `${id} ${filename}`);
+    assert.equal(plan.reason, "no-credit", `${id} ${filename}`);
+    assert.equal(plan.photo, undefined, `${id} ${filename}`);
+  }
+
+  const tank = planCoverPhoto({
+    id: "talakaveri-temple",
+    imageUrl: mirrorUrl("talakaveri-temple", "04_Talakaveri_temple_tank_01.jpg"),
+    photos: [],
+    images: [],
+  });
+  assert.equal(tank.action, "add");
+  assert.equal(tank.photo.credit, "Shanmugamp7 · CC BY-SA 3.0");
+});
+
+test("bracket notes are stripped and the author name is kept", () => {
+  const vaishno = planCoverPhoto({
+    id: "vaishno-devi-temple",
+    imageUrl: mirrorUrl("vaishno-devi-temple", "05_Vaishno_Devi_Bhabon_-_panoramio.jpg"),
+    photos: [],
+    images: [],
+  });
+  assert.equal(vaishno.action, "add");
+  assert.equal(vaishno.photo.credit, "Tapan Kumar Debn… · CC BY-SA 3.0");
+  assert.equal(vaishno.photo.credit.includes("Panoramio"), false);
+
+  const swamimalai = planCoverPhoto({
+    id: "swamimalai-murugan-temple",
+    imageUrl: mirrorUrl("swamimalai-murugan-temple", "01_Swamimalai_Murugan_Temple.jpg"),
+    photos: [],
+    images: [],
+  });
+  assert.equal(swamimalai.action, "add");
+  assert.equal(swamimalai.photo.credit, "Ravichandar84 · CC BY-SA 3.0");
+  assert.equal(swamimalai.photo.credit.includes("Wikipedia"), false);
+});
+
 test("a prepended cover renumbers every photo from the array index", () => {
   const plan = planCoverPhoto(
     temple({

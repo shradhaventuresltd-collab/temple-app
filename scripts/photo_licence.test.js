@@ -6,6 +6,7 @@ import { fileURLToPath } from "url";
 
 import {
   MAX_PHOTO_CREDIT_LENGTH,
+  cleanAuthor,
   mapPhotoLicence,
   parseAttributionLicences,
   photoCredit,
@@ -209,6 +210,31 @@ test("photoCredit drops the Gonsalves usage note and stays within 200 characters
     assert.equal(credit, "Timothy A. Gonsalves · CC BY-SA 4.0");
     assert.ok(credit.length <= MAX_PHOTO_CREDIT_LENGTH);
   }
+
+  assert.equal(
+    cleanAuthor("Tapan Kumar Debn… (Panoramio user 4004470, name truncated as on Commons)"),
+    "Tapan Kumar Debn…",
+  );
+  assert.equal(
+    photoCredit(
+      "Tapan Kumar Debn… (Panoramio user 4004470, name truncated as on Commons)",
+      "CC BY-SA 3.0",
+    ),
+    "Tapan Kumar Debn… · CC BY-SA 3.0",
+  );
+  assert.equal(
+    cleanAuthor(
+      "Ravichandar84 (The original uploader was Ravichandar84 at English Wikipedia.)",
+    ),
+    "Ravichandar84",
+  );
+  assert.equal(
+    photoCredit(
+      "Ravichandar84 (The original uploader was Ravichandar84 at English Wikipedia.)",
+      "CC BY-SA 3.0",
+    ),
+    "Ravichandar84 · CC BY-SA 3.0",
+  );
 
   const trimmed = photoCredit("A".repeat(500), "CC BY 4.0");
   assert.ok(trimmed.length <= MAX_PHOTO_CREDIT_LENGTH);

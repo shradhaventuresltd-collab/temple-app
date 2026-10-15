@@ -23,11 +23,13 @@
  * from a `photos` or `images` object whose url is that frame's
  * `source_url` or `downloaded_url`. A different file's credit is not used.
  * `image_N.jpg` is not treated as a frame. Otherwise the doc is skipped
- * with `no-matching-credit`. A placeholder author is `no-credit`: empty,
- * or "unknown", "unknown author", "unknown artist", or "unknown
- * photographer", including repeats and extra spaces, or a name that
- * starts with "Unknown (". A real name such as Anonymous0006 or
- * "Rajesh Unknown" is kept. A real
+ * with `no-matching-credit`. A placeholder author is `no-credit`: empty;
+ * "unknown", "unknown author", "unknown artist", or "unknown photographer"
+ * (repeats and extra spaces allowed); a name starting with "Unknown (" or
+ * "See "; or a non-name such as "N/A", "-", "?", "various", "author",
+ * "Myself", "Wikimedia Commons", "Commons", "public domain", or a bare URL.
+ * A bracketed note is dropped and the name is kept, so Anonymous0006 and
+ * "Rajesh Unknown" stay. A real
  * credit is a non-empty string of at most 200 characters. On a document
  * object, licence
  * must already be CC-BY, CC-BY-SA, CC0, Own, or Permission. A manifest
@@ -207,18 +209,56 @@ const PLACEHOLDER_AUTHOR_TOKENS = [
   "unknown",
 ];
 
+/** Whole-string non-names. A longer credit that merely contains one is kept. */
+const PLACEHOLDER_AUTHOR_EXACT = new Set([
+  "n/a",
+  "na",
+  "n.a.",
+  "n.a",
+  "-",
+  "--",
+  "—",
+  "–",
+  "?",
+  "various",
+  "author",
+  "myself",
+  "wikimedia",
+  "wikimedia commons",
+  "commons",
+  "public domain",
+]);
+
+function authorIsUrl(name) {
+  const trimmed = String(name ?? "").trim();
+  if (/^www\.\S+$/i.test(trimmed)) return true;
+  try {
+    const url = new URL(trimmed);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 /**
- * Wikimedia placeholder creators. Case-insensitive, and the four labels may
- * repeat with or without spaces: "Unknown", "Unknown authorUnknown author",
- * "Unknown artistUnknown artist", "Unknown photographer". A note that starts
- * with "Unknown (" is the same gap. Anonymous0006 and "Rajesh Unknown" are
- * real names.
+ * No usable creator. Case-insensitive. "unknown", "unknown author",
+ * "unknown artist", and "unknown photographer" may repeat, with or without
+ * spaces. "See Commons file page" and "see source" match the "See " prefix,
+ * so "Seetharaman" does not. "N/A", "-", "?", "various", "author", "Myself",
+ * "Wikimedia Commons", "Commons", "public domain", and a bare URL are the
+ * same gap. Anonymous0006 and "Rajesh Unknown" are real names.
  */
 export function placeholderAuthor(author) {
+  const spaced = String(author ?? "").replace(/\s+/g, " ").trim();
+  if (/^see\s/i.test(spaced)) return true;
+  if (/^unknown\s*\(/i.test(spaced)) return true;
+  if (authorIsUrl(spaced)) return true;
   const name = cleanAuthor(author);
   if (!name) return true;
-  if (/^unknown\s*\(/i.test(name)) return true;
-  let rest = name.toLowerCase().replace(/\s+/g, "");
+  if (/^see\s/i.test(name) || authorIsUrl(name)) return true;
+  const key = name.toLowerCase().replace(/\s+/g, " ").trim();
+  if (PLACEHOLDER_AUTHOR_EXACT.has(key)) return true;
+  let rest = key.replace(/\s+/g, "");
   if (!rest) return true;
   while (rest) {
     const token = PLACEHOLDER_AUTHOR_TOKENS.find((item) => rest.startsWith(item));
