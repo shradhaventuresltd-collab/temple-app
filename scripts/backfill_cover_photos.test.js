@@ -304,6 +304,12 @@ test("a mirrored storage cover takes credit from that pack frame only", () => {
       photos: [],
       images: [mirrorUrl(id, cover.filename)],
     });
+    if (placeholderAuthor(cover.author)) {
+      assert.equal(plan.action, "skip", id);
+      assert.equal(plan.reason, "no-credit", id);
+      assert.equal(plan.photo, undefined, id);
+      continue;
+    }
     assert.equal(plan.action, "add", id);
     assert.equal(plan.photo.credit, photoCredit(cover.author, cover.license), id);
     assert.equal(plan.photo.licence, mapPhotoLicence(cover.license), id);
@@ -315,7 +321,7 @@ test("a mirrored storage cover takes credit from that pack frame only", () => {
     added += 1;
   }
   assert.equal(MIRROR_TEMPLE_IDS.length, 30);
-  assert.equal(added, 29);
+  assert.equal(added, 28);
   assert.equal(packs.has("anjengo-sree-durga-devi-temple"), false);
 });
 
@@ -326,8 +332,19 @@ test("a placeholder pack author is no-credit, and another bucket does not match"
   assert.equal(placeholderAuthor("Unknown authorUnknown author"), true);
   assert.equal(placeholderAuthor("Unknown authorUnknown authorUnknown author"), true);
   assert.equal(placeholderAuthor("UNKNOWN AUTHOR unknown author"), true);
+  assert.equal(placeholderAuthor("Unknown"), true);
+  assert.equal(placeholderAuthor("unknown"), true);
+  assert.equal(placeholderAuthor("Unknown artist"), true);
+  assert.equal(placeholderAuthor("Unknown artistUnknown artist"), true);
+  assert.equal(placeholderAuthor("Unknown artist Unknown artist"), true);
+  assert.equal(placeholderAuthor("unknown photographer"), true);
+  assert.equal(placeholderAuthor("Unknown photographerUnknown photographer"), true);
+  assert.equal(placeholderAuthor("Unknown (KW23 series on Commons)"), true);
+  assert.equal(placeholderAuthor("unknown (note)"), true);
   assert.equal(placeholderAuthor("Ms Sarah Welch"), false);
   assert.equal(placeholderAuthor("Unknown author, Ms Sarah Welch"), false);
+  assert.equal(placeholderAuthor("Anonymous0006"), false);
+  assert.equal(placeholderAuthor("Rajesh Unknown"), false);
 
   const filename =
     "01_The_Temples_of_Raghunath_Jammu_India_ca.1875-ca.1940_imp-cswc-GB-237-C.jpg";
@@ -375,6 +392,51 @@ test("a placeholder pack author is no-credit, and another bucket does not match"
   );
   assert.equal(appspot.action, "add");
   assert.equal(appspot.photo.credit, "Arjun Dharne · CC BY-SA 4.0");
+});
+
+test("unknown, unknown artist, and Unknown (note) pack frames are no-credit", () => {
+  const skipped = [
+    ["shrinathji-temple", "02_Nathdwara_srinathji.jpg"],
+    ["gnana-saraswati-temple", "05_Basara-ghat.jpg"],
+    ["mahakaleshwar-temple", "04_Mahakaleshwar_Ujjain.jpg"],
+    ["mehandipur-balaji-temple", "02_Mehandipur_Balaji_idol.jpg"],
+    ["mahabaleshwar-temple-gokarna", "01_KW23-0751-Gokarna-AdiGokarna-Front1_3D.jpg"],
+    ["mahabaleshwar-temple-gokarna", "02_KW23-0752-Gokarna-AdiGokarna-RightFront2_3D.jpg"],
+    ["mahabaleshwar-temple-gokarna", "03_KW23-0754-Gokarna-AdiGokarna-FrontFull4_3D.jpg"],
+  ];
+  for (const [id, filename] of skipped) {
+    const plan = planCoverPhoto({
+      id,
+      imageUrl: mirrorUrl(id, filename),
+      photos: [],
+      images: [],
+    });
+    assert.equal(plan.action, "skip", `${id} ${filename}`);
+    assert.equal(plan.reason, "no-credit", `${id} ${filename}`);
+    assert.equal(plan.photo, undefined, `${id} ${filename}`);
+  }
+
+  const painter = planCoverPhoto({
+    id: "shrinathji-temple",
+    imageUrl: mirrorUrl("shrinathji-temple", "01_Painter_at_work_Nathdwara.jpg"),
+    photos: [],
+    images: [],
+  });
+  assert.equal(painter.action, "add");
+  assert.equal(painter.photo.credit, "Prakhar Amba · CC BY 2.0");
+
+  const entry = planCoverPhoto({
+    id: "mahabaleshwar-temple-gokarna",
+    imageUrl: mirrorUrl(
+      "mahabaleshwar-temple-gokarna",
+      "04_Main_entry_to_the_Mahabaleshwar_Temple_at_Gokaran.jpg",
+    ),
+    photos: [],
+    images: [],
+  });
+  assert.equal(entry.action, "add");
+  assert.equal(entry.photo.credit, "Nvvchar · CC BY-SA 3.0");
+  assert.equal(entry.photo.licence, "CC-BY-SA");
 });
 
 test("a prepended cover renumbers every photo from the array index", () => {

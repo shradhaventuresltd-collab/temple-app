@@ -188,13 +188,14 @@ service cloud.firestore {
     }
 
     // Placeholder hosts and their subdomains, on imageUrl and images[0] only.
+    // A userinfo or port on that host counts too (user@picsum.photos, :443).
     // A matches() inside isValidPhoto runs for every photo slot and crosses the
     // 1000-expression limit. Photos rely on the app and the seed validator.
     // source.unsplash.com is exact, matching the app. A path containing
     // "placeholder" or "picsum" is allowed. Stock hosts such as shutterstock
     // are not in this regex; the app rejects those.
     function placeholderHost(url) {
-      return url is string && url.matches('(?i)^https?://(([a-z0-9-]+\\.)*(picsum\\.photos|placeholder\\.com|placehold\\.co|placehold\\.it|dummyimage\\.com|lorempixel\\.com|loremflickr\\.com|placekitten\\.com|fakeimg\\.pl|placeimg\\.com)|source\\.unsplash\\.com)([/?#].*)?$');
+      return url is string && url.matches('(?i)^https?://([^/?#@]+@)?(([a-z0-9-]+\\.)*(picsum\\.photos|placeholder\\.com|placehold\\.co|placehold\\.it|dummyimage\\.com|lorempixel\\.com|loremflickr\\.com|placekitten\\.com|fakeimg\\.pl|placeimg\\.com)|source\\.unsplash\\.com)(:\\d+)?([/?#].*)?$');
     }
 
     function imageListOk(list) {

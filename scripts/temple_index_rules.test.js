@@ -432,6 +432,11 @@ test("placeholder hosts and their subdomains fail on imageUrl and images[0], and
     "https://cdn.fakeimg.pl/800",
     "https://placeimg.com/800/600",
     "https://img.placeimg.com/800/600",
+    "https://user@picsum.photos",
+    "https://picsum.photos:443",
+    "https://user:pass@www.loremflickr.com:443/800/600",
+    "https://source.unsplash.com:443",
+    "https://user@placekitten.com/800/600",
   ];
   for (const url of hosts) {
     await assertFails(
@@ -447,7 +452,12 @@ test("placeholder hosts and their subdomains fail on imageUrl and images[0], and
     "https://images.unsplash.com/photo-1",
     "https://cdn.source.unsplash.com/random",
     "https://notpicsum.photos/800",
+    "https://notpicsum.photos:443/800",
+    "https://images.unsplash.com:443/photo-1",
+    "https://user@images.unsplash.com/photo-1",
+    "https://cdn.source.unsplash.com:443/random",
     "https://www.shutterstock.com/image-photo/temple",
+    "https://www.shutterstock.com:443/image-photo/temple",
   ];
   for (const url of passes) {
     await assertSucceeds(

@@ -23,8 +23,11 @@
  * from a `photos` or `images` object whose url is that frame's
  * `source_url` or `downloaded_url`. A different file's credit is not used.
  * `image_N.jpg` is not treated as a frame. Otherwise the doc is skipped
- * with `no-matching-credit`. A placeholder author — empty, or "Unknown
- * author" repeated, as on a Wikimedia template — is `no-credit`. A real
+ * with `no-matching-credit`. A placeholder author is `no-credit`: empty,
+ * or "unknown", "unknown author", "unknown artist", or "unknown
+ * photographer", including repeats and extra spaces, or a name that
+ * starts with "Unknown (". A real name such as Anonymous0006 or
+ * "Rajesh Unknown" is kept. A real
  * credit is a non-empty string of at most 200 characters. On a document
  * object, licence
  * must already be CC-BY, CC-BY-SA, CC0, Own, or Permission. A manifest
@@ -196,16 +199,33 @@ function canonicalImageUrl(raw) {
   return `${parsed.protocol}//${parsed.hostname.toLowerCase()}${path}`;
 }
 
+/** Longer tokens first so "unknown" does not swallow "unknown author". */
+const PLACEHOLDER_AUTHOR_TOKENS = [
+  "unknownphotographer",
+  "unknownartist",
+  "unknownauthor",
+  "unknown",
+];
+
 /**
- * Wikimedia writes "Unknown author", sometimes twice with no space, when a
- * file has no creator. An empty author is the same gap. A real name that
- * merely contains those words is kept.
+ * Wikimedia placeholder creators. Case-insensitive, and the four labels may
+ * repeat with or without spaces: "Unknown", "Unknown authorUnknown author",
+ * "Unknown artistUnknown artist", "Unknown photographer". A note that starts
+ * with "Unknown (" is the same gap. Anonymous0006 and "Rajesh Unknown" are
+ * real names.
  */
 export function placeholderAuthor(author) {
   const name = cleanAuthor(author);
   if (!name) return true;
-  const collapsed = name.toLowerCase().replace(/\s+/g, "");
-  return /^(unknownauthor)+$/.test(collapsed);
+  if (/^unknown\s*\(/i.test(name)) return true;
+  let rest = name.toLowerCase().replace(/\s+/g, "");
+  if (!rest) return true;
+  while (rest) {
+    const token = PLACEHOLDER_AUTHOR_TOKENS.find((item) => rest.startsWith(item));
+    if (!token) return false;
+    rest = rest.slice(token.length);
+  }
+  return true;
 }
 
 function manifestPair(photo) {
