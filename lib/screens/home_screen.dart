@@ -173,6 +173,7 @@ class _HomeAdminOverflow extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               child: TextButton(
                 key: const Key('home-admin-sign-in'),
+                autofocus: true,
                 onPressed: () => Navigator.of(dialogContext).pop('admin'),
                 child: const Text('Admin sign-in'),
               ),
