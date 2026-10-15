@@ -3,7 +3,7 @@ import { basename, dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 
 import { assertOneCoverOk } from "./cover_ok.js";
-import { assertStorageAuth } from "./storage_auth.js";
+import { assertStorageAuth, useNativeFetchForStorageAuth } from "./storage_auth.js";
 import { mapPhotoLicence, photoCredit } from "./photo_licence.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -628,6 +628,7 @@ async function main() {
   console.log(`Mode       : ${opts.dryRun ? "dry-run" : "upload"}\n`);
 
   let adminApp = null;
+  useNativeFetchForStorageAuth();
   if (!opts.dryRun) {
     const sa = loadServiceAccount();
     if (!sa) {

@@ -1,4 +1,4 @@
-import "./storage_auth.js";
+import { useNativeFetchForStorageAuth } from "./storage_auth.js";
 import admin from "firebase-admin";
 import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
@@ -32,6 +32,7 @@ admin.initializeApp({
   storageBucket: "temple-directory-india.firebasestorage.app",
 });
 
+useNativeFetchForStorageAuth();
 const db = admin.firestore();
 const bucket = admin.storage().bucket();
 

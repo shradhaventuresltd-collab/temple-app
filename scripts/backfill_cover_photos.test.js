@@ -34,6 +34,7 @@ import {
   assertStorageAuth,
   STORAGE_AUTH_PREFLIGHT_ERROR,
   STORAGE_AUTH_PROBE,
+  useNativeFetchForStorageAuth,
 } from "./storage_auth.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -1463,41 +1464,48 @@ test("a missing fetch fails before any write, and a hung public check times out"
 });
 
 test("the Storage token request uses native fetch, and a failed exists() stops apply", async () => {
-  const require = createRequire(import.meta.url);
-  const { Gaxios } = require("gaxios");
-  const calls = [];
-  const original = globalThis.fetch;
-  globalThis.fetch = async (input) => {
-    calls.push(String(input));
-    return new Response(JSON.stringify({ access_token: "ya29.test" }), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    });
-  };
-  const server = http.createServer((_req, res) => {
-    res.writeHead(200, { "content-type": "application/json" });
-    res.end('{"ok":true}');
-  });
-  await new Promise((resolveListen) => server.listen(0, "127.0.0.1", resolveListen));
-  const port = server.address().port;
+  let Gaxios;
   try {
-    const client = new Gaxios();
-    const token = await client.request({
-      url: "https://www.googleapis.com/oauth2/v4/token",
-      method: "POST",
-      responseType: "json",
+    Gaxios = createRequire(import.meta.url)("gaxios").Gaxios;
+  } catch (error) {
+    if (error?.code !== "MODULE_NOT_FOUND") throw error;
+  }
+  if (Gaxios) {
+    assert.equal(useNativeFetchForStorageAuth(), true);
+    const calls = [];
+    const original = globalThis.fetch;
+    globalThis.fetch = async (input) => {
+      calls.push(String(input));
+      return new Response(JSON.stringify({ access_token: "ya29.test" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    };
+    const server = http.createServer((_req, res) => {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end('{"ok":true}');
     });
-    assert.equal(token.data.access_token, "ya29.test");
-    assert.deepEqual(calls, ["https://www.googleapis.com/oauth2/v4/token"]);
-    const local = await client.request({
-      url: `http://127.0.0.1:${port}/object`,
-      responseType: "json",
-    });
-    assert.equal(local.data.ok, true);
-    assert.deepEqual(calls, ["https://www.googleapis.com/oauth2/v4/token"]);
-  } finally {
-    globalThis.fetch = original;
-    await new Promise((resolveClose) => server.close(resolveClose));
+    await new Promise((resolveListen) => server.listen(0, "127.0.0.1", resolveListen));
+    const port = server.address().port;
+    try {
+      const client = new Gaxios();
+      const token = await client.request({
+        url: "https://www.googleapis.com/oauth2/v4/token",
+        method: "POST",
+        responseType: "json",
+      });
+      assert.equal(token.data.access_token, "ya29.test");
+      assert.deepEqual(calls, ["https://www.googleapis.com/oauth2/v4/token"]);
+      const local = await client.request({
+        url: `http://127.0.0.1:${port}/object`,
+        responseType: "json",
+      });
+      assert.equal(local.data.ok, true);
+      assert.deepEqual(calls, ["https://www.googleapis.com/oauth2/v4/token"]);
+    } finally {
+      globalThis.fetch = original;
+      await new Promise((resolveClose) => server.close(resolveClose));
+    }
   }
 
   const seen = [];

@@ -1,4 +1,4 @@
-import "./storage_auth.js";
+import { useNativeFetchForStorageAuth } from "./storage_auth.js";
 import "dotenv/config";
 import admin from "firebase-admin";
 import axios from "axios";
@@ -35,6 +35,7 @@ admin.initializeApp({
   storageBucket: "temple-directory-india.firebasestorage.app",
 });
 
+useNativeFetchForStorageAuth();
 const db = admin.firestore();
 const bucket = admin.storage().bucket();
 

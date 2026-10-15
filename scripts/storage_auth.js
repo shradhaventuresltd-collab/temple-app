@@ -11,7 +11,6 @@
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const { Gaxios } = require("gaxios");
 
 /** Bucket these scripts upload into. */
 export const STORAGE_AUTH_BUCKET = "temple-directory-india.firebasestorage.app";
@@ -25,8 +24,24 @@ const TOKEN_URL = /^https:\/\/(?:oauth2\.googleapis\.com\/|www\.googleapis\.com\
 
 let patched = false;
 
+function loadGaxios() {
+  try {
+    return require("gaxios").Gaxios;
+  } catch (error) {
+    if (error?.code === "MODULE_NOT_FOUND") return null;
+    throw error;
+  }
+}
+
+/**
+ * Installs the native-fetch patch when gaxios is installed. The script
+ * test job does not install node_modules, so a missing package is not a
+ * failure until a real Storage call needs it.
+ */
 export function useNativeFetchForStorageAuth() {
-  if (patched) return;
+  if (patched) return true;
+  const Gaxios = loadGaxios();
+  if (!Gaxios) return false;
   if (typeof globalThis.fetch !== "function") {
     throw new Error("This Node has no fetch. No Firestore write.");
   }
@@ -42,15 +57,15 @@ export function useNativeFetchForStorageAuth() {
     }
     return original.call(this, opts);
   };
+  return true;
 }
-
-useNativeFetchForStorageAuth();
 
 /**
  * Read-only. A thrown exists() is an auth failure, and apply must stop
  * before it writes Firestore. A missing probe object is still a success.
  */
 export async function assertStorageAuth(bucket, objectPath = STORAGE_AUTH_PROBE) {
+  useNativeFetchForStorageAuth();
   try {
     await bucket.file(objectPath).exists();
   } catch (error) {

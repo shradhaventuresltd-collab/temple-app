@@ -43,7 +43,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard.js";
-import { assertStorageAuth, STORAGE_AUTH_BUCKET } from "./storage_auth.js";
+import { assertStorageAuth, STORAGE_AUTH_BUCKET, useNativeFetchForStorageAuth } from "./storage_auth.js";
 import {
   entryFromTemple,
   firstThumbSource,
@@ -774,6 +774,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
   }
   const env = deps.env ?? process.env;
   const project = resolveProject(opts, env);
+  useNativeFetchForStorageAuth();
   if (opts.apply) await authorizeApply(project, env, { confirm: deps.confirm });
   if (opts.apply) {
     if (deps.storagePreflight) await deps.storagePreflight();
