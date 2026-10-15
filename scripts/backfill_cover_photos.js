@@ -23,23 +23,20 @@
  * from a `photos` or `images` object whose url is that frame's
  * `source_url` or `downloaded_url`. A different file's credit is not used.
  * `image_N.jpg` is not treated as a frame. Otherwise the doc is skipped
- * with `no-matching-credit`, unless the cover is an uncredited Storage
- * object for that same temple. A Places file (`image_N.jpg`), a timestamp
- * admin upload (`1730000000000000.jpg`), or any other file in the
- * temple-directory-india bucket that is not a pack frame is uncredited.
- * A pack frame, including one with no credit, is not swapped for a
- * different file. When that temple is a Karnataka Wave B or Tamil Nadu +
- * Kerala Wave A pack and the pack has a creditable frame, the plan
- * replaces the cover with the pack cover (photo 01) or, when that frame
- * has no credit, the first creditable frame. The new object is
- * `temples/{id}/{filename}` on
- * `temple-directory-india.firebasestorage.app`. Apply uploads that file
- * only when it is not already in Storage, then writes `photos` order 0
- * (`url`, `credit`, `licence`), `imageUrl`, and `images`, with `images[0]`
- * equal to the new cover. The old Places object stays in Storage.
- * `--replace-uncredited-cover` selects this plan; it is also the default.
- * A temple with no creditable Wave A/B frame is left as it is and reported
- * (`no-creditable-frame`, or `no-wave-pack` when the pack is not Wave A/B).
+ * with `no-matching-credit`. A plain dry-run or `--apply` never replaces
+ * a cover. `--replace-uncredited-cover` is opt-in. It plans a replacement
+ * only when `imageUrl` is `temples/{id}/image_N.jpg` (jpeg, jpg, png, or
+ * webp) in the temple-directory-india bucket, that temple is Wave A or
+ * Wave B, and `photos[]` has no credit for that cover. Timestamp admin
+ * uploads, custom names, and `_480` thumbs are reported and left in
+ * place. The new cover is frame 01, or a manifest photo with `cover_ok`,
+ * and only when that frame is creditable. A later frame is not used. The
+ * new object is `temples/{id}/{filename}`. Apply uploads it only when it
+ * is missing, and an object already in Storage must have a download token
+ * whose Firebase URL returns HTTP 200 before anything is written. The
+ * transaction skips the doc when `imageUrl` is no longer the planned old
+ * URL. The old Places object stays in Storage. A temple with no creditable
+ * frame 01 is reported (`no-creditable-frame`, or `no-wave-pack`).
  * A placeholder author is `no-credit`: empty;
  * "unknown", "unknown author", "unknown artist", or "unknown photographer"
  * (repeats and extra spaces allowed); a name starting with "Unknown (";
@@ -67,12 +64,14 @@
  *
  * prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
  */
+import { randomUUID } from "node:crypto";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { cleanAuthor, mapPhotoLicence, photoCredit } from "./photo_licence.js";
 import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard.js";
+import { firebaseDownloadUrl, verifyPublicObject } from "./resize_cover_thumbs.js";
 import { changedFields, entryFromTemple, stateSlug, storageObjectFromUrl } from "./temple_index.js";
 import {
   resolveSeedDocId,
@@ -103,6 +102,9 @@ const DIRECTORY_BUCKETS = new Set([
 export const COVER_BUCKET = "temple-directory-india.firebasestorage.app";
 
 const WAVE_PACK_SLUGS = new Set([...WAVE_A_TN_KL_PACKS, ...WAVE_B_KARNATAKA_PACKS]);
+
+/** Places uploader names. Timestamp, custom, and `_480` names do not match. */
+const PLACES_COVER_FILE = /^image_\d+\.(?:jpe?g|png|webp)$/i;
 const MAX_PHOTOS = 12;
 const MAX_URL = 2000;
 
@@ -112,10 +114,10 @@ Usage:
   node backfill_cover_photos.js [--dry-run] [--replace-uncredited-cover] [--project <firebase-project-id>]
   node backfill_cover_photos.js --apply --project <firebase-project-id>
 
-Default is dry-run: list Storage covers that would gain photos[0], and
-Wave A/B temples whose uncredited Storage cover would be replaced by the
-best creditable pack frame. --replace-uncredited-cover is that replacement
-and is already the default. Nothing is written and nothing is uploaded.
+Default is dry-run: list Storage covers that would gain photos[0].
+Nothing is written and nothing is uploaded. --replace-uncredited-cover
+also lists Places image_N.jpg covers that would be replaced by frame 01.
+A dry-run or --apply without that flag does not replace a cover.
 prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
 Prod apply prompts for the project id.
 Set FIRESTORE_EMULATOR_HOST to use the emulator without that prompt.
@@ -128,7 +130,7 @@ export function parseArgs(argv) {
   const opts = {
     dryRun: true,
     apply: false,
-    replaceUncreditedCover: true,
+    replaceUncreditedCover: false,
     project: null,
     help: false,
   };
@@ -384,6 +386,7 @@ function loadPacks() {
       list.push({
         filename: photo.filename,
         localPath: resolve(packDir, photo.filename),
+        coverOk: photo.cover_ok === true,
         pair: pair.ok ? { credit: pair.credit, licence: pair.licence } : null,
         reason: pair.ok ? null : pair.reason,
         sourceUrls: sourceUrlsFor(photo),
@@ -406,12 +409,16 @@ function waveTempleIds() {
 }
 
 /**
- * Pack cover when it has a real author, otherwise the first creditable frame.
+ * Frame 01 when it has a real author, or a creditable photo marked
+ * `cover_ok`. A later frame is not a substitute.
  */
 export function bestCreditableFrame(frames) {
   if (!Array.isArray(frames) || frames.length === 0) return null;
-  if (frames[0]?.pair) return frames[0];
-  return frames.find((frame) => frame.pair) ?? null;
+  const flagged = frames.find((frame) => frame.coverOk && frame.pair);
+  if (flagged) return flagged;
+  const cover = frames.find((frame) => /^01(?:_|\.|$)/.test(frame.filename));
+  if (!cover?.pair) return null;
+  return cover;
 }
 
 export function storageCoverUrl(docId, filename) {
@@ -451,16 +458,6 @@ function directoryObject(templeId, imageUrl) {
   const filename = parts[2];
   if (String(templeId ?? "") !== slug) return null;
   return { slug, filename, objectPath: `${parts[0]}/${slug}/${filename}` };
-}
-
-/**
- * A Places `image_N.jpg`, a timestamp admin upload, or any other object
- * that is not this temple's pack frame. A pack frame keeps its own credit
- * decision, including `no-credit`, and is not swapped for a different file.
- */
-function uncreditedCoverFile(filename, frames) {
-  const matches = (frames ?? []).filter((frame) => frame.filename === filename);
-  return matches.length === 0;
 }
 
 /**
@@ -551,18 +548,26 @@ function photosShape(photos) {
   return null;
 }
 
+function photoHasCredit(photo) {
+  const credit = typeof photo?.credit === "string" ? photo.credit.trim() : "";
+  return credit !== "" && !placeholderAuthor(credit);
+}
+
 /**
- * Uncredited Storage cover on a Wave A/B temple, replaced by the pack cover
- * or the first creditable frame. Other uncredited covers are reported and
- * left in place. Returns null when this cover is not that case.
+ * Places `image_N` cover on a Wave A/B temple, replaced by frame 01.
+ * Timestamp names, custom names, and `_480` thumbs are reported and left
+ * in place. Returns null when this cover is not in this temple's bucket.
  */
 function replacementPlan(temple, imageUrl, photos, failed) {
   const located = directoryObject(temple?.id, imageUrl);
   if (!located) return null;
-  const frames = framesByTempleId().get(located.slug) ?? [];
-  if (!uncreditedCoverFile(located.filename, frames)) return null;
   if (failed.reason !== "no-matching-credit" && failed.reason !== "no-credit") return null;
   const id = located.slug;
+  if (!PLACES_COVER_FILE.test(located.filename)) {
+    return { id, action: "skip", reason: "not-places-cover", imageUrl, oldObject: located.objectPath };
+  }
+  if (photos.some((photo) => photoUrl(photo) === imageUrl && photoHasCredit(photo))) return null;
+  const frames = framesByTempleId().get(id) ?? [];
   if (!waveTempleIds().has(id)) {
     return { id, action: "skip", reason: "no-wave-pack", imageUrl, oldObject: located.objectPath };
   }
@@ -604,12 +609,13 @@ function replacementPlan(temple, imageUrl, photos, failed) {
 }
 
 /**
- * Plan for one temple. `add` prepends the Storage cover. `replace` points
- * an uncredited Storage cover at the best Wave A/B pack frame. Other docs
- * are `skip` with a reason. A Storage cover that already has a matching
- * photo is `ready` and is not listed as added or skipped.
+ * Plan for one temple. `add` prepends the Storage cover. `replace` is
+ * planned only when `opts.replaceUncreditedCover` is true. Other docs are
+ * `skip` with a reason. A Storage cover that already has a matching photo
+ * is `ready` and is not listed as added or skipped.
  */
-export function planCoverPhoto(temple) {
+export function planCoverPhoto(temple, opts = {}) {
+  const replaceUncredited = opts.replaceUncreditedCover === true;
   const id = String(temple?.id ?? "");
   const imageUrl = typeof temple?.imageUrl === "string" ? temple.imageUrl.trim() : "";
   const photos = Array.isArray(temple?.photos) ? temple.photos : [];
@@ -620,13 +626,15 @@ export function planCoverPhoto(temple) {
     return { id, action: "skip", reason: "not-https", imageUrl };
   }
   if (photos.some((photo) => photoUrl(photo) === imageUrl)) {
-    return { id, action: "ready", reason: "already" };
+    const credited = photos.some((photo) => photoUrl(photo) === imageUrl && photoHasCredit(photo));
+    if (credited || !replaceUncredited) return { id, action: "ready", reason: "already" };
   }
   const shape = photosShape(photos);
   if (shape) return { id, action: "skip", reason: shape, imageUrl };
   if (photos.length >= MAX_PHOTOS) return { id, action: "skip", reason: "photos-full", imageUrl };
   const copied = attribution(temple, imageUrl);
   if (!copied.ok) {
+    if (!replaceUncredited) return { id, action: "skip", reason: copied.reason, imageUrl };
     return replacementPlan(temple, imageUrl, photos, copied) ?? {
       id,
       action: "skip",
@@ -647,8 +655,8 @@ export function planCoverPhoto(temple) {
   };
 }
 
-export function planCoverPhotos(temples) {
-  return (temples ?? []).map((temple) => planCoverPhoto(temple));
+export function planCoverPhotos(temples, opts = {}) {
+  return (temples ?? []).map((temple) => planCoverPhoto(temple, opts));
 }
 
 /**
@@ -656,7 +664,14 @@ export function planCoverPhotos(temples) {
  * is not written.
  */
 export function commitCoverPhoto(fresh, plan) {
-  const again = planCoverPhoto({ ...fresh, id: fresh?.id ?? plan.id });
+  if (plan.action === "replace") {
+    const current = typeof fresh?.imageUrl === "string" ? fresh.imageUrl.trim() : "";
+    if (current !== plan.oldImageUrl) return { ok: false, reason: "changed" };
+  }
+  const again = planCoverPhoto(
+    { ...fresh, id: fresh?.id ?? plan.id },
+    { replaceUncreditedCover: plan.action === "replace" },
+  );
   const sameAction = again.action === plan.action && (plan.action === "add" || plan.action === "replace");
   if (!sameAction || again.photo.url !== plan.photo.url) {
     const reason = again.reason === "already" ? "already" : "changed";
@@ -818,9 +833,29 @@ export async function applyCoverPhotoPlans(plans, deps) {
 }
 
 /**
+ * Download token on an existing object, then HTTP 200 on its Firebase URL.
+ * The same check resize uses before it writes. No token URL is returned.
+ */
+async function downloadTokenIsPublic(file, objectPath, deps) {
+  let metadata;
+  try {
+    const loaded = await file.getMetadata();
+    metadata = Array.isArray(loaded) ? loaded[0] : loaded;
+  } catch {
+    return false;
+  }
+  const tokens = String(metadata?.metadata?.firebaseStorageDownloadTokens ?? "");
+  const token = tokens.split(",")[0].trim();
+  if (!token) return false;
+  const url = firebaseDownloadUrl(COVER_BUCKET, objectPath, token);
+  const check = deps.verifyPublic ?? verifyPublicObject;
+  return (await check(url)) === true;
+}
+
+/**
  * Upload `temples/{id}/{filename}` when that object is missing. An object
- * already in the bucket is left as it is. The previous cover object is not
- * deleted.
+ * already in the bucket is kept only when its download token is public.
+ * The previous cover object is not deleted.
  */
 export async function ensureCoverFrame(plan, deps = {}) {
   const objectPath = typeof plan?.objectPath === "string" ? plan.objectPath : "";
@@ -829,17 +864,25 @@ export async function ensureCoverFrame(plan, deps = {}) {
   const bucket = deps.bucket ?? deps.admin.storage().bucket(COVER_BUCKET);
   const file = bucket.file(objectPath);
   const [exists] = await file.exists();
-  if (exists) return { ok: true, uploaded: false };
+  if (exists) {
+    const readable = await downloadTokenIsPublic(file, objectPath, deps);
+    if (!readable) return { ok: false, reason: "not-public" };
+    return { ok: true, uploaded: false };
+  }
   if (!existsSync(localPath)) return { ok: false, reason: "missing-file" };
+  const token = typeof deps.token === "string" && deps.token !== "" ? deps.token : randomUUID();
   const contentType = localPath.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
   await bucket.upload(localPath, {
     destination: objectPath,
     metadata: {
       contentType,
       cacheControl: "public, max-age=3600",
+      metadata: { firebaseStorageDownloadTokens: token },
     },
   });
   await file.makePublic();
+  const readable = await downloadTokenIsPublic(file, objectPath, deps);
+  if (!readable) return { ok: false, reason: "not-public" };
   return { ok: true, uploaded: true };
 }
 
@@ -888,7 +931,9 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
   const load = deps.load ?? loadTemples;
   const temples = await load(project, env);
   temples.sort((a, b) => String(a.id).localeCompare(String(b.id)));
-  const plans = planCoverPhotos(temples);
+  const plans = planCoverPhotos(temples, {
+    replaceUncreditedCover: opts.replaceUncreditedCover === true,
+  });
   const rows = await applyCoverPhotoPlans(plans, {
     dryRun: !opts.apply,
     ensureUploaded:

@@ -212,6 +212,9 @@ test("photoCredit drops the Gonsalves usage note and stays within 200 characters
   }
 
   assert.equal(cleanAuthor("Chaitra. B. H."), "Chaitra. B. H.");
+  assert.equal(cleanAuthor("User:Shyam"), "Shyam");
+  assert.equal(photoCredit("User:Shyam", "CC BY-SA 2.5"), "Shyam · CC BY-SA 2.5");
+  assert.equal(cleanAuthor("See Kumar"), "See Kumar");
   assert.equal(photoCredit("Chaitra. B. H.", "CC BY-SA 4.0"), "Chaitra. B. H. · CC BY-SA 4.0");
   assert.equal(
     cleanAuthor("Tapan Kumar Debn… (Panoramio user 4004470, name truncated as on Commons)"),
