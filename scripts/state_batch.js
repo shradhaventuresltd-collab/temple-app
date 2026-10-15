@@ -151,6 +151,7 @@ export function validateStateBatch(batch, existing = [], options = {}) {
   const update = options.update === true;
   const errors = [];
   const warnings = [];
+  const info = [];
   if (!batch || typeof batch !== "object" || Array.isArray(batch)) {
     return fail(["Batch must be a JSON object with state and temples."]);
   }
@@ -308,7 +309,13 @@ export function validateStateBatch(batch, existing = [], options = {}) {
     }
 
     if (name && latitude != null && longitude != null) {
-      located.push({ id, name, latitude, longitude });
+      located.push({
+        id,
+        name,
+        latitude,
+        longitude,
+        distinctFrom: distinctFromSlugs(raw.dedupe),
+      });
     }
     if (reviewStatus && reviewStatus !== "approved") {
       skipped.push({
@@ -368,27 +375,13 @@ export function validateStateBatch(batch, existing = [], options = {}) {
           `${temple.id} duplicates the normalised name of ${other.id}.`,
         );
       }
-      if (distanceKm(temple, other) <= DUPLICATE_DISTANCE_KM) {
-        errors.push(
-          `${temple.id} is within ${DUPLICATE_DISTANCE_KM} km of ${other.id} ` +
-            `(${distanceKm(temple, other).toFixed(3)} km).`,
-        );
-      }
+      recordProximity(temple, other, errors, info, false);
     }
     const prior = existingById.get(temple.id);
     if (prior) {
       for (const other of existing) {
         if (String(other.id).toLowerCase() === temple.id) continue;
-        if (
-          Number.isFinite(other.latitude) &&
-          Number.isFinite(other.longitude) &&
-          distanceKm(temple, other) <= DUPLICATE_DISTANCE_KM
-        ) {
-          errors.push(
-            `${temple.id} is within ${DUPLICATE_DISTANCE_KM} km of existing ${other.id} ` +
-              `(${distanceKm(temple, other).toFixed(3)} km).`,
-          );
-        }
+        recordProximity(temple, other, errors, info, true);
       }
       continue;
     }
@@ -400,16 +393,7 @@ export function validateStateBatch(batch, existing = [], options = {}) {
     }
     for (const other of existing) {
       if (String(other.id).toLowerCase() === temple.id) continue;
-      if (
-        Number.isFinite(other.latitude) &&
-        Number.isFinite(other.longitude) &&
-        distanceKm(temple, other) <= DUPLICATE_DISTANCE_KM
-      ) {
-        errors.push(
-          `${temple.id} is within ${DUPLICATE_DISTANCE_KM} km of existing ${other.id} ` +
-            `(${distanceKm(temple, other).toFixed(3)} km).`,
-        );
-      }
+      recordProximity(temple, other, errors, info, true);
     }
   }
 
@@ -418,6 +402,7 @@ export function validateStateBatch(batch, existing = [], options = {}) {
       ok: false,
       errors,
       warnings,
+      info,
       temples: [],
       summary: { ...emptySummary(), skipped },
     };
@@ -447,7 +432,7 @@ export function validateStateBatch(batch, existing = [], options = {}) {
     }
   }
 
-  return { ok: true, errors, warnings, temples, summary };
+  return { ok: true, errors, warnings, info, temples, summary };
 }
 
 export function targetShortfall(batch) {
@@ -628,14 +613,33 @@ function readSources(raw, label, errors) {
   return sources;
 }
 
+/** On-disk root for research photo packs. Not state-expansion/photos. */
+export const TEMPLE_RESEARCH_ROOT = "/workspace/temple-research";
+
+/**
+ * Canonical pack directory. In a batch file this is `photo_pack.path`
+ * `photos/<slug>/`, rooted at TEMPLE_RESEARCH_ROOT.
+ */
+export function canonicalPhotoPackPath(slug) {
+  return `${TEMPLE_RESEARCH_ROOT}/photos/${slug}/`;
+}
+
+function photoPackPathAccepted(path, slug) {
+  const value = String(path).toLowerCase();
+  return value === `photos/${slug}/` || value === canonicalPhotoPackPath(slug).toLowerCase();
+}
+
 function readPhotoPack(raw, slug, label, errors) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
     errors.push(`${label}.photo_pack is required and must be an object.`);
     return;
   }
   const path = requireString(raw.path, `${label}.photo_pack.path`, errors);
-  if (path && path.toLowerCase() !== `photos/${slug}/`) {
-    errors.push(`${label}.photo_pack.path must be photos/${slug}/.`);
+  if (path && !photoPackPathAccepted(path, slug)) {
+    errors.push(
+      `${label}.photo_pack.path must be photos/${slug}/ ` +
+        `(${canonicalPhotoPackPath(slug)}).`,
+    );
   }
   // Extra photo_pack keys (photos, photosShort, commons_category, …) are
   // research-only. Seed does not read them.
@@ -725,11 +729,43 @@ function emptySummary() {
   return { new: [], changed: [], unchanged: [], skipped: [] };
 }
 
+function distinctFromSlugs(dedupe) {
+  if (!dedupe || typeof dedupe !== "object" || Array.isArray(dedupe)) return [];
+  const list = dedupe.distinct_from;
+  if (!Array.isArray(list)) return [];
+  return list
+    .filter((item) => typeof item === "string" && item.trim() !== "")
+    .map((item) => item.trim().toLowerCase());
+}
+
+function listsDistinct(record, otherId) {
+  const list = record.distinctFrom ?? distinctFromSlugs(record.dedupe);
+  return list.includes(String(otherId).toLowerCase());
+}
+
+function recordProximity(left, right, errors, info, existing) {
+  if (!Number.isFinite(right.latitude) || !Number.isFinite(right.longitude)) return;
+  const km = distanceKm(left, right);
+  if (km > DUPLICATE_DISTANCE_KM) return;
+  const otherLabel = existing ? `existing ${right.id}` : right.id;
+  const detail =
+    `${left.id} is within ${DUPLICATE_DISTANCE_KM} km of ${otherLabel} (${km.toFixed(3)} km)`;
+  if (listsDistinct(left, right.id) || listsDistinct(right, left.id)) {
+    info.push({
+      id: left.id,
+      message: `${detail}. dedupe.distinct_from lists the other slug.`,
+    });
+    return;
+  }
+  errors.push(`${detail}.`);
+}
+
 function fail(errors) {
   return {
     ok: false,
     errors,
     warnings: [],
+    info: [],
     temples: [],
     summary: emptySummary(),
   };
@@ -756,4 +792,8 @@ export function formatWarnings(warnings) {
   return (warnings ?? [])
     .map((warning) => `Warning: ${warning.message}\nReview note: ${warning.reviewNote}`)
     .join("\n");
+}
+
+export function formatInfo(info) {
+  return (info ?? []).map((item) => `Info: ${item.message}`).join("\n");
 }

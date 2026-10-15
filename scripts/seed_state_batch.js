@@ -24,6 +24,7 @@ import { fileURLToPath } from "node:url";
 
 import { confirmProject } from "./prod_guard.js";
 import {
+  formatInfo,
   formatSummary,
   formatWarnings,
   targetShortfall,
@@ -205,6 +206,7 @@ async function main(argv = process.argv.slice(2)) {
   );
   const shortfall = targetShortfall(batch);
   if (shortfall) console.log(`Note: ${shortfall}`);
+  if (result.info.length > 0) console.log(formatInfo(result.info));
   if (result.warnings.length > 0) console.log(formatWarnings(result.warnings));
   if (!result.ok) {
     console.error("State batch is invalid:");

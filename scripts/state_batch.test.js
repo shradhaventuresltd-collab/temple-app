@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 import { firestoreWritePayload, parseArgs, UPDATE_FIELDS } from "./seed_state_batch.js";
 import {
   STATE_BOUNDS,
+  canonicalPhotoPackPath,
   formatSummary,
   hasVerifiedGallery,
   validateStateBatch,
@@ -269,6 +270,107 @@ test("research-only file shapes are accepted and only approved temples are seede
   const ready = validateStateBatch(batch([uncategorised]), []);
   assert.equal(ready.ok, true, ready.errors.join("\n"));
   assert.equal(ready.summary.new.length, 1);
+});
+
+test("a 1 km pair is accepted when dedupe.distinct_from lists the other slug", () => {
+  const near = {
+    slug: "other-temple",
+    name: "Other Temple",
+    latitude: 25.6151,
+    longitude: 85.1372,
+  };
+  const blocked = validateStateBatch(batch([temple(), temple(near)]), []);
+  assert.equal(blocked.ok, false);
+  assert.ok(blocked.errors.some((error) => error.includes("within 1 km")));
+  assert.equal(blocked.info.length, 0);
+
+  const noted = temple();
+  noted.review = { ...noted.review, notes: "distinct from other-temple" };
+  const fromNotes = validateStateBatch(batch([noted, temple(near)]), []);
+  assert.equal(fromNotes.ok, false);
+  assert.ok(fromNotes.errors.some((error) => error.includes("within 1 km")));
+
+  const left = temple();
+  left.dedupe = { distinct_from: ["other-temple"] };
+  const waived = validateStateBatch(batch([left, temple(near)]), []);
+  assert.equal(waived.ok, true, waived.errors.join("\n"));
+  assert.equal(waived.summary.new.length, 2);
+  assert.equal(waived.info.length, 1);
+  assert.match(waived.info[0].message, /dedupe\.distinct_from/);
+  assert.equal(Object.hasOwn(waived.temples[0], "dedupe"), false);
+
+  const right = temple(near);
+  right.dedupe = { distinct_from: ["Example-Temple"] };
+  const fromOther = validateStateBatch(batch([temple(), right]), []);
+  assert.equal(fromOther.ok, true, fromOther.errors.join("\n"));
+  assert.equal(fromOther.info.length, 1);
+
+  const wrong = temple();
+  wrong.dedupe = { distinct_from: "other-temple" };
+  const notStructured = validateStateBatch(batch([wrong, temple(near)]), []);
+  assert.equal(notStructured.ok, false);
+
+  const existing = {
+    id: "example-temple",
+    name: "Example Temple",
+    state: "Bihar",
+    latitude: 25.6111,
+    longitude: 85.1372,
+    dedupe: { distinct_from: ["nearby-temple"] },
+  };
+  const againstExisting = validateStateBatch(
+    batch([
+      temple({
+        slug: "nearby-temple",
+        name: "Nearby Temple",
+        latitude: 25.6151,
+        longitude: 85.1372,
+      }),
+    ]),
+    [existing],
+  );
+  assert.equal(againstExisting.ok, true, againstExisting.errors.join("\n"));
+  assert.match(againstExisting.info[0].message, /existing example-temple/);
+
+  const incoming = temple({
+    slug: "nearby-temple",
+    name: "Nearby Temple",
+    latitude: 25.6151,
+    longitude: 85.1372,
+  });
+  incoming.dedupe = { distinct_from: ["example-temple"] };
+  const fromIncoming = validateStateBatch(batch([incoming]), [
+    { ...existing, dedupe: undefined },
+  ]);
+  assert.equal(fromIncoming.ok, true, fromIncoming.errors.join("\n"));
+  assert.equal(fromIncoming.info.length, 1);
+});
+
+test("photo_pack.path is photos/<slug>/ under temple-research", () => {
+  assert.equal(
+    canonicalPhotoPackPath("example-temple"),
+    "/workspace/temple-research/photos/example-temple/",
+  );
+  const absolute = temple();
+  absolute.photo_pack = {
+    ...absolute.photo_pack,
+    path: "/workspace/temple-research/photos/example-temple/",
+  };
+  const accepted = validateStateBatch(batch([absolute]), []);
+  assert.equal(accepted.ok, true, accepted.errors.join("\n"));
+
+  const elsewhere = temple();
+  elsewhere.photo_pack = {
+    ...elsewhere.photo_pack,
+    path: "state-expansion/photos/example-temple/",
+  };
+  const rejected = validateStateBatch(batch([elsewhere]), []);
+  assert.equal(rejected.ok, false);
+  assert.ok(
+    rejected.errors.some((error) => error.includes("/workspace/temple-research/photos/example-temple/")),
+    rejected.errors.join("\n"),
+  );
+  assert.equal(rejected.errors.some((error) => error.includes("state-expansion/photos")), false);
 });
 
 test("duplicates are rejected by id, normalised name, and coordinates within 1 km", () => {
