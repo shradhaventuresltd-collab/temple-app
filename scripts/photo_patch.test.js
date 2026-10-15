@@ -7,6 +7,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 import {
+  applyPatchSet,
   formatDryRunLine,
   galleryMatches,
   loadPatches,
@@ -195,6 +196,160 @@ test("gallery writes require the audited gallery and dry-run names each doc", ()
   assert.match(source, /--strict/);
   assert.match(source, /galleryMatches/);
   assert.match(source, /No write/);
+});
+
+function fakeDb(docs, { onTransactionRead } = {}) {
+  const updates = [];
+  let inTransaction = false;
+  const db = {
+    updates,
+    collection() {
+      return {
+        doc(id) {
+          return {
+            id,
+            async get() {
+              if (inTransaction && onTransactionRead) return onTransactionRead(id);
+              if (!Object.prototype.hasOwnProperty.call(docs, id)) {
+                return { exists: false, data: () => undefined };
+              }
+              return { exists: true, data: () => docs[id] };
+            },
+          };
+        },
+      };
+    },
+    async runTransaction(fn) {
+      inTransaction = true;
+      try {
+        const tx = {
+          async get(ref) {
+            return ref.get();
+          },
+          update(ref, fields) {
+            updates.push({ id: ref.id, fields });
+          },
+        };
+        return await fn(tx);
+      } finally {
+        inTransaction = false;
+      }
+    },
+  };
+  return db;
+}
+
+test("a live photos entry is skipped by default and aborts under --strict", async () => {
+  const empty = { imageUrl: "", images: [], photos: [] };
+  const liveObject = {
+    imageUrl: "",
+    images: [],
+    photos: [{ url: "https://x/a.jpg", credit: "me", licence: "Own", order: 0 }],
+  };
+  const liveString = {
+    imageUrl: "",
+    images: [],
+    photos: ["https://x/a.jpg"],
+  };
+  assert.equal(galleryMatches(liveObject, empty), false);
+  assert.equal(galleryMatches(liveString, empty), false);
+  assert.equal(
+    galleryMatches(
+      {
+        imageUrl: "",
+        images: [],
+        photos: [{ url: " https://x/a.jpg ", credit: " me ", licence: " Own ", order: 0 }],
+      },
+      {
+        imageUrl: "",
+        images: [],
+        photos: [{ url: "https://x/a.jpg", credit: "me", licence: "Own", order: 0 }],
+      },
+    ),
+    true,
+  );
+
+  const patch = {
+    temples: [
+      {
+        id: "akshardham-temple",
+        fields: {
+          imageUrl: "https://example.com/a.jpg",
+          images: ["https://example.com/a.jpg"],
+          photos: [],
+        },
+        expect: empty,
+      },
+    ],
+  };
+
+  const lines = [];
+  const original = console.log;
+  console.log = (...args) => lines.push(args.join(" "));
+  try {
+    const skipped = fakeDb({ "akshardham-temple": liveObject });
+    await applyPatchSet(skipped, patch, { strict: false });
+    assert.deepEqual(skipped.updates, []);
+    assert.match(lines.join("\n"), /skipped temples\/akshardham-temple/);
+
+    lines.length = 0;
+    const skippedString = fakeDb({ "akshardham-temple": liveString });
+    await applyPatchSet(skippedString, patch, { strict: false });
+    assert.deepEqual(skippedString.updates, []);
+
+    await assert.rejects(
+      () => applyPatchSet(fakeDb({ "akshardham-temple": liveObject }), patch, { strict: true }),
+      /Live gallery does not match the audited state: akshardham-temple[\s\S]*No write/,
+    );
+    await assert.rejects(
+      () => applyPatchSet(fakeDb({ "akshardham-temple": liveString }), patch, { strict: true }),
+      /No write/,
+    );
+
+    const matched = fakeDb({ "akshardham-temple": { ...empty } });
+    await applyPatchSet(matched, patch, { strict: false });
+    assert.equal(matched.updates.length, 1);
+    assert.equal(matched.updates[0].id, "akshardham-temple");
+
+    const raced = fakeDb(
+      { "akshardham-temple": { ...empty } },
+      {
+        onTransactionRead: () => ({
+          exists: true,
+          data: () => liveObject,
+        }),
+      },
+    );
+    lines.length = 0;
+    await applyPatchSet(raced, patch, { strict: false });
+    assert.deepEqual(raced.updates, []);
+    assert.match(lines.join("\n"), /skipped temples\/akshardham-temple/);
+
+    await assert.rejects(
+      () =>
+        applyPatchSet(
+          fakeDb(
+            { "akshardham-temple": { ...empty } },
+            {
+              onTransactionRead: () => ({
+                exists: true,
+                data: () => liveObject,
+              }),
+            },
+          ),
+          patch,
+          { strict: true },
+        ),
+      /No write/,
+    );
+  } finally {
+    console.log = original;
+  }
+
+  const source = readFileSync(join(here, "apply_field_patches.js"), "utf8");
+  assert.match(source, /typeof item === "string"/);
+  assert.match(source, /item\.url\.trim\(\)/);
+  assert.match(source, /runTransaction/);
 });
 
 test("CI workflows do not patch production", () => {

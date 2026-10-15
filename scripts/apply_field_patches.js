@@ -10,9 +10,11 @@
  * must still be live. --apply reads each target document first. A gallery
  * write runs only when live imageUrl, images, and photos still match that
  * audited state. A mismatch is skipped and reported. --strict aborts the
- * whole run before any write. It refuses CI and requires a confirm prompt
- * plus an explicit --project. It does not upload Storage objects and it
- * does not run Seed.
+ * whole run before any write. Each document's check and update then run in
+ * one transaction, so a gallery that changes after the first read is
+ * checked again before that document is written. It refuses CI and requires
+ * a confirm prompt plus an explicit --project. It does not upload Storage
+ * objects and it does not run Seed.
  */
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
@@ -91,14 +93,22 @@ function asUrlList(value) {
   return value.map((item) => (typeof item === "string" ? item.trim() : ""));
 }
 
+function emptyPhoto() {
+  return { url: "", credit: "", licence: "", order: null };
+}
+
+/** photos[] entries are {url, credit, licence, order} objects, or a bare URL string. */
 function asPhotos(value) {
   if (!Array.isArray(value)) return [];
   return value.map((item) => {
+    if (typeof item === "string") {
+      return { url: item.trim(), credit: "", licence: "", order: null };
+    }
     if (!item || typeof item !== "object" || Array.isArray(item)) {
-      return { url: "", credit: "", licence: "", order: null };
+      return emptyPhoto();
     }
     return {
-      url: typeof item.url === "string" ? item.trim() : "",
+      url: typeof item.url === "string" ? item.url.trim() : "",
       credit: typeof item.credit === "string" ? item.credit.trim() : "",
       licence: typeof item.licence === "string" ? item.licence.trim() : "",
       order: Number.isInteger(item.order) ? item.order : null,
@@ -223,6 +233,82 @@ function printPlan(patch) {
   console.log("\nNo Firestore connection. No writes.");
 }
 
+/**
+ * Read every target, then write only the matches.
+ *
+ * A missing document aborts before any write. --strict does the same when
+ * any live gallery differs from the audit. Otherwise each matching document
+ * is updated inside its own transaction, which reads the document again and
+ * skips (or aborts, under --strict) if the gallery changed.
+ */
+export async function applyPatchSet(db, patch, { strict }) {
+  const planned = [];
+  for (const temple of patch.temples) {
+    const ref = db.collection("temples").doc(temple.id);
+    const snap = await ref.get();
+    if (!snap.exists) {
+      planned.push({ temple, ref, action: "missing" });
+      continue;
+    }
+    const data = snap.data() || {};
+    if (temple.expect && !galleryMatches(data, temple.expect)) {
+      planned.push({ temple, ref, action: "skip" });
+      continue;
+    }
+    planned.push({ temple, ref, action: "write" });
+  }
+
+  const missing = planned.filter((row) => row.action === "missing").map((row) => row.temple.id);
+  if (missing.length > 0) {
+    throw new Error(
+      `Refusing to write. These documents do not exist: ${missing.join(", ")}. No write.`,
+    );
+  }
+  const skipped = planned.filter((row) => row.action === "skip").map((row) => row.temple.id);
+  if (strict && skipped.length > 0) {
+    throw new Error(
+      `Refusing to write. Live gallery does not match the audited state: ${skipped.join(", ")}. No write.`,
+    );
+  }
+
+  for (const row of planned) {
+    if (row.action === "skip") {
+      console.log(
+        `skipped temples/${row.temple.id}  live gallery does not match the audited state`,
+      );
+      continue;
+    }
+    const wrote = await db.runTransaction(async (tx) => {
+      const snap = await tx.get(row.ref);
+      if (!snap.exists) {
+        throw new Error(
+          `Refusing to write. These documents do not exist: ${row.temple.id}. No write.`,
+        );
+      }
+      const data = snap.data() || {};
+      if (row.temple.expect && !galleryMatches(data, row.temple.expect)) {
+        if (strict) {
+          throw new Error(
+            `Refusing to write. Live gallery does not match the audited state: ${row.temple.id}. No write.`,
+          );
+        }
+        return false;
+      }
+      tx.update(row.ref, row.temple.fields);
+      return true;
+    });
+    if (!wrote) {
+      console.log(
+        `skipped temples/${row.temple.id}  live gallery does not match the audited state`,
+      );
+      continue;
+    }
+    console.log(
+      `updated temples/${row.temple.id} (${Object.keys(row.temple.fields).join(", ")})`,
+    );
+  }
+}
+
 async function applyPatches(project, patch, { strict }) {
   const { existsSync } = await import("node:fs");
   const candidates = [
@@ -245,46 +331,7 @@ async function applyPatches(project, patch, { strict }) {
     });
   }
   const db = admin.firestore();
-  const decisions = [];
-  for (const temple of patch.temples) {
-    const ref = db.collection("temples").doc(temple.id);
-    const snap = await ref.get();
-    if (!snap.exists) {
-      decisions.push({ temple, missing: true, apply: false });
-      continue;
-    }
-    if (!temple.expect) {
-      decisions.push({ temple, missing: false, apply: true, ref });
-      continue;
-    }
-    const match = galleryMatches(snap.data() || {}, temple.expect);
-    decisions.push({ temple, missing: false, apply: match, ref });
-  }
-
-  const missing = decisions.filter((row) => row.missing).map((row) => row.temple.id);
-  if (missing.length > 0) {
-    throw new Error(
-      `Refusing to write. These documents do not exist: ${missing.join(", ")}. No write.`,
-    );
-  }
-  const skipped = decisions.filter((row) => !row.apply).map((row) => row.temple.id);
-  if (strict && skipped.length > 0) {
-    throw new Error(
-      `Refusing to write. Live gallery does not match the audited state: ${skipped.join(", ")}. No write.`,
-    );
-  }
-  for (const row of decisions) {
-    if (!row.apply) {
-      console.log(
-        `skipped temples/${row.temple.id}  live gallery does not match the audited state`,
-      );
-      continue;
-    }
-    await row.ref.update(row.temple.fields);
-    console.log(
-      `updated temples/${row.temple.id} (${Object.keys(row.temple.fields).join(", ")})`,
-    );
-  }
+  await applyPatchSet(db, patch, { strict });
 }
 
 async function main(argv = process.argv.slice(2)) {

@@ -135,6 +135,55 @@ void main() {
     expect(visiblePhotoCredit(const [], url), isNull);
   });
 
+  test('lithograph cover caption takes its year from the credit', () {
+    const url = 'https://example.com/plate.jpg';
+    expect(
+      historicalCoverCaption(const [
+        TemplePhoto(
+          url: url,
+          credit:
+              '19th-century lithograph (1847 print). James Duffield Harding',
+          licence: PhotoLicence.cc0,
+          order: 0,
+        ),
+      ], url),
+      'Lithograph, 1847',
+    );
+    expect(
+      historicalCoverCaption(const [
+        TemplePhoto(
+          url: url,
+          credit: 'Colour lithograph (1903 print)',
+          licence: PhotoLicence.cc0,
+          order: 0,
+        ),
+      ], url),
+      'Lithograph, 1903',
+    );
+    expect(
+      historicalCoverCaption(const [
+        TemplePhoto(
+          url: url,
+          credit: 'A lithograph of the shrine',
+          licence: PhotoLicence.cc0,
+          order: 0,
+        ),
+      ], url),
+      'Lithograph',
+    );
+    expect(
+      historicalCoverCaption(const [
+        TemplePhoto(
+          url: url,
+          credit: 'Rohit MDS · CC BY-SA 4.0',
+          licence: PhotoLicence.ccBySa,
+          order: 0,
+        ),
+      ], url),
+      isNull,
+    );
+  });
+
   test('credit is required for CC-BY and CC-BY-SA only', () {
     expect(
       templePhotoValidationError(

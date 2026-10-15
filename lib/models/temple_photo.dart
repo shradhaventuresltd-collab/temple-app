@@ -166,15 +166,34 @@ bool _isHistoricalPrintCaption(String credit) {
   return lower.contains('lithograph') || lower.contains('1847 print');
 }
 
+/// Year named in a historical-print credit, preferring "1847 print".
+String? _printYear(String credit) {
+  final besidePrint = RegExp(
+    r'\b(\d{4})\s*print\b',
+    caseSensitive: false,
+  ).firstMatch(credit);
+  if (besidePrint != null) return besidePrint.group(1);
+  final afterLithograph = RegExp(
+    r'lithograph[^\d]{0,40}(\d{4})',
+    caseSensitive: false,
+  ).firstMatch(credit);
+  if (afterLithograph != null) return afterLithograph.group(1);
+  return RegExp(r'\b(\d{4})\b').firstMatch(credit)?.group(1);
+}
+
 /// Short label for a cover that is a historical print, not a photograph.
 ///
-/// Browse cards and the home collage use this so the 1847 Purmandal plate
-/// is not shown as a photo of the temple.
+/// Browse cards and the home collage use this so a lithograph is not shown
+/// as a photo of the temple. The year comes from the credit text. A
+/// lithograph credit with no year is labelled "Lithograph".
 String? historicalCoverCaption(List<TemplePhoto> photos, String url) {
   for (final photo in photos) {
     if (photo.url != url) continue;
-    if (_isHistoricalPrintCaption(photo.credit)) return 'Lithograph, 1847';
-    return null;
+    final credit = photo.credit.trim();
+    if (!_isHistoricalPrintCaption(credit)) return null;
+    final year = _printYear(credit);
+    if (year == null) return 'Lithograph';
+    return 'Lithograph, $year';
   }
   return null;
 }
