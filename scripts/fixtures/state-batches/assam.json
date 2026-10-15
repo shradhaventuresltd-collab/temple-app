@@ -41,7 +41,7 @@
       },
       "review": {
         "status": "approved",
-        "reviewer": "Research Pavi",
+        "reviewer": "fixture",
         "notes": ""
       }
     },
@@ -80,7 +80,7 @@
       },
       "review": {
         "status": "rejected",
-        "reviewer": "Research Pavi",
+        "reviewer": "fixture",
         "notes": "Rejected in review. Not for seeding."
       }
     }

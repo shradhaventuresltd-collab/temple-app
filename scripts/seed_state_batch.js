@@ -10,12 +10,11 @@
  * --apply writes Firestore and is for Deployer, in a terminal, after merge.
  * CI must not pass --apply. This script never uploads Storage objects.
  *
- * A slug that already exists in the seed or in prod is rejected. Nothing is
- * overwritten and nothing is renamed. --update is off by default. When it is
- * passed, an existing document may change only city, deity, description,
- * timings, specialities, latitude, and longitude.
+ * A slug that already exists in the seed or in prod is always rejected.
+ * Nothing is overwritten and nothing is renamed.
  *
  * timings null is stored as null. timings_note is never written.
+ * story is the sourced description (2–4 sentences).
  * Only review.status "approved" is seeded. Image fields are never written.
  */
 import { readFileSync, writeFileSync } from "node:fs";
@@ -44,16 +43,14 @@ Usage:
   node seed_state_batch.js <state.json> [--dry-run]
   node seed_state_batch.js <state.json> --write
   node seed_state_batch.js <state.json> --apply --project <firebase-project-id>
-  node seed_state_batch.js <state.json> --update --write
 
-Default is dry-run. Existing slugs are rejected (no overwrite, no rename).
---update is off unless you pass it. It may change city, deity, description,
-timings, specialities, latitude, and longitude on an existing document.
-It does not change the name, the state, or imageUrl / images / photos.
+Default is dry-run. Existing slugs are always rejected (no overwrite, no rename).
 --write merges approved temples into lib/data/sample_data.dart (repo only).
 --apply writes Firestore temples/{id} for Deployer only. It prompts for the
 project id, refuses CI, and does not run unless --project is explicit.
 Only review.status "approved" is seeded. timings null stays null.
+story is copied from the description. Deploy firestore.rules before writing
+any null-timings document.
 Do not combine this with Seed or upload_research_pack.js --patch-firestore.
 `);
 }
@@ -64,7 +61,6 @@ function parseArgs(argv) {
     dryRun: true,
     write: false,
     apply: false,
-    update: false,
     project: null,
     help: false,
     samplePath: SAMPLE_DATA_PATH,
@@ -74,7 +70,6 @@ function parseArgs(argv) {
     if (arg === "--help" || arg === "-h") opts.help = true;
     else if (arg === "--dry-run") opts.dryRun = true;
     else if (arg === "--write") opts.write = true;
-    else if (arg === "--update") opts.update = true;
     else if (arg === "--apply") {
       opts.apply = true;
       opts.dryRun = false;
@@ -88,38 +83,20 @@ function parseArgs(argv) {
   return opts;
 }
 
-/** Fields an explicit --update may change. Name, state, and galleries are not included. */
-export const UPDATE_FIELDS = Object.freeze([
-  "city",
-  "deity",
-  "description",
-  "timings",
-  "specialities",
-  "latitude",
-  "longitude",
-]);
-
 /**
  * Firestore fields for one temple.
  * Research batches do not carry image URLs, so imageUrl, images, and photos
  * are never part of the payload. timings_note is never written. timings null
- * stays null.
- * An existing document is refused unless update is true, and then only
- * UPDATE_FIELDS are included.
+ * stays null. story is the description.
+ * An existing document is always refused.
  * @param {object} temple normalised batch temple
  * @param {object | null} live existing Firestore document, or null to create
- * @param {{ update?: boolean }} [options]
  */
-export function firestoreWritePayload(temple, live, options = {}) {
-  if (live && options.update !== true) {
+export function firestoreWritePayload(temple, live) {
+  if (live) {
     throw new Error(
       `${temple.id} already exists and will not be overwritten or renamed.`,
     );
-  }
-  if (live) {
-    const data = {};
-    for (const key of UPDATE_FIELDS) data[key] = temple[key];
-    return data;
   }
   return {
     id: temple.id,
@@ -137,7 +114,7 @@ export function firestoreWritePayload(temple, live, options = {}) {
   };
 }
 
-async function applyToFirestore(project, temples, update) {
+async function applyToFirestore(project, temples) {
   const { readFileSync: read, existsSync } = await import("node:fs");
   const candidates = [
     resolve(__dirname, "service-account.json"),
@@ -166,24 +143,17 @@ async function applyToFirestore(project, temples, update) {
   for (const temple of temples) {
     const ref = db.collection("temples").doc(temple.id);
     const snap = await ref.get();
-    if (snap.exists && !update) {
+    if (snap.exists) {
       throw new Error(
         `temples/${temple.id} already exists. Refusing to overwrite. No write.`,
       );
     }
-    const data = firestoreWritePayload(temple, snap.exists ? snap.data() : null, {
-      update,
+    const data = firestoreWritePayload(temple, null);
+    await ref.set({
+      ...data,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
-    if (snap.exists) {
-      await ref.update(data);
-      console.log(`updated temples/${temple.id}`);
-    } else {
-      await ref.set({
-        ...data,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
-      console.log(`created temples/${temple.id}`);
-    }
+    console.log(`created temples/${temple.id}`);
   }
 }
 
@@ -202,7 +172,6 @@ async function main(argv = process.argv.slice(2)) {
   const result = validateStateBatch(
     batch,
     temples.map((row) => row.temple),
-    { update: opts.update },
   );
   const shortfall = targetShortfall(batch);
   if (shortfall) console.log(`Note: ${shortfall}`);
@@ -214,19 +183,7 @@ async function main(argv = process.argv.slice(2)) {
     process.exit(1);
   }
 
-  console.log(
-    opts.apply
-      ? opts.update
-        ? "Mode: apply --update"
-        : "Mode: apply"
-      : opts.write
-        ? opts.update
-          ? "Mode: write --update"
-          : "Mode: write"
-        : opts.update
-          ? "Mode: dry-run --update"
-          : "Mode: dry-run",
-  );
+  console.log(opts.apply ? "Mode: apply" : opts.write ? "Mode: write" : "Mode: dry-run");
   console.log(formatSummary(result.summary));
 
   if (!opts.write && !opts.apply) {
@@ -243,7 +200,7 @@ async function main(argv = process.argv.slice(2)) {
 
   const project = await confirmProject(opts.project);
   console.log(`Applying ${result.temples.length} temples to ${project}.`);
-  await applyToFirestore(project, result.temples, opts.update);
+  await applyToFirestore(project, result.temples);
   return result;
 }
 

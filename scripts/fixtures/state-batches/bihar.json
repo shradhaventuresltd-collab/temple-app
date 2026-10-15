@@ -48,7 +48,7 @@
       },
       "review": {
         "status": "approved",
-        "reviewer": "Research Pavi",
+        "reviewer": "fixture",
         "notes": "Photo shortfall: 0/5 licensed site-verified Commons photos."
       }
     },
@@ -95,7 +95,7 @@
       },
       "review": {
         "status": "rejected",
-        "reviewer": "Research Pavi",
+        "reviewer": "fixture",
         "notes": "Rejected in review. Coordinates appear minute-level precision in source; spot-check on map. Photo shortfall: 0/5 licensed site-verified Commons photos."
       }
     }

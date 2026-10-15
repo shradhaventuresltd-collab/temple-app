@@ -11,8 +11,10 @@
  * When timings is null, the seeded timings value is null. timings_note is
  * never copied into timings or written as a field.
  * story, location, festivals, pooja_schedule, and trip_planning are forbidden.
- * A slug that already exists (case-insensitive) is rejected. Pass
- * { update: true } for a field-limited update; that flag is off by default.
+ * Seed writes story from the description (2–4 sentences). The story length
+ * rule is not relaxed.
+ * A slug that already exists (case-insensitive) is always rejected. Nothing
+ * is overwritten and nothing is renamed.
  * Only review.status "approved" is seedable. Other statuses are skipped.
  */
 import { changedKeys, templeDocumentId } from "./temple_seed.js";
@@ -31,10 +33,11 @@ export const LONGITUDE_RANGE = Object.freeze({ min: 68, max: 97.5 });
  * and expanded 0.1° outward. Dadra and Nagar Haveli and Daman and Diu is the
  * union of those three territories, so Diu (Gangeshwar 20.7135, 70.9264) is
  * inside. Puducherry is the union-territory relation (Pondicherry, Karaikal,
- * Mahe, Yanam). Boxes are coarse and overlap at some borders (Ballia can sit
- * in both Uttar Pradesh and Bihar; a point in eastern Assam can also sit in
- * Arunachal Pradesh). A point outside its box is a warning plus a review
- * note, not a hard reject. Delhi (28.6139, 77.2090) stays outside Bihar.
+ * Mahe, Yanam). Boxes are coarse and overlap at some borders. A point outside
+ * its padded box is a hard error. A point inside its own box and inside a
+ * second box is a warning plus a review note: Ballia (25.7584, 84.1487) sits
+ * in both Uttar Pradesh and Bihar, and Tamreswari (27.9417, 95.8472) sits in
+ * both Assam and Arunachal Pradesh. Delhi (28.6139, 77.2091) stays outside Bihar.
  */
 export const STATE_BOUNDS = Object.freeze({
   "Andaman and Nicobar Islands": box(6.65, 13.78, 92.1, 94.38),
@@ -143,12 +146,8 @@ function box(latMin, latMax, lngMin, lngMax) {
 /**
  * @param {unknown} batch
  * @param {object[]} existing parsed seed temples ({id, name, latitude, ...})
- * @param {{ update?: boolean }} [options] update is off by default. When set,
- *   an existing slug may change city, deity, description, timings,
- *   specialities, latitude, and longitude. Name, state, and galleries stay.
  */
-export function validateStateBatch(batch, existing = [], options = {}) {
-  const update = options.update === true;
+export function validateStateBatch(batch, existing = []) {
   const errors = [];
   const warnings = [];
   const info = [];
@@ -231,17 +230,9 @@ export function validateStateBatch(batch, existing = [], options = {}) {
     if (seenIds.has(id)) errors.push(`${label}.slug "${slug}" is duplicated in this batch.`);
     seenIds.add(id);
     const prior = existingById.get(id);
-    if (prior && !update) {
+    if (prior) {
       errors.push(
         `${label}.slug "${slug}" already exists in the directory and will not be overwritten or renamed.`,
-      );
-    } else if (prior && update && name && prior.name !== name) {
-      errors.push(
-        `${label}.slug "${slug}" would rename "${prior.name}" to "${name}". Refusing.`,
-      );
-    } else if (prior && update && templeState && prior.state && prior.state !== templeState) {
-      errors.push(
-        `${label}.slug "${slug}" would move from ${prior.state} to ${templeState}. Refusing.`,
       );
     }
 
@@ -298,13 +289,23 @@ export function validateStateBatch(batch, existing = [], options = {}) {
       if (!bounds) {
         errors.push(`${label}.state "${templeState}" has no bounding box.`);
       } else if (!insideBox(latitude, longitude, bounds)) {
-        const message =
+        errors.push(
           `${label} coordinates ${latitude}, ${longitude} are outside the ${templeState} bounding box ` +
-          `(latitude ${bounds.latMin}..${bounds.latMax}, longitude ${bounds.lngMin}..${bounds.lngMax}).`;
-        const reviewNote =
-          `Map spot-check: ${latitude}, ${longitude} falls outside the ${templeState} bounding box. ` +
-          `Confirm the state on a map before sign-off. Boxes overlap at some borders and this is not a hard reject.`;
-        warnings.push({ id, message, reviewNote });
+            `(latitude ${bounds.latMin}..${bounds.latMax}, longitude ${bounds.lngMin}..${bounds.lngMax}).`,
+        );
+      } else {
+        const overlaps = overlappingStates(latitude, longitude, templeState);
+        if (overlaps.length > 0) {
+          const others = overlaps.join(" and ");
+          warnings.push({
+            id,
+            message:
+              `${label} coordinates ${latitude}, ${longitude} fall inside both the ${templeState} bounding box and ${others}.`,
+            reviewNote:
+              `Map spot-check: ${latitude}, ${longitude} is inside the padded ${templeState} box and also inside ${others}. ` +
+              `Overlapping boxes are a border case.`,
+          });
+        }
       }
     }
 
@@ -315,6 +316,7 @@ export function validateStateBatch(batch, existing = [], options = {}) {
         latitude,
         longitude,
         distinctFrom: distinctFromSlugs(raw.dedupe),
+        reviewNote: reviewNoteText(raw.review),
       });
     }
     if (reviewStatus && reviewStatus !== "approved") {
@@ -339,23 +341,20 @@ export function validateStateBatch(batch, existing = [], options = {}) {
 
     temples.push({
       id,
-      name: prior && update ? prior.name : name,
-      state: prior && update ? prior.state ?? templeState : templeState,
+      name,
+      state: templeState,
       city: String(raw.city),
       deity: String(raw.deity),
-      imageUrl: prior && update ? prior.imageUrl ?? "" : "",
-      images: prior && update ? prior.images ?? [] : [],
+      imageUrl: "",
+      images: [],
       description,
-      story: prior && update ? prior.story ?? "" : "",
-      location:
-        prior && update
-          ? prior.location ?? `${raw.city}, ${templeState}`
-          : `${raw.city}, ${templeState}`,
+      story: description,
+      location: `${raw.city}, ${templeState}`,
       timings: timingsResult.value,
       specialities: specialities ?? [],
       latitude,
       longitude,
-      photos: prior && update ? prior.photos ?? [] : [],
+      photos: [],
     });
   });
 
@@ -375,13 +374,13 @@ export function validateStateBatch(batch, existing = [], options = {}) {
           `${temple.id} duplicates the normalised name of ${other.id}.`,
         );
       }
-      recordProximity(temple, other, errors, info, false);
+      recordProximity(temple, other, errors, warnings, info, false);
     }
     const prior = existingById.get(temple.id);
     if (prior) {
       for (const other of existing) {
         if (String(other.id).toLowerCase() === temple.id) continue;
-        recordProximity(temple, other, errors, info, true);
+        recordProximity(temple, other, errors, warnings, info, true);
       }
       continue;
     }
@@ -393,7 +392,7 @@ export function validateStateBatch(batch, existing = [], options = {}) {
     }
     for (const other of existing) {
       if (String(other.id).toLowerCase() === temple.id) continue;
-      recordProximity(temple, other, errors, info, true);
+      recordProximity(temple, other, errors, warnings, info, true);
     }
   }
 
@@ -558,6 +557,15 @@ function insideBox(latitude, longitude, bounds) {
     longitude >= bounds.lngMin &&
     longitude <= bounds.lngMax
   );
+}
+
+function overlappingStates(latitude, longitude, templeState) {
+  const names = [];
+  for (const [name, bounds] of Object.entries(STATE_BOUNDS)) {
+    if (name === templeState) continue;
+    if (insideBox(latitude, longitude, bounds)) names.push(name);
+  }
+  return names;
 }
 
 function readTimings(raw, label, errors) {
@@ -743,21 +751,43 @@ function listsDistinct(record, otherId) {
   return list.includes(String(otherId).toLowerCase());
 }
 
-function recordProximity(left, right, errors, info, existing) {
+function reviewNoteText(review) {
+  if (!review || typeof review !== "object" || Array.isArray(review)) return "";
+  return typeof review.notes === "string" ? review.notes.trim() : "";
+}
+
+function recordProximity(left, right, errors, warnings, info, existing) {
   if (!Number.isFinite(right.latitude) || !Number.isFinite(right.longitude)) return;
   const km = distanceKm(left, right);
   if (km > DUPLICATE_DISTANCE_KM) return;
   const otherLabel = existing ? `existing ${right.id}` : right.id;
   const detail =
     `${left.id} is within ${DUPLICATE_DISTANCE_KM} km of ${otherLabel} (${km.toFixed(3)} km)`;
-  if (listsDistinct(left, right.id) || listsDistinct(right, left.id)) {
+  const waived = listsDistinct(left, right.id) || listsDistinct(right, left.id);
+  if (!waived) {
+    errors.push(`${detail}.`);
+    return;
+  }
+  if (!existing) {
     info.push({
       id: left.id,
       message: `${detail}. dedupe.distinct_from lists the other slug.`,
     });
     return;
   }
-  errors.push(`${detail}.`);
+  const namesDiffer = normaliseName(left.name) !== normaliseName(right.name);
+  const note = typeof left.reviewNote === "string" ? left.reviewNote.trim() : "";
+  if (!namesDiffer || note === "") {
+    errors.push(
+      `${detail}. A distinct_from pair with an existing temple needs a different normalised name and a review note.`,
+    );
+    return;
+  }
+  warnings.push({
+    id: left.id,
+    message: `${detail}. dedupe.distinct_from lists the other slug.`,
+    reviewNote: note,
+  });
 }
 
 function fail(errors) {

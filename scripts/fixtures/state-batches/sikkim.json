@@ -40,7 +40,7 @@
       },
       "review": {
         "status": "approved",
-        "reviewer": "Research Pavi",
+        "reviewer": "fixture",
         "notes": ""
       }
     },
@@ -80,7 +80,7 @@
       },
       "review": {
         "status": "rejected",
-        "reviewer": "Research Pavi",
+        "reviewer": "fixture",
         "notes": "Non-Hindu: Buddhist monastery (Karma Kagyu), not a Hindu temple. Per Pavi ruling 2026-10-15."
       }
     }
