@@ -7,11 +7,12 @@
 # keystore because the Play upload key is not on the runner. Release mode
 # (AOT, no assertions, Impeller on) matches that demo.
 #
-# Success means: the Terms gate is on screen, Accept opens Home, a second
-# process start keeps that acceptance and does not paint the error
-# fallback (this APK has ENABLE_ADMIN_TOOLS, the build that crashed), and
-# the Admin panel opens. The script never taps Seed, so it does not write
-# sample temples to production Firestore.
+# Success means: the Terms gate is on screen, Accept opens Home, and a
+# second process start keeps that acceptance and does not paint the error
+# fallback. This APK has ENABLE_ADMIN_TOOLS, the build that crashed, so
+# Home shows the overflow (More). The script does not tap that overflow:
+# the tap takes the emulator offline. Widget tests open Admin sign-in.
+# The script never taps Seed, so it does not write sample temples.
 set -euo pipefail
 
 PKG=com.shradhaventures.temple
@@ -246,43 +247,16 @@ else
     if ! assert_terms_kept_relaunch; then
       status=1
     fi
-    # Admin sign-in is in the Home overflow (tooltip More). Do not tap Seed.
+    # More is the admin-tools overflow. Leave it closed. Tapping it has
+    # been taking this emulator offline before the offline relaunch.
+    # Do not tap Seed.
+    if ! visible "More"; then
+      echo "Admin overflow was not on Home"
+      status=1
+    fi
     if visible "Seed sample temples"; then
       echo "Seed write button is on screen; refusing to tap it"
       status=1
-    fi
-    if ! tap_needle "More"; then
-      echo "Admin overflow was not on Home"
-      status=1
-    else
-      sleep 1
-      hierarchy
-      if [[ -f "$OUT/uidump.xml" ]] && ! grep -q "Admin sign-in" "$OUT/uidump.xml"; then
-        # The item is a button just under the app bar, right-aligned.
-        # Tap there once when the dump has not exposed the label yet.
-        adb shell input tap 960 210 || true
-        sleep 1
-      fi
-      if ! tap_needle "Admin sign-in" && ! tap_needle "Admin Panel"; then
-        sleep 1
-        if ! adb get-state 2>/dev/null | grep -q '^device$'; then
-          echo "adb device is gone before Admin sign-in"
-          status=1
-        elif ! tap_needle "Admin sign-in"; then
-          echo "Admin entry was not on Home"
-          status=1
-        fi
-      fi
-      if [[ "$status" -eq 0 ]] && ! wait_for "Admin sign-in required" 8; then
-        echo "Admin panel did not open"
-        status=1
-      else
-        screenshot admin
-        if visible "Seed sample temples"; then
-          echo "Seed write button opened; not tapping it"
-          status=1
-        fi
-      fi
     fi
   fi
 fi

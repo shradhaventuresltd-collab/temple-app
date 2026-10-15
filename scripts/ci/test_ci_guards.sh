@@ -164,8 +164,12 @@ if ! grep -q '0x10008000' scripts/ci/run_android_smoke.sh; then
   echo "FAIL: the smoke relaunch must start MainActivity in a fresh task" >&2
   exit 1
 fi
-if ! grep -q 'tap_needle "More"' scripts/ci/run_demo_seed_launch.sh; then
-  echo "FAIL: demo-seed must open the Home overflow before Admin sign-in" >&2
+if ! grep -q 'visible "More"' scripts/ci/run_demo_seed_launch.sh; then
+  echo "FAIL: demo-seed must see the admin overflow on the admin-tools APK" >&2
+  exit 1
+fi
+if grep -q 'tap_needle "More"' scripts/ci/run_demo_seed_launch.sh; then
+  echo "FAIL: demo-seed must not tap the overflow; that tap takes the emulator offline" >&2
   exit 1
 fi
 if ! grep -q 'second launch with terms kept' scripts/ci/run_demo_seed_launch.sh; then
