@@ -172,7 +172,7 @@ jobs:
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: /usr/local/lib/android/sdk/system-images
-          key: system-image-android-34-google_apis-x86_64
+          key: system-image-android-34-google_atd-x86_64
 
       # reactivecircus/android-emulator-runner snapshot pattern: cache the
       # AVD, boot once without -no-snapshot-save on a miss, then smoke with
@@ -184,7 +184,7 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-34-x86_64-google_apis-pixel6-snapshot
+          key: avd-34-x86_64-google_atd-pixel6-snapshot
 
       # gradle.properties sets -Xmx8G and the daemon stays up after the APK
       # build. The emulator then raises guest RAM to 2560MB. On the hosted
@@ -202,12 +202,13 @@ jobs:
         with:
           api-level: 34
           arch: x86_64
-          target: google_apis
+          target: google_atd
           profile: pixel_6
-          avd-name: temple-smoke-34-pixel6
+          cores: 2
+          avd-name: temple-smoke-34-atd
           force-avd-creation: false
-          disable-animations: false
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-audio -no-boot-anim -camera-back none -camera-front none
           script: echo "Generated AVD snapshot for caching."
 
       - name: Maestro smoke
@@ -215,16 +216,19 @@ jobs:
         with:
           api-level: 34
           arch: x86_64
-          target: google_apis
+          # google_atd keeps Play services (Firebase, ads) and drops the
+          # launcher and System UI that were ANRing on google_apis.
+          target: google_atd
           profile: pixel_6
-          avd-name: temple-smoke-34-pixel6
+          cores: 2
+          avd-name: temple-smoke-34-atd
           force-avd-creation: false
           disable-animations: true
-          # Deterministic software GPU: no snapshot save, no boot animation.
-          # -no-snapshot-load avoids the Pixel Launcher ANR that covered
-          # the app when a snapshot booted. The smoke script also waits
-          # for sys.boot_completed and installs the APK with adb.
-          emulator-options: -no-snapshot-save -no-snapshot-load -no-boot-anim -gpu swiftshader_indirect -no-window -noaudio -camera-back none -camera-front none
+          # Deterministic software GPU, animations off, no audio. Two cores.
+          # -no-snapshot-load keeps this job off a snapshot taken while the
+          # guest was still settling. The smoke script waits for
+          # sys.boot_completed and installs the APK with adb.
+          emulator-options: -no-snapshot-save -no-snapshot-load -no-boot-anim -gpu swiftshader_indirect -no-window -no-audio -camera-back none -camera-front none
           # One dash-safe command. The action runs this with /usr/bin/sh.
           # 12m is under the 15-minute job limit. --kill-after sends SIGKILL
           # if SIGTERM is ignored, so a hang exits non-zero and the job

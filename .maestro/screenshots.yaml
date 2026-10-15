@@ -29,6 +29,14 @@ appId: com.shradhaventures.temple
             - tapOn:
                 text: "Wait"
                 optional: true
+      - runFlow:
+          when:
+            visible: "System UI isn't responding"
+          optional: true
+          commands:
+            - tapOn:
+                text: "Wait"
+                optional: true
       - extendedWaitUntil:
           visible:
             id: "policy-accept-button"

@@ -3,7 +3,7 @@
 #
 # Get Directions opens
 # https://www.google.com/maps/search/?api=1&query=<lat>,<lng>
-# with LaunchMode.externalApplication. google_apis images often have no
+# with LaunchMode.externalApplication. The CI image often has no
 # browser and no Maps app, so the button stays in-app. This stub only
 # matches that Maps URL. It is not the temple app and it does not touch
 # Firebase.

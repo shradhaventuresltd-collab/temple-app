@@ -81,22 +81,25 @@ tap_needle() {
   adb shell input tap $point
 }
 
-# Tap Wait only on "Process system isn't responding" and
-# "Pixel Launcher isn't responding". Any other isn't-responding dialog
-# is this app's ANR: save a screenshot and fail the job.
+# Tap Wait only on OS dialogs: "Process system isn't responding",
+# "Pixel Launcher isn't responding", and "System UI isn't responding".
+# Any other isn't-responding dialog is this app's ANR: save a screenshot
+# and fail the job.
 dismiss_system_anr() {
   hierarchy
   [[ -f "$OUT/uidump.xml" ]] || return 0
-  if grep -q "Process system isn't responding" "$OUT/uidump.xml"; then
-    echo "Dismissing Process system isn't responding"
-    tap_needle "Wait" || true
-    return 0
-  fi
-  if grep -q "Pixel Launcher isn't responding" "$OUT/uidump.xml"; then
-    echo "Dismissing Pixel Launcher isn't responding"
-    tap_needle "Wait" || true
-    return 0
-  fi
+  local os_dialog
+  for os_dialog in \
+    "Process system isn't responding" \
+    "Pixel Launcher isn't responding" \
+    "System UI isn't responding"
+  do
+    if grep -q "$os_dialog" "$OUT/uidump.xml"; then
+      echo "Dismissing $os_dialog"
+      tap_needle "Wait" || true
+      return 0
+    fi
+  done
   if grep -q "isn't responding" "$OUT/uidump.xml"; then
     local dialog pattern
     pattern='[^"]*isn'"'"'t responding'

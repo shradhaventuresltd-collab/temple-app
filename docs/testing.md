@@ -36,7 +36,7 @@ What it checks:
 5. Opening that card reaches temple detail.
 6. **Get Directions** leaves the app. Maps, a browser, or an Android chooser all count. The button still being on screen fails the flow.
 
-Install [Maestro](https://maestro.mobile.dev/) and start an Android emulator (API 30 or newer; CI uses API 34 `google_apis` x86_64). The emulator needs something that can open `https://www.google.com/maps/...` (Chrome or the Maps app). Without that, Get Directions stays in the app and shows "Couldn't open directions on this device."
+Install [Maestro](https://maestro.mobile.dev/) and start an Android emulator (API 30 or newer; CI uses API 34 `google_atd` x86_64, 2 cores). The emulator needs something that can open `https://www.google.com/maps/...` (Chrome or the Maps app). Without that, Get Directions stays in the app and shows "Couldn't open directions on this device."
 
 ```bash
 flutter pub get
@@ -45,7 +45,7 @@ adb install -r build/app/outputs/flutter-apk/app-debug.apk
 maestro test .maestro
 ```
 
-`DEMO_BUILD=true` forces Google's test ad units. Debug builds already use those units; the define keeps a later release or profile smoke build on test units as well. CI builds a profile x86_64 APK so the emulator reaches the first Flutter frame sooner than a debug build. That profile manifest turns Impeller off; release builds keep it. The emulator uses `-no-snapshot-save -no-boot-anim -gpu swiftshader_indirect` with animations disabled. The smoke script waits for `sys.boot_completed`, installs the APK with adb, and Maestro relaunches up to twice if `policy-accept-button` or `Temple Directory` is not visible within 60 seconds. Each relaunch clears app data, so the flow taps the accept button again before it looks for Home.
+`DEMO_BUILD=true` forces Google's test ad units. Debug builds already use those units; the define keeps a later release or profile smoke build on test units as well. CI builds a profile x86_64 APK so the emulator reaches the first Flutter frame sooner than a debug build. That profile manifest turns Impeller off; release builds keep it. The emulator uses `-no-audio -no-boot-anim -gpu swiftshader_indirect` with animations disabled. `google_atd` keeps Play services and omits the launcher and System UI. The system-image cache key is `system-image-android-34-google_atd-x86_64` and the AVD snapshot key is `avd-34-x86_64-google_atd-pixel6-snapshot`. Wait is tapped only on `Process system isn't responding`, `Pixel Launcher isn't responding`, and `System UI isn't responding`. Any other isn't-responding dialog fails the job. The smoke script waits for `sys.boot_completed`, installs the APK with adb, and Maestro relaunches up to twice if `policy-accept-button` or `Temple Directory` is not visible within 60 seconds. Each relaunch clears app data, so the flow taps the accept button again before it looks for Home.
 
 A profile build without admin tools is:
 
@@ -65,7 +65,7 @@ flutter build apk --release \
   --dart-define=ENABLE_ADMIN_TOOLS=true
 ```
 
-It uses the same `run-smoke` label gate as `android-smoke` (`pull_request` types `labeled` and `synchronize`, plus `workflow_dispatch`). The job signs with an ephemeral keystore (`android/key.properties` and `*.jks` stay gitignored). It is not the Play upload key. The script installs that release APK on the API 34 emulator, expects the Terms gate, taps Accept, opens the Admin sign-in panel, and never taps Seed. It then turns the radios off, clears app data, and expects the gate again. Artifacts are `demo-seed-launch` (logcat and screenshots) and `demo-seed-apk`.
+It uses the same `run-smoke` label gate as `android-smoke` (`pull_request` types `labeled` and `synchronize`, plus `workflow_dispatch`). The job signs with an ephemeral keystore (`android/key.properties` and `*.jks` stay gitignored). It is not the Play upload key. The script installs that release APK on the same API 34 `google_atd` emulator, expects the Terms gate, taps Accept, opens the Admin sign-in panel, and never taps Seed. Accept does not seed: Home reads Firestore and falls back to the bundled 180 sample temples in memory. It then turns the radios off, clears app data, and expects the gate again. Artifacts are `demo-seed-launch` (logcat and screenshots) and `demo-seed-apk`.
 
 ## Demo APK on Firebase App Distribution
 

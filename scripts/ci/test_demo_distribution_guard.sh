@@ -299,6 +299,8 @@ require "seed launch taps Wait on the system ANR" \
   'tap_needle "Wait"' scripts/ci/run_demo_seed_launch.sh
 require "seed launch dismisses the Pixel Launcher ANR" \
   'Pixel Launcher isn'"'"'t responding' scripts/ci/run_demo_seed_launch.sh
+require "seed launch dismisses the System UI ANR" \
+  'System UI isn'"'"'t responding' scripts/ci/run_demo_seed_launch.sh
 require "seed launch fails an app ANR" \
   'App ANR:' scripts/ci/run_demo_seed_launch.sh
 require "seed launch screenshots an app ANR" \
@@ -307,6 +309,8 @@ forbid "seed launch does not tap Close app" 'Close app' \
   scripts/ci/run_demo_seed_launch.sh
 require "Maestro smoke dismisses the system ANR with Wait" \
   'Process system isn'"'"'t responding' .maestro/read_only_smoke.yaml
+require "Maestro smoke dismisses the System UI ANR with Wait" \
+  'System UI isn'"'"'t responding' .maestro/read_only_smoke.yaml
 require "Maestro smoke fails an app ANR" \
   'App ANR: Temple Directory India isn'"'"'t responding' \
   .maestro/read_only_smoke.yaml
@@ -319,6 +323,30 @@ if grep -q '/usr/local/lib/android/sdk/system-images' scripts/ci/free_runner_dis
   exit 1
 fi
 echo "ok: disk script leaves the emulator system images"
+for emulator_workflow in \
+  .github/workflows/android-smoke.yml \
+  .github/workflows/demo-seed-launch.yml
+do
+  require "workflow uses the google_atd system image" \
+    'target: google_atd' "$emulator_workflow"
+  require "workflow caches the google_atd system image" \
+    'system-image-android-34-google_atd-x86_64' "$emulator_workflow"
+  require "workflow caches the google_atd AVD snapshot" \
+    'avd-34-x86_64-google_atd-pixel6-snapshot' "$emulator_workflow"
+  require "workflow gives the emulator 2 cores" \
+    'cores: 2' "$emulator_workflow"
+  require "workflow disables emulator audio" \
+    '-no-audio' "$emulator_workflow"
+  if grep -q 'target: google_apis' "$emulator_workflow"; then
+    echo "FAIL: ${emulator_workflow} must not boot the google_apis image" >&2
+    exit 1
+  fi
+  if grep -q -- '-noaudio' "$emulator_workflow"; then
+    echo "FAIL: ${emulator_workflow} must use -no-audio" >&2
+    exit 1
+  fi
+done
+echo "ok: emulator jobs use google_atd, 2 cores, and -no-audio"
 forbid "disk script does not install npm" 'npm |firebase-tools|firebase-cli' \
   scripts/ci/free_runner_disk.sh
 if grep -F -q 'applicationIdSuffix' scripts/build_play_aab.sh; then

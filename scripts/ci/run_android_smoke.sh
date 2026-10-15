@@ -45,9 +45,9 @@ done
 
 adb shell input keyevent KEYCODE_WAKEUP || true
 adb shell wm dismiss-keyguard || true
-# A Pixel Launcher ANR covers the temple app. Do not set
-# hide_error_dialogs: that flag hides every ANR, including one from
-# com.shradhaventures.temple. Only a Pixel Launcher dialog is dismissed.
+# An OS ANR dialog covers the temple app. Do not set hide_error_dialogs:
+# that flag hides every ANR, including one from com.shradhaventures.temple.
+# Wait is tapped only for Process system, Pixel Launcher, and System UI.
 # The runner also disables animations. Set them again after boot so a
 # late settings restart cannot leave window animations on.
 adb shell settings put global window_animation_scale 0 || true
@@ -133,18 +133,27 @@ warn_if_flow_retried() {
   fi
 }
 
-# Tap Wait only on "Process system isn't responding" and
-# "Pixel Launcher isn't responding". Any other isn't-responding dialog
-# is this app's ANR: save a screenshot and fail the job.
+# Tap Wait only on "Process system isn't responding",
+# "Pixel Launcher isn't responding", and "System UI isn't responding".
+# Any other isn't-responding dialog is this app's ANR: save a screenshot
+# and fail the job.
 dismiss_anr_dialog() {
   adb shell uiautomator dump /sdcard/uidump.xml >/dev/null 2>&1 || return 0
-  local xml labels
+  local xml labels os_dialog candidate
   xml="$(adb exec-out cat /sdcard/uidump.xml 2>/dev/null || true)"
-  if grep -q "Process system isn't responding" <<<"$xml"; then
-    warn "Dismissing the system isn't-responding dialog before Maestro"
-    labels=$'Wait'
-  elif grep -q "Pixel Launcher isn't responding" <<<"$xml"; then
-    warn "Dismissing the Pixel Launcher isn't-responding dialog before Maestro"
+  os_dialog=""
+  for candidate in \
+    "Process system isn't responding" \
+    "Pixel Launcher isn't responding" \
+    "System UI isn't responding"
+  do
+    if grep -q "$candidate" <<<"$xml"; then
+      os_dialog="$candidate"
+      break
+    fi
+  done
+  if [[ -n "$os_dialog" ]]; then
+    warn "Dismissing ${os_dialog} before Maestro"
     labels=$'Wait'
   elif grep -q "isn't responding" <<<"$xml"; then
     local dialog pattern

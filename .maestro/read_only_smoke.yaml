@@ -18,7 +18,7 @@ appId: com.shradhaventures.temple
     commands:
       - launchApp:
           clearState: true
-      # Tap Wait only on the system dialog and the Pixel Launcher dialog
+      # Tap Wait only on Process system, Pixel Launcher, and System UI
       # until the accept control is visible. An ANR from this app fails
       # the job instead of being dismissed.
       - repeat:
@@ -38,6 +38,14 @@ appId: com.shradhaventures.temple
             - runFlow:
                 when:
                   visible: "Process system isn't responding"
+                optional: true
+                commands:
+                  - tapOn:
+                      text: "Wait"
+                      optional: true
+            - runFlow:
+                when:
+                  visible: "System UI isn't responding"
                 optional: true
                 commands:
                   - tapOn:
