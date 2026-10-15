@@ -9,14 +9,17 @@
  *
  * The new entry is `{ url: imageUrl, credit, licence, order: 0 }`, and every
  * photo's `order` is then the array index, so the old cover is 1 rather
- * than a second 0. Credit
- * and licence are copied from image fields already on that document:
- * objects in `photos` or `images` that already store both. A real credit is
- * a non-empty string of at most 200 characters. Licence must already be
- * CC-BY, CC-BY-SA, CC0, Own, or Permission. Those five are the values in
- * firestore.rules and PhotoLicence. Nothing is mapped, shortened, or
- * defaulted. A doc with no such pair, or with two different pairs, is
- * skipped and listed with the reason.
+ * than a second 0. Credit and licence are copied only from a `photos` or
+ * `images` object whose `url` equals that cover, or whose recorded mirror
+ * source equals it. That source is the original URL
+ * `patch_image_url_mirror` copied from, when the object stores it on
+ * `source`, `sourceUrl`, `source_url`, or `mirroredFrom`. A different
+ * file's credit is not used. Otherwise the doc is skipped with
+ * `no-matching-credit`. A real credit is a non-empty string of at most 200
+ * characters. Licence must already be CC-BY, CC-BY-SA, CC0, Own, or
+ * Permission. Those five are the values in firestore.rules and
+ * PhotoLicence. Nothing is mapped, shortened, or defaulted. Two different
+ * pairs for the same cover are skipped as `ambiguous`.
  *
  * Apply re-reads each document in its own transaction, skips it when the
  * cover plan no longer matches, and writes `photos`. The index entry is
@@ -36,8 +39,14 @@ import { changedFields, entryFromTemple, stateSlug, storageObjectFromUrl } from 
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-/** Wire values already accepted by firestore.rules and PhotoLicence. */
+/**
+ * Wire values already accepted by firestore.rules and PhotoLicence.
+ * Architect kept Own and Permission on this list.
+ */
 export const PHOTO_LICENCES = ["CC-BY", "CC-BY-SA", "CC0", "Own", "Permission"];
+
+/** Original URL a mirror copied from, when an image object stored it. */
+const MIRROR_SOURCE_KEYS = ["source", "sourceUrl", "source_url", "mirroredFrom"];
 const MAX_CREDIT = 200;
 const MAX_PHOTOS = 12;
 const MAX_URL = 2000;
@@ -133,10 +142,22 @@ function imageObjects(temple) {
   return objects;
 }
 
-function attribution(temple) {
+/** The object is this cover, or it records that the cover is the URL it was mirrored from. */
+function coversImage(item, imageUrl) {
+  if (photoUrl(item) === imageUrl) return true;
+  for (const key of MIRROR_SOURCE_KEYS) {
+    if (typeof item[key] !== "string") continue;
+    if (item[key].trim() === imageUrl) return true;
+  }
+  return false;
+}
+
+function attribution(temple, imageUrl) {
+  const matched = imageObjects(temple).filter((item) => coversImage(item, imageUrl));
+  if (matched.length === 0) return { ok: false, reason: "no-matching-credit" };
   const found = [];
   const problems = [];
-  for (const source of imageObjects(temple)) {
+  for (const source of matched) {
     const pair = pairFrom(source);
     if (!pair) continue;
     if (pair.ok) found.push(pair);
@@ -145,7 +166,7 @@ function attribution(temple) {
   if (found.length === 0) {
     if (problems.includes("no-credit")) return { ok: false, reason: "no-credit" };
     if (problems.includes("licence")) return { ok: false, reason: "licence" };
-    return { ok: false, reason: "no-attribution" };
+    return { ok: false, reason: "no-matching-credit" };
   }
   const first = found[0];
   const mixed = found.some((pair) => pair.credit !== first.credit || pair.licence !== first.licence);
@@ -184,7 +205,7 @@ export function planCoverPhoto(temple) {
   const shape = photosShape(photos);
   if (shape) return { id, action: "skip", reason: shape, imageUrl };
   if (photos.length >= MAX_PHOTOS) return { id, action: "skip", reason: "photos-full", imageUrl };
-  const copied = attribution(temple);
+  const copied = attribution(temple, imageUrl);
   if (!copied.ok) return { id, action: "skip", reason: copied.reason, imageUrl };
   const cover = { url: imageUrl, credit: copied.credit, licence: copied.licence };
   const nextPhotos = [cover, ...photos].map((item, order) => ({ ...item, order }));
@@ -257,6 +278,7 @@ export async function persistCoverPhoto(db, plan, deps = {}) {
       typeof plannedState === "string" && plannedState !== "" ? stateSlug(plannedState) : null;
     const indexRef = db.collection("temple_index").doc(shard);
     const metaRef = db.collection("meta").doc("temple_index");
+    // Compared below so meta moves only when this entry changed.
     const indexSnap = await tx.get(indexRef);
     const metaSnap = await tx.get(metaRef);
     const oldRef = previous && previous !== shard ? db.collection("temple_index").doc(previous) : null;

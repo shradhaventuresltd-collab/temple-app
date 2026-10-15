@@ -70,12 +70,18 @@ function temple(extra = {}) {
     city: "Hampi",
     deity: "Shiva",
     imageUrl: storage,
-    images: [storage],
+    images: [
+      {
+        url: storage,
+        credit: "Arjun Dharne · CC BY-SA 4.0",
+        licence: "CC-BY-SA",
+      },
+    ],
     photos: [
       {
         url: "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Hemakuta_Hills.jpg/1280px-Hemakuta_Hills.jpg",
-        credit: "Arjun Dharne · CC BY-SA 4.0",
-        licence: "CC-BY-SA",
+        credit: "Someone else",
+        licence: "CC-BY",
         order: 0,
       },
     ],
@@ -94,8 +100,56 @@ test("a storage cover copies the credit and licence already on the doc", () => {
   });
   assert.equal(plan.photos[0], plan.photo);
   assert.equal(plan.photos[1].url, temple().photos[0].url);
+  assert.equal(plan.photos[1].credit, "Someone else");
   assert.equal(plan.photos[1].order, 1);
   assert.equal(plan.photos.length, 2);
+});
+
+test("a different file's credit is not copied onto the cover", () => {
+  const plan = planCoverPhoto(
+    temple({
+      photos: [{ url: wiki, credit: "Someone", licence: "CC-BY", order: 0 }],
+      images: [{ url: wiki, credit: "Someone", licence: "CC-BY" }],
+    }),
+  );
+  assert.equal(plan.action, "skip");
+  assert.equal(plan.reason, "no-matching-credit");
+  assert.equal(plan.photo, undefined);
+  const unrelated = planCoverPhoto(
+    temple({
+      photos: [],
+      images: [
+        {
+          url: wiki,
+          source: "https://example.com/not-the-cover.jpg",
+          credit: "Someone",
+          licence: "CC-BY",
+        },
+      ],
+    }),
+  );
+  assert.equal(unrelated.reason, "no-matching-credit");
+});
+
+test("a recorded mirror source can supply the cover's own credit", () => {
+  const plan = planCoverPhoto(
+    temple({
+      photos: [{ url: wiki, credit: "Someone", licence: "CC-BY", order: 0 }],
+      images: [
+        {
+          url: wiki,
+          mirroredFrom: storage,
+          credit: "Sanu",
+          licence: "Own",
+        },
+      ],
+    }),
+  );
+  assert.equal(plan.action, "add");
+  assert.equal(plan.photo.url, storage);
+  assert.equal(plan.photo.credit, "Sanu");
+  assert.equal(plan.photo.licence, "Own");
+  assert.notEqual(plan.photo.credit, "Someone");
 });
 
 test("a prepended cover renumbers every photo from the array index", () => {
@@ -134,7 +188,8 @@ test("CC0 is already an allowed licence and is copied when the credit is real", 
   assert.deepEqual(PHOTO_LICENCES, ["CC-BY", "CC-BY-SA", "CC0", "Own", "Permission"]);
   const plan = planCoverPhoto(
     temple({
-      photos: [{ url: wiki, credit: "Author", licence: "CC0", order: 0 }],
+      photos: [{ url: wiki, credit: "Someone", licence: "CC-BY", order: 0 }],
+      images: [{ url: storage, credit: "Author", licence: "CC0" }],
     }),
   );
   assert.equal(plan.action, "add");
@@ -145,18 +200,22 @@ test("CC0 is already an allowed licence and is copied when the credit is real", 
 test("missing, unmapped, or disagreeing image fields are skipped", () => {
   assert.equal(
     planCoverPhoto(temple({ photos: [], images: [storage] })).reason,
-    "no-attribution",
+    "no-matching-credit",
   );
   assert.equal(
     planCoverPhoto(
-      temple({ photos: [{ url: wiki, credit: "  ", licence: "CC0", order: 0 }] }),
+      temple({
+        photos: [],
+        images: [{ url: storage, credit: "  ", licence: "CC0" }],
+      }),
     ).reason,
     "no-credit",
   );
   assert.equal(
     planCoverPhoto(
       temple({
-        photos: [{ url: wiki, credit: "Author", licence: "CC BY-SA 4.0", order: 0 }],
+        photos: [],
+        images: [{ url: storage, credit: "Author", licence: "CC BY-SA 4.0" }],
       }),
     ).reason,
     "licence",
@@ -164,9 +223,10 @@ test("missing, unmapped, or disagreeing image fields are skipped", () => {
   assert.equal(
     planCoverPhoto(
       temple({
-        photos: [
-          { url: wiki, credit: "One", licence: "CC-BY", order: 0 },
-          { url: `${wiki}?2`, credit: "Two", licence: "CC0", order: 1 },
+        photos: [],
+        images: [
+          { url: storage, credit: "One", licence: "CC-BY" },
+          { url: storage, sourceUrl: storage, credit: "Two", licence: "CC0" },
         ],
       }),
     ).reason,
@@ -175,13 +235,18 @@ test("missing, unmapped, or disagreeing image fields are skipped", () => {
   const agreed = planCoverPhoto(
     temple({
       photos: [
-        { url: wiki, credit: "Author", licence: "Own", order: 0 },
-        { url: `${wiki}?2`, credit: "Author", licence: "Own", order: 1 },
+        { url: wiki, credit: "Other", licence: "CC-BY", order: 0 },
+        { url: `${wiki}?2`, credit: "Other", licence: "CC-BY", order: 1 },
+      ],
+      images: [
+        { url: storage, credit: "Author", licence: "Own" },
+        { url: wiki, source_url: storage, credit: "Author", licence: "Own" },
       ],
     }),
   );
   assert.equal(agreed.action, "add");
   assert.equal(agreed.photo.licence, "Own");
+  assert.equal(agreed.photo.credit, "Author");
 });
 
 test("attribution can come from an images object and is not invented", () => {
@@ -240,7 +305,8 @@ test("dry-run lists ids and does not write", async () => {
       }),
       temple({
         id: "sringeri-sharada-peetham",
-        photos: [{ url: wiki, credit: "A", licence: "CC BY", order: 0 }],
+        photos: [],
+        images: [{ url: storage, credit: "A", licence: "CC BY" }],
       }),
     ],
     write: async () => {
@@ -249,13 +315,13 @@ test("dry-run lists ids and does not write", async () => {
   });
   assert.equal(writes, 0);
   assert.equal(rows.find((row) => row.id === "virupaksha-temple").result, "would-add");
-  assert.equal(rows.find((row) => row.id === "vaikom-mahadeva-temple").reason, "no-attribution");
+  assert.equal(rows.find((row) => row.id === "vaikom-mahadeva-temple").reason, "no-matching-credit");
   assert.equal(rows.find((row) => row.id === "sringeri-sharada-peetham").reason, "licence");
   const report = lines.join("\n");
   assert.match(report, /added: 1/);
   assert.match(report, /would-add virupaksha-temple/);
   assert.match(report, /skipped: 2/);
-  assert.match(report, /skip vaikom-mahadeva-temple no-attribution/);
+  assert.match(report, /skip vaikom-mahadeva-temple no-matching-credit/);
   assert.match(report, /skip sringeri-sharada-peetham licence/);
   assert.match(report, /Dry-run only/);
   assert.equal(formatCoverPhotoReport(rows).includes("https://"), false);
@@ -281,7 +347,7 @@ test("apply writes photos and the index from the fresh doc, and skips a changed 
   const photos = writes.find((write) => write.path === "temples/virupaksha-temple");
   assert.equal(photos.args[0].photos[0].url, storage);
   assert.equal(photos.args[0].photos[0].licence, "CC-BY-SA");
-  assert.equal(photos.args[0].photos[1].credit, "Arjun Dharne · CC BY-SA 4.0");
+  assert.equal(photos.args[0].photos[1].credit, "Someone else");
   assert.equal(Object.keys(photos.args[0]).length, 1);
   const index = writes.find((write) => write.path === "temple_index/karnataka");
   assert.equal(index.data.entries["virupaksha-temple"].name, "Fresh Name");
