@@ -179,6 +179,9 @@ adb install -r "$APK"
 adb shell pm path "$PKG"
 
 adb logcat -c || true
+# The app bar is drawn under the status bar. A tap on More's reported
+# center is delivered to the bar, so the overflow never opens.
+adb shell settings put global policy_control immersive.full='*' || true
 echo "===== launch ====="
 adb shell am start -W -n "${PKG}/.MainActivity" || true
 
