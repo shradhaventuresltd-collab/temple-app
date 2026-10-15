@@ -245,16 +245,38 @@ done
 echo "ok: smoke workflows free disk and do not install firebase-tools"
 require "distribution workflow frees disk" \
   'scripts/ci/free_runner_disk.sh' "$workflow"
-require "distribution workflow reinstalls Node after the toolcache wipe" \
-  'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1' "$workflow"
+if grep -q 'setup-node' "$workflow"; then
+  echo "FAIL: distribution workflow must keep the image Node" >&2
+  exit 1
+fi
+echo "ok: distribution workflow keeps the image Node"
 require "disk script prints df before" '===== disk before =====' scripts/ci/free_runner_disk.sh
 require "disk script prints df after" '===== disk after =====' scripts/ci/free_runner_disk.sh
 require "disk script removes dotnet" '/usr/share/dotnet' scripts/ci/free_runner_disk.sh
 require "disk script removes ghc" '/opt/ghc' scripts/ci/free_runner_disk.sh
 require "disk script removes the preinstalled NDK" \
   '/usr/local/lib/android/sdk/ndk' scripts/ci/free_runner_disk.sh
-require "disk script removes the hosted toolcache" \
-  '/opt/hostedtoolcache' scripts/ci/free_runner_disk.sh
+if grep -q 'hostedtoolcache' scripts/ci/free_runner_disk.sh; then
+  echo "FAIL: disk script must leave the image tool directory in place" >&2
+  exit 1
+fi
+echo "ok: disk script leaves the image tool directory"
+for ndk_workflow in \
+  .github/workflows/android-smoke.yml \
+  .github/workflows/demo-seed-launch.yml \
+  "$workflow"
+do
+  require "workflow caches NDK 28.2.13676358" \
+    '/usr/local/lib/android/sdk/ndk/28.2.13676358' "$ndk_workflow"
+  require "workflow restores a previous Gradle cache" \
+    'restore-keys: gradle-' "$ndk_workflow"
+done
+if grep -q 'timeout-minutes: 30' .github/workflows/android-smoke.yml; then
+  echo "FAIL: android-smoke emulator job must stay at 15 minutes" >&2
+  exit 1
+fi
+require "android-smoke job limit stays 15 minutes" \
+  'timeout-minutes: 15' .github/workflows/android-smoke.yml
 if grep -q '/usr/local/lib/android/sdk/system-images' scripts/ci/free_runner_disk.sh; then
   echo "FAIL: disk script must not delete the emulator system images" >&2
   exit 1

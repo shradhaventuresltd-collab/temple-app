@@ -90,12 +90,7 @@ jobs:
       # Gradle, AVD, system-image, and Flutter caches, plus the Maestro debug artifact.
       actions: write
     runs-on: ubuntu-latest
-    # 30 covers a cold Gradle cache. The key includes android/**/*.gradle*,
-    # so the first run after that file changes rebuilds from scratch (~8 min
-    # vs ~2 min warm) and must still finish the 12m smoke script and save
-    # the new cache. A warm run stays near 12 minutes. The 12m script cap
-    # is what fails a hang; this limit is only the outer bound.
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
       # $SECONDS inside the smoke script starts when that script starts, after
       # the APK build. Screenshot decisions use this job clock instead.
@@ -137,6 +132,17 @@ jobs:
             ~/.gradle/caches
             ~/.gradle/wrapper
           key: gradle-${{ hashFiles('pubspec.lock', 'android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
+          # build.gradle.kts is in that hash. The demo suffix does not change
+          # dependencies, so a primary miss still restores the previous cache.
+          restore-keys: gradle-
+
+      # Flutter 3.47.7 asks for NDK side-by-side 28.2.13676358. Free-disk
+      # removes the image's other NDKs; this restores the one the build uses.
+      - name: Cache Android NDK
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: /usr/local/lib/android/sdk/ndk/28.2.13676358
+          key: ndk-28.2.13676358
 
       - name: Build profile APK
         run: flutter build apk --profile --target-platform android-x64 --dart-define=DEMO_BUILD=true
@@ -204,10 +210,9 @@ jobs:
           # for sys.boot_completed and installs the APK with adb.
           emulator-options: -no-snapshot-save -no-snapshot-load -no-boot-anim -gpu swiftshader_indirect -no-window -noaudio -camera-back none -camera-front none
           # One dash-safe command. The action runs this with /usr/bin/sh.
-          # 12m is under the 30-minute job limit, including a cold Gradle
-          # preamble. --kill-after sends SIGKILL if SIGTERM is ignored, so
-          # a hang exits non-zero and the job concludes failure.
-          # timeout-minutes itself concludes cancelled.
+          # 12m is under the 15-minute job limit. --kill-after sends SIGKILL
+          # if SIGTERM is ignored, so a hang exits non-zero and the job
+          # concludes failure. timeout-minutes itself concludes cancelled.
           script: timeout --kill-after=30s 12m bash scripts/ci/run_android_smoke.sh
 
       - name: Upload Maestro debug output

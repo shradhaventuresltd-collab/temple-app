@@ -11,7 +11,7 @@
 # timeout-minutes as cancelled. A workflow_dispatch cancel does not count
 # and does not block the next scheduled retry. The smoke script is wrapped
 # in `timeout --kill-after=30s 12m` so a hang is killed and the step exits
-# non-zero before the 30-minute job limit. A red SHA is not retried every slot.
+# non-zero before the 15-minute job limit. A red SHA is not retried every slot.
 
 # Echoes the SHA for conclusion "failure", and for "cancelled" when the
 # triggering event is "schedule". A workflow_dispatch cancel echoes nothing.
