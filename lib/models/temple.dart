@@ -67,13 +67,16 @@ class Temple {
   bool get isIndexSummary => indexTradition != null && indexFraming != null;
 
   /// Null when the listing has no coordinates. (0, 0) is that missing pair,
-  /// not a point in the Gulf of Guinea.
+  /// not a point in the Gulf of Guinea. NaN and infinity are missing too.
   final double? latitude;
   final double? longitude;
 
   bool get hasCoordinates {
-    if (latitude == null || longitude == null) return false;
-    if (latitude == 0 && longitude == 0) return false;
+    final lat = latitude;
+    final lng = longitude;
+    if (lat == null || lng == null) return false;
+    if (!lat.isFinite || !lng.isFinite) return false;
+    if (lat == 0 && lng == 0) return false;
     return true;
   }
 
@@ -215,11 +218,16 @@ class Temple {
   }
 }
 
-/// Missing numbers and the (0, 0) placeholder are null.
+/// Missing numbers, non-finite numbers, and the (0, 0) placeholder are null.
 ({double? lat, double? lng}) _coordinatePair(Map<String, dynamic> data) {
   final lat = data['latitude'];
   final lng = data['longitude'];
   if (lat is! num || lng is! num) return (lat: null, lng: null);
-  if (lat == 0 && lng == 0) return (lat: null, lng: null);
-  return (lat: lat.toDouble(), lng: lng.toDouble());
+  final latitude = lat.toDouble();
+  final longitude = lng.toDouble();
+  if (!latitude.isFinite || !longitude.isFinite) {
+    return (lat: null, lng: null);
+  }
+  if (latitude == 0 && longitude == 0) return (lat: null, lng: null);
+  return (lat: latitude, lng: longitude);
 }

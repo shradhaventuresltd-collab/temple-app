@@ -33,7 +33,8 @@ class HomeScreen extends StatefulWidget {
   /// Admin sign-in is opened, never while [build] paints Home.
   final AdminAuth? adminAuth;
 
-  /// Injected in tests. Defaults to [TempleService.getTemples].
+  /// Injected in tests. Defaults to [TempleService.getTemples]. Refresh,
+  /// reconnect, and Retry call [TempleService.loadDirectory].
   final Future<List<Temple>> Function()? templesLoader;
 
   /// Defaults to [kAdminToolsEnabled]. Pass `false` in tests to hide
@@ -61,7 +62,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<List<Temple>> _loadTemples({bool refresh = false}) {
     final loader = widget.templesLoader;
     if (loader != null) return loader();
-    return _templeService.getTemples(refresh: refresh);
+    if (refresh) return _templeService.loadDirectory();
+    return _templeService.getTemples();
   }
 
   @override
@@ -69,12 +71,20 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _templesFuture = _loadTemples();
     DirectoryReconnect.tick.addListener(_onReconnect);
+    TempleService.revision.addListener(_onPublished);
   }
 
   @override
   void dispose() {
     DirectoryReconnect.tick.removeListener(_onReconnect);
+    TempleService.revision.removeListener(_onPublished);
     super.dispose();
+  }
+
+  void _onPublished() {
+    final rows = TempleService.published;
+    if (rows == null || !mounted) return;
+    setState(() => _templesFuture = Future<List<Temple>>.value(rows));
   }
 
   void _onReconnect() {
@@ -145,6 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
           if (widget.maintenanceMessage.trim().isNotEmpty)
             MaintenanceMessageBanner(message: widget.maintenanceMessage.trim()),
           const OfflineBanner(),
+          SavedListBanner(onRetry: _reloadTemples),
           Expanded(
             child: FutureBuilder<List<Temple>>(
               future: _templesFuture,

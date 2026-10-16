@@ -216,7 +216,8 @@ String? _photoCredit(Map<String, dynamic> data, String url) {
 /// Unrewritten gallery URL [coverThumbFor] is taken from.
 String? firstVerifiedGalleryUrl(Map<String, dynamic> data) {
   for (final url in _galleryCandidates(data)) {
-    if (!_httpUrl(url) || isDisallowedImageUrl(url, credit: _photoCredit(data, url))) {
+    if (!_httpUrl(url) ||
+        isDisallowedImageUrl(url, credit: _photoCredit(data, url))) {
       continue;
     }
     return url;
@@ -269,7 +270,9 @@ String? _knownThumbUrl(Object? raw, {String? credit}) {
 String? _fullCover(Object? raw, {String? credit}) {
   if (raw is! String) return null;
   final trimmed = raw.trim();
-  if (!_httpUrl(trimmed) || isDisallowedImageUrl(trimmed, credit: credit)) return null;
+  if (!_httpUrl(trimmed) || isDisallowedImageUrl(trimmed, credit: credit)) {
+    return null;
+  }
   if (trimmed.length > kTempleIndexCoverThumbMax) return null;
   return trimmed;
 }
@@ -388,15 +391,20 @@ bool _httpUrl(String trimmed) {
   return uri != null && (uri.scheme == 'http' || uri.scheme == 'https');
 }
 
-/// `lat`/`lng` for an index entry. Missing numbers and the (0, 0) placeholder
-/// are null. A real zero on only one axis is kept. Both axes are doubles,
-/// including a whole-degree longitude.
+/// `lat`/`lng` for an index entry. Missing numbers, non-finite numbers, and
+/// the (0, 0) placeholder are null. A real zero on only one axis is kept.
+/// Both axes are doubles, including a whole-degree longitude.
 ({double? lat, double? lng}) templeIndexCoordinates(Map<String, dynamic> data) {
   final lat = data['latitude'];
   final lng = data['longitude'];
   if (lat is! num || lng is! num) return (lat: null, lng: null);
-  if (lat == 0 && lng == 0) return (lat: null, lng: null);
-  return (lat: lat.toDouble(), lng: lng.toDouble());
+  final latitude = lat.toDouble();
+  final longitude = lng.toDouble();
+  if (!latitude.isFinite || !longitude.isFinite) {
+    return (lat: null, lng: null);
+  }
+  if (latitude == 0 && longitude == 0) return (lat: null, lng: null);
+  return (lat: latitude, lng: longitude);
 }
 
 List<String>? _altNames(Object? raw) {

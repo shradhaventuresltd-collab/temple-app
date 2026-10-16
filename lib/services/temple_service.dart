@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import 'package:temple_app/data/sample_data.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_index.dart';
 import 'package:temple_app/services/firebase_ready.dart';
@@ -10,19 +9,34 @@ import 'package:temple_app/services/firestore_read_log.dart';
 import 'package:temple_app/services/index_stamp_store.dart';
 import 'package:temple_app/services/temple_directory_client.dart';
 
+/// What the saved-list banner should show. The widget reads
+/// [TempleService.savedListPhase] and whether the device is offline.
+enum SavedListPhase {
+  /// A fresh index is on screen, or nothing has loaded yet.
+  hidden,
+
+  /// Cache is on screen and a server read is still running.
+  refreshing,
+
+  /// The server read failed and the saved list is what remains.
+  held,
+}
+
 /// Browse, search, and home lists, plus the detail document.
 ///
-/// The list reads server `meta/temple_index`, then each shard whose server
-/// stamp differs from the stamp this device last applied. The full
-/// `collection('temples')` scan runs only when that server read confirms the
-/// meta document is absent or its shard map is empty. A timeout or other
-/// error serves the applied shards from the local cache when they exist,
-/// otherwise the bundled sample, and the next launch tries the server again.
-/// When one shard misses on both the server and the cache, the client queries
-/// `temples` where `state` equals that state. Zero documents is the same gap
-/// as a failed query: the state is not dropped. The bundled sample for the
-/// state is used only in that case, and the screen says it could not load
-/// the state. A sample on screen also says it is the offline sample.
+/// When this device already applied shard stamps and those shards are in the
+/// local cache, the list returns that cache immediately and refreshes from
+/// the server in the background. A cold launch with no cache waits for server
+/// `meta/temple_index`, then each shard whose stamp differs. The full
+/// `collection('temples')` scan runs only on that cold foreground load, and
+/// only when meta is absent or its shard map is empty. [loadDirectory], which
+/// warm refresh, Retry, reconnect, and resume all await, keeps the cache and
+/// does not scan. While Remote Config `kill_switch` is on, that call does
+/// not read Firestore. A timeout or other error keeps the cached list and
+/// says so.
+/// With no cache at all the load throws [DirectoryLoadException] so the screen
+/// can offer Retry. A missing shard is omitted and named; it is not filled
+/// from bundled sample temples.
 ///
 /// Web launches are always cold. The web Firestore cache is memory-only, so
 /// a new page load has no shard documents even when [IndexStampStore] still
@@ -51,8 +65,100 @@ class TempleService {
   /// instance, used by tests, does not touch it.
   static Future<List<Temple>>? _session;
 
+  /// Latest list published after a background refresh. Null until one finishes.
+  static List<Temple>? published;
+
+  /// Bumps when [published] changes so Home and the list can swap in the
+  /// fresh rows without a loading spinner.
+  static final ValueNotifier<int> revision = ValueNotifier<int>(0);
+
+  /// Remote Config `kill_switch`. [TempleDirectoryApp] installs the live
+  /// check. While this returns true, [loadDirectory] and [getTemples] do
+  /// not read Firestore.
+  static bool Function() readsBlocked = () => false;
+
+  /// Saved-list banner. [refreshing] is a warm launch whose server read is
+  /// still running: the banner stays hidden while the device is online.
+  /// [held] is a failed refresh. The widget reads this notifier, not a
+  /// process-wide log flag.
+  static final ValueNotifier<SavedListPhase> savedListPhase = ValueNotifier(
+    SavedListPhase.hidden,
+  );
+
   @visibleForTesting
-  static void resetSessionForTest() => _session = null;
+  static void resetSessionForTest() {
+    _session = null;
+    published = null;
+    _sharedInFlight = null;
+    _sharedLoadSerial = 0;
+    _sharedPublishedSerial = 0;
+    readsBlocked = () => false;
+    savedListPhase.value = SavedListPhase.hidden;
+  }
+
+  /// One server load for the process. Injected test clients keep their own.
+  static Future<List<Temple>>? _sharedInFlight;
+
+  static int _sharedLoadSerial = 0;
+  static int _sharedPublishedSerial = 0;
+
+  Future<List<Temple>>? _localInFlight;
+  Future<List<Temple>>? _background;
+  int _loadSerial = 0;
+  int _publishedSerial = 0;
+
+  /// Completes the server refresh started by a cache-first [getTemples].
+  @visibleForTesting
+  Future<List<Temple>?> flushBackgroundForTest() =>
+      _inFlightNow ?? _background ?? Future<List<Temple>?>.value();
+
+  /// Marks a newer successful publish so an older in-flight failure cannot
+  /// turn the saved-list banner back on.
+  @visibleForTesting
+  void noteFreshDirectoryPublished() {
+    _markPublished(_nextSerial());
+    _readLog.showingSavedList = false;
+    _setSavedListPhase(SavedListPhase.hidden);
+  }
+
+  void _setSavedListPhase(SavedListPhase phase) {
+    if (savedListPhase.value == phase) return;
+    savedListPhase.value = phase;
+  }
+
+  Future<List<Temple>>? get _inFlightNow =>
+      _usesSharedSession ? _sharedInFlight : _localInFlight;
+
+  int _nextSerial() {
+    if (_usesSharedSession) return ++_sharedLoadSerial;
+    return ++_loadSerial;
+  }
+
+  int get _publishedNow =>
+      _usesSharedSession ? _sharedPublishedSerial : _publishedSerial;
+
+  void _markPublished(int serial) {
+    if (_usesSharedSession) {
+      _sharedPublishedSerial = serial;
+    } else {
+      _publishedSerial = serial;
+    }
+  }
+
+  void _retain(Future<List<Temple>> future) {
+    if (_usesSharedSession) {
+      _sharedInFlight = future;
+    } else {
+      _localInFlight = future;
+    }
+    future.whenComplete(() {
+      if (_usesSharedSession) {
+        if (identical(_sharedInFlight, future)) _sharedInFlight = null;
+      } else if (identical(_localInFlight, future)) {
+        _localInFlight = null;
+      }
+    }).ignore();
+  }
 
   /// Injected clients are used as-is. Otherwise a missing default app must
   /// not touch [FirebaseFirestore.instance] (that throws core/no-app).
@@ -63,9 +169,8 @@ class TempleService {
 
   IndexStampStore get _stampStore => _stamps ?? _ownedStamps;
 
-  late final TempleDirectoryClient _ownedClient = FirestoreTempleDirectoryClient(
-    _firestore ?? _firestoreInstance(),
-  );
+  late final TempleDirectoryClient _ownedClient =
+      FirestoreTempleDirectoryClient(_firestore ?? _firestoreInstance());
 
   static FirebaseFirestore _firestoreInstance() {
     noteFirebaseAccess('FirebaseFirestore.instance');
@@ -77,10 +182,42 @@ class TempleService {
   bool get _usesSharedSession => _directory == null && _firestore == null;
 
   /// Browse, search, and home lists.
+  ///
+  /// [refresh] awaits [loadDirectory] instead of returning the cache first.
+  /// A server failure still returns the saved list when one exists.
   Future<List<Temple>> getTemples({bool refresh = false}) {
-    if (!_usesSharedSession) return _load();
-    if (refresh) _session = null;
-    return _session ??= _load();
+    if (readsBlocked()) return _stoppedDirectory();
+    if (refresh) {
+      final next = loadDirectory();
+      if (_usesSharedSession) _session = next;
+      return next;
+    }
+    if (!_usesSharedSession) return _open();
+    return _session ??= _open();
+  }
+
+  /// One shared directory load.
+  ///
+  /// Signature: `Future<List<Temple>> loadDirectory()`.
+  ///
+  /// Warm refresh, Retry, reconnect, and the resume check all await this.
+  /// A caller that arrives while a load is running receives that same future,
+  /// so meta is not read twice and the read log is not reset underneath the
+  /// load already in flight. This path never scans `collection('temples')`.
+  /// A cold foreground [getTemples] with no cache is the only scan.
+  ///
+  /// When [readsBlocked] is true (`kill_switch`), this returns the list
+  /// already published, or an empty list, and does not read Firestore.
+  Future<List<Temple>> loadDirectory() {
+    if (readsBlocked()) return _stoppedDirectory();
+    return _startInFlight(allowCollectionScan: false);
+  }
+
+  /// Kill switch: no cache read and no server read.
+  Future<List<Temple>> _stoppedDirectory() async {
+    final saved = published;
+    if (saved == null) return const [];
+    return List<Temple>.from(saved);
   }
 
   /// Full `temples/{id}` document for the detail screen.
@@ -89,7 +226,7 @@ class TempleService {
   /// error reads the cache and [TempleDetailLoad.fromCache] is true. This
   /// read is not part of the launch total.
   Future<TempleDetailLoad> getTemple(String id) async {
-    if (!_canUseFirestore) return _sampleDetail(id);
+    if (!_canUseFirestore) return const TempleDetailLoad();
     DirectoryDoc snap;
     var fromCache = false;
     try {
@@ -106,32 +243,119 @@ class TempleService {
     );
   }
 
-  Future<List<Temple>> _load() async {
+  Future<List<Temple>> _open() async {
     _readLog.startLoad();
-    if (!_canUseFirestore) return _bundledSample();
+    final cached = await _cachedDirectory();
+    if (cached != null) {
+      _noteSaved(cached);
+      _background = loadDirectory();
+      return cached;
+    }
+    return _startInFlight(allowCollectionScan: true);
+  }
+
+  Future<List<Temple>> _startInFlight({required bool allowCollectionScan}) {
+    final existing = _inFlightNow;
+    if (existing != null) return existing;
+    final next = _runDirectoryLoad(allowCollectionScan: allowCollectionScan);
+    _background = next;
+    _retain(next);
+    return next;
+  }
+
+  Future<List<Temple>> _runDirectoryLoad({
+    required bool allowCollectionScan,
+  }) async {
+    final serial = _nextSerial();
+    if (!allowCollectionScan) {
+      // Let the cache-first caller observe read counts and the saved-list
+      // banner. A microtask runs before that caller's await resumes.
+      await Future<void>.delayed(Duration.zero);
+      _readLog.serverReads = 0;
+      _readLog.cacheHits = 0;
+      _readLog.unavailableShards.clear();
+    }
+    final outcome = await _loadFromNetwork(
+      allowCollectionScan: allowCollectionScan,
+    );
+    if (outcome.rows != null) {
+      return _accept(serial, outcome, outcome.rows!);
+    }
+    final cached = await _templesFromAppliedCache();
+    if (cached.isEmpty) throw const DirectoryLoadException();
+    return _accept(serial, const _NetworkOutcome.keepCache(), cached);
+  }
+
+  /// Applies the outcome of [serial] unless a newer load already published.
+  /// A late failure must not turn the saved-list banner back on.
+  List<Temple> _accept(int serial, _NetworkOutcome outcome, List<Temple> rows) {
+    if (_publishedNow > serial) return rows;
+    if (outcome.freshIndex) {
+      _readLog.showingSavedList = false;
+      _setSavedListPhase(SavedListPhase.hidden);
+      _markPublished(serial);
+    } else if (outcome.savedList) {
+      _readLog.noteSavedList();
+      _setSavedListPhase(SavedListPhase.held);
+      if (outcome.rows == null) {
+        _readLog.recordFallback('index-cache');
+        _readLog.finishLaunch('index-cache');
+      }
+    }
+    _publish(rows);
+    return rows;
+  }
+
+  void _noteSaved(List<Temple> rows) {
+    _readLog.noteSavedList();
+    _setSavedListPhase(SavedListPhase.refreshing);
+    _readLog.finishLaunch('index-cache');
+    _publish(rows);
+  }
+
+  void _publish(List<Temple> rows) {
+    if (!_usesSharedSession) return;
+    published = rows;
+    _session = Future<List<Temple>>.value(rows);
+    revision.value = revision.value + 1;
+  }
+
+  /// Applied stamps plus cached shard documents. Null when this device has
+  /// nothing saved to show.
+  Future<List<Temple>?> _cachedDirectory() async {
+    if (!_canUseFirestore) return null;
+    final applied = await _stampStore.readApplied();
+    if (applied.isEmpty) return null;
+    final temples = await _templesFromAppliedCache();
+    if (temples.isEmpty) return null;
+    return temples;
+  }
+
+  Future<_NetworkOutcome> _loadFromNetwork({
+    required bool allowCollectionScan,
+  }) async {
+    if (!_canUseFirestore) throw const DirectoryLoadException();
     final index = await _loadFromServerMeta();
-    if (index.confirmedMissing) return _loadCollectionOrRescue();
+    if (index.confirmedMissing) {
+      if (!allowCollectionScan) return const _NetworkOutcome.keepCache();
+      final rows = await _loadCollectionOrRescue();
+      final fresh = _readLog.source == 'temples' || _readLog.source == 'index';
+      return _NetworkOutcome.rows(rows, savedList: !fresh, freshIndex: fresh);
+    }
     final rows = index.temples;
     if (rows != null) {
-      if (index.servedStale) _readLog.recordFallback('index-cache');
-      if (index.servedSample) _readLog.recordFallback('sample');
-      _readLog.finishLaunch(
-        index.servedFresh
-            ? 'index'
-            : index.servedStale
-            ? 'index-cache'
-            : index.servedSample
-            ? 'sample'
-            : 'index',
-      );
-      return rows;
+      final stale = index.servedStale;
+      if (stale) _readLog.recordFallback('index-cache');
+      _readLog.finishLaunch(stale ? 'index-cache' : 'index');
+      return _NetworkOutcome.rows(rows, savedList: stale, freshIndex: !stale);
     }
-    return _rescueFromAppliedCache();
+    return const _NetworkOutcome.keepCache();
   }
 
   /// Server meta, then the shards [planIndexShardReads] selects.
   ///
-  /// [confirmedMissing] is the only result that may read `temples`.
+  /// [confirmedMissing] may scan `temples` only when the caller is a cold
+  /// foreground load with no cache.
   Future<_ServerIndex> _loadFromServerMeta() async {
     final DirectoryDoc serverMeta;
     try {
@@ -160,14 +384,12 @@ class TempleService {
     var anyDoc = false;
     var servedFresh = false;
     var servedStale = false;
-    var servedSample = false;
     for (final read in plan) {
       final loaded = await _readPlannedShard(read, serverStamps[read.slug]);
       if (loaded == null) continue;
       anyDoc = true;
       servedFresh = servedFresh || loaded.fresh;
       servedStale = servedStale || loaded.stale;
-      servedSample = servedSample || loaded.sample;
       temples.addAll(loaded.temples);
     }
     if (!anyDoc && _readLog.unavailableShards.isEmpty) {
@@ -178,7 +400,6 @@ class TempleService {
       temples,
       servedFresh: servedFresh,
       servedStale: servedStale,
-      servedSample: servedSample,
     );
   }
 
@@ -204,9 +425,8 @@ class TempleService {
     return _stateOrSample(read.slug);
   }
 
-  /// One state's `temples` documents. The bundled sample is for a failed
-  /// query or a query that returns nothing, and that sample is always
-  /// announced. An empty result would otherwise drop the state with no notice.
+  /// One state's `temples` documents. A failed or empty query names the
+  /// state and omits it. Bundled sample temples are not inserted.
   Future<_ShardRows?> _stateOrSample(String slug) async {
     final fromState = await _templesForState(slug);
     if (fromState != null) return fromState;
@@ -236,27 +456,14 @@ class TempleService {
     }
   }
 
-  /// Bundled temples for [slug] when the state query failed. An empty sample
-  /// for that state is a visible gap, not a silent omission. A non-empty
-  /// sample is still announced as offline.
+  /// A shard that missed the server, the cache, and the state query. The
+  /// state is named and omitted. Bundled sample temples are not inserted.
   _ShardRows? _sampleForMissingShard(String slug) {
-    final label = _stateLabel(slug);
-    final temples = [
-      for (final temple in sampleTemples)
-        if (templeIndexStateSlug(temple.state) == slug) temple,
-    ];
-    if (temples.isEmpty) {
-      _readLog.noteUnavailableShard(label);
-      return null;
-    }
-    _readLog.noteOfflineSample(label);
-    return _ShardRows(temples, fresh: false, stale: false, sample: true);
+    _readLog.noteUnavailableShard(_stateLabel(slug));
+    return null;
   }
 
   String _stateLabel(String slug) {
-    for (final temple in sampleTemples) {
-      if (templeIndexStateSlug(temple.state) == slug) return temple.state;
-    }
     return slug
         .split('-')
         .where((part) => part.isNotEmpty)
@@ -305,42 +512,22 @@ class TempleService {
   Future<List<Temple>> _loadCollectionOrRescue() async {
     try {
       final rows = await _loadCollection();
-      _readLog.finishLaunch(
-        identical(rows, sampleTemples) ? 'sample' : 'temples',
-      );
+      _readLog.finishLaunch('temples');
       return rows;
     } catch (_) {
       return _rescueFromAppliedCache();
     }
   }
 
-  List<Temple> _bundledSample() {
-    _readLog.noteOfflineSample();
-    _readLog.recordFallback('sample');
-    _readLog.finishLaunch('sample');
-    return sampleTemples;
-  }
-
-  TempleDetailLoad _sampleDetail(String id) {
-    for (final temple in sampleTemples) {
-      if (temple.id == id) {
-        return TempleDetailLoad(temple: temple, fromCache: true);
-      }
-    }
-    return const TempleDetailLoad();
-  }
-
   Future<List<Temple>> _rescueFromAppliedCache() async {
     final cached = await _templesFromAppliedCache();
     if (cached.isNotEmpty) {
+      _readLog.noteSavedList();
       _readLog.recordFallback('index-cache');
       _readLog.finishLaunch('index-cache');
       return cached;
     }
-    _readLog.noteOfflineSample();
-    _readLog.recordFallback('sample');
-    _readLog.finishLaunch('sample');
-    return sampleTemples;
+    throw const DirectoryLoadException();
   }
 
   Future<List<Temple>> _templesFromAppliedCache() async {
@@ -356,13 +543,13 @@ class TempleService {
     return temples;
   }
 
-  /// `temples` collection. An empty result becomes [sampleTemples].
+  /// `temples` collection. An empty result stays empty.
   Future<List<Temple>> _loadCollection() async {
     final docs = await _client
         .getDocs('temples', source: Source.server)
         .timeout(fetchTimeout);
     _readLog.serverRead(docs.isEmpty ? 1 : docs.length);
-    if (docs.isEmpty) return sampleTemples;
+    if (docs.isEmpty) return const [];
     final temples = [
       for (final doc in docs) Temple.fromMap(doc.id, doc.data ?? {}),
     ];
@@ -371,47 +558,54 @@ class TempleService {
   }
 }
 
+class _NetworkOutcome {
+  const _NetworkOutcome.rows(
+    this.rows, {
+    required this.savedList,
+    required this.freshIndex,
+  });
+
+  const _NetworkOutcome.keepCache()
+    : rows = null,
+      savedList = true,
+      freshIndex = false;
+
+  final List<Temple>? rows;
+  final bool savedList;
+  final bool freshIndex;
+}
+
 class _ServerIndex {
   const _ServerIndex.confirmedMissing()
     : confirmedMissing = true,
       temples = null,
       servedFresh = false,
-      servedStale = false,
-      servedSample = false;
+      servedStale = false;
 
   const _ServerIndex.unavailable()
     : confirmedMissing = false,
       temples = null,
       servedFresh = false,
-      servedStale = false,
-      servedSample = false;
+      servedStale = false;
 
   const _ServerIndex.rows(
     this.temples, {
     required this.servedFresh,
     required this.servedStale,
-    required this.servedSample,
   }) : confirmedMissing = false;
 
   final bool confirmedMissing;
   final List<Temple>? temples;
   final bool servedFresh;
   final bool servedStale;
-  final bool servedSample;
 }
 
 class _ShardRows {
-  const _ShardRows(
-    this.temples, {
-    required this.fresh,
-    required this.stale,
-    this.sample = false,
-  });
+  const _ShardRows(this.temples, {required this.fresh, required this.stale});
 
   final List<Temple> temples;
   final bool fresh;
   final bool stale;
-  final bool sample;
 }
 
 /// Detail document, and whether it came from the cache fallback.
@@ -428,6 +622,14 @@ Map<String, Object?> _stampMap(Object? raw) {
     for (final entry in raw.entries)
       if (entry.key is String) entry.key as String: entry.value,
   };
+}
+
+/// The directory has no cached list and the server read failed.
+class DirectoryLoadException implements Exception {
+  const DirectoryLoadException();
+
+  @override
+  String toString() => 'DirectoryLoadException';
 }
 
 /// Listed entries on one shard document.

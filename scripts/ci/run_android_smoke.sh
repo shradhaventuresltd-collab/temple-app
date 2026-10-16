@@ -81,6 +81,10 @@ warn() {
 
 # Prove the process can draw before Maestro. A cold profile start on
 # swiftshader sometimes never attaches; two relaunches cover that.
+# Each attempt waits about 12s. A dead first launch does not log even
+# after a minute, and that minute pushed 862cc09 into the 15-minute
+# job cancel. The relaunch that works shows the engine within a couple
+# of seconds.
 echo "===== warm launch ====="
 drawn=0
 for attempt in 1 2 3; do
@@ -91,7 +95,7 @@ for attempt in 1 2 3; do
   adb logcat -c || true
   adb shell am force-stop "$PKG" || true
   adb shell am start -W -n "${PKG}/.MainActivity" || true
-  for _ in $(seq 1 30); do
+  for _ in $(seq 1 6); do
     if flutter_engine_logged; then
       echo "Flutter engine log seen on warm launch ${attempt}"
       drawn=1
