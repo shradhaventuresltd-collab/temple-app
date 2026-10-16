@@ -212,7 +212,7 @@ Production / release browsing does **not** require signing in. Seed and Admin wr
 
    To remove it later: `node grant_admin.js --email you@example.com --revoke`.
 
-   **Research photo packs (KAN-77+):** verified Commons files live under `tools/photo-packs/{slug}/` with `manifest.json` + `ATTRIBUTION.md`. That includes the five packs from #19, the 20 Karnataka Wave B packs, and the 35 Tamil Nadu + Kerala Wave A packs. Upload to Storage (no Places scraper). `service-account.json` stays local and gitignored. `--patch-firestore` does not create missing documents and does not write live Firestore unless you pass it. Do not invent Storage URLs.
+   **Research photo packs (KAN-77+):** verified Commons files live under `tools/photo-packs/{slug}/` with `manifest.json` + `ATTRIBUTION.md`. That includes the five packs from #19, the 20 Karnataka Wave B packs, and the 35 Tamil Nadu + Kerala Wave A packs. Upload to Storage with `upload_research_pack.js`. `service-account.json` stays local and gitignored. `--patch-firestore` does not create missing documents and does not write live Firestore unless you pass it. Do not invent Storage URLs. Uncredited Google Places mirrors (`temples/{id}/image_N.jpg`) are not in the sample and Seed will not write them. `scripts/purge_places_photos.js` is dry-run by default; `--apply` is Deployer only, after Architect signs off.
 
    ```bash
    cd scripts

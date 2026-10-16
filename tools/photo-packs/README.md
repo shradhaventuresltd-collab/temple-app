@@ -17,7 +17,7 @@ Sitamarhi, Kaleshwara Mukteswara, Mangala Gauri, Purmandal, Ugratara) have
 
 Debug Seed (or an existing `temples/{id}` doc) must exist before
 `--patch-firestore`. The script does not create missing Firestore documents
-and does not use a Places scraper.
+and does not use a Places scraper. Uncredited `image_N` Places mirrors are not seeded. `scripts/purge_places_photos.js` removes them; it is dry-run unless Deployer passes `--apply` after Architect signs off.
 
 ```bash
 cd scripts

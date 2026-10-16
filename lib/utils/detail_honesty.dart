@@ -250,9 +250,31 @@ bool isUnlicensedStockImageUrl(String raw) {
   return false;
 }
 
-/// Placeholder host or unlicensed stock host. Empty values count.
+/// `temples/{id}/image_<n>.jpg` and its `_480` thumb, public or token URL.
+///
+/// These are uncredited Google Places mirrors. A pack frame such as
+/// `01_Name.jpg` is not one.
+bool isPlacesMirrorUrl(String raw) {
+  final trimmed = raw.trim();
+  if (trimmed.isEmpty) return false;
+  String decoded;
+  try {
+    decoded = Uri.decodeFull(trimmed);
+  } catch (_) {
+    decoded = trimmed;
+  }
+  return RegExp(
+    r'(?:^|/)temples/[^/]+/image_\d+(?:_480(?:_g\d+(?:u\d+)?)?(?:_(?:jpe?g|png|webp))?)?\.(?:jpe?g|png|webp)(?:$|[?#])',
+    caseSensitive: false,
+  ).hasMatch(decoded);
+}
+
+/// Placeholder host, unlicensed stock host, or uncredited Places mirror.
+/// Empty values count.
 bool isDisallowedImageUrl(String raw) {
-  return isPlaceholderImageUrl(raw) || isUnlicensedStockImageUrl(raw);
+  return isPlaceholderImageUrl(raw) ||
+      isUnlicensedStockImageUrl(raw) ||
+      isPlacesMirrorUrl(raw);
 }
 
 SiteTradition _traditionFromIndex(String value) {

@@ -196,6 +196,30 @@ void main() {
       'https://firebasestorage.googleapis.com/v0/b/app/o/real.jpg?alt=media',
     ]);
 
+    const placesMirror =
+        'https://storage.googleapis.com/temple-directory-india.firebasestorage.app/temples/shore-temple/image_2.jpg';
+    final droppedPlaces = seedImageFieldsWithPack(
+      bundledImageUrl: placesMirror,
+      bundledImages: const [placesMirror],
+      existingImageUrl: placesMirror,
+      existingImages: const [
+        placesMirror,
+        'https://storage.googleapis.com/bucket/temples/shore-temple/01_Shore.jpg',
+      ],
+    );
+    expect(droppedPlaces['imageUrl'], 'https://storage.googleapis.com/bucket/temples/shore-temple/01_Shore.jpg');
+    expect(droppedPlaces['images'], [
+      'https://storage.googleapis.com/bucket/temples/shore-temple/01_Shore.jpg',
+    ]);
+    final placesOnly = seedImageFieldsWithPack(
+      bundledImageUrl: placesMirror,
+      bundledImages: const [placesMirror],
+      existingImageUrl: placesMirror,
+      existingImages: const [placesMirror],
+    );
+    expect(placesOnly['imageUrl'], '');
+    expect(placesOnly['images'], <String>[]);
+
     final chamundi = sampleTemples.firstWhere(
       (t) => t.name == 'Chamundeshwari Temple',
     );

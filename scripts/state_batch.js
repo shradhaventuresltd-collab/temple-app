@@ -17,6 +17,7 @@
  * is overwritten and nothing is renamed.
  * Only review.status "approved" is seedable. Other statuses are skipped.
  */
+import { isPlacesMirrorUrl } from "./places_mirror.js";
 import { changedKeys, templeDocumentId } from "./temple_seed.js";
 
 export const MAX_TEMPLES_PER_BATCH = 100;
@@ -596,7 +597,7 @@ function stockHost(host) {
 
 /** Placeholder host or unlicensed stock host. Empty values count. */
 export function isDisallowedImageUrl(raw) {
-  return isPlaceholderImageUrl(raw) || isUnlicensedStockImageUrl(raw);
+  return isPlaceholderImageUrl(raw) || isUnlicensedStockImageUrl(raw) || isPlacesMirrorUrl(raw);
 }
 
 export function distanceKm(left, right) {

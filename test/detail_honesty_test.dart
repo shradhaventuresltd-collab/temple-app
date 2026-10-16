@@ -109,6 +109,26 @@ void main() {
       isUnlicensedStockImageUrl('https://www.adobe.com/image/temple.jpg'),
       isFalse,
     );
+    const placesPublic =
+        'https://storage.googleapis.com/temple-directory-india.firebasestorage.app/temples/shore-temple/image_1.jpg';
+    const placesToken =
+        'https://firebasestorage.googleapis.com/v0/b/temple-directory-india.firebasestorage.app/o/temples%2Fshore-temple%2Fimage_1.jpg?alt=media&token=secret';
+    const placesThumb =
+        'https://storage.googleapis.com/bucket/temples/shore-temple/image_1_480_g4.jpg';
+    const packFrame =
+        'https://storage.googleapis.com/bucket/temples/shore-temple/01_Shore.jpg';
+    expect(isPlacesMirrorUrl(placesPublic), isTrue);
+    expect(isPlacesMirrorUrl(placesToken), isTrue);
+    expect(isPlacesMirrorUrl(placesThumb), isTrue);
+    expect(isPlacesMirrorUrl(packFrame), isFalse);
+    expect(isDisallowedImageUrl(placesPublic), isTrue);
+    expect(isDisallowedImageUrl(placesToken), isTrue);
+    expect(isDisallowedImageUrl(packFrame), isFalse);
+    expect(
+      verifiedCoverUrl(_draft(imageUrl: placesToken, images: [placesToken])),
+      isNull,
+    );
+    expect(verifiedCoverUrl(_draft(imageUrl: packFrame, images: [packFrame])), packFrame);
     expect(
       isUnlicensedStockImageUrl('https://gettyimages.example.com/photo.jpg'),
       isFalse,
