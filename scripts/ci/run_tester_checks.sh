@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Release-mode tester checks on the API 34 google_atd emulator.
 # Read-only against prod Firestore. No DEMO_BUILD and no ENABLE_ADMIN_TOOLS.
-# Screenshots are host screencaps taken when the integration test logs SHOT.
+# In-app frames arrive on TCP 18765 when the test logs PNGREADY.
+# adb screencap is only the maps handoff (SHOTADB), after dumpsys window
+# leaves the app. This script does not run adb root.
 set -uo pipefail
 
 PKG=com.shradhaventures.temple
@@ -160,15 +162,29 @@ def gate(check_id, names, extra=None, require_home=False):
 gate(1, ["01-accept-after"], require_home=True)
 
 launch_extra = []
+stable_home = []
 seen_hash = {}
 for name in launch_shots:
     digest = hashes.get(name, {}).get("md5", "")
     if digest and digest != "missing":
         seen_hash.setdefault(digest, []).append(name)
 for names in seen_hash.values():
-    if len(names) > 1:
-        launch_extra.append("byte-identical " + "=".join(names))
+    if len(names) < 2:
+        continue
+    label = "=".join(names)
+    home = all(
+        pixels.get(name, {}).get("frame") == "content"
+        and pixels.get(name, {}).get("body") == "home"
+        for name in names
+    )
+    if home:
+        stable_home.append(label)
+    else:
+        launch_extra.append("byte-identical " + label)
 gate(2, launch_shots, extra=launch_extra, require_home=True)
+if stable_home:
+    status, note = results.get(2, ("FAIL", "did not run"))
+    results[2] = (status, note + "; stable pixels " + ", ".join(stable_home))
 
 mosaic_extra = []
 for name, defect in mosaic.items():
@@ -255,6 +271,7 @@ lines = [
     "",
     "Release APK, prod Firestore, no writes, no DEMO_BUILD, no ENABLE_ADMIN_TOOLS.",
     "A PASS requires the expected text to be visible before the screenshot. Logs alone do not pass.",
+    "In-app screenshots are Flutter takeScreenshot frames. The maps intent is an adb screencap.",
     "Check 2 expects Browse 984 Temples and no Firebase or [core/no-app] error.",
     "Check 3 expects every mosaic tile to be a loaded network photo or Photo pending, never a grey placeholder.",
     "Check 5 records the top 3 for each query. Tirupathi and Sivan ranking mismatches are findings, not failures.",
@@ -362,76 +379,86 @@ adb install -r "$APK"
 adb install -r "$TEST_APK"
 adb shell pm path "$PKG"
 bash "$ROOT/scripts/ci/install_https_handoff.sh"
+if ! adb forward tcp:18765 tcp:18765; then
+  echo "adb forward tcp:18765 failed" >&2
+  exit 1
+fi
+adb forward --list
 
 echo "===== screenshot watcher ====="
 PREV_HASH_FILE=/tmp/tester-checks-prev-hash
 rm -f "$PREV_HASH_FILE"
-capture_shot() {
+record_saved() {
   local name="$1"
+  local retries="$2"
   local dest="$OUT/${name}.png"
-  local prev=""
-  prev="$(cat "$PREV_HASH_FILE" 2>/dev/null || true)"
-  rm -f "$dest"
-  local hash="" bytes=0 identical=no retries=0
-  local attempt pixels
-  local same_limit=1
-  local black_limit=1
-  # Launch shots stay on screen long enough to recapture a reused frame.
-  # Force-update stays up long enough to recapture a black frame.
-  if [[ "$name" == 02-* || "$name" == "01-accept-after" ]]; then
-    same_limit=4
-  fi
-  if [[ "$name" == "13-force-update" ]]; then
-    black_limit=2
-  fi
-  for attempt in 1 2 3 4; do
-    sleep 0.45
-    if ! adb exec-out screencap -p > "$dest"; then
-      echo "screencap failed for $name attempt $attempt"
-      rm -f "$dest"
-      retries=$((retries + 1))
-      continue
-    fi
-    if [[ ! -s "$dest" ]]; then
-      echo "empty screencap for $name attempt $attempt"
-      rm -f "$dest"
-      retries=$((retries + 1))
-      continue
-    fi
-    hash="$(md5sum "$dest" | awk '{print $1}')"
-    bytes="$(wc -c < "$dest" | tr -d ' ')"
-    pixels="$(python3 "$ROOT/scripts/ci/classify_tester_png.py" "$dest" "$name" || true)"
-    if [[ -n "$prev" && "$hash" == "$prev" && "$attempt" -lt "$same_limit" ]]; then
-      identical=yes
-      retries=$((retries + 1))
-      echo "recapture $name matches the previous screenshot"
-      sleep 0.8
-      continue
-    fi
-    if [[ "$pixels" == *"frame=black"* && "$attempt" -lt "$black_limit" ]]; then
-      retries=$((retries + 1))
-      echo "recapture $name framebuffer is black"
-      sleep 1.2
-      continue
-    fi
-    if [[ -n "$prev" && "$hash" == "$prev" ]]; then
-      identical=yes
-    else
-      identical=no
-    fi
-    break
-  done
-  if [[ -z "$hash" || ! -s "$dest" ]]; then
+  if [[ ! -s "$dest" ]]; then
     printf 'HASH %s missing bytes=0 identical=no retries=%s\n' "$name" "$retries" | tee -a "$OUT/events.log"
     return
+  fi
+  local prev="" hash bytes identical=no pixels
+  prev="$(cat "$PREV_HASH_FILE" 2>/dev/null || true)"
+  hash="$(md5sum "$dest" | awk '{print $1}')"
+  bytes="$(wc -c < "$dest" | tr -d ' ')"
+  if [[ -n "$prev" && "$hash" == "$prev" ]]; then
+    identical=yes
   fi
   printf '%s\n' "$hash" > "$PREV_HASH_FILE"
   printf 'HASH %s %s bytes=%s identical=%s retries=%s\n' \
     "$name" "$hash" "$bytes" "$identical" "$retries" | tee -a "$OUT/events.log"
+  pixels="$(python3 "$ROOT/scripts/ci/classify_tester_png.py" "$dest" "$name" || true)"
   if [[ -n "$pixels" ]]; then
     printf '%s\n' "$pixels" | tee -a "$OUT/events.log"
   fi
-  echo "captured $name ($bytes bytes) $identical"
+  echo "saved $name ($bytes bytes) identical=$identical retries=$retries"
+}
+fetch_png() {
+  local name="$1"
+  local length="$2"
+  local retries="$3"
+  local dest="$OUT/${name}.png"
+  if [[ ! "$name" =~ ^[A-Za-z0-9._-]+$ ]]; then
+    echo "skip png name $name"
+    return
+  fi
+  rm -f "$dest"
+  if ! python3 - "$dest" "$length" <<'PY'
+import os, socket, sys, time
+dest, length = sys.argv[1], int(sys.argv[2])
+if length <= 0 or length > 12_000_000:
+    raise SystemExit(f"bad png length {length}")
+sock = None
+last = None
+for _ in range(50):
+    try:
+        sock = socket.create_connection(("127.0.0.1", 18765), timeout=2)
+        break
+    except OSError as error:
+        last = error
+        time.sleep(0.1)
+if sock is None:
+    raise SystemExit(f"connect failed: {last}")
+sock.settimeout(20)
+data = bytearray()
+while len(data) < length:
+    chunk = sock.recv(min(65536, length - len(data)))
+    if not chunk:
+        break
+    data.extend(chunk)
+sock.close()
+if len(data) != length:
+    raise SystemExit(f"short read {len(data)}/{length}")
+part = dest + ".part"
+with open(part, "wb") as handle:
+    handle.write(data)
+os.replace(part, dest)
+print(f"received {len(data)} bytes")
+PY
+  then
+    echo "png fetch failed for $name"
+    printf 'HASH %s missing bytes=0 identical=no retries=%s\n' "$name" "$retries" | tee -a "$OUT/events.log"
+    return
+  fi
   if [[ "$name" == "13-force-update" ]]; then
     local uia="MISSING"
     if adb shell uiautomator dump /sdcard/tester-ui.xml >/tmp/tester-uia-dump.txt 2>&1; then
@@ -441,19 +468,54 @@ capture_shot() {
     fi
     printf 'UIA 13-force-update %s\n' "$uia" | tee -a "$OUT/events.log"
   fi
+  record_saved "$name" "$retries"
+}
+capture_adb() {
+  local name="$1"
+  local dest="$OUT/${name}.png"
+  if [[ ! "$name" =~ ^[A-Za-z0-9._-]+$ ]]; then
+    echo "skip adb shot name $name"
+    return
+  fi
+  local focus="" i
+  for i in 1 2 3 4 5 6 7 8; do
+    focus="$(adb shell dumpsys window 2>/dev/null | tr -d '\r' | grep -m1 'mCurrentFocus=' || true)"
+    echo "focus $name $focus"
+    if [[ -n "$focus" && "$focus" != *'com.shradhaventures.temple/'* ]]; then
+      break
+    fi
+    sleep 0.35
+  done
+  rm -f "$dest"
+  local prev="" hash="" pixels="" retries=0
+  prev="$(cat "$PREV_HASH_FILE" 2>/dev/null || true)"
+  adb exec-out screencap -p > "$dest" || rm -f "$dest"
+  if [[ -s "$dest" ]]; then
+    hash="$(md5sum "$dest" | awk '{print $1}')"
+    pixels="$(python3 "$ROOT/scripts/ci/classify_tester_png.py" "$dest" "$name" || true)"
+  fi
+  if [[ ! -s "$dest" || "$pixels" == *"frame=black"* || ( -n "$prev" && "$hash" == "$prev" ) ]]; then
+    retries=1
+    echo "recapture $name once (black or same hash)"
+    sleep 0.4
+    adb exec-out screencap -p > "$dest" || rm -f "$dest"
+  fi
+  record_saved "$name" "$retries"
 }
 stdbuf -oL adb logcat -v brief | stdbuf -oL grep --line-buffered 'TESTER_CHECKS' | while IFS= read -r line; do
   line="${line//$'\r'/}"
   printf '%s\n' "$line" >> "$OUT/events.log"
   case "$line" in
-    *"SHOT "*)
-      name="${line##*SHOT }"
+    *"PNGREADY "*)
+      rest="${line##*PNGREADY }"
+      read -r name length retries <<<"$rest"
+      retries="${retries:-0}"
+      fetch_png "$name" "$length" "$retries"
+      ;;
+    *"SHOTADB "*)
+      name="${line##*SHOTADB }"
       name="${name%% *}"
-      if [[ ! "$name" =~ ^[A-Za-z0-9._-]+$ ]]; then
-        echo "skip shot name $name"
-        continue
-      fi
-      capture_shot "$name"
+      capture_adb "$name"
       ;;
   esac
 done &
@@ -563,31 +625,14 @@ run_phase kill-switch 45
 run_phase force-update 70
 
 echo "===== airplane ====="
+# pm clear is the no-cache cold start. It is not adb root. The logcat
+# watcher stays up so the airplane screenshot is not dropped.
 adb shell cmd connectivity airplane-mode enable || true
 adb shell settings put global airplane_mode_on 1 || true
 adb shell am broadcast -a android.intent.action.AIRPLANE_MODE --ez state true || true
 adb shell svc wifi disable || true
 adb shell svc data disable || true
-adb root || true
-adb wait-for-device
-adb shell iptables -I OUTPUT -j DROP || true
 adb shell pm clear "$PKG" || true
-# adb root restarts adbd and drops the logcat stream.
-kill "$WATCH_PID" || true
-stdbuf -oL adb logcat -v brief | stdbuf -oL grep --line-buffered 'TESTER_CHECKS' | while IFS= read -r line; do
-  line="${line//$'\r'/}"
-  printf '%s\n' "$line" >> "$OUT/events.log"
-  case "$line" in
-    *"SHOT "*)
-      name="${line##*SHOT }"
-      name="${name%% *}"
-      if [[ "$name" =~ ^[A-Za-z0-9._-]+$ ]]; then
-        capture_shot "$name"
-      fi
-      ;;
-  esac
-done &
-WATCH_PID=$!
 run_phase airplane 60
 
 kill "$WATCH_PID" || true

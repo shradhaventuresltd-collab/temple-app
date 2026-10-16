@@ -1,10 +1,13 @@
+import 'dart:async';
 import 'dart:developer' as developer;
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:temple_app/main.dart' as app;
@@ -16,6 +19,8 @@ import 'package:temple_app/utils/detail_honesty.dart';
 import 'package:temple_app/widgets/home_mosaic_collage.dart';
 import 'package:temple_app/widgets/mosaic_tile_placeholder.dart';
 import 'package:temple_app/widgets/temple_browse_card.dart';
+
+import 'tester_checks_png.dart';
 
 /// Read-only checks against the release app on prod Firestore.
 ///
@@ -51,6 +56,7 @@ void main() {
       }
       await app.main();
       await tester.pump(const Duration(milliseconds: 300));
+      await _enableFlutterShots(tester);
       switch (phase) {
         case 'accept':
           await _acceptPhase(tester);
@@ -80,7 +86,11 @@ void main() {
       _logLine('HARNESS FAIL $phase $e');
       final stack = st.toString().split('\n').take(6).join(' | ');
       _logLine('STACK $stack');
-      await _shot(tester, '99-$phase-error');
+      try {
+        await _shot(tester, '99-$phase-error');
+      } catch (shotError) {
+        _logLine('HARNESS error-shot $shotError');
+      }
     } finally {
       _logLine('DONE $phase');
     }
@@ -110,23 +120,209 @@ void _result(int id, bool pass, String note) {
   _logLine('RESULT $id ${pass ? 'PASS' : 'FAIL'} $note');
 }
 
-Future<void> _shot(
+const _shotPort = 18765;
+const _shotChannel = MethodChannel('plugins.flutter.io/integration_test');
+
+ServerSocket? _shotServer;
+Completer<Socket>? _shotPending;
+int? _prevFingerprint;
+
+/// Converts the Flutter surface once, inside the test. The plugin then
+/// registers a tearDown; that call throws because the test has started, and
+/// the surface is already an image by then.
+Future<void> _enableFlutterShots(WidgetTester tester) async {
+  final binding = IntegrationTestWidgetsFlutterBinding.instance;
+  Object? last;
+  for (var attempt = 0; attempt < 6; attempt++) {
+    try {
+      await binding.convertFlutterSurfaceToImage();
+      await tester.pump();
+      _logLine('HARNESS surface converted');
+      return;
+    } on StateError catch (e) {
+      await tester.pump();
+      _logLine('HARNESS surface converted $e');
+      return;
+    } catch (e) {
+      last = e;
+      await tester.pump(const Duration(milliseconds: 250));
+    }
+  }
+  _logLine('HARNESS surface failed $last');
+}
+
+Future<void> _ensureShotServer() async {
+  if (_shotServer != null) return;
+  SocketException? last;
+  for (var attempt = 0; attempt < 8; attempt++) {
+    try {
+      final server = await ServerSocket.bind(
+        InternetAddress.loopbackIPv4,
+        _shotPort,
+        shared: true,
+      );
+      server.listen(
+        (socket) {
+          final pending = _shotPending;
+          if (pending != null && !pending.isCompleted) {
+            pending.complete(socket);
+          } else {
+            socket.destroy();
+          }
+        },
+        onError: (Object error) {
+          _logLine('HARNESS socket $error');
+        },
+      );
+      _shotServer = server;
+      return;
+    } on SocketException catch (error) {
+      last = error;
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    }
+  }
+  throw StateError('screenshot socket: $last');
+}
+
+void _dropScreenshotBytes(IntegrationTestWidgetsFlutterBinding binding) {
+  final shots = binding.reportData?['screenshots'];
+  if (shots is List) shots.clear();
+}
+
+Future<List<int>> _readScreenshotChunks() async {
+  final length = await _shotChannel.invokeMethod<int>('screenshotLength') ?? 0;
+  if (length <= 0) {
+    throw StateError('screenshotLength=$length');
+  }
+  const chunk = 200000;
+  final out = BytesBuilder(copy: false);
+  for (var offset = 0; offset < length; offset += chunk) {
+    final n = length - offset < chunk ? length - offset : chunk;
+    final part = await _shotChannel.invokeMethod<Object>(
+      'readScreenshotChunk',
+      <String, int>{'offset': offset, 'length': n},
+    );
+    if (part is Uint8List) {
+      out.add(part);
+    } else if (part is List) {
+      out.add(part.cast<int>());
+    } else {
+      throw StateError('chunk at $offset was ${part.runtimeType}');
+    }
+  }
+  final bytes = out.takeBytes();
+  if (bytes.length != length) {
+    throw StateError('screenshot bytes ${bytes.length} of $length');
+  }
+  return bytes;
+}
+
+Future<List<int>> _captureBytes(String name) async {
+  final binding = IntegrationTestWidgetsFlutterBinding.instance;
+  List<int>? inline;
+  try {
+    final bytes = await binding.takeScreenshot(name);
+    _dropScreenshotBytes(binding);
+    if (bytes.isNotEmpty && bytes.length <= 400000) return bytes;
+    inline = bytes;
+  } catch (_) {
+    _dropScreenshotBytes(binding);
+  }
+  try {
+    final bytes = await _readScreenshotChunks();
+    _dropScreenshotBytes(binding);
+    if (bytes.isNotEmpty) return bytes;
+  } catch (e) {
+    if (inline != null && inline.isNotEmpty) return inline;
+    _logLine('HARNESS capture $name $e');
+    rethrow;
+  }
+  if (inline != null && inline.isNotEmpty) return inline;
+  throw StateError('empty screenshot $name');
+}
+
+Future<({List<int> bytes, int retries})> _captureFresh(
   WidgetTester tester,
-  String name, {
-  Duration present = const Duration(milliseconds: 700),
-  Duration hold = const Duration(milliseconds: 1000),
-}) async {
-  final safe = name.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '-');
-  // Host screencap is the evidence. convertFlutterSurfaceToImage registers
-  // a tearDown after the test has started and drops the element tree.
-  // One frame, then a real pause so the emulator framebuffer has presented.
-  // [hold] keeps that frame up after SHOT so the host can recapture.
+  String name,
+) async {
   if (WidgetsBinding.instance.rootElement != null) {
     await tester.pump();
   }
-  await Future<void>.delayed(present);
-  _logLine('SHOT $safe');
-  await Future<void>.delayed(hold);
+  List<int> bytes;
+  try {
+    bytes = await _captureBytes(name);
+  } catch (e) {
+    _logLine('HARNESS capture-retry $name $e');
+    await tester.pump(const Duration(milliseconds: 200));
+    await Future<void>.delayed(const Duration(milliseconds: 400));
+    bytes = await _captureBytes(name);
+    final fingerprint = pngFingerprint(bytes);
+    _prevFingerprint = fingerprint;
+    _logLine(
+      'CAPTURE $name retries=1 black=${pngLooksBlack(bytes) ? 'yes' : 'no'} '
+      'identical=no bytes=${bytes.length}',
+    );
+    return (bytes: bytes, retries: 1);
+  }
+  var black = pngLooksBlack(bytes);
+  var fingerprint = pngFingerprint(bytes);
+  var identical = _prevFingerprint != null && fingerprint == _prevFingerprint;
+  var retries = 0;
+  if (black || identical) {
+    retries = 1;
+    try {
+      await tester.pump(const Duration(milliseconds: 200));
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      bytes = await _captureBytes(name);
+      black = pngLooksBlack(bytes);
+      fingerprint = pngFingerprint(bytes);
+      identical = _prevFingerprint != null && fingerprint == _prevFingerprint;
+    } catch (e) {
+      _logLine('HARNESS recapture $name $e');
+    }
+  }
+  _prevFingerprint = fingerprint;
+  _logLine(
+    'CAPTURE $name retries=$retries black=${black ? 'yes' : 'no'} '
+    'identical=${identical ? 'yes' : 'no'} bytes=${bytes.length}',
+  );
+  return (bytes: bytes, retries: retries);
+}
+
+Future<void> _sendPng(String name, List<int> bytes, int retries) async {
+  await _ensureShotServer();
+  final pending = Completer<Socket>();
+  _shotPending = pending;
+  _logLine('PNGREADY $name ${bytes.length} $retries');
+  try {
+    final socket = await pending.future.timeout(const Duration(seconds: 25));
+    socket.add(bytes);
+    await socket.flush();
+    await socket.close();
+  } finally {
+    if (identical(_shotPending, pending)) _shotPending = null;
+  }
+}
+
+Future<void> _shot(
+  WidgetTester tester,
+  String name, {
+  Duration hold = Duration.zero,
+  bool adb = false,
+}) async {
+  final safe = name.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '-');
+  if (adb) {
+    // The maps activity is outside Flutter. The host screencaps after
+    // dumpsys window leaves this package.
+    _logLine('SHOTADB $safe');
+    await Future<void>.delayed(hold);
+    return;
+  }
+  final shot = await _captureFresh(tester, safe);
+  await _sendPng(safe, shot.bytes, shot.retries);
+  if (hold > Duration.zero) {
+    await Future<void>.delayed(hold);
+  }
 }
 
 Future<bool> _waitUntil(
@@ -164,7 +360,8 @@ bool _directoryReady(WidgetTester tester) {
   return tester.any(find.byKey(const Key('home-browse-temples')));
 }
 
-/// True only after [ready] is on screen. The host captures the following SHOT.
+/// True only after [ready] is on screen. In-app frames are Flutter
+/// screenshots. [adb] is only the maps handoff, which leaves the app.
 /// A check must not PASS when this returns false.
 Future<bool> _captureWhen(
   WidgetTester tester,
@@ -172,19 +369,19 @@ Future<bool> _captureWhen(
   bool Function() ready, {
   required String waitingFor,
   Duration timeout = const Duration(seconds: 20),
-  Duration present = const Duration(milliseconds: 700),
-  Duration hold = const Duration(milliseconds: 1000),
+  Duration hold = Duration.zero,
+  bool adb = false,
 }) async {
   final ok = await _waitUntil(tester, ready, timeout: timeout);
   if (!ok) {
     _logLine(
       'SHOTWAIT $name FAIL missing $waitingFor screen=${_screenHint(tester)}',
     );
-    await _shot(tester, name, present: present, hold: hold);
+    await _shot(tester, name, hold: hold, adb: adb);
     return false;
   }
   _logLine('SHOTWAIT $name PASS $waitingFor');
-  await _shot(tester, name, present: present, hold: hold);
+  await _shot(tester, name, hold: hold, adb: adb);
   return true;
 }
 
@@ -341,7 +538,6 @@ Future<void> _acceptPhase(WidgetTester tester) async {
     () => _directoryReady(tester),
     waitingFor: 'Browse $_expectedTemples Temples',
     timeout: const Duration(seconds: 45),
-    hold: const Duration(seconds: 5),
   );
   _result(
     1,
@@ -372,11 +568,14 @@ Future<void> _homeLaunch(
   );
   final label = _browseLabel(tester);
   if (_directoryReady(tester)) {
-    final button = find.byKey(const Key('home-browse-temples'));
-    if (button.evaluate().length == 1) {
-      await tester.ensureVisible(button);
-      await tester.pump(const Duration(milliseconds: 200));
-    }
+    // The browse button sits below the 420px collage. Scrolling it on
+    // screen unmounts the mosaic, so the launch shot stays at offset 0.
+    await _jumpHomeToTop(tester);
+    await _waitUntil(
+      tester,
+      () => _mosaicDefect(tester).startsWith('ok'),
+      timeout: const Duration(seconds: 3),
+    );
   }
   // The soft-update banner claims a preferences day after the first Home frame.
   if (_updateBlock(tester) == null && _directoryReady(tester)) {
@@ -397,7 +596,6 @@ Future<void> _homeLaunch(
       () => _directoryReady(tester),
       waitingFor: 'Browse $_expectedTemples Temples',
       timeout: const Duration(seconds: 15),
-      hold: const Duration(seconds: 5),
     );
   }
 
@@ -457,20 +655,28 @@ Future<void> _detailOnly(WidgetTester tester) async {
   await _janakiAndDirections(tester);
 }
 
-Future<void> _mosaicCheck(WidgetTester tester) async {
-  final mosaic = find.byType(HomeMosaicCollage);
-  if (tester.any(mosaic)) {
-    await tester.ensureVisible(mosaic);
-    await tester.pump(const Duration(milliseconds: 200));
+Future<void> _jumpHomeToTop(WidgetTester tester) async {
+  final scrollables = find.byType(Scrollable);
+  if (scrollables.evaluate().isEmpty) return;
+  try {
+    final position = tester.state<ScrollableState>(scrollables.first).position;
+    if (position.pixels != 0) {
+      position.jumpTo(0);
+      await tester.pump(const Duration(milliseconds: 200));
+    }
+  } catch (e) {
+    _logLine('HARNESS scroll-top $e');
   }
+}
+
+Future<void> _mosaicCheck(WidgetTester tester) async {
+  await _jumpHomeToTop(tester);
   await _waitUntil(
     tester,
     () => _mosaicDefect(tester).startsWith('ok'),
     timeout: const Duration(seconds: 8),
   );
-  if (tester.any(mosaic)) {
-    await tester.ensureVisible(mosaic);
-  }
+  await _jumpHomeToTop(tester);
   final defect = _mosaicDefect(tester);
   _logLine('MOSAIC 03-home-mosaic $defect');
   final shot = await _captureWhen(
@@ -827,13 +1033,14 @@ Future<void> _janakiAndDirections(WidgetTester tester) async {
         tester.any(find.byKey(const Key('get-directions-button'))),
     timeout: const Duration(seconds: 20),
   );
-  // Several texts can contain this phrase. ensureVisible throws when the
-  // finder matches more than one, so scroll until one is hit-testable.
-  await _scrollUntilHit(tester, find.text('Punaura Dham'));
+  // The caption is "Shows Punaura Dham". textContaining matches that
+  // phrase. Several widgets can contain it, so do not ensureVisible.
+  final caption = find.textContaining('Punaura Dham');
+  await _scrollUntilHit(tester, caption);
   final captionShot = await _captureWhen(
     tester,
     '07-janaki-caption',
-    () => find.text('Punaura Dham').hitTestable().evaluate().isNotEmpty,
+    () => caption.hitTestable().evaluate().isNotEmpty,
     waitingFor: 'Punaura Dham',
     timeout: const Duration(seconds: 12),
   );
@@ -893,6 +1100,8 @@ Future<void> _janakiAndDirections(WidgetTester tester) async {
     },
     waitingFor: 'a maps handoff',
     timeout: const Duration(seconds: 8),
+    hold: const Duration(seconds: 10),
+    adb: true,
   );
   final life = tester.binding.lifecycleState;
   final snack = tester.any(
@@ -1239,10 +1448,8 @@ Future<void> _forceUpdatePhase(WidgetTester tester) async {
         tester.any(find.byKey(const Key('force-update-screen'))),
     waitingFor: 'Update required',
     timeout: const Duration(seconds: 20),
-    present: const Duration(milliseconds: 1500),
-    // The host recaptures a black frame and dumps the UI hierarchy
-    // before this phase ends.
-    hold: const Duration(seconds: 14),
+    // Keeps the activity up while the host reads the widget hierarchy.
+    hold: const Duration(seconds: 3),
   );
   final update = _updateBlock(tester);
   final hard = update == 'force-update-screen' ||

@@ -21,6 +21,8 @@ on:
       - integration_test/**
       - scripts/ci/run_tester_checks.sh
       - scripts/ci/disable_impeller_for_emulator_apk.sh
+      - scripts/ci/patch_integration_screenshot.sh
+      - scripts/ci/classify_tester_png.py
       - android/app/src/androidTest/**
 
 permissions:
@@ -128,6 +130,9 @@ jobs:
           # SwiftShader on this emulator does not run Impeller. The edit is
           # local to the job; the Play manifest is unchanged.
           bash scripts/ci/disable_impeller_for_emulator_apk.sh
+          # Chunked screenshots for frames larger than the binder limit.
+          # The Play checkout does not run this patch.
+          bash scripts/ci/patch_integration_screenshot.sh
           flutter build apk --release \
             --target-platform android-x64 \
             --target integration_test/tester_checks_test.dart
