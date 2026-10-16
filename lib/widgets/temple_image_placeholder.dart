@@ -27,58 +27,88 @@ class TempleImagePlaceholder extends StatelessWidget {
 
     final showCaption = expand || height >= 120;
     final iconSize = expand ? 72.0 : height * 0.28;
-
-    final core = DecoratedBox(
-      decoration: const BoxDecoration(gradient: gradient),
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.photo_outlined,
-                size: iconSize,
-                color: const Color(0xFF8D6E63),
-              ),
-              if (showCaption) ...[
-                SizedBox(height: expand ? 14 : 8),
-                Text(
-                  'Photo pending',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF5D4037),
-                    fontSize: expand ? 26 : 16,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'No verified photograph is on file.',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF6D4C41),
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
+    final column = _PendingColumn(
+      showCaption: showCaption,
+      iconSize: iconSize,
+      large: expand,
     );
 
+    final Widget core;
     if (expand) {
-      return Semantics(
-        label: 'Photo pending. No verified photograph is on file.',
-        child: SizedBox.expand(child: core),
+      // Mosaic cells are much shorter than the detail hero. Scale the same
+      // caption down instead of overflowing into a blank tile.
+      core = DecoratedBox(
+        decoration: const BoxDecoration(gradient: gradient),
+        child: Center(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: SizedBox(width: 280, child: column),
+          ),
+        ),
+      );
+    } else {
+      core = DecoratedBox(
+        decoration: const BoxDecoration(gradient: gradient),
+        child: Center(child: column),
       );
     }
 
     return Semantics(
       label: 'Photo pending. No verified photograph is on file.',
-      child: SizedBox(height: height, width: double.infinity, child: core),
+      child: expand
+          ? SizedBox.expand(child: core)
+          : SizedBox(height: height, width: double.infinity, child: core),
+    );
+  }
+}
+
+class _PendingColumn extends StatelessWidget {
+  const _PendingColumn({
+    required this.showCaption,
+    required this.iconSize,
+    required this.large,
+  });
+
+  final bool showCaption;
+  final double iconSize;
+  final bool large;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.photo_outlined,
+            size: iconSize,
+            color: const Color(0xFF8D6E63),
+          ),
+          if (showCaption) ...[
+            SizedBox(height: large ? 14 : 8),
+            Text(
+              'Photo pending',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF5D4037),
+                fontSize: large ? 26 : 16,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'No verified photograph is on file.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: const Color(0xFF6D4C41),
+                height: 1.4,
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

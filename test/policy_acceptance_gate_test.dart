@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/config/policy_config.dart';
@@ -360,6 +361,51 @@ void main() {
     expect(find.byType(PolicyAcceptanceGate), findsNothing);
     expect(find.byType(HomeScreen), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Accept ignores a second tap until the first write finishes', (
+    tester,
+  ) async {
+    final store = _SlowPolicyAcceptanceStore();
+    await tester.pumpWidget(_app(store: store));
+    await tester.pumpAndSettle();
+
+    final accept = find.byKey(const Key('policy-accept-button'));
+    final scroll = tester.getRect(find.byType(SingleChildScrollView));
+    final acceptRect = tester.getRect(accept);
+    expect(
+      acceptRect.top,
+      greaterThanOrEqualTo(scroll.bottom),
+      reason:
+          'Accept stays below the scroll view, so the first tap is not a scroll',
+    );
+
+    final button = tester.widget<FilledButton>(find.byType(FilledButton));
+    expect(button.onPressed, isNotNull);
+    button.onPressed!();
+    button.onPressed!();
+    await tester.pump();
+
+    expect(store.writes, 1);
+    expect(find.byKey(const Key('policy-accept-progress')), findsOneWidget);
+    expect(find.byType(HomeScreen), findsNothing);
+
+    final semantics = tester.ensureSemantics();
+    tester.binding.rootPipelineOwner.semanticsOwner!.performAction(
+      tester.getSemantics(accept).id,
+      SemanticsAction.tap,
+    );
+    await tester.pump();
+    expect(store.writes, 1);
+
+    store.release.complete();
+    await tester.pumpAndSettle();
+
+    expect(store.writes, 1);
+    expect(find.byType(HomeScreen), findsOneWidget);
+    expect(find.byType(PolicyAcceptanceGate), findsNothing);
+    expect(tester.takeException(), isNull);
+    semantics.dispose();
   });
 
   testWidgets('Accept runs on the first tap and shows progress while saving', (

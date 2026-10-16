@@ -51,6 +51,10 @@ class _HomeScreenState extends State<HomeScreen> {
   static const Color _saffron = Color(0xFFFF8F00);
   static const Color _cream = Color(0xFFFFFBF2);
 
+  /// Tall enough for a two-line title. The default 56px toolbar clips the
+  /// second line.
+  static const double _titleBarHeight = 80;
+
   final TempleService _templeService = TempleService();
   late Future<List<Temple>> _templesFuture;
 
@@ -116,9 +120,16 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: _saffron,
         elevation: 0,
         centerTitle: true,
+        toolbarHeight: _titleBarHeight,
         title: Text(
           'Temple Directory',
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          softWrap: true,
+          textAlign: TextAlign.center,
           style: GoogleFonts.lora(
+            fontSize: 20,
+            height: 1.2,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.3,
             color: Colors.white,

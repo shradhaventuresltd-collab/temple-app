@@ -437,9 +437,14 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
                   children: [
                     Text(
                       temple.name,
+                      key: const Key('detail-temple-name'),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: true,
                       style: GoogleFonts.lora(
                         fontSize: 26,
                         fontWeight: FontWeight.w700,
+                        height: 1.2,
                         color: _saffron,
                       ),
                     ),

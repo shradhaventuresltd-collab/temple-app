@@ -98,8 +98,10 @@ class TempleBrowseCard extends StatelessWidget {
                     children: [
                       Text(
                         temple.name,
+                        key: const Key('browse-temple-name'),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
+                        softWrap: true,
                         style: GoogleFonts.lora(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
