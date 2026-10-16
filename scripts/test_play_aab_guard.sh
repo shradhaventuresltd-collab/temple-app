@@ -9,6 +9,8 @@ cd "$(dirname "$0")/.."
 
 unset ENABLE_ADMIN_TOOLS || true
 unset DEMO_BUILD || true
+unset DEMO_APP_ID_SUFFIX || true
+unset ORG_GRADLE_PROJECT_demo_suffix || true
 unset SMOKE_GATE_OVERRIDE || true
 
 expect_fail() {
@@ -77,6 +79,39 @@ printf '%s\n' 'DEMO_BUILD=true' >"$defines_dir/demo.env"
 expect_fail "dart-define-from-file DEMO_BUILD" \
   "DEMO_BUILD" \
   ./scripts/build_play_aab.sh --dart-define-from-file="$defines_dir/demo.env"
+
+expect_fail "DEMO_APP_ID_SUFFIX equals form" \
+  "DEMO_APP_ID_SUFFIX" \
+  ./scripts/build_play_aab.sh --dart-define=DEMO_APP_ID_SUFFIX=true
+
+expect_fail "DEMO_APP_ID_SUFFIX space form" \
+  "DEMO_APP_ID_SUFFIX" \
+  ./scripts/build_play_aab.sh --dart-define DEMO_APP_ID_SUFFIX=true
+
+expect_fail "DEMO_APP_ID_SUFFIX env" \
+  "DEMO_APP_ID_SUFFIX" \
+  env DEMO_APP_ID_SUFFIX=true ./scripts/build_play_aab.sh
+
+expect_fail "ORG_GRADLE_PROJECT_demo_suffix env" \
+  "demo_suffix" \
+  env ORG_GRADLE_PROJECT_demo_suffix=true ./scripts/build_play_aab.sh
+
+expect_fail "gradle -Pdemo_suffix" \
+  "demo_suffix" \
+  ./scripts/build_play_aab.sh -Pdemo_suffix=true
+
+expect_fail "ORG_GRADLE_PROJECT_ciTesterChecks env" \
+  "integration_test" \
+  env ORG_GRADLE_PROJECT_ciTesterChecks=true ./scripts/build_play_aab.sh
+
+expect_fail "gradle -PciTesterChecks" \
+  "integration_test" \
+  ./scripts/build_play_aab.sh -PciTesterChecks=true
+
+printf '%s\n' 'DEMO_APP_ID_SUFFIX=true' >"$defines_dir/suffix.env"
+expect_fail "dart-define-from-file DEMO_APP_ID_SUFFIX" \
+  "DEMO_APP_ID_SUFFIX" \
+  ./scripts/build_play_aab.sh --dart-define-from-file="$defines_dir/suffix.env"
 
 printf '%s\n' 'not a bundle' >"$defines_dir/readme.txt"
 (
@@ -207,5 +242,30 @@ expect_fail "dirty tree is refused" \
     ./scripts/check_android_smoke_gate.sh
 rm -f scripts/ci/SMOKE_GATE_DIRTY_TEST
 echo "ok: dirty tree removed"
+
+printf '%s\n' 'plain bundle' >"$defines_dir/clean.txt"
+(
+  cd "$defines_dir"
+  rm -f clean.aab plugin.aab
+  zip -q clean.aab clean.txt
+)
+printf '%s\n' 'Ldev/flutter/plugins/integration_test/IntegrationTestPlugin;' >"$defines_dir/classes.dex.txt"
+(
+  cd "$defines_dir"
+  zip -q plugin.aab classes.dex.txt
+)
+./scripts/build_play_aab.sh --verify-no-integration-test "$defines_dir/clean.aab"
+echo "ok: bundle without integration_test plugin class"
+expect_fail "bundle contains integration_test plugin class" \
+  "integration_test" \
+  ./scripts/build_play_aab.sh --verify-no-integration-test "$defines_dir/plugin.aab"
+
+shim="$(mktemp -d)"
+ln -s "$(command -v bash)" "$shim/bash"
+ln -s "$(command -v dirname)" "$shim/dirname"
+expect_fail "missing python3 has its own error" \
+  "python3 is required" \
+  env PATH="$shim" ./scripts/build_play_aab.sh --verify-no-integration-test "$defines_dir/clean.aab"
+rm -rf "$shim"
 
 echo "Play AAB guard checks passed."

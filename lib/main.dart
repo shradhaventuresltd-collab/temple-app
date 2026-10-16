@@ -26,6 +26,11 @@ import 'package:temple_app/services/temple_service.dart';
 import 'package:temple_app/services/update_nudge_store.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+/// Test-only hook. Integration tests may set this before [main].
+/// It must stay null in production and in the Play build. A non-null
+/// value skips Remote Config, and production never assigns it.
+AppConfig? integrationTestConfigOverride;
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Detailed text only for debug, DEMO_BUILD, or ENABLE_ADMIN_TOOLS.
@@ -51,14 +56,22 @@ Future<void> main() async {
   // Defaults and the last activated cache before the first frame. The fetch
   // is not awaited: a slow or failed fetch must not hold the saffron splash.
   // Remote Config is not constructed unless Firebase already has an app.
-  final appConfig = AppConfigController(
-    client: remoteConfigClientIfReady(firebaseReady: firebaseReady),
-    minimumFetchInterval: kRemoteConfigMinimumFetchInterval,
-  );
+  final override = integrationTestConfigOverride;
+  final AppConfigController appConfig;
+  if (override != null) {
+    appConfig = AppConfigController(initial: override);
+  } else {
+    appConfig = AppConfigController(
+      client: remoteConfigClientIfReady(firebaseReady: firebaseReady),
+      minimumFetchInterval: kRemoteConfigMinimumFetchInterval,
+    );
+  }
   TempleService.readsBlocked = () => appConfig.snapshot.killSwitch;
-  final remoteConfigStartup = startRemoteConfig(appConfig);
-  await remoteConfigStartup.ready;
-  unawaited(remoteConfigStartup.fetch);
+  if (override == null) {
+    final remoteConfigStartup = startRemoteConfig(appConfig);
+    await remoteConfigStartup.ready;
+    unawaited(remoteConfigStartup.fetch);
+  }
   runApp(
     TempleDirectoryApp(firebaseReady: firebaseReady, appConfig: appConfig),
   );

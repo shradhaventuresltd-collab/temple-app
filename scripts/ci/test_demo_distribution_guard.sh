@@ -215,14 +215,22 @@ echo "ok: Demo label is only applied with the application id suffix"
 for untouched in \
   .github/workflows/android-smoke.yml \
   .github/workflows/demo-seed-launch.yml \
-  scripts/build_play_aab.sh
+  .github/workflows/tester-checks.yml
 do
   if grep -q 'DEMO_APP_ID_SUFFIX\|demo_suffix' "$untouched"; then
     echo "FAIL: ${untouched} sets the demo application id suffix" >&2
     exit 1
   fi
 done
-echo "ok: smoke, seed-launch, and the Play script do not set the suffix"
+echo "ok: smoke, seed-launch, and tester-checks do not set the suffix"
+require "Play script refuses the demo application id suffix" \
+  'refuse_demo_suffix' scripts/build_play_aab.sh
+require "Play script refuses ORG_GRADLE_PROJECT_demo_suffix" \
+  'ORG_GRADLE_PROJECT_demo_suffix' scripts/build_play_aab.sh
+require "Play bundle task rejects the demo application id" \
+  'playBundleRequested && demoAppIdSuffix' android/app/build.gradle.kts
+forbid "committed Gradle properties do not set demo_suffix" \
+  'demo_suffix|DEMO_APP_ID_SUFFIX' android/gradle.properties
 require "smoke still launches the Play package" \
   'PKG=com.shradhaventures.temple' scripts/ci/run_android_smoke.sh
 require "seed-launch still launches the Play package" \

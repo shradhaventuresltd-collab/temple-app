@@ -62,6 +62,7 @@ Build the Play bundle with `scripts/build_play_aab.sh`. It runs `flutter build a
 
 - `ENABLE_ADMIN_TOOLS` in `--dart-define=...` (`=` form), `--dart-define ...` (space form), the environment, or a `--dart-define-from-file` (equals or space form) whose file contains that name
 - `DEMO_BUILD` in those same forms (that define forces AdMob test units)
+- `DEMO_APP_ID_SUFFIX` in those same forms, plus `-Pdemo_suffix` and `ORG_GRADLE_PROJECT_demo_suffix`. Gradle applies `applicationIdSuffix` `.demo` for either of those. The Play bundle stays `com.shradhaventures.temple`. `bundleRelease` also fails if that suffix is on. The suffix belongs only on the App Distribution demo APK.
 - a signing cert whose subject contains `CN=Android Debug`
 - a HEAD SHA that does not have a successful `android-smoke` job from `schedule` or `workflow_dispatch`. A `pull_request` run does not count. Those runs carry the PR head SHA, not the merge ref. The script checks with `gh api` or `curl` using `GH_TOKEN`, `GITHUB_TOKEN`, or `gh auth token`. The only bypass of that check is exactly `SMOKE_GATE_OVERRIDE=1`. That prints a loud warning and continues. `SMOKE_GATE_OVERRIDE=0` and any other value do not bypass it. Do not set it for a Play upload unless you accept an unsmoked commit.
 - a dirty working tree (`git status --porcelain` is non-empty). `SMOKE_GATE_OVERRIDE` does not bypass that. There is no separate release workflow; this script is the release gate. `--verify-signing` does not run the smoke gate.

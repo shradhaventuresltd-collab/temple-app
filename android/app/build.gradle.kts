@@ -62,6 +62,43 @@ val demoBuild = dartDefines()["DEMO_BUILD"] == "true"
 // demo-app-distribution sets DEMO_APP_ID_SUFFIX (or -Pdemo_suffix=true).
 val demoAppIdSuffix = dartDefines()["DEMO_APP_ID_SUFFIX"] == "true" ||
     (findProperty("demo_suffix") as? String) == "true"
+// tester-checks only. The Play bundle and android-smoke do not set this.
+val ciTesterChecks = (findProperty("ciTesterChecks") as? String) == "true"
+
+// flutter build apk --release rewrites GeneratedPluginRegistrant and drops
+// dev dependencies, including integration_test. Tester-checks needs that
+// plugin on the engine. Play builds leave ciTesterChecks unset, so this
+// file is not patched and the plugin stays off the release classpath.
+fun registerCiTesterChecksPlugin() {
+    val registrant = file("src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java")
+    if (!registrant.isFile) {
+        throw GradleException(
+            "ciTesterChecks: GeneratedPluginRegistrant.java is missing. " +
+                "Flutter should have written it before compilation."
+        )
+    }
+    val marker = "dev.flutter.plugins.integration_test.IntegrationTestPlugin"
+    val text = registrant.readText()
+    if (text.contains(marker)) {
+        logger.lifecycle("ciTesterChecks: IntegrationTestPlugin already registered")
+        return
+    }
+    val needle = "public static void registerWith(@NonNull FlutterEngine flutterEngine) {"
+    if (!text.contains(needle)) {
+        throw GradleException(
+            "ciTesterChecks: GeneratedPluginRegistrant has no registerWith method"
+        )
+    }
+    val block = """
+        |    try {
+        |      flutterEngine.getPlugins().add(new dev.flutter.plugins.integration_test.IntegrationTestPlugin());
+        |    } catch (Exception e) {
+        |      Log.e(TAG, "Error registering plugin integration_test, dev.flutter.plugins.integration_test.IntegrationTestPlugin", e);
+        |    }
+    """.trimMargin()
+    registrant.writeText(text.replace(needle, needle + "\n" + block))
+    logger.lifecycle("ciTesterChecks: registered IntegrationTestPlugin")
+}
 
 fun releaseSigningError(): String {
     val problem = when {
@@ -120,6 +157,10 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // Instrumentation runner for integration_test. Release and debug
+        // app builds do not execute it.
+        testInstrumentationRunner =
+            "com.shradhaventures.temple.TesterChecksRunner"
         manifestPlaceholders["appLabel"] = if (demoAppIdSuffix) {
             "Temple Directory India Demo"
         } else {
@@ -133,9 +174,24 @@ android {
     }
 
     buildTypes {
+        debug {
+            // tester-checks installs the release APK and this debug
+            // androidTest APK. Android rejects instrumentation when the
+            // signatures differ. -PciTesterChecks=true signs the test APK
+            // with the release key. Local debug builds leave this unset.
+            if (ciTesterChecks && hasReleaseKeystore) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
         release {
             if (hasReleaseKeystore) {
                 signingConfig = signingConfigs.getByName("release")
+            }
+            // Flutter minifies release. Keep the instrumentation classes when
+            // this APK is the tester-checks target. Play builds leave the
+            // property unset, so they do not add this file.
+            if (ciTesterChecks) {
+                proguardFiles.add(file("ci-tester-checks-rules.pro"))
             }
         }
     }
@@ -148,8 +204,54 @@ gradle.taskGraph.whenReady {
     if (releaseRequested && !hasReleaseKeystore) {
         throw GradleException(releaseSigningError())
     }
+    // flutter build appbundle runs bundleRelease. The demo APK is
+    // assembleRelease and may use the suffix. A Play bundle must not.
+    val playBundleRequested = allTasks.any { task ->
+        task.project == project && task.name == "bundleRelease"
+    }
+    if (playBundleRequested && demoAppIdSuffix) {
+        throw GradleException(
+            "Play app bundle must stay com.shradhaventures.temple. " +
+                "DEMO_APP_ID_SUFFIX and -Pdemo_suffix apply only to the App Distribution demo APK."
+        )
+    }
 }
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // integration_test exports runner 1.2+, rules 1.2+, and espresso 3.3+
+    // onto the app classpath. AGP then locks androidTest to those resolved
+    // versions (runner 1.3.0, rules 1.2.0, espresso 3.3.0).
+    androidTestImplementation("androidx.test:runner:1.3.0")
+    androidTestImplementation("androidx.test:rules:1.2.0")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.3.0")
+    if (ciTesterChecks) {
+        // The debug app already contains these, so the androidTest APK does
+        // not. The release app is minified and omits the dev-dependency
+        // plugin, so instrumentation cannot load AndroidJUnitRunner unless
+        // this APK ships the classes.
+        releaseImplementation("androidx.test:runner:1.3.0")
+        releaseImplementation("androidx.test:rules:1.2.0")
+        releaseImplementation("androidx.test.espresso:espresso-core:3.3.0")
+    }
+}
+
+if (ciTesterChecks) {
+    afterEvaluate {
+        val integration = rootProject.findProject(":integration_test")
+            ?: throw GradleException(
+                "ciTesterChecks requires the :integration_test Android project"
+            )
+        dependencies.add("releaseApi", integration)
+    }
+    // Patch immediately before javac. Flutter has already rewritten the
+    // registrant for release by the time Gradle compiles it.
+    tasks.configureEach {
+        if (name == "compileReleaseJavaWithJavac") {
+            doFirst { registerCiTesterChecksPlugin() }
+        }
+    }
 }

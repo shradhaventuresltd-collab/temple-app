@@ -50,9 +50,12 @@ if [[ -z "$img" ]]; then
 fi
 bytes="$(stat -c %s "$img")"
 cap=$((2048 * 1024 * 1024))
+min=$((32 * 1024 * 1024))
 echo "userdata.img ${img} apparent bytes ${bytes}"
-if (( bytes > cap )); then
-  echo "replacing oversized userdata.img with a 512M ext4 image"
+# A truncated extract (disk full) is about 1MB and makes QEMU report
+# CPU Architecture 'arm'. An oversized google_atd image is about 7GB.
+if (( bytes > cap || bytes < min )); then
+  echo "replacing userdata.img (${bytes} bytes) with a 512M ext4 image"
   rm -f "$img"
   truncate -s 512M "$img"
   mkfs.ext4 -F -L data "$img"

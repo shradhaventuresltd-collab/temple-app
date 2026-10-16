@@ -1,0 +1,252 @@
+name: tester-checks
+
+# Manual screenshot evidence for the release app on prod Firestore.
+# This does not run android-smoke and does not change that job's
+# 15-minute limit.
+#
+# Triggers are only workflow_dispatch and a pull_request labeled event.
+# The job runs when the event is a dispatch or the added label is
+# tester-checks. Ordinary PR pushes, other labels, and a merge to main
+# do not start the emulator.
+#
+# The emulator is the android-smoke KVM setup: API 34 google_atd, x86_64,
+# the same system image, and reactivecircus/android-emulator-runner.
+# One leg is Pixel 6. The other reuses that AVD and sets a 360dp viewport
+# (1080x1920 at 480dpi). The APK is release, x86_64, with no DEMO_BUILD
+# and no ENABLE_ADMIN_TOOLS. The job does not upload the APK.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tester-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tester-checks:
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'tester-checks'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: pixel-6
+            wm_size: ""
+            artifact: tester-checks-screenshots
+          # 1080x1920 at 480dpi is a 360dp-wide viewport. Same API 34 image
+          # and Pixel 6 AVD cache as android-smoke, so this leg does not
+          # download a second system image or boot a cold AVD.
+          - id: 360dp
+            wm_size: 1080x1920
+            artifact: tester-checks-screenshots-360dp
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Free disk space
+        run: bash scripts/ci/free_runner_disk.sh
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version: '3.47.7'
+          cache: true
+
+      - name: flutter pub get
+        run: flutter pub get
+
+      # Release builds fill this runner if the committed -Xmx8G stays.
+      # android/gradle.properties in git is unchanged. android-smoke does
+      # not use this cap; its profile build keeps -Xmx8G.
+      - name: Cap Gradle heap for the hosted runner
+        run: |
+          sed -i 's/^org\.gradle\.jvmargs=.*/org.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=1g -XX:ReservedCodeCacheSize=256m -Dfile.encoding=UTF-8/' android/gradle.properties
+          grep -q '^kotlin.daemon.jvmargs=' android/gradle.properties \
+            || echo 'kotlin.daemon.jvmargs=-Xmx1g' >> android/gradle.properties
+
+      # Restore only. The build is finished before the emulator, and a
+      # combined cache action would save an empty tree if those dirs are
+      # removed to make room for the AVD.
+      - name: Cache Gradle
+        id: gradle-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('pubspec.lock', 'android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      - name: Cache Android NDK
+        id: ndk-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: /usr/local/lib/android/sdk/ndk/28.2.13676358
+          key: ndk-28.2.13676358
+
+      # Ephemeral release key. Not the Play upload key. key.properties and
+      # *.jks stay gitignored.
+      - name: Ephemeral release keystore
+        run: |
+          keytool -genkeypair -keystore android/ci-tester-keystore.jks \
+            -storepass android -keypass android -alias upload \
+            -keyalg RSA -keysize 2048 -validity 1 \
+            -dname "CN=CI Tester Checks, OU=CI, O=Shradha Ventures, L=Bengaluru, ST=KA, C=IN"
+          cat > android/key.properties <<'EOF'
+          storePassword=android
+          keyPassword=android
+          keyAlias=upload
+          storeFile=../ci-tester-keystore.jks
+          EOF
+
+      - name: Build release APK
+        env:
+          # Ships the instrumentation classes in this release APK. Play builds
+          # do not set it.
+          ORG_GRADLE_PROJECT_ciTesterChecks: "true"
+        run: |
+          # SwiftShader on this emulator does not run Impeller. The edit is
+          # local to the job; the Play manifest is unchanged.
+          bash scripts/ci/disable_impeller_for_emulator_apk.sh
+          # Chunked screenshots for frames larger than the binder limit.
+          # The Play checkout does not run this patch.
+          bash scripts/ci/patch_integration_screenshot.sh
+          flutter build apk --release \
+            --target-platform android-x64 \
+            --target integration_test/tester_checks_test.dart
+          cp -a build/app/outputs/flutter-apk/app-release.apk /tmp/tester-checks-app-release.apk
+
+      - name: Build instrumentation APK
+        run: |
+          cd android
+          ./gradlew :app:assembleDebugAndroidTest \
+            -PciTesterChecks=true \
+            -Ptarget="${GITHUB_WORKSPACE}/integration_test/tester_checks_test.dart"
+          test_apk="${GITHUB_WORKSPACE}/build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk"
+          if [[ ! -f "$test_apk" ]]; then
+            find "${GITHUB_WORKSPACE}/build" -name '*.apk' -print
+            echo "androidTest apk was not produced at $test_apk" >&2
+            exit 1
+          fi
+          cp -a "$test_apk" /tmp/tester-checks-androidTest.apk
+          mkdir -p "${GITHUB_WORKSPACE}/build/app/outputs/flutter-apk" \
+            "${GITHUB_WORKSPACE}/build/app/outputs/apk/androidTest/debug"
+          cp -a /tmp/tester-checks-app-release.apk \
+            "${GITHUB_WORKSPACE}/build/app/outputs/flutter-apk/app-release.apk"
+          cp -a /tmp/tester-checks-androidTest.apk \
+            "${GITHUB_WORKSPACE}/build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk"
+
+      # The Pixel 6 snapshot archive is about 1.4GB and this job boots with
+      # -no-snapshot-load, so restoring it only fills the disk. A partial
+      # extract omits the AVD ini and QEMU then refuses to start (arm).
+      - name: Free disk before the emulator
+        run: |
+          set -euo pipefail
+          (cd android && ./gradlew --stop) || true
+          pkill -f 'KotlinCompileDaemon|kotlin-compiler-daemon|GradleDaemon' || true
+          rm -rf \
+            "${HOME}/.gradle/caches" \
+            "${HOME}/.gradle/daemon" \
+            /opt/hostedtoolcache/flutter \
+            "${HOME}/.pub-cache" \
+            /usr/local/lib/android/sdk/ndk \
+            "${GITHUB_WORKSPACE}/build/app/intermediates" \
+            "${GITHUB_WORKSPACE}/build/app/tmp" \
+            "${GITHUB_WORKSPACE}/android/.gradle" \
+            "${GITHUB_WORKSPACE}/android/app/build" \
+            "${HOME}/.android/avd"
+          mkdir -p "${GITHUB_WORKSPACE}/build/app/outputs/flutter-apk" \
+            "${GITHUB_WORKSPACE}/build/app/outputs/apk/androidTest/debug"
+          cp -a /tmp/tester-checks-app-release.apk \
+            "${GITHUB_WORKSPACE}/build/app/outputs/flutter-apk/app-release.apk"
+          cp -a /tmp/tester-checks-androidTest.apk \
+            "${GITHUB_WORKSPACE}/build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk"
+          echo "===== df before emulator ====="
+          df -h
+          free -h
+          echo "nproc=$(nproc)"
+          if [[ "$(nproc)" -ge 4 ]]; then
+            echo "EMULATOR_CORES=4" >> "$GITHUB_ENV"
+          else
+            echo "EMULATOR_CORES=2" >> "$GITHUB_ENV"
+          fi
+          echo "NDK_CACHE_HIT=true" >> "$GITHUB_ENV"
+          echo "GRADLE_CACHE_HIT=true" >> "$GITHUB_ENV"
+
+      - name: Restore emulator system image
+        id: system-image-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: /usr/local/lib/android/sdk/system-images
+          key: system-image-android-34-google_atd-x86_64
+
+      - name: Tester checks
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_atd
+          profile: pixel_6
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: 2048M
+          avd-name: temple-smoke-34-atd
+          force-avd-creation: false
+          disable-animations: true
+          pre-emulator-launch-script: bash scripts/ci/prepare_atd_avd.sh temple-smoke-34-atd
+          emulator-options: -no-snapshot-save -no-snapshot-load -no-boot-anim -gpu swiftshader_indirect -no-window -no-audio -camera-back none -camera-front none -partition-size 2048
+          script: TESTER_CHECKS_PROFILE=${{ matrix.id }} TESTER_CHECKS_WM_SIZE=${{ matrix.wm_size }} timeout --kill-after=30s 14m bash scripts/ci/run_tester_checks.sh
+
+      - name: Save emulator system image
+        if: always() && matrix.id == 'pixel-6' && steps.system-image-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: /usr/local/lib/android/sdk/system-images
+          key: system-image-android-34-google_atd-x86_64
+
+      - name: Upload tester-checks screenshots
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ matrix.artifact }}
+          path: tester-checks-screenshots
+          retention-days: 14
+          if-no-files-found: ignore
+
+      # A finished emulator used to look green even when checks failed.
+      # Print N/13 passed and warn unless every check passed.
+      - name: Summarize tester checks
+        if: always()
+        run: |
+          set -uo pipefail
+          summary="tester-checks-screenshots/summary.md"
+          line=""
+          if [[ -f "$summary" ]]; then
+            line="$(grep -E '^[0-9]+/13 passed$' "$summary" | tail -n 1 || true)"
+          fi
+          if [[ -z "$line" ]]; then
+            line="0/13 passed"
+          fi
+          echo "$line"
+          if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
+            printf '### %s\n' "$line" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          passed="${line%%/*}"
+          if [[ "$passed" != "13" ]]; then
+            echo "::warning title=tester-checks::${line}"
+          fi
