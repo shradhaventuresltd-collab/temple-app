@@ -1,0 +1,116 @@
+{
+  "roboscript": {
+    "executionMode": {
+      "strict": true,
+      "notify": false
+    },
+    "postscript": {
+      "terminate": true
+    }
+  }
+}
+[
+  {
+    "eventType": "WAIT",
+    "delayTime": 8000
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "optional": true,
+    "elementDescriptors": [
+      {
+        "text": "Consent"
+      }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      {
+        "text": "Accept & continue"
+      }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 25000
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      {
+        "textRegex": "Browse [0-9]+ Temples"
+      }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 4000
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      {
+        "textRegex": "Name, city, state.*"
+      }
+    ]
+  },
+  {
+    "eventType": "VIEW_TEXT_CHANGED",
+    "replacementText": "Abirami",
+    "elementDescriptors": [
+      {
+        "textRegex": "Name, city, state.*"
+      }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 4000
+  },
+  {
+    "eventType": "VIEW_TEXT_CHANGED",
+    "replacementText": "Janaki",
+    "elementDescriptors": [
+      {
+        "textRegex": "Abirami.*"
+      }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 4000
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      {
+        "textRegex": "Janaki Temple.*"
+      }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 6000
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      {
+        "text": "Get Directions"
+      }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 10000
+  },
+  {
+    "eventType": "ADB_SHELL_COMMAND",
+    "command": "sh -c 'cmd connectivity airplane-mode enable; svc wifi disable; svc data disable; am force-stop com.google.android.apps.maps; am start -n __%APP_PACKAGE_NAME%__/.MainActivity'"
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 12000
+  }
+]
