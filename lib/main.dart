@@ -89,6 +89,7 @@ class TempleDirectoryApp extends StatefulWidget {
     this.nudgeStore,
     this.launchStoreUrl,
     this.demoAppIdSuffix,
+    this.directory,
   });
 
   /// Defaults to shared preferences. Tests pass an in-memory store.
@@ -133,6 +134,10 @@ class TempleDirectoryApp extends StatefulWidget {
   /// Defaults to [kDemoAppIdSuffix]. Tests pass true for the `.demo` id.
   final bool? demoAppIdSuffix;
 
+  /// Shared directory. Resume calls [TempleService.loadDirectory] on it.
+  /// Tests that pass [templesLoader] do not use it.
+  final TempleService? directory;
+
   @override
   State<TempleDirectoryApp> createState() => _TempleDirectoryAppState();
 }
@@ -142,6 +147,7 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
   late final PolicyAcceptanceStore _store;
   late final AppConfigController _config;
   late final bool _ownsConfig;
+  late final TempleService _directory;
   _StartupPhase _phase = _StartupPhase.checking;
   PolicyGateKind _gateKind = PolicyGateKind.firstLaunch;
   bool _adsStarted = false;
@@ -155,6 +161,7 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
     _config = widget.appConfig ?? AppConfigController();
     TempleService.readsBlocked = () => _config.snapshot.killSwitch;
     _config.addListener(_onConfig);
+    _directory = widget.directory ?? TempleService(now: widget.now);
     final override = widget.initializeFirebase;
     final already = widget.firebaseReady;
     if (override != null) {
@@ -310,7 +317,15 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
     final loader = widget.templesLoader;
     if (loader != null) return loader();
     await _firebaseReady;
-    return TempleService().getTemples();
+    return _directory.getTemples();
+  }
+
+  Future<List<Temple>> _refreshTemples() async {
+    if (_config.snapshot.killSwitch) return const [];
+    final loader = widget.templesLoader;
+    if (loader != null) return loader();
+    await _firebaseReady;
+    return _directory.loadDirectory();
   }
 
   Widget _body() {
@@ -340,11 +355,15 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
         return HomeScreen(
           adminAuth: widget.adminAuth,
           templesLoader: _loadTemples,
+          refreshTemples: widget.templesLoader == null ? _refreshTemples : null,
+          lastIndexCheck: widget.templesLoader == null
+              ? () => _directory.lastIndexCheckAt
+              : null,
+          now: widget.now,
           adminToolsEnabled: widget.adminToolsEnabled,
           maintenanceMessage: _config.snapshot.maintenanceMessage,
           offerSoftUpdate: _offerSoftUpdate,
           nudgeStore: widget.nudgeStore,
-          now: widget.now,
           openPlayStore: () => openPlayStoreListing(
             packageName: _playPackage,
             launch: _launchStore,

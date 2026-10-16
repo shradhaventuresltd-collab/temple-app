@@ -48,17 +48,26 @@ class TempleService {
     TempleDirectoryClient? directory,
     IndexStampStore? stamps,
     FirestoreReadLog? readLog,
+    DateTime Function()? now,
     this.fetchTimeout = const Duration(seconds: 12),
   }) : _firestore = firestore,
        _directory = directory,
        _stamps = stamps,
-       _readLog = readLog ?? FirestoreReadLog.instance;
+       _readLog = readLog ?? FirestoreReadLog.instance,
+       _now = now ?? DateTime.now;
 
   final FirebaseFirestore? _firestore;
   final TempleDirectoryClient? _directory;
   final IndexStampStore? _stamps;
   final FirestoreReadLog _readLog;
+  final DateTime Function() _now;
   final Duration fetchTimeout;
+
+  /// When this service last issued the server `meta/temple_index` read.
+  ///
+  /// Set as the read starts, so a timeout still counts. Resume uses it to
+  /// stay under one check every 15 minutes.
+  DateTime? lastIndexCheckAt;
 
   /// In-memory result for this process. Home and the drawer share it so a
   /// launch does not read the index twice. An injected client or Firestore
@@ -185,6 +194,7 @@ class TempleService {
   ///
   /// [refresh] awaits [loadDirectory] instead of returning the cache first.
   /// A server failure still returns the saved list when one exists.
+  /// Resume does not use [refresh]; it calls [loadDirectory] itself.
   Future<List<Temple>> getTemples({bool refresh = false}) {
     if (readsBlocked()) return _stoppedDirectory();
     if (refresh) {
@@ -358,6 +368,7 @@ class TempleService {
   /// foreground load with no cache.
   Future<_ServerIndex> _loadFromServerMeta() async {
     final DirectoryDoc serverMeta;
+    lastIndexCheckAt = _now();
     try {
       serverMeta = await _client
           .getDoc(

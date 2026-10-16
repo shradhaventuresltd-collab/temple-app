@@ -8,6 +8,7 @@ import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/admin_screen.dart';
 import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/services/app_update.dart';
+import 'package:temple_app/services/index_resume.dart';
 import 'package:temple_app/services/temple_service.dart';
 import 'package:temple_app/widgets/app_drawer.dart';
 import 'package:temple_app/services/firestore_read_log.dart';
@@ -32,8 +33,13 @@ class HomeScreen extends StatefulWidget {
     this.maintenanceMessage = '',
     this.offerSoftUpdate = false,
     this.nudgeStore,
+    this.templeService,
+    this.refreshTemples,
+    this.lastIndexCheck,
     this.now,
     this.openPlayStore,
+    this.appliedContentVersion,
+    this.remoteContentVersion,
   });
 
   /// Injected in tests. Production reads [AdminAuth.instance] only when
@@ -57,16 +63,33 @@ class HomeScreen extends StatefulWidget {
   /// Day the nudge was last shown. Null uses shared preferences.
   final UpdateNudgeStore? nudgeStore;
 
+  /// Directory used when [templesLoader] is null. Tests pass a fake client.
+  final TempleService? templeService;
+
+  /// Resume and reconnect. Production calls [TempleService.loadDirectory].
+  final Future<List<Temple>> Function()? refreshTemples;
+
+  /// When the shared service last issued the meta read.
+  final DateTime? Function()? lastIndexCheck;
+
+  /// Clock for the 15-minute resume window and the soft-update day.
   final DateTime Function()? now;
 
   /// Opens the Play listing. Null hides the update action's effect.
   final Future<bool> Function()? openPlayStore;
 
+  /// Last `content_version` this device applied. Null skips no reads.
+  final int? Function()? appliedContentVersion;
+
+  /// Remote Config `content_version`. Equal to [appliedContentVersion]
+  /// skips the resume meta read. Null does not skip.
+  final int? Function()? remoteContentVersion;
+
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   static const Color _saffron = Color(0xFFFF8F00);
   static const Color _cream = Color(0xFFFFFBF2);
 
@@ -74,25 +97,40 @@ class _HomeScreenState extends State<HomeScreen> {
   /// second line.
   static const double _titleBarHeight = 80;
 
-  final TempleService _templeService = TempleService();
+  late final TempleService _templeService;
   final SoftUpdateNudge _nudge = SoftUpdateNudge();
   late Future<List<Temple>> _templesFuture;
   bool _showSoftUpdate = false;
+  bool _leftForeground = false;
+  bool _initialLoadFinished = false;
 
   Future<List<Temple>> _loadTemples({bool refresh = false}) {
+    if (refresh) {
+      final refreshLoader = widget.refreshTemples;
+      if (refreshLoader != null) return refreshLoader();
+      return _templeService.loadDirectory();
+    }
     final loader = widget.templesLoader;
     if (loader != null) return loader();
-    if (refresh) return _templeService.loadDirectory();
     return _templeService.getTemples();
+  }
+
+  DateTime? _lastIndexCheck() {
+    final provided = widget.lastIndexCheck;
+    if (provided != null) return provided();
+    return _templeService.lastIndexCheckAt;
   }
 
   @override
   void initState() {
     super.initState();
+    _templeService = widget.templeService ?? TempleService(now: widget.now);
     _templesFuture = _loadTemples();
+    unawaited(_markInitialLoadFinished());
     DirectoryReconnect.tick.addListener(_onReconnect);
     TempleService.revision.addListener(_onPublished);
     unawaited(_maybeShowSoftUpdate());
+    WidgetsBinding.instance.addObserver(this);
   }
 
   Future<void> _maybeShowSoftUpdate() async {
@@ -118,8 +156,16 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _markInitialLoadFinished() async {
+    try {
+      await _templesFuture;
+    } catch (_) {}
+    _initialLoadFinished = true;
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     DirectoryReconnect.tick.removeListener(_onReconnect);
     TempleService.revision.removeListener(_onPublished);
     super.dispose();
@@ -129,6 +175,39 @@ class _HomeScreenState extends State<HomeScreen> {
     final rows = TempleService.published;
     if (rows == null || !mounted) return;
     setState(() => _templesFuture = Future<List<Temple>>.value(rows));
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (!_leftForeground) return;
+      _leftForeground = false;
+      _onAppResumed();
+      return;
+    }
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _leftForeground = true;
+    }
+  }
+
+  /// One [TempleService.loadDirectory] call when the 15-minute window has
+  /// elapsed. The list already on screen stays until that read finishes.
+  void _onAppResumed() {
+    if (!_initialLoadFinished) return;
+    if (indexResumeReadSkipped(
+      appliedContentVersion: widget.appliedContentVersion?.call(),
+      remoteContentVersion: widget.remoteContentVersion?.call(),
+    )) {
+      return;
+    }
+    final now = widget.now?.call() ?? DateTime.now();
+    if (!indexResumeCheckDue(lastIndexCheck: _lastIndexCheck(), now: now)) {
+      return;
+    }
+    unawaited(_refreshQuietly());
   }
 
   void _onReconnect() {
@@ -142,7 +221,9 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final temples = await next;
       if (!mounted) return;
-      setState(() => _templesFuture = Future.value(temples));
+      setState(() {
+        _templesFuture = Future.value(temples);
+      });
     } catch (e, st) {
       debugPrint('Directory refresh after reconnect failed: $e\n$st');
     }
