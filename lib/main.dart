@@ -4,21 +4,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/bundled_fonts.dart';
+import 'package:temple_app/config/build_flags.dart';
 import 'package:temple_app/config/policy_config.dart';
 import 'package:temple_app/release_error_widget.dart';
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/screens/force_update_screen.dart';
 import 'package:temple_app/screens/home_screen.dart';
 import 'package:temple_app/screens/maintenance_screen.dart';
 import 'package:temple_app/screens/policy_acceptance_gate.dart';
 import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/services/app_bootstrap.dart';
 import 'package:temple_app/services/app_config.dart';
+import 'package:temple_app/services/app_update.dart';
 import 'package:temple_app/services/client_cache.dart';
 import 'package:temple_app/services/firebase_remote_config_gateway.dart';
+import 'package:temple_app/services/installed_build.dart';
 import 'package:temple_app/services/offline_link.dart';
 import 'package:temple_app/services/policy_acceptance_store.dart';
 import 'package:temple_app/services/policy_link_launcher.dart';
 import 'package:temple_app/services/temple_service.dart';
+import 'package:temple_app/services/update_nudge_store.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -58,7 +64,11 @@ Future<void> main() async {
   );
 }
 
-enum _StartupPhase { checking, gate, home }
+enum _StartupPhase { checking, gate, update, home }
+
+/// Sentinel for [TempleDirectoryApp.installedBuildNumber]. Tests pass an int
+/// or null. Production reads the Android versionCode.
+const Object usePlatformBuildNumber = Object();
 
 class TempleDirectoryApp extends StatefulWidget {
   const TempleDirectoryApp({
@@ -75,6 +85,10 @@ class TempleDirectoryApp extends StatefulWidget {
     this.onExitApp,
     this.launchPolicyUrl,
     this.appConfig,
+    this.installedBuildNumber = usePlatformBuildNumber,
+    this.nudgeStore,
+    this.launchStoreUrl,
+    this.demoAppIdSuffix,
   });
 
   /// Defaults to shared preferences. Tests pass an in-memory store.
@@ -106,6 +120,19 @@ class TempleDirectoryApp extends StatefulWidget {
   /// Null uses in-app defaults and does not fetch.
   final AppConfigController? appConfig;
 
+  /// Installed Android versionCode. [usePlatformBuildNumber] reads the
+  /// package. Null fails open and does not block.
+  final Object? installedBuildNumber;
+
+  /// Soft-nudge day. Tests pass an in-memory store.
+  final UpdateNudgeStore? nudgeStore;
+
+  /// Opens a Play Store uri. Defaults to an external application launch.
+  final Future<bool> Function(Uri url)? launchStoreUrl;
+
+  /// Defaults to [kDemoAppIdSuffix]. Tests pass true for the `.demo` id.
+  final bool? demoAppIdSuffix;
+
   @override
   State<TempleDirectoryApp> createState() => _TempleDirectoryAppState();
 }
@@ -118,6 +145,8 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
   _StartupPhase _phase = _StartupPhase.checking;
   PolicyGateKind _gateKind = PolicyGateKind.firstLaunch;
   bool _adsStarted = false;
+  int? _buildNumber;
+  bool _offerSoftUpdate = false;
 
   @override
   void initState() {
@@ -154,12 +183,10 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
   }
 
   Future<void> _loadAcceptance() async {
-    PolicyAcceptance? stored;
-    try {
-      stored = await _store.read();
-    } catch (e, st) {
-      debugPrint('Policy acceptance read failed: $e\n$st');
-    }
+    final storedFuture = _readStoredAcceptance();
+    final buildFuture = _resolveBuildNumber();
+    final stored = await storedFuture;
+    _buildNumber = await buildFuture;
     if (!mounted) return;
     final kind = policyGateKind(
       stored: stored,
@@ -178,6 +205,23 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
     await _firebaseReady;
     if (!mounted) return;
     _openHomeAndStartAds();
+  }
+
+  Future<PolicyAcceptance?> _readStoredAcceptance() async {
+    try {
+      return await _store.read();
+    } catch (e, st) {
+      debugPrint('Policy acceptance read failed: $e\n$st');
+      return null;
+    }
+  }
+
+  Future<int?> _resolveBuildNumber() {
+    final override = widget.installedBuildNumber;
+    if (!identical(override, usePlatformBuildNumber)) {
+      return Future<int?>.value(override is int ? override : null);
+    }
+    return readInstalledBuildNumber();
   }
 
   Future<void> _accept() async {
@@ -204,8 +248,33 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
   /// false still opens Home and skips only the ad startup.
   void _openHomeAndStartAds() {
     if (!mounted) return;
-    setState(() => _phase = _StartupPhase.home);
+    final requirement = updateRequirement(
+      buildNumber: _buildNumber,
+      minSupportedBuild: _config.snapshot.minSupportedBuild,
+      recommendedBuild: _config.snapshot.recommendedBuild,
+    );
+    if (requirement == UpdateRequirement.hard) {
+      setState(() {
+        _offerSoftUpdate = false;
+        _phase = _StartupPhase.update;
+      });
+      return;
+    }
+    setState(() {
+      _offerSoftUpdate = requirement == UpdateRequirement.soft;
+      _phase = _StartupPhase.home;
+    });
     _startAdsIfAllowed();
+  }
+
+  String get _playPackage => playStorePackageName(
+    demoAppIdSuffix: widget.demoAppIdSuffix ?? kDemoAppIdSuffix,
+  );
+
+  Future<bool> _launchStore(Uri url) {
+    final launch = widget.launchStoreUrl;
+    if (launch != null) return launch(url);
+    return launchUrl(url, mode: LaunchMode.externalApplication);
   }
 
   /// Ads start once, after Terms, and only while the kill switch is off.
@@ -261,12 +330,25 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
           onOpenUrl: widget.launchPolicyUrl ?? openPolicyUrl,
           onExit: _exitApp,
         );
+      case _StartupPhase.update:
+        return ForceUpdateScreen(
+          packageName: _playPackage,
+          launch: _launchStore,
+          onExit: _exitApp,
+        );
       case _StartupPhase.home:
         return HomeScreen(
           adminAuth: widget.adminAuth,
           templesLoader: _loadTemples,
           adminToolsEnabled: widget.adminToolsEnabled,
           maintenanceMessage: _config.snapshot.maintenanceMessage,
+          offerSoftUpdate: _offerSoftUpdate,
+          nudgeStore: widget.nudgeStore,
+          now: widget.now,
+          openPlayStore: () => openPlayStoreListing(
+            packageName: _playPackage,
+            launch: _launchStore,
+          ),
         );
     }
   }

@@ -31,6 +31,7 @@ void main() {
         initializeAds: () async {},
         templesLoader: () async => [_temple],
         adminToolsEnabled: true,
+        installedBuildNumber: null,
         onExitApp: () {},
         launchPolicyUrl: (_) async => true,
       ),
