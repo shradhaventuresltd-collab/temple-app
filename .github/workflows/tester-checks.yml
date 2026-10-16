@@ -129,6 +129,7 @@ jobs:
         run: |
           cd android
           ./gradlew :app:assembleDebugAndroidTest \
+            -PciTesterChecks=true \
             -Ptarget="${GITHUB_WORKSPACE}/integration_test/tester_checks_test.dart"
           test_apk="$(find "${GITHUB_WORKSPACE}/build" -name 'app-debug-androidTest.apk' -print -quit)"
           if [[ -z "$test_apk" ]]; then

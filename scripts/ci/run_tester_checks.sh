@@ -205,6 +205,7 @@ firebase_log() {
   fi
 }
 
+instrument_failed=0
 run_phase() {
   local phase="$1"
   local seconds="$2"
@@ -213,12 +214,18 @@ run_phase() {
   adb shell am force-stop com.shradhaventures.handoff || true
   adb logcat -c || true
   set +e
-  timeout --kill-after=20s "${seconds}" adb shell am instrument -w \
+  local out
+  out="$(timeout --kill-after=20s "${seconds}" adb shell am instrument -w \
     -e phase "$phase" \
-    "${PKG}.test/${PKG}.TesterChecksRunner"
+    "${PKG}.test/${PKG}.TesterChecksRunner" 2>&1)"
   local rc=$?
   set -e
+  printf '%s\n' "$out"
   echo "instrument $phase exit $rc"
+  if grep -q 'Permission Denial' <<<"$out"; then
+    instrument_failed=1
+    printf 'HARNESS %s signature mismatch\n' "$phase" >> "$OUT/events.log"
+  fi
   firebase_log "$phase"
   # Keep the lines if the watcher was slow.
   adb logcat -d -v raw -s TESTER_CHECKS:I >> "$OUT/events.log" || true
@@ -262,3 +269,7 @@ run_phase airplane 60
 kill "$WATCH_PID" || true
 echo "===== screenshots ====="
 find "$OUT" -maxdepth 1 -type f -printf '%f %s\n' | sort
+if [[ "$instrument_failed" -ne 0 ]]; then
+  echo "instrumentation was denied; the test APK signature does not match the release APK" >&2
+  exit 1
+fi

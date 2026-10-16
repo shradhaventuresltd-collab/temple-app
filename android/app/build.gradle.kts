@@ -137,6 +137,17 @@ android {
     }
 
     buildTypes {
+        debug {
+            // tester-checks installs the release APK and this debug
+            // androidTest APK. Android rejects instrumentation when the
+            // signatures differ. -PciTesterChecks=true signs the test APK
+            // with the release key. Local debug builds leave this unset.
+            if ((findProperty("ciTesterChecks") as? String) == "true" &&
+                hasReleaseKeystore
+            ) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
         release {
             if (hasReleaseKeystore) {
                 signingConfig = signingConfigs.getByName("release")
