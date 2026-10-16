@@ -2,12 +2,14 @@
  * Hide Firebase download tokens before a URL is printed.
  * Firestore writes and an operator-requested URL file keep the real token.
  * The parameter name is matched without case sensitivity. A token written
- * as token=, an HTML-escaped `&amp;token=`, or percent-encoded inside a
- * nested URL (including a double-encoded `%2526token%253D`) is replaced.
+ * as token=, an HTML-escaped `&amp;token=` or `&amp;token%3D`, or
+ * percent-encoded inside a nested URL (including a double-encoded
+ * `%2526token%253D`) is replaced.
  * Other parameters stay.
  */
 const RAW_TOKEN = /([?&]token=)[^&#\s'"]*/gi;
 const HTML_AMP_TOKEN = /(&amp;token=)[^&#\s'"]*/gi;
+const HTML_AMP_ENCODED_EQUALS = /(&amp;token%3d)(?:%(?!(?:26|23))[0-9a-f]{2}|[^%&#\s'"])*/gi;
 const ENCODED_AMPERSAND = /((?:%3f|%26)token%3d)(?:%(?!(?:26|23))[0-9a-f]{2}|[^%&#\s'"])*/gi;
 const RAW_AMPERSAND_ENCODED_EQUALS = /([?&]token%3d)(?:%(?!(?:26|23))[0-9a-f]{2}|[^%&#\s'"])*/gi;
 const ENCODED_AMPERSAND_RAW_EQUALS = /((?:%3f|%26)token=)[^%&#\s'"]*/gi;
@@ -18,6 +20,7 @@ function applyTokenPatterns(text) {
   return text
     .replace(RAW_TOKEN, "$1<redacted>")
     .replace(HTML_AMP_TOKEN, "$1<redacted>")
+    .replace(HTML_AMP_ENCODED_EQUALS, "$1<redacted>")
     .replace(ENCODED_AMPERSAND, "$1<redacted>")
     .replace(RAW_AMPERSAND_ENCODED_EQUALS, "$1<redacted>")
     .replace(ENCODED_AMPERSAND_RAW_EQUALS, "$1<redacted>")
@@ -39,11 +42,32 @@ export function redactDownloadToken(value) {
  * message, or a throw that is not an Error, uses `stack` when it has one
  * and otherwise `String(err)`.
  */
+function objectText(err) {
+  const message = typeof err.message === "string" ? err.message.trim() : "";
+  const hasCode =
+    Object.prototype.hasOwnProperty.call(err, "code") &&
+    err.code !== undefined &&
+    err.code !== null &&
+    String(err.code).trim() !== "";
+  if (hasCode || message) {
+    const parts = [];
+    if (hasCode) parts.push(`code=${err.code}`);
+    if (message) parts.push(message);
+    return parts.join(" ");
+  }
+  const stack = typeof err.stack === "string" ? err.stack.trim() : "";
+  if (stack) return stack;
+  return String(err);
+}
+
 export function thrownText(err) {
-  const message = err && typeof err === "object" && typeof err.message === "string" ? err.message : "";
-  if (message.trim() !== "") return message;
-  const stack = err && typeof err === "object" && typeof err.stack === "string" ? err.stack : "";
-  if (stack.trim() !== "") return stack;
+  if (err instanceof Error) {
+    const message = typeof err.message === "string" ? err.message : "";
+    if (message.trim() !== "") return message;
+    if (typeof err.stack === "string" && err.stack.trim() !== "") return err.stack;
+    return String(err);
+  }
+  if (err && typeof err === "object") return objectText(err);
   return String(err);
 }
 

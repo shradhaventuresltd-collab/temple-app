@@ -94,6 +94,14 @@ test("an HTML-escaped ampersand still hides the token", () => {
     redactDownloadToken("https://example.com/a?alt=media&amp;Token=AbC&amp;x=1"),
     "https://example.com/a?alt=media&amp;Token=<redacted>&amp;x=1",
   );
+  assert.equal(
+    redactDownloadToken("https://example.com/a?alt=media&amp;token%3Dsecret&amp;x=1"),
+    "https://example.com/a?alt=media&amp;token%3D<redacted>&amp;x=1",
+  );
+  assert.equal(
+    redactDownloadToken("https://example.com/a?alt=media&amp;Token%3DAbC"),
+    "https://example.com/a?alt=media&amp;Token%3D<redacted>",
+  );
 });
 
 test("a double-encoded token is redacted", () => {
@@ -123,5 +131,11 @@ test("empty and non-Error throws are redacted, including the stack", () => {
   assert.equal(
     redactThrown({ message: "  ", stack: "stack https://example.com/a?token=secret" }),
     "stack https://example.com/a?token=<redacted>",
+  );
+  assert.equal(redactThrown({ code: 5 }), "code=5");
+  assert.equal(redactThrown({ code: 5 }).includes("[object Object]"), false);
+  assert.equal(
+    redactThrown({ code: 5, message: "missing https://example.com/a?token=secret" }),
+    "code=5 missing https://example.com/a?token=<redacted>",
   );
 });
