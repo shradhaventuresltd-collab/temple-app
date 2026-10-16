@@ -3,6 +3,7 @@ import { basename, dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 
 import { assertOneCoverOk } from "./cover_ok.js";
+import { downloadTokenUrl, ensureDownloadToken, withDownloadToken } from "./download_token.js";
 import { assertStorageAuth, useNativeFetchForStorageAuth } from "./storage_auth.js";
 import { mapPhotoLicence, photoCredit } from "./photo_licence.js";
 
@@ -405,27 +406,26 @@ function resolvePackDirs(opts) {
   return [...new Set(dirs)];
 }
 
-function publicUrl(bucketName, storagePath) {
-  return `https://storage.googleapis.com/${bucketName}/${storagePath}`;
-}
-
 function contentTypeFor(filename) {
   return filename.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
 }
 
 async function uploadFile(bucket, localPath, storagePath, filename) {
+  const file = bucket.file(storagePath);
+  const { token } = await ensureDownloadToken(file, bucket.name, storagePath);
   await bucket.upload(localPath, {
     destination: storagePath,
-    metadata: {
-      contentType: contentTypeFor(filename),
-      // temples/{docId}/{filename} is overwritten in place. Do not mark it
-      // immutable. Timestamped admin uploads keep the one-year cache.
-      cacheControl: "public, max-age=3600",
-    },
+    metadata: withDownloadToken(
+      {
+        contentType: contentTypeFor(filename),
+        // temples/{docId}/{filename} is overwritten in place. Do not mark it
+        // immutable. Timestamped admin uploads keep the one-year cache.
+        cacheControl: "public, max-age=3600",
+      },
+      token,
+    ),
   });
-  const file = bucket.file(storagePath);
-  await file.makePublic();
-  return publicUrl(bucket.name, storagePath);
+  return downloadTokenUrl(bucket.name, storagePath, token);
 }
 
 export async function processPack({

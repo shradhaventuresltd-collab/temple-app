@@ -9,7 +9,6 @@
  * Call `assertStorageAuth` once in --apply, before any Firestore write.
  * That check lists `temples/` so it does not depend on one object existing.
  */
-import { randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
@@ -133,55 +132,21 @@ function statusCode(error) {
   return Number.isInteger(numeric) ? numeric : null;
 }
 
-function isPermissionDenied(error) {
-  if (statusCode(error) === 403) return true;
-  return /\b403\b/.test(String(error?.message ?? ""));
-}
-
-function preflightDenied(permission) {
-  return new Error(
-    `Storage auth preflight failed: missing ${permission} (403). No Firestore write.`,
-  );
-}
-
 /**
- * Read that objectUser can perform without a particular object existing.
- * A 403 on list tries one create and delete under temples/.preflight-<uuid>.
- * A 403 that still cannot do that stops Apply before any Firestore write.
+ * Read-only. Lists `temples/` once. Any failure stops Apply before a
+ * Firestore or Storage write. A 403 names storage.objects.list.
  */
 export async function assertStorageAuth(bucket) {
   useNativeFetchForStorageAuth();
   try {
     await bucket.getFiles(STORAGE_AUTH_LIST);
-    return;
-  } catch (error) {
-    if (!isPermissionDenied(error)) {
-      console.error(error?.message || error);
-      throw new Error(STORAGE_AUTH_PREFLIGHT_ERROR);
-    }
-  }
-
-  const objectPath = `temples/.preflight-${randomUUID()}`;
-  const file = bucket.file(objectPath);
-  try {
-    await file.save(Buffer.from("ok"), {
-      resumable: false,
-      metadata: { contentType: "text/plain" },
-    });
   } catch (error) {
     console.error(error?.message || error);
-    if (isPermissionDenied(error)) {
-      throw preflightDenied("storage.objects.list and storage.objects.create");
+    if (statusCode(error) === 403 || /\b403\b/.test(String(error?.message ?? ""))) {
+      throw new Error(
+        "Storage auth preflight failed: missing storage.objects.list (403). No Firestore write.",
+      );
     }
-    throw new Error(STORAGE_AUTH_PREFLIGHT_ERROR);
-  }
-  try {
-    await file.delete();
-  } catch (error) {
-    console.error(error?.message || error);
-    if (isPermissionDenied(error)) {
-      throw preflightDenied(`storage.objects.delete for ${objectPath}`);
-    }
-    throw new Error(STORAGE_AUTH_PREFLIGHT_ERROR);
+    throw new Error(`Storage auth preflight failed: ${error?.message || error}. No Firestore write.`);
   }
 }

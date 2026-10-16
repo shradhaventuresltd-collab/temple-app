@@ -1197,22 +1197,12 @@ test("apply uploads a missing frame, writes the cover once, and keeps the old ob
   const bucket = {
     file() {
       return {
-        async exists() {
-          calls.push("exists");
-          return [true];
-        },
         async getMetadata() {
           calls.push("metadata");
           return [{ metadata: { firebaseStorageDownloadTokens: `${keptToken},other` } }];
         },
         async setMetadata() {
           calls.push("set-metadata");
-        },
-        async makePublic() {
-          calls.push("public");
-        },
-        async delete() {
-          calls.push("delete");
         },
       };
     },
@@ -1231,7 +1221,7 @@ test("apply uploads a missing frame, writes the cover once, and keeps the old ob
   assert.equal(present.uploaded, false);
   assert.equal(present.imageUrl, keptUrl);
   assert.equal(present.token, keptToken);
-  assert.deepEqual(calls, ["exists", "metadata"]);
+  assert.deepEqual(calls, ["metadata"]);
   assert.deepEqual(checks, [keptUrl]);
   assert.equal(new URL(checks[0]).hostname, "firebasestorage.googleapis.com");
   assert.match(checks[0], /[?&]alt=media&token=kept-token$/);
@@ -1242,21 +1232,12 @@ test("apply uploads a missing frame, writes the cover once, and keeps the old ob
     bucket: {
       file() {
         return {
-          async exists() {
-            return [true];
-          },
           async getMetadata() {
             return [{ metadata: {} }];
           },
           async setMetadata(metadata) {
             calls.push("set-metadata");
             assert.equal(metadata.metadata.firebaseStorageDownloadTokens, minted);
-          },
-          async delete() {
-            calls.push("delete");
-          },
-          async makePublic() {
-            calls.push("public");
           },
         };
       },
@@ -1271,7 +1252,6 @@ test("apply uploads a missing frame, writes the cover once, and keeps the old ob
   assert.equal(hidden.ok, false);
   assert.equal(hidden.reason, "not-public");
   assert.equal(calls.includes("set-metadata"), true);
-  assert.equal(calls.includes("public"), false);
 
   calls.length = 0;
   const uploadToken = "upload-token";
@@ -1279,14 +1259,10 @@ test("apply uploads a missing frame, writes the cover once, and keeps the old ob
   const absent = {
     file() {
       return {
-        async exists() {
-          return [false];
-        },
-        async makePublic() {
-          calls.push("public");
-        },
-        async delete() {
-          calls.push("delete");
+        async getMetadata() {
+          const error = new Error("No such object");
+          error.code = 404;
+          throw error;
         },
       };
     },
@@ -1303,10 +1279,8 @@ test("apply uploads a missing frame, writes the cover once, and keeps the old ob
   });
   assert.equal(uploaded.uploaded, true);
   assert.equal(uploaded.imageUrl, uploadedUrl);
-  assert.equal(calls.includes("delete"), false);
   assert.equal(calls.includes(`upload:${plan.objectPath}`), true);
   assert.equal(calls.includes(`upload:${plan.oldObject}`), false);
-  assert.equal(calls.includes("public"), false);
 
   const tokenPlan = planCoverPhoto(structuredClone(fresh), replaceOpts);
   const writtenToken = "written-token";
@@ -1325,14 +1299,8 @@ test("apply uploads a missing frame, writes the cover once, and keeps the old ob
         bucket: {
           file() {
             return {
-              async exists() {
-                return [true];
-              },
               async getMetadata() {
                 return [{ metadata: { firebaseStorageDownloadTokens: writtenToken } }];
-              },
-              async makePublic() {
-                throw new Error("makePublic");
               },
             };
           },
@@ -1429,14 +1397,8 @@ test("a public-check network error skips that temple and the next one is still w
   const bucket = {
     file() {
       return {
-        async exists() {
-          return [true];
-        },
         async getMetadata() {
           return [{ metadata: { firebaseStorageDownloadTokens: token } }];
-        },
-        async delete() {
-          throw new Error("delete");
         },
       };
     },
@@ -1503,9 +1465,6 @@ test("a missing fetch fails before any write, and a hung public check times out"
         bucket: {
           file() {
             return {
-              async exists() {
-                return [true];
-              },
               async getMetadata() {
                 return [{ metadata: { firebaseStorageDownloadTokens: "hung-token" } }];
               },
@@ -1515,7 +1474,7 @@ test("a missing fetch fails before any write, and a hung public check times out"
         fetchImpl: (url, init) =>
           new Promise((_resolve, reject) => {
             assert.equal(new URL(String(url)).hostname, "firebasestorage.googleapis.com");
-            assert.equal(init.redirect, "follow");
+            assert.equal(init.redirect, "error");
             signal = init.signal;
             init.signal.addEventListener("abort", () => {
               const error = new Error("The operation was aborted due to timeout");
@@ -1730,70 +1689,23 @@ test("the Storage token request uses native fetch, and a failed exists() stops a
   });
   assert.deepEqual(listed, [STORAGE_AUTH_LIST]);
 
-  const fallback = [];
-  await assertStorageAuth({
-    async getFiles() {
-      const error = new Error("Permission denied");
-      error.code = 403;
-      throw error;
-    },
-    file(path) {
-      fallback.push(path);
-      return {
-        async save(body, options) {
-          fallback.push(`save:${body.toString()}:${options.resumable}`);
-        },
-        async delete() {
-          fallback.push("delete");
-        },
-      };
-    },
-  });
-  assert.match(fallback[0], /^temples\/\.preflight-/);
-  assert.deepEqual(fallback.slice(1), ["save:ok:false", "delete"]);
-
+  let wrote = false;
   await assert.rejects(
     () =>
       assertStorageAuth({
         async getFiles() {
-          const error = new Error("403");
+          const error = new Error("Permission denied");
           error.code = 403;
           throw error;
         },
         file() {
-          return {
-            async save() {
-              const error = new Error("Permission denied");
-              error.code = 403;
-              throw error;
-            },
-          };
+          wrote = true;
+          throw new Error("preflight wrote");
         },
       }),
-    /Storage auth preflight failed: missing storage\.objects\.list and storage\.objects\.create \(403\)\. No Firestore write\./,
+    /Storage auth preflight failed: missing storage\.objects\.list \(403\)\. No Firestore write\./,
   );
-
-  await assert.rejects(
-    () =>
-      assertStorageAuth({
-        async getFiles() {
-          const error = new Error("403");
-          error.code = 403;
-          throw error;
-        },
-        file(path) {
-          return {
-            async save() {},
-            async delete() {
-              const error = new Error(`403 deleting ${path}`);
-              error.code = 403;
-              throw error;
-            },
-          };
-        },
-      }),
-    /Storage auth preflight failed: missing storage\.objects\.delete for temples\/\.preflight-.+ \(403\)\. No Firestore write\./,
-  );
+  assert.equal(wrote, false);
 
   await assert.rejects(
     () =>
@@ -1802,11 +1714,13 @@ test("the Storage token request uses native fetch, and a failed exists() stops a
           throw new Error("Premature close");
         },
         file() {
-          throw new Error("should not write");
+          wrote = true;
+          throw new Error("preflight wrote");
         },
       }),
-    new RegExp(STORAGE_AUTH_PREFLIGHT_ERROR.replace(/[.]/g, "\\.")),
+    /Storage auth preflight failed: Premature close\. No Firestore write\./,
   );
+  assert.equal(wrote, false);
 
   let writes = 0;
   let loads = 0;

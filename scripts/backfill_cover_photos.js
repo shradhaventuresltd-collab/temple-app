@@ -46,10 +46,9 @@
  * any temple, that `fetch` exists. Each check aborts after about 10 seconds,
  * and that timeout is `public-check-failed` too. `--exclude id1,id2`
  * skips those temple ids and warns when an id is not in the loaded set.
- * Apply lists `temples/` once before any Firestore write. objectUser can
- * list an empty prefix. If that list returns 403, Apply writes and deletes
- * `temples/.preflight-<uuid>` instead. A 403 that still cannot read or
- * write stops the run and names the missing permission.
+ * Apply lists `temples/` once before any Firestore write. That list is
+ * read-only. Any failure, including a 403 for storage.objects.list, stops
+ * the run and names the error. Nothing is written to Firestore or Storage.
  * The transaction skips the doc when `imageUrl` is no longer the planned old
  * URL. The old Places object stays in Storage. A temple with no creditable
  * frame 01 is reported (`no-creditable-frame`, or `no-wave-pack`).
@@ -80,13 +79,13 @@
  *
  * prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
  */
-import { randomUUID } from "node:crypto";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { assertOneCoverOk } from "./cover_ok.js";
-import { firebaseDownloadUrl, firebaseMediaUrl } from "./resize_cover_thumbs.js";
+import { downloadTokenUrl, ensureDownloadToken, withDownloadToken } from "./download_token.js";
+import { firebaseMediaUrl } from "./resize_cover_thumbs.js";
 import { assertStorageAuth, STORAGE_AUTH_BUCKET, useNativeFetchForStorageAuth } from "./storage_auth.js";
 import { cleanAuthor, mapPhotoLicence, photoCredit } from "./photo_licence.js";
 import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard.js";
@@ -140,14 +139,15 @@ export function assertFetchAvailable(fetchImpl) {
 }
 
 /**
- * GET the URL that will be written. `AbortSignal.timeout` stops a hung
+ * GET the token URL that will be written. Redirects are errors, so a hop
+ * away from that URL is not a 200. `AbortSignal.timeout` stops a hung
  * request. The caller turns that throw into `public-check-failed`.
  */
 export async function fetchPublicUrl(url, deps = {}) {
   const fetchImpl = deps.fetchImpl ?? globalThis.fetch;
   const timeoutMs = deps.timeoutMs ?? PUBLIC_CHECK_TIMEOUT_MS;
   const signal = deps.signal ?? AbortSignal.timeout(timeoutMs);
-  const response = await fetchImpl(url, { method: "GET", redirect: "follow", signal });
+  const response = await fetchImpl(url, { method: "GET", redirect: "error", signal });
   try {
     await response.body?.cancel?.();
   } catch {
@@ -527,7 +527,7 @@ export function storageCoverUrl(docId, filename) {
 
 /** Download URL written to imageUrl. The token is the object's Firebase token. */
 export function coverDownloadUrl(objectPath, token) {
-  return firebaseDownloadUrl(COVER_BUCKET, objectPath, token);
+  return downloadTokenUrl(COVER_BUCKET, objectPath, token);
 }
 
 /**
@@ -975,17 +975,11 @@ export function assignCoverDownloadUrl(plan, imageUrl, token) {
   return plan;
 }
 
-function firstDownloadToken(metadata) {
-  const raw = metadata?.metadata?.firebaseStorageDownloadTokens ?? metadata?.firebaseStorageDownloadTokens;
-  const token = String(raw ?? "").split(",")[0].trim();
-  return token || null;
-}
-
 /**
- * HTTP 200 on the Firebase download URL this plan will write. A
- * storage.googleapis.com URL is not public under uniform bucket-level
- * access, so it fails this check. DNS failure, connection reset, and
- * timeout are `public-check-failed` so the next temple still runs.
+ * HTTP 200 on the Firebase download URL this plan will write. Redirects
+ * are refused. A storage.googleapis.com URL is not public under uniform
+ * bucket-level access, so it fails this check. DNS failure, connection
+ * reset, and timeout are `public-check-failed` so the next temple still runs.
  */
 async function writtenUrlIsPublic(url, deps) {
   if (firebaseMediaUrl(url) == null) return { ok: false, reason: "not-public" };
@@ -1009,33 +1003,24 @@ export async function ensureCoverFrame(plan, deps = {}) {
   if (!objectPath || !localPath) return { ok: false, reason: "missing-file" };
   const bucket = deps.bucket ?? deps.admin.storage().bucket(COVER_BUCKET);
   const file = bucket.file(objectPath);
-  const [exists] = await file.exists();
-  let token = null;
-  if (!exists) {
+  const ensured = await ensureDownloadToken(file, COVER_BUCKET, objectPath, { newToken: deps.newToken });
+  if (!ensured.exists) {
     if (!existsSync(localPath)) return { ok: false, reason: "missing-file" };
-    token = deps.newToken ?? randomUUID();
     const contentType = localPath.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
     await bucket.upload(localPath, {
       destination: objectPath,
-      metadata: {
-        contentType,
-        cacheControl: "public, max-age=3600",
-        metadata: { firebaseStorageDownloadTokens: token },
-      },
+      metadata: withDownloadToken(
+        {
+          contentType,
+          cacheControl: "public, max-age=3600",
+        },
+        ensured.token,
+      ),
     });
-  } else {
-    const [metadata] = await file.getMetadata();
-    token = firstDownloadToken(metadata);
-    if (!token) {
-      token = deps.newToken ?? randomUUID();
-      const custom = { ...(metadata?.metadata ?? {}), firebaseStorageDownloadTokens: token };
-      await file.setMetadata({ metadata: custom });
-    }
   }
-  const imageUrl = coverDownloadUrl(objectPath, token);
-  const readable = await writtenUrlIsPublic(imageUrl, deps);
+  const readable = await writtenUrlIsPublic(ensured.url, deps);
   if (!readable.ok) return { ok: false, reason: readable.reason };
-  return { ok: true, uploaded: !exists, imageUrl, token };
+  return { ok: true, uploaded: !ensured.exists, imageUrl: ensured.url, token: ensured.token };
 }
 
 async function openAdmin(project, env) {
