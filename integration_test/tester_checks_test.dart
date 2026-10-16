@@ -10,6 +10,9 @@ import 'package:integration_test/integration_test.dart';
 import 'package:temple_app/main.dart' as app;
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/maintenance_screen.dart';
+import 'package:temple_app/services/app_config.dart';
+import 'package:temple_app/services/temple_service.dart';
+import 'package:temple_app/utils/detail_honesty.dart';
 import 'package:temple_app/widgets/home_mosaic_collage.dart';
 import 'package:temple_app/widgets/mosaic_tile_placeholder.dart';
 import 'package:temple_app/widgets/temple_browse_card.dart';
@@ -30,16 +33,22 @@ const _phasePaths = <String>[
 const _log = 'TESTER_CHECKS';
 const _expectedTemples = 984;
 
-final IntegrationTestWidgetsFlutterBinding _binding =
-    IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-
-bool _surfaceReady = false;
-
 void main() {
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   testWidgets('tester checks', (tester) async {
     final phase = _readPhase();
     _logLine('PHASE $phase');
     try {
+      if (phase == 'kill-switch') {
+        app.integrationTestConfigOverride = const AppConfig(
+          killSwitch: true,
+          maintenanceMessage: 'Tester kill switch',
+        );
+      } else if (phase == 'force-update') {
+        app.integrationTestConfigOverride = const AppConfig(
+          minSupportedBuild: 1000000,
+        );
+      }
       await app.main();
       await tester.pump(const Duration(milliseconds: 300));
       switch (phase) {
@@ -55,6 +64,10 @@ void main() {
           }
         case 'airplane':
           await _airplanePhase(tester);
+        case 'kill-switch':
+          await _killSwitchPhase(tester);
+        case 'force-update':
+          await _forceUpdatePhase(tester);
         default:
           _result(0, false, 'unknown phase $phase');
       }
@@ -63,6 +76,8 @@ void main() {
       final stack = st.toString().split('\n').take(6).join(' | ');
       _logLine('STACK $stack');
       await _shot(tester, '99-$phase-error');
+    } finally {
+      _logLine('DONE $phase');
     }
   });
 }
@@ -92,25 +107,13 @@ void _result(int id, bool pass, String note) {
 
 Future<void> _shot(WidgetTester tester, String name) async {
   final safe = name.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '-');
-  if (!_surfaceReady) {
-    try {
-      await _binding.convertFlutterSurfaceToImage();
-      _surfaceReady = true;
-    } catch (e) {
-      _logLine('SURFACE $e');
-    }
+  // Host screencap is the evidence. convertFlutterSurfaceToImage registers
+  // a tearDown after the test has started and drops the element tree.
+  if (WidgetsBinding.instance.rootElement != null) {
+    await tester.pump(const Duration(milliseconds: 100));
   }
-  await tester.pump(const Duration(milliseconds: 100));
   _logLine('SHOT $safe');
-  // The host screencap runs while this frame is still up.
   await Future<void>.delayed(const Duration(milliseconds: 1500));
-  if (!_surfaceReady) return;
-  try {
-    await _binding.takeScreenshot(safe);
-    _binding.reportData?.remove('screenshots');
-  } catch (e) {
-    _logLine('SHOT_ERR $safe $e');
-  }
 }
 
 Future<bool> _waitUntil(
@@ -332,10 +335,14 @@ Future<void> _uiChecks(WidgetTester tester) async {
     _result(5, false, 'browse did not open');
     _result(7, false, 'browse did not open');
     _result(8, false, 'browse did not open');
+    _result(10, false, 'browse did not open');
+    _result(11, false, 'browse did not open');
     return;
   }
   await _longNameCheck(tester);
   await _searchChecks(tester);
+  await _picsumCheck(tester);
+  await _resumeCheck(tester);
   await _janakiAndDirections(tester);
 }
 
@@ -742,6 +749,265 @@ Future<void> _leaveDetail(WidgetTester tester) async {
   }
   await tester.pageBack();
   await tester.pump(const Duration(milliseconds: 500));
+}
+
+bool _isPicsumOrPlaceholder(String raw) {
+  final url = raw.trim();
+  if (url.isEmpty) return false;
+  if (url.toLowerCase().contains('picsum.photos')) return true;
+  final uri = Uri.tryParse(url);
+  if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
+    return false;
+  }
+  return isPlaceholderImageUrl(url);
+}
+
+List<String> _templeImageUrls(Temple temple) {
+  return <String>[
+    temple.imageUrl,
+    ...temple.images,
+    for (final photo in temple.photos) photo.url,
+    for (final photo in temple.photos)
+      if (photo.thumbUrl != null) photo.thumbUrl!,
+  ];
+}
+
+String? _directoryPlaceholder(List<Temple> temples) {
+  for (final temple in temples) {
+    for (final raw in _templeImageUrls(temple)) {
+      if (!_isPicsumOrPlaceholder(raw)) continue;
+      final who = temple.id.isEmpty ? temple.name : temple.id;
+      return '$who ${raw.trim()}';
+    }
+  }
+  return null;
+}
+
+List<String> _visibleImageUrls(WidgetTester tester, Finder scope) {
+  final images = find.descendant(
+    of: scope,
+    matching: find.byType(CachedNetworkImage),
+  );
+  return <String>[
+    for (final widget in tester.widgetList<CachedNetworkImage>(images))
+      widget.imageUrl,
+  ];
+}
+
+bool _isAnjengo(Temple temple) {
+  final id = temple.id.toLowerCase();
+  final name = temple.name.toLowerCase();
+  return id == 'anjengo-sree-durga-devi-temple' || name.contains('anjengo');
+}
+
+bool _isAkshardham(Temple temple) {
+  final id = temple.id.toLowerCase();
+  final name = temple.name.toLowerCase();
+  final place = '${temple.city} ${temple.state} ${temple.location}'.toLowerCase();
+  if (name.contains('delhi') || place.contains('delhi')) return false;
+  if (id == 'akshardham-temple') return true;
+  if (!name.contains('akshardham')) return false;
+  return place.contains('gandhinagar') || place.contains('gujarat');
+}
+
+/// Photo pending, or a real network photo. A picsum or other placeholder URL
+/// fails even when the tile also says Photo pending.
+String _cardPhotoState(WidgetTester tester, Finder card) {
+  final urls = _visibleImageUrls(tester, card);
+  for (final url in urls) {
+    if (_isPicsumOrPlaceholder(url)) return 'placeholder $url';
+  }
+  final pending = find.descendant(
+    of: card,
+    matching: find.text('Photo pending'),
+  );
+  if (tester.any(pending)) return 'photo-pending';
+  if (urls.isNotEmpty) return 'photo ${urls.first}';
+  return 'neither';
+}
+
+Future<String> _templePhotoNote(
+  WidgetTester tester, {
+  required String label,
+  required String query,
+  required bool Function(Temple temple) test,
+  required String shot,
+}) async {
+  await _typeQuery(tester, query);
+  final found = await _findCard(tester, test);
+  if (found == null) {
+    await _shot(tester, shot);
+    return '$label missing';
+  }
+  final stored = _directoryPlaceholder(<Temple>[found.card.temple]);
+  await tester.ensureVisible(found.finder);
+  await tester.pump(const Duration(milliseconds: 400));
+  final state = _cardPhotoState(tester, found.finder);
+  await _shot(tester, shot);
+  if (stored != null) {
+    return '$label stored-placeholder $stored; card=$state';
+  }
+  if (state == 'photo-pending' || state.startsWith('photo ')) {
+    return '$label $state';
+  }
+  return '$label $state';
+}
+
+bool _photoNotePasses(String note) {
+  if (note.contains(' missing')) return false;
+  if (note.contains('stored-placeholder')) return false;
+  if (note.contains('placeholder ')) return false;
+  if (note.contains('neither')) return false;
+  return note.contains('photo-pending') || note.contains('photo ');
+}
+
+Future<void> _picsumCheck(WidgetTester tester) async {
+  final published = TempleService.published;
+  final stored = published == null ? null : _directoryPlaceholder(published);
+  final onScreen = _visibleImageUrls(tester, find.byType(MaterialApp));
+  final visibleBad = onScreen.where(_isPicsumOrPlaceholder).toList();
+  final anjengo = await _templePhotoNote(
+    tester,
+    label: 'Anjengo',
+    query: 'Anjengo',
+    test: _isAnjengo,
+    shot: '10-anjengo',
+  );
+  final akshardham = await _templePhotoNote(
+    tester,
+    label: 'Akshardham',
+    query: 'Akshardham',
+    test: _isAkshardham,
+    shot: '10-akshardham',
+  );
+  await _typeQuery(tester, '');
+  final pass = published != null &&
+      stored == null &&
+      visibleBad.isEmpty &&
+      _photoNotePasses(anjengo) &&
+      _photoNotePasses(akshardham);
+  final directory = published == null
+      ? 'directory=missing'
+      : 'directory=${published.length} placeholder=${stored ?? 'none'}';
+  _result(
+    10,
+    pass,
+    '$directory; visible-placeholder=${visibleBad.isEmpty ? 'none' : visibleBad.first}; '
+        '$anjengo; $akshardham',
+  );
+}
+
+Future<void> _resumeCheck(WidgetTester tester) async {
+  try {
+    await _typeQuery(tester, '');
+    final cards = find.byType(TempleBrowseCard);
+    if (tester.any(cards)) {
+      final list = find.ancestor(
+        of: cards.first,
+        matching: find.byType(Scrollable),
+      );
+      if (tester.any(list)) {
+        await tester.drag(list.first, const Offset(0, 2400));
+        await tester.pump(const Duration(milliseconds: 300));
+      }
+    }
+    final beforeName = _topTempleName(tester);
+    final beforeCards = find.byType(TempleBrowseCard).evaluate().length;
+    final beforePublished = TempleService.published?.length;
+    final beforeCount = beforePublished ?? beforeCards;
+    final binding = tester.binding;
+    binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await tester.pump();
+    binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    await tester.pump();
+    binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump(const Duration(milliseconds: 300));
+    binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump(const Duration(seconds: 2));
+    await _shot(tester, '11-resume');
+    final afterName = _topTempleName(tester);
+    final afterCards = find.byType(TempleBrowseCard).evaluate().length;
+    final afterPublished = TempleService.published?.length;
+    final afterCount = afterPublished ?? afterCards;
+    final text = _allText(tester);
+    final empty = text.contains('No temples to browse') ||
+        text.contains('Loading temples') ||
+        text.contains('Could not load temples');
+    final pass = beforeCount > 0 &&
+        afterCount > 0 &&
+        beforeCount == afterCount &&
+        beforeCards > 0 &&
+        afterCards > 0 &&
+        beforeName != null &&
+        beforeName == afterName &&
+        !empty;
+    _result(
+      11,
+      pass,
+      'before=$beforeCount after=$afterCount '
+          'cards=$beforeCards->$afterCards '
+          'top=${beforeName ?? 'none'}->${afterName ?? 'none'} '
+          'empty=${empty ? 'yes' : 'no'}',
+    );
+  } catch (e) {
+    await _shot(tester, '11-resume');
+    _result(11, false, 'resume threw $e');
+  }
+}
+
+Future<void> _killSwitchPhase(WidgetTester tester) async {
+  final shown = await _waitUntil(
+    tester,
+    () =>
+        _maintenanceVisible(tester) ||
+        tester.any(find.text('Tester kill switch')),
+    timeout: const Duration(seconds: 20),
+  );
+  await _shot(tester, '12-kill-switch');
+  final maintenance = _maintenanceVisible(tester);
+  final message = _allText(tester).contains('Tester kill switch');
+  final home = _browseLabel(tester) != null;
+  _result(
+    12,
+    shown && maintenance && message && !home,
+    'maintenance=${maintenance ? 'yes' : 'no'}; '
+        'message=${message ? 'yes' : 'no'}; '
+        'home=${home ? 'yes' : 'no'}; ${_screenHint(tester)}',
+  );
+}
+
+Future<void> _forceUpdatePhase(WidgetTester tester) async {
+  await _waitUntil(
+    tester,
+    () =>
+        _gateVisible(tester) ||
+        _updateBlock(tester) != null ||
+        _browseLabel(tester) != null ||
+        _maintenanceVisible(tester),
+    timeout: const Duration(seconds: 25),
+  );
+  if (_gateVisible(tester)) {
+    await tester.tap(find.byKey(const Key('policy-accept-button')));
+    await tester.pump(const Duration(milliseconds: 300));
+  }
+  final shown = await _waitUntil(
+    tester,
+    () => _updateBlock(tester) != null || _browseLabel(tester) != null,
+    timeout: const Duration(seconds: 25),
+  );
+  await _shot(tester, '13-force-update');
+  final update = _updateBlock(tester);
+  final hard = update == 'force-update-screen' ||
+      update == 'force-update-button' ||
+      update == 'Update required' ||
+      update == 'Update on Play Store';
+  final home = _browseLabel(tester) != null;
+  _result(
+    13,
+    shown && hard && !home,
+    'update=${update ?? 'none'}; home=${home ? 'yes' : 'no'}; '
+        '${_screenHint(tester)}',
+  );
 }
 
 Future<void> _airplanePhase(WidgetTester tester) async {

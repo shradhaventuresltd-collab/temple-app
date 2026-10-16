@@ -98,6 +98,10 @@ titles = {
     7: "Janaki Temple Sitamarhi caption says Punaura Dham",
     8: "Get Directions is visible and launches a maps intent",
     9: "Default Remote Config shows no force-update or soft-update prompt",
+    10: "No picsum placeholder; Anjengo and Akshardham are a real photo or Photo pending",
+    11: "Background then resume keeps the list",
+    12: "Test-only kill switch shows the maintenance screen",
+    13: "Test-only force-update blocks launch",
 }
 
 lines = [
@@ -107,6 +111,9 @@ lines = [
     "Check 2 expects Browse 984 Temples and no Firebase or [core/no-app] error.",
     "Check 7 runs because #77 is in main 63da3fc.",
     "Check 9 expects no force-update screen and no soft-update nudge on the three relaunches and the cold start.",
+    "Check 10 expects no picsum.photos URL and no other placeholder image. Anjengo and Akshardham may be Photo pending.",
+    "Check 11 backgrounds the list and resumes. The list must stay populated.",
+    "Checks 12 and 13 inject AppConfig in the tester process only. Prod Remote Config is not written.",
     "",
 ]
 profile = os.environ.get("TESTER_CHECKS_PROFILE", "").strip()
@@ -122,9 +129,9 @@ if phases:
     lines.append("")
 lines.append("| Check | Result | Notes |")
 lines.append("| --- | --- | --- |")
-for i in range(1, 10):
+for i in range(1, 14):
     status, note = results.get(i, ("FAIL", "did not run"))
-    if status not in ("PASS", "FAIL", "N/A"):
+    if status not in ("PASS", "FAIL", "N/A", "UNTESTED"):
         status = "FAIL"
     note = note.replace("|", "/")
     lines.append(f"| {i}. {titles[i]} | {status} | {note} |")
@@ -226,6 +233,24 @@ firebase_log() {
 }
 
 instrument_failed=0
+
+# FlutterTestRunner waits on the integration channel after the Dart test
+# returns. DONE is the end of the phase. Force-stop then, and do not treat
+# that exit as a crash.
+phase_finished() {
+  local phase="$1"
+  local waited="$2"
+  if [[ -f "$OUT/events.log" ]] && grep -q "TESTER_CHECKS DONE ${phase}" "$OUT/events.log"; then
+    return 0
+  fi
+  # The watcher usually lands the line first. Dumping logcat every second
+  # stalls the host, so only fall back every few seconds.
+  if (( waited % 3 == 2 )) && adb logcat -d -v brief 2>/dev/null | grep -q "TESTER_CHECKS DONE ${phase}"; then
+    return 0
+  fi
+  return 1
+}
+
 run_phase() {
   local phase="$1"
   local seconds="$2"
@@ -233,28 +258,56 @@ run_phase() {
   adb shell am force-stop "$PKG" || true
   adb shell am force-stop com.shradhaventures.handoff || true
   adb logcat -c || true
+  local instrument_log="/tmp/tester-instrument-${phase}.txt"
+  : > "$instrument_log"
   set +e
-  local out
-  out="$(timeout --kill-after=20s "${seconds}" adb shell am instrument -w \
+  timeout --kill-after=20s "${seconds}" adb shell am instrument -w \
     -e phase "$phase" \
-    "${PKG}.test/${PKG}.TesterChecksRunner" 2>&1)"
+    "${PKG}.test/${PKG}.TesterChecksRunner" >"$instrument_log" 2>&1 &
+  local inst_pid=$!
+  local done=0
+  local waited=0
+  while kill -0 "$inst_pid" 2>/dev/null; do
+    if phase_finished "$phase" "$waited"; then
+      done=1
+      sleep 1
+      adb shell am force-stop "$PKG" || true
+      sleep 2
+      if kill -0 "$inst_pid" 2>/dev/null; then
+        kill "$inst_pid" 2>/dev/null || true
+      fi
+      break
+    fi
+    if (( waited >= seconds )); then
+      break
+    fi
+    sleep 1
+    waited=$((waited + 1))
+  done
+  wait "$inst_pid"
   local rc=$?
   set -e
+  local out
+  out="$(cat "$instrument_log")"
   printf '%s\n' "$out"
-  echo "instrument $phase exit $rc"
+  echo "instrument $phase exit $rc done=$done"
   if grep -q 'Permission Denial' <<<"$out"; then
     instrument_failed=1
     printf 'HARNESS %s signature mismatch\n' "$phase" >> "$OUT/events.log"
   fi
   if grep -q 'Process crashed' <<<"$out"; then
-    instrument_failed=1
-    printf 'HARNESS %s process crashed\n' "$phase" >> "$OUT/events.log"
-    {
-      echo "===== crash buffer $phase ====="
-      adb logcat -b crash -d -v time || true
-      echo "===== logcat tail $phase ====="
-      adb logcat -d -v time -t 400 || true
-    } > "$OUT/crash-$phase.log" || true
+    if [[ "$done" -eq 1 ]]; then
+      echo "stopped $phase after DONE"
+    else
+      instrument_failed=1
+      printf 'HARNESS %s process crashed\n' "$phase" >> "$OUT/events.log"
+      {
+        echo "===== crash buffer $phase ====="
+        adb logcat -b crash -d -v time || true
+        echo "===== logcat tail $phase ====="
+        adb logcat -d -v time -t 400 || true
+      } > "$OUT/crash-$phase.log" || true
+    fi
   fi
   firebase_log "$phase"
   # Keep the lines if the watcher was slow. Release logs use the flutter tag.
@@ -265,7 +318,9 @@ run_phase accept 70
 run_phase relaunch-1 50
 run_phase relaunch-2 50
 run_phase relaunch-3 50
-run_phase cold 180
+run_phase cold 220
+run_phase kill-switch 50
+run_phase force-update 50
 
 echo "===== airplane ====="
 adb shell cmd connectivity airplane-mode enable || true
@@ -300,6 +355,6 @@ kill "$WATCH_PID" || true
 echo "===== screenshots ====="
 find "$OUT" -maxdepth 1 -type f -printf '%f %s\n' | sort
 if [[ "$instrument_failed" -ne 0 ]]; then
-  echo "instrumentation was denied; the test APK signature does not match the release APK" >&2
+  echo "instrumentation failed; see harness notes and crash logs" >&2
   exit 1
 fi
