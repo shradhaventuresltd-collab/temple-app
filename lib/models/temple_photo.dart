@@ -171,9 +171,11 @@ TemplePhotoMirror deriveTemplePhotoMirror(List<TemplePhoto> photos) {
 ///
 /// CC-BY and CC-BY-SA show their attribution. A stored credit that records
 /// the frame as a historical print is also shown, so a public-domain
-/// lithograph is not presented as a photograph. Other CC0, Own, and
-/// Permission credits, a blank credit, and a URL with no matching photo
-/// stay silent. The detail screen calls this with the visible frame URL.
+/// lithograph is not presented as a photograph. A CC0 credit that ends
+/// with a subject note such as "Shows Punaura Dham" shows that note and
+/// keeps the author silent. Other CC0, Own, and Permission credits, a
+/// blank credit, and a URL with no matching photo stay silent. The detail
+/// screen calls this with the visible frame URL.
 String? visiblePhotoCredit(List<TemplePhoto> photos, String url) {
   for (final photo in photos) {
     if (photo.url != url) continue;
@@ -181,9 +183,20 @@ String? visiblePhotoCredit(List<TemplePhoto> photos, String url) {
     if (credit.isEmpty) return null;
     if (photo.licence?.requiresCredit == true) return credit;
     if (_isHistoricalPrintCaption(credit)) return credit;
-    return null;
+    return _subjectCaption(credit);
   }
   return null;
+}
+
+/// "Shows …" note at the end of a credit. The author before it stays stored
+/// and is not part of the caption.
+String? _subjectCaption(String credit) {
+  final match = RegExp(
+    r'(?:^|\s[·|]\s)(Shows\s+\S.*)$',
+  ).firstMatch(credit.trim());
+  final caption = match?.group(1)?.trim();
+  if (caption == null || caption.isEmpty) return null;
+  return caption;
 }
 
 bool _isHistoricalPrintCaption(String credit) {
@@ -211,19 +224,23 @@ String? _printYear(String credit) {
   return year;
 }
 
-/// Short label for a cover that is a historical print, not a photograph.
+/// Short label for a cover that is a historical print or names its subject.
 ///
 /// Browse cards and the home collage use this so a lithograph is not shown
 /// as a photo of the temple. The year comes from the credit text. A
-/// lithograph credit with no year is labelled "Lithograph".
+/// lithograph credit with no year is labelled "Lithograph". A credit that
+/// ends with "Shows …" uses that note, so a cover of a named site can say
+/// what the frame shows.
 String? historicalCoverCaption(List<TemplePhoto> photos, String url) {
   for (final photo in photos) {
     if (photo.url != url) continue;
     final credit = photo.credit.trim();
-    if (!_isHistoricalPrintCaption(credit)) return null;
-    final year = _printYear(credit);
-    if (year == null) return 'Lithograph';
-    return 'Lithograph, $year';
+    if (_isHistoricalPrintCaption(credit)) {
+      final year = _printYear(credit);
+      if (year == null) return 'Lithograph';
+      return 'Lithograph, $year';
+    }
+    return _subjectCaption(credit);
   }
   return null;
 }

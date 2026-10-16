@@ -6,7 +6,7 @@ The seed entry is Punaura Dham, the Janaki Janmabhoomi complex near Sitamarhi (J
 ## Punaura_Dham.jpg
 - **Commons File:** File:Punaura Dham.jpg
 - **Author:** Skrsingh009
-- **Credit stored:** Skrsingh009
+- **Credit stored:** Skrsingh009 · Shows Punaura Dham
 - **License:** CC0
 - **Source page URL:** https://commons.wikimedia.org/wiki/File%3APunaura_Dham.jpg
 - **Download URL used:** https://upload.wikimedia.org/wikipedia/commons/7/70/Punaura_Dham.jpg

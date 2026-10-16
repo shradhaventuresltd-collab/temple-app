@@ -1105,8 +1105,8 @@ const List<Temple> sampleTemples = [
   // ═══════════════════════════════════════════════════════════════════════════
   // Research-enriched visitor copy for the existing 10 Kerala temples
   // (matched by name/slug — no new documents). KAN-77 Wave A covers are
-  // Commons downloaded_url thumbs (not Storage paths). Anjengo and Mannarsala
-  // stay picsum (shortfall, no pack). Sources: docs/kerala-sample-research.md.
+  // Commons downloaded_url thumbs (not Storage paths).
+  // Sources: docs/kerala-sample-research.md.
   // KAN-77: verified Commons thumbs — tools/photo-packs/guruvayur-sri-krishna-temple/
   Temple(
     name: 'Guruvayur Sri Krishna Temple',
@@ -2351,8 +2351,8 @@ const List<Temple> sampleTemples = [
   //  KARNATAKA
   // ═══════════════════════════════════════════════════════════════════════════
   // Research-enriched visitor copy for the existing 10 Karnataka temples
-  // (matched by name/slug — no new documents). KAN-77 Wave B replaces picsum
-  // covers with Commons downloaded_url thumbs from tools/photo-packs/<slug>/
+  // (matched by name/slug — no new documents). KAN-77 Wave B covers are
+  // Commons downloaded_url thumbs from tools/photo-packs/<slug>/
   // (not Storage). Sources: docs/karnataka-sample-research.md.
   Temple(
     name: 'Sri Krishna Matha (Udupi)',
@@ -3583,8 +3583,8 @@ const List<Temple> sampleTemples = [
   //  ANDHRA PRADESH
   // ═══════════════════════════════════════════════════════════════════════════
   // Expansion batch 4 — new temples, not enrichments of existing rows.
-  // Wave C packs use Wikimedia Commons thumbs. Temples without a pack
-  // still use picsum placeholders. Commons files are not Storage paths.
+  // Wave C packs use Wikimedia Commons thumbs. Commons files are not
+  // Storage paths.
   // Sources and photo candidates: docs/andhra-pradesh-sample-research.md
   // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/tirumala-venkateswara-temple/
   Temple(
@@ -4226,8 +4226,8 @@ const List<Temple> sampleTemples = [
   //  TELANGANA
   // ═══════════════════════════════════════════════════════════════════════════
   // Expansion batch 5 — new temples, not enrichments of existing rows.
-  // Wave C packs use Wikimedia Commons thumbs. Temples without a pack
-  // still use picsum placeholders. Commons files are not Storage paths.
+  // Wave C packs use Wikimedia Commons thumbs. Commons files are not
+  // Storage paths.
   // Sources and photo candidates: docs/telangana-sample-research.md
   // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/sri-lakshmi-narasimha-swamy-yadagirigutta/
   Temple(
@@ -4862,8 +4862,8 @@ const List<Temple> sampleTemples = [
   //  GUJARAT
   // ═══════════════════════════════════════════════════════════════════════════
   // Expansion batch 6 — new temples, not enrichments of existing rows.
-  // Wave C packs use Wikimedia Commons thumbs. Temples without a pack
-  // still use picsum placeholders. Commons files are not Storage paths.
+  // Wave C packs use Wikimedia Commons thumbs. Commons files are not
+  // Storage paths.
   // Sources and photo candidates: docs/gujarat-sample-research.md
   // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/somnath-temple/
   Temple(
@@ -5466,8 +5466,8 @@ const List<Temple> sampleTemples = [
   //  ODISHA
   // ═══════════════════════════════════════════════════════════════════════════
   // Expansion batch 7 — new temples, not enrichments of existing rows.
-  // Wave C packs use Wikimedia Commons thumbs. Temples without a pack
-  // still use picsum placeholders. Commons files are not Storage paths.
+  // Wave C packs use Wikimedia Commons thumbs. Commons files are not
+  // Storage paths.
   // Sources and photo candidates: docs/odisha-sample-research.md
   // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/jagannath-temple-puri/
   Temple(
@@ -6068,8 +6068,8 @@ const List<Temple> sampleTemples = [
   //  UTTAR PRADESH
   // ═══════════════════════════════════════════════════════════════════════════
   // Expansion batch 8 — new temples, not enrichments of existing rows.
-  // Wave C packs use Wikimedia Commons thumbs. Temples without a pack
-  // still use picsum placeholders. Commons files are not Storage paths.
+  // Wave C packs use Wikimedia Commons thumbs. Commons files are not
+  // Storage paths.
   // Sources and photo candidates: docs/uttar-pradesh-sample-research.md
   // KAN-76 Wave D: verified Commons thumbs — tools/photo-packs/kashi-vishwanath-temple/
   Temple(
@@ -6684,8 +6684,7 @@ const List<Temple> sampleTemples = [
   // Expansion batch 9 — new temples, not enrichments of existing rows.
   // State label is Jammu and Kashmir. No separate Ladakh row: this pass
   // did not find a living Ladakh Hindu temple with a verified Commons photo.
-  // Wave C packs use Wikimedia Commons thumbs. Temples without a pack,
-  // including Ranbireshwar and Sudh Mahadev, still use picsum placeholders.
+  // Wave C packs use Wikimedia Commons thumbs.
   // Sources and photo candidates: docs/jammu-kashmir-sample-research.md
   // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/vaishno-devi-temple/
   Temple(
@@ -7244,8 +7243,7 @@ const List<Temple> sampleTemples = [
   //  MAHARASHTRA
   // ═══════════════════════════════════════════════════════════════════════════
   // Expansion batch 10 — new temples, not enrichments of existing rows.
-  // Wave C packs use Wikimedia Commons thumbs. Temples without a pack
-  // still use picsum placeholders. Research notes stay in
+  // Wave C packs use Wikimedia Commons thumbs. Research notes stay in
   // docs/maharashtra-sample-research.md, not Storage paths.
   // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/shree-saibaba-samadhi-mandir/
   Temple(
@@ -7905,8 +7903,8 @@ const List<Temple> sampleTemples = [
   // ═══════════════════════════════════════════════════════════════════════════
   // Expansion batch 11 — new temples, not enrichments of existing rows.
   // Dilwara is a Jain tirtha, not a Hindu temple. Wave C packs use
-  // Wikimedia Commons thumbs. Temples without a pack still use picsum
-  // placeholders. Research notes stay in docs/rajasthan-sample-research.md.
+  // Wikimedia Commons thumbs. Research notes stay in
+  // docs/rajasthan-sample-research.md.
   // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/brahma-temple-pushkar/
   Temple(
     name: 'Brahma Temple',
@@ -8520,8 +8518,8 @@ const List<Temple> sampleTemples = [
   // ═══════════════════════════════════════════════════════════════════════════
   // Expansion batch 12 — new temples, not enrichments of existing rows.
   // Belur Math stays in the Ramakrishna–Vedanta tradition; Mayapur
-  // stays Gaudiya Vaishnava. Cover imageUrl values are picsum
-  // placeholders. Commons candidates: docs/west-bengal-sample-research.md.
+  // stays Gaudiya Vaishnava. Commons candidates:
+  // docs/west-bengal-sample-research.md.
   // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/kalighat-kali-temple/
   Temple(
     name: 'Kalighat Kali Temple',
@@ -9098,8 +9096,8 @@ const List<Temple> sampleTemples = [
   // ═══════════════════════════════════════════════════════════════════════════
   // Expansion batch 13 — new temples, not enrichments of existing rows.
   // Kandariya Mahadeva and Lakshmana are ASI/UNESCO monuments, not
-  // living pooja listings. Cover imageUrl values are picsum
-  // placeholders. Commons candidates: docs/madhya-pradesh-sample-research.md.
+  // living pooja listings. Commons candidates:
+  // docs/madhya-pradesh-sample-research.md.
   // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/mahakaleshwar-temple/
   Temple(
     name: 'Mahakaleshwar Temple',
@@ -9731,8 +9729,8 @@ const List<Temple> sampleTemples = [
   // ═══════════════════════════════════════════════════════════════════════════
   // Expansion batch 14 — new temples, not enrichments of existing rows.
   // Mahabodhi is a living Buddhist UNESCO site, not a Hindu temple.
-  // Wave C packs use Wikimedia Commons thumbs. Temples without a pack
-  // still use picsum placeholders. Research notes: docs/bihar-sample-research.md.
+  // Wave C packs use Wikimedia Commons thumbs.
+  // Research notes: docs/bihar-sample-research.md.
   // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/mahavir-mandir-patna/
   Temple(
     name: 'Mahavir Mandir',
@@ -10312,7 +10310,7 @@ const List<Temple> sampleTemples = [
       TemplePhoto(
         url:
             'https://upload.wikimedia.org/wikipedia/commons/7/70/Punaura_Dham.jpg',
-        credit: 'Skrsingh009',
+        credit: 'Skrsingh009 · Shows Punaura Dham',
         licence: PhotoLicence.cc0,
         order: 0,
       ),
@@ -10371,8 +10369,8 @@ const List<Temple> sampleTemples = [
   // Expansion batch 15 — new temples, not enrichments of existing rows.
   // Jwalamukhi keeps two conflicting official Kangra portal clocks.
   // Baijnath (Kangra) is not the canonical Vaidyanath Jyotirlinga.
-  // Wave C packs use Wikimedia Commons thumbs. Temples without a pack
-  // still use picsum placeholders. Research notes: docs/himachal-pradesh-sample-research.md.
+  // Wave C packs use Wikimedia Commons thumbs.
+  // Research notes: docs/himachal-pradesh-sample-research.md.
   // KAN-76/KAN-77 Wave C: verified Commons thumbs — tools/photo-packs/jwalamukhi-temple/
   Temple(
     name: 'Jwalamukhi Temple',

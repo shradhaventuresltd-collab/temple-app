@@ -133,6 +133,17 @@ void main() {
       isNull,
     );
     expect(visiblePhotoCredit(const [], url), isNull);
+    expect(
+      visiblePhotoCredit(const [
+        TemplePhoto(
+          url: url,
+          credit: 'Skrsingh009 · Shows Punaura Dham',
+          licence: PhotoLicence.cc0,
+          order: 0,
+        ),
+      ], url),
+      'Shows Punaura Dham',
+    );
   });
 
   test('lithograph cover caption takes its year from the credit', () {
@@ -203,6 +214,17 @@ void main() {
         ),
       ], url),
       'Lithograph',
+    );
+    expect(
+      historicalCoverCaption(const [
+        TemplePhoto(
+          url: url,
+          credit: 'Skrsingh009 · Shows Punaura Dham',
+          licence: PhotoLicence.cc0,
+          order: 0,
+        ),
+      ], url),
+      'Shows Punaura Dham',
     );
   });
 

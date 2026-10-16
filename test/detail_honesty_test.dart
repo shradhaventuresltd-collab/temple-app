@@ -1118,6 +1118,19 @@ void main() {
     expect(janaki.images.join('\n'), isNot(contains('Punaura.gif')));
     expect(janaki.images.first, contains('Punaura_Dham.jpg'));
     expect(janaki.images.last, contains('Janaki_kund'));
+    expect(janaki.photos.first.credit, 'Skrsingh009 · Shows Punaura Dham');
+    expect(
+      visiblePhotoCredit(janaki.photos, janaki.imageUrl),
+      'Shows Punaura Dham',
+    );
+    expect(
+      historicalCoverCaption(janaki.photos, janaki.imageUrl),
+      'Shows Punaura Dham',
+    );
+    expect(
+      janaki.photos.last.credit,
+      'Mala chaubey at Hindi Wikipedia · CC BY-SA 3.0',
+    );
   });
 
   test('gallery URLs do not carry utm query parameters', () {
@@ -1180,6 +1193,22 @@ void main() {
     );
     await tester.pump();
     expect(find.byKey(const Key('detail-photo-credit')), findsNothing);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TempleDetailBody(
+            temple: credited(
+              PhotoLicence.cc0,
+              'Skrsingh009 · Shows Punaura Dham',
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.text('Shows Punaura Dham'), findsOneWidget);
+    expect(find.textContaining('Skrsingh009'), findsNothing);
   });
 
   testWidgets('a single stated window does not add a timings caveat', (
