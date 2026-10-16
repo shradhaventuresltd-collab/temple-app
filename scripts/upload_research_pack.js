@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 
 import { assertOneCoverOk } from "./cover_ok.js";
 import { downloadTokenUrl, ensureDownloadToken, withDownloadToken } from "./download_token.js";
+import { redactDownloadToken } from "./redact_url.js";
 import { assertStorageAuth, useNativeFetchForStorageAuth } from "./storage_auth.js";
 import { mapPhotoLicence, photoCredit } from "./photo_licence.js";
 
@@ -507,23 +508,23 @@ export async function processPack({
       );
       uploadedUrls.push(url);
       console.log("ok");
-      console.log(`    ${url}`);
+      console.log(`    ${redactDownloadToken(url)}`);
     } catch (err) {
       console.log("FAILED");
-      throw new Error(`${photo.filename}: ${err.message}`);
+      throw new Error(`${photo.filename}: ${redactDownloadToken(err.message)}`);
     }
   }
 
   console.log("\n── Download URLs ─────────────────────────────────────────────");
   for (const url of uploadedUrls) {
-    console.log(url);
+    console.log(redactDownloadToken(url));
   }
 
   console.log("\n── Suggested sample_data / Firestore fields ──────────────────");
-  console.log(`imageUrl: '${uploadedUrls[0]}',`);
+  console.log(`imageUrl: '${redactDownloadToken(uploadedUrls[0])}',`);
   console.log("images: [");
   for (const url of uploadedUrls) {
-    console.log(`  '${url}',`);
+    console.log(`  '${redactDownloadToken(url)}',`);
   }
   console.log("],");
 
@@ -702,7 +703,7 @@ const invoked =
   process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (invoked) {
   main().catch((err) => {
-    console.error(`\n✖  ${err.message}`);
+    console.error(`\n✖  ${redactDownloadToken(err.message)}`);
     process.exit(1);
   });
 }

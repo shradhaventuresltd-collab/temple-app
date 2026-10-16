@@ -32,9 +32,9 @@
  * each successful row and records the cover URL. --resume processes a
  * recorded temple again when that cover has changed.
  *
- * Encoding uses sharp, installed by Deployer
- * (`npm install --prefix scripts sharp`). Tests inject an encoder and never
- * import sharp.
+ * Encoding uses the sharp dependency in scripts/package.json.
+ * `npm ci` in scripts/ installs the prebuilt binary. Most tests inject an
+ * encoder. The encode unit test calls sharp.
  * prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
  */
 import { randomUUID } from "node:crypto";
@@ -43,6 +43,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard.js";
+import { redactDownloadToken } from "./redact_url.js";
 import { assertStorageAuth, STORAGE_AUTH_BUCKET, useNativeFetchForStorageAuth } from "./storage_auth.js";
 import {
   entryFromTemple,
@@ -83,8 +84,8 @@ Apply writes the thumb object, checks its Firebase download URL, then
 one transaction per temple for photos[].thumbUrl and that temple's index
 entry. A cover that changed is skipped. A cover with no matching photos[]
 entry is listed as no-photo and not uploaded.
-It does not deploy rules. Install sharp before apply:
-  npm install --prefix scripts sharp
+It does not deploy rules. JPEG encoding uses the sharp dependency
+installed by npm ci in scripts/.
 `);
 }
 
@@ -605,12 +606,11 @@ export function formatThumbReport(rows, { apply = false } = {}) {
       "Storage thumbs plus photos[].thumbUrl and the index entry. Rules were not deployed.",
     );
   }
-  return lines.join("\n");
+  return redactDownloadToken(lines.join("\n"));
 }
 
 /**
- * sharp resize to JPEG. Imported only when Deployer applies. Tests never
- * call this. Width is [THUMB_EDGE]. Smaller frames are not enlarged.
+ * sharp resize to JPEG. Width is [THUMB_EDGE]. Smaller frames are not enlarged.
  */
 export async function encodeWithSharp(bytes) {
   let sharp;
@@ -618,7 +618,7 @@ export async function encodeWithSharp(bytes) {
     ({ default: sharp } = await import("sharp"));
   } catch {
     throw new Error(
-      "Thumbnail encoding needs sharp. From the repo: npm install --prefix scripts sharp. No write.",
+      "Thumbnail encoding needs sharp. From the repo: run npm ci in scripts/. No write.",
     );
   }
   const input = sharp(bytes, { failOn: "none" }).rotate();
@@ -767,7 +767,8 @@ function storageDeps(admin) {
 
 export async function main(argv = process.argv.slice(2), deps = {}) {
   const opts = parseArgs(argv);
-  const log = deps.log ?? ((line) => console.log(line));
+  const writeLog = deps.log ?? ((line) => console.log(line));
+  const log = (line) => writeLog(redactDownloadToken(line));
   if (opts.help) {
     printUsage();
     return null;
@@ -851,7 +852,7 @@ const isDirect =
   process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1]);
 if (isDirect) {
   main().catch((error) => {
-    console.error(error.message || error);
+    console.error(redactDownloadToken(error.message || error));
     process.exit(1);
   });
 }
