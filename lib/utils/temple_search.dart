@@ -10,13 +10,20 @@ const Duration templeSearchDebounce = Duration(milliseconds: 300);
 /// combined name, city, state, deity, and address ([Temple.location]) after
 /// [foldTempleSearchText]. Story and description are not searched.
 ///
+/// Queries shorter than 3 characters skip that folding. They use the old
+/// spaced text, so `ee`, `th`, and `it` stay ordinary substrings and `-`
+/// stays a hyphen.
+///
 /// This is the normalised exact check. [filterTemples] adds a short
 /// edit-distance fallback only when that check matches nothing.
 bool templeMatchesQuery(Temple temple, String query) {
   if (query.trim().isEmpty) return true;
+  final indexed = _indexFor(temple);
+  if (_isShortQuery(query)) {
+    return indexed.plain.contains(query.trim().toLowerCase());
+  }
   final words = _queryWords(query);
   if (words.isEmpty) return false;
-  final indexed = _indexFor(temple);
   return words.every(indexed.blob.contains);
 }
 
@@ -26,7 +33,8 @@ bool templeMatchesQuery(Temple temple, String query) {
 /// set, same as the drawer chips). Normalised matches keep the order of
 /// [temples] and outrank edit-distance matches. Edit distance runs only when
 /// no temple matched every word exactly, then closer matches come first and
-/// equal distances keep input order.
+/// equal distances keep input order. Queries under 3 characters are plain
+/// substrings, in that same order.
 List<Temple> filterTemples(
   List<Temple> temples, {
   String? state,
@@ -37,6 +45,16 @@ List<Temple> filterTemples(
     return [
       for (final temple in temples)
         if (_passesChips(temple, state, deity)) temple,
+    ];
+  }
+
+  if (_isShortQuery(query)) {
+    final needle = query.trim().toLowerCase();
+    return [
+      for (final temple in temples)
+        if (_passesChips(temple, state, deity) &&
+            _indexFor(temple).plain.contains(needle))
+          temple,
     ];
   }
 
@@ -104,6 +122,10 @@ bool _passesChips(Temple temple, String? state, String? deity) {
       (deity == null || temple.deity == deity);
 }
 
+/// Folding `ee` or `th`, or deleting the space in `devi temple`, turns a
+/// two-character query into a hit on most of the directory.
+bool _isShortQuery(String query) => query.trim().length < 3;
+
 final RegExp _spaceOrHyphen = RegExp(r'[\s-]+');
 final RegExp _whitespace = RegExp(r'\s+');
 
@@ -130,7 +152,10 @@ _TempleIndex _indexFor(Temple temple) {
 }
 
 class _TempleIndex {
-  _TempleIndex(this.blob, this.tokens);
+  _TempleIndex(this.plain, this.blob, this.tokens);
+
+  /// Lowercased directory text with spaces kept, for queries under 3 characters.
+  final String plain;
 
   /// Folded fields joined so a word cannot match across two fields.
   final String blob;
@@ -144,11 +169,13 @@ class _TempleIndex {
       temple.deity,
       temple.location,
     ];
+    final plainFields = <String>[];
     final foldedFields = <String>[];
     final tokens = <String>[];
     for (final field in fields) {
       final trimmed = field.trim().toLowerCase();
       if (trimmed.isEmpty) continue;
+      plainFields.add(trimmed.replaceAll(_whitespace, ' '));
       final folded = foldTempleSearchText(trimmed);
       if (folded.isNotEmpty) foldedFields.add(folded);
       for (final word in trimmed.split(_whitespace)) {
@@ -156,7 +183,11 @@ class _TempleIndex {
         if (token.isNotEmpty) tokens.add(token);
       }
     }
-    return _TempleIndex(foldedFields.join('\u0000'), tokens);
+    return _TempleIndex(
+      plainFields.join(' '),
+      foldedFields.join('\u0000'),
+      tokens,
+    );
   }
 }
 

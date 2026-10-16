@@ -283,4 +283,100 @@ void main() {
     expect(filterTemples(sampleTemples, query: 'qqqqqqqq'), isEmpty);
     expect(filterTemples(sampleTemples, query: 'zzzz-not-a-temple'), isEmpty);
   });
+
+  test('short queries keep the old substring counts', () {
+    expect(filterTemples(sampleTemples, query: 'ee'), hasLength(19));
+    expect(filterTemples(sampleTemples, query: 'th'), hasLength(71));
+    expect(filterTemples(sampleTemples, query: 'it'), hasLength(19));
+    expect(filterTemples(sampleTemples, query: '-'), hasLength(4));
+    expect(filterTemples(sampleTemples, query: 'EE'), hasLength(19));
+  });
+
+  test('a fuzzy match still respects state and deity filters', () {
+    final meenakshi = temple(
+      name: 'Meenakshi Amman Temple',
+      state: 'Tamil Nadu',
+      deity: 'Devi',
+      city: 'Madurai',
+    );
+    final other = temple(
+      name: 'Other Temple',
+      state: 'Tamil Nadu',
+      deity: 'Shiva',
+      city: 'Chennai',
+    );
+    final kerala = temple(
+      name: 'Guruvayur Temple',
+      state: 'Kerala',
+      deity: 'Vishnu',
+      city: 'Guruvayur',
+    );
+
+    expect(
+      filterTemples(
+        [other, kerala, meenakshi],
+        state: 'Tamil Nadu',
+        query: 'Meenakshix',
+      ).map((t) => t.name),
+      ['Meenakshi Amman Temple'],
+    );
+    expect(
+      filterTemples([meenakshi, kerala], state: 'Kerala', query: 'Meenakshix'),
+      isEmpty,
+    );
+    expect(
+      filterTemples(
+        [other, meenakshi],
+        deity: 'Devi',
+        query: 'Meenakshix',
+      ).single.name,
+      'Meenakshi Amman Temple',
+    );
+  });
+
+  test('an empty query keeps every temple that matches the filters', () {
+    final temples = [
+      temple(name: 'A', state: 'Kerala', deity: 'Shiva', city: 'Kochi'),
+      temple(name: 'B', state: 'Tamil Nadu', deity: 'Shiva', city: 'Madurai'),
+      temple(name: 'C', state: 'Kerala', deity: 'Devi', city: 'Kollam'),
+    ];
+
+    expect(
+      filterTemples(temples, state: 'Kerala', query: '').map((t) => t.name),
+      ['A', 'C'],
+    );
+    expect(
+      filterTemples(
+        temples,
+        state: 'Kerala',
+        deity: 'Shiva',
+        query: '  \n',
+      ).map((t) => t.name),
+      ['A'],
+    );
+    expect(
+      filterTemples(sampleTemples, state: 'Kerala', query: '').length,
+      sampleTemples.where((t) => t.state == 'Kerala').length,
+    );
+  });
+
+  test('non-Latin text is searched literally', () {
+    final listed = temple(
+      name: 'मीनाक्षी अम्मन मंदिर',
+      city: 'मदुरै',
+      state: 'तमिलनाडु',
+    );
+
+    expect(filterTemples(sampleTemples, query: 'मीनाक्षी'), isEmpty);
+    expect(filterTemples(sampleTemples, query: 'திருச்செந்தூர்'), isEmpty);
+    expect(
+      filterTemples([listed], query: 'मीनाक्षी').single.name,
+      'मीनाक्षी अम्मन मंदिर',
+    );
+    expect(filterTemples([listed], query: 'मदुरै').single.city, 'मदुरै');
+    expect(
+      () => filterTemples(sampleTemples, query: '🛕 मीनाक्षी'),
+      returnsNormally,
+    );
+  });
 }
