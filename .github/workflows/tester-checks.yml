@@ -211,7 +211,7 @@ jobs:
           disable-animations: true
           pre-emulator-launch-script: bash scripts/ci/prepare_atd_avd.sh temple-smoke-34-atd
           emulator-options: -no-snapshot-save -no-snapshot-load -no-boot-anim -gpu swiftshader_indirect -no-window -no-audio -camera-back none -camera-front none -partition-size 2048
-          script: TESTER_CHECKS_PROFILE=${{ matrix.id }} TESTER_CHECKS_WM_SIZE=${{ matrix.wm_size }} timeout --kill-after=30s 11m bash scripts/ci/run_tester_checks.sh
+          script: TESTER_CHECKS_PROFILE=${{ matrix.id }} TESTER_CHECKS_WM_SIZE=${{ matrix.wm_size }} timeout --kill-after=30s 12m bash scripts/ci/run_tester_checks.sh
 
       - name: Save emulator system image
         if: always() && matrix.id == 'pixel-6' && steps.system-image-cache.outputs.cache-hit != 'true'

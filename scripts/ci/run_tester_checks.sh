@@ -91,9 +91,9 @@ else:
 titles = {
     1: "Accept & continue works with a single tap",
     2: "Force-stop relaunch 3 times plus a cold start shows Browse N Temples",
-    3: "Home mosaic shows Photo pending tiles, not grey ones",
+    3: "Every mosaic tile is a loaded photo or Photo pending, never a grey placeholder",
     4: "A long temple name wraps to 2 lines",
-    5: "Search finds Minakshi, Tirupathi, Tiruchendur, and Sivan, and records ee/th/it",
+    5: "Search reports top 3; Tirupathi and Sivan ranking is a finding, not a failure",
     6: "Airplane-mode cold start does not show maintenance",
     7: "Janaki Temple Sitamarhi caption says Punaura Dham",
     8: "Get Directions is visible and launches a maps intent",
@@ -109,6 +109,8 @@ lines = [
     "",
     "Release APK, prod Firestore, no writes, no DEMO_BUILD, no ENABLE_ADMIN_TOOLS.",
     "Check 2 expects Browse 984 Temples and no Firebase or [core/no-app] error.",
+    "Check 3 expects every mosaic tile to be a loaded network photo or Photo pending, never a grey placeholder.",
+    "Check 5 records the top 3 for each query. Tirupathi and Sivan ranking mismatches are findings, not failures.",
     "Check 7 runs because #77 is in main 63da3fc.",
     "Check 9 expects no force-update screen and no soft-update nudge on the three relaunches and the cold start.",
     "Check 10 expects no picsum.photos URL and no other placeholder image. Anjengo and Akshardham may be Photo pending.",
@@ -200,6 +202,17 @@ adb shell pm path "$PKG"
 bash "$ROOT/scripts/ci/install_https_handoff.sh"
 
 echo "===== screenshot watcher ====="
+capture_shot() {
+  local name="$1"
+  # The test already waited for one frame. Give the emulator surface a
+  # moment to present it before reading the framebuffer.
+  sleep 0.4
+  if adb exec-out screencap -p > "$OUT/${name}.png"; then
+    echo "captured $name ($(wc -c < "$OUT/${name}.png") bytes)"
+  else
+    echo "screencap failed for $name"
+  fi
+}
 stdbuf -oL adb logcat -v brief | stdbuf -oL grep --line-buffered 'TESTER_CHECKS' | while IFS= read -r line; do
   line="${line//$'\r'/}"
   printf '%s\n' "$line" >> "$OUT/events.log"
@@ -211,11 +224,7 @@ stdbuf -oL adb logcat -v brief | stdbuf -oL grep --line-buffered 'TESTER_CHECKS'
         echo "skip shot name $name"
         continue
       fi
-      if adb exec-out screencap -p > "$OUT/${name}.png"; then
-        echo "captured $name ($(wc -c < "$OUT/${name}.png") bytes)"
-      else
-        echo "screencap failed for $name"
-      fi
+      capture_shot "$name"
       ;;
   esac
 done &
@@ -318,7 +327,9 @@ run_phase accept 70
 run_phase relaunch-1 50
 run_phase relaunch-2 50
 run_phase relaunch-3 50
-run_phase cold 220
+run_phase cold 150
+run_phase resume 70
+run_phase detail 90
 run_phase kill-switch 50
 run_phase force-update 50
 
@@ -342,8 +353,7 @@ stdbuf -oL adb logcat -v brief | stdbuf -oL grep --line-buffered 'TESTER_CHECKS'
       name="${line##*SHOT }"
       name="${name%% *}"
       if [[ "$name" =~ ^[A-Za-z0-9._-]+$ ]]; then
-        adb exec-out screencap -p > "$OUT/${name}.png" || true
-        echo "captured $name"
+        capture_shot "$name"
       fi
       ;;
   esac

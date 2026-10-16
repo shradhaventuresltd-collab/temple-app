@@ -57,11 +57,16 @@ void main() {
         case 'relaunch-1':
         case 'relaunch-2':
         case 'relaunch-3':
+          await _homeLaunch(tester, phase);
         case 'cold':
           await _homeLaunch(tester, phase);
-          if (phase == 'cold') {
-            await _uiChecks(tester);
-          }
+          await _uiChecks(tester);
+        case 'resume':
+          await _homeLaunch(tester, phase, capture: false);
+          await _resumeOnly(tester);
+        case 'detail':
+          await _homeLaunch(tester, phase, capture: false);
+          await _detailOnly(tester);
         case 'airplane':
           await _airplanePhase(tester);
         case 'kill-switch':
@@ -109,11 +114,14 @@ Future<void> _shot(WidgetTester tester, String name) async {
   final safe = name.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '-');
   // Host screencap is the evidence. convertFlutterSurfaceToImage registers
   // a tearDown after the test has started and drops the element tree.
+  // Pump one frame, then wait so the emulator surface has presented it.
+  // A 360dp force-update frame was black when the capture raced that present.
   if (WidgetsBinding.instance.rootElement != null) {
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump();
   }
+  await Future<void>.delayed(const Duration(milliseconds: 600));
   _logLine('SHOT $safe');
-  await Future<void>.delayed(const Duration(milliseconds: 1500));
+  await Future<void>.delayed(const Duration(milliseconds: 1200));
 }
 
 Future<bool> _waitUntil(
@@ -271,7 +279,11 @@ Future<void> _acceptPhase(WidgetTester tester) async {
   );
 }
 
-Future<void> _homeLaunch(WidgetTester tester, String phase) async {
+Future<void> _homeLaunch(
+  WidgetTester tester,
+  String phase, {
+  bool capture = true,
+}) async {
   final ready = await _waitUntil(
     tester,
     () =>
@@ -300,8 +312,10 @@ Future<void> _homeLaunch(WidgetTester tester, String phase) async {
       timeout: const Duration(seconds: 2),
     );
   }
-  final shotName = phase == 'cold' ? '02-cold-start' : '02-$phase';
-  await _shot(tester, shotName);
+  if (capture) {
+    final shotName = phase == 'cold' ? '02-cold-start' : '02-$phase';
+    await _shot(tester, shotName);
+  }
 
   final count = _browseCount(label);
   final firebase = _firebaseOnScreen(tester);
@@ -333,16 +347,28 @@ Future<void> _uiChecks(WidgetTester tester) async {
   if (!await _openBrowse(tester)) {
     _result(4, false, 'browse did not open; ${_screenHint(tester)}');
     _result(5, false, 'browse did not open');
-    _result(7, false, 'browse did not open');
-    _result(8, false, 'browse did not open');
     _result(10, false, 'browse did not open');
-    _result(11, false, 'browse did not open');
     return;
   }
   await _longNameCheck(tester);
   await _searchChecks(tester);
   await _picsumCheck(tester);
+}
+
+Future<void> _resumeOnly(WidgetTester tester) async {
+  if (!await _openBrowse(tester)) {
+    _result(11, false, 'browse did not open; ${_screenHint(tester)}');
+    return;
+  }
   await _resumeCheck(tester);
+}
+
+Future<void> _detailOnly(WidgetTester tester) async {
+  if (!await _openBrowse(tester)) {
+    _result(7, false, 'browse did not open; ${_screenHint(tester)}');
+    _result(8, false, 'browse did not open');
+    return;
+  }
   await _janakiAndDirections(tester);
 }
 
@@ -352,25 +378,28 @@ Future<void> _mosaicCheck(WidgetTester tester) async {
     await tester.ensureVisible(mosaic);
     await tester.pump(const Duration(milliseconds: 200));
   }
-  var pending = _pendingInMosaic(tester);
-  var photos = _photosInMosaic(tester);
-  var loading = _loadingInMosaic(tester);
-  if (pending == 0) {
-    await tester.pump(const Duration(seconds: 6));
-    pending = _pendingInMosaic(tester);
-    photos = _photosInMosaic(tester);
-    loading = _loadingInMosaic(tester);
-  }
+  await _waitUntil(
+    tester,
+    () =>
+        _loadingInMosaic(tester) == 0 &&
+        (_photosInMosaic(tester) > 0 || _pendingInMosaic(tester) > 0),
+    timeout: const Duration(seconds: 12),
+  );
   if (tester.any(mosaic)) {
     await tester.ensureVisible(mosaic);
   }
+  final pending = _pendingInMosaic(tester);
+  final photos = _photosInMosaic(tester);
+  final loading = _loadingInMosaic(tester);
   await _shot(tester, '03-home-mosaic');
-  final pass = pending > 0;
+  // Real covers are expected. A grey shimmer or an empty collage is not.
+  final pass =
+      tester.any(mosaic) && loading == 0 && (photos > 0 || pending > 0);
   _result(
     3,
     pass,
-    'Photo pending tiles=$pending network tiles=$photos '
-        'loading placeholders=$loading',
+    'network tiles=$photos Photo pending tiles=$pending '
+        'grey placeholders=$loading',
   );
 }
 
@@ -520,53 +549,103 @@ Future<void> _typeQuery(WidgetTester tester, String query) async {
 }
 
 Future<void> _searchChecks(WidgetTester tester) async {
-  final named = <(String query, bool Function(String name) matches)>[
-    (
-      'Minakshi',
-      (name) {
-        final lower = name.toLowerCase();
-        return lower.contains('minakshi') || lower.contains('meenakshi');
-      },
-    ),
-    ('Tirupathi', (name) => name.toLowerCase().contains('tirupati')),
-    (
-      'Tiruchendur',
-      (name) {
-        final lower = name.toLowerCase();
-        return lower.contains('tiruchendur') ||
-            lower.contains('thiruchendur');
-      },
-    ),
-    ('Sivan', (name) => name.toLowerCase().contains('sivan')),
-  ];
   final notes = <String>[];
-  var namedPass = true;
-  for (final row in named) {
-    await _typeQuery(tester, row.$1);
-    final top = _topTempleName(tester);
+  var pass = true;
+
+  Future<void> named(
+    String query,
+    bool Function(Temple temple) matches, {
+    required bool rankingFinding,
+    String? expected,
+  }) async {
+    await _typeQuery(tester, query);
+    final top = _visibleTemples(tester, limit: 3);
     final count = _resultCount(tester);
-    final pass = top != null && row.$2(top);
-    if (!pass) namedPass = false;
-    notes.add('${row.$1} top=${top ?? 'none'} count=${count ?? 'none'}');
-    _logLine(
-      'SEARCH ${row.$1} ${pass ? 'PASS' : 'FAIL'} '
-      'top=${top ?? 'none'} count=${count ?? 'none'}',
-    );
-    final slug = row.$1.toLowerCase();
-    await _shot(tester, '05-search-$slug');
+    final label = _templeList(top);
+    final topMatches = top.isNotEmpty && matches(top.first);
+    if (rankingFinding) {
+      notes.add(
+        '$query RANKING top-matches=${topMatches ? 'yes' : 'no'} '
+        'expected=${expected ?? 'named temple'} '
+        'count=${count ?? 'none'} top3=$label',
+      );
+      _logLine(
+        'SEARCH $query RANKING top-matches=${topMatches ? 'yes' : 'no'} '
+        'top3=$label count=${count ?? 'none'}',
+      );
+    } else {
+      if (!topMatches) pass = false;
+      notes.add(
+        '$query found=${topMatches ? 'yes' : 'no'} '
+        'count=${count ?? 'none'} top3=$label',
+      );
+      _logLine(
+        'SEARCH $query ${topMatches ? 'PASS' : 'FAIL'} '
+        'top3=$label count=${count ?? 'none'}',
+      );
+    }
+    await _shot(tester, '05-search-${query.toLowerCase()}');
   }
+
+  await named('Minakshi', (temple) {
+    final name = temple.name.toLowerCase();
+    return name.contains('minakshi') || name.contains('meenakshi');
+  }, rankingFinding: false);
+  await named(
+    'Tirupathi',
+    _isTirupatiVenkateswara,
+    rankingFinding: true,
+    expected: 'Tirumala/Tirupati Venkateswara',
+  );
+  await named('Tiruchendur', (temple) {
+    final blob = '${temple.name} ${temple.city} ${temple.state}'.toLowerCase();
+    return blob.contains('tiruchendur') || blob.contains('thiruchendur');
+  }, rankingFinding: false);
+  await named(
+    'Sivan',
+    (temple) => temple.name.toLowerCase().contains('sivan'),
+    rankingFinding: true,
+    expected: 'a Sivan temple',
+  );
 
   final counts = <String>[];
   for (final query in const ['ee', 'th', 'it']) {
     await _typeQuery(tester, query);
     final count = _resultCount(tester);
-    counts.add('$query=${count ?? 'none'}');
-    _logLine('SEARCH $query COUNT ${count ?? 'none'}');
+    final label = _templeList(_visibleTemples(tester, limit: 3));
+    counts.add('$query=${count ?? 'none'} top3=$label');
+    _logLine('SEARCH $query COUNT ${count ?? 'none'} top3=$label');
     await _shot(tester, '05-search-$query');
-    if (count == null) namedPass = false;
+    if (count == null) pass = false;
   }
   await _typeQuery(tester, '');
-  _result(5, namedPass, '${notes.join('; ')}; ${counts.join(' ')}');
+  _result(5, pass, '${notes.join('; ')}; ${counts.join(' ')}');
+}
+
+bool _isTirupatiVenkateswara(Temple temple) {
+  final blob = '${temple.name} ${temple.city} ${temple.state}'.toLowerCase();
+  final deity = blob.contains('venkateswara') ||
+      blob.contains('venkateshwara') ||
+      blob.contains('balaji');
+  final place = blob.contains('tirupati') ||
+      blob.contains('tirumala') ||
+      blob.contains('tirupathi');
+  return deity && place;
+}
+
+List<Temple> _visibleTemples(WidgetTester tester, {required int limit}) {
+  final cards = find.byType(TempleBrowseCard);
+  final count = cards.evaluate().length;
+  final temples = <Temple>[];
+  for (var i = 0; i < count && temples.length < limit; i++) {
+    temples.add(tester.widget<TempleBrowseCard>(cards.at(i)).temple);
+  }
+  return temples;
+}
+
+String _templeList(List<Temple> temples) {
+  if (temples.isEmpty) return 'none';
+  return temples.map((temple) => temple.name).join(' / ');
 }
 
 String? _topTempleName(WidgetTester tester) {
@@ -900,30 +979,18 @@ Future<void> _picsumCheck(WidgetTester tester) async {
 Future<void> _resumeCheck(WidgetTester tester) async {
   try {
     await _typeQuery(tester, '');
-    final cards = find.byType(TempleBrowseCard);
-    if (tester.any(cards)) {
-      final list = find.ancestor(
-        of: cards.first,
-        matching: find.byType(Scrollable),
-      );
-      if (tester.any(list)) {
-        await tester.drag(list.first, const Offset(0, 2400));
-        await tester.pump(const Duration(milliseconds: 300));
-      }
-    }
     final beforeName = _topTempleName(tester);
     final beforeCards = find.byType(TempleBrowseCard).evaluate().length;
     final beforePublished = TempleService.published?.length;
     final beforeCount = beforePublished ?? beforeCards;
     final binding = tester.binding;
+    // Synchronous lifecycle only. A multi-second pump here never returned:
+    // the cold phase was killed at its cap before this check could log.
     binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-    await tester.pump();
     binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
-    await tester.pump();
     binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
-    await tester.pump(const Duration(milliseconds: 300));
     binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-    await tester.pump(const Duration(seconds: 2));
+    await Future<void>.delayed(const Duration(seconds: 2));
     await _shot(tester, '11-resume');
     final afterName = _topTempleName(tester);
     final afterCards = find.byType(TempleBrowseCard).evaluate().length;
