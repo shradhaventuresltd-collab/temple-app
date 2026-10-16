@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import http from "node:http";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
@@ -26,7 +29,15 @@ import {
 import { mapPhotoLicence, photoCredit } from "./photo_licence.js";
 import { MIRROR_TEMPLE_IDS } from "./patch_image_url_mirror.js";
 import { entryFromTemple } from "./temple_index.js";
-import { resolveSeedDocId } from "./upload_research_pack.js";
+import { processPack, resolveSeedDocId } from "./upload_research_pack.js";
+import {
+  assertStorageAuth,
+  isStorageTokenUrl,
+  resetStorageAuthFetchForTests,
+  STORAGE_AUTH_PREFLIGHT_ERROR,
+  STORAGE_AUTH_PROBE,
+  useNativeFetchForStorageAuth,
+} from "./storage_auth.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "..");
@@ -836,7 +847,7 @@ test("prod apply is refused in CI and without a project", async () => {
 
 const replaceOpts = { replaceUncreditedCover: true };
 
-test("replacement is opt-in and only an uncredited image_N cover uses frame 01", () => {
+test("replacement is opt-in and only an uncredited image_N cover uses frame 01", async () => {
   const placesUrl = mirrorUrl("virupaksha-temple", "image_1.jpg");
   const placesDoc = {
     id: "virupaksha-temple",
@@ -979,6 +990,26 @@ test("replacement is opt-in and only an uncredited image_N cover uses frame 01",
       }),
     /two-covers has 2 cover_ok photos/,
   );
+
+  const packDir = mkdtempSync(join(tmpdir(), "two-cover-ok-"));
+  try {
+    writeFileSync(
+      join(packDir, "manifest.json"),
+      JSON.stringify({
+        temple_slug: "two-covers",
+        photos: [
+          { filename: "02_a.jpg", cover_ok: true },
+          { filename: "04_b.jpg", cover_ok: true },
+        ],
+      }),
+    );
+    await assert.rejects(
+      () => processPack({ packDir, dryRun: true, bucketName: "temple-directory-india.firebasestorage.app" }),
+      /two-covers has 2 cover_ok photos \(02_a.jpg, 04_b.jpg\)/,
+    );
+  } finally {
+    rmSync(packDir, { recursive: true, force: true });
+  }
 });
 
 test("an uncredited image_N cover is replaced only by a creditable frame 01", () => {
@@ -1432,4 +1463,199 @@ test("a missing fetch fails before any write, and a hung public check times out"
   );
   assert.match(dry.join("\n"), /skip virupaksha-temple excluded/);
   assert.deepEqual(warnings, ["exclude: unknown temple id not-a-temple"]);
+});
+
+test("the Storage token request uses native fetch, and a failed exists() stops apply", async () => {
+  assert.equal(isStorageTokenUrl("https://www.googleapis.com/oauth2/v4/token"), true);
+  assert.equal(isStorageTokenUrl("https://oauth2.googleapis.com/token"), true);
+  assert.equal(isStorageTokenUrl("https://www.googleapis.com/oauth2/v4/token?foo=1"), true);
+  assert.equal(isStorageTokenUrl("https://www.googleapis.com/oauth2/v3/userinfo"), false);
+  assert.equal(isStorageTokenUrl("https://www.googleapis.com/oauth2/v4/token/extra"), false);
+  assert.equal(isStorageTokenUrl("https://www.googleapis.com/oauth2/v3/token"), false);
+  assert.equal(isStorageTokenUrl("https://oauth2.googleapis.com/revoke"), false);
+  assert.equal(isStorageTokenUrl("https://oauth2.googleapis.com/token/extra"), false);
+  assert.equal(isStorageTokenUrl("https://oauth2.googleapis.com.evil/token"), false);
+  assert.equal(isStorageTokenUrl("http://www.googleapis.com/oauth2/v4/token"), false);
+  assert.equal(isStorageTokenUrl("https://evil.example/oauth2/v4/token"), false);
+
+  let Gaxios;
+  try {
+    Gaxios = createRequire(import.meta.url)("gaxios").Gaxios;
+  } catch (error) {
+    if (error?.code !== "MODULE_NOT_FOUND") throw error;
+    if (process.env.CI) {
+      assert.fail("gaxios is missing; the Storage token scoping test must run in CI");
+    }
+  }
+  if (Gaxios) {
+    const realAdapter = Gaxios.prototype._defaultAdapter;
+    const originalFetch = globalThis.fetch;
+    const originalLog = console.log;
+    const originalWarn = console.warn;
+    const previousProxy = process.env.HTTPS_PROXY;
+    try {
+      resetStorageAuthFetchForTests();
+      Gaxios.prototype._defaultAdapter = undefined;
+      const guardWarnings = [];
+      console.warn = (line) => guardWarnings.push(String(line));
+      assert.equal(useNativeFetchForStorageAuth(), false);
+      assert.equal(typeof Gaxios.prototype._defaultAdapter, "undefined");
+      assert.match(guardWarnings.join("\n"), /no _defaultAdapter function/);
+      Gaxios.prototype._defaultAdapter = realAdapter;
+      resetStorageAuthFetchForTests();
+
+      process.env.HTTPS_PROXY = "http://127.0.0.1:9";
+      const proxyLogs = [];
+      console.log = (line) => proxyLogs.push(String(line));
+      assert.equal(useNativeFetchForStorageAuth(), false);
+      assert.equal(Gaxios.prototype._defaultAdapter, realAdapter);
+      assert.match(proxyLogs.join("\n"), /HTTPS_PROXY is set; skipping the native fetch override/);
+      proxyLogs.length = 0;
+      assert.equal(useNativeFetchForStorageAuth(), false);
+      assert.deepEqual(proxyLogs, []);
+      delete process.env.HTTPS_PROXY;
+      resetStorageAuthFetchForTests();
+
+      const scoped = [];
+      Gaxios.prototype._defaultAdapter = async function recordAdapter(opts) {
+        scoped.push({
+          url: String(opts.url),
+          redirect: opts.redirect,
+          native: typeof opts.fetchImplementation === "function",
+        });
+        return { data: { recorded: true }, status: 200 };
+      };
+      assert.equal(useNativeFetchForStorageAuth(), true);
+      const scopedClient = new Gaxios();
+      const tokenUrls = [
+        "https://www.googleapis.com/oauth2/v4/token",
+        "https://oauth2.googleapis.com/token",
+        "https://www.googleapis.com/oauth2/v4/token?grant_type=refresh_token",
+      ];
+      const otherUrls = [
+        "https://www.googleapis.com/oauth2/v3/userinfo",
+        "https://www.googleapis.com/oauth2/v4/token/extra",
+        "https://oauth2.googleapis.com/revoke",
+        "http://www.googleapis.com/oauth2/v4/token",
+      ];
+      for (const url of tokenUrls) {
+        await scopedClient._defaultAdapter({ url });
+      }
+      for (const url of otherUrls) {
+        await scopedClient._defaultAdapter({ url });
+      }
+      assert.deepEqual(
+        scoped.filter((call) => call.native).map((call) => call.url),
+        tokenUrls,
+      );
+      for (const call of scoped) {
+        if (tokenUrls.includes(call.url)) {
+          assert.equal(call.redirect, "error");
+        } else {
+          assert.equal(call.native, false);
+          assert.equal(call.redirect, undefined);
+        }
+      }
+      resetStorageAuthFetchForTests();
+      Gaxios.prototype._defaultAdapter = realAdapter;
+
+      assert.equal(useNativeFetchForStorageAuth(), true);
+      const calls = [];
+      globalThis.fetch = async (input, init) => {
+        calls.push({ url: String(input), redirect: init?.redirect });
+        return new Response(JSON.stringify({ access_token: "ya29.test" }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      };
+      const server = http.createServer((_req, res) => {
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end('{"ok":true}');
+      });
+      await new Promise((resolveListen) => server.listen(0, "127.0.0.1", resolveListen));
+      const port = server.address().port;
+      try {
+        const client = new Gaxios();
+        const token = await client.request({
+          url: "https://www.googleapis.com/oauth2/v4/token",
+          method: "POST",
+          responseType: "json",
+        });
+        assert.equal(token.data.access_token, "ya29.test");
+        const otherToken = await client.request({
+          url: "https://oauth2.googleapis.com/token",
+          method: "POST",
+          responseType: "json",
+        });
+        assert.equal(otherToken.data.access_token, "ya29.test");
+        assert.deepEqual(calls, [
+          { url: "https://www.googleapis.com/oauth2/v4/token", redirect: "error" },
+          { url: "https://oauth2.googleapis.com/token", redirect: "error" },
+        ]);
+        const local = await client.request({
+          url: `http://127.0.0.1:${port}/object`,
+          responseType: "json",
+        });
+        assert.equal(local.data.ok, true);
+        assert.deepEqual(calls.map((call) => call.url), [
+          "https://www.googleapis.com/oauth2/v4/token",
+          "https://oauth2.googleapis.com/token",
+        ]);
+      } finally {
+        await new Promise((resolveClose) => server.close(resolveClose));
+      }
+    } finally {
+      globalThis.fetch = originalFetch;
+      console.log = originalLog;
+      console.warn = originalWarn;
+      if (previousProxy === undefined) delete process.env.HTTPS_PROXY;
+      else process.env.HTTPS_PROXY = previousProxy;
+      resetStorageAuthFetchForTests();
+      Gaxios.prototype._defaultAdapter = realAdapter;
+    }
+  }
+
+  const seen = [];
+  await assertStorageAuth({
+    file(path) {
+      seen.push(path);
+      return { async exists() { return [false]; } };
+    },
+  });
+  assert.deepEqual(seen, [STORAGE_AUTH_PROBE]);
+  await assert.rejects(
+    () =>
+      assertStorageAuth({
+        file() {
+          return {
+            async exists() {
+              throw new Error("Premature close");
+            },
+          };
+        },
+      }),
+    new RegExp(STORAGE_AUTH_PREFLIGHT_ERROR.replace(/[.]/g, "\\.")),
+  );
+
+  let writes = 0;
+  let loads = 0;
+  await assert.rejects(
+    () =>
+      main(["--apply", "--replace-uncredited-cover", "--project", "demo-temple-index"], {
+        env: { FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080" },
+        storagePreflight: async () => {
+          throw new Error(STORAGE_AUTH_PREFLIGHT_ERROR);
+        },
+        load: async () => {
+          loads += 1;
+          return [];
+        },
+        write: async () => {
+          writes += 1;
+        },
+      }),
+    /Storage auth preflight failed\. No Firestore write\./,
+  );
+  assert.equal(writes, 0);
+  assert.equal(loads, 0);
 });

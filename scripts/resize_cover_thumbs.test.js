@@ -826,3 +826,31 @@ test("resume re-processes a temple whose cover changed", async () => {
   assert.equal(saved.covers["same-cover"], same.images[0]);
   assert.equal(JSON.stringify(saved).includes("token"), false);
 });
+
+test("apply stops before a thumb write when the Storage preflight fails", async () => {
+  let loads = 0;
+  let uploads = 0;
+  await assert.rejects(
+    () =>
+      main(["--apply", "--project", "demo-temple-index"], {
+        env: emulator,
+        storagePreflight: async () => {
+          throw new Error("Storage auth preflight failed. No Firestore write.");
+        },
+        load: async () => {
+          loads += 1;
+          return [];
+        },
+        stat: async () => {
+          throw new Error("stat");
+        },
+        upload: async () => {
+          uploads += 1;
+          return { url: "https://example.invalid/thumb" };
+        },
+      }),
+    /Storage auth preflight failed\. No Firestore write\./,
+  );
+  assert.equal(loads, 0);
+  assert.equal(uploads, 0);
+});

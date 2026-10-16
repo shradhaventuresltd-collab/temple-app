@@ -2,6 +2,8 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from "fs";
 import { basename, dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 
+import { assertOneCoverOk } from "./cover_ok.js";
+import { assertStorageAuth, useNativeFetchForStorageAuth } from "./storage_auth.js";
 import { mapPhotoLicence, photoCredit } from "./photo_licence.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -426,7 +428,7 @@ async function uploadFile(bucket, localPath, storagePath, filename) {
   return publicUrl(bucket.name, storagePath);
 }
 
-async function processPack({
+export async function processPack({
   packDir,
   docIdOverride,
   bucketName,
@@ -441,6 +443,7 @@ async function processPack({
   const manifest = loadManifest(packDir);
   const packSlug = manifest.temple_slug || basename(packDir);
   const docId = resolveSeedDocId(packDir, manifest, docIdOverride);
+  assertOneCoverOk(docId, manifest.photos);
   const photos = resolvePhotos(packDir, manifest);
 
   console.log("────────────────────────────────────────────────────────────");
@@ -625,6 +628,7 @@ async function main() {
   console.log(`Mode       : ${opts.dryRun ? "dry-run" : "upload"}\n`);
 
   let adminApp = null;
+  useNativeFetchForStorageAuth();
   if (!opts.dryRun) {
     const sa = loadServiceAccount();
     if (!sa) {
@@ -642,6 +646,7 @@ async function main() {
       credential: admin.credential.cert(sa.json),
       storageBucket: opts.bucket,
     });
+    await assertStorageAuth(adminApp.storage().bucket(opts.bucket));
   }
 
   const summaries = [];
