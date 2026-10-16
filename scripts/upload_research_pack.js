@@ -282,11 +282,13 @@ Options:
                          fails if one is missing)
   --doc-id <id>          Override Storage/Firestore id (single --pack only)
   --bucket <name>        Storage bucket (default: temple-directory-india.firebasestorage.app)
+                         --apply refuses any other bucket
   --dry-run              Parse packs and print planned uploads; do not touch Storage
   --write-urls <path>    Write a JSON summary of download URLs to this file
   --packs-file <list>    Slugs or pack folders, one per line. Dry-run unless --apply
-  --only id1,id2         Only these temple ids
-  --exclude id1,id2      Skip these temple ids. Unknown ids are warned
+  --only id1,id2         Only these temple ids. Uses the empty-cover path
+  --exclude id1,id2      Skip these temple ids. Unknown ids are warned.
+                         --exclude on its own uses the empty-cover path
   --apply                Upload frames and write empty covers. Requires --project
   --project <id>         Firebase project. Prod --apply asks you to type this id
   --help                 Show this help
@@ -294,7 +296,9 @@ Options:
 --patch-firestore is refused. It is not the sanctioned Firestore write.
 Empty covers use --apply. That mode is dry-run unless --apply is present.
 --apply lists temples/ in Storage before any write and aborts if that read fails.
+--apply writes only to temple-directory-india.firebasestorage.app.
 It writes photos, imageUrl, and images only when all three are empty.
+A cover that appears after upload deletes the objects this run created.
 photos[].thumbUrl is left unset.
 
 Requires service-account.json in the repo root or scripts/ (gitignored).
@@ -308,8 +312,18 @@ Examples:
 `);
 }
 
+function hasIds(value) {
+  if (value instanceof Set) return value.size > 0;
+  return Array.isArray(value) && value.length > 0;
+}
+
 export function emptyCoverMode(opts) {
-  return opts.apply === true || Boolean(opts.packsFile) || (opts.only instanceof Set && opts.only.size > 0);
+  return (
+    opts.apply === true ||
+    Boolean(opts.packsFile) ||
+    hasIds(opts.only) ||
+    hasIds(opts.exclude)
+  );
 }
 
 function readIdList(raw, flag) {

@@ -18,7 +18,7 @@ import { coverFrameForPack, fetchPublicUrl, manifestPair, PHOTO_LICENCES } from 
 import { assertOneCoverOk } from "./cover_ok.js";
 import { ensureDownloadToken, withDownloadToken } from "./download_token.js";
 import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard.js";
-import { redactDownloadToken } from "./redact_url.js";
+import { redactDownloadToken, redactThrown } from "./redact_url.js";
 import { firebaseMediaUrl } from "./resize_cover_thumbs.js";
 import { assertStorageAuth, STORAGE_AUTH_BUCKET, useNativeFetchForStorageAuth } from "./storage_auth.js";
 import { resolveSeedDocId } from "./upload_research_pack.js";
@@ -216,9 +216,29 @@ export async function persistEmptyCover(db, assigned) {
   });
 }
 
+/** --apply writes this bucket only. Any other --bucket is refused. */
+export function assertApplyBucket(bucket) {
+  const name = typeof bucket === "string" && bucket.trim() !== "" ? bucket.trim() : STORAGE_AUTH_BUCKET;
+  if (name !== STORAGE_AUTH_BUCKET) {
+    throw new Error(`Refusing --bucket ${name}. --apply writes only ${STORAGE_AUTH_BUCKET}. No write.`);
+  }
+  return name;
+}
+
+function uploadedFrameSet(result) {
+  if (Array.isArray(result)) return { urls: result, created: [] };
+  const urls = result?.urls;
+  if (!Array.isArray(urls)) throw new Error("Upload did not return frame URLs. No write.");
+  const created = Array.isArray(result.created)
+    ? result.created.filter((path) => typeof path === "string" && path.trim() !== "")
+    : [];
+  return { urls, created };
+}
+
 async function defaultUploadFrames(plan, admin, bucketName) {
   const bucket = admin.storage().bucket(bucketName);
   const urls = [];
+  const created = [];
   for (const frame of plan.frames) {
     const file = bucket.file(frame.objectPath);
     const ensured = await ensureDownloadToken(file, bucketName, frame.objectPath);
@@ -233,10 +253,60 @@ async function defaultUploadFrames(plan, admin, bucketName) {
           ensured.token,
         ),
       });
+      created.push(frame.objectPath);
     }
     urls.push(ensured.url);
   }
-  return urls;
+  return { urls, created };
+}
+
+async function defaultDeleteUploads(admin, bucketName, paths) {
+  const bucket = admin.storage().bucket(bucketName);
+  const failed = [];
+  for (const objectPath of paths) {
+    try {
+      await bucket.file(objectPath).delete({ ignoreNotFound: true });
+    } catch (error) {
+      failed.push({ path: objectPath, error });
+    }
+  }
+  return { failed };
+}
+
+/**
+ * A temple that gained a cover after this run uploaded new objects must not
+ * keep those objects. Existing objects are left in place. A failed delete is
+ * recorded so the path is not silent.
+ */
+async function releaseNewUploads(plan, created, deps, project, env, bucketName, log) {
+  if (created.length === 0) return { deleted: [], orphaned: [] };
+  const remove =
+    deps.deleteUploads ??
+    (async (paths) => {
+      const admin = await openAdmin(project, env, bucketName);
+      return defaultDeleteUploads(admin, bucketName, paths);
+    });
+  try {
+    const result = await remove(created);
+    const failed = new Map(
+      (result?.failed ?? []).map((item) => [typeof item === "string" ? item : item.path, item]),
+    );
+    const deleted = [];
+    const orphaned = [];
+    for (const path of created) {
+      if (failed.has(path)) orphaned.push(path);
+      else deleted.push(path);
+    }
+    for (const path of orphaned) {
+      const item = failed.get(path);
+      const detail = item && typeof item === "object" && item.error ? ` ${redactThrown(item.error)}` : "";
+      log(`orphaned ${plan.id} ${path}${detail}`);
+    }
+    return { deleted, orphaned };
+  } catch (error) {
+    log(`orphaned ${plan.id} ${redactThrown(error)}`);
+    return { deleted: [], orphaned: [...created] };
+  }
 }
 
 async function urlIsPublic(url, deps) {
@@ -260,7 +330,11 @@ export function formatEmptyCoverReport(rows, { apply = false } = {}) {
     lines.push(`${row.result ?? "would-write"} ${row.id} cover ${row.coverFilename} photos ${count}`);
   }
   lines.push(`skipped: ${skipped.length}`);
-  for (const row of skipped) lines.push(`skip ${row.id} ${row.reason ?? ""}`.trimEnd());
+  for (const row of skipped) {
+    lines.push(`skip ${row.id} ${row.reason ?? ""}`.trimEnd());
+    for (const path of row.deleted ?? []) lines.push(`deleted ${row.id} ${path}`);
+    for (const path of row.orphaned ?? []) lines.push(`orphaned ${row.id} ${path}`);
+  }
   if (!apply) lines.push("Dry-run only. No Firestore writes. No Storage uploads.");
   else {
     lines.push(
@@ -315,7 +389,7 @@ export async function runEmptyCoverPacks(opts, deps = {}) {
   const log = (line) => writeLog(redactDownloadToken(line));
   const warn = (line) => writeWarn(redactDownloadToken(line));
   const env = deps.env ?? process.env;
-  const bucketName = opts.bucket || STORAGE_AUTH_BUCKET;
+  const bucketName = opts.apply ? assertApplyBucket(opts.bucket) : opts.bucket || STORAGE_AUTH_BUCKET;
   const project = resolveProject(opts, env);
   if (opts.apply) {
     await authorizeApply(project, env, { confirm: deps.confirm });
@@ -372,9 +446,9 @@ export async function runEmptyCoverPacks(opts, deps = {}) {
         const admin = await openAdmin(project, env, bucketName);
         return defaultUploadFrames(item, admin, bucketName);
       });
-    const urls = await upload(plan);
+    const uploaded = uploadedFrameSet(await upload(plan));
     let blocked = null;
-    for (const url of urls) {
+    for (const url of uploaded.urls) {
       const readable = await urlIsPublic(url, deps);
       if (!readable.ok) {
         log(`not-public ${plan.id} ${url}`);
@@ -386,7 +460,7 @@ export async function runEmptyCoverPacks(opts, deps = {}) {
       rows.push({ ...plan, action: "skip", result: "skipped", reason: blocked });
       continue;
     }
-    const photos = photosFromFrames(plan.frames, urls);
+    const photos = photosFromFrames(plan.frames, uploaded.urls);
     const assigned = {
       ...plan,
       imageUrl: photos[0].url,
@@ -401,7 +475,18 @@ export async function runEmptyCoverPacks(opts, deps = {}) {
       });
     const written = await write(assigned);
     if (written && written.ok === false) {
-      rows.push({ ...plan, action: "skip", result: "skipped", reason: written.reason });
+      const released =
+        written.reason === "has-cover"
+          ? await releaseNewUploads(plan, uploaded.created, deps, project, env, bucketName, log)
+          : { deleted: [], orphaned: [] };
+      rows.push({
+        ...plan,
+        action: "skip",
+        result: "skipped",
+        reason: written.reason,
+        deleted: released.deleted,
+        orphaned: released.orphaned,
+      });
       continue;
     }
     rows.push({ ...assigned, result: "wrote" });

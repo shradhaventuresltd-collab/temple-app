@@ -94,6 +94,8 @@ test("--patch-firestore is refused and empty-cover mode is dry-run until --apply
   assert.deepEqual([...apply.only], ["empty-shore", "other"]);
   assert.equal(apply.exclude.has("kept-out"), true);
   assert.throws(() => parseArgs(["--exclude"]), /--exclude needs/);
+  assert.equal(emptyCoverMode(parseArgs(["--exclude", "kept-out"])), true);
+  assert.equal(emptyCoverMode(parseArgs(["--all-packs"])), false);
 });
 
 test("a pack list is slugs, and cover choice prefers cover:true over gallery frames", () => {
@@ -239,6 +241,122 @@ test("apply confirms the project, aborts when the Storage list fails, and skips 
     assert.match(warnings.join("\n"), /only: unknown temple id also-missing/);
     assert.equal(lines.join("\n").includes(token), false);
     assert.match(lines.join("\n"), /Mode: apply/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("--apply refuses a bucket other than temple-directory-india.firebasestorage.app", async () => {
+  let confirmed = 0;
+  let loads = 0;
+  await assert.rejects(
+    () =>
+      runEmptyCoverPacks(
+        baseOpts({
+          apply: true,
+          bucket: "other-bucket.firebasestorage.app",
+          project: "temple-directory-india",
+          packDirs: ["/tmp/unused-pack"],
+        }),
+        {
+          env: {},
+          confirm: async () => {
+            confirmed += 1;
+            return "temple-directory-india";
+          },
+          load: async () => {
+            loads += 1;
+            return [];
+          },
+        },
+      ),
+    /Refusing --bucket other-bucket\.firebasestorage\.app/,
+  );
+  assert.equal(confirmed, 0);
+  assert.equal(loads, 0);
+});
+
+test("a cover gained mid-run deletes objects this run uploaded", async () => {
+  const dir = writePack({
+    temple_slug: "empty-shore",
+    photos: [photo("01_front.jpg")],
+  });
+  const token = "secret-token-value";
+  const created = ["temples/empty-shore/01_front.jpg"];
+  const lines = [];
+  try {
+    const deleted = [];
+    const rows = await runEmptyCoverPacks(baseOpts({ apply: true, packDirs: [dir] }), {
+      env: emulator,
+      log: (line) => lines.push(line),
+      warn: () => {},
+      storagePreflight: async () => {},
+      load: async () => [emptyTemple()],
+      uploadFrames: async (plan) => ({
+        urls: plan.frames.map((frame) => downloadTokenUrl(bucket, frame.objectPath, token)),
+        created,
+      }),
+      verifyPublic: async () => true,
+      write: async () => ({ ok: false, reason: "has-cover" }),
+      deleteUploads: async (paths) => {
+        deleted.push(...paths);
+        return { failed: [] };
+      },
+    });
+    assert.deepEqual(deleted, created);
+    assert.equal(rows[0].reason, "has-cover");
+    assert.match(lines.join("\n"), /deleted empty-shore temples\/empty-shore\/01_front\.jpg/);
+    assert.equal(lines.join("\n").includes(token), false);
+
+    const kept = [];
+    const existing = await runEmptyCoverPacks(baseOpts({ apply: true, packDirs: [dir] }), {
+      env: emulator,
+      log: () => {},
+      warn: () => {},
+      storagePreflight: async () => {},
+      load: async () => [emptyTemple()],
+      uploadFrames: async (plan) => plan.frames.map((frame) => downloadTokenUrl(bucket, frame.objectPath, token)),
+      verifyPublic: async () => true,
+      write: async () => ({ ok: false, reason: "has-cover" }),
+      deleteUploads: async (paths) => {
+        kept.push(...paths);
+        return { failed: [] };
+      },
+    });
+    assert.deepEqual(kept, []);
+    assert.equal(existing[0].reason, "has-cover");
+
+    const failed = [];
+    const orphanLines = [];
+    const orphaned = await runEmptyCoverPacks(baseOpts({ apply: true, packDirs: [dir] }), {
+      env: emulator,
+      log: (line) => orphanLines.push(line),
+      warn: () => {},
+      storagePreflight: async () => {},
+      load: async () => [emptyTemple()],
+      uploadFrames: async () => ({
+        urls: [downloadTokenUrl(bucket, created[0], token)],
+        created,
+      }),
+      verifyPublic: async () => true,
+      write: async () => ({ ok: false, reason: "has-cover" }),
+      deleteUploads: async (paths) => {
+        failed.push(...paths);
+        return {
+          failed: paths.map((path) => ({
+            path,
+            error: new Error(
+              `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/x?alt=media&token=${token} denied`,
+            ),
+          })),
+        };
+      },
+    });
+    assert.deepEqual(failed, created);
+    assert.deepEqual(orphaned[0].orphaned, created);
+    assert.match(orphanLines.join("\n"), /orphaned empty-shore temples\/empty-shore\/01_front\.jpg/);
+    assert.equal(orphanLines.join("\n").includes(token), false);
+    assert.match(orphanLines.join("\n"), /token=<redacted>/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
