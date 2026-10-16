@@ -282,10 +282,20 @@ Options:
                          fails if one is missing)
   --doc-id <id>          Override Storage/Firestore id (single --pack only)
   --bucket <name>        Storage bucket (default: temple-directory-india.firebasestorage.app)
-  --patch-firestore      Also set temples/{docId}.imageUrl + images in Firestore
   --dry-run              Parse packs and print planned uploads; do not touch Storage
   --write-urls <path>    Write a JSON summary of download URLs to this file
+  --packs-file <list>    Slugs or pack folders, one per line. Dry-run unless --apply
+  --only id1,id2         Only these temple ids
+  --exclude id1,id2      Skip these temple ids. Unknown ids are warned
+  --apply                Upload frames and write empty covers. Requires --project
+  --project <id>         Firebase project. Prod --apply asks you to type this id
   --help                 Show this help
+
+--patch-firestore is refused. It is not the sanctioned Firestore write.
+Empty covers use --apply. That mode is dry-run unless --apply is present.
+--apply lists temples/ in Storage before any write and aborts if that read fails.
+It writes photos, imageUrl, and images only when all three are empty.
+photos[].thumbUrl is left unset.
 
 Requires service-account.json in the repo root or scripts/ (gitignored).
 Does not use Google Places. Prefer only filenames listed in manifest.json.
@@ -293,11 +303,29 @@ Does not use Google Places. Prefer only filenames listed in manifest.json.
 Examples:
   node upload_research_pack.js --all-packs --dry-run
   node upload_research_pack.js --pack ../tools/photo-packs/mahabodhi-temple --dry-run
-  node upload_research_pack.js --packs-dir ../tools/photo-packs --patch-firestore
+  node upload_research_pack.js --packs-file slugs.txt --project temple-directory-india
+  node upload_research_pack.js --apply --packs-file slugs.txt --project temple-directory-india
 `);
 }
 
-function parseArgs(argv) {
+export function emptyCoverMode(opts) {
+  return opts.apply === true || Boolean(opts.packsFile) || (opts.only instanceof Set && opts.only.size > 0);
+}
+
+function readIdList(raw, flag) {
+  if (typeof raw !== "string" || raw.trim() === "" || raw.startsWith("--")) {
+    throw new Error(`${flag} needs a comma-separated list of temple ids`);
+  }
+  const ids = new Set();
+  for (const id of raw.split(",")) {
+    const trimmed = id.trim();
+    if (trimmed) ids.add(trimmed);
+  }
+  if (ids.size === 0) throw new Error(`${flag} needs a comma-separated list of temple ids`);
+  return ids;
+}
+
+export function parseArgs(argv) {
   const opts = {
     packs: [],
     packsDir: null,
@@ -306,6 +334,11 @@ function parseArgs(argv) {
     bucket: "temple-directory-india.firebasestorage.app",
     patchFirestore: false,
     dryRun: false,
+    apply: false,
+    packsFile: null,
+    only: new Set(),
+    exclude: new Set(),
+    project: null,
     writeUrls: null,
     help: false,
   };
@@ -317,9 +350,23 @@ function parseArgs(argv) {
     else if (arg === "--all-packs") opts.allPacks = true;
     else if (arg === "--doc-id") opts.docId = argv[++i];
     else if (arg === "--bucket") opts.bucket = argv[++i];
-    else if (arg === "--patch-firestore") opts.patchFirestore = true;
-    else if (arg === "--dry-run") opts.dryRun = true;
-    else if (arg === "--write-urls") opts.writeUrls = argv[++i];
+    else if (arg === "--patch-firestore") {
+      throw new Error("Refusing --patch-firestore. Empty covers use --apply. No write.");
+    } else if (arg === "--dry-run") {
+      opts.dryRun = true;
+      opts.apply = false;
+    } else if (arg === "--apply") {
+      opts.apply = true;
+      opts.dryRun = false;
+    } else if (arg === "--packs-file") opts.packsFile = argv[++i];
+    else if (arg === "--project") opts.project = argv[++i];
+    else if (arg === "--only" || arg.startsWith("--only=")) {
+      const raw = arg === "--only" ? argv[++i] : arg.slice("--only=".length);
+      opts.only = readIdList(raw, "--only");
+    } else if (arg === "--exclude" || arg.startsWith("--exclude=")) {
+      const raw = arg === "--exclude" ? argv[++i] : arg.slice("--exclude=".length);
+      opts.exclude = readIdList(raw, "--exclude");
+    } else if (arg === "--write-urls") opts.writeUrls = argv[++i];
     else {
       console.error(`Unknown argument: ${arg}`);
       opts.help = true;
@@ -552,7 +599,7 @@ export async function processPack({
     }
   } else {
     console.log(
-      "\nFirestore left unchanged. Pass --patch-firestore to write imageUrl/images."
+      "\nFirestore left unchanged. Empty covers use --apply. Do not use --patch-firestore."
     );
   }
 
@@ -567,6 +614,22 @@ export async function processPack({
 
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
+  if (emptyCoverMode(opts)) {
+    const { runEmptyCoverPacks, packDirForSlug, readPackList } = await import("./empty_cover_packs.js");
+    if (opts.packsFile) {
+      for (const slug of readPackList(opts.packsFile)) opts.packs.push(packDirForSlug(slug));
+    }
+    if (opts.only.size > 0 && opts.packs.length === 0 && !opts.packsDir && !opts.allPacks) {
+      for (const id of opts.only) opts.packs.push(packDirForSlug(id));
+    }
+    const packDirs = resolvePackDirs(opts);
+    if (opts.help || packDirs.length === 0) {
+      printUsage();
+      process.exit(opts.help ? 0 : 1);
+    }
+    await runEmptyCoverPacks({ ...opts, packDirs });
+    process.exit(0);
+  }
   const packDirs = resolvePackDirs(opts);
 
   if (opts.help || packDirs.length === 0) {

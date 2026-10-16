@@ -969,6 +969,46 @@ test("replacement is opt-in and only an uncredited image_N cover uses frame 01",
           cover_ok: true,
         },
       ],
+    }).filename,
+    "03_south_side.jpg",
+  );
+  assert.equal(
+    coverFrameForPack({
+      temple_slug: "explicit-cover",
+      no_cover_frame: true,
+      photos: [
+        {
+          filename: "01_laundry.jpg",
+          author: "Ada Lovelace",
+          license: "CC BY 4.0",
+        },
+        {
+          filename: "04_court.jpg",
+          author: "Ada Lovelace",
+          license: "CC BY 4.0",
+          cover: true,
+        },
+        {
+          filename: "02_gallery.jpg",
+          author: "Ada Lovelace",
+          license: "CC BY 4.0",
+          gallery_only: true,
+        },
+      ],
+    }).filename,
+    "04_court.jpg",
+  );
+  assert.equal(
+    coverFrameForPack({
+      temple_slug: "gallery-only-01",
+      photos: [
+        {
+          filename: "01_gallery.jpg",
+          author: "Ada Lovelace",
+          license: "CC BY 4.0",
+          gallery_only: true,
+        },
+      ],
     }),
     null,
   );
