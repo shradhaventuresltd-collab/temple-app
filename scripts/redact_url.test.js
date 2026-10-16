@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { redactDownloadToken } from "./redact_url.js";
+import { redactDownloadToken, redactThrown } from "./redact_url.js";
 
 const cover =
   "https://firebasestorage.googleapis.com/v0/b/temple-directory-india.firebasestorage.app/o/temples%2Fvirupaksha-temple%2F01.jpg?alt=media&token=secret-token";
@@ -82,5 +82,46 @@ test("a percent-encoded token nested in another URL is redacted", () => {
   assert.equal(
     redactDownloadToken("https://example.com/a?alt=media%26token%3Dabc%2Fdef"),
     "https://example.com/a?alt=media%26token%3D<redacted>",
+  );
+});
+
+test("an HTML-escaped ampersand still hides the token", () => {
+  assert.equal(
+    redactDownloadToken("https://example.com/a?alt=media&amp;token=secret"),
+    "https://example.com/a?alt=media&amp;token=<redacted>",
+  );
+  assert.equal(
+    redactDownloadToken("https://example.com/a?alt=media&amp;Token=AbC&amp;x=1"),
+    "https://example.com/a?alt=media&amp;Token=<redacted>&amp;x=1",
+  );
+});
+
+test("a double-encoded token is redacted", () => {
+  const nested =
+    "https://example.com/go?next=https%253A%252F%252Ffirebasestorage.googleapis.com%252Fv0%252Fb%252Fb%252Fo%252Fa.jpg%253Falt%253Dmedia%2526token%253Dsecret-token%2526x%253D1";
+  assert.equal(
+    redactDownloadToken(nested),
+    "https://example.com/go?next=https%253A%252F%252Ffirebasestorage.googleapis.com%252Fv0%252Fb%252Fb%252Fo%252Fa.jpg%253Falt%253Dmedia%2526token%253D<redacted>%2526x%253D1",
+  );
+  assert.equal(redactDownloadToken(nested).includes("secret-token"), false);
+});
+
+test("empty and non-Error throws are redacted, including the stack", () => {
+  assert.equal(
+    redactThrown("boom https://example.com/a?token=secret"),
+    "boom https://example.com/a?token=<redacted>",
+  );
+  assert.equal(redactThrown(404), "404");
+  const empty = new Error("");
+  empty.stack = "Error\n    at run (https://example.com/a?token=secret)";
+  const redacted = redactThrown(empty);
+  assert.equal(redacted.includes("secret"), false);
+  assert.match(redacted, /token=<redacted>/);
+  const named = new Error("message https://example.com/a?token=secret");
+  named.stack = "stack https://example.com/a?token=secret";
+  assert.equal(redactThrown(named), "message https://example.com/a?token=<redacted>");
+  assert.equal(
+    redactThrown({ message: "  ", stack: "stack https://example.com/a?token=secret" }),
+    "stack https://example.com/a?token=<redacted>",
   );
 });

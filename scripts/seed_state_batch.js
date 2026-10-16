@@ -34,7 +34,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { confirmProject } from "./prod_guard.js";
-import { redactDownloadToken } from "./redact_url.js";
+import { redactThrown } from "./redact_url.js";
 import {
   entryFromTemple,
   FIRESTORE_BATCH_LIMIT,
@@ -359,7 +359,7 @@ async function main(argv = process.argv.slice(2), deps = {}) {
 const isDirect = process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1]);
 if (isDirect) {
   main().catch((error) => {
-    console.error(redactDownloadToken(error.message || error));
+    console.error(redactThrown(error));
     process.exit(1);
   });
 }

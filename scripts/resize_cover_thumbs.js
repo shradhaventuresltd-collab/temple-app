@@ -43,7 +43,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard.js";
-import { redactDownloadToken } from "./redact_url.js";
+import { redactDownloadToken, redactThrown } from "./redact_url.js";
 import { assertStorageAuth, STORAGE_AUTH_BUCKET, useNativeFetchForStorageAuth } from "./storage_auth.js";
 import {
   entryFromTemple,
@@ -852,7 +852,7 @@ const isDirect =
   process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1]);
 if (isDirect) {
   main().catch((error) => {
-    console.error(redactDownloadToken(error.message || error));
+    console.error(redactThrown(error));
     process.exit(1);
   });
 }

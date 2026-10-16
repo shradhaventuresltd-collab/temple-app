@@ -85,7 +85,7 @@ import { fileURLToPath } from "node:url";
 
 import { assertOneCoverOk } from "./cover_ok.js";
 import { downloadTokenUrl, ensureDownloadToken, withDownloadToken } from "./download_token.js";
-import { redactDownloadToken } from "./redact_url.js";
+import { redactDownloadToken, redactThrown } from "./redact_url.js";
 import { firebaseMediaUrl } from "./resize_cover_thumbs.js";
 import { assertStorageAuth, STORAGE_AUTH_BUCKET, useNativeFetchForStorageAuth } from "./storage_auth.js";
 import { cleanAuthor, mapPhotoLicence, photoCredit } from "./photo_licence.js";
@@ -1114,7 +1114,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
 const invoked = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (invoked) {
   main().catch((error) => {
-    console.error(redactDownloadToken(error?.message || error));
+    console.error(redactThrown(error));
     process.exitCode = 1;
   });
 }

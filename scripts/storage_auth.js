@@ -11,7 +11,7 @@
  */
 import { createRequire } from "node:module";
 
-import { redactDownloadToken } from "./redact_url.js";
+import { redactThrown } from "./redact_url.js";
 
 const require = createRequire(import.meta.url);
 
@@ -143,7 +143,7 @@ export async function assertStorageAuth(bucket) {
   try {
     await bucket.getFiles(STORAGE_AUTH_LIST);
   } catch (error) {
-    const detail = redactDownloadToken(error?.message || error);
+    const detail = redactThrown(error);
     console.error(detail);
     if (statusCode(error) === 403 || /\b403\b/.test(String(error?.message ?? ""))) {
       throw new Error(
