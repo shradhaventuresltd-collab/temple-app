@@ -318,10 +318,21 @@ Future<void> _shot(
     await Future<void>.delayed(hold);
     return;
   }
-  final shot = await _captureFresh(tester, safe);
-  await _sendPng(safe, shot.bytes, shot.retries);
-  if (hold > Duration.zero) {
-    await Future<void>.delayed(hold);
+  try {
+    final shot = await _captureFresh(tester, safe);
+    await _sendPng(safe, shot.bytes, shot.retries);
+    if (hold > Duration.zero) {
+      await Future<void>.delayed(hold);
+    }
+  } catch (e) {
+    // A missing plugin or a binder failure must not abort the phase.
+    // The host takes one adb frame of the current activity.
+    _logLine('HARNESS capture-fallback $safe $e');
+    _logLine('SHOTFALLBACK $safe');
+    final pause = hold < const Duration(seconds: 5)
+        ? const Duration(seconds: 5)
+        : hold;
+    await Future<void>.delayed(pause);
   }
 }
 

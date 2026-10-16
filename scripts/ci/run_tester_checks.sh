@@ -2,8 +2,9 @@
 # Release-mode tester checks on the API 34 google_atd emulator.
 # Read-only against prod Firestore. No DEMO_BUILD and no ENABLE_ADMIN_TOOLS.
 # In-app frames arrive on TCP 18765 when the test logs PNGREADY.
-# adb screencap is only the maps handoff (SHOTADB), after dumpsys window
-# leaves the app. This script does not run adb root.
+# SHOTFALLBACK is an adb screencap of the current activity when the
+# Flutter plugin capture throws. SHOTADB is only the maps handoff, after
+# dumpsys window leaves the app. This script does not run adb root.
 set -uo pipefail
 
 PKG=com.shradhaventures.temple
@@ -470,22 +471,9 @@ PY
   fi
   record_saved "$name" "$retries"
 }
-capture_adb() {
+screencap_with_one_retry() {
   local name="$1"
   local dest="$OUT/${name}.png"
-  if [[ ! "$name" =~ ^[A-Za-z0-9._-]+$ ]]; then
-    echo "skip adb shot name $name"
-    return
-  fi
-  local focus="" i
-  for i in 1 2 3 4 5 6 7 8; do
-    focus="$(adb shell dumpsys window 2>/dev/null | tr -d '\r' | grep -m1 'mCurrentFocus=' || true)"
-    echo "focus $name $focus"
-    if [[ -n "$focus" && "$focus" != *'com.shradhaventures.temple/'* ]]; then
-      break
-    fi
-    sleep 0.35
-  done
   rm -f "$dest"
   local prev="" hash="" pixels="" retries=0
   prev="$(cat "$PREV_HASH_FILE" 2>/dev/null || true)"
@@ -500,7 +488,42 @@ capture_adb() {
     sleep 0.4
     adb exec-out screencap -p > "$dest" || rm -f "$dest"
   fi
+  if [[ "$name" == "13-force-update" ]]; then
+    local uia="MISSING"
+    if adb shell uiautomator dump /sdcard/tester-ui.xml >/tmp/tester-uia-dump.txt 2>&1; then
+      if adb exec-out cat /sdcard/tester-ui.xml | tr -d '\r' | grep -q 'Update required'; then
+        uia="FOUND"
+      fi
+    fi
+    printf 'UIA 13-force-update %s\n' "$uia" | tee -a "$OUT/events.log"
+  fi
   record_saved "$name" "$retries"
+}
+capture_adb() {
+  local name="$1"
+  if [[ ! "$name" =~ ^[A-Za-z0-9._-]+$ ]]; then
+    echo "skip adb shot name $name"
+    return
+  fi
+  local focus="" i
+  for i in 1 2 3 4 5 6 7 8; do
+    focus="$(adb shell dumpsys window 2>/dev/null | tr -d '\r' | grep -m1 'mCurrentFocus=' || true)"
+    echo "focus $name $focus"
+    if [[ -n "$focus" && "$focus" != *'com.shradhaventures.temple/'* ]]; then
+      break
+    fi
+    sleep 0.35
+  done
+  screencap_with_one_retry "$name"
+}
+capture_fallback() {
+  local name="$1"
+  if [[ ! "$name" =~ ^[A-Za-z0-9._-]+$ ]]; then
+    echo "skip fallback shot name $name"
+    return
+  fi
+  echo "adb fallback for $name"
+  screencap_with_one_retry "$name"
 }
 stdbuf -oL adb logcat -v brief | stdbuf -oL grep --line-buffered 'TESTER_CHECKS' | while IFS= read -r line; do
   line="${line//$'\r'/}"
@@ -511,6 +534,11 @@ stdbuf -oL adb logcat -v brief | stdbuf -oL grep --line-buffered 'TESTER_CHECKS'
       read -r name length retries <<<"$rest"
       retries="${retries:-0}"
       fetch_png "$name" "$length" "$retries"
+      ;;
+    *"SHOTFALLBACK "*)
+      name="${line##*SHOTFALLBACK }"
+      name="${name%% *}"
+      capture_fallback "$name"
       ;;
     *"SHOTADB "*)
       name="${line##*SHOTADB }"

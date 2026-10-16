@@ -100,6 +100,14 @@ expect_fail "gradle -Pdemo_suffix" \
   "demo_suffix" \
   ./scripts/build_play_aab.sh -Pdemo_suffix=true
 
+expect_fail "ORG_GRADLE_PROJECT_ciTesterChecks env" \
+  "integration_test" \
+  env ORG_GRADLE_PROJECT_ciTesterChecks=true ./scripts/build_play_aab.sh
+
+expect_fail "gradle -PciTesterChecks" \
+  "integration_test" \
+  ./scripts/build_play_aab.sh -PciTesterChecks=true
+
 printf '%s\n' 'DEMO_APP_ID_SUFFIX=true' >"$defines_dir/suffix.env"
 expect_fail "dart-define-from-file DEMO_APP_ID_SUFFIX" \
   "DEMO_APP_ID_SUFFIX" \
@@ -234,5 +242,22 @@ expect_fail "dirty tree is refused" \
     ./scripts/check_android_smoke_gate.sh
 rm -f scripts/ci/SMOKE_GATE_DIRTY_TEST
 echo "ok: dirty tree removed"
+
+printf '%s\n' 'plain bundle' >"$defines_dir/clean.txt"
+(
+  cd "$defines_dir"
+  rm -f clean.aab plugin.aab
+  zip -q clean.aab clean.txt
+)
+printf '%s\n' 'Ldev/flutter/plugins/integration_test/IntegrationTestPlugin;' >"$defines_dir/classes.dex.txt"
+(
+  cd "$defines_dir"
+  zip -q plugin.aab classes.dex.txt
+)
+./scripts/build_play_aab.sh --verify-no-integration-test "$defines_dir/clean.aab"
+echo "ok: bundle without integration_test plugin class"
+expect_fail "bundle contains integration_test plugin class" \
+  "integration_test" \
+  ./scripts/build_play_aab.sh --verify-no-integration-test "$defines_dir/plugin.aab"
 
 echo "Play AAB guard checks passed."

@@ -65,6 +65,41 @@ val demoAppIdSuffix = dartDefines()["DEMO_APP_ID_SUFFIX"] == "true" ||
 // tester-checks only. The Play bundle and android-smoke do not set this.
 val ciTesterChecks = (findProperty("ciTesterChecks") as? String) == "true"
 
+// flutter build apk --release rewrites GeneratedPluginRegistrant and drops
+// dev dependencies, including integration_test. Tester-checks needs that
+// plugin on the engine. Play builds leave ciTesterChecks unset, so this
+// file is not patched and the plugin stays off the release classpath.
+fun registerCiTesterChecksPlugin() {
+    val registrant = file("src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java")
+    if (!registrant.isFile) {
+        throw GradleException(
+            "ciTesterChecks: GeneratedPluginRegistrant.java is missing. " +
+                "Flutter should have written it before compilation."
+        )
+    }
+    val marker = "dev.flutter.plugins.integration_test.IntegrationTestPlugin"
+    val text = registrant.readText()
+    if (text.contains(marker)) {
+        logger.lifecycle("ciTesterChecks: IntegrationTestPlugin already registered")
+        return
+    }
+    val needle = "public static void registerWith(@NonNull FlutterEngine flutterEngine) {"
+    if (!text.contains(needle)) {
+        throw GradleException(
+            "ciTesterChecks: GeneratedPluginRegistrant has no registerWith method"
+        )
+    }
+    val block = """
+        |    try {
+        |      flutterEngine.getPlugins().add(new dev.flutter.plugins.integration_test.IntegrationTestPlugin());
+        |    } catch (Exception e) {
+        |      Log.e(TAG, "Error registering plugin integration_test, dev.flutter.plugins.integration_test.IntegrationTestPlugin", e);
+        |    }
+    """.trimMargin()
+    registrant.writeText(text.replace(needle, needle + "\n" + block))
+    logger.lifecycle("ciTesterChecks: registered IntegrationTestPlugin")
+}
+
 fun releaseSigningError(): String {
     val problem = when {
         !keystorePropertiesFile.exists() ->
@@ -211,5 +246,12 @@ if (ciTesterChecks) {
                 "ciTesterChecks requires the :integration_test Android project"
             )
         dependencies.add("releaseApi", integration)
+    }
+    // Patch immediately before javac. Flutter has already rewritten the
+    // registrant for release by the time Gradle compiles it.
+    tasks.configureEach {
+        if (name == "compileReleaseJavaWithJavac") {
+            doFirst { registerCiTesterChecksPlugin() }
+        }
     }
 }

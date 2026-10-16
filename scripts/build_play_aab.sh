@@ -62,6 +62,12 @@ refuse_demo_suffix() {
   exit 1
 }
 
+refuse_integration_test() {
+  echo "error: Play AAB must not contain the integration_test plugin class." >&2
+  echo "IntegrationTestPlugin is registered only when ciTesterChecks is set." >&2
+  exit 1
+}
+
 refuse_define_file() {
   echo "error: --dart-define-from-file is missing or unreadable: $1" >&2
   exit 1
@@ -83,6 +89,47 @@ aab_cert_subjects() {
   fi
   if command -v keytool >/dev/null 2>&1; then
     keytool -printcert -jarfile "$bundle" 2>/dev/null || true
+  fi
+}
+
+# Fail if any zip entry (or a nested apk/jar/zip) contains the plugin class
+# descriptor. Dex stores it uncompressed inside the deflated entry.
+assert_no_integration_test_plugin() {
+  local bundle="$1"
+  if [[ ! -f "$bundle" ]]; then
+    echo "error: release bundle not found: $bundle" >&2
+    exit 1
+  fi
+  if ! python3 - "$bundle" <<'PY'
+import io, sys, zipfile
+needle = b"dev/flutter/plugins/integration_test/IntegrationTestPlugin"
+bundle = sys.argv[1]
+
+def walk(data, label):
+    if needle in data:
+        print(f"error: {bundle} contains the integration_test plugin class in {label}", file=sys.stderr)
+        return True
+    if label.endswith((".zip", ".apk", ".jar", ".aab")):
+        try:
+            nested = zipfile.ZipFile(io.BytesIO(data))
+        except zipfile.BadZipFile:
+            return False
+        with nested:
+            for info in nested.infolist():
+                if walk(nested.read(info), f"{label}:{info.filename}"):
+                    return True
+    return False
+
+found = False
+with zipfile.ZipFile(bundle) as archive:
+    for info in archive.infolist():
+        if walk(archive.read(info), info.filename):
+            found = True
+            break
+sys.exit(1 if found else 0)
+PY
+  then
+    refuse_integration_test
   fi
 }
 
@@ -131,6 +178,9 @@ check_blocked_defines() {
   if env | grep -q -e '^DEMO_APP_ID_SUFFIX=' -e '^ORG_GRADLE_PROJECT_demo_suffix='; then
     refuse_demo_suffix
   fi
+  if env | grep -q '^ORG_GRADLE_PROJECT_ciTesterChecks='; then
+    refuse_integration_test
+  fi
 
   local args=("$@")
   local i=0
@@ -157,6 +207,9 @@ check_blocked_defines() {
       *DEMO_APP_ID_SUFFIX*|*demo_suffix*)
         refuse_demo_suffix
         ;;
+      *ciTesterChecks*)
+        refuse_integration_test
+        ;;
     esac
     i=$((i + 1))
   done
@@ -167,9 +220,15 @@ if [[ "${1:-}" == "--verify-signing" ]]; then
   exit 0
 fi
 
+if [[ "${1:-}" == "--verify-no-integration-test" ]]; then
+  assert_no_integration_test_plugin "${2:?bundle path required}"
+  exit 0
+fi
+
 check_blocked_defines "$@"
 
 scripts/check_android_smoke_gate.sh
 
 flutter build appbundle --release "$@"
 assert_not_debug_signed "build/app/outputs/bundle/release/app-release.aab"
+assert_no_integration_test_plugin "build/app/outputs/bundle/release/app-release.aab"
