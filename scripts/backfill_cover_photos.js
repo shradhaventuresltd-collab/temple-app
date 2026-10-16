@@ -34,18 +34,22 @@
  * `cover_ok`. `no_cover_frame` is checked first, so that pack is reported
  * as `no-cover-frame` even when a photo is also `cover_ok`, and frame 01
  * is left unused. A pack with two `cover_ok` photos fails validation.
- * The new
- * object is `temples/{id}/{filename}`. Apply uploads it only when it
- * is missing. Before the write, that same storage.googleapis.com URL must
- * return HTTP 200. A public object with no download token still passes.
- * A network error from that check skips the temple as
+ * The new object is `temples/{id}/{filename}`. Apply uploads it only when
+ * it is missing, and does not set an object ACL or public IAM. The written
+ * imageUrl is the Firebase download URL
+ * `https://firebasestorage.googleapis.com/v0/b/<bucket>/o/<encoded path>?alt=media&token=<token>`.
+ * A new object gets a UUID in metadata.firebaseStorageDownloadTokens. An
+ * object that already has a token keeps the first one. Before the write,
+ * that token URL must return HTTP 200. A storage.googleapis.com URL is not
+ * the check. A network error from that check skips the temple as
  * `public-check-failed` and the run continues. Apply checks once, before
  * any temple, that `fetch` exists. Each check aborts after about 10 seconds,
  * and that timeout is `public-check-failed` too. `--exclude id1,id2`
  * skips those temple ids and warns when an id is not in the loaded set.
- * Apply runs one read-only Storage exists() before any Firestore write.
- * If that token request fails, it stops with
- * "Storage auth preflight failed. No Firestore write."
+ * Apply lists `temples/` once before any Firestore write. objectUser can
+ * list an empty prefix. If that list returns 403, Apply writes and deletes
+ * `temples/.preflight-<uuid>` instead. A 403 that still cannot read or
+ * write stops the run and names the missing permission.
  * The transaction skips the doc when `imageUrl` is no longer the planned old
  * URL. The old Places object stays in Storage. A temple with no creditable
  * frame 01 is reported (`no-creditable-frame`, or `no-wave-pack`).
@@ -76,11 +80,13 @@
  *
  * prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
  */
+import { randomUUID } from "node:crypto";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { assertOneCoverOk } from "./cover_ok.js";
+import { firebaseDownloadUrl, firebaseMediaUrl } from "./resize_cover_thumbs.js";
 import { assertStorageAuth, STORAGE_AUTH_BUCKET, useNativeFetchForStorageAuth } from "./storage_auth.js";
 import { cleanAuthor, mapPhotoLicence, photoCredit } from "./photo_licence.js";
 import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard.js";
@@ -519,6 +525,11 @@ export function storageCoverUrl(docId, filename) {
   return `https://storage.googleapis.com/${COVER_BUCKET}/temples/${docId}/${filename}`;
 }
 
+/** Download URL written to imageUrl. The token is the object's Firebase token. */
+export function coverDownloadUrl(objectPath, token) {
+  return firebaseDownloadUrl(COVER_BUCKET, objectPath, token);
+}
+
 /**
  * `images[0]` becomes the new cover. A cover slot that was the old object
  * is replaced in the list. The Storage object itself is not removed.
@@ -652,7 +663,7 @@ function photoHasCredit(photo) {
  * Timestamp names, custom names, and `_480` thumbs are reported and left
  * in place. Returns null when this cover is not in this temple's bucket.
  */
-function replacementPlan(temple, imageUrl, photos, failed) {
+function replacementPlan(temple, imageUrl, photos, failed, opts = {}) {
   const located = directoryObject(temple?.id, imageUrl);
   if (!located) return null;
   if (failed.reason !== "no-matching-credit" && failed.reason !== "no-credit") return null;
@@ -678,7 +689,10 @@ function replacementPlan(temple, imageUrl, photos, failed) {
       oldObject: located.objectPath,
     };
   }
-  const url = storageCoverUrl(id, best.filename);
+  const objectPath = `temples/${id}/${best.filename}`;
+  const url = opts.downloadToken
+    ? coverDownloadUrl(objectPath, opts.downloadToken)
+    : storageCoverUrl(id, best.filename);
   if (!url.startsWith("https://") || url.length > MAX_URL) {
     return { id, action: "skip", reason: "not-https", imageUrl };
   }
@@ -694,7 +708,8 @@ function replacementPlan(temple, imageUrl, photos, failed) {
     oldImageUrl: imageUrl,
     oldObject: located.objectPath,
     filename: best.filename,
-    objectPath: `temples/${id}/${best.filename}`,
+    objectPath,
+    downloadToken: opts.downloadToken,
     localPath: best.localPath,
     upload: "if-missing",
     photo: nextPhotos[0],
@@ -733,7 +748,7 @@ export function planCoverPhoto(temple, opts = {}) {
   const copied = attribution(temple, imageUrl);
   if (!copied.ok) {
     if (!replaceUncredited) return { id, action: "skip", reason: copied.reason, imageUrl };
-    return replacementPlan(temple, imageUrl, photos, copied) ?? {
+    return replacementPlan(temple, imageUrl, photos, copied, opts) ?? {
       id,
       action: "skip",
       reason: copied.reason,
@@ -768,7 +783,10 @@ export function commitCoverPhoto(fresh, plan) {
   }
   const again = planCoverPhoto(
     { ...fresh, id: fresh?.id ?? plan.id },
-    { replaceUncreditedCover: plan.action === "replace" },
+    {
+      replaceUncreditedCover: plan.action === "replace",
+      downloadToken: plan.downloadToken,
+    },
   );
   const sameAction = again.action === plan.action && (plan.action === "add" || plan.action === "replace");
   if (!sameAction || again.photo.url !== plan.photo.url) {
@@ -919,6 +937,9 @@ export async function applyCoverPhotoPlans(plans, deps) {
         });
         continue;
       }
+      if (typeof ensured.imageUrl === "string" && ensured.imageUrl !== "") {
+        assignCoverDownloadUrl(plan, ensured.imageUrl, ensured.token);
+      }
     }
     const written = await deps.write(plan);
     if (written && written.ok === false) {
@@ -931,14 +952,44 @@ export async function applyCoverPhotoPlans(plans, deps) {
 }
 
 /**
- * HTTP 200 on the URL this plan will write. A public storage.googleapis.com
- * object passes with no download token. DNS failure, connection reset, and
+ * Put the verified download URL on the plan the transaction will write.
+ * The replan uses `downloadToken`, so the guard still compares that same URL.
+ */
+export function assignCoverDownloadUrl(plan, imageUrl, token) {
+  const previous = plan.imageUrl;
+  plan.downloadToken = token;
+  plan.imageUrl = imageUrl;
+  if (plan.photo && plan.photo.url === previous) plan.photo = { ...plan.photo, url: imageUrl };
+  if (Array.isArray(plan.photos)) {
+    plan.photos = plan.photos.map((photo) =>
+      photo && photo.url === previous ? { ...photo, url: imageUrl } : photo,
+    );
+  }
+  if (Array.isArray(plan.images)) {
+    plan.images = plan.images.map((item) => {
+      if (typeof item === "string") return item === previous ? imageUrl : item;
+      if (item && typeof item === "object" && item.url === previous) return { ...item, url: imageUrl };
+      return item;
+    });
+  }
+  return plan;
+}
+
+function firstDownloadToken(metadata) {
+  const raw = metadata?.metadata?.firebaseStorageDownloadTokens ?? metadata?.firebaseStorageDownloadTokens;
+  const token = String(raw ?? "").split(",")[0].trim();
+  return token || null;
+}
+
+/**
+ * HTTP 200 on the Firebase download URL this plan will write. A
+ * storage.googleapis.com URL is not public under uniform bucket-level
+ * access, so it fails this check. DNS failure, connection reset, and
  * timeout are `public-check-failed` so the next temple still runs.
  */
-async function writtenUrlIsPublic(plan, deps) {
-  const url = typeof plan?.imageUrl === "string" ? plan.imageUrl : "";
-  if (!url.startsWith("https://")) return { ok: false, reason: "not-public" };
-  const check = deps.verifyPublic ?? ((url) => fetchPublicUrl(url, deps));
+async function writtenUrlIsPublic(url, deps) {
+  if (firebaseMediaUrl(url) == null) return { ok: false, reason: "not-public" };
+  const check = deps.verifyPublic ?? ((next) => fetchPublicUrl(next, deps));
   try {
     const ok = (await check(url)) === true;
     return ok ? { ok: true } : { ok: false, reason: "not-public" };
@@ -948,33 +999,43 @@ async function writtenUrlIsPublic(plan, deps) {
 }
 
 /**
- * Upload `temples/{id}/{filename}` when that object is missing. An object
- * already in the bucket is kept when the URL that will be written returns
- * HTTP 200. The previous cover object is not deleted.
+ * Upload `temples/{id}/{filename}` when that object is missing. The object
+ * keeps a Firebase download token and is not made public. An existing token
+ * is reused. The previous cover object is not deleted.
  */
 export async function ensureCoverFrame(plan, deps = {}) {
   const objectPath = typeof plan?.objectPath === "string" ? plan.objectPath : "";
   const localPath = typeof plan?.localPath === "string" ? plan.localPath : "";
-  const writtenUrl = typeof plan?.imageUrl === "string" ? plan.imageUrl : "";
-  if (!objectPath || !localPath || writtenUrl === "") return { ok: false, reason: "missing-file" };
+  if (!objectPath || !localPath) return { ok: false, reason: "missing-file" };
   const bucket = deps.bucket ?? deps.admin.storage().bucket(COVER_BUCKET);
   const file = bucket.file(objectPath);
   const [exists] = await file.exists();
+  let token = null;
   if (!exists) {
     if (!existsSync(localPath)) return { ok: false, reason: "missing-file" };
+    token = deps.newToken ?? randomUUID();
     const contentType = localPath.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
     await bucket.upload(localPath, {
       destination: objectPath,
       metadata: {
         contentType,
         cacheControl: "public, max-age=3600",
+        metadata: { firebaseStorageDownloadTokens: token },
       },
     });
-    await file.makePublic();
+  } else {
+    const [metadata] = await file.getMetadata();
+    token = firstDownloadToken(metadata);
+    if (!token) {
+      token = deps.newToken ?? randomUUID();
+      const custom = { ...(metadata?.metadata ?? {}), firebaseStorageDownloadTokens: token };
+      await file.setMetadata({ metadata: custom });
+    }
   }
-  const readable = await writtenUrlIsPublic(plan, deps);
+  const imageUrl = coverDownloadUrl(objectPath, token);
+  const readable = await writtenUrlIsPublic(imageUrl, deps);
   if (!readable.ok) return { ok: false, reason: readable.reason };
-  return { ok: true, uploaded: !exists };
+  return { ok: true, uploaded: !exists, imageUrl, token };
 }
 
 async function openAdmin(project, env) {

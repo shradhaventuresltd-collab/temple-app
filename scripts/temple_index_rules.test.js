@@ -548,6 +548,22 @@ test("a Commons file named with Unsplash passes the photo key checks", async () 
   );
 });
 
+test("a Firebase download-token URL is accepted for imageUrl, images, and photos", async () => {
+  const db = adminDb("admin-token-url");
+  const tokenUrl =
+    "https://firebasestorage.googleapis.com/v0/b/temple-directory-india.firebasestorage.app/o/temples%2Fshore-temple%2F01.jpg?alt=media&token=abc-def";
+  await assertSucceeds(
+    setDoc(
+      at(db, "temples/token-cover"),
+      templePayload("token-cover", {
+        imageUrl: tokenUrl,
+        images: [tokenUrl, "https://example.com/gallery.jpg"],
+        photos: [{ url: tokenUrl, credit: "Ada", licence: "CC0", order: 0 }],
+      }),
+    ),
+  );
+});
+
 test("httpsUrl rejects a photo url that contains whitespace", async () => {
   const db = adminDb("admin-url");
   const spaced = templePayload("spaced-url", {
