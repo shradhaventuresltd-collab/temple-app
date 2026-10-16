@@ -8,10 +8,13 @@ import 'package:temple_app/config/policy_config.dart';
 import 'package:temple_app/release_error_widget.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/home_screen.dart';
+import 'package:temple_app/screens/maintenance_screen.dart';
 import 'package:temple_app/screens/policy_acceptance_gate.dart';
 import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/services/app_bootstrap.dart';
+import 'package:temple_app/services/app_config.dart';
 import 'package:temple_app/services/client_cache.dart';
+import 'package:temple_app/services/firebase_remote_config_gateway.dart';
 import 'package:temple_app/services/offline_link.dart';
 import 'package:temple_app/services/policy_acceptance_store.dart';
 import 'package:temple_app/services/policy_link_launcher.dart';
@@ -39,7 +42,19 @@ Future<void> main() async {
   // launches; Home then reads cache or the bundled sample. Ads stay after
   // Terms (KAN-93) and are not awaited here.
   final firebaseReady = await AppBootstrap.initializeFirebase();
-  runApp(TempleDirectoryApp(firebaseReady: firebaseReady));
+  // Defaults and the last activated cache before the first frame. The fetch
+  // is not awaited: a slow or failed fetch must not hold the saffron splash.
+  // Remote Config is not constructed unless Firebase already has an app.
+  final appConfig = AppConfigController(
+    client: remoteConfigClientIfReady(firebaseReady: firebaseReady),
+    minimumFetchInterval: kRemoteConfigMinimumFetchInterval,
+  );
+  final remoteConfigStartup = startRemoteConfig(appConfig);
+  await remoteConfigStartup.ready;
+  unawaited(remoteConfigStartup.fetch);
+  runApp(
+    TempleDirectoryApp(firebaseReady: firebaseReady, appConfig: appConfig),
+  );
 }
 
 enum _StartupPhase { checking, gate, home }
@@ -58,6 +73,7 @@ class TempleDirectoryApp extends StatefulWidget {
     this.now,
     this.onExitApp,
     this.launchPolicyUrl,
+    this.appConfig,
   });
 
   /// Defaults to shared preferences. Tests pass an in-memory store.
@@ -85,6 +101,10 @@ class TempleDirectoryApp extends StatefulWidget {
   /// Opens a policy https URL in an in-app browser.
   final Future<bool> Function(Uri url)? launchPolicyUrl;
 
+  /// Remote Config snapshot. Tests pass a controller with no plugin.
+  /// Null uses in-app defaults and does not fetch.
+  final AppConfigController? appConfig;
+
   @override
   State<TempleDirectoryApp> createState() => _TempleDirectoryAppState();
 }
@@ -92,12 +112,18 @@ class TempleDirectoryApp extends StatefulWidget {
 class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
   late final Future<bool> _firebaseReady;
   late final PolicyAcceptanceStore _store;
+  late final AppConfigController _config;
+  late final bool _ownsConfig;
   _StartupPhase _phase = _StartupPhase.checking;
   PolicyGateKind _gateKind = PolicyGateKind.firstLaunch;
+  bool _adsStarted = false;
 
   @override
   void initState() {
     super.initState();
+    _ownsConfig = widget.appConfig == null;
+    _config = widget.appConfig ?? AppConfigController();
+    _config.addListener(_onConfig);
     final override = widget.initializeFirebase;
     final already = widget.firebaseReady;
     if (override != null) {
@@ -109,6 +135,19 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
     }
     _store = widget.acceptanceStore ?? SharedPreferencesPolicyAcceptanceStore();
     unawaited(_loadAcceptance());
+  }
+
+  @override
+  void dispose() {
+    _config.removeListener(_onConfig);
+    if (_ownsConfig) _config.dispose();
+    super.dispose();
+  }
+
+  void _onConfig() {
+    if (!mounted) return;
+    setState(() {});
+    _startAdsIfAllowed();
   }
 
   Future<void> _loadAcceptance() async {
@@ -147,9 +186,22 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
   /// Home is shown immediately. UMP and Mobile Ads start in the background
   /// and must not block the first Home frame (KAN-75). Ad widgets still wait
   /// until consent resolves, and this is the only place ads are started.
+  ///
+  /// A kill switch skips Home, ads, and directory reads. `ff_ads_enabled`
+  /// false still opens Home and skips only the ad startup.
   void _openHomeAndStartAds() {
     if (!mounted) return;
     setState(() => _phase = _StartupPhase.home);
+    _startAdsIfAllowed();
+  }
+
+  /// Ads start once, after Terms, and only while the kill switch is off.
+  /// A switch that clears later still starts them. `ff_ads_enabled` false
+  /// leaves them off for this process.
+  void _startAdsIfAllowed() {
+    if (_adsStarted || _phase != _StartupPhase.home) return;
+    if (_config.snapshot.killSwitch || !_config.snapshot.adsEnabled) return;
+    _adsStarted = true;
     final startAds = widget.initializeAds ?? AppBootstrap.initializeAdsSafely;
     unawaited(_startAdsInBackground(startAds));
   }
@@ -172,6 +224,7 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
   }
 
   Future<List<Temple>> _loadTemples() async {
+    if (_config.snapshot.killSwitch) return const [];
     final loader = widget.templesLoader;
     if (loader != null) return loader();
     await _firebaseReady;
@@ -179,6 +232,12 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
   }
 
   Widget _body() {
+    if (_config.snapshot.killSwitch) {
+      return MaintenanceScreen(
+        message: _config.snapshot.maintenanceMessage,
+        onExit: _exitApp,
+      );
+    }
     switch (_phase) {
       case _StartupPhase.checking:
         return const PolicyStartupHold();
@@ -194,6 +253,7 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
           adminAuth: widget.adminAuth,
           templesLoader: _loadTemples,
           adminToolsEnabled: widget.adminToolsEnabled,
+          maintenanceMessage: _config.snapshot.maintenanceMessage,
         );
     }
   }

@@ -12,6 +12,7 @@ import 'package:temple_app/widgets/app_drawer.dart';
 import 'package:temple_app/services/firestore_read_log.dart';
 import 'package:temple_app/services/offline_link.dart';
 import 'package:temple_app/widgets/home_mosaic_collage.dart';
+import 'package:temple_app/widgets/maintenance_message_banner.dart';
 import 'package:temple_app/widgets/offline_banner.dart';
 import 'package:temple_app/widgets/unavailable_states_notice.dart';
 
@@ -25,6 +26,7 @@ class HomeScreen extends StatefulWidget {
     this.adminAuth,
     this.templesLoader,
     this.adminToolsEnabled,
+    this.maintenanceMessage = '',
   });
 
   /// Injected in tests. Production reads [AdminAuth.instance] only when
@@ -37,6 +39,9 @@ class HomeScreen extends StatefulWidget {
   /// Defaults to [kAdminToolsEnabled]. Pass `false` in tests to hide
   /// Seed / Admin app-bar actions (Play/release without the define).
   final bool? adminToolsEnabled;
+
+  /// Remote Config `maintenance_message`. Empty hides the banner.
+  final String maintenanceMessage;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -126,6 +131,8 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Column(
         children: [
+          if (widget.maintenanceMessage.trim().isNotEmpty)
+            MaintenanceMessageBanner(message: widget.maintenanceMessage.trim()),
           const OfflineBanner(),
           Expanded(
             child: FutureBuilder<List<Temple>>(
