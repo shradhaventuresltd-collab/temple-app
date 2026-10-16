@@ -520,7 +520,10 @@ export async function processPack({
     console.log(redactDownloadToken(url));
   }
 
-  console.log("\n── Suggested sample_data / Firestore fields ──────────────────");
+  console.log("\n── Suggested sample_data / Firestore fields (display-only) ──");
+  console.log(
+    "Display-only. Tokens are redacted here. Use --write-urls <path> for the real values."
+  );
   console.log(`imageUrl: '${redactDownloadToken(uploadedUrls[0])}',`);
   console.log("images: [");
   for (const url of uploadedUrls) {

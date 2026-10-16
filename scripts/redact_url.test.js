@@ -49,4 +49,38 @@ test("metadata token names that are not the query parameter stay", () => {
     redactDownloadToken("firebaseStorageDownloadTokens=secret-token"),
     "firebaseStorageDownloadTokens=secret-token",
   );
+  assert.equal(
+    redactDownloadToken("firebaseStorageDownloadTokens%3Dsecret-token"),
+    "firebaseStorageDownloadTokens%3Dsecret-token",
+  );
+});
+
+test("token matches any case, including a leading ampersand", () => {
+  assert.equal(
+    redactDownloadToken("https://example.com/a?alt=media&Token=AbC"),
+    "https://example.com/a?alt=media&Token=<redacted>",
+  );
+  assert.equal(
+    redactDownloadToken("https://example.com/a?TOKEN=AbC&alt=media"),
+    "https://example.com/a?TOKEN=<redacted>&alt=media",
+  );
+});
+
+test("a percent-encoded token nested in another URL is redacted", () => {
+  const nested =
+    "https://example.com/go?next=https%3A%2F%2Ffirebasestorage.googleapis.com%2Fv0%2Fb%2Fb%2Fo%2Fa.jpg%3Falt%3Dmedia%26token%3Dsecret-token%26x%3D1";
+  const redacted = redactDownloadToken(nested);
+  assert.equal(redacted.includes("secret-token"), false);
+  assert.equal(
+    redacted,
+    "https://example.com/go?next=https%3A%2F%2Ffirebasestorage.googleapis.com%2Fv0%2Fb%2Fb%2Fo%2Fa.jpg%3Falt%3Dmedia%26token%3D<redacted>%26x%3D1",
+  );
+  assert.equal(
+    redactDownloadToken("wrapped %3FToken%3Dnested-secret#tail"),
+    "wrapped %3FToken%3D<redacted>#tail",
+  );
+  assert.equal(
+    redactDownloadToken("https://example.com/a?alt=media%26token%3Dabc%2Fdef"),
+    "https://example.com/a?alt=media%26token%3D<redacted>",
+  );
 });
