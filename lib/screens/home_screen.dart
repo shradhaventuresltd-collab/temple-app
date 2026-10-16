@@ -108,6 +108,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (refresh) {
       final refreshLoader = widget.refreshTemples;
       if (refreshLoader != null) return refreshLoader();
+      final loader = widget.templesLoader;
+      if (loader != null) return loader();
       return _templeService.loadDirectory();
     }
     final loader = widget.templesLoader;
