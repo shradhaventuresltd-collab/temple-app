@@ -941,3 +941,45 @@ test("encodeWithSharp writes a 480-wide jpeg and does not enlarge a smaller fram
   assert.equal(applied[0].result, "uploaded");
   assert.equal(applied[0].thumbPath, "temples/encode-temple/01_480_g7.jpg");
 });
+
+test("encodeWithSharp keeps a portrait frame portrait at 480 wide", async () => {
+  const sharp = (await import("sharp")).default;
+  const portrait = await sharp({
+    create: {
+      width: 800,
+      height: 1600,
+      channels: 3,
+      background: { r: 40, g: 90, b: 30 },
+    },
+  })
+    .jpeg()
+    .toBuffer();
+  const thumb = await encodeWithSharp(portrait);
+  const meta = await sharp(thumb).metadata();
+  assert.equal(meta.format, "jpeg");
+  assert.equal(meta.width, THUMB_EDGE);
+  assert.equal(meta.height, 960);
+  assert.equal(meta.height > meta.width, true);
+});
+
+test("encodeWithSharp shrinks a generated 6000x4000 source to a 480-wide jpeg", async () => {
+  const sharp = (await import("sharp")).default;
+  const huge = await sharp({
+    create: {
+      width: 6000,
+      height: 4000,
+      channels: 3,
+      background: { r: 12, g: 24, b: 48 },
+    },
+  })
+    .jpeg()
+    .toBuffer();
+  const thumb = await encodeWithSharp(huge);
+  assert.equal(thumb[0], 0xff);
+  assert.equal(thumb[1], 0xd8);
+  const meta = await sharp(thumb).metadata();
+  assert.equal(meta.format, "jpeg");
+  assert.equal(meta.width, THUMB_EDGE);
+  assert.equal(meta.height, 320);
+  assert.equal(thumb.length < huge.length, true);
+});
