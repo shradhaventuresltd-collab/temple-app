@@ -923,9 +923,10 @@ function corpusOf(data) {
 const TRADITION_VALUES = new Set(["jain", "buddhist", "sikh"]);
 
 export function traditionOf(data) {
-  // Document field first. Absent, or any other string, falls through.
+  // Document field first, and only an exact jain, buddhist, or sikh.
+  // A different case or surrounding space falls through, matching the rules.
   // Name, description, and specialities are not scanned.
-  const stored = textOf(data, "tradition").trim().toLowerCase();
+  const stored = data?.tradition;
   if (TRADITION_VALUES.has(stored)) return stored;
   const deity = textOf(data, "deity").toLowerCase();
   if (/\b(jain|tirthankaras?)\b/.test(deity)) return "jain";

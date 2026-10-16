@@ -39,8 +39,8 @@ const ALLOWED_FIELDS = new Set([
   "tradition",
 ]);
 
-/** Matches the brief. Firestore rules still cap deity at 100 characters. */
-const DEITY_MAX = 120;
+/** Same cap as firestore.rules validStringLength('deity', 1, 100). */
+const DEITY_MAX = 100;
 
 const TRADITION_VALUES = new Set(["jain", "buddhist", "sikh"]);
 

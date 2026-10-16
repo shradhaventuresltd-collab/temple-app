@@ -384,16 +384,16 @@ test("deity is an allowed non-empty string and other text fields stay blocked", 
   writeFileSync(
     file,
     JSON.stringify({
-      temples: [{ id: "budheswar-shiv-temple-dhamdha", fields: { deity: "S".repeat(120) } }],
+      temples: [{ id: "budheswar-shiv-temple-dhamdha", fields: { deity: "S".repeat(100) } }],
     }),
   );
-  assert.equal(loadPatches(file).temples[0].fields.deity.length, 120);
+  assert.equal(loadPatches(file).temples[0].fields.deity.length, 100);
 
   for (const fields of [
     { deity: "" },
     { deity: "   " },
     { deity: 1 },
-    { deity: "S".repeat(121) },
+    { deity: "S".repeat(101) },
     { story: "nope" },
     { description: "nope" },
     { specialities: ["nope"] },
