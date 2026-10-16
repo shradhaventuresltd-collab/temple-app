@@ -75,19 +75,13 @@ class AppBootstrap {
   static Future<bool> initializeFirebase({
     Future<void> Function()? initialize,
     void Function()? configureFirestore,
+    bool Function()? appsReady,
     Duration timeout = firebaseTimeout,
   }) async {
     try {
-      if (initialize == null && firebaseAppsReady()) {
-        // A process that already called initializeApp may still be missing
-        // persistence settings. Applying them twice throws; that is logged
-        // below and does not fail startup.
-        try {
-          final configure = configureFirestore ?? _configureLiveFirestore;
-          configure();
-        } catch (e, st) {
-          debugPrint('Firestore settings failed: $e\n$st');
-        }
+      // Settings are applied once, after this call's own initializeApp.
+      // A process that already has an app must not set them again.
+      if (initialize == null && (appsReady ?? firebaseAppsReady)()) {
         return true;
       }
       final start =

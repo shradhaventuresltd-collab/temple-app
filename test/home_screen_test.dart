@@ -7,6 +7,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/home_screen.dart';
 import 'package:temple_app/services/firestore_read_log.dart';
+import 'package:temple_app/services/offline_link.dart';
+import 'package:temple_app/services/temple_service.dart';
 import 'package:temple_app/widgets/offline_banner.dart';
 import 'package:temple_app/widgets/app_drawer.dart';
 import 'package:temple_app/widgets/debug_home_admin_actions.dart';
@@ -224,25 +226,86 @@ void main() {
     },
   );
 
-  testWidgets('Home shows the saved list banner with Retry', (tester) async {
-    final log = FirestoreReadLog.instance;
-    log.showingSavedList = true;
-    addTearDown(() => log.showingSavedList = false);
+  testWidgets('a warm launch while online shows no saved-list banner', (
+    tester,
+  ) async {
+    TempleService.savedListPhase.value = SavedListPhase.refreshing;
+    DirectoryLink.offline.value = false;
+    FirestoreReadLog.instance.showingSavedList = true;
+    addTearDown(() {
+      TempleService.resetSessionForTest();
+      DirectoryLink.resetForTest();
+      FirestoreReadLog.instance.showingSavedList = false;
+    });
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: HomeScreen(
-          adminAuth: FakeAdminAuth(),
-          templesLoader: () async => [sampleTemple()],
-          adminToolsEnabled: false,
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
+    await _pumpHome(tester);
+
+    expect(find.byKey(const Key('saved-list-banner')), findsNothing);
+    expect(find.text(SavedListBanner.offlineMessage), findsNothing);
+    expect(find.text('Offline'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Home says Offline on the saved list only while offline', (
+    tester,
+  ) async {
+    TempleService.savedListPhase.value = SavedListPhase.refreshing;
+    DirectoryLink.offline.value = true;
+    addTearDown(() {
+      TempleService.resetSessionForTest();
+      DirectoryLink.resetForTest();
+    });
+
+    await _pumpHome(tester);
 
     expect(find.byKey(const Key('saved-list-banner')), findsOneWidget);
-    expect(find.text(SavedListBanner.message), findsOneWidget);
+    expect(find.text(SavedListBanner.offlineMessage), findsOneWidget);
     expect(find.text('Retry'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('a failed refresh while online does not say Offline', (
+    tester,
+  ) async {
+    TempleService.savedListPhase.value = SavedListPhase.held;
+    DirectoryLink.offline.value = false;
+    addTearDown(() {
+      TempleService.resetSessionForTest();
+      DirectoryLink.resetForTest();
+    });
+
+    await _pumpHome(tester);
+
+    expect(find.byKey(const Key('saved-list-banner')), findsOneWidget);
+    expect(find.text(SavedListBanner.savedMessage), findsOneWidget);
+    expect(find.text(SavedListBanner.offlineMessage), findsNothing);
+    expect(find.text('Retry'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+}
+
+Future<void> _pumpHome(WidgetTester tester) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      home: HomeScreen(
+        adminAuth: FakeAdminAuth(),
+        templesLoader: () async => [
+          Temple(
+            name: 'Meenakshi Amman Temple',
+            state: 'Tamil Nadu',
+            city: 'Madurai',
+            deity: 'Devi',
+            imageUrl: '',
+            description: 'A historic temple.',
+            story: 'Story',
+            location: 'Madurai, Tamil Nadu',
+            timings: '',
+            specialities: const [],
+          ),
+        ],
+        adminToolsEnabled: false,
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
 }

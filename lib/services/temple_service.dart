@@ -9,6 +9,19 @@ import 'package:temple_app/services/firestore_read_log.dart';
 import 'package:temple_app/services/index_stamp_store.dart';
 import 'package:temple_app/services/temple_directory_client.dart';
 
+/// What the saved-list banner should show. The widget reads
+/// [TempleService.savedListPhase] and whether the device is offline.
+enum SavedListPhase {
+  /// A fresh index is on screen, or nothing has loaded yet.
+  hidden,
+
+  /// Cache is on screen and a server read is still running.
+  refreshing,
+
+  /// The server read failed and the saved list is what remains.
+  held,
+}
+
 /// Browse, search, and home lists, plus the detail document.
 ///
 /// When this device already applied shard stamps and those shards are in the
@@ -64,6 +77,14 @@ class TempleService {
   /// not read Firestore.
   static bool Function() readsBlocked = () => false;
 
+  /// Saved-list banner. [refreshing] is a warm launch whose server read is
+  /// still running: the banner stays hidden while the device is online.
+  /// [held] is a failed refresh. The widget reads this notifier, not a
+  /// process-wide log flag.
+  static final ValueNotifier<SavedListPhase> savedListPhase = ValueNotifier(
+    SavedListPhase.hidden,
+  );
+
   @visibleForTesting
   static void resetSessionForTest() {
     _session = null;
@@ -72,6 +93,7 @@ class TempleService {
     _sharedLoadSerial = 0;
     _sharedPublishedSerial = 0;
     readsBlocked = () => false;
+    savedListPhase.value = SavedListPhase.hidden;
   }
 
   /// One server load for the process. Injected test clients keep their own.
@@ -96,6 +118,12 @@ class TempleService {
   void noteFreshDirectoryPublished() {
     _markPublished(_nextSerial());
     _readLog.showingSavedList = false;
+    _setSavedListPhase(SavedListPhase.hidden);
+  }
+
+  void _setSavedListPhase(SavedListPhase phase) {
+    if (savedListPhase.value == phase) return;
+    savedListPhase.value = phase;
   }
 
   Future<List<Temple>>? get _inFlightNow =>
@@ -264,9 +292,11 @@ class TempleService {
     if (_publishedNow > serial) return rows;
     if (outcome.freshIndex) {
       _readLog.showingSavedList = false;
+      _setSavedListPhase(SavedListPhase.hidden);
       _markPublished(serial);
     } else if (outcome.savedList) {
       _readLog.noteSavedList();
+      _setSavedListPhase(SavedListPhase.held);
       if (outcome.rows == null) {
         _readLog.recordFallback('index-cache');
         _readLog.finishLaunch('index-cache');
@@ -278,6 +308,7 @@ class TempleService {
 
   void _noteSaved(List<Temple> rows) {
     _readLog.noteSavedList();
+    _setSavedListPhase(SavedListPhase.refreshing);
     _readLog.finishLaunch('index-cache');
     _publish(rows);
   }

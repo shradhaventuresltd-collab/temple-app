@@ -96,13 +96,26 @@ void main() {
       expect(configured, isFalse);
     });
 
-    test('a Firestore settings failure still counts Firebase as ready', () async {
+    test('does not configure Firestore when an app is already ready', () async {
+      var configured = 0;
       final ok = await AppBootstrap.initializeFirebase(
-        initialize: () async {},
-        configureFirestore: () => throw Exception('settings unavailable'),
+        appsReady: () => true,
+        configureFirestore: () => configured++,
       );
       expect(ok, isTrue);
+      expect(configured, 0);
     });
+
+    test(
+      'a Firestore settings failure still counts Firebase as ready',
+      () async {
+        final ok = await AppBootstrap.initializeFirebase(
+          initialize: () async {},
+          configureFirestore: () => throw Exception('settings unavailable'),
+        );
+        expect(ok, isTrue);
+      },
+    );
   });
 
   group('AppBootstrap.initializeAdsSafely', () {

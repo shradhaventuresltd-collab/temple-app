@@ -127,6 +127,20 @@ void main() {
     final axis = templeIndexCoordinates({'latitude': 0, 'longitude': 80});
     expect(axis.lat, 0);
     expect(axis.lng, 80);
+
+    final nan = templeIndexCoordinates({
+      'latitude': double.nan,
+      'longitude': 78,
+    });
+    expect(nan.lat, isNull);
+    expect(nan.lng, isNull);
+
+    final infinite = templeIndexCoordinates({
+      'latitude': 12.6,
+      'longitude': double.infinity,
+    });
+    expect(infinite.lat, isNull);
+    expect(infinite.lng, isNull);
   });
 
   test('cover matches the first verified gallery image and caps at 500', () {
@@ -245,7 +259,9 @@ void main() {
     );
     final stored =
         jsonDecode(
-              File('scripts/fixtures/storage_url_cases.json').readAsStringSync(),
+              File(
+                'scripts/fixtures/storage_url_cases.json',
+              ).readAsStringSync(),
             )
             as List;
     for (final raw in stored) {
@@ -254,7 +270,11 @@ void main() {
       expect(located, isNotNull, reason: row['name'] as String);
       expect(located!.kind, row['kind'], reason: row['name'] as String);
       expect(located.bucket, row['bucket'], reason: row['name'] as String);
-      expect(located.objectPath, row['objectPath'], reason: row['name'] as String);
+      expect(
+        located.objectPath,
+        row['objectPath'],
+        reason: row['name'] as String,
+      );
     }
     expect(
       storageObjectFromUrl(

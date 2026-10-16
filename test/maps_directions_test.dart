@@ -47,6 +47,49 @@ void main() {
     expect(find.text('Coordinates'), findsNothing);
     expect(find.text('Get Directions'), findsNothing);
   });
+
+  test('non-finite coordinates count as missing', () {
+    expect(
+      _temple(latitude: double.nan, longitude: 80).hasCoordinates,
+      isFalse,
+    );
+    expect(
+      _temple(latitude: 12, longitude: double.infinity).hasCoordinates,
+      isFalse,
+    );
+    expect(
+      _temple(latitude: double.negativeInfinity, longitude: 1).hasCoordinates,
+      isFalse,
+    );
+    final stored = Temple.fromMap('nan-temple', {
+      'name': 'NaN Temple',
+      'latitude': double.nan,
+      'longitude': double.infinity,
+    });
+    expect(stored.latitude, isNull);
+    expect(stored.longitude, isNull);
+    expect(stored.hasCoordinates, isFalse);
+  });
+
+  testWidgets('non-finite coordinates hide directions and the card', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TempleDetailBody(
+            temple: _temple(latitude: double.nan, longitude: double.nan),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Coordinates'), findsNothing);
+    expect(find.text('Get Directions'), findsNothing);
+    expect(find.byKey(const Key('get-directions-button')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 }
 
 Temple _temple({double? latitude, double? longitude}) {
