@@ -22,7 +22,7 @@ appId: com.shradhaventures.temple
       # Google Play services (com.google.android.gms) until the accept
       # control is visible. An ANR from this app fails the job.
       - repeat:
-          times: 12
+          times: 6
           while:
             notVisible:
               id: "policy-accept-button"
@@ -77,18 +77,18 @@ appId: com.shradhaventures.temple
             - extendedWaitUntil:
                 visible:
                   id: "policy-accept-button"
-                timeout: 5000
+                timeout: 3000
                 optional: true
       - tapOn:
           id: "policy-accept-button"
       - extendedWaitUntil:
           visible: "Temple Directory|Loading temples|Browse "
-          timeout: 60000
+          timeout: 25000
 - scrollUntilVisible:
     element:
       id: "home-browse-temples"
     direction: DOWN
-    timeout: 90000
+    timeout: 25000
     speed: 40
     visibilityPercentage: 100
     centerElement: true
@@ -97,7 +97,7 @@ appId: com.shradhaventures.temple
 - extendedWaitUntil:
     visible:
       id: "temple-browse-card"
-    timeout: 30000
+    timeout: 20000
 - assertVisible:
     id: "temple-list-search-field"
 - tapOn:
@@ -110,14 +110,14 @@ appId: com.shradhaventures.temple
 # directory, so the count node never stays on screen.
 - extendedWaitUntil:
     visible: "\\d+ temples?"
-    timeout: 45000
+    timeout: 20000
 - tapOn:
     id: "temple-browse-card"
 - scrollUntilVisible:
     element:
       id: "get-directions-button"
     direction: DOWN
-    timeout: 40000
+    timeout: 20000
     speed: 60
     visibilityPercentage: 100
     centerElement: true
@@ -126,5 +126,5 @@ appId: com.shradhaventures.temple
 - extendedWaitUntil:
     notVisible:
       id: "get-directions-button"
-    timeout: 30000
+    timeout: 15000
 - assertNotVisible: "Couldn't open directions on this device."
