@@ -1,4 +1,5 @@
 import { ensureDownloadToken, withDownloadToken } from "./download_token.js";
+import { redactDownloadToken } from "./redact_url.js";
 import { useNativeFetchForStorageAuth } from "./storage_auth.js";
 import "dotenv/config";
 import admin from "firebase-admin";
@@ -148,7 +149,7 @@ async function searchPlaceWithFallback(queries) {
       const place = await searchPlaceSingle(query);
       if (place) return { place, matchedQuery: query };
     } catch (err) {
-      console.log(`      ↳ Query "${query}" errored: ${err.response?.data?.error?.message || err.message}`);
+      console.log(`      ↳ Query "${query}" errored: ${redactDownloadToken(err.response?.data?.error?.message || err.message)}`);
     }
   }
   return { place: null, matchedQuery: null };
@@ -229,7 +230,7 @@ async function processTemple(temple, index) {
       uploadedUrls.push(publicUrl);
       console.log(`   ✔  Photo ${i + 1} done`);
     } catch (err) {
-      console.error(`   ✖  Photo ${i + 1} failed: ${err.message}`);
+      console.error(`   ✖  Photo ${i + 1} failed: ${redactDownloadToken(err.message)}`);
     }
   }
 
@@ -250,7 +251,7 @@ async function processTemple(temple, index) {
         console.log('      Run "Seed Data" from the app first.');
       }
     } catch (err) {
-      console.error(`   ✖  Firestore update failed: ${err.message}`);
+      console.error(`   ✖  Firestore update failed: ${redactDownloadToken(err.message)}`);
     }
   }
 }
@@ -275,7 +276,7 @@ async function main() {
       await processTemple(temples[i], i);
       succeeded++;
     } catch (err) {
-      console.error(`\n✖  Unexpected error for ${temples[i].name}: ${err.message}`);
+      console.error(`\n✖  Unexpected error for ${temples[i].name}: ${redactDownloadToken(err.message)}`);
       failed++;
     }
 

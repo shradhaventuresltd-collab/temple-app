@@ -1,4 +1,5 @@
 import { ensureDownloadToken } from "./download_token.js";
+import { redactDownloadToken } from "./redact_url.js";
 import { useNativeFetchForStorageAuth } from "./storage_auth.js";
 import admin from "firebase-admin";
 import { readFileSync } from "fs";
@@ -74,7 +75,7 @@ async function main() {
         const { url } = await ensureDownloadToken(file, bucket.name);
         rows.push({ name: file.name, url });
       } catch (err) {
-        console.error(`   ✖  Could not get URL for ${file.name}: ${err.message}`);
+        console.error(`   ✖  Could not get URL for ${file.name}: ${redactDownloadToken(err.message)}`);
       }
     }
 
@@ -90,7 +91,7 @@ async function main() {
 
     console.log(`   📸 URLs: ${urls.length}`);
     for (const u of urls) {
-      console.log(`      • ${u}`);
+      console.log(`      • ${redactDownloadToken(u)}`);
     }
 
     // 4. Update Firestore
@@ -111,7 +112,7 @@ async function main() {
       console.log(`   ✔  Firestore updated — imageUrl + images array set`);
       updated++;
     } catch (err) {
-      console.error(`   ✖  Firestore update failed: ${err.message}`);
+      console.error(`   ✖  Firestore update failed: ${redactDownloadToken(err.message)}`);
       failed++;
     }
   }

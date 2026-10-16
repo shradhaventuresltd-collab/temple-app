@@ -85,6 +85,7 @@ import { fileURLToPath } from "node:url";
 
 import { assertOneCoverOk } from "./cover_ok.js";
 import { downloadTokenUrl, ensureDownloadToken, withDownloadToken } from "./download_token.js";
+import { redactDownloadToken } from "./redact_url.js";
 import { firebaseMediaUrl } from "./resize_cover_thumbs.js";
 import { assertStorageAuth, STORAGE_AUTH_BUCKET, useNativeFetchForStorageAuth } from "./storage_auth.js";
 import { cleanAuthor, mapPhotoLicence, photoCredit } from "./photo_licence.js";
@@ -839,7 +840,7 @@ export function formatCoverPhotoReport(rows, { apply = false } = {}) {
       "photos, and for a replaced cover imageUrl and images. The previous Storage object is kept. Rules were not deployed.",
     );
   }
-  return lines.join("\n");
+  return redactDownloadToken(lines.join("\n"));
 }
 
 /**
@@ -1057,8 +1058,10 @@ async function loadTemples(project, env) {
 
 export async function main(argv = process.argv.slice(2), deps = {}) {
   const opts = parseArgs(argv);
-  const log = deps.log ?? ((line) => console.log(line));
-  const warn = deps.warn ?? ((line) => console.warn(line));
+  const writeLog = deps.log ?? ((line) => console.log(line));
+  const writeWarn = deps.warn ?? ((line) => console.warn(line));
+  const log = (line) => writeLog(redactDownloadToken(line));
+  const warn = (line) => writeWarn(redactDownloadToken(line));
   if (opts.help) {
     printUsage();
     return null;
@@ -1111,7 +1114,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
 const invoked = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (invoked) {
   main().catch((error) => {
-    console.error(error?.message || error);
+    console.error(redactDownloadToken(error?.message || error));
     process.exitCode = 1;
   });
 }
