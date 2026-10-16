@@ -110,18 +110,23 @@ void _result(int id, bool pass, String note) {
   _logLine('RESULT $id ${pass ? 'PASS' : 'FAIL'} $note');
 }
 
-Future<void> _shot(WidgetTester tester, String name) async {
+Future<void> _shot(
+  WidgetTester tester,
+  String name, {
+  Duration present = const Duration(milliseconds: 700),
+  Duration hold = const Duration(milliseconds: 1000),
+}) async {
   final safe = name.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '-');
   // Host screencap is the evidence. convertFlutterSurfaceToImage registers
   // a tearDown after the test has started and drops the element tree.
-  // Pump one frame, then wait so the emulator surface has presented it.
-  // A 360dp force-update frame was black when the capture raced that present.
+  // One frame, then a real pause so the emulator framebuffer has presented.
+  // [hold] keeps that frame up after SHOT so the host can recapture.
   if (WidgetsBinding.instance.rootElement != null) {
     await tester.pump();
   }
-  await Future<void>.delayed(const Duration(milliseconds: 600));
+  await Future<void>.delayed(present);
   _logLine('SHOT $safe');
-  await Future<void>.delayed(const Duration(milliseconds: 1200));
+  await Future<void>.delayed(hold);
 }
 
 Future<bool> _waitUntil(
@@ -131,10 +136,80 @@ Future<bool> _waitUntil(
 }) async {
   final end = DateTime.now().add(timeout);
   while (DateTime.now().isBefore(end)) {
-    await tester.pump(const Duration(milliseconds: 500));
+    if (ready()) return true;
+    // Bounded settle. A repeating mosaic shimmer never goes idle, so the
+    // timeout must stay short and a timeout is not a failure by itself.
+    try {
+      await tester.pumpAndSettle(
+        const Duration(milliseconds: 50),
+        EnginePhase.sendSemanticsUpdate,
+        const Duration(milliseconds: 400),
+      );
+    } catch (_) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
     if (ready()) return true;
   }
   return ready();
+}
+
+/// Home is ready for a launch screenshot only when Browse N is on screen.
+/// The loading spinner (`Loading temples…`) is not that screen.
+bool _directoryReady(WidgetTester tester) {
+  if (tester.any(find.textContaining('Loading temples'))) return false;
+  if (tester.any(find.text('Preparing the directory. This usually takes a moment.'))) {
+    return false;
+  }
+  if (_browseCount(_browseLabel(tester)) != _expectedTemples) return false;
+  return tester.any(find.byKey(const Key('home-browse-temples')));
+}
+
+/// True only after [ready] is on screen. The host captures the following SHOT.
+/// A check must not PASS when this returns false.
+Future<bool> _captureWhen(
+  WidgetTester tester,
+  String name,
+  bool Function() ready, {
+  required String waitingFor,
+  Duration timeout = const Duration(seconds: 20),
+  Duration present = const Duration(milliseconds: 700),
+  Duration hold = const Duration(milliseconds: 1000),
+}) async {
+  final ok = await _waitUntil(tester, ready, timeout: timeout);
+  if (!ok) {
+    _logLine(
+      'SHOTWAIT $name FAIL missing $waitingFor screen=${_screenHint(tester)}',
+    );
+    await _shot(tester, name, present: present, hold: hold);
+    return false;
+  }
+  _logLine('SHOTWAIT $name PASS $waitingFor');
+  await _shot(tester, name, present: present, hold: hold);
+  return true;
+}
+
+/// Icon-only tiles are [MosaicTilePlaceholder]. A collage with neither a
+/// network image nor Photo pending is blank.
+String _mosaicDefect(WidgetTester tester) {
+  final mosaic = find.byType(HomeMosaicCollage);
+  if (!tester.any(mosaic)) return 'mosaic-missing';
+  final iconOnly = find
+      .descendant(of: mosaic, matching: find.byType(MosaicTilePlaceholder))
+      .evaluate()
+      .length;
+  final photos = find
+      .descendant(of: mosaic, matching: find.byType(CachedNetworkImage))
+      .evaluate()
+      .length;
+  final pending = find
+      .descendant(of: mosaic, matching: find.text('Photo pending'))
+      .evaluate()
+      .length;
+  if (iconOnly > 0) {
+    return 'icon-only=$iconOnly photos=$photos pending=$pending';
+  }
+  if (photos == 0 && pending == 0) return 'blank photos=0 pending=0';
+  return 'ok photos=$photos pending=$pending icon-only=0';
 }
 
 bool _gateVisible(WidgetTester tester) {
@@ -260,22 +335,21 @@ Future<void> _acceptPhase(WidgetTester tester) async {
     () => !_gateVisible(tester),
     timeout: const Duration(seconds: 15),
   );
-  await _waitUntil(
+  final browse = await _captureWhen(
     tester,
-    () =>
-        _browseLabel(tester) != null ||
-        _firebaseOnScreen(tester) ||
-        tester.any(find.text('Could not load temples.')) ||
-        tester.any(find.text('Retry')),
-    timeout: const Duration(seconds: 40),
+    '01-accept-after',
+    () => _directoryReady(tester),
+    waitingFor: 'Browse $_expectedTemples Temples',
+    timeout: const Duration(seconds: 45),
+    hold: const Duration(seconds: 5),
   );
-  await _shot(tester, '01-accept-after');
   _result(
     1,
-    left,
-    left
-        ? 'one tap left the gate; ${_screenHint(tester)}'
-        : 'gate still showing after one tap; ${_screenHint(tester)}',
+    left && browse,
+    browse
+        ? 'one tap left the gate; Browse $_expectedTemples Temples was on screen'
+        : 'Browse $_expectedTemples Temples was not on screen after the tap; '
+            '${_screenHint(tester)}',
   );
 }
 
@@ -287,7 +361,7 @@ Future<void> _homeLaunch(
   final ready = await _waitUntil(
     tester,
     () =>
-        _browseLabel(tester) != null ||
+        _directoryReady(tester) ||
         _gateVisible(tester) ||
         _maintenanceVisible(tester) ||
         _updateBlock(tester) != null ||
@@ -297,24 +371,34 @@ Future<void> _homeLaunch(
     timeout: const Duration(seconds: 45),
   );
   final label = _browseLabel(tester);
-  if (label != null) {
+  if (_directoryReady(tester)) {
     final button = find.byKey(const Key('home-browse-temples'));
-    if (tester.any(button)) {
+    if (button.evaluate().length == 1) {
       await tester.ensureVisible(button);
       await tester.pump(const Duration(milliseconds: 200));
     }
   }
   // The soft-update banner claims a preferences day after the first Home frame.
-  if (_updateBlock(tester) == null) {
+  if (_updateBlock(tester) == null && _directoryReady(tester)) {
     await _waitUntil(
       tester,
       () => _updateBlock(tester) != null,
       timeout: const Duration(seconds: 2),
     );
   }
+  var shotOk = !capture;
   if (capture) {
     final shotName = phase == 'cold' ? '02-cold-start' : '02-$phase';
-    await _shot(tester, shotName);
+    final defect = _mosaicDefect(tester);
+    _logLine('MOSAIC $shotName $defect');
+    shotOk = await _captureWhen(
+      tester,
+      shotName,
+      () => _directoryReady(tester),
+      waitingFor: 'Browse $_expectedTemples Temples',
+      timeout: const Duration(seconds: 15),
+      hold: const Duration(seconds: 5),
+    );
   }
 
   final count = _browseCount(label);
@@ -323,7 +407,8 @@ Future<void> _homeLaunch(
   final maintenance = _maintenanceVisible(tester);
   final pass =
       ready &&
-      count == _expectedTemples &&
+      shotOk &&
+      _directoryReady(tester) &&
       !firebase &&
       !gate &&
       !maintenance;
@@ -380,61 +465,34 @@ Future<void> _mosaicCheck(WidgetTester tester) async {
   }
   await _waitUntil(
     tester,
-    () =>
-        _loadingInMosaic(tester) == 0 &&
-        (_photosInMosaic(tester) > 0 || _pendingInMosaic(tester) > 0),
-    timeout: const Duration(seconds: 12),
+    () => _mosaicDefect(tester).startsWith('ok'),
+    timeout: const Duration(seconds: 8),
   );
   if (tester.any(mosaic)) {
     await tester.ensureVisible(mosaic);
   }
-  final pending = _pendingInMosaic(tester);
-  final photos = _photosInMosaic(tester);
-  final loading = _loadingInMosaic(tester);
-  await _shot(tester, '03-home-mosaic');
-  // Real covers are expected. A grey shimmer or an empty collage is not.
-  final pass =
-      tester.any(mosaic) && loading == 0 && (photos > 0 || pending > 0);
-  _result(
-    3,
-    pass,
-    'network tiles=$photos Photo pending tiles=$pending '
-        'grey placeholders=$loading',
+  final defect = _mosaicDefect(tester);
+  _logLine('MOSAIC 03-home-mosaic $defect');
+  final shot = await _captureWhen(
+    tester,
+    '03-home-mosaic',
+    () => tester.any(find.byType(HomeMosaicCollage)),
+    waitingFor: 'home mosaic',
+    timeout: const Duration(seconds: 5),
   );
-}
-
-int _pendingInMosaic(WidgetTester tester) {
-  final mosaic = find.byType(HomeMosaicCollage);
-  if (!tester.any(mosaic)) {
-    return find.text('Photo pending').evaluate().length;
-  }
-  return find
-      .descendant(of: mosaic, matching: find.text('Photo pending'))
-      .evaluate()
-      .length;
-}
-
-int _photosInMosaic(WidgetTester tester) {
-  final mosaic = find.byType(HomeMosaicCollage);
-  if (!tester.any(mosaic)) return 0;
-  return find
-      .descendant(of: mosaic, matching: find.byType(CachedNetworkImage))
-      .evaluate()
-      .length;
-}
-
-int _loadingInMosaic(WidgetTester tester) {
-  final mosaic = find.byType(HomeMosaicCollage);
-  if (!tester.any(mosaic)) return 0;
-  return find
-      .descendant(of: mosaic, matching: find.byType(MosaicTilePlaceholder))
-      .evaluate()
-      .length;
+  final pass = shot && defect.startsWith('ok');
+  _result(3, pass, defect);
 }
 
 Future<bool> _openBrowse(WidgetTester tester) async {
+  final ready = await _waitUntil(
+    tester,
+    () => _directoryReady(tester),
+    timeout: const Duration(seconds: 25),
+  );
+  if (!ready) return false;
   final button = find.byKey(const Key('home-browse-temples'));
-  if (!tester.any(button)) return false;
+  if (button.evaluate().length != 1) return false;
   await tester.ensureVisible(button);
   await tester.tap(button);
   await tester.pump(const Duration(seconds: 1));
@@ -471,17 +529,30 @@ Future<void> _longNameCheck(WidgetTester tester) async {
     }
   }
   if (found == null) {
-    await _shot(tester, '04-long-name');
+    await _captureWhen(
+      tester,
+      '04-long-name',
+      () => false,
+      waitingFor: 'a 2-line temple name',
+      timeout: Duration.zero,
+    );
     _result(4, false, 'no browse name wrapped to 2 lines');
     await _typeQuery(tester, '');
     return;
   }
   await tester.ensureVisible(found.finder);
-  await _shot(tester, '04-long-name');
+  final shot = await _captureWhen(
+    tester,
+    '04-long-name',
+    () => _twoLineName(tester)?.lines == 2,
+    waitingFor: 'a 2-line temple name',
+    timeout: const Duration(seconds: 8),
+  );
   _result(
     4,
-    found.lines == 2,
-    '"${found.name}" wraps to ${found.lines} lines',
+    shot && found.lines == 2,
+    '"${found.name}" wraps to ${found.lines} lines'
+        '${shot ? '' : '; screenshot missed the wrapped name'}',
   );
   await _typeQuery(tester, '');
 }
@@ -554,7 +625,7 @@ Future<void> _searchChecks(WidgetTester tester) async {
 
   Future<void> named(
     String query,
-    bool Function(Temple temple) matches, {
+    bool Function(Temple temple, int? count) matches, {
     required bool rankingFinding,
     String? expected,
   }) async {
@@ -562,48 +633,53 @@ Future<void> _searchChecks(WidgetTester tester) async {
     final top = _visibleTemples(tester, limit: 3);
     final count = _resultCount(tester);
     final label = _templeList(top);
-    final topMatches = top.isNotEmpty && matches(top.first);
+    final topMatches = top.isNotEmpty && matches(top.first, count);
+    final shot = await _captureWhen(
+      tester,
+      '05-search-${query.toLowerCase()}',
+      () =>
+          _visibleTemples(tester, limit: 1).isNotEmpty ||
+          _resultCount(tester) != null,
+      waitingFor: 'results for $query',
+      timeout: const Duration(seconds: 12),
+    );
     if (rankingFinding) {
       notes.add(
         '$query RANKING top-matches=${topMatches ? 'yes' : 'no'} '
         'expected=${expected ?? 'named temple'} '
-        'count=${count ?? 'none'} top3=$label',
+        'count=${count ?? 'none'} top3=$label shot=${shot ? 'yes' : 'no'}',
       );
       _logLine(
         'SEARCH $query RANKING top-matches=${topMatches ? 'yes' : 'no'} '
         'top3=$label count=${count ?? 'none'}',
       );
     } else {
-      if (!topMatches) pass = false;
+      if (!topMatches || !shot) pass = false;
       notes.add(
         '$query found=${topMatches ? 'yes' : 'no'} '
-        'count=${count ?? 'none'} top3=$label',
+        'count=${count ?? 'none'} top3=$label shot=${shot ? 'yes' : 'no'}',
       );
       _logLine(
-        'SEARCH $query ${topMatches ? 'PASS' : 'FAIL'} '
+        'SEARCH $query ${topMatches && shot ? 'PASS' : 'FAIL'} '
         'top3=$label count=${count ?? 'none'}',
       );
     }
-    await _shot(tester, '05-search-${query.toLowerCase()}');
   }
 
-  await named('Minakshi', (temple) {
+  await named('Minakshi', (temple, count) {
     final name = temple.name.toLowerCase();
     return name.contains('minakshi') || name.contains('meenakshi');
   }, rankingFinding: false);
   await named(
     'Tirupathi',
-    _isTirupatiVenkateswara,
+    (temple, count) => _isTirupatiVenkateswara(temple),
     rankingFinding: true,
     expected: 'Tirumala/Tirupati Venkateswara',
   );
-  await named('Tiruchendur', (temple) {
-    final blob = '${temple.name} ${temple.city} ${temple.state}'.toLowerCase();
-    return blob.contains('tiruchendur') || blob.contains('thiruchendur');
-  }, rankingFinding: false);
+  await named('Tiruchendur', _isTiruchendur, rankingFinding: false);
   await named(
     'Sivan',
-    (temple) => temple.name.toLowerCase().contains('sivan'),
+    (temple, count) => temple.name.toLowerCase().contains('sivan'),
     rankingFinding: true,
     expected: 'a Sivan temple',
   );
@@ -613,13 +689,33 @@ Future<void> _searchChecks(WidgetTester tester) async {
     await _typeQuery(tester, query);
     final count = _resultCount(tester);
     final label = _templeList(_visibleTemples(tester, limit: 3));
-    counts.add('$query=${count ?? 'none'} top3=$label');
+    final shot = await _captureWhen(
+      tester,
+      '05-search-$query',
+      () => _resultCount(tester) != null,
+      waitingFor: '$query result count',
+      timeout: const Duration(seconds: 8),
+    );
+    counts.add('$query=${count ?? 'none'} top3=$label shot=${shot ? 'yes' : 'no'}');
     _logLine('SEARCH $query COUNT ${count ?? 'none'} top3=$label');
-    await _shot(tester, '05-search-$query');
-    if (count == null) pass = false;
+    if (count == null || !shot) pass = false;
   }
   await _typeQuery(tester, '');
   _result(5, pass, '${notes.join('; ')}; ${counts.join(' ')}');
+}
+
+bool _isTiruchendur(Temple temple, int? count) {
+  final blob =
+      '${temple.name} ${temple.city} ${temple.state} ${temple.location}'
+          .toLowerCase();
+  if (blob.contains('tiruchendur') || blob.contains('thiruchendur')) {
+    return true;
+  }
+  // Prod lists this temple as Subramanya Swamy Temple. Tiruchendur is the
+  // town, and the query returns that single result.
+  final subramanya =
+      blob.contains('subramanya') || blob.contains('subrahmanya');
+  return subramanya && count == 1;
 }
 
 bool _isTirupatiVenkateswara(Temple temple) {
@@ -669,6 +765,24 @@ int? _resultCount(WidgetTester tester) {
   return null;
 }
 
+Future<void> _scrollUntilHit(WidgetTester tester, Finder finder) async {
+  if (finder.hitTestable().evaluate().isNotEmpty) return;
+  if (finder.evaluate().length == 1) {
+    try {
+      await tester.ensureVisible(finder);
+      await tester.pump(const Duration(milliseconds: 200));
+    } catch (_) {}
+    if (finder.hitTestable().evaluate().isNotEmpty) return;
+  }
+  for (var i = 0; i < 6; i++) {
+    if (finder.hitTestable().evaluate().isNotEmpty) return;
+    final scroll = find.byType(Scrollable);
+    if (!tester.any(scroll)) break;
+    await tester.drag(scroll.last, const Offset(0, -500));
+    await tester.pump(const Duration(milliseconds: 250));
+  }
+}
+
 Future<void> _janakiAndDirections(WidgetTester tester) async {
   await _typeQuery(tester, 'Sitamarhi');
   var janaki = await _findCard(
@@ -690,7 +804,13 @@ Future<void> _janakiAndDirections(WidgetTester tester) async {
     (temple) => temple.name.toLowerCase().contains('janaki'),
   );
   if (janaki == null) {
-    await _shot(tester, '07-janaki-caption');
+    await _captureWhen(
+      tester,
+      '07-janaki-caption',
+      () => false,
+      waitingFor: 'Janaki Temple Sitamarhi',
+      timeout: Duration.zero,
+    );
     _result(7, false, 'Janaki Temple Sitamarhi was not in the loaded list');
     _result(8, false, 'no Janaki card to open');
     return;
@@ -698,7 +818,6 @@ Future<void> _janakiAndDirections(WidgetTester tester) async {
 
   await tester.ensureVisible(janaki.finder);
   await tester.pump(const Duration(milliseconds: 200));
-  final onCard = _allText(tester);
   await tester.tap(janaki.finder);
   await tester.pump(const Duration(seconds: 1));
   await _waitUntil(
@@ -708,28 +827,26 @@ Future<void> _janakiAndDirections(WidgetTester tester) async {
         tester.any(find.byKey(const Key('get-directions-button'))),
     timeout: const Duration(seconds: 20),
   );
-  await tester.pump(const Duration(seconds: 2));
-  final onDetail = _allText(tester);
-  final caption = onCard.contains('Punaura Dham') ||
-      onDetail.contains('Punaura Dham');
-  final shown = _captionSnippet(onCard) ?? _captionSnippet(onDetail);
-  if (tester.any(find.byKey(const Key('detail-photo-credit')))) {
-    await tester.ensureVisible(find.byKey(const Key('detail-photo-credit')));
-  } else if (tester.any(find.textContaining('Punaura'))) {
-    await tester.ensureVisible(find.textContaining('Punaura'));
-  }
-  await _shot(tester, '07-janaki-caption');
+  // Several texts can contain this phrase. ensureVisible throws when the
+  // finder matches more than one, so scroll until one is hit-testable.
+  await _scrollUntilHit(tester, find.text('Punaura Dham'));
+  final captionShot = await _captureWhen(
+    tester,
+    '07-janaki-caption',
+    () => find.text('Punaura Dham').hitTestable().evaluate().isNotEmpty,
+    waitingFor: 'Punaura Dham',
+    timeout: const Duration(seconds: 12),
+  );
   _result(
     7,
-    caption,
-    caption
-        ? 'caption contains Punaura Dham (${shown ?? "on screen"})'
-        : 'Punaura Dham was not on the card or detail; '
-              'screen=${_screenHint(tester)}',
+    captionShot,
+    captionShot
+        ? 'caption Punaura Dham was visible'
+        : 'Punaura Dham was not visible; screen=${_screenHint(tester)}',
   );
 
-  final opened = await _revealDirections(tester);
-  if (!opened) {
+  var visible = await _revealDirections(tester);
+  if (!visible) {
     await _leaveDetail(tester);
     final withPin = _cardWhere(tester, (temple) => temple.hasCoordinates);
     if (withPin != null) {
@@ -741,17 +858,42 @@ Future<void> _janakiAndDirections(WidgetTester tester) async {
         () => tester.any(find.byKey(const Key('detail-temple-name'))),
         timeout: const Duration(seconds: 15),
       );
+      visible = await _revealDirections(tester);
     }
   }
-  final visible = await _revealDirections(tester);
-  if (!visible) {
-    await _shot(tester, '08-get-directions');
-    _result(8, false, 'Get Directions was not on the detail page');
+  final directionsShot = await _captureWhen(
+    tester,
+    '08-get-directions',
+    () =>
+        find
+            .byKey(const Key('get-directions-button'))
+            .hitTestable()
+            .evaluate()
+            .isNotEmpty,
+    waitingFor: 'Get Directions',
+    timeout: const Duration(seconds: 8),
+  );
+  if (!directionsShot) {
+    _result(8, false, 'Get Directions was not visible for the screenshot');
     return;
   }
-  await _shot(tester, '08-get-directions');
   await tester.tap(find.byKey(const Key('get-directions-button')));
-  await tester.pump(const Duration(seconds: 2));
+  final mapsShot = await _captureWhen(
+    tester,
+    '08-maps-intent',
+    () {
+      final life = tester.binding.lifecycleState;
+      final snack = tester.any(
+        find.textContaining("Couldn't open directions"),
+      );
+      final left = life == AppLifecycleState.inactive ||
+          life == AppLifecycleState.paused ||
+          life == AppLifecycleState.hidden;
+      return left || snack;
+    },
+    waitingFor: 'a maps handoff',
+    timeout: const Duration(seconds: 8),
+  );
   final life = tester.binding.lifecycleState;
   final snack = tester.any(
     find.textContaining("Couldn't open directions"),
@@ -759,18 +901,13 @@ Future<void> _janakiAndDirections(WidgetTester tester) async {
   final left = life == AppLifecycleState.inactive ||
       life == AppLifecycleState.paused ||
       life == AppLifecycleState.hidden;
-  await _shot(tester, '08-maps-intent');
   _result(
     8,
-    visible && left && !snack,
+    directionsShot && mapsShot && left && !snack,
     'Get Directions visible; lifecycle=$life; '
-        'snackbar=${snack ? 'yes' : 'no'}',
+        'snackbar=${snack ? 'yes' : 'no'}; '
+        'maps-shot=${mapsShot ? 'yes' : 'no'}',
   );
-}
-
-String? _captionSnippet(String text) {
-  final match = RegExp(r'Shows Punaura Dham|Punaura Dham').firstMatch(text);
-  return match?.group(0);
 }
 
 Future<({Finder finder, TempleBrowseCard card})?> _findCard(
@@ -915,24 +1052,35 @@ Future<String> _templePhotoNote(
   await _typeQuery(tester, query);
   final found = await _findCard(tester, test);
   if (found == null) {
-    await _shot(tester, shot);
-    return '$label missing';
+    await _captureWhen(
+      tester,
+      shot,
+      () => false,
+      waitingFor: label,
+      timeout: Duration.zero,
+    );
+    return '$label missing shot=no';
   }
   final stored = _directoryPlaceholder(<Temple>[found.card.temple]);
   await tester.ensureVisible(found.finder);
   await tester.pump(const Duration(milliseconds: 400));
   final state = _cardPhotoState(tester, found.finder);
-  await _shot(tester, shot);
+  final captured = await _captureWhen(
+    tester,
+    shot,
+    () => _cardWhere(tester, test) != null,
+    waitingFor: label,
+    timeout: const Duration(seconds: 8),
+  );
+  final shotNote = 'shot=${captured ? 'yes' : 'no'}';
   if (stored != null) {
-    return '$label stored-placeholder $stored; card=$state';
+    return '$label stored-placeholder $stored; card=$state; $shotNote';
   }
-  if (state == 'photo-pending' || state.startsWith('photo ')) {
-    return '$label $state';
-  }
-  return '$label $state';
+  return '$label $state; $shotNote';
 }
 
 bool _photoNotePasses(String note) {
+  if (note.contains('shot=no')) return false;
   if (note.contains(' missing')) return false;
   if (note.contains('stored-placeholder')) return false;
   if (note.contains('placeholder ')) return false;
@@ -991,7 +1139,22 @@ Future<void> _resumeCheck(WidgetTester tester) async {
     binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
     binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await Future<void>.delayed(const Duration(seconds: 2));
-    await _shot(tester, '11-resume');
+    final shot = await _captureWhen(
+      tester,
+      '11-resume',
+      () {
+        final text = _allText(tester);
+        final empty = text.contains('No temples to browse') ||
+            text.contains('Loading temples') ||
+            text.contains('Could not load temples');
+        return beforeName != null &&
+            _topTempleName(tester) == beforeName &&
+            find.byType(TempleBrowseCard).evaluate().isNotEmpty &&
+            !empty;
+      },
+      waitingFor: 'browse list still showing ${beforeName ?? 'the same temple'}',
+      timeout: const Duration(seconds: 12),
+    );
     final afterName = _topTempleName(tester);
     final afterCards = find.byType(TempleBrowseCard).evaluate().length;
     final afterPublished = TempleService.published?.length;
@@ -1000,7 +1163,8 @@ Future<void> _resumeCheck(WidgetTester tester) async {
     final empty = text.contains('No temples to browse') ||
         text.contains('Loading temples') ||
         text.contains('Could not load temples');
-    final pass = beforeCount > 0 &&
+    final pass = shot &&
+        beforeCount > 0 &&
         afterCount > 0 &&
         beforeCount == afterCount &&
         beforeCards > 0 &&
@@ -1014,32 +1178,41 @@ Future<void> _resumeCheck(WidgetTester tester) async {
       'before=$beforeCount after=$afterCount '
           'cards=$beforeCards->$afterCards '
           'top=${beforeName ?? 'none'}->${afterName ?? 'none'} '
-          'empty=${empty ? 'yes' : 'no'}',
+          'empty=${empty ? 'yes' : 'no'} '
+          'shot=${shot ? 'yes' : 'no'}',
     );
   } catch (e) {
-    await _shot(tester, '11-resume');
+    await _captureWhen(
+      tester,
+      '11-resume',
+      () => false,
+      waitingFor: 'browse list after resume',
+      timeout: Duration.zero,
+    );
     _result(11, false, 'resume threw $e');
   }
 }
 
 Future<void> _killSwitchPhase(WidgetTester tester) async {
-  final shown = await _waitUntil(
+  final shot = await _captureWhen(
     tester,
+    '12-kill-switch',
     () =>
-        _maintenanceVisible(tester) ||
+        _maintenanceVisible(tester) &&
         tester.any(find.text('Tester kill switch')),
+    waitingFor: "We'll be back soon",
     timeout: const Duration(seconds: 20),
   );
-  await _shot(tester, '12-kill-switch');
   final maintenance = _maintenanceVisible(tester);
   final message = _allText(tester).contains('Tester kill switch');
   final home = _browseLabel(tester) != null;
   _result(
     12,
-    shown && maintenance && message && !home,
+    shot && maintenance && message && !home,
     'maintenance=${maintenance ? 'yes' : 'no'}; '
         'message=${message ? 'yes' : 'no'}; '
-        'home=${home ? 'yes' : 'no'}; ${_screenHint(tester)}',
+        'home=${home ? 'yes' : 'no'}; '
+        'shot=${shot ? 'yes' : 'no'}; ${_screenHint(tester)}',
   );
 }
 
@@ -1048,21 +1221,29 @@ Future<void> _forceUpdatePhase(WidgetTester tester) async {
     tester,
     () =>
         _gateVisible(tester) ||
+        tester.any(find.text('Update required')) ||
         _updateBlock(tester) != null ||
         _browseLabel(tester) != null ||
         _maintenanceVisible(tester),
-    timeout: const Duration(seconds: 25),
+    timeout: const Duration(seconds: 20),
   );
   if (_gateVisible(tester)) {
     await tester.tap(find.byKey(const Key('policy-accept-button')));
     await tester.pump(const Duration(milliseconds: 300));
   }
-  final shown = await _waitUntil(
+  final shot = await _captureWhen(
     tester,
-    () => _updateBlock(tester) != null || _browseLabel(tester) != null,
-    timeout: const Duration(seconds: 25),
+    '13-force-update',
+    () =>
+        tester.any(find.text('Update required')) &&
+        tester.any(find.byKey(const Key('force-update-screen'))),
+    waitingFor: 'Update required',
+    timeout: const Duration(seconds: 20),
+    present: const Duration(milliseconds: 1500),
+    // The host recaptures a black frame and dumps the UI hierarchy
+    // before this phase ends.
+    hold: const Duration(seconds: 14),
   );
-  await _shot(tester, '13-force-update');
   final update = _updateBlock(tester);
   final hard = update == 'force-update-screen' ||
       update == 'force-update-button' ||
@@ -1071,9 +1252,9 @@ Future<void> _forceUpdatePhase(WidgetTester tester) async {
   final home = _browseLabel(tester) != null;
   _result(
     13,
-    shown && hard && !home,
+    shot && hard && !home,
     'update=${update ?? 'none'}; home=${home ? 'yes' : 'no'}; '
-        '${_screenHint(tester)}',
+        'shot=${shot ? 'yes' : 'no'}; ${_screenHint(tester)}',
   );
 }
 
@@ -1099,26 +1280,30 @@ Future<void> _airplanePhase(WidgetTester tester) async {
       timeout: const Duration(seconds: 15),
     );
   }
-  await _waitUntil(
+  final shot = await _captureWhen(
     tester,
+    '06-airplane',
     () =>
-        _maintenanceVisible(tester) ||
-        _browseLabel(tester) != null ||
-        tester.any(find.text('Could not load temples.')) ||
-        tester.any(find.text('Retry')) ||
-        tester.any(find.text('No temples available yet.')),
+        !_maintenanceVisible(tester) &&
+        (_browseLabel(tester) != null ||
+            tester.any(find.text('Could not load temples.')) ||
+            tester.any(find.text('Retry')) ||
+            tester.any(find.text('No temples available yet.')) ||
+            tester.any(find.text("You're offline")) ||
+            _allText(tester).contains('Showing the offline sample.')),
+    waitingFor: 'offline home or Retry',
     timeout: const Duration(seconds: 30),
   );
-  await _shot(tester, '06-airplane');
   final maintenance = _maintenanceVisible(tester);
   final retry = tester.any(find.text('Retry'));
   final error = tester.any(find.text('Could not load temples.'));
   _result(
     6,
-    !maintenance,
+    shot && !maintenance,
     'maintenance=${maintenance ? 'yes' : 'no'}; '
         'connectivity=$link; '
         'showed ${_screenHint(tester)}; '
-        'no-cache error=${error && retry ? 'yes' : 'no'}',
+        'no-cache error=${error && retry ? 'yes' : 'no'}; '
+        'shot=${shot ? 'yes' : 'no'}',
   );
 }

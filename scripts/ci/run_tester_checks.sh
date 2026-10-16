@@ -25,6 +25,11 @@ logcats = []
 searches = []
 harness = []
 phases = []
+shotwait = {}
+pixels = {}
+hashes = {}
+mosaic = {}
+uia = {}
 for raw in events:
     line = raw.replace("\r", "").strip()
     if "RESULT " in line:
@@ -45,6 +50,39 @@ for raw in events:
         harness.append(line.split("HARNESS ", 1)[1])
     if "PHASE " in line:
         phases.append(line.split("PHASE ", 1)[1])
+    if "SHOTWAIT " in line:
+        rest = line.split("SHOTWAIT ", 1)[1]
+        parts = rest.split(" ", 2)
+        if len(parts) >= 2:
+            shotwait[parts[0]] = (parts[1], parts[2] if len(parts) > 2 else "")
+    if "PIXELS " in line:
+        rest = line.split("PIXELS ", 1)[1]
+        parts = rest.split()
+        if parts:
+            info = {}
+            for item in parts[1:]:
+                if "=" in item:
+                    key, value = item.split("=", 1)
+                    info[key] = value
+            pixels[parts[0]] = info
+    if "HASH " in line:
+        rest = line.split("HASH ", 1)[1]
+        parts = rest.split()
+        if len(parts) >= 2:
+            info = {"md5": parts[1]}
+            for item in parts[2:]:
+                if "=" in item:
+                    key, value = item.split("=", 1)
+                    info[key] = value
+            hashes[parts[0]] = info
+    if "MOSAIC " in line:
+        rest = line.split("MOSAIC ", 1)[1]
+        name, _, defect = rest.partition(" ")
+        mosaic[name] = defect or rest
+    if "UIA " in line:
+        rest = line.split("UIA ", 1)[1]
+        name, _, state = rest.partition(" ")
+        uia[name] = state or rest
 
 wanted = ("relaunch-1", "relaunch-2", "relaunch-3", "cold")
 by_phase = {}
@@ -88,6 +126,114 @@ else:
         "; ".join(by_update.get(name, f"{name} did not run") for name in wanted),
     )
 
+launch_shots = ["02-relaunch-1", "02-relaunch-2", "02-relaunch-3", "02-cold-start"]
+
+def shot_problems(names, require_home=False):
+    problems = []
+    for name in names:
+        status, detail = shotwait.get(name, ("MISSING", "no SHOTWAIT"))
+        if status != "PASS":
+            problems.append(f"{name} SHOTWAIT {status} {detail}".strip())
+        info = pixels.get(name)
+        if info is None:
+            problems.append(f"{name} screenshot missing")
+        else:
+            if info.get("frame") == "black":
+                problems.append(f"{name} frame black")
+            elif require_home and info.get("body") != "home":
+                problems.append(f"{name} body={info.get('body', 'missing')} not the Browse home")
+        if name not in hashes or hashes[name].get("md5") in ("", "missing"):
+            problems.append(f"{name} hash missing")
+    return problems
+
+def gate(check_id, names, extra=None, require_home=False):
+    status, note = results.get(check_id, ("FAIL", "did not run"))
+    problems = []
+    if status != "PASS":
+        problems.append(note)
+    problems.extend(shot_problems(names, require_home=require_home))
+    if extra:
+        problems.extend(extra)
+    if problems:
+        results[check_id] = ("FAIL", "; ".join(problems))
+
+gate(1, ["01-accept-after"], require_home=True)
+
+launch_extra = []
+seen_hash = {}
+for name in launch_shots:
+    digest = hashes.get(name, {}).get("md5", "")
+    if digest and digest != "missing":
+        seen_hash.setdefault(digest, []).append(name)
+for names in seen_hash.values():
+    if len(names) > 1:
+        launch_extra.append("byte-identical " + "=".join(names))
+gate(2, launch_shots, extra=launch_extra, require_home=True)
+
+mosaic_extra = []
+for name, defect in mosaic.items():
+    if "icon-only=" in defect and "icon-only=0" not in defect:
+        mosaic_extra.append(f"{name} {defect}")
+    elif defect.startswith("blank") or " blank" in f" {defect}":
+        mosaic_extra.append(f"{name} {defect}")
+for name in launch_shots + ["03-home-mosaic"]:
+    info = pixels.get(name, {})
+    if info.get("tile") == "blank":
+        mosaic_extra.append(
+            f"{name} tile blank std={info.get('tile_std', '?')}"
+        )
+gate(3, ["03-home-mosaic"], extra=mosaic_extra, require_home=True)
+gate(4, ["04-long-name"])
+gate(
+    5,
+    [
+        "05-search-minakshi",
+        "05-search-tirupathi",
+        "05-search-tiruchendur",
+        "05-search-sivan",
+        "05-search-ee",
+        "05-search-th",
+        "05-search-it",
+    ],
+)
+gate(6, ["06-airplane"])
+gate(7, ["07-janaki-caption"])
+gate(8, ["08-get-directions", "08-maps-intent"])
+gate(9, launch_shots, require_home=True)
+gate(10, ["10-anjengo", "10-akshardham"])
+gate(11, ["11-resume"])
+gate(12, ["12-kill-switch"])
+
+status13, note13 = results.get(13, ("FAIL", "did not run"))
+sw13, detail13 = shotwait.get("13-force-update", ("MISSING", "no SHOTWAIT"))
+frame13 = pixels.get("13-force-update", {}).get("frame", "missing")
+uia13 = uia.get("13-force-update", "")
+uia_found = "FOUND" in uia13
+if sw13 != "PASS":
+    results[13] = (
+        "FAIL",
+        f"Update required was not visible before capture ({sw13} {detail13}); {note13}",
+    )
+elif frame13 == "content" and status13 == "PASS":
+    results[13] = ("PASS", f"{note13}; framebuffer=content")
+elif frame13 == "content":
+    results[13] = ("FAIL", f"{note13}; framebuffer=content")
+elif frame13 == "black" and uia_found:
+    results[13] = (
+        "FAIL",
+        "capture timing: Update required is in the widget tree and uiautomator, "
+        f"but the framebuffer is black; {note13}",
+    )
+elif frame13 == "black":
+    results[13] = (
+        "FAIL",
+        "surface not presented: Update required was in the widget tree, "
+        "the framebuffer is black, and uiautomator did not see the text; "
+        f"{note13}",
+    )
+else:
+    results[13] = ("FAIL", f"frame={frame13}; uia={uia13 or 'missing'}; {note13}")
+
 titles = {
     1: "Accept & continue works with a single tap",
     2: "Force-stop relaunch 3 times plus a cold start shows Browse N Temples",
@@ -108,6 +254,7 @@ lines = [
     "# Tester checks",
     "",
     "Release APK, prod Firestore, no writes, no DEMO_BUILD, no ENABLE_ADMIN_TOOLS.",
+    "A PASS requires the expected text to be visible before the screenshot. Logs alone do not pass.",
     "Check 2 expects Browse 984 Temples and no Firebase or [core/no-app] error.",
     "Check 3 expects every mosaic tile to be a loaded network photo or Photo pending, never a grey placeholder.",
     "Check 5 records the top 3 for each query. Tirupathi and Sivan ranking mismatches are findings, not failures.",
@@ -149,6 +296,21 @@ if harness:
     lines.append("")
     for row in harness:
         lines.append(f"- {row}")
+    lines.append("")
+if hashes or pixels:
+    lines.append("## Screenshots")
+    lines.append("")
+    names = sorted(set(hashes) | set(pixels) | set(shotwait))
+    for name in names:
+        info = pixels.get(name, {})
+        sw = shotwait.get(name, ("", ""))[0] or "missing"
+        digest = hashes.get(name, {}).get("md5", "missing")
+        identical = hashes.get(name, {}).get("identical", "?")
+        lines.append(
+            f"- {name}.png SHOTWAIT {sw} frame={info.get('frame', '?')} "
+            f"body={info.get('body', '?')} tile={info.get('tile', '?')} "
+            f"tile_std={info.get('tile_std', '?')} hash={digest} identical={identical}"
+        )
     lines.append("")
 out.write_text("\n".join(lines) + "\n")
 print(out.read_text())
@@ -202,15 +364,82 @@ adb shell pm path "$PKG"
 bash "$ROOT/scripts/ci/install_https_handoff.sh"
 
 echo "===== screenshot watcher ====="
+PREV_HASH_FILE=/tmp/tester-checks-prev-hash
+rm -f "$PREV_HASH_FILE"
 capture_shot() {
   local name="$1"
-  # The test already waited for one frame. Give the emulator surface a
-  # moment to present it before reading the framebuffer.
-  sleep 0.4
-  if adb exec-out screencap -p > "$OUT/${name}.png"; then
-    echo "captured $name ($(wc -c < "$OUT/${name}.png") bytes)"
-  else
-    echo "screencap failed for $name"
+  local dest="$OUT/${name}.png"
+  local prev=""
+  prev="$(cat "$PREV_HASH_FILE" 2>/dev/null || true)"
+  rm -f "$dest"
+  local hash="" bytes=0 identical=no retries=0
+  local attempt pixels
+  local same_limit=1
+  local black_limit=1
+  # Launch shots stay on screen long enough to recapture a reused frame.
+  # Force-update stays up long enough to recapture a black frame.
+  if [[ "$name" == 02-* || "$name" == "01-accept-after" ]]; then
+    same_limit=4
+  fi
+  if [[ "$name" == "13-force-update" ]]; then
+    black_limit=2
+  fi
+  for attempt in 1 2 3 4; do
+    sleep 0.45
+    if ! adb exec-out screencap -p > "$dest"; then
+      echo "screencap failed for $name attempt $attempt"
+      rm -f "$dest"
+      retries=$((retries + 1))
+      continue
+    fi
+    if [[ ! -s "$dest" ]]; then
+      echo "empty screencap for $name attempt $attempt"
+      rm -f "$dest"
+      retries=$((retries + 1))
+      continue
+    fi
+    hash="$(md5sum "$dest" | awk '{print $1}')"
+    bytes="$(wc -c < "$dest" | tr -d ' ')"
+    pixels="$(python3 "$ROOT/scripts/ci/classify_tester_png.py" "$dest" "$name" || true)"
+    if [[ -n "$prev" && "$hash" == "$prev" && "$attempt" -lt "$same_limit" ]]; then
+      identical=yes
+      retries=$((retries + 1))
+      echo "recapture $name matches the previous screenshot"
+      sleep 0.8
+      continue
+    fi
+    if [[ "$pixels" == *"frame=black"* && "$attempt" -lt "$black_limit" ]]; then
+      retries=$((retries + 1))
+      echo "recapture $name framebuffer is black"
+      sleep 1.2
+      continue
+    fi
+    if [[ -n "$prev" && "$hash" == "$prev" ]]; then
+      identical=yes
+    else
+      identical=no
+    fi
+    break
+  done
+  if [[ -z "$hash" || ! -s "$dest" ]]; then
+    printf 'HASH %s missing bytes=0 identical=no retries=%s\n' "$name" "$retries" | tee -a "$OUT/events.log"
+    return
+  fi
+  printf '%s\n' "$hash" > "$PREV_HASH_FILE"
+  printf 'HASH %s %s bytes=%s identical=%s retries=%s\n' \
+    "$name" "$hash" "$bytes" "$identical" "$retries" | tee -a "$OUT/events.log"
+  if [[ -n "$pixels" ]]; then
+    printf '%s\n' "$pixels" | tee -a "$OUT/events.log"
+  fi
+  echo "captured $name ($bytes bytes) $identical"
+  if [[ "$name" == "13-force-update" ]]; then
+    local uia="MISSING"
+    if adb shell uiautomator dump /sdcard/tester-ui.xml >/tmp/tester-uia-dump.txt 2>&1; then
+      if adb exec-out cat /sdcard/tester-ui.xml | tr -d '\r' | grep -q 'Update required'; then
+        uia="FOUND"
+      fi
+    fi
+    printf 'UIA 13-force-update %s\n' "$uia" | tee -a "$OUT/events.log"
   fi
 }
 stdbuf -oL adb logcat -v brief | stdbuf -oL grep --line-buffered 'TESTER_CHECKS' | while IFS= read -r line; do
@@ -323,15 +552,15 @@ run_phase() {
   adb logcat -d -v brief | grep 'TESTER_CHECKS' >> "$OUT/events.log" || true
 }
 
-run_phase accept 70
-run_phase relaunch-1 50
-run_phase relaunch-2 50
-run_phase relaunch-3 50
-run_phase cold 150
-run_phase resume 70
-run_phase detail 90
-run_phase kill-switch 50
-run_phase force-update 50
+run_phase accept 80
+run_phase relaunch-1 65
+run_phase relaunch-2 65
+run_phase relaunch-3 65
+run_phase cold 160
+run_phase resume 80
+run_phase detail 100
+run_phase kill-switch 45
+run_phase force-update 70
 
 echo "===== airplane ====="
 adb shell cmd connectivity airplane-mode enable || true
