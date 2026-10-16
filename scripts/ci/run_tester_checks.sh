@@ -224,11 +224,11 @@ run_phase() {
   adb logcat -d -v raw -s TESTER_CHECKS:I >> "$OUT/events.log" || true
 }
 
-run_phase accept 100
-run_phase relaunch-1 70
-run_phase relaunch-2 70
-run_phase relaunch-3 70
-run_phase cold 200
+run_phase accept 70
+run_phase relaunch-1 50
+run_phase relaunch-2 50
+run_phase relaunch-3 50
+run_phase cold 180
 
 echo "===== airplane ====="
 adb shell cmd connectivity airplane-mode enable || true
@@ -257,7 +257,7 @@ stdbuf -oL adb logcat -v raw -s TESTER_CHECKS:I | while IFS= read -r line; do
   esac
 done &
 WATCH_PID=$!
-run_phase airplane 80
+run_phase airplane 60
 
 kill "$WATCH_PID" || true
 echo "===== screenshots ====="

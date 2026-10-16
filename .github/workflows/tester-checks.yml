@@ -83,8 +83,12 @@ jobs:
           grep -q '^kotlin.daemon.jvmargs=' android/gradle.properties \
             || echo 'kotlin.daemon.jvmargs=-Xmx1g' >> android/gradle.properties
 
+      # Restore only. The build is finished before the emulator, and a
+      # combined cache action would save an empty tree if those dirs are
+      # removed to make room for the AVD.
       - name: Cache Gradle
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        id: gradle-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: |
             ~/.gradle/caches
@@ -93,7 +97,8 @@ jobs:
           restore-keys: gradle-
 
       - name: Cache Android NDK
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        id: ndk-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: /usr/local/lib/android/sdk/ndk/28.2.13676358
           key: ndk-28.2.13676358
@@ -139,26 +144,31 @@ jobs:
           cp -a /tmp/tester-checks-androidTest.apk \
             "${GITHUB_WORKSPACE}/build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk"
 
-      - name: Restore emulator system image
-        id: system-image-cache
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: /usr/local/lib/android/sdk/system-images
-          key: system-image-android-34-google_atd-x86_64
-
-      - name: Restore AVD
-        id: avd-cache
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: |
-            ~/.android/avd/*
-            ~/.android/adb*
-          key: avd-34-x86_64-google_atd-pixel6-snapshot
-
-      - name: Stop Gradle before the emulator
+      # The Pixel 6 snapshot archive is about 1.4GB and this job boots with
+      # -no-snapshot-load, so restoring it only fills the disk. A partial
+      # extract omits the AVD ini and QEMU then refuses to start (arm).
+      - name: Free disk before the emulator
         run: |
+          set -euo pipefail
           (cd android && ./gradlew --stop) || true
           pkill -f 'KotlinCompileDaemon|kotlin-compiler-daemon|GradleDaemon' || true
+          rm -rf \
+            "${HOME}/.gradle/caches" \
+            "${HOME}/.gradle/daemon" \
+            /opt/hostedtoolcache/flutter \
+            "${HOME}/.pub-cache" \
+            /usr/local/lib/android/sdk/ndk \
+            "${GITHUB_WORKSPACE}/build/app/intermediates" \
+            "${GITHUB_WORKSPACE}/build/app/tmp" \
+            "${GITHUB_WORKSPACE}/android/.gradle" \
+            "${GITHUB_WORKSPACE}/android/app/build" \
+            "${HOME}/.android/avd"
+          mkdir -p "${GITHUB_WORKSPACE}/build/app/outputs/flutter-apk" \
+            "${GITHUB_WORKSPACE}/build/app/outputs/apk/androidTest/debug"
+          cp -a /tmp/tester-checks-app-release.apk \
+            "${GITHUB_WORKSPACE}/build/app/outputs/flutter-apk/app-release.apk"
+          cp -a /tmp/tester-checks-androidTest.apk \
+            "${GITHUB_WORKSPACE}/build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk"
           echo "===== df before emulator ====="
           df -h
           free -h
@@ -168,24 +178,15 @@ jobs:
           else
             echo "EMULATOR_CORES=2" >> "$GITHUB_ENV"
           fi
+          echo "NDK_CACHE_HIT=true" >> "$GITHUB_ENV"
+          echo "GRADLE_CACHE_HIT=true" >> "$GITHUB_ENV"
 
-      - name: Create AVD snapshot for caching
-        id: create-avd
-        if: matrix.id == 'pixel-6' && steps.avd-cache.outputs.cache-hit != 'true'
-        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+      - name: Restore emulator system image
+        id: system-image-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
-          api-level: 34
-          arch: x86_64
-          target: google_atd
-          profile: pixel_6
-          cores: ${{ env.EMULATOR_CORES }}
-          disk-size: 2048M
-          avd-name: temple-smoke-34-atd
-          force-avd-creation: false
-          disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
-          pre-emulator-launch-script: bash scripts/ci/prepare_atd_avd.sh temple-smoke-34-atd
-          script: echo "Generated AVD snapshot for caching."
+          path: /usr/local/lib/android/sdk/system-images
+          key: system-image-android-34-google_atd-x86_64
 
       - name: Tester checks
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
@@ -201,7 +202,7 @@ jobs:
           disable-animations: true
           pre-emulator-launch-script: bash scripts/ci/prepare_atd_avd.sh temple-smoke-34-atd
           emulator-options: -no-snapshot-save -no-snapshot-load -no-boot-anim -gpu swiftshader_indirect -no-window -no-audio -camera-back none -camera-front none -partition-size 2048
-          script: TESTER_CHECKS_PROFILE=${{ matrix.id }} TESTER_CHECKS_WM_SIZE=${{ matrix.wm_size }} timeout --kill-after=30s 11m bash scripts/ci/run_tester_checks.sh
+          script: TESTER_CHECKS_PROFILE=${{ matrix.id }} TESTER_CHECKS_WM_SIZE=${{ matrix.wm_size }} timeout --kill-after=30s 9m bash scripts/ci/run_tester_checks.sh
 
       - name: Save emulator system image
         if: always() && matrix.id == 'pixel-6' && steps.system-image-cache.outputs.cache-hit != 'true'
@@ -210,16 +211,6 @@ jobs:
         with:
           path: /usr/local/lib/android/sdk/system-images
           key: system-image-android-34-google_atd-x86_64
-
-      - name: Save AVD
-        if: always() && matrix.id == 'pixel-6' && steps.avd-cache.outputs.cache-hit != 'true' && steps.create-avd.outcome == 'success'
-        continue-on-error: true
-        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: |
-            ~/.android/avd/*
-            ~/.android/adb*
-          key: avd-34-x86_64-google_atd-pixel6-snapshot
 
       - name: Upload tester-checks screenshots
         if: always()
