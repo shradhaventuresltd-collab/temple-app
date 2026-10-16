@@ -1,3 +1,4 @@
+import { ensureDownloadToken } from "./download_token.js";
 import { useNativeFetchForStorageAuth } from "./storage_auth.js";
 import admin from "firebase-admin";
 import { readFileSync } from "fs";
@@ -66,20 +67,20 @@ async function main() {
   for (const [templeId, storageFiles] of templeFiles) {
     console.log(`🛕  ${templeId}  (${storageFiles.length} file(s))`);
 
-    // 3. Get signed/public download URLs for each file
-    const urls = [];
+    // 3. Download-token URL for each file. Reuse a token already on the object.
+    const rows = [];
     for (const file of storageFiles) {
       try {
-        await file.makePublic();
-        const url = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
-        urls.push(url);
+        const { url } = await ensureDownloadToken(file, bucket.name);
+        rows.push({ name: file.name, url });
       } catch (err) {
         console.error(`   ✖  Could not get URL for ${file.name}: ${err.message}`);
       }
     }
 
-    // Sort so image_1 comes before image_2, etc.
-    urls.sort();
+    // Sort by object name so image_1 stays before image_2.
+    rows.sort((a, b) => a.name.localeCompare(b.name));
+    const urls = rows.map((row) => row.url);
 
     if (urls.length === 0) {
       console.log("   ⚠  No valid URLs, skipping.");

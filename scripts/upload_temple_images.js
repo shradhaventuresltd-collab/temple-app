@@ -1,3 +1,4 @@
+import { ensureDownloadToken, withDownloadToken } from "./download_token.js";
 import { useNativeFetchForStorageAuth } from "./storage_auth.js";
 import "dotenv/config";
 import admin from "firebase-admin";
@@ -172,13 +173,15 @@ async function downloadPlacePhoto(photoName) {
 }
 
 /**
- * Upload a buffer to Firebase Storage and return its public URL.
+ * Upload a buffer to Firebase Storage and return its download-token URL.
  */
 async function uploadToStorage(buffer, storagePath) {
   const file = bucket.file(storagePath);
-  await file.save(buffer, { metadata: { contentType: "image/jpeg" } });
-  await file.makePublic();
-  return `https://storage.googleapis.com/${bucket.name}/${storagePath}`;
+  const { token, url } = await ensureDownloadToken(file, bucket.name, storagePath);
+  await file.save(buffer, {
+    metadata: withDownloadToken({ contentType: "image/jpeg" }, token),
+  });
+  return url;
 }
 
 // ── Per-temple pipeline ─────────────────────────────────────────────────────

@@ -7,6 +7,7 @@
  *
  * The patch installs on the first call to `useNativeFetchForStorageAuth`.
  * Call `assertStorageAuth` once in --apply, before any Firestore write.
+ * That check lists `temples/` so it does not depend on one object existing.
  */
 import { createRequire } from "node:module";
 
@@ -15,10 +16,13 @@ const require = createRequire(import.meta.url);
 /** Bucket these scripts upload into. */
 export const STORAGE_AUTH_BUCKET = "temple-directory-india.firebasestorage.app";
 
-/** exists() on this object only checks that the token request succeeded. */
-export const STORAGE_AUTH_PROBE = "temples/.storage-auth-preflight";
+/** One-object list. An empty prefix is still a successful read. */
+export const STORAGE_AUTH_LIST = { prefix: "temples/", maxResults: 1, autoPaginate: false };
 
 export const STORAGE_AUTH_PREFLIGHT_ERROR = "Storage auth preflight failed. No Firestore write.";
+
+/** gaxios uses these, in this order, to install its proxy agent. */
+const PROXY_ENV_NAMES = ["HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy"];
 
 /** Origin and path, with no query and no extra segment. */
 const TOKEN_ENDPOINTS = new Set([
@@ -53,9 +57,17 @@ function loadGaxios() {
   }
 }
 
+function activeProxyEnv() {
+  for (const name of PROXY_ENV_NAMES) {
+    const value = process.env[name];
+    if (typeof value === "string" && value.trim() !== "") return name;
+  }
+  return null;
+}
+
 /**
  * Installs the native-fetch patch on the first call when gaxios is present,
- * its adapter is still the one this patch knows, and no HTTPS proxy is set.
+ * its adapter is still the one this patch knows, and no HTTP(S) proxy is set.
  * Returns false when gaxios is missing or the patch is intentionally skipped.
  */
 export function useNativeFetchForStorageAuth() {
@@ -63,9 +75,10 @@ export function useNativeFetchForStorageAuth() {
   const Gaxios = loadGaxios();
   if (!Gaxios) return false;
 
-  if (process.env.HTTPS_PROXY) {
+  const proxyEnv = activeProxyEnv();
+  if (proxyEnv) {
     console.log(
-      "HTTPS_PROXY is set; skipping the native fetch override so the proxy agent is used.",
+      `${proxyEnv} is set; skipping the native fetch override so the proxy agent is used.`,
     );
     decided = true;
     return false;
@@ -113,16 +126,27 @@ export function resetStorageAuthFetchForTests() {
   patched = false;
 }
 
+function statusCode(error) {
+  const code = error?.code ?? error?.status ?? error?.response?.statusCode ?? error?.response?.status;
+  const numeric = Number(code);
+  return Number.isInteger(numeric) ? numeric : null;
+}
+
 /**
- * Read-only. A thrown exists() is an auth failure, and apply must stop
- * before it writes Firestore. A missing probe object is still a success.
+ * Read-only. Lists `temples/` once. Any failure stops Apply before a
+ * Firestore or Storage write. A 403 names storage.objects.list.
  */
-export async function assertStorageAuth(bucket, objectPath = STORAGE_AUTH_PROBE) {
+export async function assertStorageAuth(bucket) {
   useNativeFetchForStorageAuth();
   try {
-    await bucket.file(objectPath).exists();
+    await bucket.getFiles(STORAGE_AUTH_LIST);
   } catch (error) {
     console.error(error?.message || error);
-    throw new Error(STORAGE_AUTH_PREFLIGHT_ERROR);
+    if (statusCode(error) === 403 || /\b403\b/.test(String(error?.message ?? ""))) {
+      throw new Error(
+        "Storage auth preflight failed: missing storage.objects.list (403). No Firestore write.",
+      );
+    }
+    throw new Error(`Storage auth preflight failed: ${error?.message || error}. No Firestore write.`);
   }
 }
