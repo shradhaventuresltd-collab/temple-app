@@ -5,9 +5,10 @@ name: actions-minutes
 # account. Other repositories use the same quota and are not included.
 # The total is every workflow the Actions API lists, including
 # demo-seed-launch.yml and this workflow.
-# At or above 1,500 the issue says to change android-smoke to
-# cron '30 4,16 * * *' (10:00 and 22:00 IST). The smoke schedule
-# itself stays four runs a day. See scripts/ci/check_actions_minutes.sh.
+# At or above 1,500 the issue text still says to change android-smoke
+# to cron '30 4,16 * * *' (10:00 and 22:00 IST). The smoke schedule in
+# android-smoke.yml is weekly (cron '30 4 * * 1'). See
+# scripts/ci/check_actions_minutes.sh.
 #
 # Minutes come from each job's started_at and completed_at. The run
 # timing API and /settings/billing/usage are not called. An API error
@@ -23,6 +24,7 @@ permissions:
   actions: read
   issues: write
 
+# No pull_request trigger, so a scheduled or dispatched run is not cancelled.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
