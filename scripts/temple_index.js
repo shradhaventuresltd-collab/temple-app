@@ -583,6 +583,13 @@ function isHistoricalPrintCaption(credit) {
   return lower.includes("lithograph") || lower.includes("1847 print");
 }
 
+/** "Shows …" note at the end of a credit. The author before it is dropped. */
+function subjectCaption(credit) {
+  const match = /(?:^|\s[·|]\s)(Shows\s+\S.*)$/.exec(String(credit).trim());
+  const caption = match?.[1]?.trim();
+  return caption || null;
+}
+
 function printYear(credit) {
   const match =
     /\b(1[5-9]\d{2}|20\d{2})\b\s*(?:lithographs?|lithographic|prints?)\b|\b(?:lithographs?|lithographic|prints?)\b(?:\s*[\(,:\-–]|\s+(?:of|from|circa|c\.|ca\.|dated|in)\s+)\s*(1[5-9]\d{2}|20\d{2})\b/i.exec(
@@ -595,16 +602,21 @@ function printYear(credit) {
   return year;
 }
 
-/** "Lithograph, 1847" when [url] is a historical print in [photos]. */
+/**
+ * "Lithograph, 1847" when [url] is a historical print in [photos].
+ * A credit ending in "Shows …" returns that note.
+ */
 export function historicalCoverCaption(photos, url) {
   if (!Array.isArray(photos) || typeof url !== "string" || !url) return null;
   for (const photo of photos) {
     if (!photo || photo.url !== url) continue;
     const credit = text(photo.credit);
-    if (!isHistoricalPrintCaption(credit)) return null;
-    const year = printYear(credit);
-    if (!year) return "Lithograph";
-    return `Lithograph, ${year}`;
+    if (isHistoricalPrintCaption(credit)) {
+      const year = printYear(credit);
+      if (!year) return "Lithograph";
+      return `Lithograph, ${year}`;
+    }
+    return subjectCaption(credit);
   }
   return null;
 }
@@ -1158,7 +1170,7 @@ export function estimateShardBytes(entryCount = MAX_ENTRIES) {
     deity: DEITY_MAX,
     address: SHORT_ADDRESS_MAX,
     coverThumb: COVER_THUMB_MAX,
-    coverCaption: 16,
+    coverCaption: 19,
     tradition: "unspecified".length,
     framing: "monument".length,
   };

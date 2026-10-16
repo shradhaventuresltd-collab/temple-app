@@ -384,6 +384,14 @@ void main() {
     expect(find.byKey(const Key('cover-caption')), findsOneWidget);
     expect(find.text('Lithograph, 1847'), findsOneWidget);
   });
+
+  testWidgets('Janaki cover caption says the photo shows Punaura Dham', (
+    tester,
+  ) async {
+    await pumpCard(tester, _named('Janaki Temple Sitamarhi'));
+    expect(find.byKey(const Key('cover-caption')), findsOneWidget);
+    expect(find.text('Shows Punaura Dham'), findsOneWidget);
+  });
 }
 
 Temple _named(String name) {

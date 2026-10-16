@@ -672,7 +672,8 @@ int estimateTempleIndexShardBytes([int entryCount = kTempleIndexMaxEntries]) {
     'deity': kTempleIndexDeityMax,
     'address': kTempleIndexShortAddressMax,
     'coverThumb': kTempleIndexCoverThumbMax,
-    'coverCaption': 16,
+    // Longest sample caption is "Shows Punaura Dham" (19 characters).
+    'coverCaption': 19,
     'tradition': 11,
     'framing': 8,
   };

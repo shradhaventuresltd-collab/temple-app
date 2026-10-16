@@ -11,6 +11,7 @@ import 'package:temple_app/utils/detail_honesty.dart';
 const stockPlaceholderHosts = <String>[
   'picsum.photos',
   'placeholder.com',
+  'via.placeholder.com',
   'placehold.co',
   'placehold.it',
   'dummyimage.com',
@@ -20,6 +21,8 @@ const stockPlaceholderHosts = <String>[
   'fakeimg.pl',
   'placeimg.com',
   'source.unsplash.com',
+  'unsplash.com',
+  'images.unsplash.com',
   'shutterstock.com',
   'istockphoto.com',
   'istock.com',
