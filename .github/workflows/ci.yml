@@ -29,7 +29,7 @@ jobs:
         run: npm ci --prefix scripts
 
       - name: state batch and index checks
-        run: node --test scripts/state_batch.test.js scripts/rebuild_index.test.js scripts/resize_cover_thumbs.test.js scripts/audit_coords.test.js scripts/backfill_cover_photos.test.js scripts/clear_placeholder_covers.test.js scripts/no_public_acl.test.js scripts/download_token.test.js
+        run: node --test scripts/state_batch.test.js scripts/rebuild_index.test.js scripts/resize_cover_thumbs.test.js scripts/audit_coords.test.js scripts/backfill_cover_photos.test.js scripts/clear_placeholder_covers.test.js scripts/no_public_acl.test.js scripts/download_token.test.js scripts/redact_url.test.js
 
       - name: photo patch checks
         run: node --test scripts/photo_patch.test.js

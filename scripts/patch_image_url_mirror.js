@@ -18,6 +18,7 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { confirmProject } from "./prod_guard.js";
+import { redactDownloadToken } from "./redact_url.js";
 
 /** Audit rows whose issues contain MIRROR. Repo seed ids, not pack folders. */
 export const MIRROR_TEMPLE_IDS = [
@@ -143,8 +144,8 @@ async function applyMirror(project) {
     }
     await ref.update({ imageUrl: next });
     console.log(`updated ${id}`);
-    console.log(`  imageUrl was: ${current || "(empty)"}`);
-    console.log(`  imageUrl now: ${next}`);
+    console.log(`  imageUrl was: ${redactDownloadToken(current) || "(empty)"}`);
+    console.log(`  imageUrl now: ${redactDownloadToken(next)}`);
     updated += 1;
   }
   console.log(
@@ -171,7 +172,7 @@ const isDirect =
   process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1]);
 if (isDirect) {
   main().catch((error) => {
-    console.error(error.message || error);
+    console.error(redactDownloadToken(error.message || error));
     process.exit(1);
   });
 }
