@@ -193,7 +193,7 @@ adb shell pm path "$PKG"
 bash "$ROOT/scripts/ci/install_https_handoff.sh"
 
 echo "===== screenshot watcher ====="
-stdbuf -oL adb logcat -v raw -s TESTER_CHECKS:I | while IFS= read -r line; do
+stdbuf -oL adb logcat -v brief | stdbuf -oL grep --line-buffered 'TESTER_CHECKS' | while IFS= read -r line; do
   line="${line//$'\r'/}"
   printf '%s\n' "$line" >> "$OUT/events.log"
   case "$line" in
@@ -246,9 +246,19 @@ run_phase() {
     instrument_failed=1
     printf 'HARNESS %s signature mismatch\n' "$phase" >> "$OUT/events.log"
   fi
+  if grep -q 'Process crashed' <<<"$out"; then
+    instrument_failed=1
+    printf 'HARNESS %s process crashed\n' "$phase" >> "$OUT/events.log"
+    {
+      echo "===== crash buffer $phase ====="
+      adb logcat -b crash -d -v time || true
+      echo "===== logcat tail $phase ====="
+      adb logcat -d -v time -t 400 || true
+    } > "$OUT/crash-$phase.log" || true
+  fi
   firebase_log "$phase"
-  # Keep the lines if the watcher was slow.
-  adb logcat -d -v raw -s TESTER_CHECKS:I >> "$OUT/events.log" || true
+  # Keep the lines if the watcher was slow. Release logs use the flutter tag.
+  adb logcat -d -v brief | grep 'TESTER_CHECKS' >> "$OUT/events.log" || true
 }
 
 run_phase accept 70
@@ -269,7 +279,7 @@ adb shell iptables -I OUTPUT -j DROP || true
 adb shell pm clear "$PKG" || true
 # adb root restarts adbd and drops the logcat stream.
 kill "$WATCH_PID" || true
-stdbuf -oL adb logcat -v raw -s TESTER_CHECKS:I | while IFS= read -r line; do
+stdbuf -oL adb logcat -v brief | stdbuf -oL grep --line-buffered 'TESTER_CHECKS' | while IFS= read -r line; do
   line="${line//$'\r'/}"
   printf '%s\n' "$line" >> "$OUT/events.log"
   case "$line" in

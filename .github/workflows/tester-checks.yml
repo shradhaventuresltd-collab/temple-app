@@ -20,6 +20,7 @@ on:
       - .github/workflows/tester-checks.yml
       - integration_test/**
       - scripts/ci/run_tester_checks.sh
+      - scripts/ci/disable_impeller_for_emulator_apk.sh
       - android/app/src/androidTest/**
 
 permissions:
@@ -120,6 +121,9 @@ jobs:
 
       - name: Build release APK
         run: |
+          # SwiftShader on this emulator does not run Impeller. The edit is
+          # local to the job; the Play manifest is unchanged.
+          bash scripts/ci/disable_impeller_for_emulator_apk.sh
           flutter build apk --release \
             --target-platform android-x64 \
             --target integration_test/tester_checks_test.dart

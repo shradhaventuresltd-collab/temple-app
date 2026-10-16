@@ -79,7 +79,11 @@ String _readPhase() {
 
 void _logLine(String message) {
   final flat = message.replaceAll(RegExp(r'\s+'), ' ').trim();
-  developer.log(flat, name: _log);
+  final line = '$_log $flat';
+  developer.log(line, name: _log);
+  // Release AOT does not publish dart:developer names as a logcat tag.
+  // debugPrint reaches logcat as I/flutter in release.
+  debugPrint(line);
 }
 
 void _result(int id, bool pass, String note) {
