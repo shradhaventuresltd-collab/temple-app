@@ -132,6 +132,31 @@ bool _maintenanceVisible(WidgetTester tester) {
       tester.any(find.text(MaintenanceScreen.title));
 }
 
+/// Force-update screen or soft-update banner from the default Remote Config
+/// path. Defaults are min and recommended build 1, so neither should show.
+String? _updateBlock(WidgetTester tester) {
+  const keys = <String>[
+    'force-update-screen',
+    'force-update-button',
+    'soft-update-nudge',
+    'soft-update-open',
+    'soft-update-dismiss',
+  ];
+  for (final name in keys) {
+    if (tester.any(find.byKey(Key(name)))) return name;
+  }
+  const phrases = <String>[
+    'Update required',
+    'Update on Play Store',
+    'A newer version is ready on the Play Store.',
+  ];
+  final text = _allText(tester);
+  for (final phrase in phrases) {
+    if (text.contains(phrase)) return phrase;
+  }
+  return null;
+}
+
 bool _firebaseOnScreen(WidgetTester tester) {
   final text = _allText(tester);
   return text.contains('No Firebase App') ||
@@ -246,6 +271,7 @@ Future<void> _homeLaunch(WidgetTester tester, String phase) async {
         _browseLabel(tester) != null ||
         _gateVisible(tester) ||
         _maintenanceVisible(tester) ||
+        _updateBlock(tester) != null ||
         _firebaseOnScreen(tester) ||
         tester.any(find.text('Could not load temples.')) ||
         tester.any(find.text('Retry')),
@@ -258,6 +284,14 @@ Future<void> _homeLaunch(WidgetTester tester, String phase) async {
       await tester.ensureVisible(button);
       await tester.pump(const Duration(milliseconds: 200));
     }
+  }
+  // The soft-update banner claims a preferences day after the first Home frame.
+  if (_updateBlock(tester) == null) {
+    await _waitUntil(
+      tester,
+      () => _updateBlock(tester) != null,
+      timeout: const Duration(seconds: 2),
+    );
   }
   final shotName = phase == 'cold' ? '02-cold-start' : '02-$phase';
   await _shot(tester, shotName);
@@ -280,6 +314,11 @@ Future<void> _homeLaunch(WidgetTester tester, String phase) async {
     ..write(' maintenance=${maintenance ? 'yes' : 'no'}')
     ..write(' screen=${_screenHint(tester)}');
   _logLine('LAUNCH $phase ${pass ? 'PASS' : 'FAIL'} $note');
+  final update = _updateBlock(tester);
+  _logLine(
+    'UPDATE $phase ${update == null ? 'PASS' : 'FAIL'} '
+    '${update ?? 'no force-update or soft-update prompt'}',
+  );
 }
 
 Future<void> _uiChecks(WidgetTester tester) async {

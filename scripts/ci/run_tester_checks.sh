@@ -20,6 +20,7 @@ out = pathlib.Path(sys.argv[2])
 
 results = {}
 launches = []
+updates = []
 logcats = []
 searches = []
 harness = []
@@ -34,6 +35,8 @@ for raw in events:
             results[int(parts[0])] = (parts[1], note)
     if "LAUNCH " in line:
         launches.append(line.split("LAUNCH ", 1)[1])
+    if "UPDATE " in line:
+        updates.append(line.split("UPDATE ", 1)[1])
     if "LOGCAT " in line:
         logcats.append(line.split("LOGCAT ", 1)[1])
     if "SEARCH " in line:
@@ -70,6 +73,21 @@ else:
         notes.extend(log_bad)
     results[2] = ("FAIL", "; ".join(notes))
 
+by_update = {}
+for row in updates:
+    phase = row.split(" ", 1)[0]
+    by_update[phase] = row
+update_pass = all(
+    by_update.get(name, "").startswith(f"{name} PASS") for name in wanted
+)
+if update_pass:
+    results[9] = ("PASS", "; ".join(by_update[name] for name in wanted))
+else:
+    results[9] = (
+        "FAIL",
+        "; ".join(by_update.get(name, f"{name} did not run") for name in wanted),
+    )
+
 titles = {
     1: "Accept & continue works with a single tap",
     2: "Force-stop relaunch 3 times plus a cold start shows Browse N Temples",
@@ -79,6 +97,7 @@ titles = {
     6: "Airplane-mode cold start does not show maintenance",
     7: "Janaki Temple Sitamarhi caption says Punaura Dham",
     8: "Get Directions is visible and launches a maps intent",
+    9: "Default Remote Config shows no force-update or soft-update prompt",
 }
 
 lines = [
@@ -87,6 +106,7 @@ lines = [
     "Release APK, prod Firestore, no writes, no DEMO_BUILD, no ENABLE_ADMIN_TOOLS.",
     "Check 2 expects Browse 984 Temples and no Firebase or [core/no-app] error.",
     "Check 7 runs because #77 is in main 63da3fc.",
+    "Check 9 expects no force-update screen and no soft-update nudge on the three relaunches and the cold start.",
     "",
 ]
 profile = os.environ.get("TESTER_CHECKS_PROFILE", "").strip()
@@ -102,7 +122,7 @@ if phases:
     lines.append("")
 lines.append("| Check | Result | Notes |")
 lines.append("| --- | --- | --- |")
-for i in range(1, 9):
+for i in range(1, 10):
     status, note = results.get(i, ("FAIL", "did not run"))
     if status not in ("PASS", "FAIL", "N/A"):
         status = "FAIL"
