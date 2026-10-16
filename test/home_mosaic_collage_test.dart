@@ -214,10 +214,19 @@ void main() {
       direct.placeholder!(context, direct.imageUrl),
       isA<MosaicTilePlaceholder>(),
     );
-    expect(
-      direct.errorWidget!(context, direct.imageUrl, Exception('offline')),
-      isA<MosaicTilePlaceholder>(),
+    final failed = direct.errorWidget!(
+      context,
+      direct.imageUrl,
+      Exception('offline'),
     );
+    expect(failed, isA<TempleImagePlaceholder>());
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: SizedBox(width: 180, height: 140, child: failed)),
+      ),
+    );
+    expect(find.text('Photo pending'), findsOneWidget);
+    expect(find.text('No verified photograph is on file.'), findsOneWidget);
 
     final thumb = images.firstWhere(
       (image) => image.imageUrl.contains('/thumb/'),
@@ -235,7 +244,7 @@ void main() {
     );
     expect(
       original.errorWidget!(context, original.imageUrl, Exception('offline')),
-      isA<MosaicTilePlaceholder>(),
+      isA<TempleImagePlaceholder>(),
     );
 
     await tester.pumpWidget(

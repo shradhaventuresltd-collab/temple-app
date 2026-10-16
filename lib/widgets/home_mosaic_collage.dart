@@ -197,7 +197,7 @@ class _MosaicTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isDisallowedImageUrl(url)) {
-      return const MosaicTilePlaceholder();
+      return const TempleImagePlaceholder(expand: true);
     }
 
     return LayoutBuilder(
@@ -227,7 +227,7 @@ class _MosaicTile extends StatelessWidget {
               memCacheHeight: decode.height,
               fadeInDuration: const Duration(milliseconds: 400),
               placeholder: const MosaicTilePlaceholder(),
-              error: const MosaicTilePlaceholder(),
+              error: const TempleImagePlaceholder(expand: true),
             ),
             if (caption != null)
               Positioned(

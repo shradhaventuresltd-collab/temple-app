@@ -72,14 +72,20 @@ class PolicyAcceptanceGate extends StatefulWidget {
 class _PolicyAcceptanceGateState extends State<PolicyAcceptanceGate> {
   bool _saving = false;
 
+  /// Set before [setState] so a second tap in the same frame cannot start
+  /// another write or another navigation to Home.
+  bool _acceptInFlight = false;
+
   bool get _update => widget.kind == PolicyGateKind.policyUpdate;
 
   Future<void> _accept() async {
-    if (_saving) return;
+    if (_acceptInFlight) return;
+    _acceptInFlight = true;
     setState(() => _saving = true);
     try {
       await widget.onAccept();
     } catch (e, st) {
+      _acceptInFlight = false;
       debugPrint('Policy acceptance failed: $e\n$st');
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -304,8 +310,9 @@ class _AcceptButton extends StatelessWidget {
     final activate = enabled ? onPressed : null;
     return Semantics(
       // Widget tests and the Maestro smoke flow both use this id.
-      // onTap is the accessibility action. A button node without it takes
-      // the first tap and only activates the child on the second.
+      // onTap is the accessibility action only. The FilledButton below is
+      // the pointer target, so the first tap is not spent focusing this node.
+      // Both paths call the same idempotent callback.
       key: const Key('policy-accept-button'),
       identifier: 'policy-accept-button',
       button: true,

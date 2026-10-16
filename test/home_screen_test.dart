@@ -206,6 +206,13 @@ void main() {
       final titleRect = tester.getRect(find.text('Temple Directory'));
       final menuRect = tester.getRect(find.byKey(const Key('home-admin-menu')));
       expect(titleRect.right, lessThanOrEqualTo(menuRect.left));
+      final bar = tester.getRect(find.byType(AppBar));
+      expect(bar.top, lessThanOrEqualTo(titleRect.top));
+      expect(bar.bottom, greaterThanOrEqualTo(titleRect.bottom));
+      expect(
+        tester.widget<AppBar>(find.byType(AppBar)).toolbarHeight,
+        greaterThan(kToolbarHeight),
+      );
 
       await tester.tap(find.byKey(const Key('home-admin-menu')));
       await tester.pumpAndSettle();
