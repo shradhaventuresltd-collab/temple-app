@@ -152,6 +152,33 @@ String? verifiedCoverUrl(Temple temple) {
   return urls.first;
 }
 
+/// Full gallery URL already stored on [temple] when [displayed] is its thumb.
+///
+/// Browse cards and home mosaic tiles share this. A failed thumb can request
+/// that original once. Null when [displayed] is already the stored full URL.
+String? storedFullCoverUrl(Temple temple, String displayed) {
+  final image = temple.imageUrl.trim();
+  if (image.startsWith('https://') &&
+      image != displayed &&
+      !isDisallowedImageUrl(
+        image,
+        credit: _creditForGalleryUrl(temple, image),
+      )) {
+    return image;
+  }
+  for (final photo in temple.photos) {
+    final url = photo.url.trim();
+    final thumb = photo.thumbUrl?.trim() ?? '';
+    if (thumb == displayed &&
+        url.startsWith('https://') &&
+        url != displayed &&
+        !isDisallowedImageUrl(url, credit: photo.credit)) {
+      return url;
+    }
+  }
+  return null;
+}
+
 /// Verified photograph URLs across temples for collage surfaces such as Home.
 ///
 /// Placeholder hosts are dropped so mosaic tiles never bind stock art.

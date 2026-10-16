@@ -235,6 +235,40 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     setState(() => _templesFuture = _loadTemples(refresh: true));
   }
 
+  Widget _homeSnapshot(
+    BuildContext context,
+    AsyncSnapshot<List<Temple>> snapshot,
+  ) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return const _HomeLoadingBody();
+    }
+    if (snapshot.hasError) {
+      return _HomeErrorBody(onRetry: _reloadTemples);
+    }
+
+    final allTemples = snapshot.data ?? [];
+    final missing = FirestoreReadLog.instance.unavailableShardsMessage;
+    if (allTemples.isEmpty) {
+      if (missing != null) {
+        return _HomeErrorBody(onRetry: _reloadTemples, detail: missing);
+      }
+      return _HomeEmptyBody(onRetry: _reloadTemples);
+    }
+
+    return _HomeBody(
+      allTemples: allTemples,
+      onBrowseTemples: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                TempleListScreen(temples: allTemples, title: 'All Temples'),
+          ),
+        );
+      },
+    );
+  }
+
   bool get _showAdminTools => widget.adminToolsEnabled ?? kAdminToolsEnabled;
 
   Future<void> _openAdmin() async {
@@ -286,45 +320,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               onUpdate: () => unawaited(_openSoftUpdate()),
               onDismiss: () => setState(() => _showSoftUpdate = false),
             ),
-          const OfflineBanner(),
-          SavedListBanner(onRetry: _reloadTemples),
           Expanded(
             child: FutureBuilder<List<Temple>>(
               future: _templesFuture,
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const _HomeLoadingBody();
-                }
-                if (snapshot.hasError) {
-                  return _HomeErrorBody(onRetry: _reloadTemples);
-                }
-
-                final allTemples = snapshot.data ?? [];
-                final missing =
-                    FirestoreReadLog.instance.unavailableShardsMessage;
-                if (allTemples.isEmpty) {
-                  if (missing != null) {
-                    return _HomeErrorBody(
-                      onRetry: _reloadTemples,
-                      detail: missing,
-                    );
-                  }
-                  return _HomeEmptyBody(onRetry: _reloadTemples);
-                }
-
-                return _HomeBody(
-                  allTemples: allTemples,
-                  onBrowseTemples: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => TempleListScreen(
-                          temples: allTemples,
-                          title: 'All Temples',
-                        ),
-                      ),
-                    );
-                  },
+                final savedCount = snapshot.hasData ? snapshot.data!.length : 0;
+                return Column(
+                  children: [
+                    OfflineBanner(savedTempleCount: savedCount),
+                    SavedListBanner(onRetry: _reloadTemples),
+                    Expanded(child: _homeSnapshot(context, snapshot)),
+                  ],
                 );
               },
             ),

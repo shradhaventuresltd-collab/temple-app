@@ -80,11 +80,40 @@ void main() {
 
     DirectoryLink.offline.value = true;
     await tester.pump();
+    expect(find.text(OfflineBanner.offlineMessage), findsOneWidget);
+    expect(find.textContaining('saved on this device'), findsNothing);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: OfflineBanner(savedTempleCount: 4)),
+      ),
+    );
     expect(find.text(OfflineBanner.message), findsOneWidget);
 
     DirectoryLink.offline.value = false;
     await tester.pump();
     expect(find.byKey(const Key('offline-banner')), findsNothing);
+  });
+
+  testWidgets('offline with no cached temples does not claim a saved list', (
+    tester,
+  ) async {
+    DirectoryLink.offline.value = true;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomeScreen(
+          adminAuth: FakeAdminAuth(),
+          templesLoader: () async => throw Exception('offline'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(OfflineBanner.offlineMessage), findsOneWidget);
+    expect(find.textContaining('saved on this device'), findsNothing);
+    expect(find.text('Could not load temples.'), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+    expect(find.textContaining('0 temples'), findsNothing);
   });
 
   testWidgets('reconnect keeps the home list and loads again', (tester) async {

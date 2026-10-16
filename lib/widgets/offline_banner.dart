@@ -6,14 +6,27 @@ import 'package:temple_app/services/temple_service.dart';
 /// Shown while the device has no network. The directory already on screen
 /// stays; Firestore persistence and the cache-first index are what keep
 /// temples available. The banner clears when a network returns.
+///
+/// [savedTempleCount] is how many temples are actually on screen from cache.
+/// The "saved on this device" line is only true when that count is above
+/// zero. With nothing cached, the banner says the device is offline and the
+/// screen underneath can offer Retry.
 class OfflineBanner extends StatelessWidget {
-  const OfflineBanner({super.key});
+  const OfflineBanner({super.key, this.savedTempleCount = 0});
+
+  final int savedTempleCount;
+
+  static const offlineMessage = "You're offline";
 
   static const message =
       "You're offline. Showing temples saved on this device.";
 
+  static String textFor(int savedTempleCount) =>
+      savedTempleCount > 0 ? message : offlineMessage;
+
   @override
   Widget build(BuildContext context) {
+    final text = textFor(savedTempleCount);
     return ValueListenableBuilder<bool>(
       valueListenable: DirectoryLink.offline,
       builder: (context, offline, _) {
@@ -33,7 +46,7 @@ class OfflineBanner extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    message,
+                    text,
                     style: GoogleFonts.poppins(
                       color: const Color(0xFFFFF8EE),
                       fontSize: 13,

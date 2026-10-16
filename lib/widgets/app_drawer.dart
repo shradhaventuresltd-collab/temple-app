@@ -579,7 +579,7 @@ class _TempleListScreenState extends State<TempleListScreen> {
       drawer: const AppDrawer(),
       body: Column(
         children: [
-          const OfflineBanner(),
+          OfflineBanner(savedTempleCount: _directory.length),
           SavedListBanner(onRetry: _retrySavedList),
           Expanded(child: _buildBody()),
         ],

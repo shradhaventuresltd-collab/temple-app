@@ -96,17 +96,20 @@ class TempleBrowseCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        temple.name,
-                        key: const Key('browse-temple-name'),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        softWrap: true,
-                        style: GoogleFonts.lora(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: saffron,
-                          height: 1.25,
+                      SizedBox(
+                        width: double.infinity,
+                        child: Text(
+                          temple.name,
+                          key: const Key('browse-temple-name'),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          softWrap: true,
+                          style: GoogleFonts.lora(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: saffron,
+                            height: 1.25,
+                          ),
                         ),
                       ),
                       if (place.isNotEmpty) ...[
@@ -122,8 +125,10 @@ class TempleBrowseCard extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 place,
-                                maxLines: 1,
+                                key: const Key('browse-temple-place'),
+                                maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
+                                softWrap: true,
                                 style: GoogleFonts.poppins(
                                   fontSize: 13,
                                   color: Colors.brown.shade600,
@@ -181,34 +186,6 @@ class TempleBrowseCard extends StatelessWidget {
   }
 }
 
-String? _browseCredit(Temple temple, String url) {
-  for (final photo in temple.photos) {
-    if (photo.url.trim() == url.trim()) return photo.credit;
-  }
-  return null;
-}
-
-/// Full gallery URL already on [temple], when it is not the thumb itself.
-String? _storedFullCover(Temple temple, String displayed) {
-  final image = temple.imageUrl.trim();
-  if (image.startsWith('https://') &&
-      image != displayed &&
-      !isDisallowedImageUrl(image, credit: _browseCredit(temple, image))) {
-    return image;
-  }
-  for (final photo in temple.photos) {
-    final url = photo.url.trim();
-    final thumb = photo.thumbUrl?.trim() ?? '';
-    if (thumb == displayed &&
-        url.startsWith('https://') &&
-        url != displayed &&
-        !isDisallowedImageUrl(url, credit: photo.credit)) {
-      return url;
-    }
-  }
-  return null;
-}
-
 class _BrowseCover extends StatelessWidget {
   const _BrowseCover({required this.temple});
 
@@ -240,7 +217,7 @@ class _BrowseCover extends StatelessWidget {
           children: [
             CoverNetworkImage(
               url: coverUrl,
-              fallbackUrl: _storedFullCover(temple, coverUrl),
+              fallbackUrl: storedFullCoverUrl(temple, coverUrl),
               height: TempleBrowseCard.coverHeight,
               width: double.infinity,
               fit: BoxFit.cover,
@@ -328,8 +305,7 @@ class _BrowseChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         child: Text(
           label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+          softWrap: true,
           style: GoogleFonts.poppins(
             fontSize: 12,
             fontWeight: FontWeight.w600,
