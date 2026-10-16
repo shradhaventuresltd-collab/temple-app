@@ -3,25 +3,29 @@
  * prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
  *
  *   node apply_field_patches.js --patches <file>
+ *   node apply_field_patches.js --project <id> --patches <file>
  *   node apply_field_patches.js --apply --project <id> --patches <file>
  *   node apply_field_patches.js --apply --strict --project <id> --patches <file>
  *
- * Dry-run is the default and does not connect. It prints one line per
- * document: the fields that would be written, and the audited gallery that
- * must still be live. --apply reads each target document first. A gallery
- * write runs only when live imageUrl, images, and photos still match that
- * audited state. A mismatch is skipped and reported. --strict aborts the
- * whole run before any write. All targets are read inside one transaction
- * before any update, so --strict aborts before a write when a later
- * document does not match. It refuses CI and requires
- * a confirm prompt plus an explicit --project. It does not upload Storage
- * objects and it does not run Seed.
+ * Dry-run is the default and does not write. With no --project it does not
+ * connect: it prints one line per document, then a before/after line per
+ * field with the before side unread. With --project and without --apply it
+ * reads each live document and prints that current value, then the patched
+ * value. It still does not write, and it does not ask for the project id.
+ * An entry note is printed in both modes and is never a Firestore field.
+ * --apply reads each target document first. A gallery write runs only when
+ * live imageUrl, images, and photos still match that audited state. A
+ * mismatch is skipped and reported. --strict aborts the whole run before
+ * any write. All targets are read inside one transaction before any update,
+ * so --strict aborts before a write when a later document does not match.
+ * It refuses CI and requires a confirm prompt plus an explicit --project.
+ * It does not upload Storage objects and it does not run Seed.
  */
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { confirmProject } from "./prod_guard.js";
+import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard.js";
 import { redactThrown } from "./redact_url.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -31,7 +35,11 @@ const ALLOWED_FIELDS = new Set([
   "images",
   "photos",
   "timings",
+  "deity",
 ]);
+
+/** Matches the brief. Firestore rules still cap deity at 100 characters. */
+const DEITY_MAX = 120;
 
 const GALLERY_FIELDS = ["imageUrl", "images", "photos"];
 
@@ -39,14 +47,18 @@ function printUsage() {
   console.log(`
 Usage:
   node apply_field_patches.js --patches <file>
+  node apply_field_patches.js --project <id> --patches <file>
   node apply_field_patches.js --apply --project <id> --patches <file>
   node apply_field_patches.js --apply --strict --project <id> --patches <file>
 
-Each temple entry is { "id", "fields": { ... }, "expect": { ... } }.
-Only imageUrl, images, photos, and timings are accepted. A gallery write
-requires expect: the audited imageUrl, images, and photos. --apply writes
-that document only when the live gallery still matches. --strict aborts
-before any write when one document does not match.
+Each temple entry is { "id", "fields": { ... }, "expect": { ... }, "note": "..." }.
+Only imageUrl, images, photos, timings, and deity are accepted. deity is a
+non-empty string of at most ${DEITY_MAX} characters. note is printed and is
+not written. A gallery write requires expect: the audited imageUrl, images,
+and photos. --apply writes that document only when the live gallery still
+matches. --strict aborts before any write when one document does not match.
+Dry-run with --project reads live values and prints before -> after. It does
+not write.
 `);
 }
 
@@ -116,6 +128,37 @@ function asPhotos(value) {
       order: Number.isInteger(item.order) ? item.order : null,
     };
   });
+}
+
+function readDeity(id, value) {
+  if (typeof value !== "string") {
+    throw new Error(`${id} deity must be a string.`);
+  }
+  const trimmed = value.trim();
+  if (trimmed === "") {
+    throw new Error(`${id} deity must be non-empty.`);
+  }
+  if (trimmed.length > DEITY_MAX) {
+    throw new Error(`${id} deity must be at most ${DEITY_MAX} characters.`);
+  }
+  return trimmed;
+}
+
+function readNote(id, entry) {
+  if (!Object.prototype.hasOwnProperty.call(entry, "note")) return "";
+  if (typeof entry.note !== "string") {
+    throw new Error(`${id} note must be a string.`);
+  }
+  return entry.note;
+}
+
+function readFields(id, raw) {
+  const fields = {};
+  for (const key of Object.keys(raw)) {
+    if (key === "deity") fields.deity = readDeity(id, raw.deity);
+    else fields[key] = raw[key];
+  }
+  return fields;
 }
 
 function readExpect(raw, id) {
@@ -191,10 +234,12 @@ export function loadPatches(file) {
         throw new Error(`${id} field "${key}" is not allowed.`);
       }
     }
-    const gallery = writesGallery(entry.fields);
+    const fields = readFields(id, entry.fields);
+    const gallery = writesGallery(fields);
     return {
       id,
-      fields: entry.fields,
+      fields,
+      note: readNote(id, entry),
       expect: gallery ? readExpect(entry.expect, id) : null,
     };
   });
@@ -217,12 +262,43 @@ function auditedLabel(expected) {
 export function formatDryRunLine(temple) {
   const keys = Object.keys(temple.fields).join(", ");
   if (!temple.expect) {
-    return `  temples/${temple.id}  timings only; gallery is not written  fields: ${keys}`;
+    const scope = keys === "timings"
+      ? "timings only; gallery is not written"
+      : "gallery is not written";
+    return `  temples/${temple.id}  ${scope}  fields: ${keys}`;
   }
   return (
     `  temples/${temple.id}  would apply if live gallery matches ` +
     `${auditedLabel(temple.expect)}  fields: ${keys}`
   );
+}
+
+function fieldBefore(live, key) {
+  if (!live || typeof live !== "object") return "(missing)";
+  if (!Object.prototype.hasOwnProperty.call(live, key)) return "(missing)";
+  return JSON.stringify(live[key]);
+}
+
+/** One line per patched field: current JSON value, then the value to write. */
+export function formatLiveDiff(temple, live) {
+  const lines = [`  temples/${temple.id}`];
+  if (temple.note) lines.push(`    note: ${temple.note}`);
+  for (const key of Object.keys(temple.fields)) {
+    lines.push(
+      `    ${key}: ${fieldBefore(live, key)} -> ${JSON.stringify(temple.fields[key])}`,
+    );
+  }
+  return lines.join("\n");
+}
+
+/** Same shape when the dry-run has not read Firestore. */
+export function formatOfflineDiff(temple) {
+  const lines = [];
+  if (temple.note) lines.push(`    note: ${temple.note}`);
+  for (const key of Object.keys(temple.fields)) {
+    lines.push(`    ${key}: (live not read) -> ${JSON.stringify(temple.fields[key])}`);
+  }
+  return lines.join("\n");
 }
 
 function printPlan(patch) {
@@ -231,8 +307,29 @@ function printPlan(patch) {
   console.log(`Temples: ${patch.temples.length}`);
   for (const temple of patch.temples) {
     console.log(formatDryRunLine(temple));
+    const diff = formatOfflineDiff(temple);
+    if (diff) console.log(diff);
   }
   console.log("\nNo Firestore connection. No writes.");
+}
+
+/**
+ * Read each target and print before -> after. Does not update.
+ */
+export async function previewPatchSet(db, patch) {
+  await db.runTransaction(async (tx) => {
+    for (const temple of patch.temples) {
+      const ref = db.collection("temples").doc(temple.id);
+      const snap = await tx.get(ref);
+      if (!snap.exists) {
+        console.log(`  temples/${temple.id}  missing`);
+        if (temple.note) console.log(`    note: ${temple.note}`);
+        continue;
+      }
+      console.log(formatLiveDiff(temple, snap.data() || {}));
+    }
+  });
+  console.log("\nNo writes.");
 }
 
 /**
@@ -281,6 +378,9 @@ export async function applyPatchSet(db, patch, { strict }) {
         );
         continue;
       }
+      if (row.temple.note) {
+        console.log(`note temples/${row.temple.id}  ${row.temple.note}`);
+      }
       tx.update(row.ref, row.temple.fields);
       console.log(
         `updated temples/${row.temple.id} (${Object.keys(row.temple.fields).join(", ")})`,
@@ -289,7 +389,7 @@ export async function applyPatchSet(db, patch, { strict }) {
   });
 }
 
-async function applyPatches(project, patch, { strict }) {
+async function openFirestore(project) {
   const { existsSync } = await import("node:fs");
   const candidates = [
     resolve(__dirname, "service-account.json"),
@@ -310,8 +410,18 @@ async function applyPatches(project, patch, { strict }) {
       projectId: project,
     });
   }
-  const db = admin.firestore();
+  return admin.firestore();
+}
+
+async function applyPatches(project, patch, { strict }) {
+  const db = await openFirestore(project);
   await applyPatchSet(db, patch, { strict });
+}
+
+async function previewPatches(project, patch) {
+  const db = await openFirestore(project);
+  console.log(`Live read project ${project}. No writes.`);
+  await previewPatchSet(db, patch);
 }
 
 async function main(argv = process.argv.slice(2)) {
@@ -322,6 +432,15 @@ async function main(argv = process.argv.slice(2)) {
   }
   const patch = loadPatches(resolve(opts.patches));
   if (!opts.apply) {
+    if (opts.project) {
+      assertNotCi();
+      const project = assertExplicitProject(opts.project);
+      console.log("Mode: dry-run");
+      if (patch.description) console.log(patch.description);
+      console.log(`Temples: ${patch.temples.length}`);
+      await previewPatches(project, patch);
+      return patch;
+    }
     printPlan(patch);
     return patch;
   }

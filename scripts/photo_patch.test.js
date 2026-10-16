@@ -9,8 +9,10 @@ import { fileURLToPath } from "node:url";
 import {
   applyPatchSet,
   formatDryRunLine,
+  formatLiveDiff,
   galleryMatches,
   loadPatches,
+  previewPatchSet,
   stripUtm,
 } from "./apply_field_patches.js";
 import { MIRROR_TEMPLE_IDS } from "./patch_image_url_mirror.js";
@@ -351,6 +353,174 @@ test("a live photos entry is skipped by default and aborts under --strict", asyn
   assert.match(source, /typeof item === "string"/);
   assert.match(source, /item\.url\.trim\(\)/);
   assert.match(source, /runTransaction/);
+});
+
+const BUDHESWAR_NOTE =
+  "Pavi-verified: Chaturbhuji is a separate adjacent Vishnu shrine sharing Wikidata Q117932106; https://www.wikidata.org/wiki/Q117932106";
+
+test("deity is an allowed non-empty string and other text fields stay blocked", () => {
+  const dir = mkdtempSync(join(tmpdir(), "field-patch-deity-"));
+  const file = join(dir, "patch.json");
+  writeFileSync(
+    file,
+    JSON.stringify({
+      temples: [
+        {
+          id: "budheswar-shiv-temple-dhamdha",
+          note: BUDHESWAR_NOTE,
+          fields: { deity: "  Shiva  " },
+        },
+      ],
+    }),
+  );
+  const loaded = loadPatches(file);
+  assert.equal(loaded.temples[0].fields.deity, "Shiva");
+  assert.equal(loaded.temples[0].note, BUDHESWAR_NOTE);
+  assert.deepEqual(Object.keys(loaded.temples[0].fields), ["deity"]);
+  assert.equal(loaded.temples[0].expect, null);
+
+  writeFileSync(
+    file,
+    JSON.stringify({
+      temples: [{ id: "budheswar-shiv-temple-dhamdha", fields: { deity: "S".repeat(120) } }],
+    }),
+  );
+  assert.equal(loadPatches(file).temples[0].fields.deity.length, 120);
+
+  for (const fields of [
+    { deity: "" },
+    { deity: "   " },
+    { deity: 1 },
+    { deity: "S".repeat(121) },
+    { story: "nope" },
+    { description: "nope" },
+    { specialities: ["nope"] },
+  ]) {
+    writeFileSync(
+      file,
+      JSON.stringify({
+        temples: [{ id: "budheswar-shiv-temple-dhamdha", fields }],
+      }),
+    );
+    assert.throws(() => loadPatches(file), /deity|not allowed/);
+  }
+
+  writeFileSync(
+    file,
+    JSON.stringify({
+      temples: [
+        {
+          id: "budheswar-shiv-temple-dhamdha",
+          note: 4,
+          fields: { deity: "Shiva" },
+        },
+      ],
+    }),
+  );
+  assert.throws(() => loadPatches(file), /note must be a string/);
+
+  const patchFile = resolve(repoRoot, "data/patches/2026-10-16-budheswar-deity.json");
+  const budheswar = loadPatches(patchFile).temples[0];
+  assert.equal(budheswar.id, "budheswar-shiv-temple-dhamdha");
+  assert.deepEqual(budheswar.fields, { deity: "Shiva" });
+  assert.equal(budheswar.note, BUDHESWAR_NOTE);
+  const raw = JSON.parse(readFileSync(patchFile, "utf8"));
+  assert.equal(raw.temples[0].fields.specialities, undefined);
+  assert.equal(raw.temples[0].fields.description, undefined);
+  assert.equal(raw.temples[0].fields.story, undefined);
+
+  const dry = spawnSync(
+    process.execPath,
+    [join(here, "apply_field_patches.js"), "--patches", patchFile],
+    { encoding: "utf8" },
+  );
+  assert.equal(dry.status, 0, dry.stderr);
+  assert.match(dry.stdout, /Mode: dry-run/);
+  assert.match(dry.stdout, /budheswar-shiv-temple-dhamdha/);
+  assert.match(dry.stdout, /deity: \(live not read\) -> "Shiva"/);
+  assert.match(dry.stdout, new RegExp(BUDHESWAR_NOTE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.match(dry.stdout, /No Firestore connection/);
+  assert.doesNotMatch(dry.stdout, /updated temples/);
+
+  const ci = spawnSync(
+    process.execPath,
+    [
+      join(here, "apply_field_patches.js"),
+      "--project",
+      "temple-directory-india",
+      "--patches",
+      patchFile,
+    ],
+    { encoding: "utf8", env: { ...process.env, CI: "true" } },
+  );
+  assert.notEqual(ci.status, 0);
+  assert.match(ci.stderr, /CI/);
+  assert.doesNotMatch(ci.stdout, /updated temples/);
+});
+
+test("a patch note is printed and is not written to Firestore", async () => {
+  const patch = {
+    temples: [
+      {
+        id: "budheswar-shiv-temple-dhamdha",
+        note: BUDHESWAR_NOTE,
+        fields: { deity: "Shiva" },
+        expect: null,
+      },
+    ],
+  };
+  const live = {
+    deity: "Shiva and Vishnu",
+    story: "Leave this story alone.",
+    description: "Leave this description alone.",
+    specialities: ["Chaturbhuji"],
+  };
+  assert.match(
+    formatLiveDiff(patch.temples[0], live),
+    /deity: "Shiva and Vishnu" -> "Shiva"/,
+  );
+  assert.match(formatLiveDiff(patch.temples[0], live), /note: Pavi-verified/);
+  assert.match(
+    formatLiveDiff(
+      {
+        id: "two-fields",
+        note: "",
+        fields: { deity: "Shiva", timings: "6am" },
+      },
+      { deity: "Vishnu", timings: "closed" },
+    ),
+    /deity: "Vishnu" -> "Shiva"[\s\S]*timings: "closed" -> "6am"/,
+  );
+
+  const lines = [];
+  const original = console.log;
+  console.log = (...args) => lines.push(args.join(" "));
+  try {
+    const db = fakeDb({ "budheswar-shiv-temple-dhamdha": live });
+    await previewPatchSet(db, patch);
+    assert.deepEqual(db.updates, []);
+    assert.deepEqual(db.ops, ["get budheswar-shiv-temple-dhamdha"]);
+    const preview = lines.join("\n");
+    assert.match(preview, /deity: "Shiva and Vishnu" -> "Shiva"/);
+    assert.match(preview, /note: Pavi-verified/);
+    assert.match(preview, /No writes/);
+    assert.doesNotMatch(preview, /specialities/);
+    assert.doesNotMatch(preview, /description/);
+
+    lines.length = 0;
+    const writing = fakeDb({ "budheswar-shiv-temple-dhamdha": { ...live } });
+    await applyPatchSet(writing, patch, { strict: false });
+    assert.equal(writing.updates.length, 1);
+    assert.deepEqual(writing.updates[0].fields, { deity: "Shiva" });
+    assert.equal(writing.updates[0].fields.note, undefined);
+    assert.equal(writing.updates[0].fields.story, undefined);
+    assert.equal(writing.updates[0].fields.description, undefined);
+    assert.equal(writing.updates[0].fields.specialities, undefined);
+    assert.match(lines.join("\n"), /note temples\/budheswar-shiv-temple-dhamdha/);
+    assert.match(lines.join("\n"), /updated temples\/budheswar-shiv-temple-dhamdha \(deity\)/);
+  } finally {
+    console.log = original;
+  }
 });
 
 test("CI workflows do not patch production", () => {
