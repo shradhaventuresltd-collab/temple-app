@@ -674,7 +674,10 @@ bool _festivalPujaTitle(String text, int pujaStart) {
 
 /// Tradition named by the structured deity field alone.
 ///
-/// Name, description, story, and specialities are not read.
+/// Name, description, story, and specialities are not read. A neighboring
+/// "Jain temple", or a word such as Chaturbhuji, does not add a chip.
+/// [DetailHonesty.of] uses [Temple.indexTradition] when the index stored one,
+/// and otherwise the document [Temple.tradition] field before this fallback.
 SiteTradition traditionFromDeityText(String deity) {
   final lower = deity.toLowerCase();
   if (RegExp(r'\b(jain|tirthankaras?)\b').hasMatch(lower)) {

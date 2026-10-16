@@ -6,6 +6,7 @@ import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/screens/temple_detail_screen.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
+import 'package:temple_app/widgets/temple_browse_card.dart';
 import 'package:flutter/material.dart';
 
 Temple _named(String name) {
@@ -23,6 +24,7 @@ Temple _draft({
   List<String> specialities = const ['Stone gateway'],
   List<TemplePhoto> photos = const [],
   String? tradition,
+  String? indexTradition,
 }) {
   return Temple(
     name: name,
@@ -38,6 +40,7 @@ Temple _draft({
     images: images,
     photos: photos,
     tradition: tradition,
+    indexTradition: indexTradition,
     latitude: 9.9,
     longitude: 78.1,
   );
@@ -675,7 +678,11 @@ void main() {
           timings: 'Open daily 6:00 AM–8:00 PM.',
         ),
       );
-      expect(freeText.tradition, SiteTradition.unspecified, reason: description);
+      expect(
+        freeText.tradition,
+        SiteTradition.unspecified,
+        reason: description,
+      );
       expect(freeText.traditionLabel, isNull, reason: description);
       expect(freeText.framing, SiteFraming.livingTemple, reason: description);
     }
@@ -911,6 +918,17 @@ void main() {
       expect(fromDeity.tradition, SiteTradition.jain);
       expect(fromDeity.traditionLabel, 'Jain');
 
+      final indexed = DetailHonesty.of(
+        _draft(
+          deity: 'Shiva',
+          description: 'A marble shrine with no tradition words.',
+          indexTradition: 'jain',
+          timings: '',
+        ),
+      );
+      expect(indexed.tradition, SiteTradition.jain);
+      expect(indexed.traditionLabel, 'Jain');
+
       final neighbor = _draft(
         name: 'Gauri Shankar Temple',
         deity: 'Shiva',
@@ -925,6 +943,7 @@ void main() {
       expect(honesty.traditionLabel, isNull);
       expect(honesty.framingNote, isNot(contains('Jain')));
       expect(neighbor.tradition, isNull);
+      expect(templeBrowseHonestyLabels(neighbor), isEmpty);
 
       final roundTrip = Temple.fromMap('dilwara-temples', {
         'name': 'Dilwara Temples',
@@ -932,13 +951,36 @@ void main() {
         'tradition': 'jain',
       });
       expect(roundTrip.tradition, 'jain');
-      expect(roundTrip.toFirestoreData(documentId: 'dilwara-temples')['tradition'], 'jain');
-      final hindu = Temple.fromMap('gauri', {'name': 'Gauri', 'deity': 'Shiva'});
+      expect(
+        roundTrip.toFirestoreData(documentId: 'dilwara-temples')['tradition'],
+        'jain',
+      );
+      final hindu = Temple.fromMap('gauri', {
+        'name': 'Gauri',
+        'deity': 'Shiva',
+      });
       expect(hindu.tradition, isNull);
       expect(hindu.toFirestoreData().containsKey('tradition'), isFalse);
       expect(templeTraditionField('hindu'), isNull);
     },
   );
+
+  test('Chaturbhuji in the name or description does not add a Vishnu chip', () {
+    final temple = _draft(
+      name: 'Budheswar Shiv Temple',
+      deity: 'Shiva',
+      description: 'The sanctum murti is called Chaturbhuji.',
+      story: 'Chaturbhuji is the local name of the four-armed image.',
+      specialities: const ['Chaturbhuji'],
+      timings: '',
+    );
+    final honesty = DetailHonesty.of(temple);
+    expect(temple.deity, 'Shiva');
+    expect(honesty.tradition, SiteTradition.unspecified);
+    expect(honesty.traditionLabel, isNull);
+    expect(honesty.framingNote.toLowerCase(), isNot(contains('vishnu')));
+    expect(templeBrowseHonestyLabels(temple), isEmpty);
+  });
 
   test('Jain and Buddhist sites are labeled without a Hindu-only chip', () {
     final dilwara = DetailHonesty.of(_named('Dilwara Temples'));
