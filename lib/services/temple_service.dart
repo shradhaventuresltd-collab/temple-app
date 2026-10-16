@@ -15,11 +15,13 @@ import 'package:temple_app/services/temple_directory_client.dart';
 /// local cache, the list returns that cache immediately and refreshes from
 /// the server in the background. A cold launch with no cache waits for server
 /// `meta/temple_index`, then each shard whose stamp differs. The full
-/// `collection('temples')` scan runs only when that server read confirms the
-/// meta document is absent or its shard map is empty. A timeout or other
-/// error keeps the cached list and says so. With no cache at all the load
-/// throws [DirectoryLoadException] so the screen can offer Retry. A missing
-/// shard is omitted and named; it is not filled from bundled sample temples.
+/// `collection('temples')` scan runs only on that cold foreground load, and
+/// only when meta is absent or its shard map is empty. [loadDirectory], which
+/// warm refresh, Retry, reconnect, and resume all await, keeps the cache and
+/// does not scan. A timeout or other error keeps the cached list and says so.
+/// With no cache at all the load throws [DirectoryLoadException] so the screen
+/// can offer Retry. A missing shard is omitted and named; it is not filled
+/// from bundled sample temples.
 ///
 /// Web launches are always cold. The web Firestore cache is memory-only, so
 /// a new page load has no shard documents even when [IndexStampStore] still
@@ -59,14 +61,68 @@ class TempleService {
   static void resetSessionForTest() {
     _session = null;
     published = null;
+    _sharedInFlight = null;
+    _sharedLoadSerial = 0;
+    _sharedPublishedSerial = 0;
   }
 
+  /// One server load for the process. Injected test clients keep their own.
+  static Future<List<Temple>>? _sharedInFlight;
+
+  static int _sharedLoadSerial = 0;
+  static int _sharedPublishedSerial = 0;
+
+  Future<List<Temple>>? _localInFlight;
   Future<List<Temple>>? _background;
+  int _loadSerial = 0;
+  int _publishedSerial = 0;
 
   /// Completes the server refresh started by a cache-first [getTemples].
   @visibleForTesting
   Future<List<Temple>?> flushBackgroundForTest() =>
-      _background ?? Future<List<Temple>?>.value();
+      _inFlightNow ?? _background ?? Future<List<Temple>?>.value();
+
+  /// Marks a newer successful publish so an older in-flight failure cannot
+  /// turn the saved-list banner back on.
+  @visibleForTesting
+  void noteFreshDirectoryPublished() {
+    _markPublished(_nextSerial());
+    _readLog.showingSavedList = false;
+  }
+
+  Future<List<Temple>>? get _inFlightNow =>
+      _usesSharedSession ? _sharedInFlight : _localInFlight;
+
+  int _nextSerial() {
+    if (_usesSharedSession) return ++_sharedLoadSerial;
+    return ++_loadSerial;
+  }
+
+  int get _publishedNow =>
+      _usesSharedSession ? _sharedPublishedSerial : _publishedSerial;
+
+  void _markPublished(int serial) {
+    if (_usesSharedSession) {
+      _sharedPublishedSerial = serial;
+    } else {
+      _publishedSerial = serial;
+    }
+  }
+
+  void _retain(Future<List<Temple>> future) {
+    if (_usesSharedSession) {
+      _sharedInFlight = future;
+    } else {
+      _localInFlight = future;
+    }
+    future.whenComplete(() {
+      if (_usesSharedSession) {
+        if (identical(_sharedInFlight, future)) _sharedInFlight = null;
+      } else if (identical(_localInFlight, future)) {
+        _localInFlight = null;
+      }
+    }).ignore();
+  }
 
   /// Injected clients are used as-is. Otherwise a missing default app must
   /// not touch [FirebaseFirestore.instance] (that throws core/no-app).
@@ -92,17 +148,29 @@ class TempleService {
 
   /// Browse, search, and home lists.
   ///
-  /// [refresh] skips the cache-first return and reads the server. A server
-  /// failure still returns the saved list when one exists.
+  /// [refresh] awaits [loadDirectory] instead of returning the cache first.
+  /// A server failure still returns the saved list when one exists.
   Future<List<Temple>> getTemples({bool refresh = false}) {
-    if (!_usesSharedSession) return _load(refresh: refresh);
     if (refresh) {
-      final next = _load(refresh: true);
-      _session = next;
+      final next = loadDirectory();
+      if (_usesSharedSession) _session = next;
       return next;
     }
-    return _session ??= _load();
+    if (!_usesSharedSession) return _open();
+    return _session ??= _open();
   }
+
+  /// One shared directory load.
+  ///
+  /// Signature: `Future<List<Temple>> loadDirectory()`.
+  ///
+  /// Warm refresh, Retry, reconnect, and the resume check all await this.
+  /// A caller that arrives while a load is running receives that same future,
+  /// so meta is not read twice and the read log is not reset underneath the
+  /// load already in flight. This path never scans `collection('temples')`.
+  /// A cold foreground [getTemples] with no cache is the only scan.
+  Future<List<Temple>> loadDirectory() =>
+      _startInFlight(allowCollectionScan: false);
 
   /// Full `temples/{id}` document for the detail screen.
   ///
@@ -127,57 +195,65 @@ class TempleService {
     );
   }
 
-  Future<List<Temple>> _load({bool refresh = false}) async {
+  Future<List<Temple>> _open() async {
     _readLog.startLoad();
-    if (refresh) {
-      final cached = await _cachedDirectory();
-      try {
-        final fresh = await _loadFromNetwork();
-        _publish(fresh);
-        return fresh;
-      } catch (e) {
-        if (cached == null) rethrow;
-        _readLog.recordFallback('index-cache');
-        _noteSaved(cached);
-        return cached;
-      }
-    }
     final cached = await _cachedDirectory();
     if (cached != null) {
       _noteSaved(cached);
-      _background = _refreshBehind(cached);
+      _background = loadDirectory();
       return cached;
     }
-    final fresh = await _loadFromNetwork();
-    _publish(fresh);
-    return fresh;
+    return _startInFlight(allowCollectionScan: true);
   }
 
-  Future<List<Temple>> _refreshBehind(List<Temple> cached) async {
-    // The cache-first return has already recorded read counts and the
-    // saved-list flag. Wait until the next event-loop turn so that caller,
-    // and the first frame, can observe them. A microtask runs before the
-    // caller's await resumes and would clear the counts first.
-    await Future<void>.delayed(Duration.zero);
-    _readLog.serverReads = 0;
-    _readLog.cacheHits = 0;
-    _readLog.unavailableShards.clear();
-    try {
-      final fresh = await _loadFromNetwork();
-      if (_readLog.source == 'index') {
-        _readLog.showingSavedList = false;
-      } else {
-        _readLog.noteSavedList();
-      }
-      _publish(fresh);
-      return fresh;
-    } catch (e, st) {
-      debugPrint('Directory background refresh failed: $e\n$st');
-      _readLog.noteSavedList();
-      _readLog.recordFallback('index-cache');
-      _readLog.finishLaunch('index-cache');
-      return cached;
+  Future<List<Temple>> _startInFlight({required bool allowCollectionScan}) {
+    final existing = _inFlightNow;
+    if (existing != null) return existing;
+    final next = _runDirectoryLoad(allowCollectionScan: allowCollectionScan);
+    _background = next;
+    _retain(next);
+    return next;
+  }
+
+  Future<List<Temple>> _runDirectoryLoad({
+    required bool allowCollectionScan,
+  }) async {
+    final serial = _nextSerial();
+    if (!allowCollectionScan) {
+      // Let the cache-first caller observe read counts and the saved-list
+      // banner. A microtask runs before that caller's await resumes.
+      await Future<void>.delayed(Duration.zero);
+      _readLog.serverReads = 0;
+      _readLog.cacheHits = 0;
+      _readLog.unavailableShards.clear();
     }
+    final outcome = await _loadFromNetwork(
+      allowCollectionScan: allowCollectionScan,
+    );
+    if (outcome.rows != null) {
+      return _accept(serial, outcome, outcome.rows!);
+    }
+    final cached = await _templesFromAppliedCache();
+    if (cached.isEmpty) throw const DirectoryLoadException();
+    return _accept(serial, const _NetworkOutcome.keepCache(), cached);
+  }
+
+  /// Applies the outcome of [serial] unless a newer load already published.
+  /// A late failure must not turn the saved-list banner back on.
+  List<Temple> _accept(int serial, _NetworkOutcome outcome, List<Temple> rows) {
+    if (_publishedNow > serial) return rows;
+    if (outcome.freshIndex) {
+      _readLog.showingSavedList = false;
+      _markPublished(serial);
+    } else if (outcome.savedList) {
+      _readLog.noteSavedList();
+      if (outcome.rows == null) {
+        _readLog.recordFallback('index-cache');
+        _readLog.finishLaunch('index-cache');
+      }
+    }
+    _publish(rows);
+    return rows;
   }
 
   void _noteSaved(List<Temple> rows) {
@@ -204,25 +280,31 @@ class TempleService {
     return temples;
   }
 
-  Future<List<Temple>> _loadFromNetwork() async {
+  Future<_NetworkOutcome> _loadFromNetwork({
+    required bool allowCollectionScan,
+  }) async {
     if (!_canUseFirestore) throw const DirectoryLoadException();
     final index = await _loadFromServerMeta();
-    if (index.confirmedMissing) return _loadCollectionOrRescue();
+    if (index.confirmedMissing) {
+      if (!allowCollectionScan) return const _NetworkOutcome.keepCache();
+      final rows = await _loadCollectionOrRescue();
+      final fresh = _readLog.source == 'temples' || _readLog.source == 'index';
+      return _NetworkOutcome.rows(rows, savedList: !fresh, freshIndex: fresh);
+    }
     final rows = index.temples;
     if (rows != null) {
-      if (index.servedStale) {
-        _readLog.noteSavedList();
-        _readLog.recordFallback('index-cache');
-      }
-      _readLog.finishLaunch(index.servedStale ? 'index-cache' : 'index');
-      return rows;
+      final stale = index.servedStale;
+      if (stale) _readLog.recordFallback('index-cache');
+      _readLog.finishLaunch(stale ? 'index-cache' : 'index');
+      return _NetworkOutcome.rows(rows, savedList: stale, freshIndex: !stale);
     }
-    return _rescueFromAppliedCache();
+    return const _NetworkOutcome.keepCache();
   }
 
   /// Server meta, then the shards [planIndexShardReads] selects.
   ///
-  /// [confirmedMissing] is the only result that may read `temples`.
+  /// [confirmedMissing] may scan `temples` only when the caller is a cold
+  /// foreground load with no cache.
   Future<_ServerIndex> _loadFromServerMeta() async {
     final DirectoryDoc serverMeta;
     try {
@@ -423,6 +505,23 @@ class TempleService {
     temples.sort((a, b) => a.id.compareTo(b.id));
     return temples;
   }
+}
+
+class _NetworkOutcome {
+  const _NetworkOutcome.rows(
+    this.rows, {
+    required this.savedList,
+    required this.freshIndex,
+  });
+
+  const _NetworkOutcome.keepCache()
+    : rows = null,
+      savedList = true,
+      freshIndex = false;
+
+  final List<Temple>? rows;
+  final bool savedList;
+  final bool freshIndex;
 }
 
 class _ServerIndex {

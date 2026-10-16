@@ -503,7 +503,7 @@ class _TempleListScreenState extends State<TempleListScreen> {
 
   Future<void> _retrySavedList() async {
     try {
-      final rows = await TempleService().getTemples(refresh: true);
+      final rows = await TempleService().loadDirectory();
       if (!mounted) return;
       setState(() => _shown = rows);
     } catch (e, st) {

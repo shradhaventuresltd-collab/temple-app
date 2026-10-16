@@ -283,6 +283,57 @@ void main() {
     expect(second.stamps.stamps['bihar'], _newStamp);
   });
 
+  test('a warm launch with meta missing does not scan temples', () async {
+    final warm = _harness(
+      stamps: {for (final state in _states) state: _oldStamp},
+      metaExists: false,
+    );
+    final shown = await warm.service.getTemples();
+    expect(shown, isNotEmpty);
+    expect(warm.log.showingSavedList, isTrue);
+    expect(
+      warm.fake.gets.where((get) => get == 'query:Source.server:temples'),
+      isEmpty,
+    );
+
+    await warm.service.flushBackgroundForTest();
+    await warm.service.getTemples(refresh: true);
+    expect(
+      warm.fake.gets.where((get) => get == 'query:Source.server:temples'),
+      isEmpty,
+    );
+    expect(warm.fake.count('server:meta/temple_index'), 2);
+  });
+
+  test('a background refresh and Retry share one meta read', () async {
+    final warm = _harness(
+      stamps: {for (final state in _states) state: _oldStamp},
+    );
+    await warm.service.getTemples();
+    final retry = warm.service.loadDirectory();
+    final again = warm.service.getTemples(refresh: true);
+    expect(identical(retry, again), isTrue);
+    await retry;
+    expect(warm.fake.count('server:meta/temple_index'), 1);
+    expect(warm.log.showingSavedList, isFalse);
+  });
+
+  test('a late failure does not bring the saved-list banner back', () async {
+    final hung = _harness(stamps: {'bihar': _oldStamp}, hangMeta: true);
+    await hung.service.getTemples();
+    expect(hung.log.showingSavedList, isTrue);
+
+    hung.service.noteFreshDirectoryPublished();
+    expect(hung.log.showingSavedList, isFalse);
+    await hung.service.flushBackgroundForTest();
+
+    expect(hung.log.showingSavedList, isFalse);
+    expect(
+      hung.fake.gets.where((get) => get == 'query:Source.server:temples'),
+      isEmpty,
+    );
+  });
+
   test('a missing meta document reads the temples collection', () async {
     final harness = _harness(metaExists: false);
     harness.fake.serverDocs['temples/kept-temple'] = {

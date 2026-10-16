@@ -33,7 +33,8 @@ class HomeScreen extends StatefulWidget {
   /// Admin sign-in is opened, never while [build] paints Home.
   final AdminAuth? adminAuth;
 
-  /// Injected in tests. Defaults to [TempleService.getTemples].
+  /// Injected in tests. Defaults to [TempleService.getTemples]. Refresh,
+  /// reconnect, and Retry call [TempleService.loadDirectory].
   final Future<List<Temple>> Function()? templesLoader;
 
   /// Defaults to [kAdminToolsEnabled]. Pass `false` in tests to hide
@@ -61,7 +62,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<List<Temple>> _loadTemples({bool refresh = false}) {
     final loader = widget.templesLoader;
     if (loader != null) return loader();
-    return _templeService.getTemples(refresh: refresh);
+    if (refresh) return _templeService.loadDirectory();
+    return _templeService.getTemples();
   }
 
   @override
