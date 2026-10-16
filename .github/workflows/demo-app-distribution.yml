@@ -70,6 +70,7 @@ jobs:
         with:
           flutter-version: '3.47.7'
           cache: true
+          pub-cache: true
 
       - name: flutter pub get
         if: steps.plan.outputs.sign == 'true'

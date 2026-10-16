@@ -4,10 +4,11 @@ name: tester-checks
 # This does not run android-smoke and does not change that job's
 # 15-minute limit.
 #
-# Triggers are only workflow_dispatch and a pull_request labeled event.
-# The job runs when the event is a dispatch or the added label is
-# tester-checks. Ordinary PR pushes, other labels, and a merge to main
-# do not start the emulator.
+# Triggers are workflow_dispatch, a pull_request labeled event, and
+# ready_for_review. The job runs when the event is a dispatch, or when
+# the pull request is not a draft and the tester-checks label is on it.
+# A labeled event still requires that the added label is tester-checks.
+# Ordinary PR pushes and a merge to main do not start the emulator.
 #
 # The emulator is the android-smoke KVM setup: API 34 google_atd, x86_64,
 # the same system image, and reactivecircus/android-emulator-runner.
@@ -18,18 +19,33 @@ name: tester-checks
 on:
   workflow_dispatch:
   pull_request:
-    types: [labeled]
+    types: [labeled, ready_for_review]
 
 permissions:
   contents: read
 
 concurrency:
-  group: tester-checks-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   tester-checks:
-    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'tester-checks'
+    # Drafts are skipped. workflow_dispatch has no pull_request payload, so it runs.
+    if: >-
+      (
+        github.event_name != 'pull_request' ||
+        github.event.pull_request.draft == false
+      ) &&
+      (
+        github.event_name == 'workflow_dispatch' ||
+        (
+          contains(github.event.pull_request.labels.*.name, 'tester-checks') &&
+          (
+            github.event.action != 'labeled' ||
+            github.event.label.name == 'tester-checks'
+          )
+        )
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
@@ -66,6 +82,7 @@ jobs:
         with:
           flutter-version: '3.47.7'
           cache: true
+          pub-cache: true
 
       - name: flutter pub get
         run: flutter pub get

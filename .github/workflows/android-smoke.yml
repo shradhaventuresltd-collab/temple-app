@@ -1,23 +1,28 @@
 name: android-smoke
 
-# Pushes to main run this workflow. There is no paths filter on push, so a
-# main push is not skipped the way a paths filter skips non-matching events.
-# The plan job still skips a SHA that already has a green or failed
-# android-smoke attempt.
+# Push to main runs when the diff touches the app: lib/, android/,
+# pubspec.*, integration_test/, or .maestro/. A docs-only or workflow-only
+# main push does not start this workflow. The plan job still skips a SHA
+# that already has a green or failed android-smoke attempt.
 #
-# Schedule is 10:00, 17:00, 22:00, and 05:00 IST (UTC+5:30):
-#   30 4,11,16,23 * * *
-# workflow_dispatch always runs the emulator.
+# Schedule is weekly, Monday 10:00 IST (UTC+5:30):
+#   30 4 * * 1
+# workflow_dispatch always runs the emulator. scripts/build_play_aab.sh
+# accepts a green android-smoke job from push, schedule, or
+# workflow_dispatch on the exact release SHA. A pull_request run does not
+# count. Dispatch this workflow for a SHA whose push did not match the
+# app paths.
 # A scheduled run is skipped when main HEAD equals the last successful
 # android-smoke job on main, or the last failed attempt, so a red SHA is
-# not retried every slot. A schedule-triggered cancelled job counts as
+# not retried the next week. A schedule-triggered cancelled job counts as
 # failed, including a manual cancel of that scheduled run. That SHA stays
 # blocked until a new commit or a workflow_dispatch. A workflow_dispatch
 # cancel does not.
 #
-# pull_request runs when the diff touches lib/ or android/ (plus the smoke
-# workflow itself). types include opened, synchronize, and reopened so the
-# first push is enough. A labeled event still requires
+# A pull request does not run on open or on push. types are labeled and
+# ready_for_review, and the paths are the same app paths as push. The jobs
+# run only when the pull request is not a draft and has the run-smoke
+# label. A labeled event still requires
 # github.event.label.name == 'run-smoke', so adding any other label does
 # not start smoke. The plan job does not apply the green/failed SHA skip
 # on pull_request. After a green pull_request android-smoke job,
@@ -29,37 +34,51 @@ name: android-smoke
 
 on:
   schedule:
-    - cron: '30 4,11,16,23 * * *'
+    - cron: '30 4 * * 1'
   workflow_dispatch:
   push:
     branches:
       - main
-  pull_request:
-    types: [opened, synchronize, reopened, labeled]
     paths:
       - 'lib/**'
       - 'android/**'
-      - '.github/workflows/android-smoke.yml'
+      - 'pubspec.*'
+      - 'integration_test/**'
+      - '.maestro/**'
+  pull_request:
+    types: [labeled, ready_for_review]
+    paths:
+      - 'lib/**'
+      - 'android/**'
+      - 'pubspec.*'
+      - 'integration_test/**'
+      - '.maestro/**'
 
 permissions:
   contents: read
 
-# One group per pull request. cancel-in-progress is true only for
-# pull_request, so a new push or a re-label cancels that PR's smoke and
-# cannot cancel a scheduled or dispatched main batch.
+# Same group expression as the other workflows. Cancel only pull request
+# refs, so a main merge commit, the weekly schedule, and workflow_dispatch
+# are not cancelled and can still record a green job for that SHA.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   skip-if-unchanged:
-    # Push, schedule, and dispatch always plan. A pull request plans when
-    # the paths filter started the workflow. A labeled event plans only when
-    # the added label is run-smoke.
+    # Push, schedule, and dispatch always plan. A pull request plans only
+    # when it is not a draft and carries run-smoke. A labeled event plans
+    # only when the added label is run-smoke.
     if: >-
       github.event_name != 'pull_request' ||
-      github.event.action != 'labeled' ||
-      github.event.label.name == 'run-smoke'
+      (
+        github.event.pull_request.draft == false &&
+        contains(github.event.pull_request.labels.*.name, 'run-smoke') &&
+        (
+          github.event.action != 'labeled' ||
+          github.event.label.name == 'run-smoke'
+        )
+      )
     permissions:
       contents: read
       actions: read
@@ -83,8 +102,14 @@ jobs:
       needs.skip-if-unchanged.outputs.should_run == 'true' &&
       (
         github.event_name != 'pull_request' ||
-        github.event.action != 'labeled' ||
-        github.event.label.name == 'run-smoke'
+        (
+          github.event.pull_request.draft == false &&
+          contains(github.event.pull_request.labels.*.name, 'run-smoke') &&
+          (
+            github.event.action != 'labeled' ||
+            github.event.label.name == 'run-smoke'
+          )
+        )
       )
     permissions:
       contents: read
@@ -114,11 +139,12 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # Pub cache: subosito/flutter-action cache: true.
+      # Pub cache (~/.pub-cache) and the Flutter SDK.
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           flutter-version: '3.47.7'
           cache: true
+          pub-cache: true
 
       - name: flutter pub get
         run: flutter pub get
@@ -356,10 +382,10 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: bash scripts/ci/report_smoke_failure.sh
 
-  # Runs only after a green pull_request smoke. Removing the label stops a
-  # later synchronize event from starting another emulator. unlabeled is not
-  # a workflow trigger, so this delete does not start a new run. A failed
-  # smoke keeps the label so the next push can retry.
+  # Runs only after a green pull_request smoke. unlabeled is not a workflow
+  # trigger, so this delete does not start a new run. A push does not start
+  # smoke. A failed smoke keeps the label; add run-smoke again, or run
+  # workflow_dispatch, to retry.
   remove-run-smoke-label:
     needs: android-smoke
     if: >-
@@ -389,6 +415,6 @@ jobs:
             echo "run-smoke is already absent from pull request ${PR_NUMBER}."
             exit 0
           fi
-          echo "::warning::Could not remove the run-smoke label from pull request ${PR_NUMBER}. The token may lack pull-requests: write. Remove it manually so the next push does not start smoke: gh pr edit ${PR_NUMBER} --remove-label run-smoke"
+          echo "::warning::Could not remove the run-smoke label from pull request ${PR_NUMBER}. The token may lack pull-requests: write. Remove it manually: gh pr edit ${PR_NUMBER} --remove-label run-smoke"
           printf '%s\n' "$err"
           exit 0

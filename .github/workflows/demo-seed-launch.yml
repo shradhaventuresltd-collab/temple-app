@@ -1,8 +1,8 @@
 name: demo-seed-launch
 
 # Release demo APK: DEMO_BUILD + ENABLE_ADMIN_TOOLS, the build Sanu installs.
-# Opt-in on pull requests with the run-smoke label, same gate as android-smoke.
-# Schedule is unchanged. This job does not replace that profile smoke.
+# Opt-in on pull requests with the run-smoke label. A later push does not
+# start another emulator. This job does not replace profile android-smoke.
 #
 # The Play upload key is not in CI. The job writes an ephemeral keystore
 # and android/key.properties (both gitignored) so Gradle will sign a
@@ -11,20 +11,24 @@ name: demo-seed-launch
 on:
   workflow_dispatch:
   pull_request:
-    types: [labeled, synchronize]
+    types: [labeled, ready_for_review]
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   demo-seed-launch:
+    # Drafts are skipped. workflow_dispatch has no pull_request payload, so it runs.
+    # A labeled event runs only when the added label is run-smoke. ready_for_review
+    # runs only when that label is already on the pull request.
     if: >-
       github.event_name != 'pull_request' ||
       (
+        github.event.pull_request.draft == false &&
         contains(github.event.pull_request.labels.*.name, 'run-smoke') &&
         (
           github.event.action != 'labeled' ||
@@ -56,6 +60,7 @@ jobs:
         with:
           flutter-version: '3.47.7'
           cache: true
+          pub-cache: true
 
       - name: flutter pub get
         run: flutter pub get

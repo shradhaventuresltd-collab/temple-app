@@ -2,22 +2,41 @@ name: analyze-test
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'lib/**'
+      - 'test/**'
+      - 'pubspec.*'
+      - 'android/**'
+      - 'scripts/**'
+      - 'analysis_options.yaml'
+      - '.github/workflows/**'
   push:
     branches:
       - main
+    paths:
+      - 'lib/**'
+      - 'test/**'
+      - 'pubspec.*'
+      - 'android/**'
+      - 'scripts/**'
+      - 'analysis_options.yaml'
+      - '.github/workflows/**'
 
 permissions:
   contents: read
-  # Flutter's action cache saves the SDK. contents stays read-only.
+  # Flutter's action cache saves the SDK and ~/.pub-cache. contents stays read-only.
   actions: write
 
-# Cancel superseded PR runs only. Pushes to main are not cancelled.
+# Cancel a superseded run on the same ref, including a newer push to main.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: true
 
 jobs:
   analyze-test:
+    # Draft pull requests are skipped. Push has no pull_request payload, so it runs.
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -69,10 +88,13 @@ jobs:
           bash scripts/ci/test_ci_guards.sh
           bash scripts/ci/test_demo_distribution_guard.sh
 
+      # cache caches the Flutter SDK. pub-cache caches ~/.pub-cache.
+      # This job does not run Gradle.
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           flutter-version: '3.47.7'
           cache: true
+          pub-cache: true
 
       - name: flutter pub get
         run: flutter pub get
