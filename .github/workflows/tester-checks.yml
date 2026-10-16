@@ -12,6 +12,15 @@ name: tester-checks
 
 on:
   workflow_dispatch:
+  # GitHub only accepts workflow_dispatch after this file is on the default
+  # branch. pull_request runs it on a branch that introduces or changes the
+  # check. Paths keep unrelated pull requests off the emulator.
+  pull_request:
+    paths:
+      - .github/workflows/tester-checks.yml
+      - integration_test/**
+      - scripts/ci/run_tester_checks.sh
+      - android/app/src/androidTest/**
 
 permissions:
   contents: read
