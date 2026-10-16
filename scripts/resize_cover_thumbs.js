@@ -618,7 +618,7 @@ export async function encodeWithSharp(bytes) {
     ({ default: sharp } = await import("sharp"));
   } catch {
     throw new Error(
-      "Thumbnail encoding needs sharp. From the repo: npm install --prefix scripts sharp. No write.",
+      "Thumbnail encoding needs sharp. From the repo: run npm ci in scripts/. No write.",
     );
   }
   const input = sharp(bytes, { failOn: "none" }).rotate();
