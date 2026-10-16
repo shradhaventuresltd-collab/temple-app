@@ -246,6 +246,22 @@ test("apply confirms the project, aborts when the Storage list fails, and skips 
   }
 });
 
+test("apply is refused in CI even when the emulator host is set", async () => {
+  let loads = 0;
+  await assert.rejects(
+    () =>
+      runEmptyCoverPacks(baseOpts({ apply: true, project: "demo-empty-cover", packDirs: ["/tmp/unused-pack"] }), {
+        env: { CI: "true", FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080" },
+        load: async () => {
+          loads += 1;
+          return [];
+        },
+      }),
+    /CI/,
+  );
+  assert.equal(loads, 0);
+});
+
 test("--apply refuses a bucket other than temple-directory-india.firebasestorage.app", async () => {
   let confirmed = 0;
   let loads = 0;
@@ -501,6 +517,8 @@ test("empty cover pack apply then resize then rebuild has no drift", { skip: !pr
   assert.match(host, /^(127\.0\.0\.1|localhost):\d+$/);
   const project = "demo-empty-cover";
   assert.equal(project.startsWith("demo-"), true);
+  // CI stays refused. This env is the local emulator only, with no CI flags.
+  const env = { FIRESTORE_EMULATOR_HOST: host };
   const sharp = (await import("sharp")).default;
   const admin = (await import("firebase-admin")).default;
   if (admin.apps.length === 0) {
@@ -540,7 +558,7 @@ test("empty cover pack apply then resize then rebuild has no drift", { skip: !pr
     const rows = await runEmptyCoverPacks(
       baseOpts({ apply: true, project, packDirs: [dir] }),
       {
-        env: process.env,
+        env,
         storagePreflight: async () => {
           await assertStorageAuth({
             async getFiles(query) {
@@ -569,7 +587,7 @@ test("empty cover pack apply then resize then rebuild has no drift", { skip: !pr
     assert.equal(saved.photos[0].licence, "CC-BY-SA");
     const thumbToken = "emu-thumb-token";
     await resizeMain(["--apply", "--project", project], {
-      env: process.env,
+      env,
       stat: async (path) =>
         objects.has(path) ? { generation: "3", updated: "2024-01-01T00:00:00.000Z" } : null,
       download: async (path) => objects.get(path),
@@ -583,7 +601,7 @@ test("empty cover pack apply then resize then rebuild has no drift", { skip: !pr
     const resized = (await db.collection("temples").doc("empty-shore").get()).data();
     assert.match(resized.photos[0].thumbUrl, /token=/);
     assert.equal(resized.photos[1].thumbUrl, undefined);
-    const report = await rebuildMain(["--project", project], { env: process.env, log: () => {} });
+    const report = await rebuildMain(["--project", project], { env, log: () => {} });
     assert.equal(report.drifted.length, 0);
     assert.equal(report.missing.length, 0);
     assert.equal(report.unchanged >= 1, true);
