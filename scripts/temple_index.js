@@ -925,7 +925,8 @@ const TRADITION_VALUES = new Set(["jain", "buddhist", "sikh"]);
 export function traditionOf(data) {
   // Document field first, and only an exact jain, buddhist, or sikh.
   // A different case or surrounding space falls through, matching the rules.
-  // Name, description, and specialities are not scanned.
+  // Name, description, and specialities are not scanned, so a neighboring
+  // "Jain temple" does not become a Jain chip.
   const stored = data?.tradition;
   if (TRADITION_VALUES.has(stored)) return stored;
   const deity = textOf(data, "deity").toLowerCase();

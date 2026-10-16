@@ -142,5 +142,17 @@
     "tradition": "unspecified",
     "living": false,
     "framing": "neutral"
+  },
+  {
+    "id": "chaturbhuji-name",
+    "name": "Budheswar Shiv Temple",
+    "deity": "Shiva",
+    "description": "The sanctum murti is called Chaturbhuji.",
+    "story": "Chaturbhuji is the local name of the image.",
+    "timings": "",
+    "specialities": ["Chaturbhuji"],
+    "tradition": "unspecified",
+    "living": false,
+    "framing": "neutral"
   }
 ]

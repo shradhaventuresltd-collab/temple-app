@@ -439,8 +439,7 @@ class _OptionChip extends StatelessWidget {
                 ),
               ],
             ),
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
+            softWrap: true,
             style: GoogleFonts.poppins(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -518,8 +517,7 @@ class _TriggerChip extends StatelessWidget {
                         constraints: const BoxConstraints(maxWidth: 180),
                         child: Text(
                           label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          softWrap: true,
                           style: GoogleFonts.poppins(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,

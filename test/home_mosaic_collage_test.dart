@@ -5,8 +5,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/data/sample_data.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/services/client_cache.dart';
+import 'package:temple_app/utils/detail_honesty.dart';
+import 'package:temple_app/widgets/cover_network_image.dart';
 import 'package:temple_app/widgets/home_mosaic_collage.dart';
 import 'package:temple_app/widgets/mosaic_tile_placeholder.dart';
+import 'package:temple_app/widgets/temple_browse_card.dart';
 import 'package:temple_app/widgets/temple_image_placeholder.dart';
 
 Temple _temple({
@@ -262,6 +265,148 @@ void main() {
     await tester.pump();
     expect(find.byIcon(Icons.temple_hindu_outlined), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'big tiles use the browse cover and stay a photo or Photo pending',
+    (tester) async {
+      final temple = _temple(
+        name: 'Abirami',
+        imageUrl: 'https://example.com/full.jpg',
+        images: const [
+          'https://example.com/cover.jpg',
+          'https://example.com/extra-big.jpg',
+        ],
+      );
+      final browseCover = verifiedCoverUrl(temple);
+      final browseFallback = storedFullCoverUrl(temple, browseCover!);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TempleBrowseCard(temple: temple, onTap: () {}),
+          ),
+        ),
+      );
+      final browseImage = tester.widget<CoverNetworkImage>(
+        find.byType(CoverNetworkImage),
+      );
+      expect(browseImage.url, browseCover);
+      expect(browseImage.fallbackUrl, browseFallback);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: HomeMosaicCollage(temples: [temple])),
+        ),
+      );
+      await tester.pump();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: HomeMosaicCollage(temples: [temple])),
+        ),
+      );
+      await tester.pump();
+
+      final mosaicImages = tester
+          .widgetList<CachedNetworkImage>(
+            find.descendant(
+              of: find.byType(HomeMosaicCollage),
+              matching: find.byType(CachedNetworkImage),
+            ),
+          )
+          .toList();
+      expect(mosaicImages.length, 10);
+
+      for (final image in mosaicImages) {
+        expect(image.imageUrl, browseCover);
+        expect(image.imageUrl, isNot(contains('extra-big')));
+        expect(image.width, isNotNull);
+        expect(image.height, isNotNull);
+        expect(image.width, isNot(double.infinity));
+        expect(image.height, isNot(double.infinity));
+        expect(image.width!, greaterThan(0));
+        expect(image.height!, greaterThan(0));
+        expect(image.fadeInDuration, const Duration(milliseconds: 400));
+        expect(image.placeholder, isNotNull);
+        expect(image.errorWidget, isNotNull);
+      }
+
+      final big = mosaicImages.first;
+      final small = mosaicImages[1];
+      expect(big.width!, greaterThan(small.width!));
+      final mosaicCover = tester.widget<CoverNetworkImage>(
+        find.byType(CoverNetworkImage).first,
+      );
+      expect(mosaicCover.url, browseImage.url);
+      expect(mosaicCover.fallbackUrl, browseImage.fallbackUrl);
+      final context = tester.element(
+        find
+            .descendant(
+              of: find.byType(HomeMosaicCollage),
+              matching: find.byType(CachedNetworkImage),
+            )
+            .first,
+      );
+      expect(
+        big.placeholder!(context, big.imageUrl),
+        isA<MosaicTilePlaceholder>(),
+      );
+      var failed = big.errorWidget!(context, big.imageUrl, Exception('blank'));
+      if (failed is CachedNetworkImage) {
+        expect(failed.imageUrl, browseFallback);
+        expect(failed.fadeInDuration, const Duration(milliseconds: 400));
+        expect(failed.placeholder, isNotNull);
+        failed = failed.errorWidget!(
+          context,
+          failed.imageUrl,
+          Exception('blank'),
+        );
+      }
+      expect(failed, isA<TempleImagePlaceholder>());
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(width: 240, height: 180, child: failed),
+          ),
+        ),
+      );
+      expect(find.text('Photo pending'), findsOneWidget);
+      expect(find.byIcon(Icons.temple_hindu_outlined), findsNothing);
+    },
+  );
+
+  testWidgets('a cover-less mosaic is Photo pending, not an icon-only tile', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: HomeMosaicCollage(
+            temples: [
+              _temple(imageUrl: 'https://picsum.photos/seed/blank/800'),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: HomeMosaicCollage(
+            temples: [
+              _temple(imageUrl: 'https://picsum.photos/seed/blank/800'),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byType(CachedNetworkImage), findsNothing);
+    expect(find.byType(MosaicTilePlaceholder), findsNothing);
+    expect(find.byIcon(Icons.temple_hindu_outlined), findsNothing);
+    expect(find.text('Photo pending'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

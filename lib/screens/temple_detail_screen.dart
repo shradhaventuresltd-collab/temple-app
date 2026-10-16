@@ -236,7 +236,7 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const OfflineBanner(),
+              const OfflineBanner(savedTempleCount: 1),
               // ── Image gallery with PageView ──
               Stack(
                 children: [
@@ -450,21 +450,25 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      temple.name,
-                      key: const Key('detail-temple-name'),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      softWrap: true,
-                      style: GoogleFonts.lora(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w700,
-                        height: 1.2,
-                        color: _saffron,
+                    SizedBox(
+                      width: double.infinity,
+                      child: Text(
+                        temple.name,
+                        key: const Key('detail-temple-name'),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        softWrap: true,
+                        style: GoogleFonts.lora(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w700,
+                          height: 1.2,
+                          color: _saffron,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 4),
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Icon(
                           Icons.place_rounded,
@@ -475,10 +479,15 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
                         Expanded(
                           child: Text(
                             '${temple.city}, ${temple.state}',
+                            key: const Key('detail-temple-place'),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            softWrap: true,
                             style: GoogleFonts.poppins(
                               fontSize: 14,
                               color: Colors.brown.shade600,
                               fontWeight: FontWeight.w500,
+                              height: 1.3,
                             ),
                           ),
                         ),

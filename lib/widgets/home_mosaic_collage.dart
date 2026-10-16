@@ -32,10 +32,40 @@ String drawerAboutDirectoryBlurb(int templeCount) {
       'all in one curated directory.';
 }
 
+/// One mosaic cell's cover, resolved the same way as a browse card.
+class _MosaicCover {
+  const _MosaicCover({required this.url, this.fallbackUrl, this.caption});
+
+  final String url;
+  final String? fallbackUrl;
+  final String? caption;
+}
+
+/// Covers for the home mosaic. Each temple contributes [verifiedCoverUrl]
+/// and [storedFullCoverUrl], the same pair a browse card requests.
+List<_MosaicCover> _mosaicCoversFor(Iterable<Temple> temples) {
+  final covers = <_MosaicCover>[];
+  for (final temple in temples) {
+    final url = verifiedCoverUrl(temple);
+    if (url == null) continue;
+    final caption =
+        temple.coverCaption ?? historicalCoverCaption(temple.photos, url);
+    covers.add(
+      _MosaicCover(
+        url: url,
+        fallbackUrl: storedFullCoverUrl(temple, url),
+        caption: caption,
+      ),
+    );
+  }
+  return covers;
+}
+
 /// Home mosaic collage that only shows verified temple photographs.
 ///
-/// Picsum / placeholder hosts are dropped via [verifiedMosaicUrls]. When none
-/// remain, tiles use [TempleImagePlaceholder] (Photo pending) instead of stock.
+/// Each tile uses the browse cover ([verifiedCoverUrl] plus
+/// [storedFullCoverUrl]). Picsum and other placeholder hosts never bind.
+/// When no cover remains, the hero is [TempleImagePlaceholder] (Photo pending).
 class HomeMosaicCollage extends StatelessWidget {
   const HomeMosaicCollage({super.key, required this.temples});
 
@@ -43,33 +73,25 @@ class HomeMosaicCollage extends StatelessWidget {
 
   static const Color deepSaffron = Color(0xFFE65100);
 
-  /// Verified URLs only — same honesty as browse cards and detail.
-  List<String> get verifiedImages => verifiedMosaicUrls(temples);
+  /// Browse covers only — one verified photograph per temple.
+  List<String> get verifiedImages => [
+    for (final cover in _mosaicCoversFor(temples)) cover.url,
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final images = verifiedImages;
-    final captions = <String, String>{
-      for (final temple in temples)
-        for (final url in verifiedGalleryUrls(temple))
-          if ((temple.coverCaption ??
-                  historicalCoverCaption(temple.photos, url)) !=
-              null)
-            url:
-                temple.coverCaption ??
-                historicalCoverCaption(temple.photos, url)!,
-    };
+    final covers = _mosaicCoversFor(temples);
     final count = temples.length;
 
     return SizedBox(
-      height: images.isEmpty ? 320 : 420,
+      height: covers.isEmpty ? 320 : 420,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          if (images.isEmpty)
+          if (covers.isEmpty)
             const TempleImagePlaceholder(expand: true)
           else
-            _MosaicGrid(images: images, captions: captions),
+            _MosaicGrid(covers: covers),
           const _MosaicScrim(),
           Positioned(
             left: 24,
@@ -84,10 +106,11 @@ class HomeMosaicCollage extends StatelessWidget {
 }
 
 class _MosaicGrid extends StatelessWidget {
-  const _MosaicGrid({required this.images, required this.captions});
+  const _MosaicGrid({required this.covers});
 
-  final List<String> images;
-  final Map<String, String> captions;
+  final List<_MosaicCover> covers;
+
+  _MosaicCover _at(int index) => covers[index % covers.length];
 
   @override
   Widget build(BuildContext context) {
@@ -97,31 +120,15 @@ class _MosaicGrid extends StatelessWidget {
           flex: 3,
           child: Row(
             children: [
-              Expanded(
-                flex: 2,
-                child: _MosaicTile(
-                  url: images[0 % images.length],
-                  caption: captions[images[0 % images.length]],
-                ),
-              ),
+              Expanded(flex: 2, child: _MosaicTile(cover: _at(0))),
               const SizedBox(width: 2),
               Expanded(
                 flex: 1,
                 child: Column(
                   children: [
-                    Expanded(
-                      child: _MosaicTile(
-                        url: images[1 % images.length],
-                        caption: captions[images[1 % images.length]],
-                      ),
-                    ),
+                    Expanded(child: _MosaicTile(cover: _at(1))),
                     const SizedBox(height: 2),
-                    Expanded(
-                      child: _MosaicTile(
-                        url: images[2 % images.length],
-                        caption: captions[images[2 % images.length]],
-                      ),
-                    ),
+                    Expanded(child: _MosaicTile(cover: _at(2))),
                   ],
                 ),
               ),
@@ -135,12 +142,7 @@ class _MosaicGrid extends StatelessWidget {
             children: [
               for (int i = 3; i < 7; i++) ...[
                 if (i > 3) const SizedBox(width: 2),
-                Expanded(
-                  child: _MosaicTile(
-                    url: images[i % images.length],
-                    caption: captions[images[i % images.length]],
-                  ),
-                ),
+                Expanded(child: _MosaicTile(cover: _at(i))),
               ],
             ],
           ),
@@ -154,30 +156,14 @@ class _MosaicGrid extends StatelessWidget {
                 flex: 1,
                 child: Column(
                   children: [
-                    Expanded(
-                      child: _MosaicTile(
-                        url: images[7 % images.length],
-                        caption: captions[images[7 % images.length]],
-                      ),
-                    ),
+                    Expanded(child: _MosaicTile(cover: _at(7))),
                     const SizedBox(height: 2),
-                    Expanded(
-                      child: _MosaicTile(
-                        url: images[8 % images.length],
-                        caption: captions[images[8 % images.length]],
-                      ),
-                    ),
+                    Expanded(child: _MosaicTile(cover: _at(8))),
                   ],
                 ),
               ),
               const SizedBox(width: 2),
-              Expanded(
-                flex: 2,
-                child: _MosaicTile(
-                  url: images[9 % images.length],
-                  caption: captions[images[9 % images.length]],
-                ),
-              ),
+              Expanded(flex: 2, child: _MosaicTile(cover: _at(9))),
             ],
           ),
         ),
@@ -188,31 +174,32 @@ class _MosaicGrid extends StatelessWidget {
 
 /// Single mosaic cell. Placeholder hosts never reach here from
 /// [HomeMosaicCollage]; defense-in-depth still refuses them.
+///
+/// The loaded photo uses a finite box, a fade-in placeholder, and
+/// [CoverNetworkImage]'s error path (OctoImage `errorBuilder`). A miss
+/// becomes Photo pending. The cell is never only the loading icon.
 class _MosaicTile extends StatelessWidget {
-  const _MosaicTile({required this.url, this.caption});
+  const _MosaicTile({required this.cover});
 
-  final String url;
-  final String? caption;
+  final _MosaicCover cover;
 
   @override
   Widget build(BuildContext context) {
+    final url = cover.url;
     if (isDisallowedImageUrl(url)) {
       return const TempleImagePlaceholder(expand: true);
     }
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final logicalWidth =
-            constraints.maxWidth.isFinite && constraints.maxWidth > 0
-            ? constraints.maxWidth
-            : MediaQuery.sizeOf(context).width;
-        final logicalHeight =
-            constraints.maxHeight.isFinite && constraints.maxHeight > 0
-            ? constraints.maxHeight
-            : logicalWidth;
+        final width = constraints.maxWidth;
+        final height = constraints.maxHeight;
+        if (!width.isFinite || !height.isFinite || width <= 0 || height <= 0) {
+          return const TempleImagePlaceholder(expand: true);
+        }
         final decode = listImageDecodeSize(
-          logicalWidth: logicalWidth,
-          logicalHeight: logicalHeight,
+          logicalWidth: width,
+          logicalHeight: height,
           devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
         );
         return Stack(
@@ -220,16 +207,17 @@ class _MosaicTile extends StatelessWidget {
           children: [
             CoverNetworkImage(
               url: url,
+              fallbackUrl: cover.fallbackUrl,
               fit: BoxFit.cover,
-              width: double.infinity,
-              height: double.infinity,
+              width: width,
+              height: height,
               memCacheWidth: decode.width,
               memCacheHeight: decode.height,
               fadeInDuration: const Duration(milliseconds: 400),
               placeholder: const MosaicTilePlaceholder(),
               error: const TempleImagePlaceholder(expand: true),
             ),
-            if (caption != null)
+            if (cover.caption != null)
               Positioned(
                 left: 4,
                 bottom: 4,
@@ -245,7 +233,7 @@ class _MosaicTile extends StatelessWidget {
                       vertical: 2,
                     ),
                     child: Text(
-                      caption!,
+                      cover.caption!,
                       style: GoogleFonts.poppins(
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
