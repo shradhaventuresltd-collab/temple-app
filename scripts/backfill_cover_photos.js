@@ -29,11 +29,11 @@
  * webp) in the temple-directory-india bucket, that temple is Wave A or
  * Wave B, and `photos[]` has no credit for that cover. Timestamp admin
  * uploads, custom names, and `_480` thumbs are reported and left in
- * place. The new cover is a creditable photo marked `cover_ok`, or frame
- * 01 when no photo has that flag. A later frame is not used unless it is
- * `cover_ok`. `no_cover_frame` is checked first, so that pack is reported
- * as `no-cover-frame` even when a photo is also `cover_ok`, and frame 01
- * is left unused. A pack with two `cover_ok` photos fails validation.
+ * place. The new cover is a creditable `cover: true` frame, then
+ * `cover_ok`, then frame 01. `no_cover_frame` is checked after those marks,
+ * so it blocks frame 01 and that pack is reported as `no-cover-frame`.
+ * A `gallery_only` frame is never the cover. A later frame is not used
+ * unless it is marked. A pack with two marked covers fails validation.
  * The new object is `temples/{id}/{filename}`. Apply uploads it only when
  * it is missing, and does not set an object ACL or public IAM. The written
  * imageUrl is the Firebase download URL
@@ -386,7 +386,7 @@ export function placeholderAuthor(author) {
   return true;
 }
 
-function manifestPair(photo) {
+export function manifestPair(photo) {
   if (placeholderAuthor(photo?.author)) return { ok: false, reason: "no-credit" };
   let licence;
   try {
@@ -488,22 +488,26 @@ function isExcluded(exclude, id) {
 }
 
 /**
- * `no_cover_frame` wins over `cover_ok` and over frame 01. Otherwise the
- * choice is a creditable `cover_ok` photo, then frame 01 when it is creditable.
+ * Cover choice. A creditable `cover: true` frame, then a creditable
+ * `cover_ok` frame, then `no_cover_frame` (no cover), then frame 01.
+ * `gallery_only` frames are never chosen.
  */
 export function bestCreditableFrame(frames, opts = {}) {
   if (!Array.isArray(frames) || frames.length === 0) return null;
-  if (opts.noCoverFrame === true) return null;
-  const flagged = frames.find((frame) => frame.coverOk && frame.pair);
+  const usable = (frame) => frame?.pair && frame.galleryOnly !== true;
+  const explicit = frames.find((frame) => frame.cover === true && usable(frame));
+  if (explicit) return explicit;
+  const flagged = frames.find((frame) => frame.coverOk && usable(frame));
   if (flagged) return flagged;
-  const cover = frames.find((frame) => /^01(?:_|\.|$)/.test(frame.filename));
+  if (opts.noCoverFrame === true) return null;
+  const cover = frames.find((frame) => /^01(?:_|\.|$)/.test(frame.filename) && usable(frame));
   if (!cover?.pair) return null;
   return cover;
 }
 
 /**
- * The frame a pack manifest would use as a replacement cover.
- * `no_cover_frame` returns null even when a photo is `cover_ok`.
+ * The frame a pack manifest would use as a cover.
+ * `cover: true`, then `cover_ok`, then frame 01 unless `no_cover_frame`.
  */
 export function coverFrameForPack(manifest) {
   const photos = Array.isArray(manifest?.photos) ? manifest.photos : [];
@@ -515,7 +519,9 @@ export function coverFrameForPack(manifest) {
     const pair = manifestPair(photo);
     frames.push({
       filename: photo.filename,
+      cover: photo.cover === true,
       coverOk: photo.cover_ok === true,
+      galleryOnly: photo.gallery_only === true,
       pair: pair.ok ? { credit: pair.credit, licence: pair.licence } : null,
     });
   }
