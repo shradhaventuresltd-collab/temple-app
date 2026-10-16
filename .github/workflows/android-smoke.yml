@@ -1,7 +1,9 @@
 name: android-smoke
 
-# Schedule and workflow_dispatch stay the main batch. There is no push trigger.
-# A push trigger that would run smoke after three merges was not added.
+# Pushes to main run this workflow. There is no paths filter on push, so a
+# main push is not skipped the way a paths filter skips non-matching events.
+# The plan job still skips a SHA that already has a green or failed
+# android-smoke attempt.
 #
 # Schedule is 10:00, 17:00, 22:00, and 05:00 IST (UTC+5:30):
 #   30 4,11,16,23 * * *
@@ -13,25 +15,31 @@ name: android-smoke
 # blocked until a new commit or a workflow_dispatch. A workflow_dispatch
 # cancel does not.
 #
-# pull_request is opt-in. types are labeled and synchronize only.
-# The emulator job runs only when the PR has the run-smoke label:
-#   contains(github.event.pull_request.labels.*.name, 'run-smoke')
-# A labeled event also requires github.event.label.name == 'run-smoke',
-# so adding any other label does not start smoke. synchronize runs only
-# while that label is already present. The plan job does not apply the
-# green/failed SHA skip on pull_request. After a green pull_request
-# android-smoke job, remove-run-smoke-label deletes run-smoke so a later
-# push does not start another run. That job's only permission is
-# pull-requests: write. If the token cannot delete the label, the job
-# warns and exits 0; remove it with:
+# pull_request runs when the diff touches lib/ or android/ (plus the smoke
+# workflow itself). types include opened, synchronize, and reopened so the
+# first push is enough. A labeled event still requires
+# github.event.label.name == 'run-smoke', so adding any other label does
+# not start smoke. The plan job does not apply the green/failed SHA skip
+# on pull_request. After a green pull_request android-smoke job,
+# remove-run-smoke-label deletes run-smoke so a leftover label does not
+# matter. That job's only permission is pull-requests: write. If the token
+# cannot delete the label, the job warns and exits 0; remove it with:
 #   gh pr edit <number> --remove-label run-smoke
+# The emulator job timeout-minutes stays 15.
 
 on:
   schedule:
     - cron: '30 4,11,16,23 * * *'
   workflow_dispatch:
+  push:
+    branches:
+      - main
   pull_request:
-    types: [labeled, synchronize]
+    types: [opened, synchronize, reopened, labeled]
+    paths:
+      - 'lib/**'
+      - 'android/**'
+      - '.github/workflows/android-smoke.yml'
 
 permissions:
   contents: read
@@ -45,17 +53,13 @@ concurrency:
 
 jobs:
   skip-if-unchanged:
-    # Schedule and dispatch always plan. A pull request plans only with the
-    # run-smoke label, and a labeled event only when that label was the one added.
+    # Push, schedule, and dispatch always plan. A pull request plans when
+    # the paths filter started the workflow. A labeled event plans only when
+    # the added label is run-smoke.
     if: >-
       github.event_name != 'pull_request' ||
-      (
-        contains(github.event.pull_request.labels.*.name, 'run-smoke') &&
-        (
-          github.event.action != 'labeled' ||
-          github.event.label.name == 'run-smoke'
-        )
-      )
+      github.event.action != 'labeled' ||
+      github.event.label.name == 'run-smoke'
     permissions:
       contents: read
       actions: read
@@ -79,13 +83,8 @@ jobs:
       needs.skip-if-unchanged.outputs.should_run == 'true' &&
       (
         github.event_name != 'pull_request' ||
-        (
-          contains(github.event.pull_request.labels.*.name, 'run-smoke') &&
-          (
-            github.event.action != 'labeled' ||
-            github.event.label.name == 'run-smoke'
-          )
-        )
+        github.event.action != 'labeled' ||
+        github.event.label.name == 'run-smoke'
       )
     permissions:
       contents: read

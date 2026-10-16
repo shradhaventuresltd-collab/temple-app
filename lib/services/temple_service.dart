@@ -63,8 +63,14 @@ class TempleService {
 
   IndexStampStore get _stampStore => _stamps ?? _ownedStamps;
 
-  late final TempleDirectoryClient _ownedClient =
-      FirestoreTempleDirectoryClient(_firestore ?? FirebaseFirestore.instance);
+  late final TempleDirectoryClient _ownedClient = FirestoreTempleDirectoryClient(
+    _firestore ?? _firestoreInstance(),
+  );
+
+  static FirebaseFirestore _firestoreInstance() {
+    noteFirebaseAccess('FirebaseFirestore.instance');
+    return FirebaseFirestore.instance;
+  }
 
   late final IndexStampStore _ownedStamps = SharedPreferencesIndexStampStore();
 

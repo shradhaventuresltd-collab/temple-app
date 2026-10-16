@@ -130,6 +130,11 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
       });
       return;
     }
+    // Second launch reads Terms from SharedPreferences and would open Home
+    // while Firebase.initializeApp is still running. Wait for that future
+    // on every path, including the one main() already completed.
+    await _firebaseReady;
+    if (!mounted) return;
     _openHomeAndStartAds();
   }
 
