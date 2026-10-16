@@ -18,6 +18,7 @@ class Temple {
     this.images = const [],
     this.photos = const [],
     this.writePhotos = false,
+    this.tradition,
     this.indexTradition,
     this.indexFraming,
     this.coverCaption,
@@ -52,6 +53,12 @@ class Temple {
   /// plus [images] from that list in the same payload. Seed leaves this
   /// false so existing docs are not backfilled.
   final bool writePhotos;
+
+  /// Optional `temples/{id}.tradition`. `jain`, `buddhist`, or `sikh`.
+  ///
+  /// Null means the field is absent, which is the Hindu listing. This is not
+  /// the index flag [indexTradition].
+  final String? tradition;
 
   /// Set when this value came from a `temple_index` entry, not a full document.
   ///
@@ -107,6 +114,7 @@ class Temple {
       specialities: _stringList(data['specialities']),
       images: _stringList(data['images']),
       photos: _photoList(data['photos']),
+      tradition: templeTraditionField(data['tradition']),
       latitude: _coordinatePair(data).lat,
       longitude: _coordinatePair(data).lng,
     );
@@ -143,6 +151,7 @@ class Temple {
       'longitude': hasCoordinates ? longitude : null,
       'timings': _timings,
       'specialities': specialities,
+      if (tradition != null) 'tradition': tradition,
     };
     if (includeImages) {
       data['images'] = gallery;
@@ -168,6 +177,7 @@ class Temple {
     List<String>? images,
     List<TemplePhoto>? photos,
     bool? writePhotos,
+    String? tradition,
     String? indexTradition,
     String? indexFraming,
     String? coverCaption,
@@ -189,6 +199,7 @@ class Temple {
       images: images ?? this.images,
       photos: photos ?? this.photos,
       writePhotos: writePhotos ?? this.writePhotos,
+      tradition: tradition ?? this.tradition,
       indexTradition: indexTradition ?? this.indexTradition,
       indexFraming: indexFraming ?? this.indexFraming,
       coverCaption: coverCaption ?? this.coverCaption,
@@ -216,6 +227,15 @@ class Temple {
     }
     return const [];
   }
+}
+
+/// `jain`, `buddhist`, or `sikh` from a temple document. Anything else is absent.
+String? templeTraditionField(dynamic value) {
+  if (value is! String) return null;
+  return switch (value) {
+    'jain' || 'buddhist' || 'sikh' => value,
+    _ => null,
+  };
 }
 
 /// Missing numbers, non-finite numbers, and the (0, 0) placeholder are null.

@@ -25,6 +25,7 @@ import {
   estimateShardBytes,
   framingOf,
   indexFlags,
+  traditionOf,
   planOps,
   planSeedIndexBatches,
   stateSlug,
@@ -46,6 +47,28 @@ test("flag fixture matches the index projection", () => {
     assert.equal(flags.living, row.living, row.id);
     assert.equal(flags.framing, row.framing, row.id);
   }
+});
+
+test("traditionOf matches the document tradition exactly", () => {
+  assert.equal(traditionOf({ tradition: "jain", deity: "Shiva" }), "jain");
+  assert.equal(traditionOf({ tradition: "buddhist", deity: "Shiva" }), "buddhist");
+  assert.equal(traditionOf({ tradition: "sikh", deity: "Shiva" }), "sikh");
+  for (const tradition of ["Jain", "JAIN", " jain", "jain ", " jain "]) {
+    assert.equal(
+      traditionOf({ tradition, deity: "Shiva" }),
+      "unspecified",
+      tradition,
+    );
+  }
+  assert.equal(traditionOf({ tradition: "Jain", deity: "Buddha" }), "buddhist");
+  assert.equal(traditionOf({ deity: "Jain Tirthankaras" }), "jain");
+  assert.equal(
+    traditionOf({
+      deity: "Shiva",
+      description: "near the Digambar Jain temple",
+    }),
+    "unspecified",
+  );
 });
 
 test("state-batch payload is a lean entry and is backfilled", () => {

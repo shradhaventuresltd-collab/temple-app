@@ -1,0 +1,12 @@
+{
+  "description": "Set Budheswar Shiv Temple deity to Shiva. Does not change specialities, description, or story.",
+  "temples": [
+    {
+      "id": "budheswar-shiv-temple-dhamdha",
+      "note": "Pavi-verified: Chaturbhuji is a separate adjacent Vishnu shrine sharing Wikidata Q117932106; https://www.wikidata.org/wiki/Q117932106",
+      "fields": {
+        "deity": "Shiva"
+      }
+    }
+  ]
+}
