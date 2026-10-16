@@ -113,12 +113,18 @@ TempleFormValidation validateTempleDraft(TempleDraft draft) {
   } else if (imageUrl.isNotEmpty && isUnlicensedStockImageUrl(imageUrl)) {
     errors['imageUrl'] =
         'Use a photograph URL. Unlicensed stock hosts are not saved.';
+  } else if (imageUrl.isNotEmpty && isPlacesMirrorUrl(imageUrl)) {
+    errors['imageUrl'] =
+        'Use a credited photograph. Google Places mirrors are not saved.';
   }
   if (images.any(isPlaceholderImageUrl)) {
     errors['images'] = 'Use photograph URLs. Placeholder hosts are not saved.';
   } else if (images.any(isUnlicensedStockImageUrl)) {
     errors['images'] =
         'Use photograph URLs. Unlicensed stock hosts are not saved.';
+  } else if (images.any(isPlacesMirrorUrl)) {
+    errors['images'] =
+        'Use credited photographs. Google Places mirrors are not saved.';
   }
   if (errors.isNotEmpty) {
     return TempleFormValidation(errors: errors);

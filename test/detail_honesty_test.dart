@@ -21,6 +21,7 @@ Temple _draft({
   String story = 'Notes are still being checked.',
   String timings = '6:00 AM–8:00 PM daily.',
   List<String> specialities = const ['Stone gateway'],
+  List<TemplePhoto> photos = const [],
 }) {
   return Temple(
     name: name,
@@ -34,6 +35,7 @@ Temple _draft({
     timings: timings,
     specialities: specialities,
     images: images,
+    photos: photos,
     latitude: 9.9,
     longitude: 78.1,
   );
@@ -109,6 +111,73 @@ void main() {
       isUnlicensedStockImageUrl('https://www.adobe.com/image/temple.jpg'),
       isFalse,
     );
+    const placesPublic =
+        'https://storage.googleapis.com/temple-directory-india.firebasestorage.app/temples/shore-temple/image_1.jpg';
+    const placesToken =
+        'https://firebasestorage.googleapis.com/v0/b/temple-directory-india.firebasestorage.app/o/temples%2Fshore-temple%2Fimage_1.jpg?alt=media&token=secret';
+    const placesThumb =
+        'https://storage.googleapis.com/temple-directory-india.firebasestorage.app/temples/shore-temple/image_1_480_g4.jpg';
+    const otherBucket =
+        'https://storage.googleapis.com/other-bucket/temples/shore-temple/image_1.jpg';
+    const otherToken =
+        'https://firebasestorage.googleapis.com/v0/b/other-bucket/o/temples%2Fshore-temple%2Fimage_1.jpg?alt=media&token=secret';
+    const packFrame =
+        'https://storage.googleapis.com/temple-directory-india.firebasestorage.app/temples/shore-temple/01_Shore.jpg';
+    expect(isPlacesMirrorUrl(placesPublic), isTrue);
+    expect(isPlacesMirrorUrl(placesToken), isTrue);
+    expect(isPlacesMirrorUrl(placesThumb), isTrue);
+    expect(isPlacesMirrorUrl(otherBucket), isFalse);
+    expect(isPlacesMirrorUrl(otherToken), isFalse);
+    expect(isPlacesMirrorUrl(packFrame), isFalse);
+    expect(isPlacesMirrorUrl(placesPublic, credit: 'Ada Lovelace'), isFalse);
+    expect(isPlacesMirrorUrl(placesPublic, credit: 'Unknown author'), isTrue);
+    expect(isPlacesMirrorUrl(placesPublic, credit: 'See Commons file page'), isTrue);
+    expect(isDisallowedImageUrl(placesPublic), isTrue);
+    expect(isDisallowedImageUrl(placesToken), isTrue);
+    expect(isDisallowedImageUrl(placesPublic, credit: 'Ada Lovelace'), isFalse);
+    expect(isDisallowedImageUrl(packFrame), isFalse);
+    expect(
+      isDisallowedImageUrl(
+        'https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=abc',
+      ),
+      isTrue,
+    );
+    expect(
+      isDisallowedImageUrl(
+        'https://places.googleapis.com/v1/places/abc/photos/def/media?key=k',
+      ),
+      isTrue,
+    );
+    expect(
+      isDisallowedImageUrl('https://lh3.googleusercontent.com/places/abc=s1600'),
+      isTrue,
+    );
+    expect(
+      isDisallowedImageUrl('https://maps.googleapis.com/maps/api/staticmap?center=1'),
+      isFalse,
+    );
+    expect(
+      verifiedGalleryUrls(
+        _draft(
+          imageUrl: placesPublic,
+          images: [placesPublic],
+          photos: [
+            TemplePhoto(
+              url: placesPublic,
+              credit: 'Ada Lovelace',
+              licence: PhotoLicence.ccBy,
+              order: 0,
+            ),
+          ],
+        ),
+      ),
+      [placesPublic],
+    );
+    expect(
+      verifiedCoverUrl(_draft(imageUrl: placesToken, images: [placesToken])),
+      isNull,
+    );
+    expect(verifiedCoverUrl(_draft(imageUrl: packFrame, images: [packFrame])), packFrame);
     expect(
       isUnlicensedStockImageUrl('https://gettyimages.example.com/photo.jpg'),
       isFalse,

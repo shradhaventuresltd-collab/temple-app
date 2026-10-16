@@ -34,7 +34,7 @@ jobs:
         run: node -e "require('sharp')"
 
       - name: state batch and index checks
-        run: node --test scripts/state_batch.test.js scripts/rebuild_index.test.js scripts/resize_cover_thumbs.test.js scripts/audit_coords.test.js scripts/backfill_cover_photos.test.js scripts/clear_placeholder_covers.test.js scripts/no_public_acl.test.js scripts/download_token.test.js scripts/redact_url.test.js
+        run: node --test scripts/state_batch.test.js scripts/rebuild_index.test.js scripts/resize_cover_thumbs.test.js scripts/audit_coords.test.js scripts/backfill_cover_photos.test.js scripts/clear_placeholder_covers.test.js scripts/no_public_acl.test.js scripts/download_token.test.js scripts/redact_url.test.js scripts/purge_places_photos.test.js scripts/no_places_photos.test.js
 
       - name: photo patch checks
         run: node --test scripts/photo_patch.test.js
@@ -47,7 +47,7 @@ jobs:
       # Local Firestore emulator only. demo-* never reaches production.
       - name: temple index emulator rules
         run: |
-          scripts/node_modules/.bin/firebase emulators:exec --only firestore --project demo-temple-index "node --test scripts/temple_index_rules.test.js && node --test --test-name-pattern \"existing meta and shard|would pass 400|temple id exists\" scripts/state_batch.test.js"
+          scripts/node_modules/.bin/firebase emulators:exec --only firestore --project demo-temple-index "node --test scripts/temple_index_rules.test.js && node --test --test-name-pattern \"existing meta and shard|would pass 400|temple id exists\" scripts/state_batch.test.js && node --test --test-name-pattern \"emulator apply clears\" scripts/purge_places_photos.test.js"
 
       # Own emulator and project so leftover rules-test documents cannot
       # change the read counts.

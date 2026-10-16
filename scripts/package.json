@@ -1,10 +1,9 @@
 {
   "name": "temple-image-uploader",
   "version": "1.0.0",
-  "description": "Script to fetch and upload temple images to Firebase",
+  "description": "Temple directory maintenance scripts. Places photo upload is removed.",
   "type": "module",
   "scripts": {
-    "upload": "node upload_temple_images.js",
     "upload-pack": "node upload_research_pack.js",
     "backfill-attribution": "node backfill_attribution.js",
     "grant-admin": "node grant_admin.js",

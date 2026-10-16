@@ -145,6 +145,25 @@ void main() {
       'Use a photograph URL. Unlicensed stock hosts are not saved.',
     );
 
+    final places = validateTempleDraft(
+      draft(
+        imageUrl:
+            'https://firebasestorage.googleapis.com/v0/b/temple-directory-india.firebasestorage.app/o/temples%2Fshore-temple%2Fimage_1.jpg?alt=media&token=secret',
+      ),
+    );
+    expect(places.isValid, isFalse);
+    expect(
+      places.errors['imageUrl'],
+      'Use a credited photograph. Google Places mirrors are not saved.',
+    );
+    final otherBucket = validateTempleDraft(
+      draft(
+        imageUrl:
+            'https://storage.googleapis.com/other-bucket/temples/shore-temple/image_1.jpg',
+      ),
+    );
+    expect(otherBucket.isValid, isTrue);
+
     final unsplash = validateTempleDraft(
       draft(imageUrl: 'https://images.unsplash.com/photo-1'),
     );

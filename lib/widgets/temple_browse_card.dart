@@ -179,12 +179,19 @@ class TempleBrowseCard extends StatelessWidget {
   }
 }
 
+String? _browseCredit(Temple temple, String url) {
+  for (final photo in temple.photos) {
+    if (photo.url.trim() == url.trim()) return photo.credit;
+  }
+  return null;
+}
+
 /// Full gallery URL already on [temple], when it is not the thumb itself.
 String? _storedFullCover(Temple temple, String displayed) {
   final image = temple.imageUrl.trim();
   if (image.startsWith('https://') &&
       image != displayed &&
-      !isDisallowedImageUrl(image)) {
+      !isDisallowedImageUrl(image, credit: _browseCredit(temple, image))) {
     return image;
   }
   for (final photo in temple.photos) {
@@ -193,7 +200,7 @@ String? _storedFullCover(Temple temple, String displayed) {
     if (thumb == displayed &&
         url.startsWith('https://') &&
         url != displayed &&
-        !isDisallowedImageUrl(url)) {
+        !isDisallowedImageUrl(url, credit: photo.credit)) {
       return url;
     }
   }
