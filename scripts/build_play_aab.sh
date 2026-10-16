@@ -3,6 +3,9 @@
 #
 # Refuses ENABLE_ADMIN_TOOLS so Seed / CMS / Upload stay out of the Play AAB,
 # and refuses DEMO_BUILD so a Play upload cannot ship AdMob test units.
+# Refuses DEMO_APP_ID_SUFFIX and demo_suffix so the Play bundle stays
+# com.shradhaventures.temple. The .demo suffix is only for the App
+# Distribution demo APK.
 #
 # Forms that fail before Gradle runs:
 #   --dart-define=ENABLE_ADMIN_TOOLS=...     (= form, any value)
@@ -11,6 +14,9 @@
 #   --dart-define-from-file <file>           when the file contains
 #   --dart-define-from-file=<file>           ENABLE_ADMIN_TOOLS or DEMO_BUILD
 # The same = / space / env / from-file forms refuse DEMO_BUILD.
+# The same forms refuse DEMO_APP_ID_SUFFIX. -Pdemo_suffix and
+# ORG_GRADLE_PROJECT_demo_suffix are refused too: Gradle would install
+# the Play bundle as com.shradhaventures.temple.demo.
 #
 # After a successful `flutter build appbundle --release`, the bundle is
 # checked with apksigner (when present) and keytool. A cert whose subject
@@ -46,6 +52,13 @@ refuse_admin() {
 refuse_demo() {
   echo "error: Play AAB must not be built with DEMO_BUILD." >&2
   echo "DEMO_BUILD forces AdMob test units. Play builds use production ad units." >&2
+  exit 1
+}
+
+refuse_demo_suffix() {
+  echo "error: Play AAB must not be built with DEMO_APP_ID_SUFFIX or demo_suffix." >&2
+  echo "The .demo application id is only for the App Distribution demo APK." >&2
+  echo "Play builds stay on com.shradhaventures.temple." >&2
   exit 1
 }
 
@@ -103,6 +116,9 @@ check_define_file() {
   if grep -q 'DEMO_BUILD' "$file"; then
     refuse_demo
   fi
+  if grep -q 'DEMO_APP_ID_SUFFIX\|demo_suffix' "$file"; then
+    refuse_demo_suffix
+  fi
 }
 
 check_blocked_defines() {
@@ -111,6 +127,9 @@ check_blocked_defines() {
   fi
   if env | grep -q '^DEMO_BUILD='; then
     refuse_demo
+  fi
+  if env | grep -q -e '^DEMO_APP_ID_SUFFIX=' -e '^ORG_GRADLE_PROJECT_demo_suffix='; then
+    refuse_demo_suffix
   fi
 
   local args=("$@")
@@ -134,6 +153,9 @@ check_blocked_defines() {
         ;;
       *DEMO_BUILD*)
         refuse_demo
+        ;;
+      *DEMO_APP_ID_SUFFIX*|*demo_suffix*)
+        refuse_demo_suffix
         ;;
     esac
     i=$((i + 1))

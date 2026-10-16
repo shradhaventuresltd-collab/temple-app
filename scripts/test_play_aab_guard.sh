@@ -9,6 +9,8 @@ cd "$(dirname "$0")/.."
 
 unset ENABLE_ADMIN_TOOLS || true
 unset DEMO_BUILD || true
+unset DEMO_APP_ID_SUFFIX || true
+unset ORG_GRADLE_PROJECT_demo_suffix || true
 unset SMOKE_GATE_OVERRIDE || true
 
 expect_fail() {
@@ -77,6 +79,31 @@ printf '%s\n' 'DEMO_BUILD=true' >"$defines_dir/demo.env"
 expect_fail "dart-define-from-file DEMO_BUILD" \
   "DEMO_BUILD" \
   ./scripts/build_play_aab.sh --dart-define-from-file="$defines_dir/demo.env"
+
+expect_fail "DEMO_APP_ID_SUFFIX equals form" \
+  "DEMO_APP_ID_SUFFIX" \
+  ./scripts/build_play_aab.sh --dart-define=DEMO_APP_ID_SUFFIX=true
+
+expect_fail "DEMO_APP_ID_SUFFIX space form" \
+  "DEMO_APP_ID_SUFFIX" \
+  ./scripts/build_play_aab.sh --dart-define DEMO_APP_ID_SUFFIX=true
+
+expect_fail "DEMO_APP_ID_SUFFIX env" \
+  "DEMO_APP_ID_SUFFIX" \
+  env DEMO_APP_ID_SUFFIX=true ./scripts/build_play_aab.sh
+
+expect_fail "ORG_GRADLE_PROJECT_demo_suffix env" \
+  "demo_suffix" \
+  env ORG_GRADLE_PROJECT_demo_suffix=true ./scripts/build_play_aab.sh
+
+expect_fail "gradle -Pdemo_suffix" \
+  "demo_suffix" \
+  ./scripts/build_play_aab.sh -Pdemo_suffix=true
+
+printf '%s\n' 'DEMO_APP_ID_SUFFIX=true' >"$defines_dir/suffix.env"
+expect_fail "dart-define-from-file DEMO_APP_ID_SUFFIX" \
+  "DEMO_APP_ID_SUFFIX" \
+  ./scripts/build_play_aab.sh --dart-define-from-file="$defines_dir/suffix.env"
 
 printf '%s\n' 'not a bundle' >"$defines_dir/readme.txt"
 (

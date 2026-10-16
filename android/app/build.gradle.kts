@@ -152,6 +152,17 @@ gradle.taskGraph.whenReady {
     if (releaseRequested && !hasReleaseKeystore) {
         throw GradleException(releaseSigningError())
     }
+    // flutter build appbundle runs bundleRelease. The demo APK is
+    // assembleRelease and may use the suffix. A Play bundle must not.
+    val playBundleRequested = allTasks.any { task ->
+        task.project == project && task.name == "bundleRelease"
+    }
+    if (playBundleRequested && demoAppIdSuffix) {
+        throw GradleException(
+            "Play app bundle must stay com.shradhaventures.temple. " +
+                "DEMO_APP_ID_SUFFIX and -Pdemo_suffix apply only to the App Distribution demo APK."
+        )
+    }
 }
 
 flutter {
