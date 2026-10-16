@@ -62,6 +62,8 @@ val demoBuild = dartDefines()["DEMO_BUILD"] == "true"
 // demo-app-distribution sets DEMO_APP_ID_SUFFIX (or -Pdemo_suffix=true).
 val demoAppIdSuffix = dartDefines()["DEMO_APP_ID_SUFFIX"] == "true" ||
     (findProperty("demo_suffix") as? String) == "true"
+// tester-checks only. The Play bundle and android-smoke do not set this.
+val ciTesterChecks = (findProperty("ciTesterChecks") as? String) == "true"
 
 fun releaseSigningError(): String {
     val problem = when {
@@ -142,15 +144,19 @@ android {
             // androidTest APK. Android rejects instrumentation when the
             // signatures differ. -PciTesterChecks=true signs the test APK
             // with the release key. Local debug builds leave this unset.
-            if ((findProperty("ciTesterChecks") as? String) == "true" &&
-                hasReleaseKeystore
-            ) {
+            if (ciTesterChecks && hasReleaseKeystore) {
                 signingConfig = signingConfigs.getByName("release")
             }
         }
         release {
             if (hasReleaseKeystore) {
                 signingConfig = signingConfigs.getByName("release")
+            }
+            // Flutter minifies release. Keep the instrumentation classes when
+            // this APK is the tester-checks target. Play builds leave the
+            // property unset, so they do not add this file.
+            if (ciTesterChecks) {
+                proguardFiles.add(file("ci-tester-checks-rules.pro"))
             }
         }
     }
@@ -187,4 +193,23 @@ dependencies {
     androidTestImplementation("androidx.test:runner:1.3.0")
     androidTestImplementation("androidx.test:rules:1.2.0")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.3.0")
+    if (ciTesterChecks) {
+        // The debug app already contains these, so the androidTest APK does
+        // not. The release app is minified and omits the dev-dependency
+        // plugin, so instrumentation cannot load AndroidJUnitRunner unless
+        // this APK ships the classes.
+        releaseImplementation("androidx.test:runner:1.3.0")
+        releaseImplementation("androidx.test:rules:1.2.0")
+        releaseImplementation("androidx.test.espresso:espresso-core:3.3.0")
+    }
+}
+
+if (ciTesterChecks) {
+    afterEvaluate {
+        val integration = rootProject.findProject(":integration_test")
+            ?: throw GradleException(
+                "ciTesterChecks requires the :integration_test Android project"
+            )
+        dependencies.add("releaseApi", integration)
+    }
 }

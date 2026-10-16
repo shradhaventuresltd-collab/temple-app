@@ -120,6 +120,10 @@ jobs:
           EOF
 
       - name: Build release APK
+        env:
+          # Ships the instrumentation classes in this release APK. Play builds
+          # do not set it.
+          ORG_GRADLE_PROJECT_ciTesterChecks: "true"
         run: |
           # SwiftShader on this emulator does not run Impeller. The edit is
           # local to the job; the Play manifest is unchanged.
@@ -135,10 +139,10 @@ jobs:
           ./gradlew :app:assembleDebugAndroidTest \
             -PciTesterChecks=true \
             -Ptarget="${GITHUB_WORKSPACE}/integration_test/tester_checks_test.dart"
-          test_apk="$(find "${GITHUB_WORKSPACE}/build" -name 'app-debug-androidTest.apk' -print -quit)"
-          if [[ -z "$test_apk" ]]; then
+          test_apk="${GITHUB_WORKSPACE}/build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk"
+          if [[ ! -f "$test_apk" ]]; then
             find "${GITHUB_WORKSPACE}/build" -name '*.apk' -print
-            echo "androidTest apk was not produced" >&2
+            echo "androidTest apk was not produced at $test_apk" >&2
             exit 1
           fi
           cp -a "$test_apk" /tmp/tester-checks-androidTest.apk
