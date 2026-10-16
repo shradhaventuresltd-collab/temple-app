@@ -14,7 +14,7 @@ mkdir -p "$OUT"
 
 write_summary() {
   python3 - "$OUT/events.log" "$OUT/summary.md" <<'PY'
-import pathlib, sys
+import os, pathlib, sys
 events = pathlib.Path(sys.argv[1]).read_text(errors="replace").splitlines()
 out = pathlib.Path(sys.argv[2])
 
@@ -89,6 +89,14 @@ lines = [
     "Check 7 runs because #77 is in main 63da3fc.",
     "",
 ]
+profile = os.environ.get("TESTER_CHECKS_PROFILE", "").strip()
+wm = os.environ.get("TESTER_CHECKS_WM_SIZE", "").strip()
+if profile or wm:
+    detail = profile or "default"
+    if wm:
+        detail += f", wm size {wm}"
+    lines.append(f"Emulator profile: {detail}")
+    lines.append("")
 if phases:
     lines.append("Phases seen: " + ", ".join(phases))
     lines.append("")
@@ -138,6 +146,11 @@ fi
 
 adb shell input keyevent KEYCODE_WAKEUP || true
 adb shell wm dismiss-keyguard || true
+if [[ -n "${TESTER_CHECKS_WM_SIZE:-}" ]]; then
+  adb shell wm size "$TESTER_CHECKS_WM_SIZE"
+  adb shell wm density "${TESTER_CHECKS_WM_DENSITY:-480}"
+  echo "wm size $(adb shell wm size | tr -d '\r') density $(adb shell wm density | tr -d '\r')"
+fi
 adb shell settings put global window_animation_scale 0 || true
 adb shell settings put global transition_animation_scale 0 || true
 adb shell settings put global animator_duration_scale 0 || true

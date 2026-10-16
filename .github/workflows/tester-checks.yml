@@ -5,10 +5,10 @@ name: tester-checks
 # change that job's 15-minute limit.
 #
 # The emulator is the android-smoke KVM setup: API 34 google_atd, x86_64,
-# Pixel 6, the same system-image and AVD cache keys, and
-# reactivecircus/android-emulator-runner. The APK is release, x86_64,
-# with no DEMO_BUILD and no ENABLE_ADMIN_TOOLS. The job does not upload
-# the APK.
+# the same system image, and reactivecircus/android-emulator-runner.
+# One leg is Pixel 6. The other reuses that AVD and sets a 360dp viewport
+# (1080x1920 at 480dpi). The APK is release, x86_64, with no DEMO_BUILD
+# and no ENABLE_ADMIN_TOOLS. The job does not upload the APK.
 
 on:
   workflow_dispatch:
@@ -36,6 +36,19 @@ jobs:
       actions: write
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: pixel-6
+            wm_size: ""
+            artifact: tester-checks-screenshots
+          # 1080x1920 at 480dpi is a 360dp-wide viewport. Same API 34 image
+          # and Pixel 6 AVD cache as android-smoke, so this leg does not
+          # download a second system image or boot a cold AVD.
+          - id: 360dp
+            wm_size: 1080x1920
+            artifact: tester-checks-screenshots-360dp
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -158,7 +171,7 @@ jobs:
 
       - name: Create AVD snapshot for caching
         id: create-avd
-        if: steps.avd-cache.outputs.cache-hit != 'true'
+        if: matrix.id == 'pixel-6' && steps.avd-cache.outputs.cache-hit != 'true'
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: 34
@@ -188,10 +201,10 @@ jobs:
           disable-animations: true
           pre-emulator-launch-script: bash scripts/ci/prepare_atd_avd.sh temple-smoke-34-atd
           emulator-options: -no-snapshot-save -no-snapshot-load -no-boot-anim -gpu swiftshader_indirect -no-window -no-audio -camera-back none -camera-front none -partition-size 2048
-          script: timeout --kill-after=30s 12m bash scripts/ci/run_tester_checks.sh
+          script: TESTER_CHECKS_PROFILE=${{ matrix.id }} TESTER_CHECKS_WM_SIZE=${{ matrix.wm_size }} timeout --kill-after=30s 11m bash scripts/ci/run_tester_checks.sh
 
       - name: Save emulator system image
-        if: always() && steps.system-image-cache.outputs.cache-hit != 'true'
+        if: always() && matrix.id == 'pixel-6' && steps.system-image-cache.outputs.cache-hit != 'true'
         continue-on-error: true
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
@@ -199,7 +212,7 @@ jobs:
           key: system-image-android-34-google_atd-x86_64
 
       - name: Save AVD
-        if: always() && steps.avd-cache.outputs.cache-hit != 'true' && steps.create-avd.outcome == 'success'
+        if: always() && matrix.id == 'pixel-6' && steps.avd-cache.outputs.cache-hit != 'true' && steps.create-avd.outcome == 'success'
         continue-on-error: true
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
@@ -212,7 +225,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: tester-checks-screenshots
+          name: ${{ matrix.artifact }}
           path: tester-checks-screenshots
           retention-days: 14
           if-no-files-found: ignore
