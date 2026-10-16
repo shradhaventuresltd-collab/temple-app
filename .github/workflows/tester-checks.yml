@@ -1,0 +1,209 @@
+name: tester-checks
+
+# Manual screenshot evidence for the release app on prod Firestore.
+# workflow_dispatch only. This does not run android-smoke and does not
+# change that job's 15-minute limit.
+#
+# The emulator is the android-smoke KVM setup: API 34 google_atd, x86_64,
+# Pixel 6, the same system-image and AVD cache keys, and
+# reactivecircus/android-emulator-runner. The APK is release, x86_64,
+# with no DEMO_BUILD and no ENABLE_ADMIN_TOOLS. The job does not upload
+# the APK.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tester-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tester-checks:
+    permissions:
+      contents: read
+      actions: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Free disk space
+        run: bash scripts/ci/free_runner_disk.sh
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version: '3.47.7'
+          cache: true
+
+      - name: flutter pub get
+        run: flutter pub get
+
+      # Release builds fill this runner if the committed -Xmx8G stays.
+      # android/gradle.properties in git is unchanged. android-smoke does
+      # not use this cap; its profile build keeps -Xmx8G.
+      - name: Cap Gradle heap for the hosted runner
+        run: |
+          sed -i 's/^org\.gradle\.jvmargs=.*/org.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=1g -XX:ReservedCodeCacheSize=256m -Dfile.encoding=UTF-8/' android/gradle.properties
+          grep -q '^kotlin.daemon.jvmargs=' android/gradle.properties \
+            || echo 'kotlin.daemon.jvmargs=-Xmx1g' >> android/gradle.properties
+
+      - name: Cache Gradle
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('pubspec.lock', 'android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      - name: Cache Android NDK
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: /usr/local/lib/android/sdk/ndk/28.2.13676358
+          key: ndk-28.2.13676358
+
+      # Ephemeral release key. Not the Play upload key. key.properties and
+      # *.jks stay gitignored.
+      - name: Ephemeral release keystore
+        run: |
+          keytool -genkeypair -keystore android/ci-tester-keystore.jks \
+            -storepass android -keypass android -alias upload \
+            -keyalg RSA -keysize 2048 -validity 1 \
+            -dname "CN=CI Tester Checks, OU=CI, O=Shradha Ventures, L=Bengaluru, ST=KA, C=IN"
+          cat > android/key.properties <<'EOF'
+          storePassword=android
+          keyPassword=android
+          keyAlias=upload
+          storeFile=../ci-tester-keystore.jks
+          EOF
+
+      - name: Build release APK
+        run: |
+          flutter build apk --release \
+            --target-platform android-x64 \
+            --target integration_test/tester_checks_test.dart
+          cp -a build/app/outputs/flutter-apk/app-release.apk /tmp/tester-checks-app-release.apk
+
+      - name: Build instrumentation APK
+        run: |
+          cd android
+          ./gradlew :app:assembleDebugAndroidTest \
+            -Ptarget="${GITHUB_WORKSPACE}/integration_test/tester_checks_test.dart"
+          test_apk="$(find "${GITHUB_WORKSPACE}/build" -name 'app-debug-androidTest.apk' -print -quit)"
+          if [[ -z "$test_apk" ]]; then
+            find "${GITHUB_WORKSPACE}/build" -name '*.apk' -print
+            echo "androidTest apk was not produced" >&2
+            exit 1
+          fi
+          cp -a "$test_apk" /tmp/tester-checks-androidTest.apk
+          mkdir -p "${GITHUB_WORKSPACE}/build/app/outputs/flutter-apk" \
+            "${GITHUB_WORKSPACE}/build/app/outputs/apk/androidTest/debug"
+          cp -a /tmp/tester-checks-app-release.apk \
+            "${GITHUB_WORKSPACE}/build/app/outputs/flutter-apk/app-release.apk"
+          cp -a /tmp/tester-checks-androidTest.apk \
+            "${GITHUB_WORKSPACE}/build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk"
+
+      - name: Restore emulator system image
+        id: system-image-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: /usr/local/lib/android/sdk/system-images
+          key: system-image-android-34-google_atd-x86_64
+
+      - name: Restore AVD
+        id: avd-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-34-x86_64-google_atd-pixel6-snapshot
+
+      - name: Stop Gradle before the emulator
+        run: |
+          (cd android && ./gradlew --stop) || true
+          pkill -f 'KotlinCompileDaemon|kotlin-compiler-daemon|GradleDaemon' || true
+          echo "===== df before emulator ====="
+          df -h
+          free -h
+          echo "nproc=$(nproc)"
+          if [[ "$(nproc)" -ge 4 ]]; then
+            echo "EMULATOR_CORES=4" >> "$GITHUB_ENV"
+          else
+            echo "EMULATOR_CORES=2" >> "$GITHUB_ENV"
+          fi
+
+      - name: Create AVD snapshot for caching
+        id: create-avd
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_atd
+          profile: pixel_6
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: 2048M
+          avd-name: temple-smoke-34-atd
+          force-avd-creation: false
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
+          pre-emulator-launch-script: bash scripts/ci/prepare_atd_avd.sh temple-smoke-34-atd
+          script: echo "Generated AVD snapshot for caching."
+
+      - name: Tester checks
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_atd
+          profile: pixel_6
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: 2048M
+          avd-name: temple-smoke-34-atd
+          force-avd-creation: false
+          disable-animations: true
+          pre-emulator-launch-script: bash scripts/ci/prepare_atd_avd.sh temple-smoke-34-atd
+          emulator-options: -no-snapshot-save -no-snapshot-load -no-boot-anim -gpu swiftshader_indirect -no-window -no-audio -camera-back none -camera-front none -partition-size 2048
+          script: timeout --kill-after=30s 12m bash scripts/ci/run_tester_checks.sh
+
+      - name: Save emulator system image
+        if: always() && steps.system-image-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: /usr/local/lib/android/sdk/system-images
+          key: system-image-android-34-google_atd-x86_64
+
+      - name: Save AVD
+        if: always() && steps.avd-cache.outputs.cache-hit != 'true' && steps.create-avd.outcome == 'success'
+        continue-on-error: true
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-34-x86_64-google_atd-pixel6-snapshot
+
+      - name: Upload tester-checks screenshots
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: tester-checks-screenshots
+          path: tester-checks-screenshots
+          retention-days: 14
+          if-no-files-found: ignore

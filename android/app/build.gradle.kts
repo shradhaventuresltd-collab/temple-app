@@ -120,6 +120,10 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // Instrumentation runner for integration_test. Release and debug
+        // app builds do not execute it.
+        testInstrumentationRunner =
+            "com.shradhaventures.temple.TesterChecksRunner"
         manifestPlaceholders["appLabel"] = if (demoAppIdSuffix) {
             "Temple Directory India Demo"
         } else {
@@ -152,4 +156,10 @@ gradle.taskGraph.whenReady {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test:rules:1.6.1")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
 }
