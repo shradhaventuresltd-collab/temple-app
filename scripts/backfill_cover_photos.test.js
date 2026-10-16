@@ -32,6 +32,8 @@ import { entryFromTemple } from "./temple_index.js";
 import { processPack, resolveSeedDocId } from "./upload_research_pack.js";
 import {
   assertStorageAuth,
+  isStorageTokenUrl,
+  resetStorageAuthFetchForTests,
   STORAGE_AUTH_PREFLIGHT_ERROR,
   STORAGE_AUTH_PROBE,
   useNativeFetchForStorageAuth,
@@ -1464,47 +1466,152 @@ test("a missing fetch fails before any write, and a hung public check times out"
 });
 
 test("the Storage token request uses native fetch, and a failed exists() stops apply", async () => {
+  assert.equal(isStorageTokenUrl("https://www.googleapis.com/oauth2/v4/token"), true);
+  assert.equal(isStorageTokenUrl("https://oauth2.googleapis.com/token"), true);
+  assert.equal(isStorageTokenUrl("https://www.googleapis.com/oauth2/v4/token?foo=1"), true);
+  assert.equal(isStorageTokenUrl("https://www.googleapis.com/oauth2/v3/userinfo"), false);
+  assert.equal(isStorageTokenUrl("https://www.googleapis.com/oauth2/v4/token/extra"), false);
+  assert.equal(isStorageTokenUrl("https://www.googleapis.com/oauth2/v3/token"), false);
+  assert.equal(isStorageTokenUrl("https://oauth2.googleapis.com/revoke"), false);
+  assert.equal(isStorageTokenUrl("https://oauth2.googleapis.com/token/extra"), false);
+  assert.equal(isStorageTokenUrl("https://oauth2.googleapis.com.evil/token"), false);
+  assert.equal(isStorageTokenUrl("http://www.googleapis.com/oauth2/v4/token"), false);
+  assert.equal(isStorageTokenUrl("https://evil.example/oauth2/v4/token"), false);
+
   let Gaxios;
   try {
     Gaxios = createRequire(import.meta.url)("gaxios").Gaxios;
   } catch (error) {
     if (error?.code !== "MODULE_NOT_FOUND") throw error;
+    if (process.env.CI) {
+      assert.fail("gaxios is missing; the Storage token scoping test must run in CI");
+    }
   }
   if (Gaxios) {
-    assert.equal(useNativeFetchForStorageAuth(), true);
-    const calls = [];
-    const original = globalThis.fetch;
-    globalThis.fetch = async (input) => {
-      calls.push(String(input));
-      return new Response(JSON.stringify({ access_token: "ya29.test" }), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      });
-    };
-    const server = http.createServer((_req, res) => {
-      res.writeHead(200, { "content-type": "application/json" });
-      res.end('{"ok":true}');
-    });
-    await new Promise((resolveListen) => server.listen(0, "127.0.0.1", resolveListen));
-    const port = server.address().port;
+    const realAdapter = Gaxios.prototype._defaultAdapter;
+    const originalFetch = globalThis.fetch;
+    const originalLog = console.log;
+    const originalWarn = console.warn;
+    const previousProxy = process.env.HTTPS_PROXY;
     try {
-      const client = new Gaxios();
-      const token = await client.request({
-        url: "https://www.googleapis.com/oauth2/v4/token",
-        method: "POST",
-        responseType: "json",
+      resetStorageAuthFetchForTests();
+      Gaxios.prototype._defaultAdapter = undefined;
+      const guardWarnings = [];
+      console.warn = (line) => guardWarnings.push(String(line));
+      assert.equal(useNativeFetchForStorageAuth(), false);
+      assert.equal(typeof Gaxios.prototype._defaultAdapter, "undefined");
+      assert.match(guardWarnings.join("\n"), /no _defaultAdapter function/);
+      Gaxios.prototype._defaultAdapter = realAdapter;
+      resetStorageAuthFetchForTests();
+
+      process.env.HTTPS_PROXY = "http://127.0.0.1:9";
+      const proxyLogs = [];
+      console.log = (line) => proxyLogs.push(String(line));
+      assert.equal(useNativeFetchForStorageAuth(), false);
+      assert.equal(Gaxios.prototype._defaultAdapter, realAdapter);
+      assert.match(proxyLogs.join("\n"), /HTTPS_PROXY is set; skipping the native fetch override/);
+      proxyLogs.length = 0;
+      assert.equal(useNativeFetchForStorageAuth(), false);
+      assert.deepEqual(proxyLogs, []);
+      delete process.env.HTTPS_PROXY;
+      resetStorageAuthFetchForTests();
+
+      const scoped = [];
+      Gaxios.prototype._defaultAdapter = async function recordAdapter(opts) {
+        scoped.push({
+          url: String(opts.url),
+          redirect: opts.redirect,
+          native: typeof opts.fetchImplementation === "function",
+        });
+        return { data: { recorded: true }, status: 200 };
+      };
+      assert.equal(useNativeFetchForStorageAuth(), true);
+      const scopedClient = new Gaxios();
+      const tokenUrls = [
+        "https://www.googleapis.com/oauth2/v4/token",
+        "https://oauth2.googleapis.com/token",
+        "https://www.googleapis.com/oauth2/v4/token?grant_type=refresh_token",
+      ];
+      const otherUrls = [
+        "https://www.googleapis.com/oauth2/v3/userinfo",
+        "https://www.googleapis.com/oauth2/v4/token/extra",
+        "https://oauth2.googleapis.com/revoke",
+        "http://www.googleapis.com/oauth2/v4/token",
+      ];
+      for (const url of tokenUrls) {
+        await scopedClient._defaultAdapter({ url });
+      }
+      for (const url of otherUrls) {
+        await scopedClient._defaultAdapter({ url });
+      }
+      assert.deepEqual(
+        scoped.filter((call) => call.native).map((call) => call.url),
+        tokenUrls,
+      );
+      for (const call of scoped) {
+        if (tokenUrls.includes(call.url)) {
+          assert.equal(call.redirect, "error");
+        } else {
+          assert.equal(call.native, false);
+          assert.equal(call.redirect, undefined);
+        }
+      }
+      resetStorageAuthFetchForTests();
+      Gaxios.prototype._defaultAdapter = realAdapter;
+
+      assert.equal(useNativeFetchForStorageAuth(), true);
+      const calls = [];
+      globalThis.fetch = async (input, init) => {
+        calls.push({ url: String(input), redirect: init?.redirect });
+        return new Response(JSON.stringify({ access_token: "ya29.test" }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      };
+      const server = http.createServer((_req, res) => {
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end('{"ok":true}');
       });
-      assert.equal(token.data.access_token, "ya29.test");
-      assert.deepEqual(calls, ["https://www.googleapis.com/oauth2/v4/token"]);
-      const local = await client.request({
-        url: `http://127.0.0.1:${port}/object`,
-        responseType: "json",
-      });
-      assert.equal(local.data.ok, true);
-      assert.deepEqual(calls, ["https://www.googleapis.com/oauth2/v4/token"]);
+      await new Promise((resolveListen) => server.listen(0, "127.0.0.1", resolveListen));
+      const port = server.address().port;
+      try {
+        const client = new Gaxios();
+        const token = await client.request({
+          url: "https://www.googleapis.com/oauth2/v4/token",
+          method: "POST",
+          responseType: "json",
+        });
+        assert.equal(token.data.access_token, "ya29.test");
+        const otherToken = await client.request({
+          url: "https://oauth2.googleapis.com/token",
+          method: "POST",
+          responseType: "json",
+        });
+        assert.equal(otherToken.data.access_token, "ya29.test");
+        assert.deepEqual(calls, [
+          { url: "https://www.googleapis.com/oauth2/v4/token", redirect: "error" },
+          { url: "https://oauth2.googleapis.com/token", redirect: "error" },
+        ]);
+        const local = await client.request({
+          url: `http://127.0.0.1:${port}/object`,
+          responseType: "json",
+        });
+        assert.equal(local.data.ok, true);
+        assert.deepEqual(calls.map((call) => call.url), [
+          "https://www.googleapis.com/oauth2/v4/token",
+          "https://oauth2.googleapis.com/token",
+        ]);
+      } finally {
+        await new Promise((resolveClose) => server.close(resolveClose));
+      }
     } finally {
-      globalThis.fetch = original;
-      await new Promise((resolveClose) => server.close(resolveClose));
+      globalThis.fetch = originalFetch;
+      console.log = originalLog;
+      console.warn = originalWarn;
+      if (previousProxy === undefined) delete process.env.HTTPS_PROXY;
+      else process.env.HTTPS_PROXY = previousProxy;
+      resetStorageAuthFetchForTests();
+      Gaxios.prototype._defaultAdapter = realAdapter;
     }
   }
 
