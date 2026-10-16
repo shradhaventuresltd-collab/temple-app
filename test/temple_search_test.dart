@@ -179,4 +179,108 @@ void main() {
   test('unknown query returns an empty list', () {
     expect(filterTemples(sampleTemples, query: 'zzzz-not-a-temple'), isEmpty);
   });
+
+  test('Minakshi, Tirupathi, and the Chendur spellings find the temples', () {
+    expect(
+      filterTemples(sampleTemples, query: 'Minakshi').map((t) => t.name),
+      contains('Meenakshi Amman Temple'),
+    );
+    expect(
+      filterTemples(sampleTemples, query: 'Tirupathi').map((t) => t.name),
+      contains('Tirumala Venkateswara Temple'),
+    );
+
+    final thiru = filterTemples(sampleTemples, query: 'Thiruchendur');
+    final tiru = filterTemples(sampleTemples, query: 'Tiruchendur');
+    expect(thiru.map((t) => t.name), contains('Subramanya Swamy Temple'));
+    expect(tiru.map((t) => t.name), contains('Subramanya Swamy Temple'));
+
+    final onlyThiru = temple(
+      name: 'Thiruchendur Murugan Temple',
+      city: 'Thoothukudi',
+    );
+    final onlyTiru = temple(
+      name: 'Tiruchendur Murugan Temple',
+      city: 'Thoothukudi',
+    );
+    expect(filterTemples([onlyThiru], query: 'Tiruchendur'), [onlyThiru]);
+    expect(filterTemples([onlyTiru], query: 'Thiruchendur'), [onlyTiru]);
+  });
+
+  test('spaces, hyphens, and the other transliteration folds match', () {
+    expect(
+      filterTemples([
+        temple(name: 'Meena kshi Amman'),
+      ], query: 'Minakshi').single.name,
+      'Meena kshi Amman',
+    );
+    expect(
+      filterTemples([
+        temple(name: 'Tiru-pathi Devasthanam'),
+      ], query: 'Tirupathi').single.name,
+      'Tiru-pathi Devasthanam',
+    );
+    expect(
+      filterTemples([
+        temple(name: 'Tirupati Temple'),
+      ], query: 'Tiru pathi').single.name,
+      'Tirupati Temple',
+    );
+    expect(
+      filterTemples([
+        temple(name: 'Dwarka Temple'),
+      ], query: 'Dvarka').single.name,
+      'Dwarka Temple',
+    );
+    expect(
+      filterTemples([
+        temple(name: 'Kottayam Temple'),
+      ], query: 'Kotayam').single.name,
+      'Kottayam Temple',
+    );
+    expect(
+      filterTemples([
+        temple(name: 'Tamizh Temple'),
+      ], query: 'Tamil').single.name,
+      'Tamizh Temple',
+    );
+    expect(
+      filterTemples([
+        temple(name: 'Kashi Vishwanath'),
+      ], query: 'Kasi').single.name,
+      'Kashi Vishwanath',
+    );
+  });
+
+  test('exact matches stay first and edit distance is only a fallback', () {
+    final farther = temple(name: 'Meenaksha Temple');
+    final exact = temple(name: 'Meenakshi Amman Temple');
+    final other = temple(name: 'Somnath Temple', city: 'Veraval');
+
+    expect(
+      filterTemples([
+        farther,
+        exact,
+        other,
+      ], query: 'Meenakshi').map((t) => t.name),
+      ['Meenakshi Amman Temple'],
+    );
+    expect(
+      filterTemples([farther, exact], query: 'Meenakshix').map((t) => t.name),
+      ['Meenakshi Amman Temple', 'Meenaksha Temple'],
+    );
+    expect(
+      filterTemples([
+        other,
+        temple(name: 'Meenakshi Amman Temple', city: 'Madurai'),
+      ], query: 'Maduri').single.city,
+      'Madurai',
+    );
+    expect(filterTemples([exact], query: 'Sivo'), isEmpty);
+  });
+
+  test('an obvious non-match finds nothing', () {
+    expect(filterTemples(sampleTemples, query: 'qqqqqqqq'), isEmpty);
+    expect(filterTemples(sampleTemples, query: 'zzzz-not-a-temple'), isEmpty);
+  });
 }
