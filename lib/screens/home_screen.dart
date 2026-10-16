@@ -7,13 +7,16 @@ import 'package:temple_app/data/heritage_content.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/admin_screen.dart';
 import 'package:temple_app/services/admin_auth.dart';
+import 'package:temple_app/services/app_update.dart';
 import 'package:temple_app/services/temple_service.dart';
 import 'package:temple_app/widgets/app_drawer.dart';
 import 'package:temple_app/services/firestore_read_log.dart';
 import 'package:temple_app/services/offline_link.dart';
+import 'package:temple_app/services/update_nudge_store.dart';
 import 'package:temple_app/widgets/home_mosaic_collage.dart';
 import 'package:temple_app/widgets/maintenance_message_banner.dart';
 import 'package:temple_app/widgets/offline_banner.dart';
+import 'package:temple_app/widgets/soft_update_nudge.dart';
 import 'package:temple_app/widgets/unavailable_states_notice.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -27,6 +30,10 @@ class HomeScreen extends StatefulWidget {
     this.templesLoader,
     this.adminToolsEnabled,
     this.maintenanceMessage = '',
+    this.offerSoftUpdate = false,
+    this.nudgeStore,
+    this.now,
+    this.openPlayStore,
   });
 
   /// Injected in tests. Production reads [AdminAuth.instance] only when
@@ -44,6 +51,17 @@ class HomeScreen extends StatefulWidget {
   /// Remote Config `maintenance_message`. Empty hides the banner.
   final String maintenanceMessage;
 
+  /// True when this build is below `recommended_build` and above the minimum.
+  final bool offerSoftUpdate;
+
+  /// Day the nudge was last shown. Null uses shared preferences.
+  final UpdateNudgeStore? nudgeStore;
+
+  final DateTime Function()? now;
+
+  /// Opens the Play listing. Null hides the update action's effect.
+  final Future<bool> Function()? openPlayStore;
+
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -57,7 +75,9 @@ class _HomeScreenState extends State<HomeScreen> {
   static const double _titleBarHeight = 80;
 
   final TempleService _templeService = TempleService();
+  final SoftUpdateNudge _nudge = SoftUpdateNudge();
   late Future<List<Temple>> _templesFuture;
+  bool _showSoftUpdate = false;
 
   Future<List<Temple>> _loadTemples({bool refresh = false}) {
     final loader = widget.templesLoader;
@@ -72,6 +92,30 @@ class _HomeScreenState extends State<HomeScreen> {
     _templesFuture = _loadTemples();
     DirectoryReconnect.tick.addListener(_onReconnect);
     TempleService.revision.addListener(_onPublished);
+    unawaited(_maybeShowSoftUpdate());
+  }
+
+  Future<void> _maybeShowSoftUpdate() async {
+    if (!widget.offerSoftUpdate) return;
+    final store = widget.nudgeStore ?? SharedPreferencesUpdateNudgeStore();
+    final now = widget.now?.call() ?? DateTime.now();
+    try {
+      final show = await _nudge.claim(store, now);
+      if (!mounted || !show) return;
+      setState(() => _showSoftUpdate = true);
+    } catch (e, st) {
+      debugPrint('Soft update nudge skipped: $e\n$st');
+    }
+  }
+
+  Future<void> _openSoftUpdate() async {
+    final open = widget.openPlayStore;
+    if (open == null) return;
+    try {
+      await open();
+    } catch (e, st) {
+      debugPrint('Play Store launch failed: $e\n$st');
+    }
   }
 
   @override
@@ -154,6 +198,11 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           if (widget.maintenanceMessage.trim().isNotEmpty)
             MaintenanceMessageBanner(message: widget.maintenanceMessage.trim()),
+          if (_showSoftUpdate)
+            SoftUpdateNudgeBanner(
+              onUpdate: () => unawaited(_openSoftUpdate()),
+              onDismiss: () => setState(() => _showSoftUpdate = false),
+            ),
           const OfflineBanner(),
           SavedListBanner(onRetry: _reloadTemples),
           Expanded(

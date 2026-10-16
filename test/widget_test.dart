@@ -12,6 +12,8 @@ void main() {
   // Leftover Flutter counter template; the app is TempleDirectoryApp and
   // needs Firebase. Auth/seed/CMS behavior is covered by dedicated tests.
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    await tester.pumpWidget(const TempleDirectoryApp());
+    await tester.pumpWidget(
+      const TempleDirectoryApp(installedBuildNumber: null),
+    );
   }, skip: true);
 }

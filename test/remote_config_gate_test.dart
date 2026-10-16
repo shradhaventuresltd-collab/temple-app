@@ -39,6 +39,7 @@ void main() {
           return [_temple];
         },
         appConfig: config,
+        installedBuildNumber: null,
         onExitApp: () {},
         launchPolicyUrl: (_) async => true,
       ),
@@ -71,6 +72,7 @@ void main() {
           return [_temple];
         },
         appConfig: config,
+        installedBuildNumber: null,
         onExitApp: () {},
         launchPolicyUrl: (_) async => true,
       ),
@@ -96,6 +98,7 @@ void main() {
           ads += 1;
         },
         templesLoader: () async => [_temple],
+        installedBuildNumber: null,
         onExitApp: () {},
         launchPolicyUrl: (_) async => true,
       ),
@@ -122,6 +125,7 @@ void main() {
         },
         templesLoader: () async => [_temple],
         appConfig: config,
+        installedBuildNumber: null,
         onExitApp: () {},
         launchPolicyUrl: (_) async => true,
       ),
@@ -150,6 +154,7 @@ void main() {
           return [_temple];
         },
         appConfig: config,
+        installedBuildNumber: null,
         onExitApp: () {},
         launchPolicyUrl: (_) async => true,
       ),

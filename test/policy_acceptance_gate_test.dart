@@ -576,6 +576,7 @@ Widget _app({
     adminAuth: FakeAdminAuth(),
     adminToolsEnabled: false,
     now: now ?? () => DateTime.utc(2026, 10, 13, 12),
+    installedBuildNumber: null,
     onExitApp: onExitApp,
     launchPolicyUrl: launchPolicyUrl ?? (_) async => true,
   );

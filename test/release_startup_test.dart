@@ -126,6 +126,7 @@ void main() {
         adminAuth: FakeAdminAuth(),
         adminToolsEnabled: true,
         now: () => DateTime.utc(2026, 10, 14),
+        installedBuildNumber: null,
         onExitApp: () {},
         launchPolicyUrl: (_) async => true,
       ),
