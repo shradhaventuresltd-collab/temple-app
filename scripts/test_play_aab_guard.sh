@@ -260,4 +260,12 @@ expect_fail "bundle contains integration_test plugin class" \
   "integration_test" \
   ./scripts/build_play_aab.sh --verify-no-integration-test "$defines_dir/plugin.aab"
 
+shim="$(mktemp -d)"
+ln -s "$(command -v bash)" "$shim/bash"
+ln -s "$(command -v dirname)" "$shim/dirname"
+expect_fail "missing python3 has its own error" \
+  "python3 is required" \
+  env PATH="$shim" ./scripts/build_play_aab.sh --verify-no-integration-test "$defines_dir/clean.aab"
+rm -rf "$shim"
+
 echo "Play AAB guard checks passed."

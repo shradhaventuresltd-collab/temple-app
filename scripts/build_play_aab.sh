@@ -100,6 +100,10 @@ assert_no_integration_test_plugin() {
     echo "error: release bundle not found: $bundle" >&2
     exit 1
   fi
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "error: python3 is required to scan the Play AAB for the integration_test plugin class." >&2
+    exit 1
+  fi
   if ! python3 - "$bundle" <<'PY'
 import io, sys, zipfile
 needle = b"dev/flutter/plugins/integration_test/IntegrationTestPlugin"

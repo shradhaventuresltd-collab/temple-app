@@ -26,8 +26,9 @@ import 'package:temple_app/services/temple_service.dart';
 import 'package:temple_app/services/update_nudge_store.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// Integration tests set this before [main]. Production and the Play build
-/// leave it null, so Remote Config is unchanged and nothing is written.
+/// Test-only hook. Integration tests may set this before [main].
+/// It must stay null in production and in the Play build. A non-null
+/// value skips Remote Config, and production never assigns it.
 AppConfig? integrationTestConfigOverride;
 
 Future<void> main() async {

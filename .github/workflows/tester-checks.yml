@@ -1,8 +1,13 @@
 name: tester-checks
 
 # Manual screenshot evidence for the release app on prod Firestore.
-# workflow_dispatch only. This does not run android-smoke and does not
-# change that job's 15-minute limit.
+# This does not run android-smoke and does not change that job's
+# 15-minute limit.
+#
+# Triggers are only workflow_dispatch and a pull_request labeled event.
+# The job runs when the event is a dispatch or the added label is
+# tester-checks. Ordinary PR pushes, other labels, and a merge to main
+# do not start the emulator.
 #
 # The emulator is the android-smoke KVM setup: API 34 google_atd, x86_64,
 # the same system image, and reactivecircus/android-emulator-runner.
@@ -12,18 +17,8 @@ name: tester-checks
 
 on:
   workflow_dispatch:
-  # GitHub only accepts workflow_dispatch after this file is on the default
-  # branch. pull_request runs it on a branch that introduces or changes the
-  # check. Paths keep unrelated pull requests off the emulator.
   pull_request:
-    paths:
-      - .github/workflows/tester-checks.yml
-      - integration_test/**
-      - scripts/ci/run_tester_checks.sh
-      - scripts/ci/disable_impeller_for_emulator_apk.sh
-      - scripts/ci/patch_integration_screenshot.sh
-      - scripts/ci/classify_tester_png.py
-      - android/app/src/androidTest/**
+    types: [labeled]
 
 permissions:
   contents: read
@@ -34,9 +29,7 @@ concurrency:
 
 jobs:
   tester-checks:
-    permissions:
-      contents: read
-      actions: write
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'tester-checks'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
@@ -234,3 +227,26 @@ jobs:
           path: tester-checks-screenshots
           retention-days: 14
           if-no-files-found: ignore
+
+      # A finished emulator used to look green even when checks failed.
+      # Print N/13 passed and warn unless every check passed.
+      - name: Summarize tester checks
+        if: always()
+        run: |
+          set -uo pipefail
+          summary="tester-checks-screenshots/summary.md"
+          line=""
+          if [[ -f "$summary" ]]; then
+            line="$(grep -E '^[0-9]+/13 passed$' "$summary" | tail -n 1 || true)"
+          fi
+          if [[ -z "$line" ]]; then
+            line="0/13 passed"
+          fi
+          echo "$line"
+          if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
+            printf '### %s\n' "$line" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          passed="${line%%/*}"
+          if [[ "$passed" != "13" ]]; then
+            echo "::warning title=tester-checks::${line}"
+          fi

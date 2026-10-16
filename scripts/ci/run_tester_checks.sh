@@ -7,6 +7,11 @@
 # dumpsys window leaves the app. This script does not run adb root.
 set -uo pipefail
 
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "error: python3 is required to classify screenshots and write the tester-checks summary." >&2
+  exit 1
+fi
+
 PKG=com.shradhaventures.temple
 ROOT="${GITHUB_WORKSPACE:-$(pwd)}"
 OUT="$ROOT/tester-checks-screenshots"
@@ -330,6 +335,9 @@ if hashes or pixels:
             f"tile_std={info.get('tile_std', '?')} hash={digest} identical={identical}"
         )
     lines.append("")
+passed = sum(1 for i in range(1, 14) if results.get(i, ("FAIL",))[0] == "PASS")
+lines.append(f"{passed}/13 passed")
+lines.append("")
 out.write_text("\n".join(lines) + "\n")
 print(out.read_text())
 PY
