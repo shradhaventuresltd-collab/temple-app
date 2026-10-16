@@ -22,6 +22,7 @@ Temple _draft({
   String timings = '6:00 AM–8:00 PM daily.',
   List<String> specialities = const ['Stone gateway'],
   List<TemplePhoto> photos = const [],
+  String? tradition,
 }) {
   return Temple(
     name: name,
@@ -36,6 +37,7 @@ Temple _draft({
     specialities: specialities,
     images: images,
     photos: photos,
+    tradition: tradition,
     latitude: 9.9,
     longitude: 78.1,
   );
@@ -649,21 +651,33 @@ void main() {
       reason: 'not before and does not cancel darshan',
     );
 
-    final traditionCases = <(String, String)>[
-      ('A Buddhist temple with daily puja.', 'Shiva'),
-      ('A Jain temple with daily puja.', 'Shiva'),
-      ('A gurdwara with daily puja.', 'Guru Nanak'),
-    ];
-    for (final (description, deity) in traditionCases) {
-      final honesty = DetailHonesty.of(
+    final fromDeity = DetailHonesty.of(
+      _draft(
+        deity: 'Guru Nanak',
+        description: 'A gurdwara with daily puja.',
+        timings: 'Open daily 6:00 AM–8:00 PM.',
+      ),
+    );
+    expect(fromDeity.tradition, SiteTradition.sikh);
+    expect(fromDeity.framing, SiteFraming.neutral);
+    expect(fromDeity.framingLabel, isNull);
+
+    for (final description in const [
+      'A Buddhist temple with daily puja.',
+      'A Jain temple with daily puja.',
+      'A gurdwara with daily puja.',
+    ]) {
+      final freeText = DetailHonesty.of(
         _draft(
-          deity: deity,
+          name: 'Draft Gurdwara',
+          deity: 'Shiva',
           description: description,
           timings: 'Open daily 6:00 AM–8:00 PM.',
         ),
       );
-      expect(honesty.framing, SiteFraming.neutral, reason: description);
-      expect(honesty.framingLabel, isNull, reason: description);
+      expect(freeText.tradition, SiteTradition.unspecified, reason: description);
+      expect(freeText.traditionLabel, isNull, reason: description);
+      expect(freeText.framing, SiteFraming.livingTemple, reason: description);
     }
 
     final comma = DetailHonesty.of(
@@ -854,6 +868,77 @@ void main() {
     expect(sikh.framing, SiteFraming.neutral);
     expect(sikh.framingLabel, isNull);
   });
+
+  test(
+    'a doc tradition or the deity field keeps the chip, and a neighbor does not',
+    () {
+      final stored = DetailHonesty.of(
+        _draft(
+          name: 'Dilwara Temples',
+          deity: 'Shiva',
+          description: 'A marble shrine with no tradition words.',
+          tradition: 'jain',
+          timings: '',
+        ),
+      );
+      expect(stored.tradition, SiteTradition.jain);
+      expect(stored.traditionLabel, 'Jain');
+
+      final buddhist = DetailHonesty.of(
+        _draft(deity: 'Buddha', description: 'A shrine.', timings: ''),
+      );
+      expect(buddhist.tradition, SiteTradition.buddhist);
+      expect(buddhist.traditionLabel, 'Buddhist');
+
+      final sikh = DetailHonesty.of(
+        _draft(
+          name: 'Example Gurdwara',
+          deity: 'Guru Nanak',
+          description: 'Daily puja is held.',
+          timings: '',
+        ),
+      );
+      expect(sikh.tradition, SiteTradition.sikh);
+      expect(sikh.traditionLabel, 'Sikh');
+
+      final fromDeity = DetailHonesty.of(
+        _draft(
+          deity: 'Jain Tirthankaras',
+          description: 'A marble shrine with no other tradition words.',
+          timings: '',
+        ),
+      );
+      expect(fromDeity.tradition, SiteTradition.jain);
+      expect(fromDeity.traditionLabel, 'Jain');
+
+      final neighbor = _draft(
+        name: 'Gauri Shankar Temple',
+        deity: 'Shiva',
+        description:
+            'The shrine stands near the Digambar Jain temple in Chandni Chowk.',
+        story: 'Pilgrims also visit the Digambar Jain temple nearby.',
+        specialities: const ['Near the Digambar Jain temple'],
+        timings: '',
+      );
+      final honesty = DetailHonesty.of(neighbor);
+      expect(honesty.tradition, SiteTradition.unspecified);
+      expect(honesty.traditionLabel, isNull);
+      expect(honesty.framingNote, isNot(contains('Jain')));
+      expect(neighbor.tradition, isNull);
+
+      final roundTrip = Temple.fromMap('dilwara-temples', {
+        'name': 'Dilwara Temples',
+        'deity': 'Jain Tirthankaras',
+        'tradition': 'jain',
+      });
+      expect(roundTrip.tradition, 'jain');
+      expect(roundTrip.toFirestoreData(documentId: 'dilwara-temples')['tradition'], 'jain');
+      final hindu = Temple.fromMap('gauri', {'name': 'Gauri', 'deity': 'Shiva'});
+      expect(hindu.tradition, isNull);
+      expect(hindu.toFirestoreData().containsKey('tradition'), isFalse);
+      expect(templeTraditionField('hindu'), isNull);
+    },
+  );
 
   test('Jain and Buddhist sites are labeled without a Hindu-only chip', () {
     final dilwara = DetailHonesty.of(_named('Dilwara Temples'));

@@ -920,19 +920,17 @@ function corpusOf(data) {
   );
 }
 
+const TRADITION_VALUES = new Set(["jain", "buddhist", "sikh"]);
+
 export function traditionOf(data) {
+  // Document field first. Absent, or any other string, falls through.
+  // Name, description, and specialities are not scanned.
+  const stored = textOf(data, "tradition").trim().toLowerCase();
+  if (TRADITION_VALUES.has(stored)) return stored;
   const deity = textOf(data, "deity").toLowerCase();
   if (/\b(jain|tirthankaras?)\b/.test(deity)) return "jain";
   if (/\b(buddha|buddhist)\b/.test(deity)) return "buddhist";
   if (/\b(sikh|gurdwara|gurudwara|guru nanak)\b/.test(deity)) return "sikh";
-  const name = textOf(data, "name").toLowerCase();
-  if (name.includes("gurdwara") || name.includes("gurudwara")) return "sikh";
-  const specialities = Array.isArray(data?.specialities)
-    ? data.specialities.join("\n")
-    : "";
-  const brief = `${textOf(data, "name")}\n${textOf(data, "description")}\n${specialities}`.toLowerCase();
-  if (/\bjain (temples?|tirtha|pilgrimage)\b/.test(brief)) return "jain";
-  if (/\bbuddhist (temples?|pilgrimage|shrine)\b/.test(brief)) return "buddhist";
   return "unspecified";
 }
 

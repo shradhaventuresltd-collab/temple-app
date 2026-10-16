@@ -645,10 +645,9 @@ bool _festivalPujaTitle(String text, int pujaStart) {
   return title == 'durga' || title == 'kali';
 }
 
-/// Tradition named by a deity string alone.
+/// Tradition named by the structured deity field alone.
 ///
-/// Name, story, and description are not read. [_tradition] still checks those
-/// when the deity field itself does not say.
+/// Name, description, story, and specialities are not read.
 SiteTradition traditionFromDeityText(String deity) {
   final lower = deity.toLowerCase();
   if (RegExp(r'\b(jain|tirthankaras?)\b').hasMatch(lower)) {
@@ -664,25 +663,14 @@ SiteTradition traditionFromDeityText(String deity) {
 }
 
 SiteTradition _tradition(Temple temple) {
-  final fromDeity = traditionFromDeityText(temple.deity);
-  if (fromDeity != SiteTradition.unspecified) return fromDeity;
-
-  final name = temple.name.toLowerCase();
-  if (name.contains('gurdwara') || name.contains('gurudwara')) {
-    return SiteTradition.sikh;
-  }
-
-  final brief =
-      '${temple.name}\n${temple.description}\n'
-              '${temple.specialities.join('\n')}'
-          .toLowerCase();
-  if (RegExp(r'\bjain (temples?|tirtha|pilgrimage)\b').hasMatch(brief)) {
-    return SiteTradition.jain;
-  }
-  if (RegExp(r'\bbuddhist (temples?|pilgrimage|shrine)\b').hasMatch(brief)) {
-    return SiteTradition.buddhist;
-  }
-  return SiteTradition.unspecified;
+  final stored = switch (temple.tradition) {
+    'jain' => SiteTradition.jain,
+    'buddhist' => SiteTradition.buddhist,
+    'sikh' => SiteTradition.sikh,
+    _ => SiteTradition.unspecified,
+  };
+  if (stored != SiteTradition.unspecified) return stored;
+  return traditionFromDeityText(temple.deity);
 }
 
 bool _anyAffirmative(String text, List<String> phrases) {

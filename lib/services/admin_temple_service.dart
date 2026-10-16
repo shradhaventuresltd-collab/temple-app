@@ -274,6 +274,7 @@ const kTempleFirestoreAllowedFields = {
   'latitude',
   'longitude',
   'createdAt',
+  'tradition',
 };
 
 void _assertNoDisallowedFirestoreKeys(Map<String, dynamic> stored) {

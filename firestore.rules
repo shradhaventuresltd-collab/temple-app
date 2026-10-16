@@ -31,6 +31,8 @@ service cloud.firestore {
     //   - latitude: number (-90 to 90) or null when coordinates are not listed
     //   - longitude: number (-180 to 180) or null when coordinates are not listed
     //     Both are null, or both are numbers. One set and one null is rejected.
+    //   - tradition: optional string, exactly jain, buddhist, or sikh.
+    //     Absent means a Hindu listing. Null and any other string are rejected.
     //   - createdAt: timestamp (optional, immutable after creation)
     //
     // Access: Public read (this is a public temple directory).
@@ -100,6 +102,14 @@ service cloud.firestore {
         (request.resource.data[field] is string &&
          request.resource.data[field].size() >= minLen &&
          request.resource.data[field].size() <= maxLen);
+    }
+
+    // Present only as jain, buddhist, or sikh. Absent is a Hindu listing.
+    function optionalTradition(data) {
+      return !('tradition' in data) ||
+        data.tradition == 'jain' ||
+        data.tradition == 'buddhist' ||
+        data.tradition == 'sikh';
     }
 
     // Null timings are the honest unpublished state. A string still has to
@@ -274,7 +284,8 @@ service cloud.firestore {
       let allowedFields = [
         'id', 'name', 'state', 'city', 'deity', 'imageUrl',
         'description', 'story', 'address', 'location', 'timings',
-        'specialities', 'images', 'photos', 'latitude', 'longitude', 'createdAt'
+        'specialities', 'images', 'photos', 'latitude', 'longitude',
+        'createdAt', 'tradition'
       ];
 
       return hasRequiredFields(requiredFields) &&
@@ -284,6 +295,7 @@ service cloud.firestore {
         validStringLength('state', 1, 100) &&
         validStringLength('city', 1, 100) &&
         validStringLength('deity', 1, 100) &&
+        optionalTradition(data) &&
         data.imageUrl is string && data.imageUrl.size() <= 2000 &&
         !placeholderHost(data.imageUrl) &&
         validStringLength('description', 1, 10000) &&
@@ -333,7 +345,8 @@ service cloud.firestore {
       let allowedFields = [
         'id', 'name', 'state', 'city', 'deity', 'imageUrl',
         'description', 'story', 'address', 'location', 'timings',
-        'specialities', 'images', 'photos', 'latitude', 'longitude', 'createdAt'
+        'specialities', 'images', 'photos', 'latitude', 'longitude',
+        'createdAt', 'tradition'
       ];
 
       return hasOnlyAllowedFields(allowedFields) &&
@@ -342,6 +355,7 @@ service cloud.firestore {
         optionalStringLength('state', 1, 100) &&
         optionalStringLength('city', 1, 100) &&
         optionalStringLength('deity', 1, 100) &&
+        optionalTradition(data) &&
         optionalStringLength('imageUrl', 0, 2000) &&
         (!('imageUrl' in data) || !placeholderHost(data.imageUrl)) &&
         optionalStringLength('description', 1, 10000) &&

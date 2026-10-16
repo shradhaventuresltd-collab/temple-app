@@ -8,10 +8,12 @@ import { fileURLToPath } from "node:url";
 
 import {
   applyPatchSet,
+  FIELD_DELETE,
   formatDryRunLine,
   formatLiveDiff,
   galleryMatches,
   loadPatches,
+  patchWritePayload,
   previewPatchSet,
   stripUtm,
 } from "./apply_field_patches.js";
@@ -520,6 +522,45 @@ test("a patch note is printed and is not written to Firestore", async () => {
     assert.match(lines.join("\n"), /updated temples\/budheswar-shiv-temple-dhamdha \(deity\)/);
   } finally {
     console.log = original;
+  }
+});
+
+test("tradition is the enum or an unset, and the note is still not a field", () => {
+  const dir = mkdtempSync(join(tmpdir(), "field-patch-tradition-"));
+  const file = join(dir, "patch.json");
+  for (const tradition of ["jain", "buddhist", "sikh"]) {
+    writeFileSync(
+      file,
+      JSON.stringify({
+        temples: [{ id: "dilwara-temples", fields: { tradition } }],
+      }),
+    );
+    assert.equal(loadPatches(file).temples[0].fields.tradition, tradition);
+  }
+
+  writeFileSync(
+    file,
+    JSON.stringify({
+      temples: [{ id: "dilwara-temples", note: "reviewed", fields: { tradition: null } }],
+    }),
+  );
+  const unset = loadPatches(file).temples[0];
+  assert.equal(unset.fields.tradition, FIELD_DELETE);
+  assert.equal(unset.note, "reviewed");
+  assert.equal(patchWritePayload(unset.fields, "DELETE").tradition, "DELETE");
+  assert.match(
+    formatLiveDiff(unset, { tradition: "jain", deity: "Jain Tirthankaras" }),
+    /tradition: "jain" -> \(unset\)/,
+  );
+
+  for (const tradition of ["hindu", "", "Jain", "unspecified"]) {
+    writeFileSync(
+      file,
+      JSON.stringify({
+        temples: [{ id: "dilwara-temples", fields: { tradition } }],
+      }),
+    );
+    assert.throws(() => loadPatches(file), /tradition/);
   }
 });
 

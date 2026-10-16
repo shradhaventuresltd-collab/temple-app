@@ -642,6 +642,39 @@ test("create, update, state move, and delete keep the entry and meta", async () 
   assert.equal(meta.data().indexVersion, 4);
 });
 
+test("tradition is optional and only jain, buddhist, or sikh", async () => {
+  const db = adminDb("admin-tradition");
+  await assertSucceeds(
+    setDoc(at(db, "temples/no-tradition"), templePayload("no-tradition")),
+  );
+  await assertSucceeds(
+    setDoc(at(db, "temples/stored-tradition"), templePayload("stored-tradition", { tradition: "jain" })),
+  );
+  await assertSucceeds(
+    setDoc(at(db, "temples/stored-tradition"), { tradition: "buddhist" }, { merge: true }),
+  );
+  await assertSucceeds(
+    setDoc(at(db, "temples/stored-tradition"), { tradition: "sikh" }, { merge: true }),
+  );
+  await assertFails(
+    setDoc(
+      at(db, "temples/bad-tradition"),
+      templePayload("bad-tradition", { tradition: "hindu" }),
+    ),
+  );
+  await assertFails(
+    setDoc(at(db, "temples/stored-tradition"), { tradition: "unspecified" }, { merge: true }),
+  );
+  await assertFails(
+    setDoc(at(db, "temples/stored-tradition"), { tradition: null }, { merge: true }),
+  );
+  await assertSucceeds(
+    setDoc(at(db, "temples/stored-tradition"), { tradition: deleteField() }, { merge: true }),
+  );
+  const saved = await getDoc(at(db, "temples/stored-tradition"));
+  assert.equal(saved.data().tradition, undefined);
+});
+
 test("a batch against an existing meta doc increments and keeps sibling shards", async () => {
   await testEnv.withSecurityRulesDisabled(async (context) => {
     await setDoc(at(context.firestore(), "meta/temple_index"), {

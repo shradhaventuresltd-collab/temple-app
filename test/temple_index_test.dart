@@ -62,6 +62,9 @@ void main() {
         location: 'Madurai',
         timings: row['timings'] as String?,
         specialities: specialities,
+        tradition: const {'jain', 'buddhist', 'sikh'}.contains(row['tradition'])
+            ? row['tradition'] as String
+            : null,
         latitude: 9.9,
         longitude: 78.1,
       );

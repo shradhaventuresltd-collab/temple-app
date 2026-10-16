@@ -118,5 +118,29 @@
     "tradition": "unspecified",
     "living": true,
     "framing": "living"
+  },
+  {
+    "id": "stored-jain",
+    "name": "Marble Shrine",
+    "deity": "Shiva",
+    "description": "A marble shrine with no tradition words.",
+    "story": "",
+    "timings": "",
+    "specialities": [],
+    "tradition": "jain",
+    "living": false,
+    "framing": "neutral"
+  },
+  {
+    "id": "neighbor-jain",
+    "name": "Gauri Shankar Temple",
+    "deity": "Shiva",
+    "description": "The shrine stands near the Digambar Jain temple in Chandni Chowk.",
+    "story": "Pilgrims also mention the Digambar Jain temple nearby.",
+    "timings": "",
+    "specialities": ["Near the Digambar Jain temple"],
+    "tradition": "unspecified",
+    "living": false,
+    "framing": "neutral"
   }
 ]

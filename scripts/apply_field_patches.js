@@ -36,10 +36,16 @@ const ALLOWED_FIELDS = new Set([
   "photos",
   "timings",
   "deity",
+  "tradition",
 ]);
 
 /** Matches the brief. Firestore rules still cap deity at 100 characters. */
 const DEITY_MAX = 120;
+
+const TRADITION_VALUES = new Set(["jain", "buddhist", "sikh"]);
+
+/** Patch value that --apply turns into FieldValue.delete(). */
+export const FIELD_DELETE = Object.freeze({ op: "delete" });
 
 const GALLERY_FIELDS = ["imageUrl", "images", "photos"];
 
@@ -52,9 +58,10 @@ Usage:
   node apply_field_patches.js --apply --strict --project <id> --patches <file>
 
 Each temple entry is { "id", "fields": { ... }, "expect": { ... }, "note": "..." }.
-Only imageUrl, images, photos, timings, and deity are accepted. deity is a
-non-empty string of at most ${DEITY_MAX} characters. note is printed and is
-not written. A gallery write requires expect: the audited imageUrl, images,
+Only imageUrl, images, photos, timings, deity, and tradition are accepted.
+deity is a non-empty string of at most ${DEITY_MAX} characters. tradition is
+jain, buddhist, or sikh, or null to unset it. note is printed and is not
+written. A gallery write requires expect: the audited imageUrl, images,
 and photos. --apply writes that document only when the live gallery still
 matches. --strict aborts before any write when one document does not match.
 Dry-run with --project reads live values and prints before -> after. It does
@@ -152,13 +159,32 @@ function readNote(id, entry) {
   return entry.note;
 }
 
+function readTradition(id, value) {
+  if (value === null) return FIELD_DELETE;
+  if (typeof value !== "string" || !TRADITION_VALUES.has(value)) {
+    throw new Error(
+      `${id} tradition must be jain, buddhist, or sikh, or null to unset it.`,
+    );
+  }
+  return value;
+}
+
 function readFields(id, raw) {
   const fields = {};
   for (const key of Object.keys(raw)) {
     if (key === "deity") fields.deity = readDeity(id, raw.deity);
+    else if (key === "tradition") fields.tradition = readTradition(id, raw.tradition);
     else fields[key] = raw[key];
   }
   return fields;
+}
+
+export function patchWritePayload(fields, deleteValue = FIELD_DELETE) {
+  const payload = {};
+  for (const [key, value] of Object.entries(fields)) {
+    payload[key] = value === FIELD_DELETE ? deleteValue : value;
+  }
+  return payload;
 }
 
 function readExpect(raw, id) {
@@ -273,10 +299,15 @@ export function formatDryRunLine(temple) {
   );
 }
 
+function formatFieldValue(value) {
+  if (value === FIELD_DELETE) return "(unset)";
+  return JSON.stringify(value);
+}
+
 function fieldBefore(live, key) {
   if (!live || typeof live !== "object") return "(missing)";
   if (!Object.prototype.hasOwnProperty.call(live, key)) return "(missing)";
-  return JSON.stringify(live[key]);
+  return formatFieldValue(live[key]);
 }
 
 /** One line per patched field: current JSON value, then the value to write. */
@@ -285,7 +316,7 @@ export function formatLiveDiff(temple, live) {
   if (temple.note) lines.push(`    note: ${temple.note}`);
   for (const key of Object.keys(temple.fields)) {
     lines.push(
-      `    ${key}: ${fieldBefore(live, key)} -> ${JSON.stringify(temple.fields[key])}`,
+      `    ${key}: ${fieldBefore(live, key)} -> ${formatFieldValue(temple.fields[key])}`,
     );
   }
   return lines.join("\n");
@@ -296,7 +327,9 @@ export function formatOfflineDiff(temple) {
   const lines = [];
   if (temple.note) lines.push(`    note: ${temple.note}`);
   for (const key of Object.keys(temple.fields)) {
-    lines.push(`    ${key}: (live not read) -> ${JSON.stringify(temple.fields[key])}`);
+    lines.push(
+      `    ${key}: (live not read) -> ${formatFieldValue(temple.fields[key])}`,
+    );
   }
   return lines.join("\n");
 }
@@ -340,7 +373,7 @@ export async function previewPatchSet(db, patch) {
  * no earlier document is written. Otherwise mismatches are skipped and the
  * matches are updated in that same transaction.
  */
-export async function applyPatchSet(db, patch, { strict }) {
+export async function applyPatchSet(db, patch, { strict, deleteValue = FIELD_DELETE }) {
   await db.runTransaction(async (tx) => {
     const planned = [];
     for (const temple of patch.temples) {
@@ -381,7 +414,7 @@ export async function applyPatchSet(db, patch, { strict }) {
       if (row.temple.note) {
         console.log(`note temples/${row.temple.id}  ${row.temple.note}`);
       }
-      tx.update(row.ref, row.temple.fields);
+      tx.update(row.ref, patchWritePayload(row.temple.fields, deleteValue));
       console.log(
         `updated temples/${row.temple.id} (${Object.keys(row.temple.fields).join(", ")})`,
       );
@@ -414,8 +447,12 @@ async function openFirestore(project) {
 }
 
 async function applyPatches(project, patch, { strict }) {
+  const admin = (await import("firebase-admin")).default;
   const db = await openFirestore(project);
-  await applyPatchSet(db, patch, { strict });
+  await applyPatchSet(db, patch, {
+    strict,
+    deleteValue: admin.firestore.FieldValue.delete(),
+  });
 }
 
 async function previewPatches(project, patch) {
