@@ -24,6 +24,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard.js";
+import { redactThrown } from "./redact_url.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -277,7 +278,7 @@ const isDirect =
   process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1]);
 if (isDirect) {
   main().catch((error) => {
-    console.error(error.message || error);
+    console.error(redactThrown(error));
     process.exit(1);
   });
 }

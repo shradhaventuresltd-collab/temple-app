@@ -4,7 +4,7 @@ import { fileURLToPath } from "url";
 
 import { assertOneCoverOk } from "./cover_ok.js";
 import { downloadTokenUrl, ensureDownloadToken, withDownloadToken } from "./download_token.js";
-import { redactDownloadToken } from "./redact_url.js";
+import { redactDownloadToken, redactThrown } from "./redact_url.js";
 import { assertStorageAuth, useNativeFetchForStorageAuth } from "./storage_auth.js";
 import { mapPhotoLicence, photoCredit } from "./photo_licence.js";
 
@@ -511,7 +511,7 @@ export async function processPack({
       console.log(`    ${redactDownloadToken(url)}`);
     } catch (err) {
       console.log("FAILED");
-      throw new Error(`${photo.filename}: ${redactDownloadToken(err.message)}`);
+      throw new Error(`${photo.filename}: ${redactThrown(err)}`);
     }
   }
 
@@ -520,7 +520,10 @@ export async function processPack({
     console.log(redactDownloadToken(url));
   }
 
-  console.log("\n── Suggested sample_data / Firestore fields ──────────────────");
+  console.log("\n── Suggested sample_data / Firestore fields (display-only) ──");
+  console.log(
+    "Display-only. Tokens are redacted here. Use --write-urls <path> for the real values."
+  );
   console.log(`imageUrl: '${redactDownloadToken(uploadedUrls[0])}',`);
   console.log("images: [");
   for (const url of uploadedUrls) {
@@ -703,7 +706,7 @@ const invoked =
   process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (invoked) {
   main().catch((err) => {
-    console.error(`\n✖  ${redactDownloadToken(err.message)}`);
+    console.error(`\n✖  ${redactThrown(err)}`);
     process.exit(1);
   });
 }

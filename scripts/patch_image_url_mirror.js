@@ -18,7 +18,7 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { confirmProject } from "./prod_guard.js";
-import { redactDownloadToken } from "./redact_url.js";
+import { redactDownloadToken, redactThrown } from "./redact_url.js";
 
 /** Audit rows whose issues contain MIRROR. Repo seed ids, not pack folders. */
 export const MIRROR_TEMPLE_IDS = [
@@ -172,7 +172,7 @@ const isDirect =
   process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1]);
 if (isDirect) {
   main().catch((error) => {
-    console.error(redactDownloadToken(error.message || error));
+    console.error(redactThrown(error));
     process.exit(1);
   });
 }

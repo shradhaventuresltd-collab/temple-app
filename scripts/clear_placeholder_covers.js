@@ -24,6 +24,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard.js";
+import { redactThrown } from "./redact_url.js";
 import { isPlaceholderImageUrl, isUnlicensedStockImageUrl } from "./state_batch.js";
 import { entryFromTemple, stateSlug } from "./temple_index.js";
 
@@ -367,7 +368,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
 const invoked = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (invoked) {
   main().catch((error) => {
-    console.error(error?.message || error);
+    console.error(redactThrown(error));
     process.exitCode = 1;
   });
 }
