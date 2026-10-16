@@ -14,10 +14,12 @@ import {
 import { planCoverPhoto } from "./backfill_cover_photos.js";
 import {
   THUMB_CACHE_CONTROL,
+  THUMB_EDGE,
   applyCoverThumbPlans,
   applyLimitAndResume,
   authorizeApply,
   commitCoverThumb,
+  encodeWithSharp,
   firebaseMediaUrl,
   formatThumbReport,
   loadResume,
@@ -853,4 +855,89 @@ test("apply stops before a thumb write when the Storage preflight fails", async 
   );
   assert.equal(loads, 0);
   assert.equal(uploads, 0);
+});
+
+test("encodeWithSharp writes a 480-wide jpeg and does not enlarge a smaller frame", async () => {
+  const sharp = (await import("sharp")).default;
+  const wide = await sharp({
+    create: {
+      width: 960,
+      height: 640,
+      channels: 3,
+      background: { r: 18, g: 72, b: 140 },
+    },
+  })
+    .jpeg()
+    .toBuffer();
+  const thumb = await encodeWithSharp(wide);
+  assert.equal(thumb[0], 0xff);
+  assert.equal(thumb[1], 0xd8);
+  const wideMeta = await sharp(thumb).metadata();
+  assert.equal(wideMeta.format, "jpeg");
+  assert.equal(wideMeta.width, THUMB_EDGE);
+  assert.equal(wideMeta.height, 320);
+
+  const small = await sharp({
+    create: {
+      width: 120,
+      height: 80,
+      channels: 3,
+      background: { r: 200, g: 30, b: 30 },
+    },
+  })
+    .png()
+    .toBuffer();
+  const smallThumb = await encodeWithSharp(small);
+  const smallMeta = await sharp(smallThumb).metadata();
+  assert.equal(smallMeta.format, "jpeg");
+  assert.equal(smallMeta.width, 120);
+  assert.equal(smallMeta.height, 80);
+
+  const encodedUploads = [];
+  const plan = planCoverThumb(shore("encode-temple"));
+  assert.equal(plan.action, "upload");
+  const rows = await applyCoverThumbPlans([plan], {
+    dryRun: true,
+    stat: async (path) =>
+      path.endsWith("/01.jpg")
+        ? { generation: "7", updated: "2024-01-01T00:00:00.000Z" }
+        : null,
+    download: async () => {
+      throw new Error("dry-run must not download");
+    },
+    encode: async () => {
+      throw new Error("dry-run must not encode");
+    },
+    upload: async () => {
+      throw new Error("dry-run must not upload");
+    },
+  });
+  assert.equal(rows[0].result, "would-upload");
+  assert.equal(rows[0].thumbPath, "temples/encode-temple/01_480_g7.jpg");
+
+  const applied = await applyCoverThumbPlans([plan], {
+    dryRun: false,
+    stat: async (path) =>
+      path.endsWith("/01.jpg")
+        ? { generation: "7", updated: "2024-01-01T00:00:00.000Z" }
+        : null,
+    download: async () => wide,
+    encode: encodeWithSharp,
+    upload: async (file) => {
+      encodedUploads.push(file);
+      return {
+        url: `https://firebasestorage.googleapis.com/v0/b/bucket/o/${encodeURIComponent(file.path)}?alt=media&token=real`,
+      };
+    },
+    verifyPublic: async () => true,
+    writeThumbUrl: async () => ({ ok: true }),
+  });
+  assert.equal(encodedUploads.length, 1);
+  assert.equal(encodedUploads[0].bytes[0], 0xff);
+  assert.equal(encodedUploads[0].bytes[1], 0xd8);
+  const uploaded = await sharp(encodedUploads[0].bytes).metadata();
+  assert.equal(uploaded.format, "jpeg");
+  assert.equal(uploaded.width, THUMB_EDGE);
+  assert.equal(applied[0].result, "uploaded");
+  assert.equal(applied[0].thumbPath, "temples/encode-temple/01_480_g7.jpg");
 });

@@ -32,9 +32,9 @@
  * each successful row and records the cover URL. --resume processes a
  * recorded temple again when that cover has changed.
  *
- * Encoding uses sharp, installed by Deployer
- * (`npm install --prefix scripts sharp`). Tests inject an encoder and never
- * import sharp.
+ * Encoding uses the sharp dependency in scripts/package.json.
+ * `npm ci` in scripts/ installs the prebuilt binary. Most tests inject an
+ * encoder. The encode unit test calls sharp.
  * prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
  */
 import { randomUUID } from "node:crypto";
@@ -84,8 +84,8 @@ Apply writes the thumb object, checks its Firebase download URL, then
 one transaction per temple for photos[].thumbUrl and that temple's index
 entry. A cover that changed is skipped. A cover with no matching photos[]
 entry is listed as no-photo and not uploaded.
-It does not deploy rules. Install sharp before apply:
-  npm install --prefix scripts sharp
+It does not deploy rules. JPEG encoding uses the sharp dependency
+installed by npm ci in scripts/.
 `);
 }
 
@@ -610,8 +610,7 @@ export function formatThumbReport(rows, { apply = false } = {}) {
 }
 
 /**
- * sharp resize to JPEG. Imported only when Deployer applies. Tests never
- * call this. Width is [THUMB_EDGE]. Smaller frames are not enlarged.
+ * sharp resize to JPEG. Width is [THUMB_EDGE]. Smaller frames are not enlarged.
  */
 export async function encodeWithSharp(bytes) {
   let sharp;
