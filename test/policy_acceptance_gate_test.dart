@@ -444,6 +444,30 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('a failed acceptance save stays on the gate', (tester) async {
+    final store = _ThrowingPolicyAcceptanceStore();
+    await tester.pumpWidget(_app(store: store));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('policy-accept-button')));
+    await tester.pump();
+
+    expect(find.text(PolicyGateCopy.saveFailed), findsOneWidget);
+    expect(find.byType(PolicyAcceptanceGate), findsOneWidget);
+    expect(find.byType(HomeScreen), findsNothing);
+    expect(store.writes, 1);
+    expect(tester.takeException(), isNull);
+
+    store.fail = false;
+    await tester.tap(find.byKey(const Key('policy-accept-button')));
+    await tester.pumpAndSettle();
+
+    expect(store.writes, 2);
+    expect(find.byType(HomeScreen), findsOneWidget);
+    expect(find.byType(PolicyAcceptanceGate), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Accept stays on screen at text scale 2.0', (tester) async {
     await _expectAcceptReachable(
       tester,
@@ -457,6 +481,17 @@ void main() {
   ) async {
     await _expectAcceptReachable(tester, size: const Size(640, 360));
   });
+}
+
+class _ThrowingPolicyAcceptanceStore extends _MemoryPolicyAcceptanceStore {
+  bool fail = true;
+
+  @override
+  Future<void> write(PolicyAcceptance acceptance) async {
+    writes++;
+    if (fail) throw StateError('prefs unavailable');
+    value = acceptance;
+  }
 }
 
 class _SlowPolicyAcceptanceStore extends _MemoryPolicyAcceptanceStore {

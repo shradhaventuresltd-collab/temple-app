@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/services/firestore_read_log.dart';
 
-/// Shown when a shard could not be loaded. A bundled sample still shows
-/// this notice, including "Showing the offline sample."
+/// Shown when a shard could not be loaded. That state is omitted.
 class UnavailableStatesNotice extends StatelessWidget {
   const UnavailableStatesNotice({super.key});
 

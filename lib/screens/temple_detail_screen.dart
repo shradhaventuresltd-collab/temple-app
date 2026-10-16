@@ -16,6 +16,19 @@ import 'package:url_launcher/url_launcher.dart';
 const Color _saffron = Color(0xFFFF8F00);
 const Color _gold = Color(0xFFFFD54F);
 
+/// Maps search for a temple that has coordinates. The name is part of the
+/// query so a pin is not only a bare lat,lng pair.
+Uri googleMapsSearchUri({
+  required String name,
+  required double latitude,
+  required double longitude,
+}) {
+  return Uri.https('www.google.com', '/maps/search/', {
+    'api': '1',
+    'query': '$name $latitude,$longitude',
+  });
+}
+
 class TempleDetailScreen extends StatefulWidget {
   const TempleDetailScreen({super.key, required this.temple, this.loadTemple});
 
@@ -170,9 +183,11 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
   Future<void> _openGoogleMaps() async {
     final lat = temple.latitude;
     final lng = temple.longitude;
-    if (lat == null || lng == null) return;
-    final url = Uri.parse(
-      'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
+    if (!temple.hasCoordinates || lat == null || lng == null) return;
+    final url = googleMapsSearchUri(
+      name: temple.name,
+      latitude: lat,
+      longitude: lng,
     );
     final opened = await _tryOpenMaps(url);
     if (!opened && mounted) {
@@ -566,14 +581,15 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
                           ? null
                           : _TimingsCaveat(text: caveat),
                     ),
-                    const SizedBox(height: 12),
-                    _InfoCard(
-                      title: 'Coordinates',
-                      icon: Icons.explore_rounded,
-                      content: temple.hasCoordinates
-                          ? '${temple.latitude!.toStringAsFixed(4)}° N, ${temple.longitude!.toStringAsFixed(4)}° E'
-                          : 'Not listed in this entry.',
-                    ),
+                    if (temple.hasCoordinates) ...[
+                      const SizedBox(height: 12),
+                      _InfoCard(
+                        title: 'Coordinates',
+                        icon: Icons.explore_rounded,
+                        content:
+                            '${temple.latitude!.toStringAsFixed(4)}° N, ${temple.longitude!.toStringAsFixed(4)}° E',
+                      ),
+                    ],
 
                     // ── How to Reach ──
                     const SizedBox(height: 24),

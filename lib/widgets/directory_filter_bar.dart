@@ -162,7 +162,9 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
   @override
   Widget build(BuildContext context) {
     final height = MediaQuery.sizeOf(context).height * 0.78;
-    final note = directoryDeityFilterNote();
+    final states = directoryStatesFrom(widget.temples);
+    final deities = directoryDeitiesFrom(widget.temples);
+    final note = directoryDeityFilterNote(deities);
     final matched = _count(state: _state, deity: _deity);
     final draftActive = _state != null || _deity != null;
 
@@ -238,7 +240,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
                         selected: _state == null,
                         onTap: () => setState(() => _state = null),
                       ),
-                      for (final state in directoryFilterStates)
+                      for (final state in states)
                         _OptionChip(
                           optionKey: Key('filter-option-state-$state'),
                           label: state,
@@ -272,7 +274,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
                         selected: _deity == null,
                         onTap: () => setState(() => _deity = null),
                       ),
-                      for (final deity in directoryFilterDeities)
+                      for (final deity in deities)
                         _OptionChip(
                           optionKey: Key('filter-option-deity-$deity'),
                           label: directoryDeityChipLabel(deity),
@@ -324,10 +326,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
                         ),
                       ),
                       onPressed: () {
-                        Navigator.pop(context, (
-                          state: _state,
-                          deity: _deity,
-                        ));
+                        Navigator.pop(context, (state: _state, deity: _deity));
                       },
                       child: Text(directoryFilterResultLabel(matched)),
                     ),
@@ -413,9 +412,7 @@ class _OptionChip extends StatelessWidget {
           : Colors.white,
       shape: StadiumBorder(
         side: BorderSide(
-          color: selected
-              ? TempleBrowseCard.saffron
-              : TempleBrowseCard.gold,
+          color: selected ? TempleBrowseCard.saffron : TempleBrowseCard.gold,
         ),
       ),
       clipBehavior: Clip.antiAlias,
@@ -552,7 +549,11 @@ class _TriggerChip extends StatelessWidget {
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints.tightFor(width: 32, height: 32),
               onPressed: onClear,
-              icon: const Icon(Icons.close_rounded, size: 16, color: Colors.white),
+              icon: const Icon(
+                Icons.close_rounded,
+                size: 16,
+                color: Colors.white,
+              ),
             ),
         ],
       ),

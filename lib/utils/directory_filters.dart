@@ -2,57 +2,27 @@ import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
 import 'package:temple_app/utils/temple_search.dart';
 
-/// States the directory already offers as a filter. Not a new dimension.
-const List<String> directoryFilterStates = [
-  'Tamil Nadu',
-  'Kerala',
-  'Karnataka',
-  'Andhra Pradesh',
-  'Telangana',
-  'Gujarat',
-  'Odisha',
-  'Uttar Pradesh',
-  'Jammu and Kashmir',
-  'Maharashtra',
-  'Rajasthan',
-  'West Bengal',
-  'Madhya Pradesh',
-  'Bihar',
-  'Himachal Pradesh',
-];
+/// States present on the loaded temples, sorted. Not a hard-coded catalog.
+List<String> directoryStatesFrom(Iterable<Temple> temples) {
+  final states = <String>{
+    for (final temple in temples)
+      if (temple.state.trim().isNotEmpty) temple.state.trim(),
+  };
+  final sorted = states.toList()..sort();
+  return sorted;
+}
 
-/// Deity labels the directory already offers as a filter. Exact [Temple.deity]
-/// strings, including Jain and Buddhist listings. Not a new dimension.
-const List<String> directoryFilterDeities = [
-  'Shiva',
-  'Vishnu',
-  'Devi',
-  'Murugan',
-  'Ganesha',
-  'Surya',
-  'Hanuman',
-  'Swaminarayan',
-  'Gorakhnath',
-  'Sai Baba',
-  'Vitthal',
-  'Khandoba',
-  'Brahma',
-  'Jain Tirthankaras',
-  'Devi (Kali)',
-  'Devi (Bhavatarini Kali)',
-  'Sri Ramakrishna (Ramakrishna–Vedanta tradition)',
-  'Devi (Tara)',
-  'Devi (Hangseshwari Kali)',
-  'Radha-Madhava / Pancha-tattva (Gaudiya Vaishnavism)',
-  'Shiva (Taraknath)',
-  'Vishnu (Radha-Krishna / Lakshminarayan)',
-  'Devi (Kiriteswari / Mahishamardini)',
-  'Kapil Muni',
-  'Vishnu/Rama',
-  'Buddha',
-  'Sita (Devi)',
-  'Muthappan',
-];
+/// Deity labels present on the loaded temples, sorted.
+///
+/// Exact [Temple.deity] strings, including Jain and Buddhist listings.
+List<String> directoryDeitiesFrom(Iterable<Temple> temples) {
+  final deities = <String>{
+    for (final temple in temples)
+      if (temple.deity.trim().isNotEmpty) temple.deity.trim(),
+  };
+  final sorted = deities.toList()..sort();
+  return sorted;
+}
 
 /// Honesty chip for a listed deity, or null for the Hindu-first default.
 ///
@@ -73,14 +43,12 @@ String directoryDeityChipLabel(String deity) {
   return '$deity · $tradition';
 }
 
-/// Note under the deity section when the catalog includes a non-Hindu label.
-String? directoryDeityFilterNote() {
+/// Note under the deity section when [deities] includes a non-Hindu label.
+String? directoryDeityFilterNote(Iterable<String> deities) {
   const order = ['Jain', 'Buddhist', 'Sikh'];
   final present = [
     for (final label in order)
-      if (directoryFilterDeities.any(
-        (deity) => listedDeityTraditionLabel(deity) == label,
-      ))
+      if (deities.any((deity) => listedDeityTraditionLabel(deity) == label))
         label,
   ];
   if (present.isEmpty) return null;

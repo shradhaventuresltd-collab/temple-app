@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:temple_app/data/sample_data.dart';
 import 'package:temple_app/models/temple_index.dart';
 import 'package:temple_app/services/firestore_read_log.dart';
 import 'package:temple_app/services/index_stamp_store.dart';
@@ -16,21 +15,22 @@ final _oldStamp = DateTime.utc(2026, 1, 2).millisecondsSinceEpoch;
 final _newStamp = DateTime.utc(2026, 2, 2).millisecondsSinceEpoch;
 
 void main() {
-  test('a missing Firebase app serves the bundled sample', () async {
+  test('a missing Firebase app does not serve the bundled sample', () async {
     TempleService.resetSessionForTest();
     addTearDown(TempleService.resetSessionForTest);
     final log = FirestoreReadLog();
     final service = TempleService(stamps: _MemoryStamps({}), readLog: log);
 
-    final rows = await service.getTemples();
-    final detail = await service.getTemple(sampleTemples.first.id);
+    await expectLater(
+      service.getTemples(),
+      throwsA(isA<DirectoryLoadException>()),
+    );
+    final detail = await service.getTemple('missing-temple');
 
-    expect(rows, same(sampleTemples));
-    expect(log.fallbacks, ['sample']);
-    expect(log.offlineSample, isTrue);
-    expect(log.source, 'sample');
-    expect(detail.temple, isNotNull);
-    expect(detail.fromCache, isTrue);
+    expect(log.fallbacks, isEmpty);
+    expect(log.offlineSample, isFalse);
+    expect(log.showingSavedList, isFalse);
+    expect(detail.temple, isNull);
     expect(log.serverReads, 0);
   });
 
@@ -52,10 +52,18 @@ void main() {
       stamps: {for (final state in _states) state: _oldStamp},
     );
     await warm.service.getTemples();
-    expect(warm.log.serverReads, 1);
+    expect(warm.log.serverReads, 0);
     expect(warm.log.cacheHits, _states.length);
+    expect(warm.log.showingSavedList, isTrue);
     for (final state in _states) {
       expect(warm.fake.count('cache:temple_index/$state'), 1);
+      expect(warm.fake.count('server:temple_index/$state'), 0);
+    }
+    await warm.service.flushBackgroundForTest();
+    expect(warm.log.serverReads, 1);
+    expect(warm.log.cacheHits, _states.length);
+    expect(warm.log.showingSavedList, isFalse);
+    for (final state in _states) {
       expect(warm.fake.count('server:temple_index/$state'), 0);
     }
 
@@ -68,13 +76,19 @@ void main() {
       },
     );
     final changedRows = await changed.service.getTemples();
-    expect(changed.log.serverReads, 2);
-    expect(changed.fake.count('server:temple_index/bihar'), 1);
-    expect(changed.fake.count('cache:temple_index/kerala'), 1);
-    expect(changed.fake.count('cache:temple_index/odisha'), 1);
-    expect(changed.fake.count('server:temple_index/kerala'), 0);
+    expect(changed.log.serverReads, 0);
     expect(
       changedRows.firstWhere((temple) => temple.id == 'bihar-temple').name,
+      'Bihar cached',
+    );
+    final fresh = await changed.service.flushBackgroundForTest();
+    expect(changed.log.serverReads, 2);
+    expect(changed.fake.count('server:temple_index/bihar'), 1);
+    expect(changed.fake.count('cache:temple_index/kerala'), greaterThan(0));
+    expect(changed.fake.count('cache:temple_index/odisha'), greaterThan(0));
+    expect(changed.fake.count('server:temple_index/kerala'), 0);
+    expect(
+      fresh!.firstWhere((temple) => temple.id == 'bihar-temple').name,
       'Bihar fresh',
     );
     expect(changed.stamps.stamps['bihar'], _newStamp);
@@ -83,20 +97,26 @@ void main() {
 
   test('a meta timeout never reads the temples collection', () async {
     final hung = _harness(hangMeta: true);
-    final rows = await hung.service.getTemples();
-    expect(rows, same(sampleTemples));
+    await expectLater(
+      hung.service.getTemples(),
+      throwsA(isA<DirectoryLoadException>()),
+    );
     expect(hung.fake.gets.where((get) => get.contains('temples')), isEmpty);
-    expect(hung.log.serverReads, 0);
-    expect(hung.log.fallbacks, ['sample']);
-    expect(hung.log.unavailableShardsMessage, contains('offline sample'));
-    expect(hung.log.fallbackCount, 1);
+    expect(hung.log.fallbacks, isEmpty);
+    expect(hung.log.offlineSample, isFalse);
+    expect(hung.log.showingSavedList, isFalse);
 
     final cached = _harness(hangMeta: true, stamps: {'kerala': _oldStamp});
     final cachedRows = await cached.service.getTemples();
     expect(cachedRows.map((temple) => temple.id), ['kerala-temple']);
+    expect(cached.log.showingSavedList, isTrue);
+    expect(cached.fake.gets.where((get) => get.startsWith('server:')), isEmpty);
     expect(cached.fake.gets.where((get) => get.contains('temples')), isEmpty);
-    expect(cached.log.fallbacks, ['index-cache']);
     expect(cached.fake.count('cache:temple_index/kerala'), 1);
+    await cached.service.flushBackgroundForTest();
+    expect(cached.log.showingSavedList, isTrue);
+    expect(cached.log.fallbacks, ['index-cache']);
+    expect(cached.fake.gets.where((get) => get.contains('temples')), isEmpty);
   });
 
   test('15 shards of 12 temples are 16 cold reads and 1 warm read', () async {
@@ -108,7 +128,11 @@ void main() {
     final warm = _scale(applied: true);
     final warmRows = await warm.service.getTemples();
     expect(warmRows, hasLength(180));
+    expect(warm.log.serverReads, 0);
+    expect(warm.log.showingSavedList, isTrue);
+    await warm.service.flushBackgroundForTest();
     expect(warm.log.serverReads, 1);
+    expect(warm.log.showingSavedList, isFalse);
 
     final scan = _scale(metaExists: false);
     await scan.service.getTemples();
@@ -135,14 +159,14 @@ void main() {
       harness.fake.gets.where((get) => get == 'query:Source.server:temples'),
       isEmpty,
     );
-    expect(rows.map((temple) => temple.name), [
-      for (final temple in sampleTemples)
-        if (temple.state == 'Bihar') temple.name,
-    ]);
-    expect(harness.log.fallbacks, contains('sample'));
+    expect(rows, isEmpty);
+    expect(harness.log.fallbacks, isNot(contains('sample')));
     expect(harness.log.unavailableShardsMessage, contains('Could not load'));
     expect(harness.log.unavailableShardsMessage, contains('Bihar'));
-    expect(harness.log.unavailableShardsMessage, contains('offline sample'));
+    expect(
+      harness.log.unavailableShardsMessage,
+      isNot(contains('offline sample')),
+    );
 
     final gap = _harness(
       serverStamps: {'atlantis': _newStamp, 'kerala': _oldStamp},
@@ -173,13 +197,14 @@ void main() {
       harness.fake.gets,
       contains('query:Source.server:temples:state=Bihar'),
     );
-    expect(rows.map((temple) => temple.name), [
-      for (final temple in sampleTemples)
-        if (temple.state == 'Bihar') temple.name,
-    ]);
+    expect(rows, isEmpty);
+    expect(harness.log.fallbacks, isNot(contains('sample')));
     expect(harness.log.unavailableShardsMessage, contains('Could not load'));
     expect(harness.log.unavailableShardsMessage, contains('Bihar'));
-    expect(harness.log.unavailableShardsMessage, contains('offline sample'));
+    expect(
+      harness.log.unavailableShardsMessage,
+      isNot(contains('offline sample')),
+    );
 
     final gap = _harness(
       serverStamps: {'atlantis': _newStamp, 'kerala': _oldStamp},
@@ -237,17 +262,23 @@ void main() {
     );
     final stale = await first.service.getTemples();
     expect(stale.single.name, 'Bihar cached');
+    expect(first.log.showingSavedList, isTrue);
+    expect(first.log.serverReads, 0);
+    await first.service.flushBackgroundForTest();
     expect(first.stamps.stamps['bihar'], _oldStamp);
     expect(first.log.fallbacks, ['index-cache']);
-    expect(first.fake.count('cache:temple_index/bihar'), 1);
+    expect(first.fake.count('cache:temple_index/bihar'), greaterThan(0));
     expect(first.fake.count('server:temple_index/bihar'), 1);
 
     final second = _harness(
       stamps: Map<String, int>.from(first.stamps.stamps),
       serverStamps: {'bihar': _newStamp},
     );
-    final fresh = await second.service.getTemples();
-    expect(fresh.single.name, 'Bihar fresh');
+    final shown = await second.service.getTemples();
+    expect(shown.single.name, 'Bihar cached');
+    expect(second.log.showingSavedList, isTrue);
+    final fresh = await second.service.flushBackgroundForTest();
+    expect(fresh!.single.name, 'Bihar fresh');
     expect(second.log.serverReads, 2);
     expect(second.stamps.stamps['bihar'], _newStamp);
   });
@@ -270,6 +301,12 @@ void main() {
     expect(fromEmpty.map((temple) => temple.id), ['kept-temple']);
     expect(empty.fake.count('query:Source.server:temples'), 1);
     expect(empty.log.fallbackCount, 0);
+
+    final bare = _harness(metaExists: false);
+    final none = await bare.service.getTemples();
+    expect(none, isEmpty);
+    expect(bare.log.fallbacks, isNot(contains('sample')));
+    expect(bare.log.offlineSample, isFalse);
   });
 
   test('detail uses the default source and then the cache', () async {

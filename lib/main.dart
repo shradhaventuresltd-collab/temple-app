@@ -179,12 +179,17 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
 
   Future<void> _accept() async {
     final clock = widget.now ?? DateTime.now;
-    await _store.write(
-      PolicyAcceptance(
-        version: widget.currentPolicyVersion,
-        acceptedAt: clock().toUtc(),
-      ),
-    );
+    try {
+      await _store.write(
+        PolicyAcceptance(
+          version: widget.currentPolicyVersion,
+          acceptedAt: clock().toUtc(),
+        ),
+      );
+    } catch (e, st) {
+      debugPrint('Policy acceptance save failed: $e\n$st');
+      rethrow;
+    }
     _openHomeAndStartAds();
   }
 

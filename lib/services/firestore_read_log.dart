@@ -34,6 +34,9 @@ class FirestoreReadLog {
   /// whole directory after a meta timeout.
   bool offlineSample = false;
 
+  /// True when the list on screen was read from the local cache.
+  bool showingSavedList = false;
+
   /// Banner text when a state is missing or a sample is on screen.
   String? get unavailableShardsMessage {
     final parts = <String>[];
@@ -57,6 +60,11 @@ class FirestoreReadLog {
     unavailableShards.clear();
     sampleStates.clear();
     offlineSample = false;
+    showingSavedList = false;
+  }
+
+  void noteSavedList() {
+    showingSavedList = true;
   }
 
   void noteUnavailableShard(String label) {

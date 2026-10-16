@@ -69,12 +69,20 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _templesFuture = _loadTemples();
     DirectoryReconnect.tick.addListener(_onReconnect);
+    TempleService.revision.addListener(_onPublished);
   }
 
   @override
   void dispose() {
     DirectoryReconnect.tick.removeListener(_onReconnect);
+    TempleService.revision.removeListener(_onPublished);
     super.dispose();
+  }
+
+  void _onPublished() {
+    final rows = TempleService.published;
+    if (rows == null || !mounted) return;
+    setState(() => _templesFuture = Future<List<Temple>>.value(rows));
   }
 
   void _onReconnect() {
@@ -145,6 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
           if (widget.maintenanceMessage.trim().isNotEmpty)
             MaintenanceMessageBanner(message: widget.maintenanceMessage.trim()),
           const OfflineBanner(),
+          SavedListBanner(onRetry: _reloadTemples),
           Expanded(
             child: FutureBuilder<List<Temple>>(
               future: _templesFuture,

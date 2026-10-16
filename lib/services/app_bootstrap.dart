@@ -41,7 +41,7 @@ class AppBootstrap {
   AppBootstrap._();
 
   /// Soft cap so a hung Firebase init cannot delay temple fetch forever.
-  /// Prefer completing quickly; Home already falls back to sample temples.
+  /// Prefer completing quickly. Home then serves the saved list or an error.
   static const Duration firebaseTimeout = Duration(seconds: 4);
 
   /// Network cap for the UMP consent-info update. A timeout falls back to
@@ -66,19 +66,30 @@ class AppBootstrap {
   /// [main] awaits this before [runApp] on every flavour, including demo
   /// distribution (`DEMO_APP_ID_SUFFIX`, options from google-services.json)
   /// and demo-seed (options from [DefaultFirebaseOptions]). A failure still
-  /// returns and the app paints from cache or the bundled sample.
+  /// returns and the app paints from cache, or shows an error with Retry.
   ///
   /// On success, Firestore settings are applied before this future
   /// completes. Persistence and the 100 MiB cache are in place before the
   /// first query. A settings failure is logged and still counts Firebase
-  /// as ready, so the directory does not fall back to the bundled sample.
+  /// as ready, so a later directory read can use the cache.
   static Future<bool> initializeFirebase({
     Future<void> Function()? initialize,
     void Function()? configureFirestore,
     Duration timeout = firebaseTimeout,
   }) async {
     try {
-      if (initialize == null && firebaseAppsReady()) return true;
+      if (initialize == null && firebaseAppsReady()) {
+        // A process that already called initializeApp may still be missing
+        // persistence settings. Applying them twice throws; that is logged
+        // below and does not fail startup.
+        try {
+          final configure = configureFirestore ?? _configureLiveFirestore;
+          configure();
+        } catch (e, st) {
+          debugPrint('Firestore settings failed: $e\n$st');
+        }
+        return true;
+      }
       final start =
           initialize ??
           () => Firebase.initializeApp(

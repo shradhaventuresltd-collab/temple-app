@@ -83,24 +83,36 @@ void main() {
   }
 
   test('supported filters stay state and deity, with tradition labels', () {
-    expect(directoryFilterStates, contains('Tamil Nadu'));
-    expect(directoryFilterDeities, contains('Shiva'));
-    expect(directoryFilterDeities, contains('Jain Tirthankaras'));
-    expect(directoryFilterDeities, contains('Buddha'));
-    expect(directoryFilterDeities, contains('Muthappan'));
+    final withGoa = [
+      ...temples,
+      temple(name: 'Goan Shrine', state: 'Goa', city: 'Ponda', deity: 'Buddha'),
+    ];
+    expect(directoryStatesFrom(temples), ['Kerala', 'Rajasthan', 'Tamil Nadu']);
+    expect(directoryStatesFrom(withGoa), contains('Goa'));
+    expect(directoryStatesFrom(temples), isNot(contains('Himachal Pradesh')));
+    expect(directoryDeitiesFrom(temples), [
+      'Devi',
+      'Jain Tirthankaras',
+      'Shiva',
+    ]);
+    expect(directoryDeitiesFrom(withGoa), contains('Buddha'));
     expect(listedDeityTraditionLabel('Jain Tirthankaras'), 'Jain');
     expect(listedDeityTraditionLabel('Buddha'), 'Buddhist');
     expect(listedDeityTraditionLabel('Shiva'), isNull);
     expect(directoryDeityChipLabel('Buddha'), 'Buddha · Buddhist');
     expect(
-      directoryDeityFilterNote(),
-      'Jain and Buddhist labels are the listed tradition, not Hindu darshan filters.',
+      directoryDeityFilterNote(directoryDeitiesFrom(temples)),
+      'Jain labels are the listed tradition, not Hindu darshan filters.',
     );
     expect(
-      directoryFilterCount(temples, state: 'Kerala', deity: 'Shiva'),
-      1,
+      directoryDeityFilterNote(directoryDeitiesFrom(withGoa)),
+      'Jain and Buddhist labels are the listed tradition, not Hindu darshan filters.',
     );
-    expect(directoryBrowseTitle(state: 'Kerala', deity: 'Shiva'), 'Shiva · Kerala');
+    expect(directoryFilterCount(temples, state: 'Kerala', deity: 'Shiva'), 1);
+    expect(
+      directoryBrowseTitle(state: 'Kerala', deity: 'Shiva'),
+      'Shiva · Kerala',
+    );
   });
 
   testWidgets('state and deity chips filter the loaded list together', (
@@ -116,7 +128,13 @@ void main() {
     expect(find.text('Filters'), findsOneWidget);
     expect(find.byKey(const Key('filter-deity-note')), findsOneWidget);
     expect(find.textContaining('Hindu darshan'), findsOneWidget);
-    expect(find.textContaining('Buddha · Buddhist'), findsOneWidget);
+    expect(
+      find.textContaining('Jain Tirthankaras · Jain', findRichText: true),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Buddha'), findsNothing);
+    expect(find.text('Goa'), findsNothing);
+    expect(find.text('Himachal Pradesh'), findsNothing);
     expect(find.text('District'), findsNothing);
     expect(find.text('Festival'), findsNothing);
     expect(find.text('ASI'), findsNothing);
@@ -234,7 +252,11 @@ void main() {
   testWidgets('a Jain listing keeps its tradition chip when filtered', (
     tester,
   ) async {
-    await pumpList(tester, initialState: 'Rajasthan', initialDeity: 'Jain Tirthankaras');
+    await pumpList(
+      tester,
+      initialState: 'Rajasthan',
+      initialDeity: 'Jain Tirthankaras',
+    );
 
     expect(find.text('Dilwara Temples'), findsOneWidget);
     expect(find.text('Meenakshi Amman Temple'), findsNothing);

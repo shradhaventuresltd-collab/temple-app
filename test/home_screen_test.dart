@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/home_screen.dart';
+import 'package:temple_app/services/firestore_read_log.dart';
+import 'package:temple_app/widgets/offline_banner.dart';
 import 'package:temple_app/widgets/app_drawer.dart';
 import 'package:temple_app/widgets/debug_home_admin_actions.dart';
 
@@ -221,4 +223,26 @@ void main() {
       expect(find.text('Admin sign-in'), findsOneWidget);
     },
   );
+
+  testWidgets('Home shows the saved list banner with Retry', (tester) async {
+    final log = FirestoreReadLog.instance;
+    log.showingSavedList = true;
+    addTearDown(() => log.showingSavedList = false);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomeScreen(
+          adminAuth: FakeAdminAuth(),
+          templesLoader: () async => [sampleTemple()],
+          adminToolsEnabled: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('saved-list-banner')), findsOneWidget);
+    expect(find.text(SavedListBanner.message), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

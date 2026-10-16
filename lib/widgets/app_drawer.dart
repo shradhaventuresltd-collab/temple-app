@@ -488,6 +488,27 @@ class _TempleListScreenState extends State<TempleListScreen> {
     super.initState();
     _title = widget.title;
     _interstitialAdManager.loadAd();
+    TempleService.revision.addListener(_onPublished);
+  }
+
+  List<Temple>? _shown;
+
+  List<Temple> get _directory => _shown ?? widget.temples;
+
+  void _onPublished() {
+    final rows = TempleService.published;
+    if (rows == null || !mounted) return;
+    setState(() => _shown = rows);
+  }
+
+  Future<void> _retrySavedList() async {
+    try {
+      final rows = await TempleService().getTemples(refresh: true);
+      if (!mounted) return;
+      setState(() => _shown = rows);
+    } catch (e, st) {
+      debugPrint('Saved list retry failed: $e\n$st');
+    }
   }
 
   void _onFiltersChanged(String? state, String? deity) {
@@ -501,6 +522,7 @@ class _TempleListScreenState extends State<TempleListScreen> {
 
   @override
   void dispose() {
+    TempleService.revision.removeListener(_onPublished);
     _interstitialAdManager.dispose();
     super.dispose();
   }
@@ -558,6 +580,7 @@ class _TempleListScreenState extends State<TempleListScreen> {
       body: Column(
         children: [
           const OfflineBanner(),
+          SavedListBanner(onRetry: _retrySavedList),
           Expanded(child: _buildBody()),
         ],
       ),
@@ -577,7 +600,7 @@ class _TempleListScreenState extends State<TempleListScreen> {
     final pending = widget.templesFuture;
     if (pending == null) {
       return TempleBrowseList(
-        temples: widget.temples,
+        temples: _directory,
         initialQuery: widget.initialQuery,
         initialState: widget.stateFilter,
         initialDeity: widget.deityFilter,
