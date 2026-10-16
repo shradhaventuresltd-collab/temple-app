@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:temple_app/services/firebase_ready.dart';
 
 /// True when the Firebase ID token custom claims include `admin: true`.
 ///
@@ -71,6 +72,7 @@ class FirebaseAdminAuth implements AdminAuth {
     if (existing != null) return existing;
     final injected = _firebaseAuth;
     if (injected != null) return _resolved = injected;
+    noteFirebaseAccess('FirebaseAuth.instance');
     return _resolved = FirebaseAuth.instance;
   }
 
