@@ -180,7 +180,7 @@ String? coverThumbFor(Map<String, dynamic> data) {
   if (explicit != null) return _wikimedia480(explicit) ?? explicit;
   final wiki = _wikimedia480(source);
   if (wiki != null) return wiki;
-  return _fullCover(source);
+  return _fullCover(source, credit: _photoCredit(data, source));
 }
 
 String? _explicitThumb(Map<String, dynamic> data, String source) {
@@ -190,8 +190,25 @@ String? _explicitThumb(Map<String, dynamic> data, String source) {
     if (photo is! Map) continue;
     final url = photo['url'];
     if (url is! String || url.trim() != source) continue;
-    final thumb = _knownThumbUrl(photo['thumbUrl']);
+    final credit = photo['credit'];
+    final thumb = _knownThumbUrl(
+      photo['thumbUrl'],
+      credit: credit is String ? credit : null,
+    );
     if (thumb != null) return thumb;
+  }
+  return null;
+}
+
+String? _photoCredit(Map<String, dynamic> data, String url) {
+  final photos = data['photos'];
+  if (photos is! List) return null;
+  for (final photo in photos) {
+    if (photo is! Map) continue;
+    final raw = photo['url'];
+    if (raw is! String || raw.trim() != url) continue;
+    final credit = photo['credit'];
+    return credit is String ? credit : null;
   }
   return null;
 }
@@ -199,7 +216,9 @@ String? _explicitThumb(Map<String, dynamic> data, String source) {
 /// Unrewritten gallery URL [coverThumbFor] is taken from.
 String? firstVerifiedGalleryUrl(Map<String, dynamic> data) {
   for (final url in _galleryCandidates(data)) {
-    if (!_httpUrl(url) || isDisallowedImageUrl(url)) continue;
+    if (!_httpUrl(url) || isDisallowedImageUrl(url, credit: _photoCredit(data, url))) {
+      continue;
+    }
     return url;
   }
   return null;
@@ -242,15 +261,15 @@ String? coverThumbFromUrls(Iterable<Object?> urls) {
   return null;
 }
 
-String? _knownThumbUrl(Object? raw) {
+String? _knownThumbUrl(Object? raw, {String? credit}) {
   if (raw is! String) return null;
-  return _fullCover(raw);
+  return _fullCover(raw, credit: credit);
 }
 
-String? _fullCover(Object? raw) {
+String? _fullCover(Object? raw, {String? credit}) {
   if (raw is! String) return null;
   final trimmed = raw.trim();
-  if (!_httpUrl(trimmed) || isDisallowedImageUrl(trimmed)) return null;
+  if (!_httpUrl(trimmed) || isDisallowedImageUrl(trimmed, credit: credit)) return null;
   if (trimmed.length > kTempleIndexCoverThumbMax) return null;
   return trimmed;
 }

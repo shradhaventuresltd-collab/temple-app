@@ -17,7 +17,7 @@
  * is overwritten and nothing is renamed.
  * Only review.status "approved" is seedable. Other statuses are skipped.
  */
-import { isPlacesMirrorUrl } from "./places_mirror.js";
+import { isGoogleHostedPlacePhoto, isPlacesMirrorUrl, photoHasCredit } from "./places_mirror.js";
 import { changedKeys, templeDocumentId } from "./temple_seed.js";
 
 export const MAX_TEMPLES_PER_BATCH = 100;
@@ -516,21 +516,46 @@ export function normaliseName(name) {
     .replace(/[^a-z0-9]+/g, "");
 }
 
+function creditedPhotoUrl(doc, url) {
+  const photos = Array.isArray(doc?.photos) ? doc.photos : [];
+  for (const photo of photos) {
+    if (photo && typeof photo.url === "string" && photo.url.trim() === url && photoHasCredit(photo)) {
+      return true;
+    }
+  }
+  const images = Array.isArray(doc?.images) ? doc.images : [];
+  for (const item of images) {
+    if (
+      item &&
+      typeof item === "object" &&
+      !Array.isArray(item) &&
+      typeof item.url === "string" &&
+      item.url.trim() === url &&
+      photoHasCredit(item)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function urlAllowed(doc, url) {
+  if (!isDisallowedImageUrl(url)) return true;
+  return creditedPhotoUrl(doc, url);
+}
+
 export function hasVerifiedGallery(doc) {
   if (!doc || typeof doc !== "object") return false;
   const images = Array.isArray(doc.images) ? doc.images : [];
-  if (images.some((url) => typeof url === "string" && !isDisallowedImageUrl(url))) {
+  if (images.some((url) => typeof url === "string" && urlAllowed(doc, url))) {
     return true;
   }
-  if (typeof doc.imageUrl === "string" && !isDisallowedImageUrl(doc.imageUrl)) {
+  if (typeof doc.imageUrl === "string" && urlAllowed(doc, doc.imageUrl)) {
     return true;
   }
   const photos = Array.isArray(doc.photos) ? doc.photos : [];
   return photos.some(
-    (photo) =>
-      photo &&
-      typeof photo.url === "string" &&
-      !isDisallowedImageUrl(photo.url),
+    (photo) => photo && typeof photo.url === "string" && urlAllowed(doc, photo.url),
   );
 }
 
@@ -595,9 +620,17 @@ function stockHost(host) {
   return STOCK_HOSTS.some((stock) => host === stock || host.endsWith(`.${stock}`));
 }
 
-/** Placeholder host or unlicensed stock host. Empty values count. */
+/**
+ * Placeholder host, unlicensed stock host, uncredited Places mirror in our
+ * bucket, or a Google-hosted place photo. Empty values count.
+ */
 export function isDisallowedImageUrl(raw) {
-  return isPlaceholderImageUrl(raw) || isUnlicensedStockImageUrl(raw) || isPlacesMirrorUrl(raw);
+  return (
+    isPlaceholderImageUrl(raw) ||
+    isUnlicensedStockImageUrl(raw) ||
+    isPlacesMirrorUrl(raw) ||
+    isGoogleHostedPlacePhoto(raw)
+  );
 }
 
 export function distanceKm(left, right) {

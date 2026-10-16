@@ -862,7 +862,7 @@ test("apply omits image fields and refuses to overwrite an existing document", (
   const storage =
     "https://firebasestorage.googleapis.com/v0/b/app/o/temples%2Fexample%2F01.jpg";
   const places =
-    "https://firebasestorage.googleapis.com/v0/b/app/o/temples%2Fexample%2Fimage_1.jpg?alt=media&token=secret";
+    "https://firebasestorage.googleapis.com/v0/b/temple-directory-india.firebasestorage.app/o/temples%2Fexample%2Fimage_1.jpg?alt=media&token=secret";
   const live = {
     imageUrl: storage,
     images: [storage],
@@ -870,6 +870,14 @@ test("apply omits image fields and refuses to overwrite an existing document", (
   };
   assert.equal(hasVerifiedGallery(live), true);
   assert.equal(hasVerifiedGallery({ imageUrl: places, images: [places], photos: [] }), false);
+  assert.equal(
+    hasVerifiedGallery({
+      imageUrl: places,
+      images: [places],
+      photos: [{ url: places, credit: "Ada Lovelace", licence: "CC BY 4.0", order: 0 }],
+    }),
+    true,
+  );
   assert.throws(() => firestoreWritePayload(incoming, live), /will not be overwritten/);
 
   const picsumLive = {

@@ -12,9 +12,13 @@ import {
   placesDeletePlan,
   planPurgePlaces,
   referencedObjectPaths,
+  referencedPathsInText,
+  collectReferencedObjectPaths,
+  referenceSet,
   selectTemples,
 } from "./purge_places_photos.js";
-import { isPlacesMirrorUrl } from "./places_mirror.js";
+import { isGoogleHostedPlacePhoto, isPlacesMirrorUrl } from "./places_mirror.js";
+import { isDisallowedImageUrl } from "./state_batch.js";
 
 const bucket = "temple-directory-india.firebasestorage.app";
 
@@ -66,6 +70,194 @@ test("public and token Places URLs match, and a pack frame does not", () => {
   assert.equal(isPlacesMirrorUrl(publicUrl("shore-temple", "image_1_480_g4u1700_png.jpg")), true);
   assert.equal(isPlacesMirrorUrl(publicUrl("shore-temple", "01_Shore.jpg")), false);
   assert.equal(isPlacesMirrorUrl("https://upload.wikimedia.org/wikipedia/commons/a/a1/File.jpg"), false);
+});
+
+test("another bucket is not purged and does not plan a delete in our bucket", async () => {
+  const otherPublic =
+    "https://storage.googleapis.com/other-bucket/temples/shore-temple/image_1.jpg";
+  const otherToken =
+    "https://firebasestorage.googleapis.com/v0/b/other-bucket/o/" +
+    `${encodeURIComponent("temples/shore-temple/image_1.jpg")}?alt=media&token=secret`;
+  assert.equal(isPlacesMirrorUrl(otherPublic), false);
+  assert.equal(isPlacesMirrorUrl(otherToken), false);
+  assert.equal(isPlacesMirrorUrl(publicUrl("shore-temple", "image_1.jpg")), true);
+  assert.equal(isPlacesMirrorUrl(tokenUrl("shore-temple", "image_1.jpg")), true);
+  const planned = planPurgePlaces(
+    temple("shore-temple", {
+      imageUrl: otherPublic,
+      images: [otherPublic, otherToken],
+      photos: [{ url: otherToken, thumbUrl: otherPublic, order: 0 }],
+    }),
+  );
+  assert.equal(planned.action, "ready");
+  const deleted = [];
+  const objects = await placesDeletePlan([planned], [planned.temple ?? {}], {
+    listPrefix: async () => ["temples/shore-temple/image_1.jpg"],
+    deleteObject: async (path) => deleted.push(path),
+    copyObject: async () => {
+      throw new Error("other-bucket URL must not copy our object");
+    },
+    performDelete: true,
+  });
+  assert.deepEqual(objects.deleted, []);
+  assert.deepEqual(deleted, []);
+});
+
+test("a mixed gallery keeps the first credited photo as the cover", () => {
+  const places = publicUrl("mixed-cover", "image_1.jpg");
+  const ada = "https://upload.wikimedia.org/wikipedia/commons/a/a1/Ada.jpg";
+  const grace = "https://upload.wikimedia.org/wikipedia/commons/b/b1/Grace.jpg";
+  const planned = planPurgePlaces(
+    temple("mixed-cover", {
+      imageUrl: places,
+      images: [places, grace, ada],
+      photos: [
+        { url: places, order: 0 },
+        { url: grace, credit: "Grace Hopper", licence: "CC BY 4.0", order: 2 },
+        { url: ada, credit: "Ada Lovelace", licence: "CC BY 4.0", order: 1 },
+      ],
+    }),
+  );
+  assert.equal(planned.photoPending, false);
+  assert.equal(planned.patch.imageUrl, ada);
+  assert.equal(planned.patch.photos[0].url, ada);
+  assert.equal(planned.patch.photos[0].order, 0);
+  assert.equal(planned.patch.photos[1].url, grace);
+  assert.equal(planned.patch.photos[1].order, 1);
+  assert.equal(planned.patch.photos.some((photo) => photo.url === places), false);
+  assert.equal(planned.patch.images[0], ada);
+  assert.equal(planned.objectPaths.includes("temples/mixed-cover/image_1.jpg"), true);
+
+  const onlyPlaces = planPurgePlaces(
+    temple("only-places", {
+      imageUrl: publicUrl("only-places", "image_1.jpg"),
+      images: [publicUrl("only-places", "image_1.jpg")],
+      photos: [{ url: publicUrl("only-places", "image_1.jpg"), credit: "Unknown author", order: 0 }],
+    }),
+  );
+  assert.equal(onlyPlaces.patch.imageUrl, "");
+  assert.deepEqual(onlyPlaces.patch.images, []);
+  assert.deepEqual(onlyPlaces.patch.photos, []);
+  assert.equal(onlyPlaces.photoPending, true);
+});
+
+test("backup failure deletes nothing, and one delete failure does not skip the rest", async () => {
+  const shore = temple("shore-temple", {
+    imageUrl: publicUrl("shore-temple", "image_1.jpg"),
+    images: [publicUrl("shore-temple", "image_1.jpg"), publicUrl("shore-temple", "image_2.jpg")],
+  });
+  const plan = { ...planPurgePlaces(shore), result: "purged" };
+  const blocked = await placesDeletePlan([plan], [{ ...shore, imageUrl: "", images: [], photos: [] }], {
+    copyObject: async (from) => {
+      if (from.endsWith("image_2.jpg")) throw new Error("copy failed");
+    },
+    deleteObject: async () => {
+      throw new Error("must not delete");
+    },
+    performDelete: true,
+    backupStamp: "20261016T000000Z",
+  });
+  assert.deepEqual(blocked.deleted, []);
+  assert.equal(blocked.backedUp.includes("temples/shore-temple/image_1.jpg"), true);
+  assert.equal(blocked.failures.some((failure) => failure.phase === "backup" && failure.path.endsWith("image_2.jpg")), true);
+
+  const events = [];
+  const resumed = await placesDeletePlan([plan], [{ ...shore, imageUrl: "", images: [], photos: [] }], {
+    copyObject: async (from, to) => events.push(`backup:${to}`),
+    deleteObject: async (path) => {
+      events.push(`delete:${path}`);
+      if (path.endsWith("image_1.jpg")) throw new Error("delete failed token=secret");
+    },
+    referencesObject: async (path) => path.endsWith("image_2.jpg"),
+    performDelete: true,
+    backupStamp: "20261016T000000Z",
+  });
+  assert.deepEqual(resumed.deleted, []);
+  assert.equal(resumed.kept.includes("temples/shore-temple/image_2.jpg"), true);
+  assert.equal(resumed.failures.length, 1);
+  assert.equal(resumed.failures[0].phase, "delete");
+  assert.match(resumed.failures[0].message, /token=secret/);
+  assert.equal(events.includes("delete:temples/shore-temple/image_1.jpg"), true);
+  assert.equal(events.includes("delete:temples/shore-temple/image_2.jpg"), false);
+
+  const keptOpts = parseArgs(["--no-delete", "--backup-dir", "backups", "--project", "demo"]);
+  assert.equal(keptOpts.noDelete, true);
+  assert.equal(keptOpts.apply, true);
+  assert.equal(keptOpts.dryRun, false);
+  assert.equal(keptOpts.backupDir, "backups");
+  const kept = await placesDeletePlan([plan], [{ ...shore, imageUrl: "", images: [], photos: [] }], {
+    copyObject: async () => {},
+    deleteObject: async () => {
+      throw new Error("no-delete must not delete");
+    },
+    performBackup: true,
+    noDelete: true,
+    backupStamp: "20261016T000000Z",
+  });
+  assert.deepEqual(kept.deleted, []);
+  assert.equal(kept.backedUp.length, 2);
+  assert.equal(kept.backedUp[0].startsWith("backup/"), false);
+});
+
+test("index shards and sample data keep an object that temples no longer name", () => {
+  const paths = referenceSet({
+    temples: [temple("shore-temple", { imageUrl: publicUrl("shore-temple", "image_2.jpg") })],
+    shards: [{ entries: { shore: { coverThumb: publicUrl("shore-temple", "image_3.jpg") } } }],
+    sampleText: `imageUrl: '${tokenUrl("shore-temple", "image_4.jpg")}'
+https://storage.googleapis.com/other-bucket/temples/shore-temple/image_5.jpg`,
+  });
+  assert.equal(paths.has("temples/shore-temple/image_2.jpg"), true);
+  assert.equal(paths.has("temples/shore-temple/image_3.jpg"), true);
+  assert.equal(paths.has("temples/shore-temple/image_4.jpg"), true);
+  assert.equal(paths.has("temples/shore-temple/image_5.jpg"), false);
+  assert.equal(
+    collectReferencedObjectPaths(publicUrl("shore-temple", "image_3.jpg")).has(
+      "temples/shore-temple/image_3.jpg",
+    ),
+    true,
+  );
+  const ignored = new Set();
+  referencedPathsInText("not a url", ignored);
+  assert.equal(ignored.size, 0);
+});
+
+test("a re-run deletes unreferenced leftovers and skips backup copies", async () => {
+  const deleted = [];
+  const objects = await placesDeletePlan([], [temple("shore-temple")], {
+    includeLeftovers: true,
+    listPrefix: async (prefix) => {
+      assert.equal(prefix, "temples/");
+      return [
+        "temples/shore-temple/image_9.jpg",
+        "temples/shore-temple/02_pack.jpg",
+        "backup/places-purge-20261016T000000Z/temples/shore-temple/image_1.jpg",
+        "temples/shore-temple/image_1.jpg",
+      ];
+    },
+    copyObject: async () => {},
+    deleteObject: async (path) => deleted.push(path),
+    performDelete: true,
+    referencesObject: async (path) => path.endsWith("image_1.jpg"),
+  });
+  assert.deepEqual(deleted, ["temples/shore-temple/image_9.jpg"]);
+  assert.equal(objects.kept.includes("temples/shore-temple/image_1.jpg"), true);
+  assert.equal(deleted.some((path) => path.startsWith("backup/")), false);
+});
+
+test("Google-hosted place photos are disallowed", () => {
+  const maps = "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=abc";
+  const media = "https://places.googleapis.com/v1/places/abc/photos/def/media?key=k";
+  const lh3 = "https://lh3.googleusercontent.com/places/abc=s1600";
+  assert.equal(isGoogleHostedPlacePhoto(maps), true);
+  assert.equal(isGoogleHostedPlacePhoto(media), true);
+  assert.equal(isGoogleHostedPlacePhoto(lh3), true);
+  assert.equal(isDisallowedImageUrl(maps), true);
+  assert.equal(isDisallowedImageUrl(media), true);
+  assert.equal(isDisallowedImageUrl(lh3), true);
+  assert.equal(
+    isDisallowedImageUrl("https://maps.googleapis.com/maps/api/staticmap?center=1,2"),
+    false,
+  );
 });
 
 test("dry-run lists Photo pending temples and redacts tokens", () => {
@@ -230,10 +422,14 @@ test("delete runs only after a successful write and skips a referenced object", 
       }
       return ["temples/kept-temple/image_2.jpg"];
     },
+    copyObject: async (from, to) => {
+      events.push(`backup:${from}->${to}`);
+    },
     deleteObject: async (path) => {
       events.push(`delete:${path}`);
     },
     performDelete: true,
+    backupStamp: "20261016T000000Z",
   });
   assert.deepEqual(objects.deleted, [
     "temples/anjengo-sree-durga-devi-temple/image_1.jpg",
@@ -242,6 +438,12 @@ test("delete runs only after a successful write and skips a referenced object", 
   assert.deepEqual(objects.kept, ["temples/kept-temple/image_2.jpg"]);
   assert.equal(events[0], "write");
   assert.ok(events.indexOf("list:temples/anjengo-sree-durga-devi-temple/") > 0);
+  const backupAt = events.findIndex((event) =>
+    event.startsWith("backup:temples/anjengo-sree-durga-devi-temple/image_1.jpg->"),
+  );
+  const deleteAt = events.indexOf("delete:temples/anjengo-sree-durga-devi-temple/image_1.jpg");
+  assert.ok(backupAt > 0 && backupAt < deleteAt);
+  assert.match(events[backupAt], /backup\/places-purge-20261016T000000Z\//);
   assert.equal(
     events.includes("delete:temples/kept-temple/image_2.jpg"),
     false,
@@ -431,6 +633,7 @@ test(
     const deleted = [];
     const objects = await placesDeletePlan([{ ...plan, result: "purged" }], temples, {
       listPrefix: async () => [`temples/${id}/image_1.jpg`, `temples/${id}/image_1_480_g4.jpg`, `temples/${other}/image_2.jpg`],
+      copyObject: async () => {},
       deleteObject: async (path) => deleted.push(path),
       performDelete: true,
     });

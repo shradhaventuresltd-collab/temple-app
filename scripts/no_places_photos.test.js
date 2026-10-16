@@ -6,6 +6,8 @@ import { fileURLToPath } from "node:url";
 
 const repo = dirname(dirname(fileURLToPath(import.meta.url)));
 const placesHost = "places.googleapis" + ".com";
+const mapsPlacePhoto = "maps.googleapis" + ".com/maps/api/place/photo";
+const lh3Host = "lh3.googleusercontent" + ".com";
 const placesFile = /image_\d+\.(?:jpe?g|png|webp)/i;
 
 function filesUnder(dir, out = []) {
@@ -25,10 +27,18 @@ test("seed and import paths cannot call the Places photo API", () => {
     for (const path of filesUnder(root)) {
       if (path.endsWith(".test.js") || path.endsWith(".test.dart")) continue;
       const text = readFileSync(path, "utf8");
-      if (text.includes(placesHost)) hits.push(path);
+      if (text.includes(placesHost) || text.includes(mapsPlacePhoto) || text.includes(lh3Host)) {
+        hits.push(path);
+      }
     }
   }
   assert.deepEqual(hits, []);
+});
+
+test("package.json does not run the removed Places uploader", () => {
+  const pkg = JSON.parse(readFileSync(join(repo, "scripts/package.json"), "utf8"));
+  assert.equal(pkg.scripts.upload, undefined);
+  assert.equal(JSON.stringify(pkg.scripts).includes("upload_temple_images"), false);
 });
 
 test("sample data does not embed a Places mirror filename", () => {

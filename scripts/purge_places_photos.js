@@ -15,10 +15,17 @@
  *
  * Apply re-reads each temple in its own transaction and skips it when the
  * planned imageUrl, images, or photos changed. The index entry is rewritten
- * from that fresh document. Storage objects are deleted only after that
- * write succeeds, and only when no temple document still names the object.
+ * from that fresh document. Each object is copied to
+ * `backup/places-purge-<timestamp>/…` in the same bucket before it is
+ * deleted. `--backup-dir <folder>` also writes that copy locally.
+ * `--no-delete` does the Firestore switch and the backup, and does not
+ * delete. If a backup fails, nothing is deleted. A later run lists
+ * Places-pattern objects that nothing references and that are not under
+ * `backup/`, and finishes those leftovers. One delete failure does not
+ * skip the rest.
  *
  *   node scripts/purge_places_photos.js --apply --project temple-directory-india
+ *   node scripts/purge_places_photos.js --no-delete --project temple-directory-india
  *
  * `--exclude id1,id2` skips those ids and warns when an id is not in the
  * read. `--only id1,id2` limits the purge to those ids and warns the same way.
@@ -32,11 +39,17 @@
  * the ids it actually found.
  */
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { mkdir } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { placeholderAuthor } from "./backfill_cover_photos.js";
-import { isPlacesMirrorUrl, isPlacesObjectPath, placesObjectFromUrl } from "./places_mirror.js";
+import {
+  isDirectoryBucket,
+  isPlacesMirrorUrl,
+  isPlacesObjectPath,
+  photoHasCredit,
+  placesObjectFromUrl,
+} from "./places_mirror.js";
 import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard.js";
 import { hasVerifiedGallery } from "./state_batch.js";
 import { assertStorageAuth, STORAGE_AUTH_BUCKET, useNativeFetchForStorageAuth } from "./storage_auth.js";
@@ -52,12 +65,18 @@ function printUsage() {
   console.log(`
 Usage:
   node purge_places_photos.js [--dry-run] [--exclude id1,id2] [--only id1,id2] [--project <id>]
-  node purge_places_photos.js --apply --project <firebase-project-id>
+  node purge_places_photos.js --apply [--backup-dir <folder>] --project <firebase-project-id>
+  node purge_places_photos.js --no-delete [--backup-dir <folder>] --project <firebase-project-id>
 
 Default is dry-run. Uncredited Places mirrors (temples/{id}/image_N.jpg and
 their _480 thumbs, public URL or download-token URL) are removed from
-imageUrl, images, and photos. A credited photo stays. Empty galleries are
-Photo pending. Nothing is written.
+imageUrl, images, and photos. Only the temple-directory-india bucket matches.
+A credited photo stays and becomes the cover when the old cover is removed.
+Empty galleries are Photo pending. Nothing is written.
+--apply copies each object to backup/places-purge-<timestamp>/ in the same
+bucket, then deletes it. A failed backup deletes nothing.
+--no-delete writes Firestore and the backup, and does not delete.
+--backup-dir also saves that copy under the local folder.
 --exclude and --only take comma-separated temple ids. Unknown ids are warned.
 prod --apply is run only by the Deployer agent or Sanu, after Architect
 signs off, dry run first, never from CI. Prod apply prompts for the project id.
@@ -90,6 +109,8 @@ export function parseArgs(argv) {
     only: new Set(),
     project: null,
     help: false,
+    noDelete: false,
+    backupDir: null,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -98,6 +119,16 @@ export function parseArgs(argv) {
     else if (arg === "--apply") {
       opts.apply = true;
       opts.dryRun = false;
+    } else if (arg === "--no-delete") {
+      opts.noDelete = true;
+      opts.apply = true;
+      opts.dryRun = false;
+    } else if (arg === "--backup-dir" || arg.startsWith("--backup-dir=")) {
+      const raw = arg === "--backup-dir" ? argv[++i] : arg.slice("--backup-dir=".length);
+      if (typeof raw !== "string" || raw.trim() === "" || raw.startsWith("--")) {
+        throw new Error("--backup-dir needs a local folder");
+      }
+      opts.backupDir = raw.trim();
     } else if (arg === "--exclude" || arg.startsWith("--exclude=")) {
       const parsed = readIdList(argv, i, "--exclude");
       for (const id of parsed.ids) opts.exclude.add(id);
@@ -135,11 +166,6 @@ export async function authorizeApply(project, env = process.env, deps = {}) {
   if (usesEmulator(env)) return id;
   const confirm = deps.confirm ?? confirmProject;
   return confirm(id);
-}
-
-function photoHasCredit(photo) {
-  const credit = typeof photo?.credit === "string" ? photo.credit.trim() : "";
-  return credit !== "" && !placeholderAuthor(credit);
 }
 
 function placesStem(objectPath) {
@@ -192,7 +218,7 @@ export function referencedObjectPaths(temples) {
     }
     for (const url of urls) {
       const located = storageObjectFromUrl(url);
-      if (located?.objectPath) paths.add(located.objectPath);
+      if (located?.objectPath && isDirectoryBucket(located.bucket)) paths.add(located.objectPath);
     }
   }
   return paths;
@@ -295,6 +321,7 @@ export function planPurgePlaces(temple) {
   }
 
   if (changes.length === 0) return { id, action: "ready" };
+  promoteCreditedCover(temple, patch);
   const nextTemple = { ...temple, id, ...patch };
   return {
     id,
@@ -311,6 +338,102 @@ export function planPurgePlaces(temple) {
     plannedState: typeof temple?.state === "string" ? temple.state : "",
     temple: nextTemple,
   };
+}
+
+function photoOrder(photo, index) {
+  const order = photo?.order;
+  return typeof order === "number" && Number.isFinite(order) ? order : index;
+}
+
+function itemUrl(item) {
+  if (typeof item === "string") return item.trim();
+  return urlText(item?.url);
+}
+
+/**
+ * When a mixed gallery loses its uncredited Places cover, the first credited
+ * photo becomes imageUrl and photos[0]. Galleries with nothing credited left
+ * stay empty. A non-Places image that remains is kept.
+ */
+function promoteCreditedCover(temple, patch) {
+  const photos = Object.prototype.hasOwnProperty.call(patch, "photos")
+    ? patch.photos
+    : Array.isArray(temple?.photos)
+      ? temple.photos.map((photo) => (photo && typeof photo === "object" ? { ...photo } : photo))
+      : [];
+  const images = Object.prototype.hasOwnProperty.call(patch, "images")
+    ? patch.images
+    : Array.isArray(temple?.images)
+      ? [...temple.images]
+      : [];
+  const credited = [];
+  if (Array.isArray(photos)) {
+    photos.forEach((photo, index) => {
+      if (!photo || typeof photo !== "object" || Array.isArray(photo)) return;
+      if (!photoHasCredit(photo) || !itemUrl(photo)) return;
+      credited.push({ photo, index, order: photoOrder(photo, index), url: itemUrl(photo) });
+    });
+  }
+  if (Array.isArray(images)) {
+    images.forEach((item, index) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) return;
+      if (!photoHasCredit(item) || !itemUrl(item)) return;
+      const url = itemUrl(item);
+      if (credited.some((entry) => entry.url === url)) return;
+      credited.push({
+        photo: { url, credit: item.credit, licence: item.licence, order: photoOrder(item, index) },
+        index,
+        order: photoOrder(item, index),
+        url,
+        fromImages: true,
+      });
+    });
+  }
+  if (credited.length === 0) return;
+  credited.sort((a, b) => a.order - b.order || a.index - b.index);
+  const cover = credited[0];
+  const currentCover = Object.prototype.hasOwnProperty.call(patch, "imageUrl")
+    ? urlText(patch.imageUrl)
+    : urlText(temple?.imageUrl);
+  const replaceCover =
+    currentCover === "" || (currentCover !== "" && placesObjectFromUrl(currentCover) !== null);
+  if (replaceCover) {
+    patch.imageUrl = cover.url;
+  }
+  if (Array.isArray(photos)) {
+    const rest = [];
+    const seen = new Set([cover.url]);
+    for (const photo of photos) {
+      if (!photo || typeof photo !== "object" || Array.isArray(photo)) {
+        rest.push(photo);
+        continue;
+      }
+      if (itemUrl(photo) === cover.url) continue;
+      rest.push(photo);
+    }
+    if (cover.fromImages && !photos.some((photo) => itemUrl(photo) === cover.url)) {
+      rest.unshift({ url: cover.url, credit: cover.photo.credit, licence: cover.photo.licence });
+    }
+    const ordered = [
+      photos.find((photo) => itemUrl(photo) === cover.url) ?? {
+        url: cover.url,
+        credit: cover.photo.credit,
+        licence: cover.photo.licence,
+      },
+      ...rest.filter((photo) => !photo || typeof photo !== "object" || !seen.has(itemUrl(photo))),
+    ];
+    const next = ordered.map((photo, index) =>
+      photo && typeof photo === "object" && !Array.isArray(photo) ? { ...photo, order: index } : photo,
+    );
+    if (JSON.stringify(next) !== JSON.stringify(temple?.photos ?? null)) patch.photos = next;
+  }
+  if (Array.isArray(images)) {
+    const without = images.filter((item) => itemUrl(item) !== cover.url);
+    const coverItem =
+      images.find((item) => itemUrl(item) === cover.url) ?? cover.url;
+    const nextImages = [coverItem, ...without];
+    if (JSON.stringify(nextImages) !== JSON.stringify(temple?.images ?? null)) patch.images = nextImages;
+  }
 }
 
 export function selectTemples(temples, { exclude = new Set(), only = new Set() } = {}) {
@@ -353,10 +476,51 @@ export function templesAfterPurge(temples, rows) {
   return [...byId.values()];
 }
 
+export function placesBackupStamp(date = new Date()) {
+  return date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+}
+
+export function backupObjectPath(objectPath, stamp) {
+  return `backup/places-purge-${stamp}/${objectPath}`;
+}
+
+/** Storage object paths named by any string in [value]. Other buckets are ignored. */
+export function collectReferencedObjectPaths(value, paths = new Set()) {
+  if (typeof value === "string") {
+    const located = storageObjectFromUrl(value);
+    if (located?.objectPath && isDirectoryBucket(located.bucket)) paths.add(located.objectPath);
+    return paths;
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) collectReferencedObjectPaths(item, paths);
+    return paths;
+  }
+  if (value && typeof value === "object") {
+    for (const item of Object.values(value)) collectReferencedObjectPaths(item, paths);
+  }
+  return paths;
+}
+
+/** Storage object paths named by URLs in a source file, such as sample_data.dart. */
+export function referencedPathsInText(text, paths = new Set()) {
+  const matches = String(text ?? "").match(/https?:\/\/[^\s'")\]]+|gs:\/\/[^\s'")\]]+/g) ?? [];
+  for (const raw of matches) collectReferencedObjectPaths(raw.replace(/[),.;]+$/, ""), paths);
+  return paths;
+}
+
+function failureMessage(error) {
+  return error?.message || String(error);
+}
+
 /**
  * Objects to delete. [templesAfter] is the gallery after the Firestore write
  * (or the dry-run equivalent). A path any temple still names is kept.
  * [listPrefix] adds resized siblings that the documents did not name.
+ * [includeLeftovers] also takes Places-pattern objects under `temples/` that
+ * nothing references and that are not under `backup/`.
+ * Apply copies each object to `backup/places-purge-<timestamp>/` first.
+ * A backup failure deletes nothing. Each delete is checked again and a
+ * single failure does not skip the rest.
  */
 export async function placesDeletePlan(rows, templesAfter, deps = {}) {
   const remove = new Set();
@@ -364,34 +528,91 @@ export async function placesDeletePlan(rows, templesAfter, deps = {}) {
   for (const row of rows ?? []) {
     if (row.result !== "would-purge" && row.result !== "purged") continue;
     for (const path of row.objectPaths ?? []) {
-      if (!isPlacesObjectPath(path)) continue;
+      if (!isPlacesObjectPath(path) || String(path).startsWith("backup/")) continue;
       remove.add(path);
       const id = path.split("/")[1];
       if (id) prefixes.add(`temples/${id}/`);
     }
   }
   if (typeof deps.listPrefix === "function") {
-    for (const prefix of [...prefixes].sort()) {
+    const prefixesToList = [...prefixes].sort();
+    if (deps.includeLeftovers) prefixesToList.push("temples/");
+    for (const prefix of prefixesToList) {
       const names = await deps.listPrefix(prefix);
       for (const name of names ?? []) {
+        if (String(name).startsWith("backup/")) continue;
         if (isPlacesObjectPath(name)) remove.add(name);
       }
     }
   }
   const referenced = referencedObjectPaths(templesAfter);
-  const deleted = [];
+  const planned = [];
   const kept = [];
   for (const path of [...remove].sort()) {
     if (referenced.has(path)) kept.push(path);
-    else deleted.push(path);
+    else planned.push(path);
   }
-  if (deps.performDelete && typeof deps.deleteObject === "function") {
-    for (const path of deleted) await deps.deleteObject(path);
+  const stamp = deps.backupStamp ?? placesBackupStamp(deps.now?.() ?? new Date());
+  const backedUp = [];
+  const failures = [];
+  const shouldBackup = Boolean(deps.performBackup || deps.performDelete);
+  if (!shouldBackup) {
+    return { deleted: planned, kept, failures, backedUp, backupStamp: stamp };
   }
-  return { deleted, kept };
+  if (typeof deps.copyObject !== "function") {
+    for (const path of planned) {
+      failures.push({ path, phase: "backup", message: "backup copy is not configured" });
+    }
+    return { deleted: [], kept, failures, backedUp, backupStamp: stamp };
+  }
+  if (deps.backupDir && typeof deps.downloadObject !== "function") {
+    for (const path of planned) {
+      failures.push({ path, phase: "backup", message: "local backup is not configured" });
+    }
+    return { deleted: [], kept, failures, backedUp, backupStamp: stamp };
+  }
+  for (const path of planned) {
+    const dest = backupObjectPath(path, stamp);
+    try {
+      await deps.copyObject(path, dest);
+      if (deps.backupDir) {
+        const local = join(deps.backupDir, `places-purge-${stamp}`, path);
+        await deps.downloadObject(path, local);
+      }
+      backedUp.push(path);
+    } catch (error) {
+      failures.push({ path, phase: "backup", message: failureMessage(error) });
+    }
+  }
+  if (deps.noDelete || !deps.performDelete || failures.length > 0) {
+    return { deleted: [], kept, failures, backedUp, backupStamp: stamp };
+  }
+  const deleted = [];
+  for (const path of planned) {
+    try {
+      if (typeof deps.referencesObject === "function" && (await deps.referencesObject(path))) {
+        kept.push(path);
+        continue;
+      }
+    } catch (error) {
+      failures.push({ path, phase: "reference", message: failureMessage(error) });
+      continue;
+    }
+    try {
+      if (typeof deps.deleteObject === "function") await deps.deleteObject(path);
+      deleted.push(path);
+    } catch (error) {
+      failures.push({ path, phase: "delete", message: failureMessage(error) });
+    }
+  }
+  return { deleted, kept, failures, backedUp, backupStamp: stamp };
 }
 
-export function formatPurgeReport(rows, objects = { deleted: [], kept: [] }, { apply = false } = {}) {
+export function formatPurgeReport(
+  rows,
+  objects = { deleted: [], kept: [] },
+  { apply = false, noDelete = false } = {},
+) {
   const lines = [apply ? "Mode: apply" : "Mode: dry-run"];
   const purges = (rows ?? []).filter((row) => row.result === "would-purge" || row.result === "purged");
   const pending = purges.filter((row) => row.photoPending);
@@ -412,10 +633,26 @@ export function formatPurgeReport(rows, objects = { deleted: [], kept: [] }, { a
   }
   lines.push("Photo pending:");
   for (const row of pending) lines.push(`  ${row.id}`);
+  const failures = objects.failures ?? [];
+  if (failures.length > 0) {
+    lines.push(`failures: ${failures.length}`);
+    for (const failure of failures) {
+      lines.push(`  ${failure.phase} ${failure.path} ${failure.message}`);
+    }
+  }
+  if ((objects.backedUp ?? []).length > 0) {
+    lines.push(`backed up: ${objects.backedUp.length}`);
+  }
   if (!apply) lines.push("Dry-run only. No Firestore writes. No Storage deletes.");
-  else {
+  else if (noDelete) {
     lines.push(
-      "Firestore fields and that temple's index entry were written before any Storage delete. Rules were not deployed.",
+      "Firestore fields were written and objects were copied to backup/. Nothing was deleted. Rules were not deployed.",
+    );
+  } else if (failures.some((failure) => failure.phase === "backup")) {
+    lines.push("Backup failed. Nothing was deleted. Rules were not deployed.");
+  } else {
+    lines.push(
+      "Firestore fields and that temple's index entry were written, then each object was copied to backup/ before delete. Rules were not deployed.",
     );
   }
   return redactDownloadToken(lines.join("\n"));
@@ -535,6 +772,27 @@ async function loadTemples(project, env) {
   return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 }
 
+const sampleDataPath = resolve(__dirname, "../lib/data/sample_data.dart");
+
+export function referenceSet({ temples = [], shards = [], sampleText = "" } = {}) {
+  const paths = referencedObjectPaths(temples);
+  for (const shard of shards) collectReferencedObjectPaths(shard, paths);
+  referencedPathsInText(sampleText, paths);
+  return paths;
+}
+
+async function referencedPathsNow(admin) {
+  const templesSnap = await admin.firestore().collection("temples").get();
+  const temples = templesSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  const indexSnap = await admin.firestore().collection("temple_index").get();
+  const sample = existsSync(sampleDataPath) ? readFileSync(sampleDataPath, "utf8") : "";
+  return referenceSet({
+    temples,
+    shards: indexSnap.docs.map((doc) => doc.data()),
+    sampleText: sample,
+  });
+}
+
 function bucketStorage(admin) {
   const bucket = admin.storage().bucket(STORAGE_AUTH_BUCKET);
   return {
@@ -544,6 +802,13 @@ function bucketStorage(admin) {
     },
     deleteObject: async (path) => {
       await bucket.file(path).delete({ ignoreNotFound: true });
+    },
+    copyObject: async (from, to) => {
+      await bucket.file(from).copy(bucket.file(to));
+    },
+    downloadObject: async (from, dest) => {
+      await mkdir(dirname(dest), { recursive: true });
+      await bucket.file(from).download({ destination: dest });
     },
   };
 }
@@ -595,6 +860,8 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
   }
   const listPrefix = deps.listPrefix ?? storage?.listPrefix;
   const deleteObject = deps.deleteObject ?? storage?.deleteObject;
+  const copyObject = deps.copyObject ?? storage?.copyObject;
+  const downloadObject = deps.downloadObject ?? storage?.downloadObject;
   const rows = await applyPurgePlans(plans, {
     dryRun: !opts.apply,
     write:
@@ -605,12 +872,29 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
       }),
   });
   const after = opts.apply ? await load(project, env) : templesAfterPurge(temples, rows);
+  const referencesObject =
+    deps.referencesObject ??
+    (opts.apply
+      ? async (path) => {
+          const admin = await openAdmin(project, env);
+          const paths = await referencedPathsNow(admin);
+          return paths.has(path);
+        }
+      : undefined);
   const objects = await placesDeletePlan(rows, after, {
     listPrefix,
     deleteObject,
-    performDelete: opts.apply,
+    copyObject,
+    downloadObject,
+    performDelete: opts.apply && !opts.noDelete,
+    performBackup: opts.apply,
+    noDelete: opts.noDelete,
+    includeLeftovers: opts.apply,
+    backupDir: deps.backupDir ?? opts.backupDir,
+    backupStamp: deps.backupStamp,
+    referencesObject,
   });
-  log(formatPurgeReport(rows, objects, { apply: opts.apply }));
+  log(formatPurgeReport(rows, objects, { apply: opts.apply, noDelete: opts.noDelete }));
   return { rows, objects };
 }
 

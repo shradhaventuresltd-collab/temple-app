@@ -131,8 +131,16 @@ class DetailHonesty {
 List<String> verifiedGalleryUrls(Temple temple) {
   return [
     for (final url in temple.galleryImages)
-      if (!isDisallowedImageUrl(url)) url.trim(),
+      if (!isDisallowedImageUrl(url, credit: _creditForGalleryUrl(temple, url)))
+        url.trim(),
   ];
+}
+
+String? _creditForGalleryUrl(Temple temple, String url) {
+  for (final photo in temple.photos) {
+    if (photo.url.trim() == url.trim()) return photo.credit;
+  }
+  return null;
 }
 
 /// First verified photograph for list cards, mosaic tiles, and other covers.
@@ -250,31 +258,196 @@ bool isUnlicensedStockImageUrl(String raw) {
   return false;
 }
 
-/// `temples/{id}/image_<n>.jpg` and its `_480` thumb, public or token URL.
+/// Storage bucket that holds this app's temple photos.
+const placesStorageBucket = 'temple-directory-india.firebasestorage.app';
+
+final _placesFilename = RegExp(
+  r'^image_\d+(?:_480(?:_g\d+(?:u\d+)?)?(?:_(?:jpe?g|png|webp))?)?\.(?:jpe?g|png|webp)$',
+  caseSensitive: false,
+);
+
+String _dottedHost(String name) => '$name.com';
+
+/// `temples/{id}/image_<n>.jpg` in the temple-directory-india bucket.
 ///
-/// These are uncredited Google Places mirrors. A pack frame such as
-/// `01_Name.jpg` is not one.
-bool isPlacesMirrorUrl(String raw) {
-  final trimmed = raw.trim();
-  if (trimmed.isEmpty) return false;
-  String decoded;
-  try {
-    decoded = Uri.decodeFull(trimmed);
-  } catch (_) {
-    decoded = trimmed;
-  }
-  return RegExp(
-    r'(?:^|/)temples/[^/]+/image_\d+(?:_480(?:_g\d+(?:u\d+)?)?(?:_(?:jpe?g|png|webp))?)?\.(?:jpe?g|png|webp)(?:$|[?#])',
-    caseSensitive: false,
-  ).hasMatch(decoded);
+/// Public `storage.googleapis.com/<bucket>/…` and Firebase
+/// `firebasestorage…/b/<bucket>/o/…` are the same object. Another bucket is
+/// not a mirror. A pack frame such as `01_Name.jpg` is not one. A real
+/// credit, the same check the purge script uses, keeps the photo visible.
+bool isPlacesMirrorUrl(String raw, {String? credit}) {
+  if (!_isOurPlacesObject(raw)) return false;
+  if (_photoHasCredit(credit)) return false;
+  return true;
 }
 
-/// Placeholder host, unlicensed stock host, or uncredited Places mirror.
-/// Empty values count.
-bool isDisallowedImageUrl(String raw) {
+bool _isOurPlacesObject(String raw) {
+  final trimmed = raw.trim();
+  if (trimmed.isEmpty) return false;
+  final uri = Uri.tryParse(trimmed);
+  if (uri == null || uri.scheme != 'https') return false;
+  final located = _storageObject(uri);
+  if (located == null) return false;
+  if (located.$1.toLowerCase() != placesStorageBucket) return false;
+  final parts = located.$2.split('/');
+  if (parts.length != 3 || parts[0] != 'temples') return false;
+  if (parts[1].isEmpty || parts[1] == '.' || parts[1] == '..') return false;
+  return _placesFilename.hasMatch(parts[2]);
+}
+
+/// Bucket and object path for the two Storage URL forms, or our bucket host.
+(String, String)? _storageObject(Uri uri) {
+  final host = uri.host.toLowerCase();
+  final segs = uri.pathSegments;
+  if (segs.length >= 5 &&
+      segs[0] == 'v0' &&
+      segs[1] == 'b' &&
+      segs[3] == 'o' &&
+      (host == 'firebasestorage.googleapis.com' || host == placesStorageBucket)) {
+    return (segs[2], segs.sublist(4).join('/'));
+  }
+  if (host == 'storage.googleapis.com' && segs.length >= 2) {
+    return (segs[0], segs.sublist(1).join('/'));
+  }
+  if (host == placesStorageBucket && segs.isNotEmpty) {
+    final body = segs.first == 'o' ? segs.sublist(1) : segs;
+    if (body.isEmpty) return null;
+    return (host, body.join('/'));
+  }
+  return null;
+}
+
+/// Same credit rule as the purge script: a non-empty name that is not a
+/// placeholder author.
+bool _photoHasCredit(String? credit) {
+  final text = (credit ?? '').trim();
+  return text.isNotEmpty && !_placeholderAuthor(text);
+}
+
+const _placeholderAuthorTokens = [
+  'unknownphotographer',
+  'unknownartist',
+  'unknownauthor',
+  'unknown',
+];
+
+const _placeholderAuthorExact = {
+  'n/a',
+  'na',
+  'n.a.',
+  'n.a',
+  '-',
+  '--',
+  '—',
+  '–',
+  '?',
+  'various',
+  'author',
+  'myself',
+  'own work',
+  'self',
+  'self-photographed',
+  'self photographed',
+  'wikimedia',
+  'wikimedia commons',
+  'commons',
+  'public domain',
+};
+
+bool _authorIsUrl(String name) {
+  final trimmed = name.trim();
+  if (RegExp(r'^www\.\S+$', caseSensitive: false).hasMatch(trimmed)) {
+    return true;
+  }
+  final uri = Uri.tryParse(trimmed);
+  return uri != null && (uri.scheme == 'http' || uri.scheme == 'https');
+}
+
+bool _seePlaceholder(String name) {
+  final match = RegExp(r'^see\s+(.+)$', caseSensitive: false).firstMatch(name);
+  if (match == null) return false;
+  return RegExp(
+    r'^(?:the\s+)?(?:commons|wikimedia|file(?:\s+page)?|source|description|below|above|page|original|licen[cs]e|attribution|here)\b',
+    caseSensitive: false,
+  ).hasMatch(match.group(1)!.trim());
+}
+
+String _cleanAuthor(String? author) {
+  var name = (author ?? '').replaceAll(RegExp(r'\s+'), ' ').trim();
+  if (name.isEmpty) return '';
+  final takenBy = RegExp(
+    r'^(?:this (?:photo|image) was taken by|taken by)\s+(.+)$',
+    caseSensitive: false,
+  ).firstMatch(name);
+  if (takenBy != null) name = takenBy.group(1)!.trim();
+  final wikiUser = RegExp(r'^user:\s*(.+)$', caseSensitive: false).firstMatch(name);
+  if (wikiUser != null) name = wikiUser.group(1)!.trim();
+  final note = RegExp(
+    r'\.\s+(?:feel free|please\b|i would|otherwise|you may|for my information|contact me|do not)\b',
+    caseSensitive: false,
+  ).firstMatch(name);
+  if (note != null) name = name.substring(0, note.start);
+  name = name.replaceAll(RegExp(r'\s*\([^)]*\)'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+  name = name.replaceAll(RegExp(r'[,;:\s]+$'), '').trim();
+  if (name.endsWith('.') && !RegExp(r'(?:^|\s)[A-Za-z]\.$').hasMatch(name)) {
+    name = name.replaceAll(RegExp(r'\.+$'), '').trim();
+  }
+  return name;
+}
+
+bool _placeholderAuthor(String? author) {
+  final spaced = (author ?? '').replaceAll(RegExp(r'\s+'), ' ').trim();
+  if (_seePlaceholder(spaced)) return true;
+  if (RegExp(r'^unknown\s*\(', caseSensitive: false).hasMatch(spaced)) return true;
+  if (_authorIsUrl(spaced)) return true;
+  final name = _cleanAuthor(author);
+  if (name.isEmpty) return true;
+  if (_seePlaceholder(name) || _authorIsUrl(name)) return true;
+  final key = name.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
+  if (_placeholderAuthorExact.contains(key)) return true;
+  var rest = key.replaceAll(RegExp(r'\s+'), '');
+  if (rest.isEmpty) return true;
+  while (rest.isNotEmpty) {
+    String? token;
+    for (final item in _placeholderAuthorTokens) {
+      if (rest.startsWith(item)) {
+        token = item;
+        break;
+      }
+    }
+    if (token == null) return false;
+    rest = rest.substring(token.length);
+  }
+  return true;
+}
+
+/// Maps place photos, Places `/media`, and `lh3` user-content hosts.
+bool isGoogleHostedPlacePhoto(String raw) {
+  final uri = Uri.tryParse(raw.trim());
+  if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
+    return false;
+  }
+  final host = uri.host.toLowerCase();
+  final path = uri.path.toLowerCase();
+  final maps = _dottedHost('maps.googleapis');
+  final places = _dottedHost('places.googleapis');
+  final lh3 = _dottedHost('lh3.googleusercontent');
+  if (host == maps || host.endsWith('.$maps')) {
+    return path.contains('/maps/api/place/photo');
+  }
+  if (host == places || host.endsWith('.$places')) {
+    return path.contains('/media');
+  }
+  return host == lh3 || host.endsWith('.$lh3');
+}
+
+/// Placeholder host, unlicensed stock host, uncredited Places mirror, or a
+/// Google-hosted place photo. Empty values count. A credited Places photo
+/// stays allowed.
+bool isDisallowedImageUrl(String raw, {String? credit}) {
   return isPlaceholderImageUrl(raw) ||
       isUnlicensedStockImageUrl(raw) ||
-      isPlacesMirrorUrl(raw);
+      isPlacesMirrorUrl(raw, credit: credit) ||
+      isGoogleHostedPlacePhoto(raw);
 }
 
 SiteTradition _traditionFromIndex(String value) {
