@@ -49,6 +49,7 @@ Future<void> main() async {
     client: remoteConfigClientIfReady(firebaseReady: firebaseReady),
     minimumFetchInterval: kRemoteConfigMinimumFetchInterval,
   );
+  TempleService.readsBlocked = () => appConfig.snapshot.killSwitch;
   final remoteConfigStartup = startRemoteConfig(appConfig);
   await remoteConfigStartup.ready;
   unawaited(remoteConfigStartup.fetch);
@@ -123,6 +124,7 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
     super.initState();
     _ownsConfig = widget.appConfig == null;
     _config = widget.appConfig ?? AppConfigController();
+    TempleService.readsBlocked = () => _config.snapshot.killSwitch;
     _config.addListener(_onConfig);
     final override = widget.initializeFirebase;
     final already = widget.firebaseReady;
@@ -140,6 +142,7 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
   @override
   void dispose() {
     _config.removeListener(_onConfig);
+    TempleService.readsBlocked = () => false;
     if (_ownsConfig) _config.dispose();
     super.dispose();
   }

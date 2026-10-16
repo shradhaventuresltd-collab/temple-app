@@ -18,7 +18,9 @@ import 'package:temple_app/services/temple_directory_client.dart';
 /// `collection('temples')` scan runs only on that cold foreground load, and
 /// only when meta is absent or its shard map is empty. [loadDirectory], which
 /// warm refresh, Retry, reconnect, and resume all await, keeps the cache and
-/// does not scan. A timeout or other error keeps the cached list and says so.
+/// does not scan. While Remote Config `kill_switch` is on, that call does
+/// not read Firestore. A timeout or other error keeps the cached list and
+/// says so.
 /// With no cache at all the load throws [DirectoryLoadException] so the screen
 /// can offer Retry. A missing shard is omitted and named; it is not filled
 /// from bundled sample temples.
@@ -57,6 +59,11 @@ class TempleService {
   /// fresh rows without a loading spinner.
   static final ValueNotifier<int> revision = ValueNotifier<int>(0);
 
+  /// Remote Config `kill_switch`. [TempleDirectoryApp] installs the live
+  /// check. While this returns true, [loadDirectory] and [getTemples] do
+  /// not read Firestore.
+  static bool Function() readsBlocked = () => false;
+
   @visibleForTesting
   static void resetSessionForTest() {
     _session = null;
@@ -64,6 +71,7 @@ class TempleService {
     _sharedInFlight = null;
     _sharedLoadSerial = 0;
     _sharedPublishedSerial = 0;
+    readsBlocked = () => false;
   }
 
   /// One server load for the process. Injected test clients keep their own.
@@ -133,9 +141,8 @@ class TempleService {
 
   IndexStampStore get _stampStore => _stamps ?? _ownedStamps;
 
-  late final TempleDirectoryClient _ownedClient = FirestoreTempleDirectoryClient(
-    _firestore ?? _firestoreInstance(),
-  );
+  late final TempleDirectoryClient _ownedClient =
+      FirestoreTempleDirectoryClient(_firestore ?? _firestoreInstance());
 
   static FirebaseFirestore _firestoreInstance() {
     noteFirebaseAccess('FirebaseFirestore.instance');
@@ -151,6 +158,7 @@ class TempleService {
   /// [refresh] awaits [loadDirectory] instead of returning the cache first.
   /// A server failure still returns the saved list when one exists.
   Future<List<Temple>> getTemples({bool refresh = false}) {
+    if (readsBlocked()) return _stoppedDirectory();
     if (refresh) {
       final next = loadDirectory();
       if (_usesSharedSession) _session = next;
@@ -169,8 +177,20 @@ class TempleService {
   /// so meta is not read twice and the read log is not reset underneath the
   /// load already in flight. This path never scans `collection('temples')`.
   /// A cold foreground [getTemples] with no cache is the only scan.
-  Future<List<Temple>> loadDirectory() =>
-      _startInFlight(allowCollectionScan: false);
+  ///
+  /// When [readsBlocked] is true (`kill_switch`), this returns the list
+  /// already published, or an empty list, and does not read Firestore.
+  Future<List<Temple>> loadDirectory() {
+    if (readsBlocked()) return _stoppedDirectory();
+    return _startInFlight(allowCollectionScan: false);
+  }
+
+  /// Kill switch: no cache read and no server read.
+  Future<List<Temple>> _stoppedDirectory() async {
+    final saved = published;
+    if (saved == null) return const [];
+    return List<Temple>.from(saved);
+  }
 
   /// Full `temples/{id}` document for the detail screen.
   ///

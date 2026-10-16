@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_index.dart';
 import 'package:temple_app/services/firestore_read_log.dart';
 import 'package:temple_app/services/index_stamp_store.dart';
@@ -303,6 +304,37 @@ void main() {
       isEmpty,
     );
     expect(warm.fake.count('server:meta/temple_index'), 2);
+  });
+
+  test('loadDirectory does not read while the kill switch is on', () async {
+    final warm = _harness(
+      stamps: {for (final state in _states) state: _oldStamp},
+    );
+    TempleService.readsBlocked = () => true;
+    addTearDown(TempleService.resetSessionForTest);
+
+    expect(await warm.service.loadDirectory(), isEmpty);
+    expect(await warm.service.getTemples(), isEmpty);
+    expect(await warm.service.getTemples(refresh: true), isEmpty);
+    expect(warm.fake.gets, isEmpty);
+
+    TempleService.published = [
+      const Temple(
+        name: 'Saved Temple',
+        state: 'Kerala',
+        city: 'City',
+        deity: 'Shiva',
+        imageUrl: '',
+        description: '',
+        story: '',
+        location: 'City, Kerala',
+        timings: '',
+        specialities: [],
+      ),
+    ];
+    final saved = await warm.service.loadDirectory();
+    expect(saved.single.name, 'Saved Temple');
+    expect(warm.fake.gets, isEmpty);
   });
 
   test('a background refresh and Retry share one meta read', () async {
