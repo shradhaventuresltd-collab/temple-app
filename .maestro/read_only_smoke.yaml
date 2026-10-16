@@ -84,11 +84,18 @@ appId: com.shradhaventures.temple
       - extendedWaitUntil:
           visible: "Temple Directory|Loading temples|Browse "
           timeout: 25000
+# Home chrome matches before a cold directory load finishes. The browse
+# control is absent until that load returns. Wait for it, then scroll.
+# A missing control fails at 60s instead of scrolling for 90s.
+- extendedWaitUntil:
+    visible:
+      id: "home-browse-temples"
+    timeout: 60000
 - scrollUntilVisible:
     element:
       id: "home-browse-temples"
     direction: DOWN
-    timeout: 25000
+    timeout: 20000
     speed: 40
     visibilityPercentage: 100
     centerElement: true
