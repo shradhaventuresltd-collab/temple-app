@@ -28,10 +28,10 @@ permissions:
   # Flutter's action cache saves the SDK and ~/.pub-cache. contents stays read-only.
   actions: write
 
-# Cancel a superseded run on the same ref, including a newer push to main.
+# Cancel a superseded pull request only. A push to main is not cancelled.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   analyze-test:

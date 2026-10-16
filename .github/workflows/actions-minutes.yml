@@ -24,9 +24,10 @@ permissions:
   actions: read
   issues: write
 
+# No pull_request trigger, so a scheduled or dispatched run is not cancelled.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   check:
