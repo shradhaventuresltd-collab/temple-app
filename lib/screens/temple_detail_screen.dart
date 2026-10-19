@@ -133,12 +133,24 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
   int _currentPage = 0;
   late final PageController _pageController;
   Timer? _autoTimer;
+  final Set<int> _fullSizePages = {};
 
   Temple get temple => widget.temple;
   DetailHonesty get honesty => DetailHonesty.of(temple);
 
   /// Photographs safe to show. Placeholder and picsum URLs are dropped.
-  List<String> get gallery => honesty.verifiedImages;
+  ///
+  /// The page shows [displayUrl] (the gallery copy when one exists).
+  /// Credits stay on [DetailGalleryFrame.sourceUrl].
+  List<DetailGalleryFrame> get frames =>
+      detailGalleryFrames(temple, fullSizeIndexes: _fullSizePages);
+
+  List<String> get gallery => [for (final frame in frames) frame.sourceUrl];
+
+  void _showOriginal(int index) {
+    if (_fullSizePages.contains(index)) return;
+    setState(() => _fullSizePages.add(index));
+  }
 
   @override
   void initState() {
@@ -256,36 +268,12 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
                             onPageChanged: (i) =>
                                 setState(() => _currentPage = i),
                             itemBuilder: (context, index) {
-                              return InteractiveViewer(
-                                minScale: 1.0,
-                                maxScale: 4.0,
-                                // Detail keeps the full image. List cards
-                                // decode at about 480px; this hero does not.
-                                child: CachedNetworkImage(
-                                  imageUrl: gallery[index],
-                                  cacheManager: ClientCache.detailImages,
-                                  fit: BoxFit.contain,
-                                  width: double.infinity,
-                                  height: _imageHeight,
-                                  fadeInDuration: const Duration(
-                                    milliseconds: 400,
-                                  ),
-                                  fadeOutDuration: const Duration(
-                                    milliseconds: 200,
-                                  ),
-                                  placeholder: (_, _) => Container(
-                                    color: Colors.brown.shade200,
-                                    child: const Center(
-                                      child: CircularProgressIndicator(
-                                        color: _saffron,
-                                      ),
-                                    ),
-                                  ),
-                                  errorWidget: (_, _, _) =>
-                                      const TempleImagePlaceholder(
-                                        expand: true,
-                                      ),
-                                ),
+                              final frame = frames[index];
+                              return _GalleryPhoto(
+                                key: ValueKey('detail-gallery-$index'),
+                                displayUrl: frame.displayUrl,
+                                sourceUrl: frame.sourceUrl,
+                                onWantFullSize: () => _showOriginal(index),
                               );
                             },
                           ),
@@ -954,5 +942,105 @@ class _TimingsCaveat extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// Detail photo. Loads [displayUrl] (the gallery copy when one exists).
+///
+/// A pinch past [kDetailGalleryFullSizeScale], or a failed gallery fetch,
+/// asks for the original. Auto-advance only changes the page, so it does
+/// not request that original.
+class _GalleryPhoto extends StatefulWidget {
+  const _GalleryPhoto({
+    super.key,
+    required this.displayUrl,
+    required this.sourceUrl,
+    required this.onWantFullSize,
+  });
+
+  final String displayUrl;
+  final String sourceUrl;
+  final VoidCallback onWantFullSize;
+
+  @override
+  State<_GalleryPhoto> createState() => _GalleryPhotoState();
+}
+
+class _GalleryPhotoState extends State<_GalleryPhoto> {
+  static const double _imageHeight = 450;
+
+  late final TransformationController _transform = TransformationController();
+
+  @override
+  void initState() {
+    super.initState();
+    _transform.addListener(_onTransform);
+  }
+
+  @override
+  void dispose() {
+    _transform.removeListener(_onTransform);
+    _transform.dispose();
+    super.dispose();
+  }
+
+  void _onTransform() {
+    final scale = _transform.value.getMaxScaleOnAxis();
+    if (detailGalleryZoomWantsOriginal(scale) &&
+        widget.displayUrl != widget.sourceUrl) {
+      widget.onWantFullSize();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final showOriginalOnError = widget.displayUrl != widget.sourceUrl;
+    return InteractiveViewer(
+      transformationController: _transform,
+      minScale: 1.0,
+      maxScale: 4.0,
+      child: CachedNetworkImage(
+        imageUrl: widget.displayUrl,
+        cacheManager: ClientCache.detailImages,
+        fit: BoxFit.contain,
+        width: double.infinity,
+        height: _imageHeight,
+        fadeInDuration: const Duration(milliseconds: 400),
+        fadeOutDuration: const Duration(milliseconds: 200),
+        placeholder: (_, _) => Container(
+          color: Colors.brown.shade200,
+          child: const Center(
+            child: CircularProgressIndicator(color: _saffron),
+          ),
+        ),
+        errorWidget: (_, _, _) => showOriginalOnError
+            ? _RequestFullSize(onReady: widget.onWantFullSize)
+            : const TempleImagePlaceholder(expand: true),
+      ),
+    );
+  }
+}
+
+class _RequestFullSize extends StatefulWidget {
+  const _RequestFullSize({required this.onReady});
+
+  final VoidCallback onReady;
+
+  @override
+  State<_RequestFullSize> createState() => _RequestFullSizeState();
+}
+
+class _RequestFullSizeState extends State<_RequestFullSize> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.onReady();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const TempleImagePlaceholder(expand: true);
   }
 }

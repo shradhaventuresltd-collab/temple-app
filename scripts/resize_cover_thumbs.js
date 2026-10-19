@@ -20,8 +20,10 @@
  * The thumb name includes the source generation. A newer source is uploaded
  * again even when an older thumb object exists. The upload uses
  * ifGenerationMatch: 0, so an object that is already there is not overwritten.
- * Stat, download, and upload use the bucket named in the cover URL, not the
- * app's default bucket. A cover with no photos[] entry for that URL is not
+ * Stat, download, and upload use only
+ * temple-directory-india.firebasestorage.app. A cover whose URL names
+ * another bucket is skipped and logged. --apply refuses --bucket for any
+ * other name. A cover with no photos[] entry for that URL is not
  * uploaded. Apply confirms the Firebase download URL (?alt=media and the
  * stored token) before it writes photos[].thumbUrl. A check that is not
  * HTTP 200 logs the storage object path, not the token URL. Each
@@ -44,10 +46,17 @@ import { fileURLToPath } from "node:url";
 
 import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard.js";
 import { redactDownloadToken, redactThrown } from "./redact_url.js";
-import { assertStorageAuth, STORAGE_AUTH_BUCKET, useNativeFetchForStorageAuth } from "./storage_auth.js";
+import {
+  assertApplyBucket,
+  assertStorageAuth,
+  isLockedStorageBucket,
+  STORAGE_AUTH_BUCKET,
+  useNativeFetchForStorageAuth,
+} from "./storage_auth.js";
 import {
   entryFromTemple,
   firstThumbSource,
+  GALLERY_LONG_EDGE,
   stateSlug,
   storageObjectFromUrl,
   thumbObjectPath,
@@ -65,6 +74,10 @@ function printUsage() {
 Usage:
   node resize_cover_thumbs.js [--dry-run] [--limit N] [--resume] [--project <id>]
   node resize_cover_thumbs.js --apply [--limit N] [--resume] --project <id>
+
+Reads and uploads use only temple-directory-india.firebasestorage.app.
+A cover URL that names another bucket is skipped. --apply --bucket <other>
+is refused.
 
 Default is dry-run: list cover objects that still need a _480 sibling.
 Nothing is written. prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
@@ -94,6 +107,7 @@ export function parseArgs(argv) {
     dryRun: true,
     apply: false,
     project: null,
+    bucket: null,
     help: false,
     limit: null,
     resume: false,
@@ -112,7 +126,8 @@ export function parseArgs(argv) {
         throw new Error("--limit needs a positive integer.");
       }
       opts.limit = parsed;
-    } else if (arg === "--project") opts.project = argv[++i];
+    }     else if (arg === "--project") opts.project = argv[++i];
+    else if (arg === "--bucket") opts.bucket = argv[++i];
     else throw new Error(`Unknown argument: ${arg}`);
   }
   return opts;
@@ -313,6 +328,9 @@ export function planCoverThumb(temple) {
     const reason = staysFullSizeWikimedia(source) ? "wikimedia-full" : "not-storage";
     return { id, action: "skip", reason, source, temple };
   }
+  if (!isLockedStorageBucket(located.bucket)) {
+    return { id, action: "skip", reason: "other-bucket", source, bucket: located.bucket, temple };
+  }
   if (!coverHasPhoto(temple, source)) {
     return { id, action: "skip", reason: "no-photo", source, temple };
   }
@@ -415,7 +433,8 @@ export function commitCoverThumb(fresh, { source, thumbUrl } = {}) {
  *   reread?: (id: string) => Promise<object|null>,
  *   onResume?: (id: string) => Promise<void> | void,
  * }} deps
- * stat, download, and upload receive `{ bucket }` from the cover URL.
+ * stat, download, and upload receive `{ bucket }` and only run when that
+ * bucket is temple-directory-india.firebasestorage.app.
  * [reread] loads the temple again before upload. A cover that moved is
  * skipped. [writeThumbUrl] may return `{ ok: false }` to skip the resume
  * line. The index entry is written inside that call, not after the run.
@@ -448,6 +467,10 @@ export async function applyCoverThumbPlans(plans, deps) {
       continue;
     }
     const bucket = current.bucket;
+    if (!isLockedStorageBucket(bucket)) {
+      report.push({ ...current, result: "skipped", reason: "other-bucket" });
+      continue;
+    }
     const sourceStat = await deps.stat(current.objectPath, { bucket });
     const generation = String(sourceStat?.generation ?? "");
     if (!/^\d+$/.test(generation)) {
@@ -629,6 +652,53 @@ export async function encodeWithSharp(bytes) {
   return pipeline.jpeg({ quality: THUMB_JPEG_QUALITY }).toBuffer();
 }
 
+export const GALLERY_JPEG_QUALITY = 75;
+export const GALLERY_JPEG_QUALITY_MIN = 45;
+/** Soft cap. Quality steps down until the JPEG is under this, or the floor. */
+export const GALLERY_TARGET_BYTES = 250 * 1024;
+
+/**
+ * sharp resize to a ~1080px long-edge JPEG for `photos[].galleryUrl`.
+ * The long edge is [GALLERY_LONG_EDGE]. Smaller frames are not enlarged.
+ * Quality starts at [GALLERY_JPEG_QUALITY] and steps down while the buffer
+ * is above [GALLERY_TARGET_BYTES]. Thumb encoding is unchanged.
+ */
+export async function encodeGalleryJpeg(bytes) {
+  let sharp;
+  try {
+    ({ default: sharp } = await import("sharp"));
+  } catch {
+    throw new Error(
+      "Gallery encoding needs sharp. From the repo: run npm ci in scripts/. No write.",
+    );
+  }
+  const meta = await sharp(bytes, { failOn: "none" }).rotate().metadata();
+  const long = Math.max(meta.width ?? 0, meta.height ?? 0);
+  const resize =
+    long > GALLERY_LONG_EDGE
+      ? {
+          width: GALLERY_LONG_EDGE,
+          height: GALLERY_LONG_EDGE,
+          fit: "inside",
+          withoutEnlargement: true,
+        }
+      : null;
+  let quality = GALLERY_JPEG_QUALITY;
+  let encoded = null;
+  for (;;) {
+    let pipeline = sharp(bytes, { failOn: "none" }).rotate();
+    if (resize) pipeline = pipeline.resize(resize);
+    encoded = await pipeline.jpeg({ quality }).toBuffer();
+    if (!encoded || encoded.length === 0) {
+      throw new Error("Encoder returned an empty gallery image. No write.");
+    }
+    if (encoded.length <= GALLERY_TARGET_BYTES || quality <= GALLERY_JPEG_QUALITY_MIN) {
+      return encoded;
+    }
+    quality -= 5;
+  }
+}
+
 async function openAdmin(project, env) {
   const admin = (await import("firebase-admin")).default;
   if (admin.apps.length > 0) return admin;
@@ -655,7 +725,7 @@ async function openAdmin(project, env) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
     projectId: project,
-    storageBucket: env.STORAGE_BUCKET || `${project}.firebasestorage.app`,
+    storageBucket: STORAGE_AUTH_BUCKET,
   });
   return admin;
 }
@@ -735,7 +805,13 @@ export async function persistCoverPhotos(db, assigned, deps = {}) {
 
 function storageDeps(admin) {
   function bucket(name) {
-    return admin.storage().bucket(bucketNameForPlan({ bucket: name }));
+    const resolved = bucketNameForPlan({ bucket: name });
+    if (!isLockedStorageBucket(resolved)) {
+      throw new Error(
+        `Refusing Storage bucket ${resolved}. Reads and uploads use only ${STORAGE_AUTH_BUCKET}. No write.`,
+      );
+    }
+    return admin.storage().bucket(STORAGE_AUTH_BUCKET);
   }
   return {
     stat: async (path, opts = {}) => {
@@ -773,6 +849,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     printUsage();
     return null;
   }
+  if (opts.apply) assertApplyBucket(opts.bucket);
   const env = deps.env ?? process.env;
   const project = resolveProject(opts, env);
   useNativeFetchForStorageAuth();

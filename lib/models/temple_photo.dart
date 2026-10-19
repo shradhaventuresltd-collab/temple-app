@@ -9,12 +9,13 @@ const int kMaxPhotosPerPick = 10;
 const int kMaxPhotoUrlLength = 2000;
 const int kMaxPhotoCreditLength = 200;
 
-/// One entry in `photos: [{url, credit, licence, order, thumbUrl?}]`.
+/// One entry in `photos: [{url, credit, licence, order, thumbUrl?, galleryUrl?}]`.
 ///
 /// [licence] is null only for an editor draft that still needs a choice.
 /// Firestore writes always include a [PhotoLicence]. [thumbUrl] is the
 /// download URL of the `_480` object, stored after upload. It is omitted
-/// when this photo has no thumb yet.
+/// when this photo has no thumb yet. [galleryUrl] is the download URL of
+/// the `_1080` detail copy. It is omitted until that copy exists.
 class TemplePhoto {
   const TemplePhoto({
     required this.url,
@@ -22,6 +23,7 @@ class TemplePhoto {
     required this.licence,
     required this.order,
     this.thumbUrl,
+    this.galleryUrl,
   });
 
   final String url;
@@ -32,9 +34,13 @@ class TemplePhoto {
   /// Real download URL of the list thumb. Null until one has been stored.
   final String? thumbUrl;
 
+  /// Real download URL of the ~1080px detail copy. Null until one is stored.
+  final String? galleryUrl;
+
   factory TemplePhoto.fromJson(Map<String, dynamic> json) {
     final orderRaw = json['order'];
     final thumb = json['thumbUrl'];
+    final gallery = json['galleryUrl'];
     return TemplePhoto(
       url: json['url'] as String? ?? '',
       credit: json['credit'] as String? ?? '',
@@ -42,6 +48,9 @@ class TemplePhoto {
       order: orderRaw is int ? orderRaw : 0,
       thumbUrl: thumb is String && thumb.trim().isNotEmpty
           ? thumb.trim()
+          : null,
+      galleryUrl: gallery is String && gallery.trim().isNotEmpty
+          ? gallery.trim()
           : null,
     );
   }
@@ -52,12 +61,14 @@ class TemplePhoto {
       throw StateError('Each photo needs a licence.');
     }
     final thumb = thumbUrl?.trim() ?? '';
+    final gallery = galleryUrl?.trim() ?? '';
     return {
       'url': url,
       'credit': credit,
       'licence': chosen.toJson(),
       'order': order,
       if (thumb.isNotEmpty) 'thumbUrl': thumb,
+      if (gallery.isNotEmpty) 'galleryUrl': gallery,
     };
   }
 
@@ -67,8 +78,10 @@ class TemplePhoto {
     PhotoLicence? licence,
     int? order,
     String? thumbUrl,
+    String? galleryUrl,
     bool clearLicence = false,
     bool clearThumbUrl = false,
+    bool clearGalleryUrl = false,
   }) {
     return TemplePhoto(
       url: url ?? this.url,
@@ -76,6 +89,7 @@ class TemplePhoto {
       licence: clearLicence ? null : (licence ?? this.licence),
       order: order ?? this.order,
       thumbUrl: clearThumbUrl ? null : (thumbUrl ?? this.thumbUrl),
+      galleryUrl: clearGalleryUrl ? null : (galleryUrl ?? this.galleryUrl),
     );
   }
 }
@@ -108,6 +122,15 @@ String? templePhotoValidationError(TemplePhoto photo) {
     }
     if (!thumb.startsWith('https://')) {
       return 'Photo thumbnail URL must start with https://.';
+    }
+  }
+  final gallery = photo.galleryUrl?.trim() ?? '';
+  if (gallery.isNotEmpty) {
+    if (gallery.length > kMaxPhotoUrlLength) {
+      return 'Photo gallery URL must be $kMaxPhotoUrlLength characters or fewer.';
+    }
+    if (!gallery.startsWith('https://')) {
+      return 'Photo gallery URL must start with https://.';
     }
   }
   return null;
@@ -154,6 +177,7 @@ TemplePhotoMirror deriveTemplePhotoMirror(List<TemplePhoto> photos) {
       licence: source.licence,
       order: slot,
       thumbUrl: source.thumbUrl?.trim(),
+      galleryUrl: source.galleryUrl?.trim(),
     );
     final error = templePhotoValidationError(photo);
     if (error != null) throw StateError(error);

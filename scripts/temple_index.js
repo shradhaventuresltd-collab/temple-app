@@ -353,6 +353,47 @@ export function thumbObjectPath(objectPath, generation, { updatedMillis } = {}) 
   return `temples/${id}/${ext[1]}_480_g${gen}${bust}${suffix}.jpg`;
 }
 
+/** Long edge of a detail-gallery copy. Thumbs stay at 480. */
+export const GALLERY_LONG_EDGE = 1080;
+
+/**
+ * `temples/{id}/{stem}_1080_g{generation}.jpg` for a full-size temple photo.
+ * Null when [objectPath] is already a `_480` thumb, a `_1080` gallery copy,
+ * or not a temple photo. A non-jpg source keeps that extension in the name,
+ * matching [thumbObjectPath], so the versioned object is a new path.
+ * [updatedMillis] is reserved for a future immutable rename. This pipeline
+ * does not pass it: an existing galleryUrl is never regenerated.
+ */
+export function galleryObjectPath(objectPath, generation, { updatedMillis } = {}) {
+  const parts = String(objectPath ?? "").split("/");
+  if (parts.length !== 3 || parts[0] !== "temples") return null;
+  const id = parts[1];
+  if (!id || id === "." || id === "..") return null;
+  const ext = /^(.*)\.(jpe?g|png|webp)$/i.exec(parts[2]);
+  if (!ext || !ext[1] || isSizedDerivativeStem(ext[1])) return null;
+  const gen = String(generation ?? "");
+  if (!/^\d+$/.test(gen)) return null;
+  const sourceExt = ext[2];
+  const suffix = sourceExt === "jpg" ? "" : `_${sourceExt}`;
+  const bust =
+    updatedMillis == null || updatedMillis === "" ? "" : `u${updatedMillis}`;
+  return `temples/${id}/${ext[1]}_1080_g${gen}${bust}${suffix}.jpg`;
+}
+
+function isSizedDerivativeStem(stem) {
+  return /_480_g\d+(?:u\d+)?(?:_[A-Za-z0-9]+)?$|[_-]480$/i.test(stem) ||
+    /_1080_g\d+(?:u\d+)?(?:_[A-Za-z0-9]+)?$|[_-]1080$/i.test(stem);
+}
+
+/**
+ * Copy a photos[] entry for a rewrite. thumbUrl and galleryUrl stay when
+ * the source has them. [overrides] replace fields such as order or url.
+ */
+export function photoRecord(photo, overrides = {}) {
+  const source = photo && typeof photo === "object" && !Array.isArray(photo) ? photo : {};
+  return { ...source, ...overrides };
+}
+
 function firebaseDownloadHost(host) {
   const lower = String(host ?? "").toLowerCase();
   return lower === "firebasestorage.googleapis.com" || lower.endsWith(".firebasestorage.app");

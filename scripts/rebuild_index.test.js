@@ -652,6 +652,7 @@ test("CI workflow runs the unit test and never the apply tool", () => {
   for (const file of [
     "scripts/rebuild_index.js",
     "scripts/resize_cover_thumbs.js",
+    "scripts/resize_gallery_images.js",
     "scripts/audit_coords.js",
     "scripts/patch_image_url_mirror.js",
     "scripts/apply_field_patches.js",

@@ -1,4 +1,5 @@
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/models/temple_photo.dart';
 
 /// How the detail screen should talk about a place, using only existing text.
 enum SiteFraming {
@@ -122,6 +123,68 @@ class DetailHonesty {
     }
     return buffer.toString().trim();
   }
+}
+
+/// Pinch scale past which the detail gallery may fetch the original.
+const double kDetailGalleryFullSizeScale = 1.5;
+
+/// One frame in the detail gallery.
+///
+/// [sourceUrl] is the verified original (`photos[].url` or `images`).
+/// Credits and captions stay keyed to it. [displayUrl] is `galleryUrl`
+/// when that copy exists and this frame is not asking for the original.
+class DetailGalleryFrame {
+  const DetailGalleryFrame({
+    required this.sourceUrl,
+    required this.displayUrl,
+  });
+
+  final String sourceUrl;
+  final String displayUrl;
+
+  bool get showsGalleryCopy => displayUrl != sourceUrl;
+}
+
+/// True when a pinch has passed [kDetailGalleryFullSizeScale].
+///
+/// Auto-advance does not call this. The original is fetched only after an
+/// explicit zoom (or a failed gallery image).
+bool detailGalleryZoomWantsOriginal(double scale) {
+  return scale > kDetailGalleryFullSizeScale;
+}
+
+/// Detail frames in gallery order. Browse covers are not read here.
+///
+/// [fullSizeIndexes] are frames the user zoomed, or whose gallery copy
+/// failed to load. Those frames use the original URL. Every other frame
+/// uses `photos[].galleryUrl` when it is an https URL within the photo cap.
+List<DetailGalleryFrame> detailGalleryFrames(
+  Temple temple, {
+  Set<int> fullSizeIndexes = const {},
+}) {
+  final urls = verifiedGalleryUrls(temple);
+  return [
+    for (var i = 0; i < urls.length; i++)
+      DetailGalleryFrame(
+        sourceUrl: urls[i],
+        displayUrl: fullSizeIndexes.contains(i)
+            ? urls[i]
+            : _galleryDisplayUrl(temple, urls[i]),
+      ),
+  ];
+}
+
+String _galleryDisplayUrl(Temple temple, String source) {
+  for (final photo in temple.photos) {
+    if (photo.url.trim() != source) continue;
+    final gallery = photo.galleryUrl?.trim() ?? '';
+    if (gallery.isEmpty || gallery == source) return source;
+    if (gallery.length > kMaxPhotoUrlLength) return source;
+    if (!gallery.startsWith('https://')) return source;
+    if (isDisallowedImageUrl(gallery)) return source;
+    return gallery;
+  }
+  return source;
 }
 
 /// Gallery URLs that are safe to show as photographs of the place.
