@@ -14,8 +14,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  group: demo-record-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   record-demo:

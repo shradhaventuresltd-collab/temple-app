@@ -30,10 +30,33 @@ now_ms() {
   python3 -c 'import time; print(int(time.time() * 1000))'
 }
 
-mark_step() {
+# Epoch ms when the current chapter's screen became visible.
+STEP_VISIBLE_MS=0
+
+mark_visible() {
   local name="$1"
-  echo "$(now_ms) STEP $name" >> "$TIMING"
-  log "STEP $name"
+  STEP_VISIBLE_MS="$(now_ms)"
+  echo "${STEP_VISIBLE_MS} STEP ${name}" >> "$TIMING"
+  log "STEP ${name}"
+}
+
+skip_step() {
+  local name="$1"
+  echo "0 SKIP ${name}" >> "$TIMING"
+  log "SKIP ${name}"
+}
+
+# Sleep whatever is left of `seconds` since mark_visible. Actions taken
+# after the mark (a slow scroll, a gallery swipe) count toward the hold.
+hold_for() {
+  local seconds="$1"
+  local now elapsed remain_ms
+  now="$(now_ms)"
+  elapsed=$(( now - STEP_VISIBLE_MS ))
+  remain_ms=$(( seconds * 1000 - elapsed ))
+  if (( remain_ms > 50 )); then
+    sleep "$(python3 -c "print(${remain_ms} / 1000)")"
+  fi
 }
 
 shot() {
@@ -106,10 +129,6 @@ wait_for() {
   cp -f "$UI_XML" "$OUT/timeout-${needle//[^A-Za-z0-9_-]/_}.xml" 2>/dev/null || true
   shot "timeout-${needle//[^A-Za-z0-9_-]/_}" || true
   return 1
-}
-
-pause_on_screen() {
-  sleep 2.7
 }
 
 wake() {
@@ -359,34 +378,41 @@ if ui_has "Got it"; then
   sleep 1
 fi
 
-log "starting screenrecord"
-record_loop &
-REC_PID=$!
-sleep 2
-if [[ -f "$OUT/screenrecord-fatal" ]]; then
-  log "screenrecord failed to start"
-  FAILED=1
-  exit 1
-fi
-
-# (1) Launcher, the icon, Accept & continue.
-mark_step launcher
+# Put the icon on screen before the file starts, so "01 launch" is the
+# head of the timeline rather than a drawer hunt.
 if ! open_drawer_until_icon; then
   shot "launcher-miss"
   log "app icon was not on the launcher"
   FAILED=1
   exit 1
 fi
+
+log "starting screenrecord"
+record_loop &
+REC_PID=$!
+sleep 0.5
+if [[ -f "$OUT/screenrecord-fatal" ]]; then
+  log "screenrecord failed to start"
+  FAILED=1
+  exit 1
+fi
+
+# (1) Launcher with the icon, then the tap and the splash. The icon stays
+# up for the 10s; the tap follows, and accept starts when the gate is up.
+if ! ui_has "Temple Directory"; then
+  open_drawer_until_icon || { FAILED=1; exit 1; }
+fi
+mark_visible "01 launch"
 shot "01-launcher"
-pause_on_screen
+hold_for 10
 if ! tap_needle "Temple Directory"; then
   FAILED=1
   exit 1
 fi
 require "Accept & continue" 60 || exit 1
-mark_step accept
-shot "01-accept"
-pause_on_screen
+mark_visible "02 accept"
+shot "02-accept"
+hold_for 6
 tap_needle "Accept & continue" || { FAILED=1; exit 1; }
 
 # (2) Home with the directory count.
@@ -418,9 +444,9 @@ if ui_has "Not now"; then
   tap_needle "Not now" || true
   sleep 1
 fi
-mark_step home
-shot "02-home"
-pause_on_screen
+mark_visible "03 home"
+shot "03-home"
+hold_for 6
 
 # (3) Kerala filter, then a slow scroll of that list.
 if ! tap_needle "home-browse-temples" && ! tap_needle "Browse"; then
@@ -429,7 +455,6 @@ if ! tap_needle "home-browse-temples" && ! tap_needle "Browse"; then
   tap_needle "home-browse-temples" || tap_needle "Browse" || { FAILED=1; exit 1; }
 fi
 require "State" 30 || exit 1
-pause_on_screen
 tap_needle "State" || tap_needle "filter-chip-state" || { FAILED=1; exit 1; }
 require "Filters" 20 || exit 1
 for _ in 1 2 3 4; do
@@ -447,26 +472,25 @@ if ! tap_needle "Show"; then
   exit 1
 fi
 require "Kerala" 20 || exit 1
-mark_step kerala
-shot "03-kerala"
-pause_on_screen
-# Short travel, long duration: a slow scroll rather than a flick.
+mark_visible "04 kerala"
+shot "04-kerala"
+# Slow scroll across the 10s the filtered list stays up.
 for _ in 1 2 3 4; do
-  adb shell input swipe 540 1750 540 1250 1400 || true
-  sleep 0.8
+  adb shell input swipe 540 1750 540 1250 1600 || true
+  sleep 0.7
 done
-shot "03-kerala-scrolled"
-pause_on_screen
+shot "04-kerala-scrolled"
+hold_for 10
 
 # (4) Guruvayur: gallery, details, credit, Get Directions, then back.
 found_guru=0
-for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16; do
+for _ in 1 2 3 4; do
   if ui_has "Guruvayur"; then
     found_guru=1
     break
   fi
-  adb shell input swipe 540 1750 540 1150 700 || true
-  sleep 0.5
+  adb shell input swipe 540 1750 540 1150 350 || true
+  sleep 0.3
 done
 if (( found_guru == 0 )); then
   log "Guruvayur was not on the scrolled Kerala list; using search"
@@ -476,7 +500,6 @@ if (( found_guru == 0 )); then
   sleep 1.2
   found_guru=1
 fi
-mark_step guruvayur
 if ! tap_needle "Guruvayur"; then
   FAILED=1
   exit 1
@@ -484,20 +507,20 @@ fi
 # The directions button is below the gallery. The title is enough to know
 # the detail page opened; the later scroll brings the button up.
 require "Guruvayur" 25 || exit 1
-shot "04-guruvayur"
-pause_on_screen
+mark_visible "05 guruvayur_gallery"
+shot "05-guruvayur"
 # Gallery sits in the top half of the 2400px display.
-adb shell input swipe 900 700 180 700 450 || true
-sleep 0.8
-adb shell input swipe 900 700 180 700 450 || true
-shot "04-gallery"
-pause_on_screen
-# Details and the credit line live under the gallery.
+sleep 1.5
+adb shell input swipe 900 700 180 700 500 || true
+sleep 1.5
+adb shell input swipe 900 700 180 700 500 || true
+shot "05-gallery"
+hold_for 7
+# Details, the credit line, and Get Directions share the next 11s.
 adb shell input swipe 540 1700 540 900 900 || true
 sleep 0.6
-mark_step credits
-shot "04-credits"
-pause_on_screen
+mark_visible "06 guruvayur_details"
+shot "06-credits"
 for _ in 1 2 3 4 5 6; do
   if ui_has "Get Directions"; then
     break
@@ -505,11 +528,9 @@ for _ in 1 2 3 4 5 6; do
   adb shell input swipe 540 1700 540 1000 800 || true
   sleep 0.4
 done
-mark_step directions
 if tap_needle "Get Directions"; then
   sleep 1.2
-  shot "04-directions"
-  pause_on_screen
+  shot "06-directions"
   # Chooser, browser, or the in-app snackbar. Come back to the detail page.
   for _ in 1 2 3; do
     focus="$(adb shell dumpsys window 2>/dev/null | grep -m1 mCurrentFocus | tr -d '\r' || true)"
@@ -527,9 +548,9 @@ if tap_needle "Get Directions"; then
   fi
 else
   log "Get Directions was not on screen"
-  shot "04-directions-miss"
+  shot "06-directions-miss"
 fi
-pause_on_screen
+hold_for 11
 
 # (5) Another Kerala temple that has photos.
 adb shell input keyevent KEYCODE_BACK || true
@@ -543,14 +564,14 @@ if ui_has "Clear search"; then
   sleep 0.5
 fi
 second=""
-for name in Padmanabhaswamy Vaikom Ettumanoor Thirunelli Chengannur; do
-  for _ in 1 2 3 4 5 6; do
+for name in Padmanabhaswamy Vaikom Ettumanoor; do
+  for _ in 1 2 3; do
     if ui_has "$name"; then
       second="$name"
       break
     fi
-    adb shell input swipe 540 1750 540 1150 650 || true
-    sleep 0.4
+    adb shell input swipe 540 1750 540 1150 350 || true
+    sleep 0.3
   done
   if [[ -n "$second" ]]; then
     break
@@ -566,7 +587,6 @@ if [[ -z "$second" ]]; then
     second="Vaikom"
   fi
 fi
-mark_step second-temple
 if [[ -n "$second" ]]; then
   log "opening $second"
   tap_needle "$second" || true
@@ -575,12 +595,12 @@ else
   tap_needle "temple-browse-card" || true
 fi
 sleep 2
-shot "05-second"
-pause_on_screen
-adb shell input swipe 900 700 180 700 450 || true
-sleep 0.6
-shot "05-second-gallery"
-pause_on_screen
+mark_visible "07 second_temple"
+shot "07-second"
+adb shell input swipe 900 700 180 700 500 || true
+sleep 0.8
+shot "07-second-gallery"
+hold_for 8
 adb shell input keyevent KEYCODE_BACK || true
 sleep 1
 
@@ -593,7 +613,6 @@ if ui_has "Clear search"; then
   tap_needle "Clear search" || true
   sleep 0.4
 fi
-mark_step search
 if ! tap_needle "temple-list-search-field"; then
   tap_needle "Name, city" || { FAILED=1; exit 1; }
 fi
@@ -606,11 +625,13 @@ sleep 1.5
 # Drag dismisses the keyboard without Back, which would pop the list.
 adb shell input swipe 540 1600 540 1200 400 || true
 sleep 0.8
-shot "06-search"
-pause_on_screen
+mark_visible "08 search"
+shot "08-search"
+hold_for 7
 
 # (7) Offline, only when the shell allows the radio change.
-mark_step offline
+# The 10s hold starts when the offline banner is visible. A denied
+# broadcast is a skipped chapter, not a failed recording.
 offline_ok=0
 try_offline() {
   local label="$1"
@@ -633,16 +654,17 @@ if try_offline airplane adb shell cmd connectivity airplane-mode enable \
   adb shell svc data disable >>"$OUT/offline.log" 2>&1 || true
   if wait_for "offline" 12; then
     offline_ok=1
-    shot "07-offline"
-    pause_on_screen
+    mark_visible "09 offline"
+    shot "09-offline"
+    hold_for 10
   else
     log "radios changed but the offline banner did not appear; skipping"
-    echo "$(now_ms) STEP offline-skipped" >> "$TIMING"
+    skip_step "09 offline"
   fi
 else
   log "offline broadcast denied; skipping"
-  echo "$(now_ms) STEP offline-skipped" >> "$TIMING"
-  shot "07-offline-skipped"
+  skip_step "09 offline"
+  shot "09-offline-skipped"
 fi
 if (( offline_ok == 1 )); then
   log "offline banner shown"

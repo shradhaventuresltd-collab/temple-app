@@ -16,26 +16,43 @@ import subprocess
 from pathlib import Path
 
 
+# Voiceover chapters, in order. timestamps.md is this table and nothing else.
+CANONICAL_STEPS = (
+    "01 launch",
+    "02 accept",
+    "03 home",
+    "04 kerala",
+    "05 guruvayur_gallery",
+    "06 guruvayur_details",
+    "07 second_temple",
+    "08 search",
+    "09 offline",
+)
+
+
 def _format_clock(seconds: float) -> str:
-    if seconds < 0:
-        seconds = 0.0
-    total_ms = int(round(seconds * 1000))
-    minutes, ms = divmod(total_ms, 60_000)
-    secs, ms = divmod(ms, 1000)
-    return f"{minutes}:{secs:02d}.{ms:03d}"
+    """m:ss.s — one decimal, seconds zero-padded, minutes not."""
+    tenths = int(max(0.0, seconds) * 10 + 0.5)
+    minutes, rem = divmod(tenths, 600)
+    secs, tenth = divmod(rem, 10)
+    return f"{minutes}:{secs:02d}.{tenth}"
 
 
-def parse_timing(path: Path) -> tuple[list[dict], list[tuple[int, str]]]:
+def parse_timing(
+    path: Path,
+) -> tuple[list[dict], list[tuple[int, str]], set[str]]:
     segments: dict[str, dict] = {}
     order: list[str] = []
     steps: list[tuple[int, str]] = []
+    skipped: set[str] = set()
     for raw in path.read_text(encoding="utf-8", errors="replace").splitlines():
         parts = raw.split()
         if len(parts) < 3 or not parts[0].isdigit():
             continue
         ms = int(parts[0])
         kind = parts[1]
-        name = parts[2]
+        # STEP and SKIP names are "01 launch", so they contain a space.
+        name = parts[2] if kind in {"SEG_START", "SEG_END"} else " ".join(parts[2:])
         if kind == "SEG_START":
             segments[name] = {"name": name, "start": ms, "end": None}
             order.append(name)
@@ -43,7 +60,9 @@ def parse_timing(path: Path) -> tuple[list[dict], list[tuple[int, str]]]:
             segments[name]["end"] = ms
         elif kind == "STEP":
             steps.append((ms, name))
-    return [segments[name] for name in order if name in segments], steps
+        elif kind == "SKIP":
+            skipped.add(name)
+    return [segments[name] for name in order if name in segments], steps, skipped
 
 
 def probe_duration(path: Path) -> float | None:
@@ -123,23 +142,19 @@ def step_offset(step_ms: int, segments: list[dict]) -> float:
     return float(last["video_start"]) + float(last["duration"])
 
 
-def write_markdown(path: Path, rows: list[tuple[str, float]], notes: list[str]) -> None:
-    lines = [
-        "# Demo timestamps",
-        "",
-        "Start times are offsets in the concatenated `demo.mp4`.",
-        "They come from the step timing log and each segment's duration.",
-        "",
-        "| Step | Start |",
-        "| --- | --- |",
-    ]
-    for name, offset in rows:
-        lines.append(f"| {name} | {_format_clock(offset)} |")
-    if notes:
-        lines.extend(["", "## Notes", ""])
-        lines.extend(f"- {note}" for note in notes)
-    lines.append("")
-    path.write_text("\n".join(lines), encoding="utf-8")
+def write_markdown(
+    path: Path,
+    offsets: dict[str, float],
+    skipped: set[str],
+) -> None:
+    lines = ["| step | start |", "|---|---|"]
+    for name in CANONICAL_STEPS:
+        if name in skipped or name not in offsets:
+            cell = "skipped"
+        else:
+            cell = _format_clock(offsets[name])
+        lines.append(f"| {name} | {cell} |")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def extract_frames(
@@ -156,7 +171,8 @@ def extract_frames(
         # rather than the tap that opened it. Clamp to the step start
         # when the video is shorter than that.
         when = max(0.0, offset + 0.4)
-        dest = frames_dir / f"{index:02d}-{name}.png"
+        slug = name.replace(" ", "-")
+        dest = frames_dir / f"{slug}.png"
         subprocess.run(
             [
                 ffmpeg,
@@ -178,14 +194,16 @@ def build_rows(
     timing: Path,
     segments_dir: Path,
     overrides: dict[str, float],
-) -> tuple[list[tuple[str, float]], list[str]]:
-    segments, steps = parse_timing(timing)
+) -> tuple[dict[str, float], set[str], list[tuple[str, float]]]:
+    segments, steps, skipped = parse_timing(timing)
     usable = attach_durations(segments, segments_dir, overrides)
-    notes: list[str] = []
-    if not usable:
-        notes.append("No playable segment durations were found.")
-    rows = [(name, step_offset(ms, usable)) for ms, name in steps]
-    return rows, notes
+    offsets = {name: step_offset(ms, usable) for ms, name in steps}
+    frames = [
+        (name, offsets[name])
+        for name in CANONICAL_STEPS
+        if name in offsets and name not in skipped
+    ]
+    return offsets, skipped, frames
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -206,11 +224,11 @@ def main(argv: list[str] | None = None) -> int:
     for item in args.duration:
         name, _, raw = item.partition("=")
         overrides[name] = float(raw)
-    rows, notes = build_rows(args.timing, args.segments_dir, overrides)
+    offsets, skipped, frames = build_rows(args.timing, args.segments_dir, overrides)
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    write_markdown(args.output, rows, notes)
+    write_markdown(args.output, offsets, skipped)
     if args.video and args.frames_dir:
-        extract_frames(args.video, args.frames_dir, rows)
+        extract_frames(args.video, args.frames_dir, frames)
     return 0
 
 
