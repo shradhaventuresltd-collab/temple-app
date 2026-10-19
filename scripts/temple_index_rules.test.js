@@ -409,6 +409,54 @@ test("galleryUrl is an optional https URL capped at 2000 characters", async () =
       }),
     ),
   );
+  await assertFails(
+    setDoc(
+      at(db, "temples/gallery-space"),
+      templePayload("gallery-space", {
+        photos: [
+          {
+            url: "https://example.com/full.jpg",
+            licence: "CC0",
+            order: 0,
+            galleryUrl: "https://example.com/a b.jpg",
+          },
+        ],
+      }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      at(db, "temples/gallery-not-string"),
+      templePayload("gallery-not-string", {
+        photos: [
+          { url: "https://example.com/full.jpg", licence: "CC0", order: 0, galleryUrl: 1080 },
+        ],
+      }),
+    ),
+  );
+});
+
+test("a photo missing url, licence, or order is rejected", async () => {
+  const db = adminDb("admin-photo-required");
+  const url = "https://example.com/full.jpg";
+  await assertFails(
+    setDoc(
+      at(db, "temples/missing-url"),
+      templePayload("missing-url", { photos: [{ licence: "CC0", order: 0 }] }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      at(db, "temples/missing-licence"),
+      templePayload("missing-licence", { photos: [{ url, order: 0 }] }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      at(db, "temples/missing-order"),
+      templePayload("missing-order", { photos: [{ url, licence: "CC0" }] }),
+    ),
+  );
 });
 
 test("photos may store an https galleryUrl beside thumbUrl", async () => {

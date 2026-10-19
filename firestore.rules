@@ -94,9 +94,8 @@ service cloud.firestore {
     }
 
     function validStringLength(field, minLen, maxLen) {
-      return request.resource.data[field] is string &&
-        request.resource.data[field].size() >= minLen &&
-        request.resource.data[field].size() <= maxLen;
+      let value = request.resource.data[field];
+      return value is string && value.size() >= minLen && value.size() <= maxLen;
     }
 
     function optionalStringLength(field, minLen, maxLen) {
@@ -160,9 +159,7 @@ service cloud.firestore {
 
     function isValidPhoto(photo) {
       return photo is map &&
-        // hasAll is omitted: httpsUrl, isPhotoLicence, and order-is-int already
-        // reject a missing url, licence, or order, and the 1000-expression
-        // limit has no room for both hasAll and galleryUrl.
+        photo.keys().hasAll(['url', 'licence', 'order']) &&
         photo.keys().hasOnly(['url', 'credit', 'licence', 'order', 'thumbUrl', 'galleryUrl']) &&
         httpsUrl(photo.url) &&
         isPhotoLicence(photo.licence) &&
@@ -175,9 +172,7 @@ service cloud.firestore {
           photo.thumbUrl.size() <= 2000 &&
           httpsUrl(photo.thumbUrl)
         )) &&
-        (!('galleryUrl' in photo) || (
-          photo.galleryUrl.size() <= 2000 && photo.galleryUrl[0:8] == 'https://'
-        ));
+        (!('galleryUrl' in photo) || httpsUrl(photo.galleryUrl));
     }
 
     // Rules have no loops. Check each of the 12 possible slots.
@@ -211,18 +206,24 @@ service cloud.firestore {
     // source.unsplash.com is exact, matching the app. A path containing
     // "placeholder" or "picsum" is allowed. Stock hosts such as shutterstock
     // are not in this regex; the app rejects those.
+    // At most four subdomain labels. An unbounded `([a-z0-9-]+\\.)*` blows the
+    // 1000-expression budget on a photo create whose cover URL is long.
+    // source.unsplash.com stays exact: a subdomain of it is not this host.
     function placeholderHost(url) {
-      return url is string && url.matches('(?i)^https?://([^/?#@]+@)?(([a-z0-9-]+\\.)*(picsum\\.photos|placeholder\\.com|placehold\\.co|placehold\\.it|dummyimage\\.com|lorempixel\\.com|loremflickr\\.com|placekitten\\.com|fakeimg\\.pl|placeimg\\.com)|source\\.unsplash\\.com)(:\\d+)?([/?#].*)?$');
+      return url is string && url.matches('(?i)^https?://([^/?#@]+@)?(([a-z0-9-]+\\.){0,4}(picsum\\.photos|placeholder\\.com|placehold\\.co|placehold\\.it|dummyimage\\.com|lorempixel\\.com|loremflickr\\.com|placekitten\\.com|fakeimg\\.pl|placeimg\\.com)|source\\.unsplash\\.com)(:\\d+)?([/?#].*)?$');
     }
 
-    function imageListOk(list) {
+    // [cover] is an imageUrl this write already checked. The same string is
+    // not matched again.
+    function imageListOk(list, cover) {
       return list is list &&
         list.size() <= 50 &&
-        (list.size() < 1 || !placeholderHost(list[0]));
+        (list.size() < 1 || list[0] == cover || !placeholderHost(list[0]));
     }
 
     function optionalImageList(data) {
-      return !('images' in data) || imageListOk(data.images);
+      return !('images' in data) ||
+        imageListOk(data.images, 'imageUrl' in data ? data.imageUrl : null);
     }
 
     function optionalValidPhotos(data) {
@@ -310,7 +311,7 @@ service cloud.firestore {
         validStringLength('address', 1, 500) &&
         validTimings() &&
         isValidList(data.specialities, 20) &&
-        imageListOk(data.images) &&
+        imageListOk(data.images, data.imageUrl) &&
         optionalValidPhotos(data) &&
         validLatitude(data.latitude) &&
         validLongitude(data.longitude) &&

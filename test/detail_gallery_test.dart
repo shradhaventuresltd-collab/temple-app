@@ -7,6 +7,7 @@ import 'package:temple_app/models/temple_index.dart';
 import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/screens/temple_detail_screen.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
+import 'package:temple_app/widgets/temple_image_placeholder.dart';
 
 Temple _temple({
   required String original,
@@ -119,5 +120,83 @@ void main() {
     await tester.pump();
     final image = tester.widget<CachedNetworkImage>(find.byType(CachedNetworkImage));
     expect(image.imageUrl, original);
+  });
+
+  testWidgets('a failed gallery image requests the original once', (tester) async {
+    final temple = _temple(original: original, galleryUrl: gallery, thumbUrl: thumb);
+    final detailKey = GlobalKey();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: TempleDetailBody(key: detailKey, temple: temple)),
+      ),
+    );
+    await tester.pump();
+
+    var image = tester.widget<CachedNetworkImage>(find.byType(CachedNetworkImage));
+    expect(image.imageUrl, gallery);
+    final failed = image.errorWidget!(
+      tester.element(find.byType(CachedNetworkImage)),
+      gallery,
+      Exception('missing'),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Stack(
+            children: [
+              TempleDetailBody(key: detailKey, temple: temple),
+              failed,
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    image = tester.widget<CachedNetworkImage>(
+      find.descendant(
+        of: find.byKey(detailKey),
+        matching: find.byType(CachedNetworkImage),
+      ),
+    );
+    expect(image.imageUrl, original);
+
+    final again = image.errorWidget!(
+      tester.element(
+        find.descendant(
+          of: find.byKey(detailKey),
+          matching: find.byType(CachedNetworkImage),
+        ),
+      ),
+      original,
+      Exception('missing'),
+    );
+    expect(again, isA<TempleImagePlaceholder>());
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Stack(
+            children: [
+              TempleDetailBody(key: detailKey, temple: temple),
+              again,
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final requested = tester
+        .widgetList<CachedNetworkImage>(
+          find.descendant(
+            of: find.byKey(detailKey),
+            matching: find.byType(CachedNetworkImage),
+          ),
+        )
+        .map((widget) => widget.imageUrl)
+        .toList();
+    expect(requested, [original]);
   });
 }

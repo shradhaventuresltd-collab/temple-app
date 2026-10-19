@@ -54,7 +54,11 @@ void main() {
     expect(firestoreRules, contains("'thumbUrl'"));
     expect(firestoreRules, contains('photo.thumbUrl.size() <= 2000'));
     expect(firestoreRules, contains("'galleryUrl'"));
-    expect(firestoreRules, contains('photo.galleryUrl.size() <= 2000'));
+    expect(firestoreRules, contains('httpsUrl(photo.galleryUrl)'));
+    expect(
+      firestoreRules,
+      contains("photo.keys().hasAll(['url', 'licence', 'order'])"),
+    );
     expect(firestoreRules, isNot(contains('allow write: if true')));
     expect(
       firestoreRules,
