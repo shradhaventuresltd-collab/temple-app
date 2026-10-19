@@ -285,14 +285,21 @@ function dartPhotos(photos, indent) {
   const blocks = photos.map((photo) => {
     const licence = DART_FROM_LICENCE[photo.licence];
     if (!licence) throw new Error(`Unknown licence ${photo.licence}`);
-    return [
+    const lines = [
       `${indent}  TemplePhoto(`,
       `${indent}    url: ${dartQuote(photo.url)},`,
       `${indent}    credit: ${dartQuote(photo.credit ?? "")},`,
       `${indent}    licence: ${licence},`,
       `${indent}    order: ${photo.order},`,
-      `${indent}  ),`,
-    ].join("\n");
+    ];
+    if (typeof photo.thumbUrl === "string" && photo.thumbUrl.startsWith("https://")) {
+      lines.push(`${indent}    thumbUrl: ${dartQuote(photo.thumbUrl)},`);
+    }
+    if (typeof photo.galleryUrl === "string" && photo.galleryUrl.startsWith("https://")) {
+      lines.push(`${indent}    galleryUrl: ${dartQuote(photo.galleryUrl)},`);
+    }
+    lines.push(`${indent}  ),`);
+    return lines.join("\n");
   });
   return `[\n${blocks.join("\n")}\n${indent}]`;
 }

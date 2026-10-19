@@ -21,11 +21,13 @@ service cloud.firestore {
     //   - timings: string (max 1000) or null when no official hours were published
     //   - specialities: list of strings (max 20 items, each max 200 chars)
     //   - images: list of strings (max 50 items, each max 2000 chars, URLs)
-    //   - photos: optional list (max 12) of {url, credit, licence, order}
+    //   - photos: optional list (max 12) of {url, credit, licence, order, thumbUrl?, galleryUrl?}
     //       url: https string, max 2000
     //       licence: CC-BY | CC-BY-SA | CC0 | Own | Permission
     //       order: int 0..11 (0 is the cover; clients write the list sorted)
     //       credit: string, max 200, required for CC-BY and CC-BY-SA
+    //       thumbUrl: optional https string, max 2000 (480px list thumb)
+    //       galleryUrl: optional https string, max 2000 (~1080px detail copy)
     //     imageUrl and images are mirrors of photos, written in the same
     //     admin payload. Existing docs are not backfilled.
     //   - latitude: number (-90 to 90) or null when coordinates are not listed
@@ -158,8 +160,10 @@ service cloud.firestore {
 
     function isValidPhoto(photo) {
       return photo is map &&
-        photo.keys().hasAll(['url', 'licence', 'order']) &&
-        photo.keys().hasOnly(['url', 'credit', 'licence', 'order', 'thumbUrl']) &&
+        // hasAll is omitted: httpsUrl, isPhotoLicence, and order-is-int already
+        // reject a missing url, licence, or order, and the 1000-expression
+        // limit has no room for both hasAll and galleryUrl.
+        photo.keys().hasOnly(['url', 'credit', 'licence', 'order', 'thumbUrl', 'galleryUrl']) &&
         httpsUrl(photo.url) &&
         isPhotoLicence(photo.licence) &&
         photo.order is int &&
@@ -170,6 +174,9 @@ service cloud.firestore {
           photo.thumbUrl is string &&
           photo.thumbUrl.size() <= 2000 &&
           httpsUrl(photo.thumbUrl)
+        )) &&
+        (!('galleryUrl' in photo) || (
+          photo.galleryUrl.size() <= 2000 && photo.galleryUrl[0:8] == 'https://'
         ));
     }
 

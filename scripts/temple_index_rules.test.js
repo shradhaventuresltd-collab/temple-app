@@ -374,6 +374,62 @@ test("thumbUrl is an optional https URL capped at 2000 characters", async () => 
   );
 });
 
+test("galleryUrl is an optional https URL capped at 2000 characters", async () => {
+  const db = adminDb("admin-gallery-cap");
+  await assertSucceeds(setDoc(at(db, "temples/no-gallery"), templePayload("no-gallery")));
+  const saved = await getDoc(at(db, "temples/no-gallery"));
+  assert.equal(saved.data().photos[0].galleryUrl, undefined);
+  const prefix = "https://example.com/";
+  const atCap = prefix + "g".repeat(2000 - prefix.length);
+  assert.equal(atCap.length, 2000);
+  await assertSucceeds(
+    setDoc(
+      at(db, "temples/gallery-cap"),
+      templePayload("gallery-cap", {
+        photos: [{ url: "https://example.com/full.jpg", licence: "CC0", order: 0, galleryUrl: atCap }],
+      }),
+    ),
+  );
+  const over = `${atCap}g`;
+  await assertFails(
+    setDoc(
+      at(db, "temples/gallery-over"),
+      templePayload("gallery-over", {
+        photos: [{ url: "https://example.com/full.jpg", licence: "CC0", order: 0, galleryUrl: over }],
+      }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      at(db, "temples/gallery-http"),
+      templePayload("gallery-http", {
+        photos: [
+          { url: "https://example.com/full.jpg", licence: "CC0", order: 0, galleryUrl: "http://example.com/g.jpg" },
+        ],
+      }),
+    ),
+  );
+});
+
+test("photos may store an https galleryUrl beside thumbUrl", async () => {
+  const db = adminDb("admin-gallery-url");
+  const galleryUrl =
+    "https://firebasestorage.googleapis.com/v0/b/app/o/temples%2Fshore%2F01_1080_g42.jpg?alt=media&token=real";
+  const thumb =
+    "https://firebasestorage.googleapis.com/v0/b/app/o/temples%2Fshore%2F01_480_g42.jpg?alt=media&token=real";
+  await assertSucceeds(
+    setDoc(
+      at(db, "temples/with-gallery"),
+      templePayload("with-gallery", {
+        photos: [{ url: "https://example.com/full.jpg", licence: "CC0", order: 0, thumbUrl: thumb, galleryUrl }],
+      }),
+    ),
+  );
+  const saved = await getDoc(at(db, "temples/with-gallery"));
+  assert.equal(saved.data().photos[0].galleryUrl, galleryUrl);
+  assert.equal(saved.data().photos[0].thumbUrl, thumb);
+});
+
 test("photos may store an https thumbUrl", async () => {
   const db = adminDb("admin-thumb-url");
   const thumb =

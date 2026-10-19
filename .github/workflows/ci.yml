@@ -53,7 +53,7 @@ jobs:
         run: node -e "require('sharp')"
 
       - name: state batch and index checks
-        run: node --test scripts/state_batch.test.js scripts/rebuild_index.test.js scripts/resize_cover_thumbs.test.js scripts/audit_coords.test.js scripts/backfill_cover_photos.test.js scripts/clear_placeholder_covers.test.js scripts/no_public_acl.test.js scripts/download_token.test.js scripts/redact_url.test.js scripts/purge_places_photos.test.js scripts/no_places_photos.test.js scripts/upload_research_pack.test.js
+        run: node --test scripts/state_batch.test.js scripts/rebuild_index.test.js scripts/resize_cover_thumbs.test.js scripts/resize_gallery_images.test.js scripts/audit_coords.test.js scripts/backfill_cover_photos.test.js scripts/clear_placeholder_covers.test.js scripts/no_public_acl.test.js scripts/download_token.test.js scripts/redact_url.test.js scripts/purge_places_photos.test.js scripts/no_places_photos.test.js scripts/upload_research_pack.test.js
 
       - name: photo patch checks
         run: node --test scripts/photo_patch.test.js
@@ -70,9 +70,11 @@ jobs:
 
       # Firestore emulator only. The empty-cover test seeds demo-empty-cover,
       # applies a pack, resizes the thumb, then checks the index for drift.
+      # The gallery test in the same boot writes galleryUrl once, reruns as a
+      # no-op, and checks the index stays at 0 drift.
       - name: empty cover pack on the emulator
         run: |
-          scripts/node_modules/.bin/firebase emulators:exec --only firestore --project demo-empty-cover "node --test --test-name-pattern \"empty cover pack\" scripts/upload_research_pack.test.js"
+          scripts/node_modules/.bin/firebase emulators:exec --only firestore --project demo-empty-cover "node --test --test-name-pattern \"empty cover pack\" scripts/upload_research_pack.test.js && node --test --test-name-pattern \"galleryUrl once\" scripts/resize_gallery_images.test.js"
 
       # Own emulator and project so leftover rules-test documents cannot
       # change the read counts.

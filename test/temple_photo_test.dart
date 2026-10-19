@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:temple_app/models/photo_licence.dart';
+import 'package:temple_app/widgets/admin_photo_grid.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/services/admin_temple_service.dart';
@@ -83,6 +84,53 @@ void main() {
     expect(fromDoc.photos[1].licence, PhotoLicence.cc0);
     expect(fromDoc.photos[1].credit, isEmpty);
     expect(fromDoc.writePhotos, isFalse);
+  });
+
+  test('galleryUrl round-trips through JSON, the mirror, and the admin draft', () {
+    const gallery = 'https://example.com/a_1080_g3.jpg';
+    const thumb = 'https://example.com/a_480_g3.jpg';
+    const photo = TemplePhoto(
+      url: 'https://example.com/a.jpg',
+      credit: 'Ada Lovelace',
+      licence: PhotoLicence.ccBy,
+      order: 1,
+      thumbUrl: thumb,
+      galleryUrl: gallery,
+    );
+    expect(photo.toJson()['galleryUrl'], gallery);
+    expect(photo.toJson()['thumbUrl'], thumb);
+    final again = TemplePhoto.fromJson(photo.toJson());
+    expect(again.galleryUrl, gallery);
+    expect(again.thumbUrl, thumb);
+
+    final mirror = deriveTemplePhotoMirror([
+      photo,
+      const TemplePhoto(
+        url: 'https://example.com/cover.jpg',
+        credit: '',
+        licence: PhotoLicence.cc0,
+        order: 0,
+      ),
+    ]);
+    expect(mirror.photos[1].galleryUrl, gallery);
+    expect(mirror.photos[1].toJson()['galleryUrl'], gallery);
+    expect(mirror.photos[0].galleryUrl, isNull);
+
+    final draft = AdminPhotoDraft.fromTemplePhotos(mirror.photos)[1];
+    expect(draft.galleryUrl, gallery);
+    expect(draft.thumbUrl, thumb);
+    final saved = draft.toTemplePhoto();
+    expect(saved.galleryUrl, gallery);
+    expect(saved.toJson()['galleryUrl'], gallery);
+
+    expect(
+      templePhotoValidationError(
+        photo.copyWith(galleryUrl: 'http://example.com/g.jpg'),
+      ),
+      'Photo gallery URL must start with https://.',
+    );
+    expect(photo.copyWith(clearGalleryUrl: true).galleryUrl, isNull);
+    expect(photo.copyWith(clearGalleryUrl: true).toJson().containsKey('galleryUrl'), isFalse);
   });
 
   test('visible credit is only the CC-BY and CC-BY-SA line', () {

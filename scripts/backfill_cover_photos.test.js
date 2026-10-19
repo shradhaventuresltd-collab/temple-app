@@ -128,6 +128,31 @@ test("a storage cover copies the credit and licence already on the doc", () => {
   assert.equal(plan.photos.length, 2);
 });
 
+test("adding a cover keeps galleryUrl and thumbUrl on the other photos", () => {
+  const gallery =
+    "https://firebasestorage.googleapis.com/v0/b/b/o/temples%2Fx%2F01_1080_g1.jpg?alt=media&token=gallery";
+  const thumb =
+    "https://firebasestorage.googleapis.com/v0/b/b/o/temples%2Fx%2F01_480_g1.jpg?alt=media&token=thumb";
+  const plan = planCoverPhoto(
+    temple({
+      photos: [
+        {
+          url: wiki,
+          credit: "Someone else",
+          licence: "CC-BY",
+          order: 0,
+          thumbUrl: thumb,
+          galleryUrl: gallery,
+        },
+      ],
+    }),
+  );
+  assert.equal(plan.action, "add");
+  assert.equal(plan.photos[1].galleryUrl, gallery);
+  assert.equal(plan.photos[1].thumbUrl, thumb);
+  assert.equal(Object.hasOwn(plan.photos[0], "galleryUrl"), false);
+});
+
 test("a different file's credit is not copied onto the cover", () => {
   const unmatched =
     "https://storage.googleapis.com/temple-directory-india.firebasestorage.app/temples/virupaksha-temple/image_1.jpg";

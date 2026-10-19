@@ -5,7 +5,8 @@
  * Firebase download token, checks that URL returns HTTP 200, then writes
  * one transaction per temple. The transaction writes nothing unless
  * imageUrl, images[], and photos[] are still empty. photos[].thumbUrl is
- * not set. resize_cover_thumbs --apply fills that and the index afterwards.
+ * not set. A galleryUrl already on a frame is copied through; pack frames
+ * do not have one. resize_cover_thumbs --apply fills thumbUrl afterwards.
  *
  * --patch-firestore is refused by the uploader. This is the write to use.
  * prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
@@ -21,6 +22,7 @@ import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard
 import { redactDownloadToken, redactThrown } from "./redact_url.js";
 import { firebaseMediaUrl } from "./resize_cover_thumbs.js";
 import { assertStorageAuth, STORAGE_AUTH_BUCKET, useNativeFetchForStorageAuth } from "./storage_auth.js";
+import { photoRecord } from "./temple_index.js";
 import { resolveSeedDocId } from "./upload_research_pack.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -185,13 +187,26 @@ export function planEmptyCoverPack({ temple, packDir, manifest, docIdOverride = 
   };
 }
 
+function optionalHttps(value) {
+  if (typeof value !== "string") return "";
+  const trimmed = value.trim();
+  if (!trimmed.startsWith("https://") || trimmed.length > 2000) return "";
+  return trimmed;
+}
+
 export function photosFromFrames(frames, urls) {
-  return frames.map((frame, order) => ({
-    url: urls[order],
-    credit: frame.credit,
-    licence: frame.licence,
-    order,
-  }));
+  return frames.map((frame, order) => {
+    const photo = {
+      url: urls[order],
+      credit: frame.credit,
+      licence: frame.licence,
+    };
+    const thumbUrl = optionalHttps(frame.thumbUrl);
+    const galleryUrl = optionalHttps(frame.galleryUrl);
+    if (thumbUrl) photo.thumbUrl = thumbUrl;
+    if (galleryUrl) photo.galleryUrl = galleryUrl;
+    return photoRecord(photo, { order });
+  });
 }
 
 /**

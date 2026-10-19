@@ -90,7 +90,7 @@ import { firebaseMediaUrl } from "./resize_cover_thumbs.js";
 import { assertStorageAuth, STORAGE_AUTH_BUCKET, useNativeFetchForStorageAuth } from "./storage_auth.js";
 import { cleanAuthor, mapPhotoLicence, photoCredit } from "./photo_licence.js";
 import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard.js";
-import { changedFields, entryFromTemple, stateSlug, storageObjectFromUrl } from "./temple_index.js";
+import { changedFields, entryFromTemple, photoRecord, stateSlug, storageObjectFromUrl } from "./temple_index.js";
 import {
   resolveSeedDocId,
   WAVE_A_TN_KL_PACKS,
@@ -706,7 +706,7 @@ function replacementPlan(temple, imageUrl, photos, failed, opts = {}) {
   const rest = photos.filter((photo) => photoUrl(photo) !== url);
   if (rest.length >= MAX_PHOTOS) return { id, action: "skip", reason: "photos-full", imageUrl };
   const nextPhotos = [{ url, credit: best.pair.credit, licence: best.pair.licence }, ...rest].map(
-    (item, order) => ({ ...item, order }),
+    (item, order) => photoRecord(item, { order }),
   );
   return {
     id,
@@ -763,7 +763,7 @@ export function planCoverPhoto(temple, opts = {}) {
     };
   }
   const cover = { url: imageUrl, credit: copied.credit, licence: copied.licence };
-  const nextPhotos = [cover, ...photos].map((item, order) => ({ ...item, order }));
+  const nextPhotos = [cover, ...photos].map((item, order) => photoRecord(item, { order }));
   return {
     id,
     action: "add",
@@ -966,10 +966,10 @@ export function assignCoverDownloadUrl(plan, imageUrl, token) {
   const previous = plan.imageUrl;
   plan.downloadToken = token;
   plan.imageUrl = imageUrl;
-  if (plan.photo && plan.photo.url === previous) plan.photo = { ...plan.photo, url: imageUrl };
+  if (plan.photo && plan.photo.url === previous) plan.photo = photoRecord(plan.photo, { url: imageUrl });
   if (Array.isArray(plan.photos)) {
     plan.photos = plan.photos.map((photo) =>
-      photo && photo.url === previous ? { ...photo, url: imageUrl } : photo,
+      photo && photo.url === previous ? photoRecord(photo, { url: imageUrl }) : photo,
     );
   }
   if (Array.isArray(plan.images)) {

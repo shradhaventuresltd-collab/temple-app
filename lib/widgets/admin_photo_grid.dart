@@ -13,6 +13,7 @@ class AdminPhotoDraft {
     required this.id,
     this.url = '',
     this.thumbUrl,
+    this.galleryUrl,
     this.credit = '',
     this.licence,
     this.order = 0,
@@ -28,6 +29,9 @@ class AdminPhotoDraft {
 
   /// Download URL of the `_480` object, when this draft has one.
   String? thumbUrl;
+
+  /// Download URL of the `_1080` gallery copy, when this draft has one.
+  String? galleryUrl;
   String credit;
   PhotoLicence? licence;
   int order;
@@ -57,6 +61,7 @@ class AdminPhotoDraft {
       licence: licence,
       order: order,
       thumbUrl: thumbUrl,
+      galleryUrl: galleryUrl,
     );
   }
 
@@ -73,6 +78,7 @@ class AdminPhotoDraft {
           id: 'photo-$slot-${photos[indexed[slot]].url.hashCode}',
           url: photos[indexed[slot]].url,
           thumbUrl: photos[indexed[slot]].thumbUrl,
+          galleryUrl: photos[indexed[slot]].galleryUrl,
           credit: photos[indexed[slot]].credit,
           licence: photos[indexed[slot]].licence,
           order: slot,

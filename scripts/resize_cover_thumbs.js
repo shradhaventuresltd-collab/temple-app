@@ -48,6 +48,7 @@ import { assertStorageAuth, STORAGE_AUTH_BUCKET, useNativeFetchForStorageAuth } 
 import {
   entryFromTemple,
   firstThumbSource,
+  GALLERY_LONG_EDGE,
   stateSlug,
   storageObjectFromUrl,
   thumbObjectPath,
@@ -627,6 +628,53 @@ export async function encodeWithSharp(bytes) {
   const pipeline =
     width > THUMB_EDGE ? input.resize({ width: THUMB_EDGE, withoutEnlargement: true }) : input;
   return pipeline.jpeg({ quality: THUMB_JPEG_QUALITY }).toBuffer();
+}
+
+export const GALLERY_JPEG_QUALITY = 75;
+export const GALLERY_JPEG_QUALITY_MIN = 45;
+/** Soft cap. Quality steps down until the JPEG is under this, or the floor. */
+export const GALLERY_TARGET_BYTES = 250 * 1024;
+
+/**
+ * sharp resize to a ~1080px long-edge JPEG for `photos[].galleryUrl`.
+ * The long edge is [GALLERY_LONG_EDGE]. Smaller frames are not enlarged.
+ * Quality starts at [GALLERY_JPEG_QUALITY] and steps down while the buffer
+ * is above [GALLERY_TARGET_BYTES]. Thumb encoding is unchanged.
+ */
+export async function encodeGalleryJpeg(bytes) {
+  let sharp;
+  try {
+    ({ default: sharp } = await import("sharp"));
+  } catch {
+    throw new Error(
+      "Gallery encoding needs sharp. From the repo: run npm ci in scripts/. No write.",
+    );
+  }
+  const meta = await sharp(bytes, { failOn: "none" }).rotate().metadata();
+  const long = Math.max(meta.width ?? 0, meta.height ?? 0);
+  const resize =
+    long > GALLERY_LONG_EDGE
+      ? {
+          width: GALLERY_LONG_EDGE,
+          height: GALLERY_LONG_EDGE,
+          fit: "inside",
+          withoutEnlargement: true,
+        }
+      : null;
+  let quality = GALLERY_JPEG_QUALITY;
+  let encoded = null;
+  for (;;) {
+    let pipeline = sharp(bytes, { failOn: "none" }).rotate();
+    if (resize) pipeline = pipeline.resize(resize);
+    encoded = await pipeline.jpeg({ quality }).toBuffer();
+    if (!encoded || encoded.length === 0) {
+      throw new Error("Encoder returned an empty gallery image. No write.");
+    }
+    if (encoded.length <= GALLERY_TARGET_BYTES || quality <= GALLERY_JPEG_QUALITY_MIN) {
+      return encoded;
+    }
+    quality -= 5;
+  }
 }
 
 async function openAdmin(project, env) {
