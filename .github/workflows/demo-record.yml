@@ -1,0 +1,225 @@
+name: demo-record
+
+# One-off screen recording for a throwaway pull request. Do not merge.
+#
+# The only trigger is a pull_request labeled event. The job runs only when
+# the label just added is record-demo. workflow_dispatch, push, schedule,
+# opened, synchronize, and any other label do not start it.
+
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  record-demo:
+    if: github.event.label.name == 'record-demo'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Free disk space
+        run: bash scripts/ci/free_runner_disk.sh
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version: '3.47.7'
+          cache: true
+          pub-cache: true
+
+      - name: flutter pub get
+        run: flutter pub get
+
+      # Release builds fill this runner if the committed -Xmx8G stays.
+      # android/gradle.properties in git is unchanged. android-smoke does
+      # not use this cap; its profile build keeps -Xmx8G.
+      - name: Cap Gradle heap for the hosted runner
+        run: |
+          sed -i 's/^org\.gradle\.jvmargs=.*/org.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=1g -XX:ReservedCodeCacheSize=256m -Dfile.encoding=UTF-8/' android/gradle.properties
+          grep -q '^kotlin.daemon.jvmargs=' android/gradle.properties \
+            || echo 'kotlin.daemon.jvmargs=-Xmx1g' >> android/gradle.properties
+
+      - name: Cache Gradle
+        id: gradle-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('pubspec.lock', 'android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      - name: Cache Android NDK
+        id: ndk-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: /usr/local/lib/android/sdk/ndk/28.2.13676358
+          key: ndk-28.2.13676358
+
+      # google_apis, not the google_atd image android-smoke caches. The
+      # demo has to show the launcher icon, and google_atd has no launcher.
+      - name: Restore emulator system image
+        id: system-image-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: /usr/local/lib/android/sdk/system-images
+          key: system-image-android-34-google_apis-x86_64
+
+      # The Play upload key is not in CI. This ephemeral key only exists
+      # on the runner. It is not printed. The package stays
+      # com.shradhaventures.temple; debug signing is not required because
+      # the release build refuses a missing keystore.
+      - name: Ephemeral release keystore
+        run: |
+          keytool -genkeypair -keystore android/ci-demo-record-keystore.jks \
+            -storepass android -keypass android -alias upload \
+            -keyalg RSA -keysize 2048 -validity 1 \
+            -dname "CN=CI Demo Record, OU=CI, O=Shradha Ventures, L=Bengaluru, ST=KA, C=IN"
+          cat > android/key.properties <<'EOF'
+          storePassword=android
+          keyPassword=android
+          keyAlias=upload
+          storeFile=../ci-demo-record-keystore.jks
+          EOF
+
+      - name: Build release APK
+        run: |
+          set -euo pipefail
+          # SwiftShader on this emulator does not present Impeller frames.
+          # The edit is local to the job. The committed manifest stays on Impeller.
+          bash scripts/ci/disable_impeller_for_emulator_apk.sh
+          image="/usr/local/lib/android/sdk/system-images/android-34/google_apis/x86_64"
+          if [[ ! -d "$image" ]] && command -v sdkmanager >/dev/null 2>&1; then
+            timeout 300s bash -c '
+              yes | sdkmanager --licenses >/dev/null || true
+              sdkmanager --install \
+                "system-images;android-34;google_apis;x86_64" \
+                "build-tools;37.0.0" \
+                platform-tools \
+                "platforms;android-34" \
+                emulator
+            ' >"${RUNNER_TEMP}/sdkmanager-prefetch.log" 2>&1 &
+            echo $! >"${RUNNER_TEMP}/sdkmanager-prefetch.pid"
+          fi
+          (
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq ffmpeg
+          ) >"${RUNNER_TEMP}/ffmpeg-install.log" 2>&1 &
+          echo $! >"${RUNNER_TEMP}/ffmpeg.pid"
+          # No ENABLE_ADMIN_TOOLS, DEMO_BUILD, DEMO_APP_ID_SUFFIX, or
+          # demo_suffix. No ciTesterChecks. x86_64 matches the emulator.
+          flutter build apk --release --target-platform android-x64
+          if [[ -f "${RUNNER_TEMP}/sdkmanager-prefetch.pid" ]]; then
+            wait "$(cat "${RUNNER_TEMP}/sdkmanager-prefetch.pid")" || {
+              echo "system-image prefetch did not finish; the emulator step installs it" >&2
+              tail -n 30 "${RUNNER_TEMP}/sdkmanager-prefetch.log" >&2 || true
+            }
+          fi
+          wait "$(cat "${RUNNER_TEMP}/ffmpeg.pid")" || {
+            cat "${RUNNER_TEMP}/ffmpeg-install.log" >&2 || true
+            exit 1
+          }
+          apk="build/app/outputs/flutter-apk/app-release.apk"
+          sdk="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          aapt="$(find "$sdk/build-tools" -type f -name aapt | sort | tail -n 1)"
+          badging="$("$aapt" dump badging "$apk" | head -n 1)"
+          printf '%s\n' "$badging"
+          case "$badging" in
+            *"name='com.shradhaventures.temple'"*) ;;
+            *)
+              echo "release APK is not com.shradhaventures.temple" >&2
+              exit 1
+              ;;
+          esac
+          cp -a "$apk" /tmp/demo-app-release.apk
+
+      - name: Free disk before the emulator
+        run: |
+          set -euo pipefail
+          (cd android && ./gradlew --stop) || true
+          pkill -f 'KotlinCompileDaemon|kotlin-compiler-daemon|GradleDaemon' || true
+          rm -rf \
+            "${HOME}/.gradle/caches" \
+            "${HOME}/.gradle/daemon" \
+            /usr/local/lib/android/sdk/ndk \
+            "${GITHUB_WORKSPACE}/build" \
+            "${GITHUB_WORKSPACE}/android/.gradle" \
+            "${GITHUB_WORKSPACE}/android/app/build"
+          echo "===== df before emulator ====="
+          df -h
+          free -h
+          echo "nproc=$(nproc)"
+          if [[ "$(nproc)" -ge 4 ]]; then
+            echo "EMULATOR_CORES=4" >> "$GITHUB_ENV"
+          else
+            echo "EMULATOR_CORES=2" >> "$GITHUB_ENV"
+          fi
+          avail="$(df -Pk / | awk 'NR==2 { print $4 }')"
+          if [[ "$avail" -lt 4000000 ]]; then
+            echo "less than 4GB free before the emulator (${avail} KB)" >&2
+            exit 1
+          fi
+
+      - name: Record demo
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: 2048M
+          avd-name: temple-demo-34-apis
+          force-avd-creation: false
+          disable-animations: true
+          pre-emulator-launch-script: bash scripts/ci/prepare_demo_record_avd.sh temple-demo-34-apis
+          emulator-options: -no-snapshot-save -no-snapshot-load -no-boot-anim -gpu swiftshader_indirect -no-window -no-audio -camera-back none -camera-front none -partition-size 2048
+          script: DEMO_APK=/tmp/demo-app-release.apk timeout --kill-after=30s 12m bash scripts/ci/record_demo.sh
+
+      - name: Note system image
+        if: always()
+        id: image-ready
+        run: |
+          if [[ -f /usr/local/lib/android/sdk/system-images/android-34/google_apis/x86_64/source.properties ]]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Save emulator system image
+        if: always() && steps.system-image-cache.outputs.cache-hit != 'true' && steps.image-ready.outputs.ready == 'true'
+        continue-on-error: true
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: /usr/local/lib/android/sdk/system-images
+          key: system-image-android-34-google_apis-x86_64
+
+      - name: Upload demo video
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: demo-video
+          retention-days: 7
+          if-no-files-found: warn
+          path: demo-recording/
