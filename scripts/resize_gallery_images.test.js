@@ -26,10 +26,11 @@ import {
   planGalleryPhotos,
   saveResume,
 } from "./resize_gallery_images.js";
+import { STORAGE_AUTH_BUCKET } from "./storage_auth.js";
 import { coverThumb, entryFromTemple, galleryObjectPath } from "./temple_index.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const bucket = "temple-directory-india.firebasestorage.app";
+const bucket = STORAGE_AUTH_BUCKET;
 const emulator = { FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080" };
 
 function tokenUrl(objectPath, token = "real") {
@@ -37,8 +38,8 @@ function tokenUrl(objectPath, token = "real") {
 }
 
 function shore(id = "shore-temple") {
-  const source = `https://storage.googleapis.com/bucket/temples/${id}/01.jpg`;
-  const side = `https://storage.googleapis.com/bucket/temples/${id}/02.jpg`;
+  const source = `https://storage.googleapis.com/${bucket}/temples/${id}/01.jpg`;
+  const side = `https://storage.googleapis.com/${bucket}/temples/${id}/02.jpg`;
   return {
     id,
     name: "Shore Temple",
@@ -451,4 +452,99 @@ test("galleryUrl once, a re-run is a no-op, and rebuild_index stays at 0 drift",
   assert.equal(report.drifted.length, 0);
   assert.equal(report.missing.length, 0);
   assert.equal(report.unchanged >= 1, true);
+});
+
+test("another bucket is skipped and logged, and --apply refuses --bucket", async () => {
+  const appspot =
+    "https://firebasestorage.googleapis.com/v0/b/temple-directory-india.appspot.com/o/temples%2Fother-temple%2F01.jpg?alt=media&token=abc";
+  const gcs = "https://storage.googleapis.com/other.appspot.com/temples/other-temple/02.jpg";
+  const temple = {
+    id: "other-temple",
+    images: [appspot, gcs],
+    photos: [
+      { url: appspot, licence: "CC0", credit: "", order: 0 },
+      { url: gcs, licence: "CC0", credit: "", order: 1 },
+    ],
+  };
+  const plans = planGalleryPhotos([temple]);
+  assert.equal(plans[0].action, "skip");
+  assert.equal(plans[0].reason, "other-bucket");
+  assert.equal(plans[0].bucket, "temple-directory-india.appspot.com");
+  assert.equal(plans[1].reason, "other-bucket");
+  assert.equal(plans[1].bucket, "other.appspot.com");
+
+  const lines = [];
+  const rows = await main(["--project", "demo-temple-index"], {
+    env: emulator,
+    log: (line) => lines.push(line),
+    load: async () => [temple],
+    stat: async () => {
+      throw new Error("other-bucket must not be stated");
+    },
+    download: async () => {
+      throw new Error("other-bucket must not be downloaded");
+    },
+    upload: async () => {
+      throw new Error("other-bucket must not be uploaded");
+    },
+  });
+  assert.equal(rows.every((row) => row.reason === "other-bucket"), true);
+  const report = lines.join("\n");
+  assert.match(report, /skip other-temple other-bucket/);
+  assert.equal(report.includes("would-upload"), false);
+
+  const calls = [];
+  const forged = await applyGalleryPlans(
+    [
+      {
+        id: "forged",
+        index: 0,
+        action: "upload",
+        source: gcs,
+        objectPath: "temples/other-temple/02.jpg",
+        bucket: "other.appspot.com",
+        temple,
+      },
+    ],
+    {
+      dryRun: false,
+      stat: async () => {
+        calls.push("stat");
+        throw new Error("stat");
+      },
+      download: async () => {
+        calls.push("download");
+        throw new Error("download");
+      },
+      upload: async () => {
+        calls.push("upload");
+        throw new Error("upload");
+      },
+    },
+  );
+  assert.deepEqual(calls, []);
+  assert.equal(forged[0].reason, "other-bucket");
+
+  let confirmed = 0;
+  let loads = 0;
+  await assert.rejects(
+    () =>
+      main(["--apply", "--bucket", "other.appspot.com", "--project", "demo-temple-index"], {
+        env: emulator,
+        confirm: async () => {
+          confirmed += 1;
+          return "demo-temple-index";
+        },
+        load: async () => {
+          loads += 1;
+          return [];
+        },
+        stat: async () => {
+          throw new Error("refused apply must not stat");
+        },
+      }),
+    /Refusing --bucket other\.appspot\.com\. --apply writes only temple-directory-india\.firebasestorage\.app/,
+  );
+  assert.equal(confirmed, 0);
+  assert.equal(loads, 0);
 });

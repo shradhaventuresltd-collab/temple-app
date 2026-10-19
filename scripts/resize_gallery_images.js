@@ -5,7 +5,10 @@
  *
  * Dry-run is the default. It reads temple documents and prints which
  * objects would gain a `temples/{id}/{file}_1080_g{generation}.jpg` sibling.
- * It does not write.
+ * It does not write. Reads and uploads use only
+ * temple-directory-india.firebasestorage.app. A photo whose URL names
+ * another bucket is skipped and logged. --apply refuses --bucket for any
+ * other name.
  *
  *   node scripts/resize_gallery_images.js --project temple-directory-india
  *   node scripts/resize_gallery_images.js --limit 25 --resume --project temple-directory-india
@@ -46,7 +49,13 @@ import {
   usesEmulator,
   verifyPublicObject,
 } from "./resize_cover_thumbs.js";
-import { assertStorageAuth, STORAGE_AUTH_BUCKET, useNativeFetchForStorageAuth } from "./storage_auth.js";
+import {
+  assertApplyBucket,
+  assertStorageAuth,
+  isLockedStorageBucket,
+  STORAGE_AUTH_BUCKET,
+  useNativeFetchForStorageAuth,
+} from "./storage_auth.js";
 import { galleryObjectPath, storageObjectFromUrl } from "./temple_index.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -59,6 +68,10 @@ function printUsage() {
 Usage:
   node resize_gallery_images.js [--dry-run] [--limit N] [--resume] [--project <id>]
   node resize_gallery_images.js --apply [--limit N] [--resume] --project <id>
+
+Reads and uploads use only temple-directory-india.firebasestorage.app.
+A photo URL that names another bucket is skipped. --apply --bucket <other>
+is refused.
 
 Default is dry-run: list photos that still need a _1080 sibling.
 Nothing is written. prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
@@ -83,6 +96,7 @@ export function parseArgs(argv) {
     dryRun: true,
     apply: false,
     project: null,
+    bucket: null,
     help: false,
     limit: null,
     resume: false,
@@ -101,7 +115,8 @@ export function parseArgs(argv) {
         throw new Error("--limit needs a positive integer.");
       }
       opts.limit = parsed;
-    } else if (arg === "--project") opts.project = argv[++i];
+    }     else if (arg === "--project") opts.project = argv[++i];
+    else if (arg === "--bucket") opts.bucket = argv[++i];
     else throw new Error(`Unknown argument: ${arg}`);
   }
   return opts;
@@ -159,6 +174,17 @@ export function planGalleryPhoto(temple, photo, index) {
   if (!located) {
     const reason = staysFullSizeWikimedia(source) ? "wikimedia-full" : "not-storage";
     return { id, index, action: "skip", reason, source, temple };
+  }
+  if (!isLockedStorageBucket(located.bucket)) {
+    return {
+      id,
+      index,
+      action: "skip",
+      reason: "other-bucket",
+      source,
+      bucket: located.bucket,
+      temple,
+    };
   }
   if (!galleryObjectPath(located.objectPath, "1")) {
     return { id, index, action: "skip", reason: "already-derivative", source, temple };
@@ -395,6 +421,9 @@ async function prepareGalleryPhoto(plan, deps) {
     return { row: { ...plan, result: "skipped", reason: "has-gallery" } };
   }
   const bucket = plan.bucket;
+  if (!isLockedStorageBucket(bucket)) {
+    return { row: { ...plan, result: "skipped", reason: "other-bucket" } };
+  }
   const sourceStat = await deps.stat(plan.objectPath, { bucket });
   const generation = String(sourceStat?.generation ?? "");
   if (!/^\d+$/.test(generation)) {
@@ -505,7 +534,7 @@ async function openAdmin(project, env) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
     projectId: project,
-    storageBucket: env.STORAGE_BUCKET || `${project}.firebasestorage.app`,
+    storageBucket: STORAGE_AUTH_BUCKET,
   });
   return admin;
 }
@@ -518,7 +547,13 @@ async function loadTemples(project, env) {
 
 function storageDeps(admin) {
   function bucket(name) {
-    return admin.storage().bucket(bucketNameForPlan({ bucket: name }));
+    const resolved = bucketNameForPlan({ bucket: name });
+    if (!isLockedStorageBucket(resolved)) {
+      throw new Error(
+        `Refusing Storage bucket ${resolved}. Reads and uploads use only ${STORAGE_AUTH_BUCKET}. No write.`,
+      );
+    }
+    return admin.storage().bucket(STORAGE_AUTH_BUCKET);
   }
   return {
     stat: async (path, opts = {}) => {
@@ -558,6 +593,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     printUsage();
     return null;
   }
+  if (opts.apply) assertApplyBucket(opts.bucket);
   const env = deps.env ?? process.env;
   const project = resolveProject(opts, env);
   useNativeFetchForStorageAuth();

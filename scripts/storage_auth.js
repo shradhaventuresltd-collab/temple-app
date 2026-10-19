@@ -18,6 +18,26 @@ const require = createRequire(import.meta.url);
 /** Bucket these scripts upload into. */
 export const STORAGE_AUTH_BUCKET = "temple-directory-india.firebasestorage.app";
 
+/** True only for the production bucket these resize scripts may touch. */
+export function isLockedStorageBucket(bucket) {
+  return String(bucket ?? "").trim() === STORAGE_AUTH_BUCKET;
+}
+
+/**
+ * --apply may name only [STORAGE_AUTH_BUCKET]. An omitted --bucket is that
+ * bucket. Any other name is refused before a read or a write.
+ */
+export function assertApplyBucket(bucket) {
+  const name =
+    typeof bucket === "string" && bucket.trim() !== "" ? bucket.trim() : STORAGE_AUTH_BUCKET;
+  if (name !== STORAGE_AUTH_BUCKET) {
+    throw new Error(
+      `Refusing --bucket ${name}. --apply writes only ${STORAGE_AUTH_BUCKET}. No write.`,
+    );
+  }
+  return name;
+}
+
 /** One-object list. An empty prefix is still a successful read. */
 export const STORAGE_AUTH_LIST = { prefix: "temples/", maxResults: 1, autoPaginate: false };
 

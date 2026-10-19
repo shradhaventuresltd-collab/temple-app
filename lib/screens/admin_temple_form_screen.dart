@@ -266,7 +266,10 @@ class _AdminTempleFormScreenState extends State<AdminTempleFormScreen> {
       if (!mounted) return;
       setState(() {
         draft.url = uploaded.url;
+        // The new thumb replaces the previous one. The gallery copy was
+        // generated from the old original, so it must not stay on this entry.
         draft.thumbUrl = uploaded.thumbUrl;
+        draft.galleryUrl = null;
         draft.uploading = false;
         draft.failed = false;
         draft.progress = 1;

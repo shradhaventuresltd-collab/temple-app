@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:temple_app/models/photo_licence.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/admin_temple_form_screen.dart';
+import 'package:temple_app/services/photo_thumb_encoder.dart';
+import 'package:temple_app/services/temple_photo_upload.dart';
 import 'package:temple_app/widgets/admin_photo_grid.dart';
 
 import 'helpers/fake_admin_temple_service.dart';
@@ -261,4 +263,85 @@ void main() {
     expect(find.text('Needs licence'), findsNothing);
     expect(find.text('CC-BY'), findsWidgets);
   });
+
+  testWidgets('re-upload clears a stale galleryUrl and stores the new thumb', (
+    tester,
+  ) async {
+    const oldGallery = 'https://example.com/old_1080.jpg';
+    const oldThumb = 'https://example.com/old_480.jpg';
+    final draft = AdminPhotoDraft(
+      id: 'cover',
+      url: 'https://example.com/old.jpg',
+      thumbUrl: oldThumb,
+      galleryUrl: oldGallery,
+      bytes: _png,
+      licence: PhotoLicence.cc0,
+      failed: true,
+    );
+    await tester.binding.setSurfaceSize(const Size(800, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AdminTempleFormScreen(
+          adminTemples: FakeAdminTempleService(),
+          existing: _temple(),
+          initialDrafts: [draft],
+          uploader: _ReplaceUploader(),
+          thumbEncoder: _IdentityEncoder(),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(draft.galleryUrl, oldGallery);
+    await tester.ensureVisible(find.byKey(const Key('admin-photo-retry-0')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('admin-photo-retry-0')));
+    await tester.pump();
+    await tester.pump();
+
+    expect(draft.url, 'https://example.com/replaced.jpg');
+    expect(draft.thumbUrl, 'https://example.com/replaced_480.jpg');
+    expect(draft.galleryUrl, isNull);
+    expect(draft.failed, isFalse);
+    final saved = draft.toTemplePhoto().toJson();
+    expect(saved.containsKey('galleryUrl'), isFalse);
+    expect(saved['thumbUrl'], 'https://example.com/replaced_480.jpg');
+    expect(saved['url'], 'https://example.com/replaced.jpg');
+  });
+}
+
+class _IdentityEncoder implements TemplePhotoThumbEncoder {
+  @override
+  Future<Uint8List> encode({
+    required Uint8List bytes,
+    required String extension,
+  }) async {
+    return bytes;
+  }
+
+  @override
+  Future<Uint8List> encodeFull({
+    required Uint8List bytes,
+    required String extension,
+  }) async {
+    return bytes;
+  }
+}
+
+class _ReplaceUploader implements TemplePhotoUploader {
+  @override
+  Future<TemplePhotoUpload> upload({
+    required String docId,
+    required Uint8List bytes,
+    required Uint8List thumbBytes,
+    required String extension,
+    required void Function(double progress) onProgress,
+  }) async {
+    onProgress(1);
+    return const TemplePhotoUpload(
+      url: 'https://example.com/replaced.jpg',
+      thumbUrl: 'https://example.com/replaced_480.jpg',
+    );
+  }
 }

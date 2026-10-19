@@ -12,6 +12,7 @@ import {
   wikimediaOriginalUrl,
 } from "./temple_index.js";
 import { planCoverPhoto } from "./backfill_cover_photos.js";
+import { STORAGE_AUTH_BUCKET } from "./storage_auth.js";
 import {
   THUMB_CACHE_CONTROL,
   THUMB_EDGE,
@@ -77,7 +78,7 @@ function memoryDb(read) {
 }
 
 function shore(id = "shore-temple") {
-  const source = `https://storage.googleapis.com/bucket/temples/${id}/01.jpg`;
+  const source = `https://storage.googleapis.com/${STORAGE_AUTH_BUCKET}/temples/${id}/01.jpg`;
   return {
     id,
     name: "Shore Temple",
@@ -250,7 +251,7 @@ test("a storage cover plans an upload and a wikimedia cover does not", () => {
   const storage = planCoverThumb(shore());
   assert.equal(storage.action, "upload");
   assert.equal(storage.objectPath, "temples/shore-temple/01.jpg");
-  assert.equal(storage.bucket, "bucket");
+  assert.equal(storage.bucket, STORAGE_AUTH_BUCKET);
   assert.equal(storage.cacheControl, THUMB_CACHE_CONTROL);
   assert.equal(storage.contentType, "image/jpeg");
   assert.equal(Object.hasOwn(storage, "thumbUrl"), false);
@@ -267,7 +268,8 @@ test("a storage cover plans an upload and a wikimedia cover does not", () => {
       },
     ],
   });
-  assert.equal(firebase.bucket, "other.appspot.com");
+  assert.equal(firebase.action, "skip");
+  assert.equal(firebase.reason, "other-bucket");
   assert.equal(thumbSaveOptions({ token: "t" }).preconditionOpts.ifGenerationMatch, 0);
 
   const wiki = planCoverThumb({
@@ -328,9 +330,12 @@ test("dry-run lists a missing thumb, counts not-storage, and does not upload", a
     /full-size wiki-original https:\/\/upload\.wikimedia\.org\/wikipedia\/commons\/2\/20\/File\.jpg/,
   );
   assert.match(report, /no-photo: 1/);
+  const locked = STORAGE_AUTH_BUCKET.replaceAll(".", "\\.");
   assert.match(
     report,
-    /no-photo bare-temple https:\/\/storage\.googleapis\.com\/bucket\/temples\/bare-temple\/01\.jpg/,
+    new RegExp(
+      `no-photo bare-temple https://storage\\.googleapis\\.com/${locked}/temples/bare-temple/01\\.jpg`,
+    ),
   );
   assert.equal(report.includes("coverThumbUrl"), false);
   assert.equal(
@@ -406,7 +411,7 @@ test("apply stores the download URL and does not skip a stale thumb", async () =
   });
   assert.equal(uploads.length, 2);
   assert.equal(uploads[0].path, "temples/new-temple/01_480_g42.jpg");
-  assert.equal(uploads[0].bucket, "bucket");
+  assert.equal(uploads[0].bucket, STORAGE_AUTH_BUCKET);
   assert.equal(uploads[0].ifGenerationMatch, 0);
   assert.equal(
     uploads[1].path,
@@ -506,7 +511,7 @@ test("a thumb that is not publicly readable is not written to the index", async 
     encode: async () => Buffer.from("thumb"),
     upload: async (file) => {
       assert.equal(file.ifGenerationMatch, 0);
-      assert.equal(file.bucket, "bucket");
+      assert.equal(file.bucket, STORAGE_AUTH_BUCKET);
       return {
         url: "https://firebasestorage.googleapis.com/v0/b/bucket/o/temples%2Fshore-temple%2F01_480_g3.jpg?alt=media&token=real",
       };
@@ -671,7 +676,7 @@ test("a mid-run edit is kept and a replaced cover is not overwritten", async () 
 });
 
 test("persistCoverPhotos writes the fresh thumb and index in one transaction", async () => {
-  const source = "https://storage.googleapis.com/bucket/temples/kept-temple/01.jpg";
+  const source = `https://storage.googleapis.com/${STORAGE_AUTH_BUCKET}/temples/kept-temple/01.jpg`;
   const thumb = "https://firebasestorage.googleapis.com/v0/b/bucket/o/t?alt=media&token=real";
   const assigned = {
     ...withCoverThumbUrl(shore("kept-temple"), thumb),
@@ -759,7 +764,7 @@ test("source updated time decides a stale thumb", () => {
 test("resume re-processes a temple whose cover changed", async () => {
   const same = shore("same-cover");
   const previous = shore("moved-cover");
-  const next = "https://storage.googleapis.com/bucket/temples/moved-cover/02.jpg";
+  const next = `https://storage.googleapis.com/${STORAGE_AUTH_BUCKET}/temples/moved-cover/02.jpg`;
   const changed = {
     ...previous,
     images: [next],
@@ -982,4 +987,104 @@ test("encodeWithSharp shrinks a generated 6000x4000 source to a 480-wide jpeg", 
   assert.equal(meta.width, THUMB_EDGE);
   assert.equal(meta.height, 320);
   assert.equal(thumb.length < huge.length, true);
+});
+
+test("another bucket is skipped and logged, and --apply refuses --bucket", async () => {
+  const foreign =
+    "https://firebasestorage.googleapis.com/v0/b/temple-directory-india.appspot.com/o/temples%2Fother-temple%2F01.jpg?alt=media&token=abc";
+  const temple = {
+    id: "other-temple",
+    images: [foreign],
+    photos: [{ url: foreign, licence: "CC0", credit: "", order: 0 }],
+  };
+  const planned = planCoverThumb(temple);
+  assert.equal(planned.action, "skip");
+  assert.equal(planned.reason, "other-bucket");
+  assert.equal(planned.bucket, "temple-directory-india.appspot.com");
+
+  const lines = [];
+  const rows = await main(["--project", "demo-temple-index"], {
+    env: emulator,
+    log: (line) => lines.push(line),
+    load: async () => [temple],
+    stat: async () => {
+      throw new Error("other-bucket must not be stated");
+    },
+    download: async () => {
+      throw new Error("other-bucket must not be downloaded");
+    },
+    upload: async () => {
+      throw new Error("other-bucket must not be uploaded");
+    },
+  });
+  assert.equal(rows[0].reason, "other-bucket");
+  assert.match(lines.join("\n"), /skip other-temple other-bucket/);
+
+  const calls = [];
+  const forged = await applyCoverThumbPlans(
+    [
+      {
+        id: "forged",
+        action: "upload",
+        source: foreign,
+        objectPath: "temples/other-temple/01.jpg",
+        bucket: "other.appspot.com",
+        temple: {
+          id: "forged",
+          images: [foreign],
+          photos: [{ url: foreign, licence: "CC0", order: 0 }],
+        },
+      },
+    ],
+    {
+      dryRun: false,
+      stat: async () => {
+        calls.push("stat");
+        throw new Error("stat");
+      },
+      download: async () => {
+        calls.push("download");
+        throw new Error("download");
+      },
+      upload: async () => {
+        calls.push("upload");
+        throw new Error("upload");
+      },
+    },
+  );
+  assert.deepEqual(calls, []);
+  assert.equal(forged[0].reason, "other-bucket");
+
+  let confirmed = 0;
+  let loads = 0;
+  await assert.rejects(
+    () =>
+      main(["--apply", "--bucket", "other.appspot.com", "--project", "demo-temple-index"], {
+        env: emulator,
+        confirm: async () => {
+          confirmed += 1;
+          return "demo-temple-index";
+        },
+        load: async () => {
+          loads += 1;
+          return [];
+        },
+        stat: async () => {
+          throw new Error("refused apply must not stat");
+        },
+      }),
+    /Refusing --bucket other\.appspot\.com\. --apply writes only temple-directory-india\.firebasestorage\.app/,
+  );
+  assert.equal(confirmed, 0);
+  assert.equal(loads, 0);
+
+  const dry = await main(["--bucket", "other.appspot.com", "--project", "demo-temple-index"], {
+    env: emulator,
+    log: () => {},
+    load: async () => [shore()],
+    stat: async (path) =>
+      path.endsWith("/01.jpg") ? { generation: "1", updated: "2024-01-01T00:00:00.000Z" } : null,
+  });
+  assert.equal(dry.find((row) => row.id === "shore-temple").result, "would-upload");
+  assert.equal(dry.find((row) => row.id === "shore-temple").bucket, STORAGE_AUTH_BUCKET);
 });
