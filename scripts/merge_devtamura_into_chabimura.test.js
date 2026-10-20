@@ -21,10 +21,14 @@ import {
   parseArgs,
   photosLength,
   toPlain,
+  writeBackupFiles,
 } from "./merge_devtamura_into_chabimura.js";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 const description = loadDescription(DESCRIPTION_PATH);
+const appendedSuffix =
+  " The site is also known as Devtamura, after the surrounding Devtamura hills.";
+const liveDescription = description.slice(0, -appendedSuffix.length);
 const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST ?? "";
 const onEmulator = /^(127\.0\.0\.1|localhost):\d+$/.test(emulatorHost);
 
@@ -37,7 +41,7 @@ function chabimura(overrides = {}) {
     name: "Chabimura",
     state: "Tripura",
     city: "Amarpur",
-    description: "Chabimura (Chakrakma) is a set of large rock-carved panels.",
+    description: liveDescription,
     imageUrl: "https://example.com/chabimura.jpg",
     photos: [photo("https://example.com/chabimura.jpg")],
     latitude: 23.542,
@@ -178,6 +182,8 @@ test("the committed description names Devtamura and is the live text plus one se
     description,
     /The site is also known as Devtamura, after the surrounding Devtamura hills\.$/,
   );
+  assert.equal(description, liveDescription + appendedSuffix);
+  assert.equal(liveDescription.includes("Devtamura"), false);
   assert.equal(description.includes("23.542"), false);
 });
 
@@ -216,10 +222,10 @@ test("dry-run prints the diff and does not write", async () => {
   assert.equal(db.store.get(UPDATE_ID).description.includes("Devtamura"), false);
   const text = lines.join("\n");
   assert.match(text, /Mode: dry-run/);
-  assert.match(text, /chabimura description before:/);
-  assert.match(text, /rock-carved panels\./);
-  assert.match(text, /chabimura description after:/);
-  assert.match(text, /also known as Devtamura/);
+  assert.ok(text.includes(`chabimura description live:\n${liveDescription}`));
+  assert.ok(text.includes(`chabimura description new:\n${description}`));
+  assert.ok(text.includes(`appended suffix:\n${appendedSuffix}`));
+  assert.match(text, /rock-carved panels/);
   assert.match(text, /delete temples\/devtamura fields: /);
   assert.match(text, /city/);
   assert.match(text, /photos/);
@@ -359,23 +365,69 @@ test("preconditions abort with no writes", async () => {
   }
 });
 
-test("a description that already names Devtamura is left unchanged", async () => {
+test("a live description that is not a prefix aborts with no writes", async () => {
   const docs = seedDocs();
-  docs[UPDATE_ID] = chabimura({
-    description: "Chabimura is also known as Devtamura.",
-  });
+  const different = "Chabimura is also known as Devtamura.";
+  docs[UPDATE_ID] = chabimura({ description: different });
   const db = fakeDb(docs);
-  const lines = [];
+  await assert.rejects(() => inspectMerge(db, description), /append-only/);
+  assert.deepEqual(db.ops, []);
+  const dir = mkdtempSync(join(tmpdir(), "not-append-"));
+  await assert.rejects(
+    () =>
+      main(["--apply", "--backup-dir", dir, "--project", "demo-temple-index"], {
+        env: emulatorEnv(),
+        db,
+        log: () => {},
+      }),
+    /append-only/,
+  );
+  assert.deepEqual(db.ops, []);
+  assert.equal(db.store.has(DELETE_ID), true);
+  assert.equal(db.store.get(UPDATE_ID).description, different);
+  assert.equal(db.store.get(UPDATE_ID).latitude, 23.542);
+  assert.equal(existsSync(join(dir, "devtamura.json")), false);
+  assert.equal(existsSync(join(dir, "chabimura.json")), false);
+});
+
+test("the transaction re-read aborts when the live description no longer matches", async () => {
+  const db = fakeDb(seedDocs());
+  const dir = mkdtempSync(join(tmpdir(), "reread-"));
+  await assert.rejects(
+    () =>
+      applyMerge(db, {
+        backupDir: dir,
+        description,
+        log: () => {},
+        writeBackup(folder, pair) {
+          const written = writeBackupFiles(folder, pair);
+          db.store.get(UPDATE_ID).description = "A different live description.";
+          return written;
+        },
+      }),
+    /append-only/,
+  );
+  assert.deepEqual(db.ops, []);
+  assert.equal(db.store.has(DELETE_ID), true);
+  assert.equal(db.store.get(UPDATE_ID).description, "A different live description.");
+  assert.equal(db.store.get(UPDATE_ID).latitude, 23.542);
+});
+
+test("a description that already equals the file is left unchanged", async () => {
+  const docs = seedDocs();
+  docs[UPDATE_ID] = chabimura({ description });
+  const db = fakeDb(docs);
   const preview = await inspectMerge(db, description);
   assert.equal(preview.descriptionChanged, false);
+  assert.equal(preview.appendedSuffix, "");
   assert.match(formatReport(preview), /Left unchanged/);
   const dir = mkdtempSync(join(tmpdir(), "leave-description-"));
   await applyMerge(db, {
     backupDir: dir,
     description,
-    log: (line) => lines.push(line),
+    log: () => {},
   });
-  assert.equal(db.store.get(UPDATE_ID).description, "Chabimura is also known as Devtamura.");
+  assert.equal(db.store.get(UPDATE_ID).description, description);
   assert.equal(db.store.has(DELETE_ID), false);
   assert.deepEqual(db.ops, [{ op: "delete", id: DELETE_ID }]);
 });

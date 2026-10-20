@@ -8,8 +8,9 @@
  *
  * Allowlist: delete ONLY temples/devtamura, and set ONLY description on
  * temples/chabimura. The text is scripts/data/chabimura-description.txt.
- * Any other document or field is refused. If the live description already
- * mentions Devtamura, that field is left unchanged and the delete still runs.
+ * Any other document or field is refused. The file must start with the
+ * trimmed live chabimura description. The change is append-only. Dry-run
+ * and apply both abort otherwise, including the transaction re-read.
  *
  * Dry-run is the default. It reads and prints the diff. It does not write.
  * --apply is refused in CI. Prod apply asks you to type the project id.
@@ -257,25 +258,33 @@ export function assertTripuraCount(count) {
 }
 
 /**
- * The committed file is the replacement. A live description that already
- * names Devtamura is left as it is.
+ * The committed file must start with the trimmed live description.
+ * Anything else is a replacement, and the merge aborts.
  */
-export function nextDescription(live, fileText) {
-  const current = typeof live === "string" ? live : "";
-  if (/devtamura/i.test(current)) {
-    return { text: current, changed: false, reason: "already-mentions-devtamura" };
+export function descriptionAppend(live, fileText) {
+  const current = typeof live === "string" ? live.trim() : "";
+  if (current === "" || !fileText.startsWith(current)) {
+    throw new Error(
+      `${TEMPLES}/${UPDATE_ID} description is not a prefix of scripts/data/chabimura-description.txt. The change must be append-only. No write.`,
+    );
   }
-  return { text: fileText, changed: current !== fileText, reason: "replace" };
+  const suffix = fileText.slice(current.length);
+  return {
+    live: current,
+    text: fileText,
+    suffix,
+    changed: suffix.length > 0,
+    reason: suffix.length > 0 ? "append" : "already-appended",
+  };
 }
 
 export function buildReport(pair, description) {
-  const next = nextDescription(pair.chabimura.data?.description, description);
+  const next = descriptionAppend(pair.chabimura.data?.description, description);
   const data = pair.devtamura.data ?? {};
   return {
-    beforeDescription: typeof pair.chabimura.data?.description === "string"
-      ? pair.chabimura.data.description
-      : "",
+    beforeDescription: next.live,
     afterDescription: next.text,
+    appendedSuffix: next.suffix,
     descriptionChanged: next.changed,
     descriptionReason: next.reason,
     devtamuraFields: Object.keys(data).sort(),
@@ -288,14 +297,14 @@ export function buildReport(pair, description) {
 export function formatReport(report, { apply = false, backupDir = null } = {}) {
   const lines = [];
   lines.push(apply ? "Mode: apply" : "Mode: dry-run");
-  lines.push("chabimura description before:");
+  lines.push("chabimura description live:");
   lines.push(redactDownloadToken(report.beforeDescription));
-  lines.push("chabimura description after:");
+  lines.push("chabimura description new:");
   lines.push(redactDownloadToken(report.afterDescription));
+  lines.push("appended suffix:");
+  lines.push(redactDownloadToken(report.appendedSuffix));
   if (!report.descriptionChanged) {
-    lines.push(
-      "chabimura description already mentions Devtamura. Left unchanged.",
-    );
+    lines.push("chabimura description already matches the file. Left unchanged.");
   }
   lines.push(
     `delete temples/${DELETE_ID} fields: ${report.devtamuraFields.join(", ")}`,
@@ -397,10 +406,10 @@ async function commitMerge(db, pair, description) {
     };
     assertPreconditions(fresh);
     assertTripuraCount(counted.size);
+    const next = descriptionAppend(fresh.chabimura.data?.description, description);
     if (!samePair(pair, fresh)) {
       throw new Error("Documents changed after the backup. No write.");
     }
-    const next = nextDescription(fresh.chabimura.data?.description, description);
     if (next.changed) {
       const fields = { [UPDATE_FIELD]: next.text };
       assertAllowedUpdate(UPDATE_ID, fields);
