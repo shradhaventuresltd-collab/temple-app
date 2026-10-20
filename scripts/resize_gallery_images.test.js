@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import { Readable, Writable } from "node:stream";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
@@ -12,6 +13,7 @@ import {
   GALLERY_TARGET_BYTES,
   THUMB_EDGE,
   encodeGalleryJpeg,
+  verifyPublicObject,
 } from "./resize_cover_thumbs.js";
 import {
   applyGalleryPlans,
@@ -26,6 +28,14 @@ import {
   planGalleryPhotos,
   saveResume,
 } from "./resize_gallery_images.js";
+import {
+  DEFAULT_TIMEOUT_MS,
+  callBounded,
+  incompleteOnBeforeExit,
+  readWithSignal,
+  reportProcessFault,
+  writeWithSignal,
+} from "./run_guard.js";
 import { STORAGE_AUTH_BUCKET } from "./storage_auth.js";
 import { coverThumb, entryFromTemple, galleryObjectPath } from "./temple_index.js";
 
@@ -547,4 +557,446 @@ test("another bucket is skipped and logged, and --apply refuses --bucket", async
   );
   assert.equal(confirmed, 0);
   assert.equal(loads, 0);
+});
+
+function fastNet(extra = {}) {
+  return { attempts: 1, backoffMs: 0, timeoutMs: 60, ...extra };
+}
+
+function onePhoto(id = "one-temple") {
+  const temple = shore(id);
+  temple.photos = [temple.photos[0]];
+  temple.images = [temple.photos[0].url];
+  return temple;
+}
+
+test("parseArgs accepts --timeout-ms and the default is 60s", () => {
+  assert.equal(DEFAULT_TIMEOUT_MS, 60_000);
+  assert.equal(parseArgs(["--timeout-ms", "1500"]).timeoutMs, 1500);
+  assert.equal(parseArgs(["--project", "demo-temple-index"]).timeoutMs, null);
+  assert.throws(() => parseArgs(["--timeout-ms", "0"]), /timeout-ms/);
+  const source = readFileSync(resolve(here, "resize_gallery_images.js"), "utf8");
+  assert.match(source, /unhandledRejection/);
+  assert.match(source, /uncaughtException/);
+  assert.match(source, /APPLY-FINISHED/);
+  assert.match(source, /APPLY-INCOMPLETE/);
+});
+
+test("a timed-out call does not leave an unhandled rejection", async () => {
+  const unhandled = [];
+  const onUnhandled = (reason) => unhandled.push(reason);
+  process.on("unhandledRejection", onUnhandled);
+  try {
+    await assert.rejects(
+      () =>
+        callBounded(
+          () =>
+            new Promise((_, reject) => {
+              setTimeout(() => reject(new Error("late")), 40);
+            }),
+          { timeoutMs: 15, attempts: 1, backoffMs: 0, label: "fetch" },
+        ),
+      /fetch timed out/,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    assert.deepEqual(unhandled, []);
+  } finally {
+    process.off("unhandledRejection", onUnhandled);
+  }
+});
+
+test("storage download and upload abort when the signal aborts", async () => {
+  const hungRead = {
+    createReadStream() {
+      return new Readable({
+        read() {},
+      });
+    },
+  };
+  const downloadController = new AbortController();
+  const download = readWithSignal(hungRead, downloadController.signal);
+  const downloadTimer = setTimeout(() => downloadController.abort(new Error("stop download")), 20);
+  try {
+    await assert.rejects(download, /stop download/);
+  } finally {
+    clearTimeout(downloadTimer);
+  }
+
+  let destroyed = false;
+  const hungWrite = {
+    createWriteStream() {
+      return new Writable({
+        write() {},
+        destroy(error, callback) {
+          destroyed = true;
+          callback(error);
+        },
+      });
+    },
+  };
+  const controller = new AbortController();
+  const upload = writeWithSignal(hungWrite, Buffer.from("jpeg"), {}, controller.signal);
+  controller.abort(new Error("stop upload"));
+  await assert.rejects(upload, /stop upload/);
+  assert.equal(destroyed, true);
+});
+
+test("process guards log and exit 1", () => {
+  const logs = [];
+  const proc = {
+    code: null,
+    exit(status) {
+      this.code = status;
+    },
+  };
+  reportProcessFault("unhandledRejection", new Error("nope"), proc, (line) => logs.push(line));
+  assert.equal(proc.code, 1);
+  assert.match(logs.join("\n"), /unhandledRejection/);
+  reportProcessFault("uncaughtException", new Error("boom"), proc, (line) => logs.push(line));
+  assert.match(logs.join("\n"), /uncaughtException/);
+});
+
+test("a hanging fetch times out, counts as failed, and exits 1", { timeout: 5_000 }, async () => {
+  const lines = [];
+  let code = null;
+  let fetches = 0;
+  await assert.rejects(
+    () =>
+      main(["--apply", "--timeout-ms", "40", "--project", "demo-temple-index"], {
+        env: emulator,
+        ...fastNet({ attempts: 2, timeoutMs: 5_000 }),
+        log: (line) => lines.push(line),
+        exit: (status) => {
+          code = status;
+        },
+        confirm: async () => {
+          throw new Error("emulator apply must not prompt");
+        },
+        load: async () => [onePhoto("hang-temple")],
+        stat: async (path) => (path.includes("_1080") ? null : { generation: "3" }),
+        download: async () => Buffer.alloc(80, 1),
+        encode: async () => Buffer.alloc(20, 2),
+        upload: async (file) => ({ url: tokenUrl(file.path, "gallery") }),
+        verifyPublic: (url, options) =>
+          new Promise((resolve, reject) => {
+            fetches += 1;
+            const signal = options?.signal;
+            assert.equal(signal instanceof AbortSignal, true, url);
+            signal.addEventListener("abort", () => {
+              reject(Object.assign(new Error("aborted"), { name: "AbortError" }));
+            });
+          }),
+        writeGalleryUrls: async () => {
+          throw new Error("a timed-out fetch must not write galleryUrl");
+        },
+      }),
+    /APPLY-INCOMPLETE/,
+  );
+  assert.equal(code, 1);
+  assert.equal(fetches, 2);
+  const text = lines.join("\n");
+  assert.match(text, /batch 1\/1 temples 1 photos written 0 failed 1 skipped 0 so far/);
+  assert.match(text, /summary written=0 failed=1 skipped=0 elapsed=/);
+  assert.match(text, /APPLY-INCOMPLETE/);
+  assert.doesNotMatch(text, /APPLY-FINISHED/);
+  assert.match(text, /failed hang-temple/);
+});
+
+test("verifyPublicObject passes the abort signal to fetch", async () => {
+  let saw = false;
+  const fetchImpl = (_url, options) =>
+    new Promise((resolve, reject) => {
+      saw = options.signal instanceof AbortSignal;
+      options.signal.addEventListener("abort", () => {
+        reject(Object.assign(new Error("aborted"), { name: "AbortError" }));
+      });
+    });
+  await assert.rejects(
+    () =>
+      callBounded((signal) => verifyPublicObject("https://example.invalid/photo.jpg", fetchImpl, signal), {
+        timeoutMs: 30,
+        attempts: 1,
+        backoffMs: 0,
+        label: "fetch",
+      }),
+    /timed out/,
+  );
+  assert.equal(saw, true);
+});
+
+test("a rejected upload exits 1 and prints APPLY-INCOMPLETE", async () => {
+  const lines = [];
+  let code = null;
+  let writes = 0;
+  let uploads = 0;
+  await assert.rejects(
+    () =>
+      main(["--apply", "--project", "demo-temple-index"], {
+        env: emulator,
+        ...fastNet({ attempts: 2 }),
+        log: (line) => lines.push(line),
+        exit: (status) => {
+          code = status;
+        },
+        load: async () => [onePhoto("reject-temple")],
+        stat: async (path) => (path.includes("_1080") ? null : { generation: "2" }),
+        download: async () => Buffer.alloc(80, 1),
+        encode: async () => Buffer.alloc(20, 2),
+        upload: async () => {
+          uploads += 1;
+          throw new Error("upload rejected");
+        },
+        verifyPublic: async () => true,
+        writeGalleryUrls: async () => {
+          writes += 1;
+          return { ok: true, storedUrls: [], skippedUrls: [] };
+        },
+      }),
+    /APPLY-INCOMPLETE/,
+  );
+  assert.equal(code, 1);
+  assert.equal(uploads, 2);
+  assert.equal(writes, 0);
+  const text = lines.join("\n");
+  assert.match(text, /summary written=0 failed=1 skipped=0 elapsed=/);
+  assert.match(text, /APPLY-INCOMPLETE/);
+  assert.doesNotMatch(text, /APPLY-FINISHED/);
+  assert.match(text, /upload rejected/);
+});
+
+test("a full success exits 0 and prints the summary", async () => {
+  const lines = [];
+  let code = null;
+  const temples = [shore("a-temple"), shore("b-temple"), shore("c-temple")];
+  const rows = await main(["--apply", "--project", "demo-temple-index"], {
+    env: emulator,
+    ...fastNet(),
+    batchSize: 2,
+    log: (line) => lines.push(line),
+    exit: (status) => {
+      code = status;
+    },
+    load: async () => temples,
+    stat: async (path) => (path.includes("_1080") ? null : { generation: "6" }),
+    download: async () => Buffer.alloc(80, 1),
+    encode: async () => Buffer.alloc(20, 2),
+    upload: async (file) => ({ url: tokenUrl(file.path, "gallery") }),
+    verifyPublic: async () => true,
+    writeGalleryUrls: async (assigned) => {
+      const temple = temples.find((item) => item.id === assigned.id);
+      return assignGalleryUrls(temple, assigned.assignments);
+    },
+    writeResume: () => {},
+  });
+  assert.equal(code, 0);
+  assert.equal(rows.filter((row) => row.result === "uploaded").length, 6);
+  const text = lines.join("\n");
+  assert.match(text, /batch 1\/2 temples 2 photos written 4 failed 0 skipped 0 so far/);
+  assert.match(text, /batch 2\/2 temples 1 photos written 6 failed 0 skipped 0 so far/);
+  assert.match(text, /summary written=6 failed=0 skipped=0 elapsed=/);
+  assert.match(text, /APPLY-FINISHED/);
+  assert.doesNotMatch(text, /APPLY-INCOMPLETE/);
+});
+
+test("the summary counts resume, already-has-galleryUrl, and too-small skips", async () => {
+  const lines = [];
+  let code = null;
+  const temple = shore("mix-temple");
+  const small = `https://storage.googleapis.com/${bucket}/temples/mix-temple/03.jpg`;
+  const fresh = `https://storage.googleapis.com/${bucket}/temples/mix-temple/04.jpg`;
+  temple.photos[0].galleryUrl = tokenUrl("temples/mix-temple/01_1080_g1.jpg");
+  temple.photos.push(
+    { url: small, licence: "CC0", credit: "", order: 2 },
+    { url: fresh, licence: "CC0", credit: "", order: 3 },
+  );
+  const resumed = temple.photos[1].url;
+  await main(["--apply", "--resume", "--project", "demo-temple-index"], {
+    env: emulator,
+    ...fastNet(),
+    log: (line) => lines.push(line),
+    exit: (status) => {
+      code = status;
+    },
+    readResume: () => saveResume("demo-temple-index", new Map([[temple.id, new Set([resumed])]])),
+    load: async () => [temple],
+    stat: async (path) => (path.includes("_1080") ? null : { generation: "4" }),
+    download: async (path) => Buffer.alloc(path.endsWith("/03.jpg") ? 40 : 90, 1),
+    encode: async () => Buffer.alloc(40, 2),
+    upload: async (file) => ({ url: tokenUrl(file.path, "gallery") }),
+    verifyPublic: async () => true,
+    writeGalleryUrls: async (assigned) => {
+      const saved = assignGalleryUrls(temple, assigned.assignments);
+      temple.photos = saved.photos;
+      return saved;
+    },
+    writeResume: () => {},
+  });
+  assert.equal(code, 0);
+  const text = lines.join("\n");
+  assert.match(
+    text,
+    /summary written=1 failed=0 skipped=3 \(already-has-galleryUrl=1 resume=1 too-small=1\) elapsed=/,
+  );
+  assert.match(text, /APPLY-FINISHED/);
+  assert.match(temple.photos[3].galleryUrl, /_1080_g4/);
+  assert.equal(temple.photos[2].galleryUrl, undefined);
+});
+
+test("beforeExit prints APPLY-INCOMPLETE when the summary never ran", () => {
+  const source = readFileSync(resolve(here, "resize_gallery_images.js"), "utf8");
+  assert.match(source, /process\.on\("beforeExit"/);
+  assert.match(source, /admin init/);
+  const tracker = {
+    active: true,
+    summarized: false,
+    rows: [{ result: "uploaded", stored: true }],
+    started: Date.now(),
+  };
+  const logs = [];
+  const summary = incompleteOnBeforeExit(tracker, (line) => logs.push(line));
+  assert.equal(typeof summary, "string");
+  const text = logs.join("\n");
+  assert.match(text, /summary written=1 failed=0 skipped=0 elapsed=/);
+  assert.match(text, /APPLY-INCOMPLETE/);
+  assert.equal(incompleteOnBeforeExit(tracker, () => {}), false);
+});
+
+test("a stalled encode exits 1 and prints APPLY-INCOMPLETE", { timeout: 5_000 }, async () => {
+  const lines = [];
+  let code = null;
+  let uploads = 0;
+  await assert.rejects(
+    () =>
+      main(["--apply", "--timeout-ms", "40", "--project", "demo-temple-index"], {
+        env: emulator,
+        ...fastNet({ attempts: 1 }),
+        log: (line) => lines.push(line),
+        exit: (status) => {
+          code = status;
+        },
+        load: async () => [onePhoto("encode-temple")],
+        stat: async (path) => (path.includes("_1080") ? null : { generation: "3" }),
+        download: async () => Buffer.alloc(80, 1),
+        encode: () => new Promise(() => {}),
+        upload: async () => {
+          uploads += 1;
+          return { url: tokenUrl("temples/encode-temple/01_1080_g3.jpg", "gallery") };
+        },
+        verifyPublic: async () => true,
+        writeGalleryUrls: async () => {
+          throw new Error("a stalled encode must not write galleryUrl");
+        },
+      }),
+    /APPLY-INCOMPLETE/,
+  );
+  assert.equal(code, 1);
+  assert.equal(uploads, 0);
+  const text = lines.join("\n");
+  assert.match(text, /encode timed out/);
+  assert.match(text, /summary written=0 failed=1 skipped=0 elapsed=/);
+  assert.match(text, /APPLY-INCOMPLETE/);
+  assert.doesNotMatch(text, /APPLY-FINISHED/);
+});
+
+test("a stalled resume write exits 1 and prints APPLY-INCOMPLETE", { timeout: 5_000 }, async () => {
+  const lines = [];
+  let code = null;
+  let writes = 0;
+  await assert.rejects(
+    () =>
+      main(["--apply", "--timeout-ms", "40", "--project", "demo-temple-index"], {
+        env: emulator,
+        ...fastNet({ attempts: 1 }),
+        log: (line) => lines.push(line),
+        exit: (status) => {
+          code = status;
+        },
+        load: async () => [onePhoto("resume-temple")],
+        stat: async (path) => (path.includes("_1080") ? null : { generation: "3" }),
+        download: async () => Buffer.alloc(80, 1),
+        encode: async () => Buffer.alloc(20, 2),
+        upload: async (file) => ({ url: tokenUrl(file.path, "gallery") }),
+        verifyPublic: async () => true,
+        writeGalleryUrls: async (assigned) => {
+          writes += 1;
+          return {
+            ok: true,
+            storedUrls: assigned.assignments.map((item) => item.source),
+            skippedUrls: [],
+          };
+        },
+        writeResume: () => new Promise(() => {}),
+      }),
+    /APPLY-INCOMPLETE/,
+  );
+  assert.equal(code, 1);
+  assert.equal(writes, 1);
+  const text = lines.join("\n");
+  assert.match(text, /resume write timed out/);
+  assert.match(text, /summary written=1 failed=1 skipped=0 elapsed=/);
+  assert.match(text, /APPLY-INCOMPLETE/);
+  assert.doesNotMatch(text, /APPLY-FINISHED/);
+});
+
+test("an upload timeout that left the object counts as written", { timeout: 5_000 }, async () => {
+  const lines = [];
+  let code = null;
+  const created = new Set();
+  const rows = await main(["--apply", "--timeout-ms", "40", "--project", "demo-temple-index"], {
+    env: emulator,
+    ...fastNet({ attempts: 1 }),
+    log: (line) => lines.push(line),
+    exit: (status) => {
+      code = status;
+    },
+    load: async () => [onePhoto("relink-temple")],
+    stat: async (path) => {
+      if (!path.includes("_1080")) return { generation: "3" };
+      return created.has(path) ? { generation: "9", url: tokenUrl(path, "gallery") } : null;
+    },
+    download: async () => Buffer.alloc(80, 1),
+    encode: async () => Buffer.alloc(20, 2),
+    upload: (file) => {
+      created.add(file.path);
+      return new Promise(() => {});
+    },
+    verifyPublic: async () => true,
+    writeGalleryUrls: async (assigned) => ({
+      ok: true,
+      storedUrls: assigned.assignments.map((item) => item.source),
+      skippedUrls: [],
+    }),
+    writeResume: () => {},
+  });
+  assert.equal(code, 0);
+  assert.equal(rows.filter((row) => row.result === "exists" && row.stored === true).length, 1);
+  const text = lines.join("\n");
+  assert.match(text, /summary written=1 failed=0 skipped=0 elapsed=/);
+  assert.match(text, /APPLY-FINISHED/);
+  assert.doesNotMatch(text, /APPLY-INCOMPLETE/);
+});
+
+test("no-source-generation and other skip reasons are separate summary counts", async () => {
+  const lines = [];
+  const temple = onePhoto("gen-temple");
+  const other = "https://storage.googleapis.com/other.appspot.com/temples/gen-temple/02.jpg";
+  const wiki = "https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg";
+  temple.photos.push(
+    { url: other, licence: "CC0", credit: "", order: 1 },
+    { url: wiki, licence: "CC0", credit: "", order: 2 },
+  );
+  temple.images = temple.photos.map((photo) => photo.url);
+  await main(["--project", "demo-temple-index"], {
+    env: emulator,
+    ...fastNet(),
+    log: (line) => lines.push(line),
+    load: async () => [temple],
+    stat: async () => ({ generation: "" }),
+  });
+  const text = lines.join("\n");
+  assert.match(
+    text,
+    /summary written=0 failed=0 skipped=3 \(no-source-generation=1 other-bucket=1 wikimedia-full=1\) elapsed=/,
+  );
+  assert.match(text, /APPLY-FINISHED/);
 });

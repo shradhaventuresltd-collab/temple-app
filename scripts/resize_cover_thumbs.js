@@ -38,6 +38,14 @@
  * `npm ci` in scripts/ installs the prebuilt binary. Most tests inject an
  * encoder. The encode unit test calls sharp.
  * prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
+ *
+ * Fetch, Storage, Firestore, image encoding, the resume file, and admin
+ * init abort after --timeout-ms (default 60000) and retry with backoff.
+ * Apply prints a progress line per batch and a final summary.
+ * APPLY-FINISHED is printed only when every cover succeeded. A failed
+ * cover prints APPLY-INCOMPLETE and the process exits non-zero. If the
+ * run never reaches that summary, beforeExit prints APPLY-INCOMPLETE and
+ * exits 1.
  */
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
@@ -46,6 +54,23 @@ import { fileURLToPath } from "node:url";
 
 import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard.js";
 import { redactDownloadToken, redactThrown } from "./redact_url.js";
+import {
+  DEFAULT_TIMEOUT_MS,
+  beginRun,
+  boundIo,
+  callBounded,
+  chunk,
+  failureText,
+  finishRun,
+  incompleteOnBeforeExit,
+  logBatch,
+  networkLimits,
+  objectAfterUploadTimeout,
+  parseTimeoutMs,
+  readWithSignal,
+  reportProcessFault,
+  writeWithSignal,
+} from "./run_guard.js";
 import {
   assertApplyBucket,
   assertStorageAuth,
@@ -63,6 +88,8 @@ import {
 } from "./temple_index.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const runTracker = { active: false, summarized: false, rows: [], started: 0 };
+let ioLimits = networkLimits({});
 
 export const THUMB_CACHE_CONTROL = "public, max-age=31536000, immutable";
 export const THUMB_EDGE = 480;
@@ -87,6 +114,8 @@ Set FIRESTORE_EMULATOR_HOST to use the emulator without that prompt.
 demo-temple-index when --project is omitted.
 
 --limit N stops after N covers that still need a thumb.
+--timeout-ms N aborts each fetch, Storage call, and Firestore write after
+N milliseconds (default 60000) and retries it with backoff.
 --resume skips a temple only when scripts/.resize_cover_thumbs.resume.json
 records the same cover URL for this project. A recorded temple whose cover
 changed is processed again. Legacy files that list ids without covers still
@@ -111,6 +140,7 @@ export function parseArgs(argv) {
     help: false,
     limit: null,
     resume: false,
+    timeoutMs: null,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -126,7 +156,8 @@ export function parseArgs(argv) {
         throw new Error("--limit needs a positive integer.");
       }
       opts.limit = parsed;
-    }     else if (arg === "--project") opts.project = argv[++i];
+    } else if (arg === "--timeout-ms") opts.timeoutMs = parseTimeoutMs(argv[++i]);
+    else if (arg === "--project") opts.project = argv[++i];
     else if (arg === "--bucket") opts.bucket = argv[++i];
     else throw new Error(`Unknown argument: ${arg}`);
   }
@@ -205,7 +236,7 @@ export function bucketNameForPlan(plan) {
  * overwritten.
  */
 export function thumbSaveOptions(file) {
-  return {
+  const options = {
     resumable: false,
     preconditionOpts: { ifGenerationMatch: 0 },
     metadata: {
@@ -214,6 +245,8 @@ export function thumbSaveOptions(file) {
       metadata: { firebaseStorageDownloadTokens: file.token },
     },
   };
+  if (Number.isInteger(file?.timeoutMs) && file.timeoutMs > 0) options.timeout = file.timeoutMs;
+  return options;
 }
 
 /**
@@ -236,12 +269,22 @@ export function staysFullSizeWikimedia(source) {
   return !/\/thumb\//i.test(path);
 }
 
-/** GET the Firebase download URL. True only for 200. */
-export async function verifyPublicObject(url, fetchImpl = globalThis.fetch) {
-  if (typeof fetchImpl !== "function") {
+/**
+ * GET the Firebase download URL. True only for 200.
+ * The second argument is a fetch implementation, or `{ signal }` when the
+ * caller is the bounded fetch wrapper. [signal] aborts a hung GET.
+ */
+export async function verifyPublicObject(url, fetchImpl = globalThis.fetch, signal) {
+  let fetchFn = fetchImpl;
+  let abortSignal = signal;
+  if (fetchImpl && typeof fetchImpl !== "function") {
+    abortSignal = fetchImpl.signal ?? signal;
+    fetchFn = globalThis.fetch;
+  }
+  if (typeof fetchFn !== "function") {
     throw new Error("This Node has no fetch. No Firestore write.");
   }
-  const response = await fetchImpl(url, { method: "GET", redirect: "follow" });
+  const response = await fetchFn(url, { method: "GET", redirect: "follow", signal: abortSignal });
   try {
     await response.body?.cancel?.();
   } catch {
@@ -440,70 +483,61 @@ export function commitCoverThumb(fresh, { source, thumbUrl } = {}) {
  * line. The index entry is written inside that call, not after the run.
  * [onResume] runs after each row whose thumbUrl was stored.
  */
-export async function applyCoverThumbPlans(plans, deps) {
-  const report = [];
-  for (const plan of plans) {
-    if (plan.action !== "upload") {
-      report.push({ ...plan, result: "skipped" });
-      continue;
+async function runCoverPlan(plan, deps) {
+  if (plan.action !== "upload") {
+    return { ...plan, result: "skipped" };
+  }
+  const plannedState = plan.temple?.state;
+  let current = { ...plan, plannedState };
+  if (!deps.dryRun && typeof deps.reread === "function") {
+    const fresh = await deps.reread(plan.id);
+    const freshId = fresh?.id ?? plan.id;
+    if (!fresh || firstThumbSource(fresh) !== plan.source) {
+      return { ...plan, result: "skipped", reason: "cover-changed" };
     }
-    const plannedState = plan.temple?.state;
-    let current = { ...plan, plannedState };
-    if (!deps.dryRun && typeof deps.reread === "function") {
-      const fresh = await deps.reread(plan.id);
-      const freshId = fresh?.id ?? plan.id;
-      if (!fresh || firstThumbSource(fresh) !== plan.source) {
-        report.push({ ...plan, result: "skipped", reason: "cover-changed" });
-        continue;
-      }
-      if (!coverHasPhoto(fresh, plan.source)) {
-        report.push({ ...plan, result: "skipped", reason: "no-photo" });
-        continue;
-      }
-      current = { ...plan, plannedState, temple: { ...fresh, id: freshId } };
+    if (!coverHasPhoto(fresh, plan.source)) {
+      return { ...plan, result: "skipped", reason: "no-photo" };
     }
-    if (!coverHasPhoto(current.temple, current.source)) {
-      report.push({ ...current, result: "skipped", reason: "no-photo" });
-      continue;
+    current = { ...plan, plannedState, temple: { ...fresh, id: freshId } };
+  }
+  if (!coverHasPhoto(current.temple, current.source)) {
+    return { ...current, result: "skipped", reason: "no-photo" };
+  }
+  const bucket = current.bucket;
+  if (!isLockedStorageBucket(bucket)) {
+    return { ...current, result: "skipped", reason: "other-bucket" };
+  }
+  const sourceStat = await deps.stat(current.objectPath, { bucket });
+  const generation = String(sourceStat?.generation ?? "");
+  if (!/^\d+$/.test(generation)) {
+    return { ...current, result: "skipped", reason: "no-generation" };
+  }
+  let thumbPath = thumbObjectPath(current.objectPath, generation);
+  let thumbStat = thumbPath ? await deps.stat(thumbPath, { bucket }) : null;
+  if (thumbStat && sourceIsNewer(sourceStat.updated, thumbStat.updated)) {
+    const millis = Date.parse(sourceStat.updated);
+    if (Number.isFinite(millis)) {
+      thumbPath = thumbObjectPath(current.objectPath, generation, { updatedMillis: millis });
+      thumbStat = await deps.stat(thumbPath, { bucket });
     }
-    const bucket = current.bucket;
-    if (!isLockedStorageBucket(bucket)) {
-      report.push({ ...current, result: "skipped", reason: "other-bucket" });
-      continue;
-    }
-    const sourceStat = await deps.stat(current.objectPath, { bucket });
-    const generation = String(sourceStat?.generation ?? "");
-    if (!/^\d+$/.test(generation)) {
-      report.push({ ...current, result: "skipped", reason: "no-generation" });
-      continue;
-    }
-    let thumbPath = thumbObjectPath(current.objectPath, generation);
-    let thumbStat = thumbPath ? await deps.stat(thumbPath, { bucket }) : null;
-    if (thumbStat && sourceIsNewer(sourceStat.updated, thumbStat.updated)) {
-      const millis = Date.parse(sourceStat.updated);
-      if (Number.isFinite(millis)) {
-        thumbPath = thumbObjectPath(current.objectPath, generation, { updatedMillis: millis });
-        thumbStat = await deps.stat(thumbPath, { bucket });
-      }
-    }
-    if (thumbStat && !sourceIsNewer(sourceStat.updated, thumbStat.updated)) {
-      const stored = await storeThumbUrl(current, thumbStat.url ?? null, deps, {
-        result: "exists",
-        thumbPath,
-      });
-      report.push(stored);
-      continue;
-    }
-    if (deps.dryRun) {
-      report.push({ ...current, result: "would-upload", thumbPath });
-      continue;
-    }
-    const bytes = await deps.download(current.objectPath, { bucket });
-    const thumb = await deps.encode(bytes, "jpg");
-    if (!thumb || thumb.length === 0) {
-      throw new Error(`Encoder returned an empty thumb for ${thumbPath}. No write.`);
-    }
-    const uploaded = await deps.upload({
+  }
+  if (thumbStat && !sourceIsNewer(sourceStat.updated, thumbStat.updated)) {
+    return storeThumbUrl(current, thumbStat.url ?? null, deps, {
+      result: "exists",
+      thumbPath,
+    });
+  }
+  if (deps.dryRun) {
+    return { ...current, result: "would-upload", thumbPath };
+  }
+  const bytes = await deps.download(current.objectPath, { bucket });
+  const thumb = await deps.encode(bytes, "jpg");
+  if (!thumb || thumb.length === 0) {
+    throw new Error(`Encoder returned an empty thumb for ${thumbPath}. No write.`);
+  }
+  let uploaded;
+  try {
+    uploaded = await deps.upload({
       path: thumbPath,
       bucket,
       bytes: thumb,
@@ -511,12 +545,57 @@ export async function applyCoverThumbPlans(plans, deps) {
       cacheControl: current.cacheControl,
       ifGenerationMatch: 0,
     });
-    const stored = await storeThumbUrl(current, uploaded?.url, deps, {
-      result: "uploaded",
+  } catch (error) {
+    const landed = await objectAfterUploadTimeout(error, deps.stat, thumbPath, bucket);
+    if (!landed) throw error;
+    return storeThumbUrl(current, landed.url ?? null, deps, {
+      result: "exists",
       thumbPath,
-      bytes: thumb.length,
     });
-    report.push(stored);
+  }
+  return storeThumbUrl(current, uploaded?.url, deps, {
+    result: "uploaded",
+    thumbPath,
+    bytes: thumb.length,
+  });
+}
+
+const COVER_IO = [
+  ["stat", "storage stat", "path"],
+  ["download", "storage download", "path"],
+  ["encode", "encode", "bytes"],
+  ["upload", "storage upload", "file"],
+  ["verifyPublic", "fetch", "url"],
+  ["writeThumbUrl", "firestore write", "doc"],
+  ["reread", "firestore read", "id"],
+  ["onResume", "resume write", "pair"],
+];
+
+export async function applyCoverThumbPlans(plans, deps) {
+  const report = [];
+  if (deps.track) deps.track.rows = report;
+  const io = boundIo(deps, COVER_IO);
+  const batches = chunk(plans, deps.batchSize);
+  for (let index = 0; index < batches.length; index += 1) {
+    const batch = batches[index];
+    for (const plan of batch) {
+      try {
+        const row = await runCoverPlan(plan, io);
+        report.push(row);
+        if (row?.resumeFailed) {
+          report.push({ id: plan.id, result: "failed", reason: row.resumeFailed });
+        }
+      } catch (error) {
+        report.push({ ...plan, result: "failed", reason: failureText(error) });
+      }
+    }
+    logBatch(deps.log, {
+      batch: index + 1,
+      batches: batches.length,
+      temples: batch.length,
+      rows: report,
+      noun: "covers",
+    });
   }
   return report;
 }
@@ -563,10 +642,23 @@ async function storeThumbUrl(plan, thumbUrl, deps, extra) {
       plannedState: plan.plannedState ?? plan.temple?.state,
     });
     if (written && written.ok === false) {
-      return { ...plan, ...extra, result: "skipped", reason: written.reason, thumbUrl: media };
+      return { ...plan, ...extra, result: "failed", reason: written.reason, thumbUrl: media };
     }
-    if (deps.onResume) await deps.onResume(plan.id, plan.source);
-    return { ...plan, ...extra, thumbUrl: media };
+    let resumeFailed;
+    if (deps.onResume) {
+      try {
+        await deps.onResume(plan.id, plan.source);
+      } catch (error) {
+        resumeFailed = failureText(error);
+      }
+    }
+    return {
+      ...plan,
+      ...extra,
+      thumbUrl: media,
+      stored: true,
+      ...(resumeFailed ? { resumeFailed } : {}),
+    };
   }
   return { ...plan, ...extra, thumbUrl: media ?? thumbUrl ?? null };
 }
@@ -616,6 +708,8 @@ export function formatThumbReport(rows, { apply = false } = {}) {
       lines.push(`${row.result} ${row.id} ${row.thumbPath}`);
     } else if (row.result === "exists") {
       lines.push(`exists ${row.id} ${row.thumbPath}`);
+    } else if (row.result === "failed") {
+      lines.push(`failed ${row.id ?? ""} ${row.reason ?? ""}`.trimEnd());
     } else if (row.result === "not-public") {
       const path = row.thumbPath || row.objectPath || row.publicUrl || "";
       lines.push(`not-public ${row.id} ${path}`.trimEnd());
@@ -699,7 +793,7 @@ export async function encodeGalleryJpeg(bytes) {
   }
 }
 
-async function openAdmin(project, env) {
+async function initAdmin(project, env) {
   const admin = (await import("firebase-admin")).default;
   if (admin.apps.length > 0) return admin;
   if (usesEmulator(env)) {
@@ -730,8 +824,15 @@ async function openAdmin(project, env) {
   return admin;
 }
 
-async function loadTemples(project, env) {
-  const admin = await openAdmin(project, env);
+async function openAdmin(project, env, limits = ioLimits) {
+  return callBounded(() => initAdmin(project, env), {
+    ...networkLimits(limits),
+    label: "admin init",
+  });
+}
+
+async function loadTemples(project, env, limits) {
+  const admin = await openAdmin(project, env, limits);
   const snap = await admin.firestore().collection("temples").get();
   return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 }
@@ -743,7 +844,12 @@ async function loadTemples(project, env) {
  * Meta is stamped in this transaction. A later row does not batch these.
  */
 export async function persistCoverPhotos(db, assigned, deps = {}) {
-  const admin = deps.admin ?? (await import("firebase-admin")).default;
+  const admin =
+    deps.admin ??
+    (await callBounded(async () => (await import("firebase-admin")).default, {
+      ...networkLimits(deps.limits ?? ioLimits),
+      label: "admin init",
+    }));
   const source = assigned.source ?? firstThumbSource(assigned.temple);
   const thumbUrl = (assigned.photos ?? []).find(
     (photo) => photo && typeof photo.url === "string" && photo.url.trim() === source && photo.thumbUrl,
@@ -827,15 +933,13 @@ function storageDeps(admin) {
         url: token ? firebaseDownloadUrl(opts.bucket, path, token) : null,
       };
     },
-    download: async (path, opts = {}) => {
-      const [bytes] = await bucket(opts.bucket).file(path).download();
-      return bytes;
-    },
+    download: async (path, opts = {}) => readWithSignal(bucket(opts.bucket).file(path), opts.signal),
     encode: encodeWithSharp,
     upload: async (file) => {
       const token = randomUUID();
       const name = bucketNameForPlan(file);
-      await bucket(name).file(file.path).save(file.bytes, thumbSaveOptions({ ...file, token }));
+      const target = bucket(name).file(file.path);
+      await writeWithSignal(target, file.bytes, thumbSaveOptions({ ...file, token }), file.signal);
       return { url: firebaseDownloadUrl(name, file.path, token) };
     },
   };
@@ -853,83 +957,128 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
   const env = deps.env ?? process.env;
   const project = resolveProject(opts, env);
   useNativeFetchForStorageAuth();
+  const limits = networkLimits({
+    timeoutMs: opts.timeoutMs ?? deps.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+    attempts: deps.attempts,
+    backoffMs: deps.backoffMs,
+    sleep: deps.sleep,
+  });
+  ioLimits = limits;
+  const tracker =
+    deps.tracker ?? (isDirect ? runTracker : { active: false, summarized: false, rows: [], started: 0 });
+  beginRun(tracker);
   if (opts.apply) await authorizeApply(project, env, { confirm: deps.confirm });
   if (opts.apply) {
-    if (deps.storagePreflight) await deps.storagePreflight();
-    else if (!usesEmulator(env)) {
-      const admin = await openAdmin(project, env);
-      await assertStorageAuth(admin.storage().bucket(STORAGE_AUTH_BUCKET));
+    if (deps.storagePreflight) {
+      await callBounded(() => deps.storagePreflight(), { ...limits, label: "storage preflight" });
+    } else if (!usesEmulator(env)) {
+      const admin = await openAdmin(project, env, limits);
+      await callBounded(() => assertStorageAuth(admin.storage().bucket(STORAGE_AUTH_BUCKET)), {
+        ...limits,
+        label: "storage preflight",
+      });
     }
   }
-  const load = deps.load ?? loadTemples;
-  const temples = await load(project, env);
-  temples.sort((a, b) => String(a.id).localeCompare(String(b.id)));
-  const resumeRaw = opts.resume
-    ? (deps.readResume ?? (() => (existsSync(RESUME_FILE) ? readFileSync(RESUME_FILE, "utf8") : "")))()
-    : "";
-  const resumeCovers = opts.resume ? loadResume(resumeRaw, project) : new Map();
-  const plans = applyLimitAndResume(planCoverThumbs(temples), {
-    limit: opts.limit,
-    resumeCovers,
-  });
-  let storage = deps.storage ?? null;
-  const needsBucket = !deps.stat;
-  if (needsBucket && !storage) {
-    const admin = await openAdmin(project, env);
-    storage = storageDeps(admin);
+  let rows = [];
+  try {
+    const load = deps.load ?? loadTemples;
+    const temples = await callBounded(() => load(project, env, limits), { ...limits, label: "firestore read" });
+    temples.sort((a, b) => String(a.id).localeCompare(String(b.id)));
+    const resumeRaw = opts.resume
+      ? (deps.readResume ?? (() => (existsSync(RESUME_FILE) ? readFileSync(RESUME_FILE, "utf8") : "")))()
+      : "";
+    const resumeCovers = opts.resume ? loadResume(resumeRaw, project) : new Map();
+    const plans = applyLimitAndResume(planCoverThumbs(temples), {
+      limit: opts.limit,
+      resumeCovers,
+    });
+    let storage = deps.storage ?? null;
+    const needsBucket = !deps.stat;
+    if (needsBucket && !storage) {
+      const admin = await openAdmin(project, env, limits);
+      storage = storageDeps(admin);
+    }
+    const stat = deps.stat ?? storage?.stat;
+    if (!stat) throw new Error("Dry-run needs a Storage stat. No write.");
+    const writeThumbUrl = async (assigned) => {
+      if (deps.writeThumbUrl) return deps.writeThumbUrl(assigned);
+      if (!opts.apply) return assigned;
+      const admin = await openAdmin(project, env, limits);
+      const returned = await persistCoverPhotos(admin.firestore(), assigned, { limits });
+      if (!returned || returned.ok === false) return returned ?? { ok: false, reason: "missing" };
+      return returned;
+    };
+    const reread =
+      deps.reread ??
+      (opts.apply && !deps.writeThumbUrl
+        ? async (id) => {
+            const admin = await openAdmin(project, env, limits);
+            const snap = await admin.firestore().collection("temples").doc(id).get();
+            if (!snap.exists) return null;
+            return { ...snap.data(), id: snap.id };
+          }
+        : undefined);
+    const onResume = opts.apply
+      ? async (id, source) => {
+          resumeCovers.set(id, typeof source === "string" ? source : "");
+          const body = saveResume(project, resumeCovers);
+          if (deps.writeResume) await deps.writeResume(body);
+          else {
+            const tmp = `${RESUME_FILE}.tmp`;
+            writeFileSync(tmp, body);
+            renameSync(tmp, RESUME_FILE);
+          }
+        }
+      : undefined;
+    rows = await applyCoverThumbPlans(plans, {
+      ...limits,
+      batchSize: deps.batchSize,
+      dryRun: !opts.apply,
+      stat,
+      download: deps.download ?? storage?.download,
+      encode: deps.encode ?? storage?.encode,
+      upload: deps.upload ?? storage?.upload,
+      verifyPublic: deps.verifyPublic ?? (opts.apply ? verifyPublicObject : undefined),
+      writeThumbUrl,
+      reread,
+      onResume,
+      track: tracker,
+      log,
+    });
+    log(formatThumbReport(rows, { apply: opts.apply }));
+  } catch (error) {
+    log(`failed ${failureText(error)}`);
+    rows = [{ result: "failed", reason: failureText(error) }];
   }
-  const stat = deps.stat ?? storage?.stat;
-  if (!stat) throw new Error("Dry-run needs a Storage stat. No write.");
-  const writeThumbUrl = async (assigned) => {
-    if (deps.writeThumbUrl) return deps.writeThumbUrl(assigned);
-    if (!opts.apply) return assigned;
-    const admin = await openAdmin(project, env);
-    const returned = await persistCoverPhotos(admin.firestore(), assigned);
-    if (!returned || returned.ok === false) return returned ?? { ok: false, reason: "missing" };
-    return returned;
-  };
-  const reread =
-    deps.reread ??
-    (opts.apply && !deps.writeThumbUrl
-      ? async (id) => {
-          const admin = await openAdmin(project, env);
-          const snap = await admin.firestore().collection("temples").doc(id).get();
-          if (!snap.exists) return null;
-          return { ...snap.data(), id: snap.id };
-        }
-      : undefined);
-  const onResume = opts.apply
-    ? async (id, source) => {
-        resumeCovers.set(id, typeof source === "string" ? source : "");
-        const body = saveResume(project, resumeCovers);
-        if (deps.writeResume) deps.writeResume(body);
-        else {
-          const tmp = `${RESUME_FILE}.tmp`;
-          writeFileSync(tmp, body);
-          renameSync(tmp, RESUME_FILE);
-        }
-      }
-    : undefined;
-  const rows = await applyCoverThumbPlans(plans, {
-    dryRun: !opts.apply,
-    stat,
-    download: deps.download ?? storage?.download,
-    encode: deps.encode ?? storage?.encode,
-    upload: deps.upload ?? storage?.upload,
-    verifyPublic: deps.verifyPublic ?? (opts.apply ? verifyPublicObject : undefined),
-    writeThumbUrl,
-    reread,
-    onResume,
+  return finishRun({
+    log,
+    rows,
+    elapsedMs: Date.now() - tracker.started,
+    exit: deps.exit,
+    tracker,
   });
-  log(formatThumbReport(rows, { apply: opts.apply }));
-  return rows;
 }
 
 const isDirect =
   process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1]);
 if (isDirect) {
-  main().catch((error) => {
-    console.error(redactThrown(error));
+  process.on("beforeExit", () => {
+    const reported = incompleteOnBeforeExit(runTracker, (line) => console.log(redactDownloadToken(line)));
+    if (!reported) return;
     process.exit(1);
   });
+  process.on("unhandledRejection", (reason) => {
+    reportProcessFault("unhandledRejection", reason);
+  });
+  process.on("uncaughtException", (error) => {
+    reportProcessFault("uncaughtException", error);
+  });
+  main()
+    .catch((error) => {
+      if (!error?.alreadyReported) console.error(redactThrown(error));
+      process.exitCode = error?.exitCode || 1;
+    })
+    .finally(() => {
+      process.exit(process.exitCode ?? 0);
+    });
 }
