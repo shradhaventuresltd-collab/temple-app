@@ -267,6 +267,24 @@ node apply_field_patches.js --apply --project temple-directory-india --patches .
 
 `tools/prod-patches/photo-field-patches.json` updates only the keys listed on each temple: `imageUrl`, `images`, and `photos` for the seven promoted galleries and for Pashupatinath Temple (Mandsaur); `timings` only for Amarnath Cave Temple. `deity` is also allowed: a non-empty string of at most 100 characters, the same cap as the Firestore rules. `tradition` is allowed when it is `jain`, `buddhist`, or `sikh`; `null` unsets it. See [`docs/adr/0001-optional-temple-tradition.md`](docs/adr/0001-optional-temple-tradition.md). A dry-run with no `--project` does not connect and prints `(live not read) ->` the new value for each field. A dry-run with `--project` reads each live document and prints the current value, then the new value. It does not write and it does not ask you to type the project id. `--apply` still does. An entry `note` is printed and logged, and it is not a Firestore field. `data/patches/2026-10-16-budheswar-deity.json` sets `deity` to `Shiva` on `budheswar-shiv-temple-dhamdha` and does not change specialities, description, or story. Before a gallery write it reads the live document and applies only when `imageUrl`, `images`, and `photos` still match the audited state: empty for the seven promoted temples, and the audited five images with empty `photos` for Mandsaur. A mismatch is skipped and reported. Add `--strict` to abort before any write instead. All targets are read in one transaction before any update, so `--strict` aborts before any write when a later document does not match. It does not upload Storage objects and it does not create missing documents. Image URLs in that patch and in `lib/data/sample_data.dart` have `utm_*` query parameters stripped. Mandsaur `photos[]` includes credit and licence for the two CC BY-SA 4.0 frames by Rohit MDS. The Purmandal cover shows a `Lithograph, 1847` caption on browse cards and the home collage.
 
+### One-use merge: devtamura into chabimura
+
+Satyavrat (architect) approved merging the duplicate Tripura site. `temples/devtamura` is the wrong pin, on the Devtamura hill range. `temples/chabimura` keeps its coordinates (23.542, 91.6057). [`scripts/merge_devtamura_into_chabimura.js`](scripts/merge_devtamura_into_chabimura.js) is **one-use**. It deletes only `temples/devtamura` and sets only `description` on `temples/chabimura`, from [`scripts/data/chabimura-description.txt`](scripts/data/chabimura-description.txt). Any other document or field is refused. Dry-run is the default. `--apply` is Deployer-only, in a terminal, after a dry-run, and is refused in CI. It asks you to type the project id. `--backup-dir` is required with `--apply`. Both documents are written there before any Firestore write, and a failed backup aborts. Do not commit that folder.
+
+The Tripura batch fixture does not include this site. The committed description is the current Chabimura text plus one sentence: the site is also known as Devtamura, after the surrounding Devtamura hills. If the live description already mentions Devtamura, the field is left unchanged. Coordinates are not written.
+
+`chabimura` must already have a cover (`imageUrl`) and `photos[]`. Attach the devtamura photo pack with `upload_research_pack.js` first. `devtamura` must exist, both documents must have state Tripura, and the Tripura count must be 11. This script does not call `rebuild_index.js`. After `--apply`, run it yourself. It should find 1 stale entry (`devtamura`) and remove it.
+
+After that apply, retire the driver the same way other one-off drivers leave the tree: delete `scripts/merge_devtamura_into_chabimura.js` and `scripts/data/chabimura-description.txt`. Do not run it again. A second run aborts because `temples/devtamura` is gone.
+
+```bash
+cd scripts
+npm install
+node merge_devtamura_into_chabimura.js --project temple-directory-india
+node merge_devtamura_into_chabimura.js --apply --backup-dir /path/outside/the/repo --project temple-directory-india
+node rebuild_index.js --project temple-directory-india
+```
+
 Release and profile builds hide Seed/Admin entirely (including the Admin sign-in panel); `seedTempleData` and Admin CMS writes also refuse to run outside debug, and rules reject non-admin writes even if a client tried. The release App Bundle still links `firebase_auth` and `firebase_storage` — Play Data safety must not claim those SDKs are absent (see [`docs/play-store-listing.md`](docs/play-store-listing.md)).
 
 The home screen **falls back** to the 180 bundled sample temples if Firestore is empty or unreachable, so browse can look populated while the cloud `temples` collection is still empty. Admin reads Firestore only — it stays empty until an admin seeds or creates a temple.
