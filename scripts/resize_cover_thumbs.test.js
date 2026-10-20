@@ -1233,4 +1233,146 @@ test("cover resize guards a hung fetch, a rejected upload, and a full success", 
   assert.equal(resumed[0].reason, "resume");
   assert.match(resumeLines.join("\n"), /summary written=0 failed=0 skipped=1 \(resume=1\) elapsed=/);
   assert.match(resumeLines.join("\n"), /APPLY-FINISHED/);
+
+  const guardSource = readFileSync(resolve(here, "resize_cover_thumbs.js"), "utf8");
+  assert.match(guardSource, /process\.on\("beforeExit"/);
+  assert.match(guardSource, /admin init/);
+});
+
+test("a stalled cover encode exits 1 and prints APPLY-INCOMPLETE", { timeout: 5_000 }, async () => {
+  const lines = [];
+  let code = null;
+  let uploads = 0;
+  await assert.rejects(
+    () =>
+      main(["--apply", "--timeout-ms", "40", "--project", "demo-temple-index"], {
+        env: emulator,
+        ...fastNet({ attempts: 1 }),
+        log: (line) => lines.push(line),
+        exit: (status) => {
+          code = status;
+        },
+        load: async () => [shore("encode-temple")],
+        stat: async (path) =>
+          path.includes("_480") ? null : { generation: "3", updated: "2024-01-01T00:00:00.000Z" },
+        download: async () => Buffer.from("full"),
+        encode: () => new Promise(() => {}),
+        upload: async () => {
+          uploads += 1;
+          return {
+            url: "https://firebasestorage.googleapis.com/v0/b/bucket/o/thumb?alt=media&token=real",
+          };
+        },
+        verifyPublic: async () => true,
+        writeThumbUrl: async () => {
+          throw new Error("a stalled encode must not write thumbUrl");
+        },
+      }),
+    /APPLY-INCOMPLETE/,
+  );
+  assert.equal(code, 1);
+  assert.equal(uploads, 0);
+  const text = lines.join("\n");
+  assert.match(text, /encode timed out/);
+  assert.match(text, /summary written=0 failed=1 skipped=0 elapsed=/);
+  assert.match(text, /APPLY-INCOMPLETE/);
+  assert.doesNotMatch(text, /APPLY-FINISHED/);
+});
+
+test("a stalled cover resume write exits 1 and prints APPLY-INCOMPLETE", { timeout: 5_000 }, async () => {
+  const lines = [];
+  let code = null;
+  let writes = 0;
+  await assert.rejects(
+    () =>
+      main(["--apply", "--timeout-ms", "40", "--project", "demo-temple-index"], {
+        env: emulator,
+        ...fastNet({ attempts: 1 }),
+        log: (line) => lines.push(line),
+        exit: (status) => {
+          code = status;
+        },
+        load: async () => [shore("resume-temple")],
+        stat: async (path) =>
+          path.includes("_480") ? null : { generation: "3", updated: "2024-01-01T00:00:00.000Z" },
+        download: async () => Buffer.from("full"),
+        encode: async () => Buffer.from("thumb"),
+        upload: async (file) => ({
+          url: `https://firebasestorage.googleapis.com/v0/b/bucket/o/${encodeURIComponent(file.path)}?alt=media&token=real`,
+        }),
+        verifyPublic: async () => true,
+        writeThumbUrl: async () => {
+          writes += 1;
+          return { ok: true };
+        },
+        writeResume: () => new Promise(() => {}),
+      }),
+    /APPLY-INCOMPLETE/,
+  );
+  assert.equal(code, 1);
+  assert.equal(writes, 1);
+  const text = lines.join("\n");
+  assert.match(text, /resume write timed out/);
+  assert.match(text, /summary written=1 failed=1 skipped=0 elapsed=/);
+  assert.match(text, /APPLY-INCOMPLETE/);
+  assert.doesNotMatch(text, /APPLY-FINISHED/);
+});
+
+test("a cover upload timeout that left the object counts as written", { timeout: 5_000 }, async () => {
+  const lines = [];
+  let code = null;
+  const created = new Set();
+  const rows = await main(["--apply", "--timeout-ms", "40", "--project", "demo-temple-index"], {
+    env: emulator,
+    ...fastNet({ attempts: 1 }),
+    log: (line) => lines.push(line),
+    exit: (status) => {
+      code = status;
+    },
+    load: async () => [shore("relink-temple")],
+    stat: async (path) => {
+      if (!path.includes("_480")) return { generation: "3", updated: "2024-01-01T00:00:00.000Z" };
+      if (!created.has(path)) return null;
+      return {
+        generation: "9",
+        updated: "2024-01-01T00:00:00.000Z",
+        url: `https://firebasestorage.googleapis.com/v0/b/bucket/o/${encodeURIComponent(path)}?alt=media&token=real`,
+      };
+    },
+    download: async () => Buffer.from("full"),
+    encode: async () => Buffer.from("thumb"),
+    upload: (file) => {
+      created.add(file.path);
+      return new Promise(() => {});
+    },
+    verifyPublic: async () => true,
+    writeThumbUrl: async () => ({ ok: true }),
+    writeResume: () => {},
+  });
+  assert.equal(code, 0);
+  assert.equal(rows.filter((row) => row.result === "exists" && row.stored === true).length, 1);
+  const text = lines.join("\n");
+  assert.match(text, /summary written=1 failed=0 skipped=0 elapsed=/);
+  assert.match(text, /APPLY-FINISHED/);
+  assert.doesNotMatch(text, /APPLY-INCOMPLETE/);
+});
+
+test("cover skip reasons include no-source-generation as its own count", async () => {
+  const lines = [];
+  const other = shore("other-cover");
+  other.images = ["https://storage.googleapis.com/other.appspot.com/temples/other-cover/01.jpg"];
+  other.photos = [{ url: other.images[0], licence: "CC0", credit: "", order: 0 }];
+  await main(["--project", "demo-temple-index"], {
+    env: emulator,
+    ...fastNet(),
+    log: (line) => lines.push(line),
+    load: async () => [shore("empty-gen"), other],
+    stat: async () => ({ generation: "", updated: "" }),
+  });
+  const text = lines.join("\n");
+  assert.match(
+    text,
+    /summary written=0 failed=0 skipped=2 \(no-source-generation=1 other-bucket=1\) elapsed=/,
+  );
+  assert.match(text, /APPLY-FINISHED/);
 });

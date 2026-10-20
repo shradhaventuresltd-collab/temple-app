@@ -39,11 +39,13 @@
  * encoder. The encode unit test calls sharp.
  * prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
  *
- * Fetch, Storage, and Firestore calls abort after --timeout-ms (default
- * 60000) and retry with backoff. Apply prints a progress line per batch
- * and a final summary. APPLY-FINISHED is printed only when every cover
- * succeeded. A failed cover or a batch error prints APPLY-INCOMPLETE and
- * the process exits non-zero.
+ * Fetch, Storage, Firestore, image encoding, the resume file, and admin
+ * init abort after --timeout-ms (default 60000) and retry with backoff.
+ * Apply prints a progress line per batch and a final summary.
+ * APPLY-FINISHED is printed only when every cover succeeded. A failed
+ * cover prints APPLY-INCOMPLETE and the process exits non-zero. If the
+ * run never reaches that summary, beforeExit prints APPLY-INCOMPLETE and
+ * exits 1.
  */
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
@@ -54,13 +56,16 @@ import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard
 import { redactDownloadToken, redactThrown } from "./redact_url.js";
 import {
   DEFAULT_TIMEOUT_MS,
+  beginRun,
   boundIo,
   callBounded,
   chunk,
   failureText,
   finishRun,
+  incompleteOnBeforeExit,
   logBatch,
   networkLimits,
+  objectAfterUploadTimeout,
   parseTimeoutMs,
   readWithSignal,
   reportProcessFault,
@@ -83,6 +88,8 @@ import {
 } from "./temple_index.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const runTracker = { active: false, summarized: false, rows: [], started: 0 };
+let ioLimits = networkLimits({});
 
 export const THUMB_CACHE_CONTROL = "public, max-age=31536000, immutable";
 export const THUMB_EDGE = 480;
@@ -528,14 +535,24 @@ async function runCoverPlan(plan, deps) {
   if (!thumb || thumb.length === 0) {
     throw new Error(`Encoder returned an empty thumb for ${thumbPath}. No write.`);
   }
-  const uploaded = await deps.upload({
-    path: thumbPath,
-    bucket,
-    bytes: thumb,
-    contentType: current.contentType,
-    cacheControl: current.cacheControl,
-    ifGenerationMatch: 0,
-  });
+  let uploaded;
+  try {
+    uploaded = await deps.upload({
+      path: thumbPath,
+      bucket,
+      bytes: thumb,
+      contentType: current.contentType,
+      cacheControl: current.cacheControl,
+      ifGenerationMatch: 0,
+    });
+  } catch (error) {
+    const landed = await objectAfterUploadTimeout(error, deps.stat, thumbPath, bucket);
+    if (!landed) throw error;
+    return storeThumbUrl(current, landed.url ?? null, deps, {
+      result: "exists",
+      thumbPath,
+    });
+  }
   return storeThumbUrl(current, uploaded?.url, deps, {
     result: "uploaded",
     thumbPath,
@@ -546,30 +563,30 @@ async function runCoverPlan(plan, deps) {
 const COVER_IO = [
   ["stat", "storage stat", "path"],
   ["download", "storage download", "path"],
+  ["encode", "encode", "bytes"],
   ["upload", "storage upload", "file"],
   ["verifyPublic", "fetch", "url"],
   ["writeThumbUrl", "firestore write", "doc"],
   ["reread", "firestore read", "id"],
+  ["onResume", "resume write", "pair"],
 ];
 
 export async function applyCoverThumbPlans(plans, deps) {
   const report = [];
+  if (deps.track) deps.track.rows = report;
   const io = boundIo(deps, COVER_IO);
   const batches = chunk(plans, deps.batchSize);
   for (let index = 0; index < batches.length; index += 1) {
     const batch = batches[index];
-    try {
-      for (const plan of batch) {
-        try {
-          report.push(await runCoverPlan(plan, io));
-        } catch (error) {
-          report.push({ ...plan, result: "failed", reason: failureText(error) });
+    for (const plan of batch) {
+      try {
+        const row = await runCoverPlan(plan, io);
+        report.push(row);
+        if (row?.resumeFailed) {
+          report.push({ id: plan.id, result: "failed", reason: row.resumeFailed });
         }
-      }
-    } catch (error) {
-      report.push({ result: "failed", reason: `batch ${failureText(error)}` });
-      if (typeof deps.log === "function") {
-        deps.log(`batch ${index + 1}/${batches.length} error ${failureText(error)}`);
+      } catch (error) {
+        report.push({ ...plan, result: "failed", reason: failureText(error) });
       }
     }
     logBatch(deps.log, {
@@ -627,8 +644,21 @@ async function storeThumbUrl(plan, thumbUrl, deps, extra) {
     if (written && written.ok === false) {
       return { ...plan, ...extra, result: "failed", reason: written.reason, thumbUrl: media };
     }
-    if (deps.onResume) await deps.onResume(plan.id, plan.source);
-    return { ...plan, ...extra, thumbUrl: media, stored: true };
+    let resumeFailed;
+    if (deps.onResume) {
+      try {
+        await deps.onResume(plan.id, plan.source);
+      } catch (error) {
+        resumeFailed = failureText(error);
+      }
+    }
+    return {
+      ...plan,
+      ...extra,
+      thumbUrl: media,
+      stored: true,
+      ...(resumeFailed ? { resumeFailed } : {}),
+    };
   }
   return { ...plan, ...extra, thumbUrl: media ?? thumbUrl ?? null };
 }
@@ -763,7 +793,7 @@ export async function encodeGalleryJpeg(bytes) {
   }
 }
 
-async function openAdmin(project, env) {
+async function initAdmin(project, env) {
   const admin = (await import("firebase-admin")).default;
   if (admin.apps.length > 0) return admin;
   if (usesEmulator(env)) {
@@ -794,8 +824,15 @@ async function openAdmin(project, env) {
   return admin;
 }
 
-async function loadTemples(project, env) {
-  const admin = await openAdmin(project, env);
+async function openAdmin(project, env, limits = ioLimits) {
+  return callBounded(() => initAdmin(project, env), {
+    ...networkLimits(limits),
+    label: "admin init",
+  });
+}
+
+async function loadTemples(project, env, limits) {
+  const admin = await openAdmin(project, env, limits);
   const snap = await admin.firestore().collection("temples").get();
   return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 }
@@ -807,7 +844,12 @@ async function loadTemples(project, env) {
  * Meta is stamped in this transaction. A later row does not batch these.
  */
 export async function persistCoverPhotos(db, assigned, deps = {}) {
-  const admin = deps.admin ?? (await import("firebase-admin")).default;
+  const admin =
+    deps.admin ??
+    (await callBounded(async () => (await import("firebase-admin")).default, {
+      ...networkLimits(deps.limits ?? ioLimits),
+      label: "admin init",
+    }));
   const source = assigned.source ?? firstThumbSource(assigned.temple);
   const thumbUrl = (assigned.photos ?? []).find(
     (photo) => photo && typeof photo.url === "string" && photo.url.trim() === source && photo.thumbUrl,
@@ -921,23 +963,26 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     backoffMs: deps.backoffMs,
     sleep: deps.sleep,
   });
+  ioLimits = limits;
+  const tracker =
+    deps.tracker ?? (isDirect ? runTracker : { active: false, summarized: false, rows: [], started: 0 });
+  beginRun(tracker);
   if (opts.apply) await authorizeApply(project, env, { confirm: deps.confirm });
   if (opts.apply) {
     if (deps.storagePreflight) {
       await callBounded(() => deps.storagePreflight(), { ...limits, label: "storage preflight" });
     } else if (!usesEmulator(env)) {
-      const admin = await openAdmin(project, env);
+      const admin = await openAdmin(project, env, limits);
       await callBounded(() => assertStorageAuth(admin.storage().bucket(STORAGE_AUTH_BUCKET)), {
         ...limits,
         label: "storage preflight",
       });
     }
   }
-  const started = Date.now();
   let rows = [];
   try {
     const load = deps.load ?? loadTemples;
-    const temples = await callBounded(() => load(project, env), { ...limits, label: "firestore read" });
+    const temples = await callBounded(() => load(project, env, limits), { ...limits, label: "firestore read" });
     temples.sort((a, b) => String(a.id).localeCompare(String(b.id)));
     const resumeRaw = opts.resume
       ? (deps.readResume ?? (() => (existsSync(RESUME_FILE) ? readFileSync(RESUME_FILE, "utf8") : "")))()
@@ -950,7 +995,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     let storage = deps.storage ?? null;
     const needsBucket = !deps.stat;
     if (needsBucket && !storage) {
-      const admin = await openAdmin(project, env);
+      const admin = await openAdmin(project, env, limits);
       storage = storageDeps(admin);
     }
     const stat = deps.stat ?? storage?.stat;
@@ -958,8 +1003,8 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     const writeThumbUrl = async (assigned) => {
       if (deps.writeThumbUrl) return deps.writeThumbUrl(assigned);
       if (!opts.apply) return assigned;
-      const admin = await openAdmin(project, env);
-      const returned = await persistCoverPhotos(admin.firestore(), assigned);
+      const admin = await openAdmin(project, env, limits);
+      const returned = await persistCoverPhotos(admin.firestore(), assigned, { limits });
       if (!returned || returned.ok === false) return returned ?? { ok: false, reason: "missing" };
       return returned;
     };
@@ -967,7 +1012,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
       deps.reread ??
       (opts.apply && !deps.writeThumbUrl
         ? async (id) => {
-            const admin = await openAdmin(project, env);
+            const admin = await openAdmin(project, env, limits);
             const snap = await admin.firestore().collection("temples").doc(id).get();
             if (!snap.exists) return null;
             return { ...snap.data(), id: snap.id };
@@ -997,6 +1042,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
       writeThumbUrl,
       reread,
       onResume,
+      track: tracker,
       log,
     });
     log(formatThumbReport(rows, { apply: opts.apply }));
@@ -1004,12 +1050,23 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     log(`failed ${failureText(error)}`);
     rows = [{ result: "failed", reason: failureText(error) }];
   }
-  return finishRun({ log, rows, elapsedMs: Date.now() - started, exit: deps.exit });
+  return finishRun({
+    log,
+    rows,
+    elapsedMs: Date.now() - tracker.started,
+    exit: deps.exit,
+    tracker,
+  });
 }
 
 const isDirect =
   process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1]);
 if (isDirect) {
+  process.on("beforeExit", () => {
+    const reported = incompleteOnBeforeExit(runTracker, (line) => console.log(redactDownloadToken(line)));
+    if (!reported) return;
+    process.exit(1);
+  });
   process.on("unhandledRejection", (reason) => {
     reportProcessFault("unhandledRejection", reason);
   });

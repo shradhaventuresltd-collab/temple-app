@@ -30,11 +30,13 @@
  * matches. A photo whose url changed is skipped. Other photos in that
  * temple are still written. The index is not updated.
  *
- * Fetch, Storage, and Firestore calls abort after --timeout-ms (default
- * 60000) and retry with backoff. Apply prints a progress line per batch
- * and a final summary of written, failed, and skipped photos. APPLY-FINISHED
- * is printed only when every photo succeeded. A failed photo or a batch
- * error prints APPLY-INCOMPLETE and the process exits non-zero.
+ * Fetch, Storage, Firestore, image encoding, the resume file, and admin
+ * init abort after --timeout-ms (default 60000) and retry with backoff.
+ * Apply prints a progress line per batch and a final summary of written,
+ * failed, and skipped photos. APPLY-FINISHED is printed only when every
+ * photo succeeded. A failed photo prints APPLY-INCOMPLETE and the process
+ * exits non-zero. If the run never reaches that summary, beforeExit prints
+ * APPLY-INCOMPLETE and exits 1.
  *
  * Encoding uses encodeGalleryJpeg in resize_cover_thumbs.js (sharp).
  * prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
@@ -48,13 +50,16 @@ import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard
 import { redactDownloadToken, redactThrown } from "./redact_url.js";
 import {
   DEFAULT_TIMEOUT_MS,
+  beginRun,
   boundIo,
   callBounded,
   chunk,
   failureText,
   finishRun,
+  incompleteOnBeforeExit,
   logBatch,
   networkLimits,
+  objectAfterUploadTimeout,
   parseTimeoutMs,
   readWithSignal,
   reportProcessFault,
@@ -79,6 +84,8 @@ import {
 import { galleryObjectPath, storageObjectFromUrl } from "./temple_index.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const runTracker = { active: false, summarized: false, rows: [], started: 0 };
+let ioLimits = networkLimits({});
 
 export const GALLERY_CACHE_CONTROL = "public, max-age=31536000, immutable";
 export const RESUME_FILE = resolve(__dirname, ".resize_gallery_images.resume.json");
@@ -381,10 +388,12 @@ async function confirmDownloadUrl(downloadUrl, deps) {
 const GALLERY_IO = [
   ["stat", "storage stat", "path"],
   ["download", "storage download", "path"],
+  ["encode", "encode", "bytes"],
   ["upload", "storage upload", "file"],
   ["verifyPublic", "fetch", "url"],
   ["writeGalleryUrls", "firestore write", "doc"],
   ["reread", "firestore read", "id"],
+  ["onResume", "resume write", "pair"],
 ];
 
 async function runGalleryGroup(group, deps, report) {
@@ -445,12 +454,19 @@ async function runGalleryGroup(group, deps, report) {
     }
   }
   if (deps.onResume) {
-    for (const source of stored) await deps.onResume(group.id, source);
+    for (const source of stored) {
+      try {
+        await deps.onResume(group.id, source);
+      } catch (error) {
+        report.push({ id: group.id, result: "failed", reason: failureText(error), source });
+      }
+    }
   }
 }
 
 export async function applyGalleryPlans(plans, deps) {
   const report = [];
+  if (deps.track) deps.track.rows = report;
   const io = boundIo(deps, GALLERY_IO);
   const groups = [];
   for (const plan of plans) {
@@ -461,20 +477,13 @@ export async function applyGalleryPlans(plans, deps) {
   const batches = chunk(groups, deps.batchSize);
   for (let index = 0; index < batches.length; index += 1) {
     const batch = batches[index];
-    try {
-      for (const group of batch) {
-        try {
-          await runGalleryGroup(group, io, report);
-        } catch (error) {
-          for (const plan of group.plans) {
-            report.push({ ...plan, result: "failed", reason: failureText(error) });
-          }
+    for (const group of batch) {
+      try {
+        await runGalleryGroup(group, io, report);
+      } catch (error) {
+        for (const plan of group.plans) {
+          report.push({ ...plan, result: "failed", reason: failureText(error) });
         }
-      }
-    } catch (error) {
-      report.push({ result: "failed", reason: `batch ${failureText(error)}` });
-      if (typeof deps.log === "function") {
-        deps.log(`batch ${index + 1}/${batches.length} error ${failureText(error)}`);
       }
     }
     logBatch(deps.log, {
@@ -532,14 +541,28 @@ async function prepareGalleryPhoto(plan, deps) {
   if (encoded.length >= bytes.length) {
     return { row: { ...plan, result: "skipped", reason: "not-smaller", galleryPath } };
   }
-  const uploaded = await deps.upload({
-    path: galleryPath,
-    bucket,
-    bytes: encoded,
-    contentType: plan.contentType,
-    cacheControl: plan.cacheControl,
-    ifGenerationMatch: 0,
-  });
+  let uploaded;
+  try {
+    uploaded = await deps.upload({
+      path: galleryPath,
+      bucket,
+      bytes: encoded,
+      contentType: plan.contentType,
+      cacheControl: plan.cacheControl,
+      ifGenerationMatch: 0,
+    });
+  } catch (error) {
+    const landed = await objectAfterUploadTimeout(error, deps.stat, galleryPath, bucket);
+    if (!landed) throw error;
+    const recovered = firebaseMediaUrl(landed.url ?? null);
+    if (!recovered) return { row: { ...plan, result: "not-public", galleryPath } };
+    const readable = await confirmDownloadUrl(recovered, deps);
+    if (!readable) return { row: { ...plan, result: "not-public", galleryPath } };
+    return {
+      row: { ...plan, result: "exists", galleryPath },
+      assignment: { source: plan.source, galleryUrl: recovered },
+    };
+  }
   const media = firebaseMediaUrl(uploaded?.url);
   if (!media) return { row: { ...plan, result: "not-public", galleryPath } };
   const readable = await confirmDownloadUrl(media, deps);
@@ -580,7 +603,7 @@ export function formatGalleryReport(rows, { apply = false } = {}) {
   return redactDownloadToken(lines.join("\n"));
 }
 
-async function openAdmin(project, env) {
+async function initAdmin(project, env) {
   const admin = (await import("firebase-admin")).default;
   if (usesEmulator(env)) {
     process.env.FIRESTORE_EMULATOR_HOST = env.FIRESTORE_EMULATOR_HOST;
@@ -617,8 +640,15 @@ async function openAdmin(project, env) {
   return admin;
 }
 
-async function loadTemples(project, env) {
-  const admin = await openAdmin(project, env);
+async function openAdmin(project, env, limits = ioLimits) {
+  return callBounded(() => initAdmin(project, env), {
+    ...networkLimits(limits),
+    label: "admin init",
+  });
+}
+
+async function loadTemples(project, env, limits) {
+  const admin = await openAdmin(project, env, limits);
   const snap = await admin.firestore().collection("temples").get();
   return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 }
@@ -680,23 +710,26 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     backoffMs: deps.backoffMs,
     sleep: deps.sleep,
   });
+  ioLimits = limits;
+  const tracker =
+    deps.tracker ?? (isDirect ? runTracker : { active: false, summarized: false, rows: [], started: 0 });
+  beginRun(tracker);
   if (opts.apply) await authorizeApply(project, env, { confirm: deps.confirm });
   if (opts.apply) {
     if (deps.storagePreflight) {
       await callBounded(() => deps.storagePreflight(), { ...limits, label: "storage preflight" });
     } else if (!usesEmulator(env)) {
-      const admin = await openAdmin(project, env);
+      const admin = await openAdmin(project, env, limits);
       await callBounded(() => assertStorageAuth(admin.storage().bucket(STORAGE_AUTH_BUCKET)), {
         ...limits,
         label: "storage preflight",
       });
     }
   }
-  const started = Date.now();
   let rows = [];
   try {
     const load = deps.load ?? loadTemples;
-    const temples = await callBounded(() => load(project, env), { ...limits, label: "firestore read" });
+    const temples = await callBounded(() => load(project, env, limits), { ...limits, label: "firestore read" });
     temples.sort((a, b) => String(a.id).localeCompare(String(b.id)));
     const resumeRaw = opts.resume
       ? (deps.readResume ?? (() => (existsSync(RESUME_FILE) ? readFileSync(RESUME_FILE, "utf8") : "")))()
@@ -709,7 +742,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     let storage = deps.storage ?? null;
     const needsBucket = !deps.stat;
     if (needsBucket && !storage) {
-      const admin = await openAdmin(project, env);
+      const admin = await openAdmin(project, env, limits);
       storage = storageDeps(admin);
     }
     const stat = deps.stat ?? storage?.stat;
@@ -717,7 +750,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     const writeGalleryUrls = async (assigned) => {
       if (deps.writeGalleryUrls) return deps.writeGalleryUrls(assigned);
       if (!opts.apply) return assigned;
-      const admin = await openAdmin(project, env);
+      const admin = await openAdmin(project, env, limits);
       const returned = await persistGalleryUrls(admin.firestore(), assigned);
       if (!returned || returned.ok === false) return returned ?? { ok: false, reason: "missing" };
       return returned;
@@ -726,7 +759,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
       deps.reread ??
       (opts.apply && !deps.writeGalleryUrls
         ? async (id) => {
-            const admin = await openAdmin(project, env);
+            const admin = await openAdmin(project, env, limits);
             const snap = await admin.firestore().collection("temples").doc(id).get();
             if (!snap.exists) return null;
             return { ...snap.data(), id: snap.id };
@@ -757,6 +790,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
       writeGalleryUrls: opts.apply ? writeGalleryUrls : undefined,
       reread,
       onResume,
+      track: tracker,
       log,
     });
     log(formatGalleryReport(rows, { apply: opts.apply }));
@@ -764,12 +798,23 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     log(`failed ${failureText(error)}`);
     rows = [{ result: "failed", reason: failureText(error) }];
   }
-  return finishRun({ log, rows, elapsedMs: Date.now() - started, exit: deps.exit });
+  return finishRun({
+    log,
+    rows,
+    elapsedMs: Date.now() - tracker.started,
+    exit: deps.exit,
+    tracker,
+  });
 }
 
 const isDirect =
   process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1]);
 if (isDirect) {
+  process.on("beforeExit", () => {
+    const reported = incompleteOnBeforeExit(runTracker, (line) => console.log(redactDownloadToken(line)));
+    if (!reported) return;
+    process.exit(1);
+  });
   process.on("unhandledRejection", (reason) => {
     reportProcessFault("unhandledRejection", reason);
   });

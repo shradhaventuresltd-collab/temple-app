@@ -13,6 +13,7 @@ export const DEFAULT_BATCH_SIZE = 10;
 const REASON_LABELS = {
   "has-gallery": "already-has-galleryUrl",
   "not-smaller": "too-small",
+  "no-generation": "no-source-generation",
 };
 
 export function parseTimeoutMs(raw) {
@@ -132,9 +133,65 @@ export function boundIo(deps, keys) {
           ...limits,
           label,
         });
+    } else if (kind === "bytes") {
+      next[key] = (bytes, ext) =>
+        callBounded((signal) => fn(bytes, ext, { signal, timeoutMs: limits.timeoutMs }), {
+          ...limits,
+          label,
+        });
+    } else if (kind === "pair") {
+      next[key] = (left, right) =>
+        callBounded((signal) => fn(left, right, { signal, timeoutMs: limits.timeoutMs }), {
+          ...limits,
+          label,
+        });
     }
   }
   return next;
+}
+
+export function isTimeoutError(error) {
+  if (!error || typeof error !== "object") return false;
+  if (error.code === "TIMEOUT" || error.name === "TimeoutError") return true;
+  const message = typeof error.message === "string" ? error.message : "";
+  return /timed out/i.test(message);
+}
+
+/**
+ * After an upload times out, the create-only object may already be in
+ * Storage. A stat of that same path links it. Any other error, or a miss,
+ * leaves the timeout to be counted as failed.
+ */
+export async function objectAfterUploadTimeout(error, stat, path, bucket) {
+  if (!isTimeoutError(error) || typeof stat !== "function" || !path) return null;
+  try {
+    return await stat(path, { bucket });
+  } catch {
+    return null;
+  }
+}
+
+export function beginRun(tracker) {
+  if (!tracker) return;
+  tracker.active = true;
+  tracker.summarized = false;
+  tracker.rows = [];
+  tracker.started = Date.now();
+}
+
+/**
+ * beforeExit fires when a hung promise left no handles and the loop is
+ * empty. If the summary was not printed, say so and exit 1. Returns false
+ * when the run already finished, so a normal exit stays quiet.
+ */
+export function incompleteOnBeforeExit(tracker, log) {
+  if (!tracker?.active || tracker.summarized) return false;
+  const elapsedMs = Date.now() - (tracker.started || Date.now());
+  const summary = formatSummary({ ...tallyRows(tracker.rows), elapsedMs });
+  log(summary);
+  log("APPLY-INCOMPLETE");
+  tracker.summarized = true;
+  return summary;
 }
 
 export function chunk(items, size) {
@@ -285,7 +342,11 @@ export class IncompleteRun extends Error {
  * failed. [exit] is invoked with 0 or 1 when the caller supplied one.
  * Incomplete runs throw so a direct invocation exits non-zero.
  */
-export function finishRun({ log, rows, elapsedMs, exit }) {
+export function finishRun({ log, rows, elapsedMs, exit, tracker }) {
+  if (tracker) {
+    tracker.rows = rows ?? [];
+    tracker.summarized = true;
+  }
   const tally = tallyRows(rows);
   const summary = formatSummary({ ...tally, elapsedMs });
   log(summary);

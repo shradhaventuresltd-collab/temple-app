@@ -31,6 +31,7 @@ import {
 import {
   DEFAULT_TIMEOUT_MS,
   callBounded,
+  incompleteOnBeforeExit,
   readWithSignal,
   reportProcessFault,
   writeWithSignal,
@@ -839,4 +840,163 @@ test("the summary counts resume, already-has-galleryUrl, and too-small skips", a
   assert.match(text, /APPLY-FINISHED/);
   assert.match(temple.photos[3].galleryUrl, /_1080_g4/);
   assert.equal(temple.photos[2].galleryUrl, undefined);
+});
+
+test("beforeExit prints APPLY-INCOMPLETE when the summary never ran", () => {
+  const source = readFileSync(resolve(here, "resize_gallery_images.js"), "utf8");
+  assert.match(source, /process\.on\("beforeExit"/);
+  assert.match(source, /admin init/);
+  const tracker = {
+    active: true,
+    summarized: false,
+    rows: [{ result: "uploaded", stored: true }],
+    started: Date.now(),
+  };
+  const logs = [];
+  const summary = incompleteOnBeforeExit(tracker, (line) => logs.push(line));
+  assert.equal(typeof summary, "string");
+  const text = logs.join("\n");
+  assert.match(text, /summary written=1 failed=0 skipped=0 elapsed=/);
+  assert.match(text, /APPLY-INCOMPLETE/);
+  assert.equal(incompleteOnBeforeExit(tracker, () => {}), false);
+});
+
+test("a stalled encode exits 1 and prints APPLY-INCOMPLETE", { timeout: 5_000 }, async () => {
+  const lines = [];
+  let code = null;
+  let uploads = 0;
+  await assert.rejects(
+    () =>
+      main(["--apply", "--timeout-ms", "40", "--project", "demo-temple-index"], {
+        env: emulator,
+        ...fastNet({ attempts: 1 }),
+        log: (line) => lines.push(line),
+        exit: (status) => {
+          code = status;
+        },
+        load: async () => [onePhoto("encode-temple")],
+        stat: async (path) => (path.includes("_1080") ? null : { generation: "3" }),
+        download: async () => Buffer.alloc(80, 1),
+        encode: () => new Promise(() => {}),
+        upload: async () => {
+          uploads += 1;
+          return { url: tokenUrl("temples/encode-temple/01_1080_g3.jpg", "gallery") };
+        },
+        verifyPublic: async () => true,
+        writeGalleryUrls: async () => {
+          throw new Error("a stalled encode must not write galleryUrl");
+        },
+      }),
+    /APPLY-INCOMPLETE/,
+  );
+  assert.equal(code, 1);
+  assert.equal(uploads, 0);
+  const text = lines.join("\n");
+  assert.match(text, /encode timed out/);
+  assert.match(text, /summary written=0 failed=1 skipped=0 elapsed=/);
+  assert.match(text, /APPLY-INCOMPLETE/);
+  assert.doesNotMatch(text, /APPLY-FINISHED/);
+});
+
+test("a stalled resume write exits 1 and prints APPLY-INCOMPLETE", { timeout: 5_000 }, async () => {
+  const lines = [];
+  let code = null;
+  let writes = 0;
+  await assert.rejects(
+    () =>
+      main(["--apply", "--timeout-ms", "40", "--project", "demo-temple-index"], {
+        env: emulator,
+        ...fastNet({ attempts: 1 }),
+        log: (line) => lines.push(line),
+        exit: (status) => {
+          code = status;
+        },
+        load: async () => [onePhoto("resume-temple")],
+        stat: async (path) => (path.includes("_1080") ? null : { generation: "3" }),
+        download: async () => Buffer.alloc(80, 1),
+        encode: async () => Buffer.alloc(20, 2),
+        upload: async (file) => ({ url: tokenUrl(file.path, "gallery") }),
+        verifyPublic: async () => true,
+        writeGalleryUrls: async (assigned) => {
+          writes += 1;
+          return {
+            ok: true,
+            storedUrls: assigned.assignments.map((item) => item.source),
+            skippedUrls: [],
+          };
+        },
+        writeResume: () => new Promise(() => {}),
+      }),
+    /APPLY-INCOMPLETE/,
+  );
+  assert.equal(code, 1);
+  assert.equal(writes, 1);
+  const text = lines.join("\n");
+  assert.match(text, /resume write timed out/);
+  assert.match(text, /summary written=1 failed=1 skipped=0 elapsed=/);
+  assert.match(text, /APPLY-INCOMPLETE/);
+  assert.doesNotMatch(text, /APPLY-FINISHED/);
+});
+
+test("an upload timeout that left the object counts as written", { timeout: 5_000 }, async () => {
+  const lines = [];
+  let code = null;
+  const created = new Set();
+  const rows = await main(["--apply", "--timeout-ms", "40", "--project", "demo-temple-index"], {
+    env: emulator,
+    ...fastNet({ attempts: 1 }),
+    log: (line) => lines.push(line),
+    exit: (status) => {
+      code = status;
+    },
+    load: async () => [onePhoto("relink-temple")],
+    stat: async (path) => {
+      if (!path.includes("_1080")) return { generation: "3" };
+      return created.has(path) ? { generation: "9", url: tokenUrl(path, "gallery") } : null;
+    },
+    download: async () => Buffer.alloc(80, 1),
+    encode: async () => Buffer.alloc(20, 2),
+    upload: (file) => {
+      created.add(file.path);
+      return new Promise(() => {});
+    },
+    verifyPublic: async () => true,
+    writeGalleryUrls: async (assigned) => ({
+      ok: true,
+      storedUrls: assigned.assignments.map((item) => item.source),
+      skippedUrls: [],
+    }),
+    writeResume: () => {},
+  });
+  assert.equal(code, 0);
+  assert.equal(rows.filter((row) => row.result === "exists" && row.stored === true).length, 1);
+  const text = lines.join("\n");
+  assert.match(text, /summary written=1 failed=0 skipped=0 elapsed=/);
+  assert.match(text, /APPLY-FINISHED/);
+  assert.doesNotMatch(text, /APPLY-INCOMPLETE/);
+});
+
+test("no-source-generation and other skip reasons are separate summary counts", async () => {
+  const lines = [];
+  const temple = onePhoto("gen-temple");
+  const other = "https://storage.googleapis.com/other.appspot.com/temples/gen-temple/02.jpg";
+  const wiki = "https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg";
+  temple.photos.push(
+    { url: other, licence: "CC0", credit: "", order: 1 },
+    { url: wiki, licence: "CC0", credit: "", order: 2 },
+  );
+  temple.images = temple.photos.map((photo) => photo.url);
+  await main(["--project", "demo-temple-index"], {
+    env: emulator,
+    ...fastNet(),
+    log: (line) => lines.push(line),
+    load: async () => [temple],
+    stat: async () => ({ generation: "" }),
+  });
+  const text = lines.join("\n");
+  assert.match(
+    text,
+    /summary written=0 failed=0 skipped=3 \(no-source-generation=1 other-bucket=1 wikimedia-full=1\) elapsed=/,
+  );
+  assert.match(text, /APPLY-FINISHED/);
 });
