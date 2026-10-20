@@ -27,7 +27,7 @@ import {
 const here = fileURLToPath(new URL(".", import.meta.url));
 const description = loadDescription(DESCRIPTION_PATH);
 const appendedSuffix =
-  " The site is also known as Devtamura, after the surrounding Devtamura hills.";
+  " The carvings are cut into the cliffs of the Devtamura (Debtamura) hill range, so the site is also known as Devtamura.";
 const liveDescription = description.slice(0, -appendedSuffix.length);
 const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST ?? "";
 const onEmulator = /^(127\.0\.0\.1|localhost):\d+$/.test(emulatorHost);
@@ -180,7 +180,7 @@ test("the committed description names Devtamura and is the live text plus one se
   assert.match(description, /protected heritage monument\./);
   assert.match(
     description,
-    /The site is also known as Devtamura, after the surrounding Devtamura hills\.$/,
+    /The carvings are cut into the cliffs of the Devtamura \(Debtamura\) hill range, so the site is also known as Devtamura\.$/,
   );
   assert.equal(description, liveDescription + appendedSuffix);
   assert.equal(liveDescription.includes("Devtamura"), false);
