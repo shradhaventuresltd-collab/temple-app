@@ -318,6 +318,66 @@ esac
 echo "ok: minutes total includes ci, android-smoke, demo-seed-launch, and actions-minutes"
 rm -rf "$minutes_bin"
 
+# android-smoke run 2001 has an empty jobs list. ci run 1002 does too.
+# Those runs are 0 minutes. ci run 1001 still contributes its 2 minutes.
+empty_jobs_bin="$(mktemp -d)"
+cat >"$empty_jobs_bin/gh" <<'EOF'
+#!/bin/bash
+url=""
+for arg in "$@"; do
+  case "$arg" in
+    repos/*) url="$arg" ;;
+  esac
+done
+case "$url" in
+  repos/example/repo/actions/workflows\?per_page=100)
+    printf '%s\n' \
+      '10	.github/workflows/ci.yml' \
+      '20	.github/workflows/android-smoke.yml'
+    ;;
+  repos/example/repo/actions/workflows/10/runs\?*)
+    printf '%s\n' 1001 1002
+    ;;
+  repos/example/repo/actions/workflows/20/runs\?*)
+    printf '%s\n' 2001
+    ;;
+  repos/example/repo/actions/runs/1001/jobs\?*)
+    printf 'success\t2026-10-01T00:00:00Z\t2026-10-01T00:02:00Z\n'
+    ;;
+  repos/example/repo/actions/runs/1002/jobs\?*)
+    exit 0
+    ;;
+  repos/example/repo/actions/runs/2001/jobs\?*)
+    exit 0
+    ;;
+  *)
+    echo "unexpected gh url: ${url}" >&2
+    exit 1
+    ;;
+esac
+EOF
+chmod +x "$empty_jobs_bin/gh"
+empty_jobs_err="$(mktemp)"
+if ! empty_jobs_out="$(PATH="$empty_jobs_bin:/usr/bin:/bin" GITHUB_REPOSITORY=example/repo bash scripts/ci/check_actions_minutes.sh 2>"$empty_jobs_err")"; then
+  echo "FAIL: a run with an empty jobs list should count as 0 minutes" >&2
+  cat "$empty_jobs_err" >&2
+  exit 1
+fi
+case "$empty_jobs_out" in
+  "This repository's minutes: 2 / 2000 "*) ;;
+  *)
+    echo "FAIL: empty jobs should add 0 minutes (total 2), got: ${empty_jobs_out}" >&2
+    exit 1
+    ;;
+esac
+if grep -q 'returned no jobs' "$empty_jobs_err"; then
+  echo "FAIL: an empty jobs list must not be reported as an error" >&2
+  exit 1
+fi
+echo "ok: a run with an empty jobs list counts as 0 minutes"
+rm -rf "$empty_jobs_bin"
+rm -f "$empty_jobs_err"
+
 expect_eq "skipped job does not count" \
   "$(job_billable_minutes skipped 2026-10-01T00:00:00Z 2026-10-01T00:05:00Z)" 0
 expect_eq "skipped job with no timestamps does not count" \

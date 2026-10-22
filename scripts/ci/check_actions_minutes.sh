@@ -13,9 +13,10 @@
 # a job with no completed_at is skipped, so an in-progress run does not fail
 # the check. Re-run attempts are included (jobs?filter=all). The run timing
 # API is not used. An Actions API error fails the check, as does an empty
-# workflow list. A minute total of 0 fails only when a non-skipped job
-# actually finished. Workflows whose runs were all skipped, such as
-# unlabelled pull-request smoke, are not an error.
+# workflow list. A completed run with no jobs counts as 0 minutes. A minute
+# total of 0 fails only when a non-skipped job actually finished. Workflows
+# whose runs were all skipped, such as unlabelled pull-request smoke, are
+# not an error.
 #
 # /settings/billing/usage is not called. That report mixes products and unit
 # types (quantity on one route, grossQuantity on the summary), and it is not
@@ -137,8 +138,8 @@ today="$(date -u +%Y-%m-%d)"
 # workflow_id is the numeric id from the workflows API. workflow_file is
 # only the label in errors and the issue. Only status=completed runs are
 # listed. Jobs use filter=all and per_page=100 so re-run attempts are
-# included. A job with no completed_at is skipped. API errors propagate.
-# A listed run that returns no jobs fails.
+# included. A job with no completed_at is skipped. A completed run that
+# returns no jobs counts as 0 minutes. API errors propagate.
 workflow_minutes() {
   local workflow_id="$1"
   local workflow_file="$2"
@@ -159,9 +160,11 @@ workflow_minutes() {
       echo "error: could not list jobs for ${workflow_file} run ${id}." >&2
       return 1
     fi
+    # A completed run can have an empty jobs list, for example a skipped
+    # or cancelled android-smoke run that never started a job. That run
+    # is 0 minutes. An Actions API error still fails above.
     if [[ -z "$jobs" ]]; then
-      echo "error: ${workflow_file} run ${id} returned no jobs." >&2
-      return 1
+      continue
     fi
     while IFS=$'\t' read -r conclusion started completed; do
       [[ -z "${conclusion}${started}${completed}" ]] && continue
