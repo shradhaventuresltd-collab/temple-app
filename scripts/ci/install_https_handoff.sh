@@ -2,7 +2,7 @@
 # Install a tiny https VIEW handler when the emulator has none.
 #
 # Get Directions opens
-# https://www.google.com/maps/search/?api=1&query=<lat>,<lng>
+# https://www.google.com/maps/dir/?api=1&destination=<lat>,<lng>
 # with LaunchMode.externalApplication. The CI image often has no
 # browser and no Maps app, so the button stays in-app. This stub only
 # matches that Maps URL. It is not the temple app and it does not touch
@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-MAPS_URL="https://www.google.com/maps/search/?api=1&query=9.9195,78.1193"
+MAPS_URL="https://www.google.com/maps/dir/?api=1&destination=9.9195,78.1193"
 resolved="$(adb shell pm resolve-activity -a android.intent.action.VIEW -d "$MAPS_URL" 2>/dev/null || true)"
 if grep -q 'name=' <<<"$resolved"; then
   echo "https Maps handler already present; not installing a stub"

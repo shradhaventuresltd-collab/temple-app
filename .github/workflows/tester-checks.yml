@@ -15,6 +15,8 @@ name: tester-checks
 # One leg is Pixel 6. The other reuses that AVD and sets a 360dp viewport
 # (1080x1920 at 480dpi). The APK is release, x86_64, with no DEMO_BUILD
 # and no ENABLE_ADMIN_TOOLS. The job does not upload the APK.
+# Signing uses the fixed CI debug keystore, not an ephemeral key and not
+# the Play upload key. See docs/ci-signing.md.
 
 on:
   workflow_dispatch:
@@ -116,20 +118,24 @@ jobs:
           path: /usr/local/lib/android/sdk/ndk/28.2.13676358
           key: ndk-28.2.13676358
 
-      # Ephemeral release key. Not the Play upload key. key.properties and
-      # *.jks stay gitignored.
-      - name: Ephemeral release keystore
+      # Fixed CI debug key. Not the Play upload key. Decoded to a temp file.
+      # android/key.properties is gitignored and deleted after both APKs
+      # are signed. This APK still has no DEMO_BUILD and no ENABLE_ADMIN_TOOLS.
+      - name: CI debug keystore
+        env:
+          CI_DEBUG_KEYSTORE_BASE64: ${{ secrets.CI_DEBUG_KEYSTORE_BASE64 }}
+          CI_DEBUG_KEYSTORE_PASSWORD: ${{ secrets.CI_DEBUG_KEYSTORE_PASSWORD }}
+          CI_DEBUG_KEY_ALIAS: ${{ secrets.CI_DEBUG_KEY_ALIAS }}
+          CI_DEBUG_KEY_PASSWORD: ${{ secrets.CI_DEBUG_KEY_PASSWORD }}
         run: |
-          keytool -genkeypair -keystore android/ci-tester-keystore.jks \
-            -storepass android -keypass android -alias upload \
-            -keyalg RSA -keysize 2048 -validity 1 \
-            -dname "CN=CI Tester Checks, OU=CI, O=Shradha Ventures, L=Bengaluru, ST=KA, C=IN"
-          cat > android/key.properties <<'EOF'
-          storePassword=android
-          keyPassword=android
-          keyAlias=upload
-          storeFile=../ci-tester-keystore.jks
-          EOF
+          set -euo pipefail
+          if [[ -n "${CI_DEBUG_KEY_ALIAS:-}" ]]; then
+            printf '%s\n' "::add-mask::${CI_DEBUG_KEY_ALIAS}"
+          fi
+          keystore_path="$(bash scripts/ci/prepare_ci_debug_keystore.sh --require --key-properties android/key.properties)"
+          printf '%s\n' "$keystore_path" > "${RUNNER_TEMP}/ci-debug-signing.path"
+          bash scripts/ci/print_signing_fingerprints.sh \
+            "$keystore_path" CI_DEBUG_KEYSTORE_PASSWORD CI_DEBUG_KEY_ALIAS
 
       - name: Build release APK
         env:
@@ -167,6 +173,10 @@ jobs:
             "${GITHUB_WORKSPACE}/build/app/outputs/flutter-apk/app-release.apk"
           cp -a /tmp/tester-checks-androidTest.apk \
             "${GITHUB_WORKSPACE}/build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk"
+
+      - name: Delete CI debug keystore
+        if: always()
+        run: bash scripts/ci/cleanup_ci_debug_signing.sh
 
       # The Pixel 6 snapshot archive is about 1.4GB and this job boots with
       # -no-snapshot-load, so restoring it only fills the disk. A partial

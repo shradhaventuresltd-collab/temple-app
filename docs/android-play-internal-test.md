@@ -19,7 +19,7 @@ The Google Services plugin selects the client whose `package_name` matches `appl
 
 ## Upload keystore
 
-Create the upload key on a machine you control. Do not commit the keystore or its passwords.
+Create the upload key on a machine you control. Do not commit the keystore or its passwords. CI and demo APKs use a different keystore, documented in [ci-signing.md](ci-signing.md). Do not put this upload key in `CI_DEBUG_KEYSTORE_BASE64`.
 
 ```bash
 keytool -genkey -v \

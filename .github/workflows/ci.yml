@@ -53,7 +53,7 @@ jobs:
         run: node -e "require('sharp')"
 
       - name: state batch and index checks
-        run: node --test scripts/state_batch.test.js scripts/rebuild_index.test.js scripts/resize_cover_thumbs.test.js scripts/resize_gallery_images.test.js scripts/audit_coords.test.js scripts/backfill_cover_photos.test.js scripts/cap_wikimedia_images.test.js scripts/clear_placeholder_covers.test.js scripts/fix_karaikal_district_city.test.js scripts/no_public_acl.test.js scripts/download_token.test.js scripts/redact_url.test.js scripts/purge_places_photos.test.js scripts/no_places_photos.test.js scripts/upload_research_pack.test.js
+        run: node --test scripts/state_batch.test.js scripts/rebuild_index.test.js scripts/resize_cover_thumbs.test.js scripts/resize_gallery_images.test.js scripts/audit_coords.test.js scripts/audit_temple_coords.test.js scripts/backfill_cover_photos.test.js scripts/cap_wikimedia_images.test.js scripts/clear_placeholder_covers.test.js scripts/fix_karaikal_district_city.test.js scripts/no_public_acl.test.js scripts/download_token.test.js scripts/redact_url.test.js scripts/purge_places_photos.test.js scripts/no_places_photos.test.js scripts/upload_research_pack.test.js
 
       - name: photo patch checks
         run: node --test scripts/photo_patch.test.js
@@ -89,6 +89,7 @@ jobs:
           bash scripts/test_play_aab_guard.sh
           bash scripts/ci/test_ci_guards.sh
           bash scripts/ci/test_demo_distribution_guard.sh
+          bash scripts/ci/test_ci_signing.sh
 
       # cache caches the Flutter SDK. pub-cache caches ~/.pub-cache.
       # This job does not run Gradle.

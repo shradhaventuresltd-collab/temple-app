@@ -56,9 +56,10 @@ adb shell settings put global transition_animation_scale 0 || true
 adb shell settings put global animator_duration_scale 0 || true
 
 echo "===== install apk ====="
-# The cached AVD keeps the previous install. Each runner signs the profile
-# APK with a new debug key, so replace-install fails until the old package
-# is removed.
+# The cached AVD keeps the previous install. A profile APK signed with a
+# different cert (an older per-runner debug key, or the fixed CI key once
+# CI_DEBUG_KEYSTORE_BASE64 is set) cannot replace that install until the
+# old package is removed.
 adb uninstall "$PKG" || true
 adb install -r "$APK"
 adb shell pm path "$PKG"
@@ -66,7 +67,7 @@ adb shell pm path "$PKG"
 bash scripts/ci/install_https_handoff.sh
 echo "===== maps handler ====="
 adb shell pm resolve-activity -a android.intent.action.VIEW \
-  -d "https://www.google.com/maps/search/?api=1&query=9.9195,78.1193" || true
+  -d "https://www.google.com/maps/dir/?api=1&destination=9.9195,78.1193" || true
 
 # Log tag only. `io.flutter` in ActivityManager lines is the activity
 # class name and appears before the engine has drawn anything.
