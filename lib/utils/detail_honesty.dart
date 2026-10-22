@@ -1,5 +1,6 @@
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_photo.dart';
+import 'package:temple_app/utils/wikimedia_gallery.dart';
 
 /// How the detail screen should talk about a place, using only existing text.
 enum SiteFraming {
@@ -132,7 +133,9 @@ const double kDetailGalleryFullSizeScale = 1.5;
 ///
 /// [sourceUrl] is the verified original (`photos[].url` or `images`).
 /// Credits and captions stay keyed to it. [displayUrl] is `galleryUrl`
-/// when that copy exists and this frame is not asking for the original.
+/// when that copy exists. Otherwise an `upload.wikimedia.org` original is
+/// the 1280px Commons thumb. A frame that asks for the original uses
+/// [sourceUrl].
 class DetailGalleryFrame {
   const DetailGalleryFrame({
     required this.sourceUrl,
@@ -156,8 +159,9 @@ bool detailGalleryZoomWantsOriginal(double scale) {
 /// Detail frames in gallery order. Browse covers are not read here.
 ///
 /// [fullSizeIndexes] are frames the user zoomed, or whose gallery copy
-/// failed to load. Those frames use the original URL. Every other frame
-/// uses `photos[].galleryUrl` when it is an https URL within the photo cap.
+/// failed to load. Those frames use the stored URL. Every other frame
+/// uses `photos[].galleryUrl` when it is an https URL within the photo cap,
+/// and otherwise [capLegacyWikimediaImageUrl].
 List<DetailGalleryFrame> detailGalleryFrames(
   Temple temple, {
   Set<int> fullSizeIndexes = const {},
@@ -178,13 +182,18 @@ String _galleryDisplayUrl(Temple temple, String source) {
   for (final photo in temple.photos) {
     if (photo.url.trim() != source) continue;
     final gallery = photo.galleryUrl?.trim() ?? '';
-    if (gallery.isEmpty || gallery == source) return source;
-    if (gallery.length > kMaxPhotoUrlLength) return source;
-    if (!gallery.startsWith('https://')) return source;
-    if (isDisallowedImageUrl(gallery)) return source;
-    return gallery;
+    if (_usableGalleryCopy(gallery, source)) return gallery;
+    return capLegacyWikimediaImageUrl(source);
   }
-  return source;
+  return capLegacyWikimediaImageUrl(source);
+}
+
+bool _usableGalleryCopy(String gallery, String source) {
+  if (gallery.isEmpty || gallery == source) return false;
+  if (gallery.length > kMaxPhotoUrlLength) return false;
+  if (!gallery.startsWith('https://')) return false;
+  if (isDisallowedImageUrl(gallery)) return false;
+  return true;
 }
 
 /// Gallery URLs that are safe to show as photographs of the place.

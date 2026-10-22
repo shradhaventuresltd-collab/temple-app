@@ -7,6 +7,7 @@ import 'package:temple_app/screens/admin_temple_form_screen.dart';
 import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/services/admin_temple_service.dart';
 import 'package:temple_app/services/client_cache.dart';
+import 'package:temple_app/utils/wikimedia_gallery.dart';
 import 'package:temple_app/widgets/admin_auth_gate.dart';
 import 'package:temple_app/widgets/seed_temples_control.dart';
 
@@ -355,7 +356,7 @@ class _AdminTempleCardState extends State<_AdminTempleCard> {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = temple.imageUrl;
+    final imageUrl = capLegacyWikimediaImageUrl(temple.imageUrl);
     final busy = _deleting;
 
     return Container(

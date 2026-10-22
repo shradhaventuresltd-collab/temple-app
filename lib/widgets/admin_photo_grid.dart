@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/photo_licence.dart';
 import 'package:temple_app/services/client_cache.dart';
 import 'package:temple_app/models/temple_photo.dart';
+import 'package:temple_app/utils/wikimedia_gallery.dart';
 
 /// In-progress or saved photo in the admin editor.
 class AdminPhotoDraft {
@@ -337,7 +338,7 @@ class _PhotoTile extends StatelessWidget {
         errorBuilder: (_, _, _) => const _PhotoFallback(),
       );
     }
-    final url = draft.url.trim();
+    final url = capLegacyWikimediaImageUrl(draft.url);
     if (url.isNotEmpty) {
       return CachedNetworkImage(
         imageUrl: url,
