@@ -1,0 +1,188 @@
+[
+  {
+    "name": "jpg original becomes a 1280px thumb",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/a/a1/Keesara_gutta_main_temple_gate.jpg",
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/1280px-Keesara_gutta_main_temple_gate.jpg",
+    "reason": null
+  },
+  {
+    "name": "png original becomes a 1280px thumb",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/b/bb/Maha_Daan_Leela.png",
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Maha_Daan_Leela.png/1280px-Maha_Daan_Leela.png",
+    "reason": null
+  },
+  {
+    "name": "original without hash segments uses the md5 path",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/Keesara_gutta_main_temple_gate.jpg",
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/1280px-Keesara_gutta_main_temple_gate.jpg",
+    "reason": null
+  },
+  {
+    "name": "comma in the filename stays literal in the thumb",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/a/a5/Biraja_Temple%2C_Jajpur%2C_Odisha%2C_India%2C_13th_century.jpg",
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Biraja_Temple,_Jajpur,_Odisha,_India,_13th_century.jpg/1280px-Biraja_Temple,_Jajpur,_Odisha,_India,_13th_century.jpg",
+    "reason": null
+  },
+  {
+    "name": "spaces are underscored before the md5",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/My%20File.jpg",
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/My_File.jpg/1280px-My_File.jpg",
+    "reason": null
+  },
+  {
+    "name": "svg original is not rewritten",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/8/84/Example.svg",
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/8/84/Example.svg",
+    "reason": "svg"
+  },
+  {
+    "name": "svg thumb wider than 1280 is not rewritten",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Example.svg/1920px-Example.svg.png",
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Example.svg/1920px-Example.svg.png",
+    "reason": "svg"
+  },
+  {
+    "name": "hash path that is not the md5 stays the original",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg",
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/2/20/File.jpg",
+    "reason": "hash-mismatch"
+  },
+  {
+    "name": "tif original becomes a jpeg thumb",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/Example.tif",
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/Example.tif/1280px-Example.tif.jpg",
+    "reason": null
+  },
+  {
+    "name": "tiff original becomes a jpeg thumb",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/Example.tiff",
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/Example.tiff/1280px-Example.tiff.jpg",
+    "reason": null
+  },
+  {
+    "name": "pdf original stays the full url",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/Example.pdf",
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/Example.pdf",
+    "reason": "not-thumbnailable"
+  },
+  {
+    "name": "djvu original stays the full url",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/Example.djvu",
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/Example.djvu",
+    "reason": "not-thumbnailable"
+  },
+  {
+    "name": "webm original stays the full url",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/Example.webm",
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/Example.webm",
+    "reason": "not-thumbnailable"
+  },
+  {
+    "name": "ogv original stays the full url",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/Example.ogv",
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/Example.ogv",
+    "reason": "not-thumbnailable"
+  },
+  {
+    "name": "a 500px thumb stays",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/500px-Keesara_gutta_main_temple_gate.jpg",
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/500px-Keesara_gutta_main_temple_gate.jpg",
+    "reason": "at-or-under-1280"
+  },
+  {
+    "name": "a 1280px thumb stays",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/1280px-Keesara_gutta_main_temple_gate.jpg",
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/1280px-Keesara_gutta_main_temple_gate.jpg",
+    "reason": "at-or-under-1280"
+  },
+  {
+    "name": "a 960px thumb stays",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/960px-Keesara_gutta_main_temple_gate.jpg",
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/960px-Keesara_gutta_main_temple_gate.jpg",
+    "reason": "at-or-under-1280"
+  },
+  {
+    "name": "a 480px thumb stays",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/480px-Keesara_gutta_main_temple_gate.jpg",
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/480px-Keesara_gutta_main_temple_gate.jpg",
+    "reason": "at-or-under-1280"
+  },
+  {
+    "name": "a non-standard 800px thumb stays",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/800px-Keesara_gutta_main_temple_gate.jpg",
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/800px-Keesara_gutta_main_temple_gate.jpg",
+    "reason": "at-or-under-1280"
+  },
+  {
+    "name": "a 1920px thumb becomes 1280px",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/1920px-Keesara_gutta_main_temple_gate.jpg",
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/1280px-Keesara_gutta_main_temple_gate.jpg",
+    "reason": null
+  },
+  {
+    "name": "a 3840px thumb becomes 1280px",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/3840px-Keesara_gutta_main_temple_gate.jpg",
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/1280px-Keesara_gutta_main_temple_gate.jpg",
+    "reason": null
+  },
+  {
+    "name": "a non-standard 2000px thumb becomes 1280px",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/2000px-Keesara_gutta_main_temple_gate.jpg",
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/1280px-Keesara_gutta_main_temple_gate.jpg",
+    "reason": null
+  },
+  {
+    "name": "a wider thumb keeps its query string",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/1920px-Keesara_gutta_main_temple_gate.jpg?foo=1",
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/1280px-Keesara_gutta_main_temple_gate.jpg?foo=1",
+    "reason": null
+  },
+  {
+    "name": "a wider thumb keeps percent-encoding in the file name",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Biraja_Temple%2C_Jajpur.jpg/1920px-Biraja_Temple%2C_Jajpur.jpg",
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Biraja_Temple%2C_Jajpur.jpg/1280px-Biraja_Temple%2C_Jajpur.jpg",
+    "reason": null
+  },
+  {
+    "name": "an original query is not copied onto the thumb",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/a/a1/Keesara_gutta_main_temple_gate.jpg?utm=1",
+    "expect": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/1280px-Keesara_gutta_main_temple_gate.jpg",
+    "reason": null
+  },
+  {
+    "name": "thumb.wikimedia.org is not rewritten",
+    "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/1920px-Keesara_gutta_main_temple_gate.jpg",
+    "expect": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a1/Keesara_gutta_main_temple_gate.jpg/1920px-Keesara_gutta_main_temple_gate.jpg",
+    "reason": "not-wikimedia"
+  },
+  {
+    "name": "a storage url is not rewritten",
+    "url": "https://storage.googleapis.com/bucket/temples/shore/01.jpg",
+    "expect": "https://storage.googleapis.com/bucket/temples/shore/01.jpg",
+    "reason": "not-wikimedia"
+  },
+  {
+    "name": "a commons wiki page is not rewritten",
+    "url": "https://commons.wikimedia.org/wiki/File:Foo.jpg",
+    "expect": "https://commons.wikimedia.org/wiki/File:Foo.jpg",
+    "reason": "not-wikimedia"
+  },
+  {
+    "name": "http is not rewritten",
+    "url": "http://upload.wikimedia.org/wikipedia/commons/a/a1/Keesara_gutta_main_temple_gate.jpg",
+    "expect": "http://upload.wikimedia.org/wikipedia/commons/a/a1/Keesara_gutta_main_temple_gate.jpg",
+    "reason": "not-wikimedia"
+  },
+  {
+    "name": "another wikimedia project stays",
+    "url": "https://upload.wikimedia.org/wikipedia/en/a/ab/Foo.jpg",
+    "expect": "https://upload.wikimedia.org/wikipedia/en/a/ab/Foo.jpg",
+    "reason": "not-commons"
+  },
+  {
+    "name": "an empty string stays empty",
+    "url": "",
+    "expect": "",
+    "reason": "not-wikimedia"
+  }
+]
