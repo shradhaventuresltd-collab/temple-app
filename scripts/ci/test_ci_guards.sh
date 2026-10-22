@@ -378,6 +378,55 @@ echo "ok: a run with an empty jobs list counts as 0 minutes"
 rm -rf "$empty_jobs_bin"
 rm -f "$empty_jobs_err"
 
+# An Actions jobs API error is not an empty jobs list. The check must fail.
+jobs_fail_bin="$(mktemp -d)"
+cat >"$jobs_fail_bin/gh" <<'EOF'
+#!/bin/bash
+url=""
+for arg in "$@"; do
+  case "$arg" in
+    repos/*) url="$arg" ;;
+  esac
+done
+case "$url" in
+  repos/example/repo/actions/workflows\?per_page=100)
+    printf '%s\n' '20	.github/workflows/android-smoke.yml'
+    ;;
+  repos/example/repo/actions/workflows/20/runs\?*)
+    printf '%s\n' 2001
+    ;;
+  repos/example/repo/actions/runs/2001/jobs\?*)
+    echo "HTTP 500" >&2
+    exit 1
+    ;;
+  *)
+    echo "unexpected gh url: ${url}" >&2
+    exit 1
+    ;;
+esac
+EOF
+chmod +x "$jobs_fail_bin/gh"
+jobs_fail_err="$(mktemp)"
+jobs_fail_out="$(mktemp)"
+if PATH="$jobs_fail_bin:/usr/bin:/bin" GITHUB_REPOSITORY=example/repo bash scripts/ci/check_actions_minutes.sh >"$jobs_fail_out" 2>"$jobs_fail_err"; then
+  echo "FAIL: a jobs API error should fail the minutes check" >&2
+  cat "$jobs_fail_err" >&2
+  exit 1
+fi
+if ! grep -q 'could not list jobs for android-smoke.yml run 2001' "$jobs_fail_err"; then
+  echo "FAIL: a jobs API error should name the workflow and run, got:" >&2
+  cat "$jobs_fail_err" >&2
+  exit 1
+fi
+if grep -q "This repository's minutes:" "$jobs_fail_out"; then
+  echo "FAIL: a jobs API error must not publish a minute total" >&2
+  cat "$jobs_fail_out" >&2
+  exit 1
+fi
+echo "ok: a jobs API error fails the minutes check"
+rm -rf "$jobs_fail_bin"
+rm -f "$jobs_fail_err" "$jobs_fail_out"
+
 expect_eq "skipped job does not count" \
   "$(job_billable_minutes skipped 2026-10-01T00:00:00Z 2026-10-01T00:05:00Z)" 0
 expect_eq "skipped job with no timestamps does not count" \
