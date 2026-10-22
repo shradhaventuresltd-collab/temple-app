@@ -16,17 +16,67 @@ import 'package:url_launcher/url_launcher.dart';
 const Color _saffron = Color(0xFFFF8F00);
 const Color _gold = Color(0xFFFFD54F);
 
-/// Maps search for a temple that has coordinates. The name is part of the
-/// query so a pin is not only a bare lat,lng pair.
-Uri googleMapsSearchUri({
+final RegExp _coordinateDestination = RegExp(
+  r'^-?(?:0|[1-9]\d*)(?:\.\d+)?,-?(?:0|[1-9]\d*)(?:\.\d+)?$',
+);
+
+/// Latitude and longitude that can be a Maps destination.
+///
+/// Null, non-finite, out-of-range, and the (0, 0) placeholder are unusable.
+/// A swapped pair such as 79.83, 11.93 is still usable: both numbers are
+/// legal coordinates, and this function does not guess which axis is which.
+bool directionsCoordinatesAreUsable(double? latitude, double? longitude) {
+  if (latitude == null || longitude == null) return false;
+  if (!latitude.isFinite || !longitude.isFinite) return false;
+  if (latitude < -90 || latitude > 90) return false;
+  if (longitude < -180 || longitude > 180) return false;
+  if (latitude == 0 && longitude == 0) return false;
+  return true;
+}
+
+/// Directions URL for Get Directions.
+///
+/// When [latitude] and [longitude] are usable the URL is
+/// `https://www.google.com/maps/dir/?api=1&destination=<lat>,<lng>`.
+/// The temple name is left out of that URL. The previous search URL put the
+/// name and the coordinate pair in one `query` value
+/// (`/maps/search/?api=1&query=<name> <lat>,<lng>`). Maps splits a decoded
+/// query on commas, so a name such as "Manakula Vinayagar Temple, Puducherry"
+/// or even a bare `lat,lng` glued onto the name became several places and
+/// the app opened a partial route. The comma between latitude and longitude
+/// stays literal because that is the Maps URLs coordinate separator.
+///
+/// When the coordinates are missing or unusable, [name] is the only
+/// destination and it is encoded as one query value (`&` `#` `/` `,`
+/// apostrophes and non-ASCII included). An empty name returns null.
+Uri? googleMapsDirectionsUri({
   required String name,
-  required double latitude,
-  required double longitude,
+  double? latitude,
+  double? longitude,
 }) {
-  return Uri.https('www.google.com', '/maps/search/', {
+  if (directionsCoordinatesAreUsable(latitude, longitude)) {
+    final destination =
+        '${_formatCoordinate(latitude!)},${_formatCoordinate(longitude!)}';
+    if (_coordinateDestination.hasMatch(destination)) {
+      return Uri.parse(
+        'https://www.google.com/maps/dir/?api=1&destination=$destination',
+      );
+    }
+  }
+  final fallback = name.trim();
+  if (fallback.isEmpty) return null;
+  return Uri.https('www.google.com', '/maps/dir/', {
     'api': '1',
-    'query': '$name $latitude,$longitude',
+    'destination': fallback,
   });
+}
+
+String _formatCoordinate(double value) {
+  final trimmed = value
+      .toStringAsFixed(6)
+      .replaceFirst(RegExp(r'0+$'), '')
+      .replaceFirst(RegExp(r'\.$'), '');
+  return trimmed == '-0' ? '0' : trimmed;
 }
 
 class TempleDetailScreen extends StatefulWidget {
@@ -193,14 +243,15 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
       "Couldn't open directions on this device.";
 
   Future<void> _openGoogleMaps() async {
-    final lat = temple.latitude;
-    final lng = temple.longitude;
-    if (!temple.hasCoordinates || lat == null || lng == null) return;
-    final url = googleMapsSearchUri(
+    final url = googleMapsDirectionsUri(
       name: temple.name,
-      latitude: lat,
-      longitude: lng,
+      latitude: temple.latitude,
+      longitude: temple.longitude,
     );
+    if (url == null) {
+      if (mounted) _showDirectionsUnavailable();
+      return;
+    }
     final opened = await _tryOpenMaps(url);
     if (!opened && mounted) {
       _showDirectionsUnavailable();
@@ -241,6 +292,11 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
         : visiblePhotoCredit(temple.photos, gallery[_currentPage]);
 
     final caveat = honesty.timingsCaveatText;
+    final directionsUrl = googleMapsDirectionsUri(
+      name: temple.name,
+      latitude: temple.latitude,
+      longitude: temple.longitude,
+    );
 
     return Stack(
       children: [
@@ -631,7 +687,7 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
                               ),
                             ],
                           ),
-                          if (temple.hasCoordinates) ...[
+                          if (directionsUrl != null) ...[
                             const SizedBox(height: 14),
                             SizedBox(
                               width: double.infinity,
