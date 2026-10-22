@@ -285,6 +285,22 @@ node merge_devtamura_into_chabimura.js --apply --backup-dir /path/outside/the/re
 node rebuild_index.js --project temple-directory-india
 ```
 
+### One-use: Karaikal district and city
+
+Satyavrat (architect) signed off. Research Pavi verified the places. [`scripts/fix_karaikal_district_city.js`](scripts/fix_karaikal_district_city.js) is **one-use**. It updates only `district` and `city` on exactly three documents: `temples/rajacholeeswarar-temple-thirumalairayanpattinam` (city Thirumalairayanpattinam), `temples/thanthondreeswarar-temple-nedungadu` (city Nedungadu), and `temples/yazhmoorinathar-temple-dharmapuram` (city Dharmapuram). District is Karaikal on all three. `city` is the Firestore field from `Temple.city`. `district` is the existing string key on these documents. It is not a `Temple` field and it is not in the Firestore rules allow list, so a missing `district` or `city` aborts and the key is not created. `scripts/apply_field_patches.js` is unchanged. `state` is set to Puducherry only on an allowlisted document whose state is not already Puducherry, and that change is shown in that document's before/after diff. Coordinates and every other field stay untouched. Any other document or field is refused.
+
+Dry-run is the default and prints a before/after diff per document. `--apply` is Deployer-only, in a terminal, after a dry-run, and is refused in CI. It asks you to type the project id. `--backup-dir` is required with `--apply`. Each document is written there before any Firestore write, and a failed backup aborts. Do not commit that folder. All three documents are read and written in one transaction. `APPLY-FINISHED` is printed only after that transaction commits.
+
+This script does not call `rebuild_index.js`. After `--apply`, Deployer runs a rebuild_index dry run, which should show only these 3 temples moving into the right Puducherry/Karaikal shard and no other drift. Then retire the driver: delete `scripts/fix_karaikal_district_city.js`. Do not run it again.
+
+```bash
+cd scripts
+npm install
+node fix_karaikal_district_city.js --project temple-directory-india
+node fix_karaikal_district_city.js --apply --backup-dir /path/outside/the/repo --project temple-directory-india
+node rebuild_index.js --project temple-directory-india
+```
+
 Release and profile builds hide Seed/Admin entirely (including the Admin sign-in panel); `seedTempleData` and Admin CMS writes also refuse to run outside debug, and rules reject non-admin writes even if a client tried. The release App Bundle still links `firebase_auth` and `firebase_storage` — Play Data safety must not claim those SDKs are absent (see [`docs/play-store-listing.md`](docs/play-store-listing.md)).
 
 The home screen **falls back** to the 180 bundled sample temples if Firestore is empty or unreachable, so browse can look populated while the cloud `temples` collection is still empty. Admin reads Firestore only — it stays empty until an admin seeds or creates a temple.
