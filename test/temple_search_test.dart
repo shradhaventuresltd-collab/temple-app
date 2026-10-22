@@ -5,6 +5,7 @@ import 'package:temple_app/utils/temple_search.dart';
 
 void main() {
   Temple temple({
+    String id = '',
     String name = 'Plain Temple',
     String state = 'Tamil Nadu',
     String city = 'Madurai',
@@ -14,6 +15,7 @@ void main() {
     String story = '',
   }) {
     return Temple(
+      id: id,
       name: name,
       state: state,
       city: city,
@@ -368,6 +370,19 @@ void main() {
     );
 
     expect(filterTemples(sampleTemples, query: 'मीनाक्षी'), isEmpty);
+    expect(
+      filterTemples([
+        temple(name: 'Tirumal Hill Shrine'),
+        temple(
+          id: 'tirumala-venkateswara-temple',
+          name: 'Tirumala Venkateswara Temple',
+          city: 'Tirumala',
+          deity: 'Vishnu',
+          location: 'Tirumala hills',
+        ),
+      ], query: 'Tirupathi').map((t) => t.name),
+      ['Tirumala Venkateswara Temple'],
+    );
     expect(filterTemples(sampleTemples, query: 'திருச்செந்தூர்'), isEmpty);
     expect(
       filterTemples([listed], query: 'मीनाक्षी').single.name,
@@ -377,6 +392,102 @@ void main() {
     expect(
       () => filterTemples(sampleTemples, query: '🛕 मीनाक्षी'),
       returnsNormally,
+    );
+  });
+
+  const majorShiva = {
+    'Brihadeeswarar Temple',
+    'Arunachaleswarar Temple',
+    'Ramanathaswamy Temple',
+    'Sri Mallikarjuna Swamy Temple',
+    'Somnath Temple',
+    'Nageshwar Jyotirlinga Temple',
+    'Kashi Vishwanath Temple',
+    'Trimbakeshwar Temple',
+    'Bhimashankar Temple',
+    'Grishneshwar Temple',
+    'Mahakaleshwar Temple',
+    'Omkareshwar Temple',
+  };
+
+  test('Tirupati spellings rank Tirumala Venkateswara first', () {
+    final kalyana = temple(
+      name: 'Kalyana Venkateswara Temple, Srinivasa Mangapuram',
+      city: 'Tirupati',
+      deity: 'Vishnu',
+      location: 'Srinivasa Mangapuram, Tirupati',
+    );
+    final tirumala = temple(
+      id: 'tirumala-venkateswara-temple',
+      name: 'Tirumala Venkateswara Temple',
+      city: 'Tirumala',
+      deity: 'Vishnu',
+      location: 'Tirumala, Tirupati district',
+    );
+    final listed = [kalyana, tirumala];
+
+    for (final query in ['Tirupathi', 'Tirupati', 'Tirumala']) {
+      expect(
+        filterTemples(listed, query: query).first.name,
+        'Tirumala Venkateswara Temple',
+        reason: query,
+      );
+      expect(
+        filterTemples(sampleTemples, query: query).first.name,
+        'Tirumala Venkateswara Temple',
+        reason: query,
+      );
+    }
+  });
+
+  test('Sivan ranks a major Shiva temple ahead of a local Shiv temple', () {
+    final budheswar = temple(
+      id: 'budheswar-shiv-temple-dhamdha',
+      name: 'Budheswar Shiv Temple Dhamdha',
+      city: 'Dhamdha',
+      deity: 'Shiva',
+    );
+    final brihad = temple(
+      id: 'brihadeeswarar-temple',
+      name: 'Brihadeeswarar Temple',
+      city: 'Thanjavur',
+      deity: 'Shiva',
+    );
+
+    expect(
+      filterTemples([budheswar, brihad], query: 'Sivan').first.name,
+      'Brihadeeswarar Temple',
+    );
+    expect(
+      majorShiva,
+      contains(filterTemples(sampleTemples, query: 'Sivan').first.name),
+    );
+    expect(
+      majorShiva,
+      contains(filterTemples(sampleTemples, query: 'Shiva').first.name),
+    );
+  });
+
+  test('Minakshi, Tiruchendur, and short queries keep their top result', () {
+    expect(
+      filterTemples(sampleTemples, query: 'Minakshi').first.name,
+      'Meenakshi Amman Temple',
+    );
+    expect(
+      filterTemples(sampleTemples, query: 'Tiruchendur').first.name,
+      'Subramanya Swamy Temple',
+    );
+    expect(
+      filterTemples(sampleTemples, query: 'ee').first.name,
+      'Meenakshi Amman Temple',
+    );
+    expect(
+      filterTemples(sampleTemples, query: 'th').first.name,
+      'Brihadeeswarar Temple',
+    );
+    expect(
+      filterTemples(sampleTemples, query: 'it').first.name,
+      'Vaitheeswaran Koil',
     );
   });
 }
