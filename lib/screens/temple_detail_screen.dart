@@ -140,7 +140,8 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
 
   /// Photographs safe to show. Placeholder and picsum URLs are dropped.
   ///
-  /// The page shows [displayUrl] (the gallery copy when one exists).
+  /// The page shows [displayUrl] (the gallery copy, or a 1280px Commons
+  /// thumb when [sourceUrl] is an upload.wikimedia.org original).
   /// Credits stay on [DetailGalleryFrame.sourceUrl].
   List<DetailGalleryFrame> get frames =>
       detailGalleryFrames(temple, fullSizeIndexes: _fullSizePages);
@@ -945,11 +946,12 @@ class _TimingsCaveat extends StatelessWidget {
   }
 }
 
-/// Detail photo. Loads [displayUrl] (the gallery copy when one exists).
+/// Detail photo. Loads [displayUrl] (the gallery copy, or a 1280px Commons
+/// thumb when the stored URL is an upload.wikimedia.org original).
 ///
-/// A pinch past [kDetailGalleryFullSizeScale], or a failed gallery fetch,
-/// asks for the original. Auto-advance only changes the page, so it does
-/// not request that original.
+/// A pinch past [kDetailGalleryFullSizeScale], or a failed thumb, asks for
+/// the stored URL once. Auto-advance only changes the page, so it does not
+/// request that URL.
 class _GalleryPhoto extends StatefulWidget {
   const _GalleryPhoto({
     super.key,
