@@ -46,13 +46,17 @@ bool directionsCoordinatesAreUsable(double? latitude, double? longitude) {
 /// the app opened a partial route. The comma between latitude and longitude
 /// stays literal because that is the Maps URLs coordinate separator.
 ///
-/// When the coordinates are missing or unusable, [name] is the only
-/// destination and it is encoded as one query value (`&` `#` `/` `,`
-/// apostrophes and non-ASCII included). An empty name returns null.
+/// When the coordinates are missing or unusable, the destination is the
+/// temple name plus [city] and [state] when those are set. That string is
+/// encoded as one query value (`&` `#` `/` `,` apostrophes and non-ASCII
+/// included), so a comma in "Name, City, State" is not a second place.
+/// An empty name returns null.
 Uri? googleMapsDirectionsUri({
   required String name,
   double? latitude,
   double? longitude,
+  String? city,
+  String? state,
 }) {
   if (directionsCoordinatesAreUsable(latitude, longitude)) {
     final destination =
@@ -63,12 +67,25 @@ Uri? googleMapsDirectionsUri({
       );
     }
   }
-  final fallback = name.trim();
-  if (fallback.isEmpty) return null;
+  final fallback = _nameFallbackDestination(name, city: city, state: state);
+  if (fallback == null) return null;
   return Uri.https('www.google.com', '/maps/dir/', {
     'api': '1',
     'destination': fallback,
   });
+}
+
+/// `Name, City, State`, skipping a blank city or state. Null when [name]
+/// is blank. City and state are not added to a coordinate destination.
+String? _nameFallbackDestination(String name, {String? city, String? state}) {
+  final trimmedName = name.trim();
+  if (trimmedName.isEmpty) return null;
+  final parts = <String>[trimmedName];
+  final trimmedCity = city?.trim() ?? '';
+  final trimmedState = state?.trim() ?? '';
+  if (trimmedCity.isNotEmpty) parts.add(trimmedCity);
+  if (trimmedState.isNotEmpty) parts.add(trimmedState);
+  return parts.join(', ');
 }
 
 String _formatCoordinate(double value) {
@@ -246,6 +263,8 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
   Future<void> _openGoogleMaps() async {
     final url = googleMapsDirectionsUri(
       name: temple.name,
+      city: temple.city,
+      state: temple.state,
       latitude: temple.latitude,
       longitude: temple.longitude,
     );
@@ -295,6 +314,8 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
     final caveat = honesty.timingsCaveatText;
     final directionsUrl = googleMapsDirectionsUri(
       name: temple.name,
+      city: temple.city,
+      state: temple.state,
       latitude: temple.latitude,
       longitude: temple.longitude,
     );

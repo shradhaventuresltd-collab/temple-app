@@ -78,6 +78,48 @@ void main() {
     expect(curly.toString(), contains('%E2%80%99'));
   });
 
+  test('name fallback adds city and state as one encoded destination', () {
+    final uri = googleMapsDirectionsUri(
+      name: "Sri Ayyappan & Parvati's Temple",
+      city: 'Karaikal',
+      state: 'Puducherry',
+      latitude: 0,
+      longitude: 0,
+    )!;
+    expect(
+      uri.queryParameters['destination'],
+      "Sri Ayyappan & Parvati's Temple, Karaikal, Puducherry",
+    );
+    expect(uri.queryParameters.keys.toSet(), {'api', 'destination'});
+    final text = uri.toString();
+    expect(text, contains('%26'));
+    expect(text, contains('%27'));
+    expect(text, contains('%2C'));
+    expect(text.contains(','), isFalse);
+    expect(text.contains('&Parvati'), isFalse);
+
+    final coords = googleMapsDirectionsUri(
+      name: 'Manakula Vinayagar Temple, Puducherry',
+      city: 'Puducherry',
+      state: 'Puducherry',
+      latitude: 11.9346,
+      longitude: 79.8304,
+    )!;
+    expect(
+      coords.toString(),
+      'https://www.google.com/maps/dir/?api=1&destination=11.9346,79.8304',
+    );
+
+    expect(
+      googleMapsDirectionsUri(
+        name: '   ',
+        city: 'Karaikal',
+        state: 'Puducherry',
+      ),
+      isNull,
+    );
+  });
+
   test('a long fallback name is encoded in full', () {
     final name = 'Temple ${'A & B,' * 40} அ';
     expect(name.length, greaterThan(180));

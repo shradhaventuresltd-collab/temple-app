@@ -127,10 +127,10 @@ void main() {
 
     expect(
       launcher.launchedUrl,
-      'https://www.google.com/maps/dir/?api=1&destination=Unplaced',
+      'https://www.google.com/maps/dir/?api=1&destination=Unplaced%2C+Panaji%2C+Goa',
     );
     expect(launcher.launchedUrl, isNot(contains('0,0')));
-    expect(launcher.launchedUrl, isNot(contains('%2C')));
+    expect(launcher.launchedUrl, isNot(contains(',')));
     expect(launcher.launchMode, PreferredLaunchMode.externalApplication);
   });
 
