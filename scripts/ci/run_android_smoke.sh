@@ -67,7 +67,7 @@ adb shell pm path "$PKG"
 bash scripts/ci/install_https_handoff.sh
 echo "===== maps handler ====="
 adb shell pm resolve-activity -a android.intent.action.VIEW \
-  -d "https://www.google.com/maps/search/?api=1&query=9.9195,78.1193" || true
+  -d "https://www.google.com/maps/dir/?api=1&destination=9.9195,78.1193" || true
 
 # Log tag only. `io.flutter` in ActivityManager lines is the activity
 # class name and appears before the engine has drawn anything.

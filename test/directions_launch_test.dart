@@ -114,12 +114,24 @@ void main() {
       ),
     );
     await tester.pump();
-    expect(find.byKey(const Key('get-directions-button')), findsNothing);
+    expect(find.byKey(const Key('get-directions-button')), findsOneWidget);
     expect(find.text('Coordinates'), findsNothing);
-    expect(find.text('Get Directions'), findsNothing);
+    expect(find.text('Get Directions'), findsOneWidget);
     expect(find.text('Not listed in this entry.'), findsNothing);
     expect(find.textContaining('0.0000'), findsNothing);
     expect(find.text('This page may be out of date.'), findsNothing);
+
+    final launcher = _FakeUrlLauncher(canOpen: true);
+    UrlLauncherPlatform.instance = launcher;
+    await tapDirections(tester);
+
+    expect(
+      launcher.launchedUrl,
+      'https://www.google.com/maps/dir/?api=1&destination=Unplaced%2C+Panaji%2C+Goa',
+    );
+    expect(launcher.launchedUrl, isNot(contains('0,0')));
+    expect(launcher.launchedUrl, isNot(contains(',')));
+    expect(launcher.launchMode, PreferredLaunchMode.externalApplication);
   });
 
   testWidgets('a cached detail says it may be out of date', (tester) async {
@@ -160,7 +172,7 @@ void main() {
     expect(find.text(_unavailable), findsOneWidget);
     expect(
       launcher.launchedUrl,
-      'https://www.google.com/maps/search/?api=1&query=Draft+Temple+9.9%2C78.1',
+      'https://www.google.com/maps/dir/?api=1&destination=9.9,78.1',
     );
     expect(launcher.launchMode, PreferredLaunchMode.externalApplication);
   });
@@ -188,7 +200,7 @@ void main() {
     expect(find.text(_unavailable), findsNothing);
     expect(
       launcher.launchedUrl,
-      'https://www.google.com/maps/search/?api=1&query=Draft+Temple+9.9%2C78.1',
+      'https://www.google.com/maps/dir/?api=1&destination=9.9,78.1',
     );
     expect(launcher.launchMode, PreferredLaunchMode.externalApplication);
   });
