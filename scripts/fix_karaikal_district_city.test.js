@@ -487,11 +487,32 @@ test("apply refuses CI and does not write", async () => {
 
 test("parse rejects unknown arguments and defaults to dry-run", () => {
   assert.equal(parseArgs(["--project", "demo"]).apply, false);
+  assert.equal(parseArgs(["--project", "demo"]).project, "demo");
   assert.equal(parseArgs(["--apply", "--project", "demo"]).dryRun, false);
+  assert.equal(parseArgs(["--project=demo-temple-index"]).project, "demo-temple-index");
+  assert.equal(parseArgs(["--project=demo-temple-index"]).apply, false);
+  assert.equal(parseArgs(["--apply", "--project=demo-temple-index"]).dryRun, false);
+  assert.equal(parseArgs(["--apply", "--project=demo-temple-index"]).project, "demo-temple-index");
+  assert.throws(() => parseArgs(["--project="]), /--project needs/);
+  assert.throws(() => parseArgs(["--project=--apply"]), /--project needs/);
   assert.throws(() => parseArgs(["--id", TARGETS[0].id]), /Unknown argument/);
   assert.throws(() => parseArgs(["--field", "latitude"]), /Unknown argument/);
   assert.equal(DISTRICT_FIELD, "district");
   assert.equal(CITY_FIELD, "city");
+});
+
+test("--project=value dry-run reads and does not write", async () => {
+  const db = fakeDb(seedDocs());
+  const lines = [];
+  const result = await main(["--project=demo-temple-index"], {
+    env: emulatorEnv(),
+    db,
+    log: (line) => lines.push(line),
+  });
+  assert.equal(result.wrote, false);
+  assert.deepEqual(db.ops, []);
+  assert.match(lines.join("\n"), /Mode: dry-run/);
+  assert.doesNotMatch(lines.join("\n"), /APPLY-FINISHED/);
 });
 
 test("timestamp values in a backup stay readable", async () => {

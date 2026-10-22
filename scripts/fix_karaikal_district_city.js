@@ -165,12 +165,12 @@ export function parseArgs(argv) {
         throw new Error("--backup-dir needs a local folder. No write.");
       }
       opts.backupDir = raw.trim();
-    } else if (arg === "--project") {
-      const project = argv[++i];
-      if (typeof project !== "string" || project.trim() === "" || project.startsWith("--")) {
+    } else if (arg === "--project" || arg.startsWith("--project=")) {
+      const raw = arg === "--project" ? argv[++i] : arg.slice("--project=".length);
+      if (typeof raw !== "string" || raw.trim() === "" || raw.startsWith("--")) {
         throw new Error("--project needs a firebase project id. No write.");
       }
-      opts.project = project;
+      opts.project = raw.trim();
     } else throw new Error(`Unknown argument: ${arg}`);
   }
   return opts;
