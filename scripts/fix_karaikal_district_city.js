@@ -5,8 +5,10 @@
  * Temple, Nedungadu), karaikal.gov.in places-of-interest, and the
  * TN Temples Project.
  *
- * Three Puducherry temples in Karaikal district have the wrong district
- * and city. This script sets those two fields and nothing else.
+ * Three Karaikal temples have the wrong district and city. This script
+ * sets those two fields. When one of those documents has a state other
+ * than Puducherry, it also sets state to Puducherry on that document
+ * only, and the before/after diff shows that state line only there.
  *
  * Field names, looked up in the model and rules:
  *   city — Firestore `city`. Temple.city in lib/models/temple.dart.
@@ -27,9 +29,9 @@
  *     district Karaikal, city Nedungadu
  *   temples/yazhmoorinathar-temple-dharmapuram
  *     district Karaikal, city Dharmapuram
- * State stays Puducherry. A missing document, or a state that is not
- * Puducherry, aborts with no write. Latitude, longitude, and every
- * other field stay untouched.
+ * A missing document aborts with no write. State is written only when
+ * that document's state is not already Puducherry. Latitude, longitude,
+ * and every other field stay untouched.
  *
  * Dry-run is the default. It reads and prints a before/after diff per
  * document. It does not write. --apply is refused in CI. Prod apply
@@ -45,11 +47,13 @@
  * Then this script gets retired: delete
  * scripts/fix_karaikal_district_city.js. Do not run it again.
  *
- * The index shard id is the state slug (puducherry). State is not
- * written, so a temple already on that shard stays there. The index
- * entry copies `city` and does not copy `district`, so the dry run
- * should show city drift for these three ids and no other drift. A
- * move line is printed only when an entry still sits on another shard.
+ * The index shard id is the state slug (puducherry). State is written
+ * only on a document whose state is not already Puducherry, so that
+ * document can move onto the puducherry shard. A document that is
+ * already Puducherry stays on that shard. The index entry copies
+ * `city` and does not copy `district`, so the dry run should show
+ * city drift for these three ids and no other drift. A move line is
+ * printed only when an entry still sits on another shard.
  * prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
  *
  *   node fix_karaikal_district_city.js --project temple-directory-india
@@ -92,7 +96,6 @@ export const TARGETS = Object.freeze([
 ]);
 
 const RETIRED_MARKER = resolve(__dirname, "data", "karaikal-district-city.retired");
-const WRITTEN_KEYS = Object.freeze([DISTRICT_FIELD, CITY_FIELD]);
 
 function printUsage() {
   const lines = TARGETS.map(
@@ -105,7 +108,9 @@ Usage:
   node fix_karaikal_district_city.js --apply --backup-dir <folder> --project <firebase-project-id>
 
 ONE-USE. Sets only ${DISTRICT_FIELD} and ${CITY_FIELD} on exactly these
-three documents. State stays ${REQUIRED_STATE}. Coordinates are not written.
+three documents. ${STATE_FIELD} is set to ${REQUIRED_STATE} only on a
+document whose ${STATE_FIELD} is not already ${REQUIRED_STATE}.
+Coordinates are not written.
 Dry-run is the default and does not write. --apply requires --backup-dir,
 refuses CI, and prompts for the project id (the emulator does not).
 After --apply, run rebuild_index.js yourself, then delete this file.
@@ -237,11 +242,19 @@ function sortKeys(value) {
   return value;
 }
 
-export function correctionFields(target) {
-  return {
+/**
+ * district and city, plus state only when the live value is not already
+ * Puducherry. Pass no data when building the district/city pair alone.
+ */
+export function correctionFields(target, data) {
+  const fields = {
     [DISTRICT_FIELD]: target.district,
     [CITY_FIELD]: target.city,
   };
+  if (data && data[STATE_FIELD] !== REQUIRED_STATE) {
+    fields[STATE_FIELD] = REQUIRED_STATE;
+  }
+  return fields;
 }
 
 export function assertAllowedUpdate(id, fields) {
@@ -254,19 +267,28 @@ export function assertAllowedUpdate(id, fields) {
     );
   }
   const keys = Object.keys(fields ?? {}).sort();
-  const expected = [...WRITTEN_KEYS].sort();
-  if (keys.length !== expected.length || keys.some((key, index) => key !== expected[index])) {
+  const allowedKeys = new Set([DISTRICT_FIELD, CITY_FIELD, STATE_FIELD]);
+  const hasPlace = keys.includes(DISTRICT_FIELD) && keys.includes(CITY_FIELD);
+  const extra = keys.filter((key) => !allowedKeys.has(key));
+  if (!hasPlace || extra.length > 0 || keys.length > 3) {
     throw new Error(
-      `Refusing to write ${keys.join(", ") || "(no fields)"} on ${TEMPLES}/${id}. Only ${DISTRICT_FIELD} and ${CITY_FIELD} may be set.`,
+      `Refusing to write ${keys.join(", ") || "(no fields)"} on ${TEMPLES}/${id}. Only ${DISTRICT_FIELD} and ${CITY_FIELD} may be set, plus ${STATE_FIELD} when it is not already ${REQUIRED_STATE}.`,
     );
   }
-  for (const key of expected) {
+  for (const key of [DISTRICT_FIELD, CITY_FIELD]) {
     const value = fields[key];
     if (typeof value !== "string" || value.trim() === "") {
       throw new Error(`${key} must be a non-empty string.`);
     }
     if (value.length > CITY_MAX) {
       throw new Error(`${key} must be at most ${CITY_MAX} characters.`);
+    }
+  }
+  if (Object.prototype.hasOwnProperty.call(fields, STATE_FIELD)) {
+    if (fields[STATE_FIELD] !== REQUIRED_STATE) {
+      throw new Error(
+        `Refusing state ${JSON.stringify(fields[STATE_FIELD] ?? null)} on ${TEMPLES}/${id}. Only ${REQUIRED_STATE} may be set.`,
+      );
     }
   }
   if (fields[DISTRICT_FIELD] !== target.district || fields[CITY_FIELD] !== target.city) {
@@ -283,12 +305,6 @@ export function assertPreconditions(docs) {
     const path = `${TEMPLES}/${target.id}`;
     if (!doc?.exists) {
       throw new Error(`${path} does not exist. No write.`);
-    }
-    const state = doc.data?.[STATE_FIELD];
-    if (state !== REQUIRED_STATE) {
-      throw new Error(
-        `${path} state is ${JSON.stringify(state ?? null)}, not ${REQUIRED_STATE}. No write.`,
-      );
     }
     if (!Object.prototype.hasOwnProperty.call(doc.data, DISTRICT_FIELD)) {
       throw new Error(
@@ -314,6 +330,7 @@ export function buildReport(docs) {
     const data = docs[target.id].data;
     const beforeDistrict = data[DISTRICT_FIELD];
     const beforeCity = data[CITY_FIELD];
+    const beforeState = data[STATE_FIELD];
     return {
       id: target.id,
       path: `${TEMPLES}/${target.id}`,
@@ -323,13 +340,15 @@ export function buildReport(docs) {
       afterCity: target.city,
       districtChanged: beforeDistrict !== target.district,
       cityChanged: beforeCity !== target.city,
-      state: data[STATE_FIELD],
+      beforeState,
+      afterState: REQUIRED_STATE,
+      stateChanged: beforeState !== REQUIRED_STATE,
     };
   });
 }
 
 function show(value) {
-  return redactDownloadToken(JSON.stringify(value));
+  return redactDownloadToken(JSON.stringify(value === undefined ? null : value));
 }
 
 export function formatReport(report, { apply = false, backupDir = null } = {}) {
@@ -339,15 +358,23 @@ export function formatReport(report, { apply = false, backupDir = null } = {}) {
     lines.push(row.path);
     lines.push(`  ${DISTRICT_FIELD}: ${show(row.beforeDistrict)} -> ${show(row.afterDistrict)}`);
     lines.push(`  ${CITY_FIELD}: ${show(row.beforeCity)} -> ${show(row.afterCity)}`);
+    if (row.stateChanged) {
+      lines.push(`  ${STATE_FIELD}: ${show(row.beforeState)} -> ${show(row.afterState)}`);
+    }
   }
-  lines.push(`state stays ${REQUIRED_STATE}. latitude and longitude are not written.`);
+  lines.push("latitude and longitude are not written.");
   if (apply) {
     lines.push(`Backup: ${backupDir}`);
     for (const row of report) {
+      const wrote = [];
       if (row.districtChanged || row.cityChanged) {
-        lines.push(`Updated ${row.path} ${DISTRICT_FIELD} and ${CITY_FIELD}.`);
-      } else {
+        wrote.push(`${DISTRICT_FIELD} and ${CITY_FIELD}`);
+      }
+      if (row.stateChanged) wrote.push(STATE_FIELD);
+      if (wrote.length === 0) {
         lines.push(`Left ${row.path} ${DISTRICT_FIELD} and ${CITY_FIELD} unchanged.`);
+      } else {
+        lines.push(`Updated ${row.path} ${wrote.join(" and ")}.`);
       }
     }
   } else {
@@ -435,10 +462,14 @@ async function commitFix(db, docs) {
       throw new Error("Documents changed after the backup. No write.");
     }
     for (const item of refs) {
-      const fields = correctionFields(item.target);
-      assertAllowedUpdate(item.target.id, fields);
       const row = fresh[item.target.id].data;
-      if (row[DISTRICT_FIELD] === item.target.district && row[CITY_FIELD] === item.target.city) {
+      const fields = correctionFields(item.target, row);
+      assertAllowedUpdate(item.target.id, fields);
+      if (
+        row[DISTRICT_FIELD] === item.target.district &&
+        row[CITY_FIELD] === item.target.city &&
+        row[STATE_FIELD] === REQUIRED_STATE
+      ) {
         continue;
       }
       tx.update(item.ref, fields);

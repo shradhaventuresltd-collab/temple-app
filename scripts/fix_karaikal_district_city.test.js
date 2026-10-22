@@ -123,6 +123,13 @@ test("allowlist refuses other documents and other fields", () => {
     /Only temples\/rajacholeeswarar-temple-thirumalairayanpattinam/,
   );
   const id = TARGETS[0].id;
+  assert.doesNotThrow(() =>
+    assertAllowedUpdate(id, {
+      district: "Karaikal",
+      city: "Thirumalairayanpattinam",
+      state: "Puducherry",
+    }),
+  );
   assert.throws(
     () => assertAllowedUpdate(id, { district: "Karaikal", city: "Thirumalairayanpattinam", latitude: 1 }),
     /Only district and city/,
@@ -130,6 +137,15 @@ test("allowlist refuses other documents and other fields", () => {
   assert.throws(
     () => assertAllowedUpdate(id, { state: "Puducherry" }),
     /Only district and city/,
+  );
+  assert.throws(
+    () =>
+      assertAllowedUpdate(id, {
+        district: "Karaikal",
+        city: "Thirumalairayanpattinam",
+        state: "Tamil Nadu",
+      }),
+    /Only Puducherry may be set/,
   );
   assert.throws(
     () => assertAllowedUpdate(id, { longitude: 79.8 }),
@@ -207,7 +223,7 @@ test("dry-run prints the diff and does not write", async () => {
   assert.match(text, /city: "Karaikal" -> "Thirumalairayanpattinam"/);
   assert.match(text, /city: "Karaikal" -> "Nedungadu"/);
   assert.match(text, /city: "Karaikal" -> "Dharmapuram"/);
-  assert.match(text, /state stays Puducherry/);
+  assert.doesNotMatch(text, /state: /);
   assert.match(text, /latitude and longitude are not written/);
   assert.match(text, /No Firestore writes/);
   assert.match(text, /Puducherry\/Karaikal shard/);
@@ -254,6 +270,7 @@ test("apply writes the backup and only district and city", async () => {
       id: target.id,
       fields: { district: "Karaikal", city: target.city },
     });
+    assert.equal(Object.prototype.hasOwnProperty.call(op.fields, "state"), false);
     const saved = JSON.parse(readFileSync(join(dir, `${target.id}.json`), "utf8"));
     assert.equal(saved.path, `temples/${target.id}`);
     assert.equal(saved.data.district, "Nagapattinam");
@@ -296,13 +313,6 @@ test("preconditions abort with no writes", async () => {
         delete docs[TARGETS[1].id];
       },
       pattern: /thanthondreeswarar-temple-nedungadu does not exist/,
-    },
-    {
-      name: "wrong state",
-      edit: (docs) => {
-        docs[TARGETS[2].id] = temple(TARGETS[2].id, { state: "Tamil Nadu" });
-      },
-      pattern: /not Puducherry/,
     },
     {
       name: "missing district",
@@ -369,6 +379,64 @@ test("the transaction re-read aborts when a document changes after the backup", 
   assert.equal(db.store.get(TARGETS[1].id).city, "Karaikal");
 });
 
+test("a non-Puducherry state is written on that document only", async () => {
+  const docs = seedDocs();
+  const changedId = TARGETS[2].id;
+  docs[changedId] = temple(changedId, { state: "Tamil Nadu" });
+  const db = fakeDb(docs);
+  const lines = [];
+  const preview = await main(["--project", "demo-temple-index"], {
+    env: emulatorEnv(),
+    db,
+    log: (line) => lines.push(line),
+  });
+  assert.equal(preview.wrote, false);
+  assert.deepEqual(db.ops, []);
+  const text = lines.join("\n");
+  assert.match(
+    text,
+    new RegExp(
+      `temples/${changedId}\\n  district: "Nagapattinam" -> "Karaikal"\\n  city: "Karaikal" -> "Dharmapuram"\\n  state: "Tamil Nadu" -> "Puducherry"`,
+    ),
+  );
+  for (const target of TARGETS) {
+    if (target.id === changedId) continue;
+    const block = text.split(`temples/${target.id}\n`)[1].split("\ntemples/")[0];
+    assert.doesNotMatch(block, /state: /);
+  }
+  assert.equal(preview.report.filter((row) => row.stateChanged).map((row) => row.id).join(), changedId);
+  const dir = mkdtempSync(join(tmpdir(), "state-fix-"));
+  await main(["--apply", "--backup-dir", dir, "--project", "demo-temple-index"], {
+    env: emulatorEnv(),
+    db,
+    log: () => {},
+  });
+  assert.equal(db.transactions, 1);
+  assert.equal(db.ops.length, 3);
+  for (const target of TARGETS) {
+    const kept = db.store.get(target.id);
+    assert.equal(kept.district, "Karaikal");
+    assert.equal(kept.city, target.city);
+    assert.equal(kept.state, REQUIRED_STATE);
+    assert.equal(kept.latitude, COORDS[target.id].latitude);
+    assert.equal(kept.longitude, COORDS[target.id].longitude);
+    const op = db.ops.find((item) => item.id === target.id);
+    if (target.id === changedId) {
+      assert.deepEqual(op.fields, {
+        district: "Karaikal",
+        city: target.city,
+        state: "Puducherry",
+      });
+    } else {
+      assert.deepEqual(op.fields, { district: "Karaikal", city: target.city });
+    }
+  }
+  assert.equal(db.store.get("other-temple").state, "Tamil Nadu");
+  assert.equal(db.store.get("other-temple").city, "Thanjavur");
+  const saved = JSON.parse(readFileSync(join(dir, `${changedId}.json`), "utf8"));
+  assert.equal(saved.data.state, "Tamil Nadu");
+});
+
 test("fields that already match are left unchanged inside the same transaction", async () => {
   const docs = seedDocs();
   docs[TARGETS[1].id] = temple(TARGETS[1].id, {
@@ -380,6 +448,7 @@ test("fields that already match are left unchanged inside the same transaction",
   const unchanged = preview.find((row) => row.id === TARGETS[1].id);
   assert.equal(unchanged.districtChanged, false);
   assert.equal(unchanged.cityChanged, false);
+  assert.equal(unchanged.stateChanged, false);
   assert.match(formatReport(preview), /Left unchanged|city: "Karaikal" -> "Thirumalairayanpattinam"/);
   const dir = mkdtempSync(join(tmpdir(), "leave-match-"));
   const lines = [];
@@ -459,6 +528,8 @@ test(
     const project = "demo-karaikal-district-city";
     const db = await emulatorDb(project);
     const docs = seedDocs();
+    const changedId = TARGETS[2].id;
+    docs[changedId] = temple(changedId, { state: "Tamil Nadu" });
     await resetTemples(db, docs);
     const env = { FIRESTORE_EMULATOR_HOST: emulatorHost };
     const lines = [];
@@ -471,6 +542,7 @@ test(
       },
     });
     assert.match(lines.join("\n"), /No Firestore writes/);
+    assert.match(lines.join("\n"), /state: "Tamil Nadu" -> "Puducherry"/);
     assert.doesNotMatch(lines.join("\n"), /APPLY-FINISHED/);
     const afterDry = await db.collection("temples").doc(TARGETS[0].id).get();
     assert.equal(afterDry.data().city, "Karaikal");
@@ -495,6 +567,7 @@ test(
       const backup = JSON.parse(readFileSync(join(dir, `${target.id}.json`), "utf8"));
       assert.equal(backup.data.city, "Karaikal");
       assert.equal(backup.data.district, "Nagapattinam");
+      assert.equal(backup.data.state, target.id === changedId ? "Tamil Nadu" : REQUIRED_STATE);
     }
     const other = await db.collection("temples").doc("other-temple").get();
     assert.equal(other.data().state, "Tamil Nadu");
