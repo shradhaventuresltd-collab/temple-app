@@ -195,6 +195,119 @@ test("classify missing, zero, swapped, india, state, duplicate, and url text", (
   for (const code of ISSUE_ORDER) assert.equal(typeof report.counts[code], "number");
 });
 
+test("Puducherry names the union territory and is valid in every enclave", () => {
+  function issues(id, extra) {
+    const report = auditTemples([
+      temple({
+        id,
+        state: "Puducherry",
+        city: "Puducherry",
+        address: "Puducherry",
+        ...extra,
+      }),
+    ]);
+    return report.rows[0];
+  }
+
+  const before = issues("before-address", {
+    name: "Rajacholeeswarar Temple",
+    city: "Thirumalairayanpattinam",
+    address: "Thirumalairayanpattinam, Puducherry",
+    latitude: 10.87,
+    longitude: 79.83,
+  });
+  assert.equal(before.issues.includes("wrong-enclave"), false);
+  assert.equal(before.issues.includes("outside-state"), false);
+  assert.ok(before.issues.includes("address-url"));
+
+  const after = issues("after-address", {
+    city: "Thirumalairayanpattinam",
+    address: "Thirumalairayanpattinam, Karaikal, Puducherry",
+    latitude: 10.9,
+    longitude: 79.82,
+  });
+  assert.equal(after.issues.includes("wrong-enclave"), false);
+  assert.equal(after.issues.includes("outside-state"), false);
+
+  const nedungadu = issues("nedungadu", {
+    city: "Nedungadu",
+    address: "Nedungadu, Karaikal, Puducherry",
+    latitude: 10.91,
+    longitude: 79.81,
+  });
+  assert.equal(nedungadu.issues.includes("wrong-enclave"), false);
+
+  const dharmapuram = issues("dharmapuram", {
+    city: "Dharmapuram",
+    address: "Dharmapuram, Karaikal, Puducherry",
+    latitude: 10.88,
+    longitude: 79.84,
+  });
+  assert.equal(dharmapuram.issues.includes("wrong-enclave"), false);
+
+  const utOnly = issues("ut-only", {
+    city: "Puducherry",
+    address: "Thirumalairayanpattinam, Puducherry",
+    latitude: 10.86,
+    longitude: 79.85,
+  });
+  assert.equal(utOnly.issues.includes("wrong-enclave"), false);
+
+  const maheNamed = issues("mahe-named", {
+    city: "Mahe",
+    address: "Mahe, Puducherry",
+    latitude: 10.87,
+    longitude: 79.83,
+  });
+  assert.ok(maheNamed.issues.includes("wrong-enclave"));
+  assert.match(maheNamed.detail, /named mahe but coordinates are in karaikal/);
+  assert.equal(maheNamed.issues.includes("outside-state"), false);
+
+  const utAtMahe = issues("ut-at-mahe", {
+    address: "Puducherry",
+    latitude: 11.701,
+    longitude: 75.536,
+  });
+  assert.equal(utAtMahe.issues.includes("wrong-enclave"), false);
+  assert.equal(utAtMahe.issues.includes("outside-state"), false);
+
+  const utAtYanam = issues("ut-at-yanam", {
+    city: "Puducherry",
+    address: "Pondicherry",
+    latitude: 16.73,
+    longitude: 82.22,
+  });
+  assert.equal(utAtYanam.issues.includes("wrong-enclave"), false);
+  assert.equal(utAtYanam.issues.includes("outside-state"), false);
+
+  const stillWrong = issues("still-wrong", {
+    city: "Karaikal",
+    address: "Karaikal, Puducherry",
+    latitude: 11.94,
+    longitude: 79.83,
+  });
+  assert.ok(stillWrong.issues.includes("wrong-enclave"));
+  assert.match(stillWrong.detail, /named karaikal but coordinates are in puducherry/);
+
+  const namedOutside = issues("karaikal-outside", {
+    city: "Karaikal",
+    address: "Karaikal, Puducherry",
+    latitude: 13.0827,
+    longitude: 80.2707,
+  });
+  assert.ok(namedOutside.issues.includes("outside-state"));
+  assert.equal(namedOutside.issues.includes("wrong-enclave"), false);
+
+  const mixed = issues("mixed-enclaves", {
+    city: "Karaikal",
+    address: "Karaikal and Mahe, Puducherry",
+    latitude: 10.89,
+    longitude: 79.8,
+  });
+  assert.ok(mixed.issues.includes("wrong-enclave"));
+  assert.match(mixed.detail, /named mahe but coordinates are in karaikal/);
+});
+
 test("json exports and service accounts", () => {
   const fromArray = loadTemplesFromJson([
     { slug: "one", name: "One", state: "Goa", latitude: 15.5, longitude: 73.8 },

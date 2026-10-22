@@ -42,6 +42,11 @@
  * Issue codes: missing-lat, missing-lng, zero-zero, swapped, outside-india,
  * outside-state, wrong-enclave, unknown-state, duplicate, name-url,
  * address-url, name-long, address-long.
+ * wrong-enclave fires only when the text names a specific enclave
+ * (Karaikal or Thirunallar, Mahe, Yanam) and the coordinates lie in a
+ * different Puducherry enclave. Puducherry, Pondicherry, and Puduchcheri
+ * name the union territory and are valid for every enclave. They do not
+ * claim Puducherry town.
  * name-long / address-long means longer than 180 characters.
  * duplicate matches latitude,longitude rounded to 5 decimal places.
  * (0, 0) is zero-zero and is not also outside-india.
@@ -288,34 +293,38 @@ export function puducherryEnclaveAt(lat, lng) {
   return null;
 }
 
+/**
+ * Specific enclave names in the city, name, or address. Karaikal is part
+ * of Puducherry, so the union-territory words (Puducherry, Pondicherry,
+ * Puduchcheri) are valid for every enclave and are not a claim of the
+ * Puducherry town box. Thirunallar / Tirunallar name the Karaikal enclave.
+ */
 function claimedPuducherryEnclaves(temple) {
   const text = fold(`${temple.city ?? ""}\n${temple.name ?? ""}\n${temple.address ?? ""}`);
-  const specific = [];
-  if (/\bkaraikal\b|\bthirunallar\b|\btirunallar\b/.test(text)) specific.push("karaikal");
-  if (/\bmahe\b/.test(text)) specific.push("mahe");
-  if (/\byanam\b/.test(text)) specific.push("yanam");
-  if (specific.length > 0) return specific;
-  if (/\bpuducherry\b|\bpondicherry\b|\bpuduchcheri\b/.test(text)) return ["puducherry"];
-  return [];
+  const named = [];
+  if (/\bkaraikal\b|\bthirunallar\b|\btirunallar\b/.test(text)) named.push("karaikal");
+  if (/\bmahe\b/.test(text)) named.push("mahe");
+  if (/\byanam\b/.test(text)) named.push("yanam");
+  return named;
 }
 
 function puducherryIssues(temple, lat, lng) {
   const at = puducherryEnclaveAt(lat, lng);
-  const claimed = claimedPuducherryEnclaves(temple);
-  if (claimed.length > 0) {
-    if (at && claimed.includes(at)) return [];
-    if (at) {
-      return [
-        {
-          code: "wrong-enclave",
-          detail: `named ${claimed.join("|")} but coordinates are in ${at}`,
-        },
-      ];
-    }
+  const named = claimedPuducherryEnclaves(temple);
+  const different = named.filter((name) => name !== at);
+  if (different.length > 0 && at) {
+    return [
+      {
+        code: "wrong-enclave",
+        detail: `named ${different.join("|")} but coordinates are in ${at}`,
+      },
+    ];
+  }
+  if (named.length > 0 && !at) {
     return [
       {
         code: "outside-state",
-        detail: `named ${claimed.join("|")} but coordinates are outside every Puducherry enclave`,
+        detail: `named ${named.join("|")} but coordinates are outside every Puducherry enclave`,
       },
     ];
   }

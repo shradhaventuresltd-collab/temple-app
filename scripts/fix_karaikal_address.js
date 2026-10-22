@@ -5,59 +5,52 @@
  * Temple, Nedungadu), karaikal.gov.in places-of-interest, and the
  * TN Temples Project.
  *
- * Three Karaikal temples have the wrong district and city. This script
- * sets those two fields. When one of those documents has a state other
- * than Puducherry, it also sets state to Puducherry on that document
- * only, and the before/after diff shows that state line only there.
+ * The earlier district/city script aborted in production: these three
+ * documents have no `district` field, and `city` and `state` are already
+ * correct. The address text is what is wrong. This script writes only
+ * the Firestore `address` field. `district`, `city`, `state`, latitude,
+ * and longitude are not written.
  *
- * Field names, looked up in the model and rules:
- *   city — Firestore `city`. Temple.city in lib/models/temple.dart.
- *     toFirestoreData writes `city`. firestore.rules requires a string
- *     of 1..100 characters.
- *   district — Firestore `district`. Temple and firestore.rules do not
- *     list this key (rules allowed fields stop at tradition). These
- *     three documents already store a string `district`, the same key
- *     photo-pack manifests use. This script updates that existing key.
- *     A missing `district` or `city` aborts with no write, so the key
- *     is not created and the rules allow list is not widened.
- *     scripts/apply_field_patches.js ALLOWED_FIELDS is not changed.
+ * Field name, looked up in the model and rules:
+ *   address — Firestore `address`. Temple.location in
+ *   lib/models/temple.dart is stored as `address`. firestore.rules
+ *   requires a string of 1..500 characters. scripts/apply_field_patches.js
+ *   ALLOWED_FIELDS is not changed.
  *
- * Hard allowlist, exactly these three documents:
+ * Hard allowlist, exactly these three documents. The current address
+ * must equal the before string exactly. Any mismatch aborts the whole
+ * run, and nothing is written:
  *   temples/rajacholeeswarar-temple-thirumalairayanpattinam
- *     district Karaikal, city Thirumalairayanpattinam
+ *     "Thirumalairayanpattinam, Puducherry"
+ *       -> "Thirumalairayanpattinam, Karaikal, Puducherry"
  *   temples/thanthondreeswarar-temple-nedungadu
- *     district Karaikal, city Nedungadu
+ *     "Nedungadu, Puducherry"
+ *       -> "Nedungadu, Karaikal, Puducherry"
  *   temples/yazhmoorinathar-temple-dharmapuram
- *     district Karaikal, city Dharmapuram
- * A missing document aborts with no write. State is written only when
- * that document's state is not already Puducherry. Latitude, longitude,
- * and every other field stay untouched.
+ *     "Dharmapuram, Puducherry"
+ *       -> "Dharmapuram, Karaikal, Puducherry"
+ * A missing document aborts with no write.
  *
  * Dry-run is the default. It reads and prints a before/after diff per
- * document. It does not write. --apply is refused in CI. Prod apply
- * asks you to type the project id. --backup-dir is required with
- * --apply. Each document is written there before any Firestore write.
- * A failed backup aborts. Reads and writes for all three documents
- * happen in one transaction. APPLY-FINISHED is printed only after that
- * transaction commits.
+ * document. It does not write Firestore. --backup-dir on a dry run
+ * exports each current document to that folder and still does not write
+ * Firestore. --apply is refused in CI. Prod apply asks you to type the
+ * project id. --backup-dir is required with --apply. Each document is
+ * written there before any Firestore write. A failed backup aborts.
+ * Reads and writes for all three documents happen in one transaction.
+ * APPLY-FINISHED is printed only after that transaction commits.
  *
  * This script does not call rebuild_index.js. After --apply, Deployer
- * runs a rebuild_index dry run, which should show only these 3 temples
- * moving into the right Puducherry/Karaikal shard and no other drift.
- * Then this script gets retired: delete
- * scripts/fix_karaikal_district_city.js. Do not run it again.
- *
- * The index shard id is the state slug (puducherry). State is written
- * only on a document whose state is not already Puducherry, so that
- * document can move onto the puducherry shard. A document that is
- * already Puducherry stays on that shard. The index entry copies
- * `city` and does not copy `district`, so the dry run should show
- * city drift for these three ids and no other drift. A move line is
- * printed only when an entry still sits on another shard.
+ * runs a rebuild_index dry run. State is not written, so these three
+ * stay on the puducherry shard. The index entry copies a short address,
+ * so that dry run should show address drift for these 3 ids only and
+ * no other drift. Then this script gets retired: delete
+ * scripts/fix_karaikal_address.js. Do not run it again.
  * prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
  *
- *   node fix_karaikal_district_city.js --project temple-directory-india
- *   node fix_karaikal_district_city.js --apply --backup-dir <folder> --project temple-directory-india
+ *   node fix_karaikal_address.js --project temple-directory-india
+ *   node fix_karaikal_address.js --backup-dir <folder> --project temple-directory-india
+ *   node fix_karaikal_address.js --apply --backup-dir <folder> --project temple-directory-india
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -69,50 +62,47 @@ import { redactDownloadToken, redactThrown } from "./redact_url.js";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export const TEMPLES = "temples";
-export const DISTRICT_FIELD = "district";
-export const CITY_FIELD = "city";
-export const STATE_FIELD = "state";
-export const REQUIRED_STATE = "Puducherry";
-export const DISTRICT_VALUE = "Karaikal";
-/** Same cap as firestore.rules validStringLength('city', 1, 100). */
-export const CITY_MAX = 100;
+export const ADDRESS_FIELD = "address";
+/** Same cap as firestore.rules validStringLength('address', 1, 500). */
+export const ADDRESS_MAX = 500;
 
 export const TARGETS = Object.freeze([
   Object.freeze({
     id: "rajacholeeswarar-temple-thirumalairayanpattinam",
-    district: DISTRICT_VALUE,
-    city: "Thirumalairayanpattinam",
+    before: "Thirumalairayanpattinam, Puducherry",
+    after: "Thirumalairayanpattinam, Karaikal, Puducherry",
   }),
   Object.freeze({
     id: "thanthondreeswarar-temple-nedungadu",
-    district: DISTRICT_VALUE,
-    city: "Nedungadu",
+    before: "Nedungadu, Puducherry",
+    after: "Nedungadu, Karaikal, Puducherry",
   }),
   Object.freeze({
     id: "yazhmoorinathar-temple-dharmapuram",
-    district: DISTRICT_VALUE,
-    city: "Dharmapuram",
+    before: "Dharmapuram, Puducherry",
+    after: "Dharmapuram, Karaikal, Puducherry",
   }),
 ]);
 
-const RETIRED_MARKER = resolve(__dirname, "data", "karaikal-district-city.retired");
+const RETIRED_MARKER = resolve(__dirname, "data", "karaikal-address.retired");
 
 function printUsage() {
   const lines = TARGETS.map(
     (target) =>
-      `  ${TEMPLES}/${target.id}  ${DISTRICT_FIELD}=${target.district}  ${CITY_FIELD}=${target.city}`,
+      `  ${TEMPLES}/${target.id}\n    ${JSON.stringify(target.before)} -> ${JSON.stringify(target.after)}`,
   );
   console.log(`
 Usage:
-  node fix_karaikal_district_city.js [--dry-run] --project <firebase-project-id>
-  node fix_karaikal_district_city.js --apply --backup-dir <folder> --project <firebase-project-id>
+  node fix_karaikal_address.js [--dry-run] [--backup-dir <folder>] --project <firebase-project-id>
+  node fix_karaikal_address.js --apply --backup-dir <folder> --project <firebase-project-id>
 
-ONE-USE. Sets only ${DISTRICT_FIELD} and ${CITY_FIELD} on exactly these
-three documents. ${STATE_FIELD} is set to ${REQUIRED_STATE} only on a
-document whose ${STATE_FIELD} is not already ${REQUIRED_STATE}.
-Coordinates are not written.
-Dry-run is the default and does not write. --apply requires --backup-dir,
-refuses CI, and prompts for the project id (the emulator does not).
+ONE-USE. Sets only ${ADDRESS_FIELD} on exactly these three documents,
+and only when the current ${ADDRESS_FIELD} equals the before string.
+district, city, state, latitude, and longitude are not written.
+Dry-run is the default and does not write Firestore. --backup-dir on a
+dry run exports the current documents and still does not write Firestore.
+--apply requires --backup-dir, refuses CI, and prompts for the project id
+(the emulator does not).
 After --apply, run rebuild_index.js yourself, then delete this file.
 
 ${lines.join("\n")}
@@ -132,14 +122,20 @@ export function assertAllowlistShape() {
     throw new Error("Allowlist document ids must be unique. No write.");
   }
   for (const target of TARGETS) {
-    if (target.district !== DISTRICT_VALUE) {
-      throw new Error("Allowlist district must be Karaikal. No write.");
+    if (typeof target.before !== "string" || target.before.length === 0) {
+      throw new Error(`Allowlist before address for ${target.id} is empty. No write.`);
     }
-    if (typeof target.city !== "string" || target.city.trim() === "") {
-      throw new Error(`Allowlist city for ${target.id} is empty. No write.`);
+    if (typeof target.after !== "string" || target.after.trim() === "") {
+      throw new Error(`Allowlist after address for ${target.id} is empty. No write.`);
     }
-    if (target.city.length > CITY_MAX) {
-      throw new Error(`Allowlist city for ${target.id} is longer than ${CITY_MAX}. No write.`);
+    if (target.after.length > ADDRESS_MAX) {
+      throw new Error(`Allowlist address for ${target.id} is longer than ${ADDRESS_MAX}. No write.`);
+    }
+    if (target.before === target.after) {
+      throw new Error(`Allowlist address for ${target.id} does not change. No write.`);
+    }
+    if (!target.after.includes("Karaikal, Puducherry")) {
+      throw new Error(`Allowlist address for ${target.id} must name Karaikal, Puducherry. No write.`);
     }
   }
 }
@@ -242,19 +238,9 @@ function sortKeys(value) {
   return value;
 }
 
-/**
- * district and city, plus state only when the live value is not already
- * Puducherry. Pass no data when building the district/city pair alone.
- */
-export function correctionFields(target, data) {
-  const fields = {
-    [DISTRICT_FIELD]: target.district,
-    [CITY_FIELD]: target.city,
-  };
-  if (data && data[STATE_FIELD] !== REQUIRED_STATE) {
-    fields[STATE_FIELD] = REQUIRED_STATE;
-  }
-  return fields;
+/** The only field this script may write. */
+export function correctionFields(target) {
+  return { [ADDRESS_FIELD]: target.after };
 }
 
 export function assertAllowedUpdate(id, fields) {
@@ -267,82 +253,60 @@ export function assertAllowedUpdate(id, fields) {
     );
   }
   const keys = Object.keys(fields ?? {}).sort();
-  const allowedKeys = new Set([DISTRICT_FIELD, CITY_FIELD, STATE_FIELD]);
-  const hasPlace = keys.includes(DISTRICT_FIELD) && keys.includes(CITY_FIELD);
-  const extra = keys.filter((key) => !allowedKeys.has(key));
-  if (!hasPlace || extra.length > 0 || keys.length > 3) {
+  if (keys.length !== 1 || keys[0] !== ADDRESS_FIELD) {
     throw new Error(
-      `Refusing to write ${keys.join(", ") || "(no fields)"} on ${TEMPLES}/${id}. Only ${DISTRICT_FIELD} and ${CITY_FIELD} may be set, plus ${STATE_FIELD} when it is not already ${REQUIRED_STATE}.`,
+      `Refusing to write ${keys.join(", ") || "(no fields)"} on ${TEMPLES}/${id}. Only ${ADDRESS_FIELD} may be set.`,
     );
   }
-  for (const key of [DISTRICT_FIELD, CITY_FIELD]) {
-    const value = fields[key];
-    if (typeof value !== "string" || value.trim() === "") {
-      throw new Error(`${key} must be a non-empty string.`);
-    }
-    if (value.length > CITY_MAX) {
-      throw new Error(`${key} must be at most ${CITY_MAX} characters.`);
-    }
+  const value = fields[ADDRESS_FIELD];
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new Error(`${ADDRESS_FIELD} must be a non-empty string.`);
   }
-  if (Object.prototype.hasOwnProperty.call(fields, STATE_FIELD)) {
-    if (fields[STATE_FIELD] !== REQUIRED_STATE) {
-      throw new Error(
-        `Refusing state ${JSON.stringify(fields[STATE_FIELD] ?? null)} on ${TEMPLES}/${id}. Only ${REQUIRED_STATE} may be set.`,
-      );
-    }
+  if (value.length > ADDRESS_MAX) {
+    throw new Error(`${ADDRESS_FIELD} must be at most ${ADDRESS_MAX} characters.`);
   }
-  if (fields[DISTRICT_FIELD] !== target.district || fields[CITY_FIELD] !== target.city) {
+  if (value !== target.after) {
     throw new Error(
-      `Refusing values on ${TEMPLES}/${id}. Only district ${JSON.stringify(target.district)} and city ${JSON.stringify(target.city)} may be set.`,
+      `Refusing address ${JSON.stringify(value)} on ${TEMPLES}/${id}. Only ${JSON.stringify(target.after)} may be set.`,
     );
   }
 }
 
+function showAddress(value) {
+  return JSON.stringify(value === undefined ? null : value);
+}
+
 export function assertPreconditions(docs) {
   assertAllowlistShape();
+  const problems = [];
   for (const target of TARGETS) {
     const doc = docs[target.id];
     const path = `${TEMPLES}/${target.id}`;
     if (!doc?.exists) {
-      throw new Error(`${path} does not exist. No write.`);
+      problems.push(`${path} does not exist.`);
+      continue;
     }
-    if (!Object.prototype.hasOwnProperty.call(doc.data, DISTRICT_FIELD)) {
-      throw new Error(
-        `${path} has no existing ${DISTRICT_FIELD} field. No write.`,
+    const address = doc.data?.[ADDRESS_FIELD];
+    if (address !== target.before) {
+      problems.push(
+        `${path} address is ${showAddress(address)}, expected ${JSON.stringify(target.before)}.`,
       );
     }
-    if (typeof doc.data[DISTRICT_FIELD] !== "string") {
-      throw new Error(
-        `${path} ${DISTRICT_FIELD} is not a string. No write.`,
-      );
-    }
-    if (!Object.prototype.hasOwnProperty.call(doc.data, CITY_FIELD)) {
-      throw new Error(`${path} has no existing ${CITY_FIELD} field. No write.`);
-    }
-    if (typeof doc.data[CITY_FIELD] !== "string") {
-      throw new Error(`${path} ${CITY_FIELD} is not a string. No write.`);
-    }
+  }
+  if (problems.length > 0) {
+    throw new Error(`${problems.join(" ")} No write.`);
   }
 }
 
 export function buildReport(docs) {
   return TARGETS.map((target) => {
     const data = docs[target.id].data;
-    const beforeDistrict = data[DISTRICT_FIELD];
-    const beforeCity = data[CITY_FIELD];
-    const beforeState = data[STATE_FIELD];
+    const before = data[ADDRESS_FIELD];
     return {
       id: target.id,
       path: `${TEMPLES}/${target.id}`,
-      beforeDistrict,
-      afterDistrict: target.district,
-      beforeCity,
-      afterCity: target.city,
-      districtChanged: beforeDistrict !== target.district,
-      cityChanged: beforeCity !== target.city,
-      beforeState,
-      afterState: REQUIRED_STATE,
-      stateChanged: beforeState !== REQUIRED_STATE,
+      before,
+      after: target.after,
     };
   });
 }
@@ -356,35 +320,25 @@ export function formatReport(report, { apply = false, backupDir = null } = {}) {
   lines.push(apply ? "Mode: apply" : "Mode: dry-run");
   for (const row of report) {
     lines.push(row.path);
-    lines.push(`  ${DISTRICT_FIELD}: ${show(row.beforeDistrict)} -> ${show(row.afterDistrict)}`);
-    lines.push(`  ${CITY_FIELD}: ${show(row.beforeCity)} -> ${show(row.afterCity)}`);
-    if (row.stateChanged) {
-      lines.push(`  ${STATE_FIELD}: ${show(row.beforeState)} -> ${show(row.afterState)}`);
-    }
+    lines.push(`  ${ADDRESS_FIELD}: ${show(row.before)} -> ${show(row.after)}`);
   }
-  lines.push("latitude and longitude are not written.");
+  lines.push("district, city, state, latitude, and longitude are not written.");
+  if (backupDir) lines.push(`Backup: ${backupDir}`);
   if (apply) {
-    lines.push(`Backup: ${backupDir}`);
     for (const row of report) {
-      const wrote = [];
-      if (row.districtChanged || row.cityChanged) {
-        wrote.push(`${DISTRICT_FIELD} and ${CITY_FIELD}`);
-      }
-      if (row.stateChanged) wrote.push(STATE_FIELD);
-      if (wrote.length === 0) {
-        lines.push(`Left ${row.path} ${DISTRICT_FIELD} and ${CITY_FIELD} unchanged.`);
-      } else {
-        lines.push(`Updated ${row.path} ${wrote.join(" and ")}.`);
-      }
+      lines.push(`Updated ${row.path} ${ADDRESS_FIELD}.`);
     }
   } else {
     lines.push("Dry-run only. No Firestore writes.");
+    if (backupDir) {
+      lines.push("Backup export is read-only. No Firestore writes.");
+    }
   }
   lines.push(
-    "Next: run node scripts/rebuild_index.js --project <id>. It should show only these 3 temples moving into the right Puducherry/Karaikal shard and no other drift. This script does not call rebuild_index.",
+    "Next: run node scripts/rebuild_index.js --project <id>. State is not written, so these 3 stay on the puducherry shard. It should show address drift for these 3 ids only and no other drift. This script does not call rebuild_index.",
   );
   lines.push(
-    "ONE-USE: after the apply and that dry run, delete scripts/fix_karaikal_district_city.js. Do not run this again.",
+    "ONE-USE: after the apply and that dry run, delete scripts/fix_karaikal_address.js. Do not run this again.",
   );
   return lines.join("\n");
 }
@@ -410,7 +364,7 @@ export async function readTargets(db) {
 
 export function writeBackupFiles(dir, docs) {
   if (typeof dir !== "string" || dir.trim() === "") {
-    throw new Error("--backup-dir is required with --apply.");
+    throw new Error("--backup-dir needs a local folder. No write.");
   }
   const folder = resolve(dir);
   mkdirSync(folder, { recursive: true });
@@ -462,16 +416,8 @@ async function commitFix(db, docs) {
       throw new Error("Documents changed after the backup. No write.");
     }
     for (const item of refs) {
-      const row = fresh[item.target.id].data;
-      const fields = correctionFields(item.target, row);
+      const fields = correctionFields(item.target);
       assertAllowedUpdate(item.target.id, fields);
-      if (
-        row[DISTRICT_FIELD] === item.target.district &&
-        row[CITY_FIELD] === item.target.city &&
-        row[STATE_FIELD] === REQUIRED_STATE
-      ) {
-        continue;
-      }
       tx.update(item.ref, fields);
     }
   });
@@ -483,17 +429,20 @@ export async function inspectFix(db) {
   return buildReport(docs);
 }
 
-export async function applyFix(db, { backupDir, log = () => {}, writeBackup = writeBackupFiles }) {
-  const docs = await readTargets(db);
-  assertPreconditions(docs);
-  const report = buildReport(docs);
-  let backup;
+function backupOrThrow(writeBackup, backupDir, docs) {
   try {
-    backup = writeBackup(backupDir, docs);
+    return writeBackup(backupDir, docs);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Backup failed: ${message} No write.`);
   }
+}
+
+export async function applyFix(db, { backupDir, log = () => {}, writeBackup = writeBackupFiles }) {
+  const docs = await readTargets(db);
+  assertPreconditions(docs);
+  const report = buildReport(docs);
+  const backup = backupOrThrow(writeBackup, backupDir, docs);
   log(`Backup: ${backup.dir}`);
   await commitFix(db, docs);
   return { report, backupDir: backup.dir };
@@ -561,15 +510,24 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     await authorizeApply(project, env, { confirm: deps.confirm });
   }
   const db = deps.db ?? (await openFirestore(project, env));
+  const writeBackup = deps.writeBackup ?? writeBackupFiles;
   if (!opts.apply) {
-    const report = await inspectFix(db);
-    log(formatReport(report, { apply: false }));
-    return { report, wrote: false };
+    const docs = await readTargets(db);
+    assertPreconditions(docs);
+    let backupDir = null;
+    if (opts.backupDir) {
+      const backup = backupOrThrow(writeBackup, opts.backupDir, docs);
+      backupDir = backup.dir;
+      log(`Backup: ${backup.dir}`);
+    }
+    const report = buildReport(docs);
+    log(formatReport(report, { apply: false, backupDir }));
+    return { report, wrote: false, backupDir };
   }
   const applied = await applyFix(db, {
     backupDir: opts.backupDir,
     log,
-    writeBackup: deps.writeBackup,
+    writeBackup,
   });
   log(formatReport(applied.report, { apply: true, backupDir: applied.backupDir }));
   log("APPLY-FINISHED");
