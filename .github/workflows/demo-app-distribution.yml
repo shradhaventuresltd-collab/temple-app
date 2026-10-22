@@ -107,6 +107,9 @@ jobs:
           DEMO_KEY_PASSWORD: ${{ secrets.DEMO_KEY_PASSWORD }}
         run: |
           set -euo pipefail
+          if [[ -n "${DEMO_KEY_ALIAS:-}" ]]; then
+            printf '%s\n' "::add-mask::${DEMO_KEY_ALIAS}"
+          fi
           keystore_path="$(bash scripts/ci/prepare_demo_keystore.sh)"
           cleanup() {
             bash scripts/ci/cleanup_demo_signing.sh "$keystore_path"

@@ -173,6 +173,9 @@ android {
                 storePassword = configuredStorePassword
                 keyAlias = configuredAlias
                 keyPassword = configuredKeyPassword
+                // Hard-coded PKCS12. The CI debug keystore is created with
+                // keytool -storetype PKCS12 (docs/ci-signing.md). Play release
+                // signing does not set storeType unless key.properties does.
                 storeType = "PKCS12"
             }
         }

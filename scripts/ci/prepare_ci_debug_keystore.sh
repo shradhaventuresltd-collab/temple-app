@@ -67,6 +67,8 @@ if [[ ${#missing[@]} -gt 0 ]]; then
 fi
 
 umask 077
+# RUNNER_TEMP when GitHub Actions sets it, otherwise TMPDIR, otherwise /tmp.
+# Tests must use this same order. The keystore is never written into the repo.
 base="${RUNNER_TEMP:-${TMPDIR:-/tmp}}"
 base="${base%/}"
 mkdir -p -- "$base"
@@ -137,6 +139,8 @@ try:
         f"keyPassword={esc(os.environ['CI_DEBUG_KEY_PASSWORD'])}\n"
         f"keyAlias={esc(os.environ['CI_DEBUG_KEY_ALIAS'])}\n"
         f"storeFile={esc(store_file)}\n"
+        # PKCS12 is hard-coded. docs/ci-signing.md generates this keystore
+        # with keytool -storetype PKCS12. Play key.properties may omit storeType.
         "storeType=PKCS12\n"
     )
     with open(props_path, "w", encoding="ascii", newline="\n") as handle:

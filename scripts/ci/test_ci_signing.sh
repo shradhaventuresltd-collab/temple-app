@@ -32,6 +32,27 @@ forbid() {
   echo "ok: ${desc}"
 }
 
+# Same directory choice as scripts/ci/prepare_ci_debug_keystore.sh.
+signing_temp_base() {
+  local base="${RUNNER_TEMP:-${TMPDIR:-/tmp}}"
+  printf '%s\n' "${base%/}"
+}
+
+# True when the file is inside the directory. Follows symlinks so a
+# RUNNER_TEMP path and the path mktemp prints still match.
+path_is_inside() {
+  local path="$1" base="$2" real_path real_base
+  base="${base%/}"
+  [[ -n "$path" && -n "$base" && "$path" != *".."* ]] || return 1
+  if [[ "$path" == "$base"/* ]]; then
+    return 0
+  fi
+  [[ -d "$base" && -e "$path" ]] || return 1
+  real_base="$(cd "$base" && pwd -P)"
+  real_path="$(cd "$(dirname "$path")" && pwd -P)/$(basename "$path")"
+  [[ "$real_path" == "$real_base"/* ]]
+}
+
 for secret in \
   CI_DEBUG_KEYSTORE_BASE64 \
   CI_DEBUG_KEYSTORE_PASSWORD \
@@ -69,6 +90,18 @@ require "tester-checks requires the CI keystore" \
   .github/workflows/tester-checks.yml
 require "demo distribution prints fingerprints" \
   'print_signing_fingerprints.sh' .github/workflows/demo-app-distribution.yml
+require "smoke masks the key alias" \
+  '::add-mask::\$\{CI_DEBUG_KEY_ALIAS\}' .github/workflows/android-smoke.yml
+require "seed-launch masks the key alias" \
+  '::add-mask::\$\{CI_DEBUG_KEY_ALIAS\}' .github/workflows/demo-seed-launch.yml
+require "tester-checks masks the key alias" \
+  '::add-mask::\$\{CI_DEBUG_KEY_ALIAS\}' .github/workflows/tester-checks.yml
+require "demo distribution masks the key alias" \
+  '::add-mask::\$\{DEMO_KEY_ALIAS\}' .github/workflows/demo-app-distribution.yml
+require "docs explain the hard-coded PKCS12 storeType" \
+  'storeType` is hard-coded to PKCS12' docs/ci-signing.md
+require "gradle comment explains the hard-coded PKCS12 storeType" \
+  'Hard-coded PKCS12' android/app/build.gradle.kts
 
 for workflow in \
   .github/workflows/android-smoke.yml \
@@ -225,7 +258,11 @@ if grep -q -F '@@@' "$tmp/bad.err" || grep -q -F '@@@' "$tmp/bad.out"; then
   echo "FAIL: invalid base64 was echoed" >&2
   exit 1
 fi
-if find "$tmp" -name 'ci-debug-keystore.*.p12' | grep -q .; then
+leftover_roots=("$tmp")
+if [[ -n "${RUNNER_TEMP:-}" ]]; then
+  leftover_roots+=("${RUNNER_TEMP%/}")
+fi
+if find "${leftover_roots[@]}" -name 'ci-debug-keystore.*.p12' 2>/dev/null | grep -q .; then
   echo "FAIL: invalid prepare left a keystore file" >&2
   exit 1
 fi
@@ -254,10 +291,24 @@ if grep -q -F "$key_password" "$tmp/prepare.err" || grep -q -F "$key_password" <
 fi
 echo "ok: prepare output does not include passwords"
 expect_eq "decoded keystore bytes" "$(cat "$prepare_out")" "$payload"
-if [[ "$prepare_out" != "$tmp"/* ]]; then
-  echo "FAIL: keystore was not written under TMPDIR" >&2
+signing_base="$(signing_temp_base)"
+if ! path_is_inside "$prepare_out" "$signing_base"; then
+  echo "FAIL: keystore was not written under the signing temp dir (${signing_base})" >&2
   exit 1
 fi
+# Prefer RUNNER_TEMP. A keystore that only matches TMPDIR is the GitHub
+# failure. Skip this when RUNNER_TEMP itself lives inside TMPDIR.
+if [[ -n "${RUNNER_TEMP:-}" ]]; then
+  runner_real="$(cd "${RUNNER_TEMP%/}" && pwd -P)"
+  tmp_real="$(cd "${TMPDIR:-/tmp}" && pwd -P)"
+  if [[ "$runner_real" != "$tmp_real" && "$runner_real" != "$tmp_real"/* ]]; then
+    if path_is_inside "$prepare_out" "${TMPDIR:-/tmp}"; then
+      echo "FAIL: keystore was written under TMPDIR while RUNNER_TEMP is set" >&2
+      exit 1
+    fi
+  fi
+fi
+echo "ok: keystore is under the signing temp dir"
 python3 - "$props" "$prepare_out" "$store_password" "$key_password" "$alias" <<'PY'
 import sys
 
@@ -314,6 +365,53 @@ echo "ok: key.properties round-trips PKCS12 signing values"
 mode="$(stat -c '%a' "$prepare_out")"
 expect_eq "decoded keystore is mode 600" "$mode" "600"
 rm -f -- "$prepare_out" "$props"
+
+# Sibling directories, so a RUNNER_TEMP that happens to live under TMPDIR
+# cannot hide a wrong choice. The symlink case is the path GitHub prints
+# versus the path mktemp creates.
+split_parent="$tmp/split"
+dir_runner="$split_parent/runner"
+dir_tmp="$split_parent/tmpdir"
+dir_link="$split_parent/runner-link"
+mkdir -p -- "$dir_runner" "$dir_tmp"
+ln -s -- "$dir_runner" "$dir_link"
+runner_out="$(
+  env RUNNER_TEMP="$dir_link" TMPDIR="$dir_tmp" \
+    bash scripts/ci/prepare_ci_debug_keystore.sh 2>"$tmp/split-link.err"
+)"
+if ! path_is_inside "$runner_out" "$dir_link"; then
+  echo "FAIL: keystore was not written under symlink RUNNER_TEMP (${runner_out})" >&2
+  exit 1
+fi
+if path_is_inside "$runner_out" "$dir_tmp"; then
+  echo "FAIL: symlink RUNNER_TEMP wrote the keystore under TMPDIR" >&2
+  exit 1
+fi
+expect_eq "symlink RUNNER_TEMP keystore is mode 600" "$(stat -c '%a' "$runner_out")" "600"
+rm -f -- "$runner_out"
+plain_out="$(
+  env RUNNER_TEMP="$dir_runner" TMPDIR="$dir_tmp" \
+    bash scripts/ci/prepare_ci_debug_keystore.sh 2>"$tmp/split-plain.err"
+)"
+if ! path_is_inside "$plain_out" "$dir_runner"; then
+  echo "FAIL: keystore was not written under RUNNER_TEMP (${plain_out})" >&2
+  exit 1
+fi
+if path_is_inside "$plain_out" "$dir_tmp"; then
+  echo "FAIL: RUNNER_TEMP wrote the keystore under TMPDIR" >&2
+  exit 1
+fi
+rm -f -- "$plain_out"
+tmpdir_out="$(
+  env -u RUNNER_TEMP TMPDIR="$dir_tmp" \
+    bash scripts/ci/prepare_ci_debug_keystore.sh 2>"$tmp/split-tmp.err"
+)"
+if ! path_is_inside "$tmpdir_out" "$dir_tmp"; then
+  echo "FAIL: keystore was not written under TMPDIR when RUNNER_TEMP is unset (${tmpdir_out})" >&2
+  exit 1
+fi
+rm -f -- "$tmpdir_out"
+echo "ok: RUNNER_TEMP wins over a different TMPDIR"
 
 # Real keystore stays under mktemp. It is not committed.
 real="$tmp/real.p12"

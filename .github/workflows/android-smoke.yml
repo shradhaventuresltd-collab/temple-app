@@ -198,6 +198,9 @@ jobs:
           CI_DEBUG_KEY_PASSWORD: ${{ secrets.CI_DEBUG_KEY_PASSWORD }}
         run: |
           set -euo pipefail
+          if [[ -n "${CI_DEBUG_KEY_ALIAS:-}" ]]; then
+            printf '%s\n' "::add-mask::${CI_DEBUG_KEY_ALIAS}"
+          fi
           keystore_path="$(bash scripts/ci/prepare_ci_debug_keystore.sh)"
           if [[ -n "$keystore_path" ]]; then
             printf '%s\n' "$keystore_path" > "${RUNNER_TEMP}/ci-debug-signing.path"

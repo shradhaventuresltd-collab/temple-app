@@ -24,6 +24,8 @@ keytool -genkeypair -v \
 
 Keep the file outside the repo. Current Java defaults to PKCS12, which uses one password: if `keytool` warns that a separate key password is ignored, put that same store password in both `CI_DEBUG_KEYSTORE_PASSWORD` and `CI_DEBUG_KEY_PASSWORD`.
 
+`storeType` is hard-coded to PKCS12 in two places. `scripts/ci/prepare_ci_debug_keystore.sh` always writes `storeType=PKCS12` into the temporary `key.properties`. `android/app/build.gradle.kts` sets `storeType = "PKCS12"` on the debug signing config when `CI_DEBUG_KEYSTORE_FILE` points at this keystore. Gradle would otherwise treat that file as JKS. Play `android/key.properties` can omit `storeType`; the release signing config still uses the AGP default unless that file sets it. Do not point the CI debug signing config at a JKS upload key.
+
 Do not reuse the Play upload key. A CI secret is a different trust boundary from the upload key.
 
 ## Read the SHA-1 and SHA-256
