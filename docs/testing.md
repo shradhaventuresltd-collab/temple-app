@@ -57,7 +57,7 @@ A profile build without admin tools is:
 flutter build apk --profile --dart-define=DEMO_BUILD=true
 ```
 
-Do not pass `ENABLE_ADMIN_TOOLS` for this flow.
+Do not pass `ENABLE_ADMIN_TOOLS` for this flow. CI signs this profile APK with the fixed keystore in [ci-signing.md](ci-signing.md) when those secrets are set. A local build leaves them unset and uses the default debug keystore. The job log prints the signing SHA-1 and SHA-256.
 
 ## Demo-seed release launch
 
@@ -69,7 +69,7 @@ flutter build apk --release \
   --dart-define=ENABLE_ADMIN_TOOLS=true
 ```
 
-It uses the `run-smoke` label (`pull_request` types `labeled` and `ready_for_review`, plus `workflow_dispatch`). A later push on that pull request does not start another emulator. Draft pull requests are skipped. The job signs with an ephemeral keystore (`android/key.properties` and `*.jks` stay gitignored). It is not the Play upload key. The script installs that release APK on the same API 34 `google_atd` emulator, expects the Terms gate, taps Accept, then force-stops the process and starts MainActivity again without clearing data. That second launch must show Home, including the admin overflow (`More`), and must not show `Something went wrong`, `No Firebase App`, `[core/no-app]`, or the Terms gate. It does not tap the overflow: that tap has been taking the emulator offline. Widget tests open Admin sign-in. It never taps Seed. Accept does not seed: Home reads Firestore. A saved list stays on screen with an offline banner; with no cache the screen shows an error and Retry. It then turns the radios off, clears app data, and expects the gate again. Artifacts are `demo-seed-launch` (logcat and screenshots, including `relaunch.png`) and `demo-seed-apk`.
+It uses the `run-smoke` label (`pull_request` types `labeled` and `ready_for_review`, plus `workflow_dispatch`). A later push on that pull request does not start another emulator. Draft pull requests are skipped. The job signs with the fixed CI debug keystore from the `CI_DEBUG_*` secrets ([ci-signing.md](ci-signing.md)). `android/key.properties` and the keystore stay out of git. It is not the Play upload key. The job log prints the signing SHA-1 and SHA-256. The script installs that release APK on the same API 34 `google_atd` emulator, expects the Terms gate, taps Accept, then force-stops the process and starts MainActivity again without clearing data. That second launch must show Home, including the admin overflow (`More`), and must not show `Something went wrong`, `No Firebase App`, `[core/no-app]`, or the Terms gate. It does not tap the overflow: that tap has been taking the emulator offline. Widget tests open Admin sign-in. It never taps Seed. Accept does not seed: Home reads Firestore. A saved list stays on screen with an offline banner; with no cache the screen shows an error and Retry. It then turns the radios off, clears app data, and expects the gate again. Artifacts are `demo-seed-launch` (logcat and screenshots, including `relaunch.png`) and `demo-seed-apk`.
 
 ## Demo APK on Firebase App Distribution
 
@@ -95,7 +95,7 @@ That is a universal APK (armeabi-v7a, arm64-v8a, and x86_64). The job logs the f
 
 A push to `main` starts the workflow only when it touches `lib/**`, `android/**`, `assets/**`, `pubspec.*`, or `.github/workflows/demo-app-distribution.yml`. `workflow_dispatch` still runs on any commit.
 
-The job signs with the demo keystore from `DEMO_KEYSTORE_B64` (PKCS12, `storeType=PKCS12` in the gitignored `android/key.properties`). That key is not the Play upload key. The workflow decodes it to a temp file, and deletes the file and `android/key.properties` after the build. A device that already has a Play-signed install must uninstall that install first; Android will not replace it with a build signed by the demo key.
+The job signs with the demo keystore from `DEMO_KEYSTORE_B64` (PKCS12, `storeType=PKCS12` in the gitignored `android/key.properties`). That key is not the Play upload key. The workflow decodes it to a temp file, prints the signing SHA-1 and SHA-256, and deletes the file and `android/key.properties` after the build. A device that already has a Play-signed install must uninstall that install first; Android will not replace it with a build signed by the demo key.
 
 The APK is the `demo-apk` artifact, kept for 7 days. Distribution runs `firebase appdistribution:distribute` (firebase-tools 15.34.0) with `--groups core-testers`. Release notes are the 7-character SHA, the commit subject, and the Actions run URL. A `pull_request` run, or a run missing the demo keystore or App Distribution secrets, skips distribution and succeeds. The job does not install the APK, open Admin, tap Seed, or write to Firestore.
 

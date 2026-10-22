@@ -57,6 +57,7 @@ scripts/.resize_gallery_images.resume.json
 android/key.properties
 *.jks
 *.keystore
+*.p12
 
 # Session summaries (AI context refresher)
 summary/

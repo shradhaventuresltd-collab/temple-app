@@ -37,6 +37,37 @@ val hasReleaseKeystore = keystorePropertiesFile.isFile &&
     missingSigningKeys.isEmpty() &&
     releaseStoreFile?.isFile == true
 
+// CI and demo/debug signing. Workflows decode CI_DEBUG_KEYSTORE_BASE64 to a
+// temp file and set CI_DEBUG_KEYSTORE_FILE plus the password and alias env
+// vars. When those are absent, debug and profile keep the Android default
+// debug keystore. This does not read android/key.properties and does not
+// change the Play release signingConfig below. See docs/ci-signing.md.
+val ciDebugStorePath = System.getenv("CI_DEBUG_KEYSTORE_FILE")?.takeIf { it.isNotBlank() }
+val ciDebugStorePassword = System.getenv("CI_DEBUG_KEYSTORE_PASSWORD")?.takeIf { it.isNotBlank() }
+val ciDebugKeyAlias = System.getenv("CI_DEBUG_KEY_ALIAS")?.takeIf { it.isNotBlank() }
+val ciDebugKeyPassword = System.getenv("CI_DEBUG_KEY_PASSWORD")?.takeIf { it.isNotBlank() }
+val ciDebugStore = ciDebugStorePath?.let { path ->
+    file(path).takeIf { it.isFile && it.length() > 0L }
+}
+val hasCiDebugKeystore = ciDebugStore != null &&
+    ciDebugStorePassword != null &&
+    ciDebugKeyAlias != null &&
+    ciDebugKeyPassword != null
+if (ciDebugStorePath != null && !hasCiDebugKeystore) {
+    throw GradleException(
+        "CI debug signing is incomplete. CI_DEBUG_KEYSTORE_FILE must point at a keystore, " +
+            "and CI_DEBUG_KEYSTORE_PASSWORD, CI_DEBUG_KEY_ALIAS, and CI_DEBUG_KEY_PASSWORD must be set. " +
+            "See docs/ci-signing.md."
+    )
+}
+if (hasCiDebugKeystore) {
+    logger.lifecycle("CI debug keystore: debug and profile builds use the fixed CI keystore.")
+} else {
+    logger.lifecycle(
+        "CI debug keystore: not configured. Debug and profile builds use the default debug keystore."
+    )
+}
+
 // Flutter passes `--dart-define` as comma-separated base64 `-Pdart-defines`.
 // DEMO_BUILD=true selects Google's test AdMob app id (KAN-89). Unit ids are
 // chosen in Dart (`lib/services/ad_unit_ids.dart`); keep the two app id
@@ -132,6 +163,19 @@ android {
     }
 
     signingConfigs {
+        if (hasCiDebugKeystore) {
+            val configuredStore = ciDebugStore!!
+            val configuredStorePassword = ciDebugStorePassword!!
+            val configuredAlias = ciDebugKeyAlias!!
+            val configuredKeyPassword = ciDebugKeyPassword!!
+            getByName("debug") {
+                storeFile = configuredStore
+                storePassword = configuredStorePassword
+                keyAlias = configuredAlias
+                keyPassword = configuredKeyPassword
+                storeType = "PKCS12"
+            }
+        }
         if (hasReleaseKeystore) {
             create("release") {
                 keyAlias = releaseKeyAlias
@@ -192,6 +236,16 @@ android {
             // property unset, so they do not add this file.
             if (ciTesterChecks) {
                 proguardFiles.add(file("ci-tester-checks-rules.pro"))
+            }
+        }
+    }
+}
+
+afterEvaluate {
+    if (hasCiDebugKeystore) {
+        extensions.configure<com.android.build.api.dsl.ApplicationExtension>("android") {
+            buildTypes.findByName("profile")?.let { profile ->
+                profile.signingConfig = signingConfigs.getByName("debug")
             }
         }
     }

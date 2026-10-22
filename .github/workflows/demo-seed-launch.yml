@@ -4,9 +4,10 @@ name: demo-seed-launch
 # Opt-in on pull requests with the run-smoke label. A later push does not
 # start another emulator. This job does not replace profile android-smoke.
 #
-# The Play upload key is not in CI. The job writes an ephemeral keystore
-# and android/key.properties (both gitignored) so Gradle will sign a
-# release APK. Release mode still runs AOT with Impeller on.
+# The Play upload key is not in CI. The job decodes the fixed CI debug
+# keystore (CI_DEBUG_KEYSTORE_BASE64) into a temp file and points the
+# gitignored android/key.properties at it. Gradle release signing is
+# unchanged. Release mode still runs AOT with Impeller on.
 
 on:
   workflow_dispatch:
@@ -97,26 +98,30 @@ jobs:
           path: /usr/local/lib/android/sdk/ndk/28.2.13676358
           key: ndk-28.2.13676358
 
-      # Ephemeral release key. Not the Play upload key. key.properties and
-      # *.jks are gitignored.
-      - name: Ephemeral release keystore
+      # Fixed CI debug key. Not the Play upload key. Decoded to a temp file.
+      # android/key.properties is gitignored and deleted after the build.
+      - name: CI debug keystore
+        env:
+          CI_DEBUG_KEYSTORE_BASE64: ${{ secrets.CI_DEBUG_KEYSTORE_BASE64 }}
+          CI_DEBUG_KEYSTORE_PASSWORD: ${{ secrets.CI_DEBUG_KEYSTORE_PASSWORD }}
+          CI_DEBUG_KEY_ALIAS: ${{ secrets.CI_DEBUG_KEY_ALIAS }}
+          CI_DEBUG_KEY_PASSWORD: ${{ secrets.CI_DEBUG_KEY_PASSWORD }}
         run: |
-          keytool -genkeypair -keystore android/ci-demo-keystore.jks \
-            -storepass android -keypass android -alias upload \
-            -keyalg RSA -keysize 2048 -validity 1 \
-            -dname "CN=CI Demo, OU=CI, O=Shradha Ventures, L=Bengaluru, ST=KA, C=IN"
-          cat > android/key.properties <<'EOF'
-          storePassword=android
-          keyPassword=android
-          keyAlias=upload
-          storeFile=../ci-demo-keystore.jks
-          EOF
+          set -euo pipefail
+          keystore_path="$(bash scripts/ci/prepare_ci_debug_keystore.sh --require --key-properties android/key.properties)"
+          printf '%s\n' "$keystore_path" > "${RUNNER_TEMP}/ci-debug-signing.path"
+          bash scripts/ci/print_signing_fingerprints.sh \
+            "$keystore_path" CI_DEBUG_KEYSTORE_PASSWORD CI_DEBUG_KEY_ALIAS
 
       - name: Build demo-seed release APK
         run: |
           flutter build apk --release \
             --dart-define=DEMO_BUILD=true \
             --dart-define=ENABLE_ADMIN_TOOLS=true
+
+      - name: Delete CI debug keystore
+        if: always()
+        run: bash scripts/ci/cleanup_ci_debug_signing.sh
 
       # restore + save, not the combined action: its post step runs only
       # when the job succeeds, and a cold miss must still be saved if a

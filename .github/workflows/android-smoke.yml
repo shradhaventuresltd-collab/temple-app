@@ -187,9 +187,24 @@ jobs:
       # on 862cc09. Install them while Gradle runs. The emulator action
       # still installs them; a hit is then a no-op. A prefetch failure
       # does not fail the build.
+      # Fixed CI debug keystore when the four secrets are set. Absent
+      # secrets keep the runner's default debug key. Not the Play upload key.
+      # The temp file is deleted after this step. Fingerprints only.
       - name: Build profile APK
+        env:
+          CI_DEBUG_KEYSTORE_BASE64: ${{ secrets.CI_DEBUG_KEYSTORE_BASE64 }}
+          CI_DEBUG_KEYSTORE_PASSWORD: ${{ secrets.CI_DEBUG_KEYSTORE_PASSWORD }}
+          CI_DEBUG_KEY_ALIAS: ${{ secrets.CI_DEBUG_KEY_ALIAS }}
+          CI_DEBUG_KEY_PASSWORD: ${{ secrets.CI_DEBUG_KEY_PASSWORD }}
         run: |
           set -euo pipefail
+          keystore_path="$(bash scripts/ci/prepare_ci_debug_keystore.sh)"
+          if [[ -n "$keystore_path" ]]; then
+            printf '%s\n' "$keystore_path" > "${RUNNER_TEMP}/ci-debug-signing.path"
+            export CI_DEBUG_KEYSTORE_FILE="$keystore_path"
+            bash scripts/ci/print_signing_fingerprints.sh \
+              "$keystore_path" CI_DEBUG_KEYSTORE_PASSWORD CI_DEBUG_KEY_ALIAS
+          fi
           if command -v sdkmanager >/dev/null 2>&1; then
             timeout 150s bash -c '
               yes | sdkmanager --licenses >/dev/null
@@ -204,7 +219,16 @@ jobs:
           if [[ -f "${RUNNER_TEMP}/sdkmanager-prefetch.pid" ]]; then
             wait "$(cat "${RUNNER_TEMP}/sdkmanager-prefetch.pid")" || true
           fi
+          if [[ "$build_status" -eq 0 ]]; then
+            bash scripts/ci/print_signing_fingerprints.sh --apk \
+              build/app/outputs/flutter-apk/app-profile.apk \
+              || echo "::warning::Could not read signing fingerprints from the profile APK."
+          fi
           exit "$build_status"
+
+      - name: Delete CI debug keystore
+        if: always()
+        run: bash scripts/ci/cleanup_ci_debug_signing.sh --keep-properties
 
       - name: Install Maestro 2.11.0
         run: |

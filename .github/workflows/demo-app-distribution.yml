@@ -10,7 +10,7 @@ name: demo-app-distribution
 # A pull_request run, or a run whose App Distribution secrets are empty,
 # skips distribution and succeeds. Empty signing secrets skip the signed
 # build as well. The demo keystore is decoded to a temp file and deleted
-# before distribution.
+# before distribution. The job prints that certificate's SHA-1 and SHA-256.
 
 on:
   push:
@@ -113,6 +113,8 @@ jobs:
           }
           trap cleanup EXIT
           printf 'DEMO_KEYSTORE_PATH=%s\n' "$keystore_path" >> "$GITHUB_ENV"
+          bash scripts/ci/print_signing_fingerprints.sh \
+            "$keystore_path" DEMO_KEYSTORE_PASSWORD DEMO_KEY_ALIAS
           flutter build apk --release \
             --target-platform android-arm,android-arm64,android-x64 \
             --dart-define=DEMO_BUILD=true \
