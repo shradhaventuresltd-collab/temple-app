@@ -362,7 +362,7 @@ flutter build ios --release
 flutter build web --release
 ```
 
-Application id is `com.shradhaventures.temple` and the Android launcher label is **Temple Directory India**. Release signing and the Play upload key are documented in [`docs/android-play-internal-test.md`](docs/android-play-internal-test.md). `android/key.properties`, `*.jks`, and `*.keystore` stay out of git. Debug builds do not need that file. A release build with missing or incomplete signing properties fails with an actionable error and is not signed with the debug keystore.
+Application id is `com.shradhaventures.temple` and the Android launcher label is **Temple Directory India**. Release signing and the Play upload key are documented in [`docs/android-play-internal-test.md`](docs/android-play-internal-test.md). `android/key.properties`, `*.jks`, `*.keystore`, and `*.p12` stay out of git. Debug builds do not need that file. A release build with missing or incomplete signing properties fails with an actionable error and is not signed with the debug keystore. CI profile and demo APKs use a separate fixed keystore ([`docs/ci-signing.md`](docs/ci-signing.md)) so their SHA-1 stays stable. Local debug and profile builds keep the default debug keystore when those secrets are unset.
 
 `android/app/google-services.json` is the Firebase-generated config for project `temple-directory-india`. It includes the previous `com.example.temple_app` client and the new `com.shradhaventures.temple` app (`1:109314154382:android:d34e6caea62c14124ccedf`). The Android section of `lib/firebase_options.dart` uses that new app id. Other platforms are unchanged.
 

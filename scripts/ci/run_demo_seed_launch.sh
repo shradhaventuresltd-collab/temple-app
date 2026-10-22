@@ -3,9 +3,9 @@
 # Called by android-emulator-runner with bash (the action itself uses dash).
 #
 # The APK is a release build with DEMO_BUILD and ENABLE_ADMIN_TOOLS, the
-# same defines as the demo Sanu installs. CI signs it with an ephemeral
-# keystore because the Play upload key is not on the runner. Release mode
-# (AOT, no assertions, Impeller on) matches that demo.
+# same defines as the demo Sanu installs. CI signs it with the fixed CI
+# debug keystore (docs/ci-signing.md), not the Play upload key. Release
+# mode (AOT, no assertions, Impeller on) matches that demo.
 #
 # Success means: the Terms gate is on screen, Accept opens Home, and a
 # second process start keeps that acceptance and does not paint the error

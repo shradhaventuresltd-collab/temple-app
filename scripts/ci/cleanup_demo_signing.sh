@@ -46,6 +46,7 @@ if [[ -n "${RUNNER_TEMP:-}" && -d "${RUNNER_TEMP}" ]]; then
   shopt -s nullglob
   runner_files=(
     "$runner_temp"/demo-keystore.*
+    "$runner_temp"/ci-debug-keystore.*
     "$runner_temp"/firebase-app-distro-sa.*
     "$runner_temp"/demo-release-notes.*
     "$runner_temp"/key.properties.*
