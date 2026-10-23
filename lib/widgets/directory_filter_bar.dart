@@ -11,11 +11,15 @@ typedef DirectoryFilterSelection = ({
   String? district,
 });
 
+/// Which filter the sheet opens on. The sheet still lists the others below.
+enum DirectoryFilterSection { state, district, deity }
+
 /// Opens the shared filter sheet.
 ///
 /// Returns the selection when the user applies it. Returns null when the
 /// sheet is dismissed, so the caller keeps the previous chips.
 /// [districtOf] is null until the boundary asset has been opened.
+/// [section] is the list the user tapped. That block is shown first.
 Future<DirectoryFilterSelection?> showDirectoryFilterSheet({
   required BuildContext context,
   required List<Temple> temples,
@@ -24,6 +28,7 @@ Future<DirectoryFilterSelection?> showDirectoryFilterSheet({
   String? selectedDistrict,
   String query = '',
   TempleDistrictName? districtOf,
+  DirectoryFilterSection section = DirectoryFilterSection.state,
 }) {
   return showModalBottomSheet<DirectoryFilterSelection>(
     context: context,
@@ -40,12 +45,13 @@ Future<DirectoryFilterSelection?> showDirectoryFilterSheet({
         initialDistrict: selectedDistrict,
         query: query,
         districtOf: districtOf,
+        initialSection: section,
       );
     },
   );
 }
 
-/// Trigger chips for state, district, and deity. Each chip opens the sheet.
+/// Trigger chips for state, district, and deity. Each chip opens that list.
 ///
 /// The district asset loads only when the district chip is opened.
 class DirectoryFilterBar extends StatelessWidget {
@@ -91,6 +97,7 @@ class DirectoryFilterBar extends StatelessWidget {
   Future<void> _openSheet(
     BuildContext context, {
     required bool loadDistricts,
+    required DirectoryFilterSection section,
   }) async {
     var lookup = districtOf;
     if (loadDistricts && lookup == null) {
@@ -106,6 +113,7 @@ class DirectoryFilterBar extends StatelessWidget {
       selectedDistrict: selectedDistrict,
       query: query,
       districtOf: lookup,
+      section: section,
     );
     if (result == null || !context.mounted) return;
     onChanged(result.state, result.deity, result.district);
@@ -126,7 +134,11 @@ class DirectoryFilterBar extends StatelessWidget {
             selected: selectedState != null,
             openTooltip: 'Choose a state',
             clearTooltip: 'Clear state filter',
-            onOpen: () => _openSheet(context, loadDistricts: false),
+            onOpen: () => _openSheet(
+              context,
+              loadDistricts: false,
+              section: DirectoryFilterSection.state,
+            ),
             onClear: () => onChanged(null, selectedDeity, selectedDistrict),
           ),
           if (_showDistrict) ...[
@@ -143,7 +155,11 @@ class DirectoryFilterBar extends StatelessWidget {
                   selectedDistrict != null && selectedDistrict!.isNotEmpty,
               openTooltip: 'Choose a district',
               clearTooltip: 'Clear district filter',
-              onOpen: () => _openSheet(context, loadDistricts: true),
+              onOpen: () => _openSheet(
+                context,
+                loadDistricts: true,
+                section: DirectoryFilterSection.district,
+              ),
               onClear: () => onChanged(selectedState, selectedDeity, null),
             ),
           ],
@@ -158,7 +174,11 @@ class DirectoryFilterBar extends StatelessWidget {
             selected: selectedDeity != null,
             openTooltip: 'Choose a deity',
             clearTooltip: 'Clear deity filter',
-            onOpen: () => _openSheet(context, loadDistricts: false),
+            onOpen: () => _openSheet(
+              context,
+              loadDistricts: false,
+              section: DirectoryFilterSection.deity,
+            ),
             onClear: () => onChanged(selectedState, null, selectedDistrict),
           ),
           if (_active) ...[
@@ -190,6 +210,7 @@ class _DirectoryFilterSheet extends StatefulWidget {
     required this.initialDistrict,
     required this.query,
     required this.districtOf,
+    required this.initialSection,
   });
 
   final List<Temple> temples;
@@ -198,6 +219,7 @@ class _DirectoryFilterSheet extends StatefulWidget {
   final String? initialDistrict;
   final String query;
   final TempleDistrictName? districtOf;
+  final DirectoryFilterSection initialSection;
 
   @override
   State<_DirectoryFilterSheet> createState() => _DirectoryFilterSheetState();
@@ -239,6 +261,122 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
         _district = null;
       }
     });
+  }
+
+  /// The tapped section leads. One sheet still holds the other filters,
+  /// but the list the user asked for is the one on screen.
+  List<Widget> _sections({
+    required List<String> states,
+    required List<String> deities,
+    required List<String> districts,
+    required bool showDistricts,
+    required String? note,
+  }) {
+    final stateSection = <Widget>[
+      const _SheetSectionLabel('STATE', key: Key('filter-section-state')),
+      const SizedBox(height: 8),
+      _OptionWrap(
+        children: [
+          _OptionChip(
+            optionKey: const Key('filter-option-state-any'),
+            label: 'Any state',
+            count: _count(deity: _deity, district: _district),
+            selected: _state == null,
+            onTap: () => _chooseState(null),
+          ),
+          for (final state in states)
+            _OptionChip(
+              optionKey: Key('filter-option-state-$state'),
+              label: state,
+              count: _count(state: state, deity: _deity, district: _district),
+              selected: _state == state,
+              onTap: () => _chooseState(state),
+            ),
+        ],
+      ),
+    ];
+    final districtSection = <Widget>[
+      const _SheetSectionLabel('DISTRICT', key: Key('filter-section-district')),
+      const SizedBox(height: 8),
+      _OptionWrap(
+        children: [
+          _OptionChip(
+            optionKey: const Key('filter-option-district-any'),
+            label: 'All districts',
+            count: _count(state: _state, deity: _deity),
+            selected: _district == null || _district!.isEmpty,
+            onTap: () => setState(() => _district = null),
+          ),
+          for (final district in districts)
+            _OptionChip(
+              optionKey: Key('filter-option-district-$district'),
+              label: district,
+              count: _count(state: _state, deity: _deity, district: district),
+              selected: _district == district,
+              onTap: () => setState(() => _district = district),
+            ),
+        ],
+      ),
+    ];
+    final deitySection = <Widget>[
+      const _SheetSectionLabel('DEITY', key: Key('filter-section-deity')),
+      if (note != null) ...[
+        const SizedBox(height: 6),
+        Text(
+          note,
+          key: const Key('filter-deity-note'),
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            height: 1.4,
+            color: Colors.brown.shade600,
+          ),
+        ),
+      ],
+      const SizedBox(height: 8),
+      _OptionWrap(
+        children: [
+          _OptionChip(
+            optionKey: const Key('filter-option-deity-any'),
+            label: 'Any deity',
+            count: _count(state: _state, district: _district),
+            selected: _deity == null,
+            onTap: () => setState(() => _deity = null),
+          ),
+          for (final deity in deities)
+            _OptionChip(
+              optionKey: Key('filter-option-deity-$deity'),
+              label: directoryDeityChipLabel(deity),
+              count: _count(state: _state, deity: deity, district: _district),
+              selected: _deity == deity,
+              onTap: () => setState(() => _deity = deity),
+            ),
+        ],
+      ),
+    ];
+
+    var focus = widget.initialSection;
+    if (focus == DirectoryFilterSection.district && !showDistricts) {
+      focus = DirectoryFilterSection.state;
+    }
+    final blocks = <DirectoryFilterSection, List<Widget>>{
+      DirectoryFilterSection.state: stateSection,
+      DirectoryFilterSection.deity: deitySection,
+      if (showDistricts) DirectoryFilterSection.district: districtSection,
+    };
+    const rest = [
+      DirectoryFilterSection.state,
+      DirectoryFilterSection.district,
+      DirectoryFilterSection.deity,
+    ];
+    final children = <Widget>[];
+    for (final section in [focus, ...rest]) {
+      final block = blocks[section];
+      if (block == null || block.isEmpty) continue;
+      blocks.remove(section);
+      if (children.isNotEmpty) children.add(const SizedBox(height: 18));
+      children.addAll(block);
+    }
+    return children;
   }
 
   @override
@@ -323,99 +461,13 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                children: [
-                  const _SheetSectionLabel('STATE'),
-                  const SizedBox(height: 8),
-                  _OptionWrap(
-                    children: [
-                      _OptionChip(
-                        optionKey: const Key('filter-option-state-any'),
-                        label: 'Any state',
-                        count: _count(deity: _deity, district: _district),
-                        selected: _state == null,
-                        onTap: () => _chooseState(null),
-                      ),
-                      for (final state in states)
-                        _OptionChip(
-                          optionKey: Key('filter-option-state-$state'),
-                          label: state,
-                          count: _count(
-                            state: state,
-                            deity: _deity,
-                            district: _district,
-                          ),
-                          selected: _state == state,
-                          onTap: () => _chooseState(state),
-                        ),
-                    ],
-                  ),
-                  if (showDistricts) ...[
-                    const SizedBox(height: 18),
-                    const _SheetSectionLabel('DISTRICT'),
-                    const SizedBox(height: 8),
-                    _OptionWrap(
-                      children: [
-                        _OptionChip(
-                          optionKey: const Key('filter-option-district-any'),
-                          label: 'All districts',
-                          count: _count(state: _state, deity: _deity),
-                          selected: _district == null || _district!.isEmpty,
-                          onTap: () => setState(() => _district = null),
-                        ),
-                        for (final district in districts)
-                          _OptionChip(
-                            optionKey: Key('filter-option-district-$district'),
-                            label: district,
-                            count: _count(
-                              state: _state,
-                              deity: _deity,
-                              district: district,
-                            ),
-                            selected: _district == district,
-                            onTap: () => setState(() => _district = district),
-                          ),
-                      ],
-                    ),
-                  ],
-                  const SizedBox(height: 18),
-                  const _SheetSectionLabel('DEITY'),
-                  if (note != null) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      note,
-                      key: const Key('filter-deity-note'),
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        height: 1.4,
-                        color: Colors.brown.shade600,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 8),
-                  _OptionWrap(
-                    children: [
-                      _OptionChip(
-                        optionKey: const Key('filter-option-deity-any'),
-                        label: 'Any deity',
-                        count: _count(state: _state, district: _district),
-                        selected: _deity == null,
-                        onTap: () => setState(() => _deity = null),
-                      ),
-                      for (final deity in deities)
-                        _OptionChip(
-                          optionKey: Key('filter-option-deity-$deity'),
-                          label: directoryDeityChipLabel(deity),
-                          count: _count(
-                            state: _state,
-                            deity: deity,
-                            district: _district,
-                          ),
-                          selected: _deity == deity,
-                          onTap: () => setState(() => _deity = deity),
-                        ),
-                    ],
-                  ),
-                ],
+                children: _sections(
+                  states: states,
+                  deities: deities,
+                  districts: districts,
+                  showDistricts: showDistricts,
+                  note: note,
+                ),
               ),
             ),
             Padding(
@@ -478,7 +530,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
 }
 
 class _SheetSectionLabel extends StatelessWidget {
-  const _SheetSectionLabel(this.label);
+  const _SheetSectionLabel(this.label, {super.key});
 
   final String label;
 

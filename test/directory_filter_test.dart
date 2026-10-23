@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/utils/directory_filters.dart';
 import 'package:temple_app/widgets/app_drawer.dart';
+import 'package:temple_app/widgets/directory_filter_bar.dart';
 
 void main() {
   setUpAll(() {
@@ -263,5 +264,80 @@ void main() {
     expect(find.text('Jain'), findsOneWidget);
     expect(find.textContaining('Jain Tirthankaras · Jain'), findsOneWidget);
     expect(find.textContaining('darshan'), findsNothing);
+  });
+
+  testWidgets('deity chip opens the deity list and state chip opens states', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final many = [
+      for (var i = 0; i < 40; i++)
+        temple(
+          name: 'Temple $i',
+          state: 'State ${i.toString().padLeft(2, '0')}',
+          city: 'City $i',
+          deity: 'Deity ${i.toString().padLeft(2, '0')}',
+        ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: DirectoryFilterBar(
+            temples: many,
+            selectedState: null,
+            selectedDeity: null,
+            onChanged: (_, _, _) {},
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('filter-chip-deity')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('filter-section-deity')).hitTestable(),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('filter-option-deity-any')).hitTestable(),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('filter-option-deity-Deity 00')).hitTestable(),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('filter-option-state-any')).hitTestable(),
+      findsNothing,
+    );
+
+    await tester.tap(find.byKey(const Key('filter-sheet-close')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('filter-chip-state')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('filter-section-state')).hitTestable(),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('filter-option-state-any')).hitTestable(),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('filter-option-state-State 00')).hitTestable(),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('filter-option-deity-any')).hitTestable(),
+      findsNothing,
+    );
   });
 }
