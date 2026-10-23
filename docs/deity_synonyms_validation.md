@@ -1,6 +1,6 @@
 # Deity synonym validation
 
-Research Pavi (research teammate) validated this list on Oct 23, 2026. The searchable copy is `lib/utils/deity_synonyms.dart`. Spellings are stored as people type them. Search folds `sh`/`s`, `th`/`t`, `ee`/`i`, `oo`/`u`, `aa`/`a`, `w`/`v`, and doubled consonants before lookup.
+Research Pavi (research teammate) validated the groups and the child-to-parent one-way rules on Oct 23, 2026. The searchable copy is `lib/utils/deity_synonyms.dart`. Spellings are stored as people type them. Search folds `sh`/`s`, `th`/`t`, `ee`/`i`, `oo`/`u`, `aa`/`a`, `w`/`v`, and doubled consonants before lookup.
 
 ## Rules from Pavi
 
@@ -17,9 +17,27 @@ Research Pavi (research teammate) validated this list on Oct 23, 2026. The searc
 
 Names inside a group are bidirectional with the group name and with each other. A one-way name is found when its group is searched, and searching that name does not return the rest of the group. A parent link is the other one-way edge: searching the parent returns the child group, and searching the child does not return the parent or the parent's other children.
 
-Shrine and place names are one-way in the same way as Somnath. A search for the shrine returns that shrine. A search for the deity still finds it. Goddess forms such as Meenakshi, Kamakshi, Annapurna, Chamundi, and Chamundeshwari stay bidirectional, because they name the deity rather than one shrine.
-
 The group name is matched as well as the spellings below. Govinda is listed under both Krishna and Venkateswara, so that search returns both groups.
+
+## Added after Pavi's validation (engineering decision, Oct 23, 2026; pending research confirmation)
+
+Shrine and place names are one-way. A search for the shrine returns that shrine. A search for the deity still finds it. Goddess forms such as Meenakshi, Kamakshi, Annapurna, Chamundi, and Chamundeshwari stay bidirectional, because they name the deity rather than one shrine.
+
+Pavi's one-way names (Jagannath, Vithoba, Vitthal, Nataraja, Ayyanar, and Vaishno Devi) are unchanged. These names were reclassified from two-way synonyms to one-way:
+
+- Somnath
+- Mahakal
+- Guruvayurappan
+- Guruvayoorappan
+- Shrinathji
+- Udupi Krishna
+- Padmanabhaswamy
+- Ranganathaswamy
+- Varadaraja
+- Tirupati Balaji
+- Palani Andavar
+- Kanaka Durga
+- Siddhivinayak
 
 ## Krishna
 
