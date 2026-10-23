@@ -7,7 +7,14 @@ import 'package:temple_app/district/district_attribution.dart';
 /// on-device assignment cache key changes. Index stamps do not belong here.
 const String kDistrictBoundaryAssetVersion = 'lgd-2024-dsb1-500m';
 
+/// The boundary asset is a lookup table. It must never be rendered.
+/// Widgets, painters, and map layers must not read [kDistrictBoundaryAsset].
+/// Only the district lookup service may decode it.
 const String kDistrictBoundaryAsset = 'assets/districts/india_districts.dsb';
+
+/// False while no district file has a single licence confirmed from its
+/// publisher. The evaluated Bharatlas LGD 2024 layer is not bundled.
+const bool kDistrictBoundariesBundled = false;
 
 /// Coordinate scale. 4 decimal degrees, about 11 metres.
 const int kDistrictCoordinateScale = 10000;

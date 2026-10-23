@@ -126,6 +126,7 @@ class DistrictDirectory {
 
   DistrictAssignmentStore _store = PrefsDistrictAssignmentStore();
   Future<Uint8List> Function() _loadBytes = _loadBundledBoundaries;
+  bool _bundledLoader = true;
   final Map<String, DistrictAssignment> _byKey = {};
   String? _version;
   Future<void>? _flight;
@@ -172,6 +173,7 @@ class DistrictDirectory {
     Future<Uint8List> Function()? loadBytes,
   }) {
     _store = store ?? MemoryDistrictAssignmentStore();
+    _bundledLoader = loadBytes == null;
     _loadBytes = loadBytes ?? _loadBundledBoundaries;
     _byKey.clear();
     _version = null;
@@ -180,6 +182,9 @@ class DistrictDirectory {
   }
 
   Future<void> _ensure(List<Temple> temples) async {
+    // No bundled file until a publisher names one licence. A test loader
+    // still runs. This path does not read Firestore.
+    if (_bundledLoader && !kDistrictBoundariesBundled) return;
     if (_version != kDistrictBoundaryAssetVersion) {
       _byKey.clear();
       _version = null;
@@ -247,9 +252,30 @@ String _templeKey(Temple temple) {
 }
 
 Future<Uint8List> _loadBundledBoundaries() async {
+  // Lookup only. This asset must never be rendered. Widgets, painters, and
+  // map layers must not read it.
+  if (!kDistrictBoundariesBundled) {
+    throw StateError(
+      'District boundaries are not bundled. The evaluated LGD file does not '
+      'name a single licence.',
+    );
+  }
   final data = await rootBundle.load(kDistrictBoundaryAsset);
   return data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
 }
+
+/// Lookup passed into the directory filter.
+///
+/// Null until a bundled asset has loaded, which lets the chip show first.
+/// When no asset is bundled this returns a lookup that resolves nothing,
+/// so the chip stays off the screen instead of offering an empty filter.
+TempleDistrictName? bundledDistrictLookup() {
+  if (!kDistrictBoundariesBundled) return _noBundledDistrict;
+  if (!DistrictDirectory.instance.isReady) return null;
+  return DistrictDirectory.instance.peek;
+}
+
+String? _noBundledDistrict(Temple temple) => null;
 
 /// Loads boundaries for [temples]. A failure still returns [peek] so the
 /// sheet can open with whatever is already in memory.

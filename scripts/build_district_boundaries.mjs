@@ -9,6 +9,10 @@
  * Omit --simplified to run mapshaper 0.6.113 (MAPSHAPER, or npx).
  * The 88 MB source is cached under scripts/.cache and is not committed.
  * Accuracy fixtures are written from the seed in lib/data/sample_data.dart.
+ *
+ * This script refuses to write the asset unless --licence is exactly
+ * CC0-1.0 or CC-BY-4.0. Bharatlas currently publishes both labels for
+ * LGD Districts 2024, so the default run must not ship a file.
  */
 import { spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
@@ -22,9 +26,6 @@ const SCALE = 10000;
 const TOLERANCE_METRES = 500;
 const ASSET_VERSION = 'lgd-2024-dsb1-500m';
 const SOURCE_NAME = 'Bharatlas LGD Districts (2024)';
-const LICENCE = 'CC0-1.0 / CC-BY-4.0';
-const ATTRIBUTION =
-  'Source: LGD. Published via bharatlas (bharatlas.com). Licence: CC0-1.0 / CC-BY-4.0.';
 const DOWNLOAD =
   'https://bharatlas.com/api/dl/admin/districts/LGD_Districts.geojson';
 const SOURCE_PAGE = 'https://bharatlas.com/view/lgd_districts';
@@ -717,6 +718,17 @@ function sha256(file) {
 }
 
 function main() {
+  const pinnedLicence = arg('--licence', '');
+  if (pinnedLicence !== 'CC0-1.0' && pinnedLicence !== 'CC-BY-4.0') {
+    throw new Error(
+      'Refusing to write assets/districts. Bharatlas does not name one ' +
+        'licence for LGD Districts 2024 (layer card: CC0-1.0 / CC-BY-4.0; ' +
+        'schema.org on the same page: CC0-1.0 only; the GeoJSON has no ' +
+        'licence property). Pass --licence CC0-1.0 or --licence CC-BY-4.0 ' +
+        'only after the publisher itself names that single licence for ' +
+        'this version.',
+    );
+  }
   const input = ensureInput(arg('--input', ''));
   let simplified = arg('--simplified', '');
   if (!simplified) {
@@ -884,8 +896,8 @@ function main() {
     toleranceMetres: TOLERANCE_METRES,
     source: SOURCE_NAME,
     sourceSha256: sourceSha,
-    licence: LICENCE,
-    attribution: ATTRIBUTION,
+    licence: pinnedLicence,
+    attribution: `Source: LGD. Published via bharatlas (bharatlas.com). Licence: ${pinnedLicence}.`,
     allowsBundling: true,
   };
   fs.writeFileSync(
@@ -894,16 +906,13 @@ function main() {
   );
   const readme = `# India district boundaries
 
-${ATTRIBUTION}
-
-Both CC0-1.0 and CC-BY-4.0 allow this geometry to be bundled in the app.
-CC-BY-4.0 requires the credit line above.
+Source: LGD. Published via bharatlas (bharatlas.com). Licence: ${pinnedLicence}.
 
 - Source: ${SOURCE_NAME}
 - Layer: ${SOURCE_PAGE}
 - Download: ${DOWNLOAD}
 - Upstream: ${UPSTREAM}
-- Licence: ${LICENCE}
+- Licence: ${pinnedLicence}
 - Asset version: \`${ASSET_VERSION}\`
 - Districts: ${decoded.districts.length} (LGD district code + canonical name)
 - Points after quantizing to 4 decimal degrees: ${encoded.points}

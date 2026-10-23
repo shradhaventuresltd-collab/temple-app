@@ -1,8 +1,17 @@
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:temple_app/district/district_boundary.dart';
 import 'package:temple_app/district/district_lookup.dart';
 import 'package:temple_app/models/temple.dart';
+
+Future<Uint8List> _syntheticBoundaries() async {
+  return Uint8List.fromList(
+    File('test/fixtures/synthetic_districts.dsb').readAsBytesSync(),
+  );
+}
 
 Temple _temple({
   String id = '',
@@ -30,7 +39,11 @@ Temple _temple({
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(DistrictDirectory.instance.resetForTest);
+  setUp(
+    () => DistrictDirectory.instance.resetForTest(
+      loadBytes: _syntheticBoundaries,
+    ),
+  );
   tearDown(DistrictDirectory.instance.resetForTest);
 
   test('assignments stay in memory and skip a second asset load', () async {
@@ -58,7 +71,10 @@ void main() {
   test('the preferences key is only the boundary asset version', () async {
     SharedPreferences.setMockInitialValues({});
     final directory = DistrictDirectory.instance;
-    directory.resetForTest(store: PrefsDistrictAssignmentStore());
+    directory.resetForTest(
+      store: PrefsDistrictAssignmentStore(),
+      loadBytes: _syntheticBoundaries,
+    );
     await directory.ensureFor([_temple(id: 'meenakshi')]);
 
     final prefs = await SharedPreferences.getInstance();
@@ -72,7 +88,10 @@ void main() {
     expect(raw, isNot(contains('indexVersion')));
     expect(raw, isNot(contains('temple_index')));
 
-    directory.resetForTest(store: PrefsDistrictAssignmentStore());
+    directory.resetForTest(
+      store: PrefsDistrictAssignmentStore(),
+      loadBytes: _syntheticBoundaries,
+    );
     expect(directory.assetLoadCount, 0);
     await directory.ensureFor([_temple(id: 'meenakshi')]);
     expect(directory.peek(_temple(id: 'meenakshi')), 'Madurai');
@@ -81,7 +100,10 @@ void main() {
 
   test('a preferences failure still keeps the in-memory district', () async {
     final directory = DistrictDirectory.instance;
-    directory.resetForTest(store: _BrokenStore());
+    directory.resetForTest(
+      store: _BrokenStore(),
+      loadBytes: _syntheticBoundaries,
+    );
     final temple = _temple();
     await directory.ensureFor([temple]);
     expect(directory.peek(temple), 'Madurai');

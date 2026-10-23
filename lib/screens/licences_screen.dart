@@ -68,7 +68,7 @@ class LicencesScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'CC0-1.0 and CC-BY-4.0 both allow this geometry to be bundled in the app. CC-BY-4.0 requires the credit above.',
+            'Dataset $kDistrictBoundaryDatasetVersion, updated $kDistrictBoundarySourceUpdated. This geometry is not in the app.',
             key: const Key('licences-bundling'),
             style: GoogleFonts.poppins(
               fontSize: 13,

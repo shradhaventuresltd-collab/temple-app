@@ -104,7 +104,6 @@ flutter:
   # Do not rename them. google_fonts loads these instead of fonts.gstatic.com.
   assets:
     - assets/google_fonts/
-    - assets/districts/india_districts.dsb
 
   # To add assets to your application, add an assets section, like this:
   # assets:

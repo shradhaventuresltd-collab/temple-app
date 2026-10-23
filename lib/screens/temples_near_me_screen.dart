@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/district/district_lookup.dart';
+import 'package:temple_app/district/district_boundary.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/near_me/coarse_location.dart';
 import 'package:temple_app/near_me/geolocator_coarse_location.dart';
@@ -152,6 +153,7 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen> {
     );
     if (names.isNotEmpty) return true;
     if (widget.districtOf != null) return false;
+    if (!kDistrictBoundariesBundled) return false;
     final state = _session.anchorState;
     for (final temple in widget.temples) {
       if (!temple.hasCoordinates) continue;

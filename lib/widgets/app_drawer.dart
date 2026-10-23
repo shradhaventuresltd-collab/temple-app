@@ -111,9 +111,7 @@ class _AppDrawerState extends State<AppDrawer> {
       builder: (context, snapshot) {
         final all = snapshot.data ?? [];
 
-        final districtOf = DistrictDirectory.instance.isReady
-            ? DistrictDirectory.instance.peek
-            : null;
+        final districtOf = bundledDistrictLookup();
         final filtered = directoryMatchingTemples(
           all,
           state: _selectedState,
@@ -817,9 +815,7 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
 
   @override
   Widget build(BuildContext context) {
-    final districtOf = DistrictDirectory.instance.isReady
-        ? DistrictDirectory.instance.peek
-        : null;
+    final districtOf = bundledDistrictLookup();
     final visible = directoryMatchingTemples(
       widget.temples,
       state: _selectedState,

@@ -1,44 +1,27 @@
-import 'package:flutter/foundation.dart';
-
-/// Exact credit line published with the LGD district layer.
+/// Publisher name for the layer that was evaluated and then left out.
 ///
-/// Bharatlas labels the layer CC0-1.0 / CC-BY-4.0. Both licences allow
-/// bundling the geometry in this app. CC-BY-4.0 requires this credit.
-const String kDistrictBoundaryAttribution =
-    'Source: LGD. Published via bharatlas (bharatlas.com). '
-    'Licence: CC0-1.0 / CC-BY-4.0.';
-
-/// Human-readable source name for the About / licences screen.
+/// Bharatlas does not name one licence for this version. The layer card
+/// says `CC0-1.0 / CC-BY-4.0`. schema.org on the same page links only to
+/// CC0-1.0. The GeoJSON file has no licence property. The file is not
+/// bundled. See assets/districts/README.md.
 const String kDistrictBoundarySourceName = 'Bharatlas LGD Districts (2024)';
 
-const String kDistrictBoundaryLicence = 'CC0-1.0 / CC-BY-4.0';
+/// What this app claims. Not the publisher's dual label.
+const String kDistrictBoundaryLicence =
+    'Not bundled — the publisher does not name one licence';
+
+/// Shown on the licences screen. Quotes the contradiction; does not pick one.
+const String kDistrictBoundaryAttribution =
+    'Not bundled. The layer card says CC0-1.0 / CC-BY-4.0, schema.org on '
+    'the same page links only to CC0-1.0, and the GeoJSON file has no '
+    'licence property.';
 
 const String kDistrictBoundarySourcePage =
     'https://bharatlas.com/view/lgd_districts';
 
-const String kDistrictBoundaryDownload =
-    'https://bharatlas.com/api/dl/admin/districts/LGD_Districts.geojson';
+const String kDistrictBoundaryTerms = 'https://bharatlas.com/terms';
 
-const String kDistrictBoundaryUpstream = 'https://lgdirectory.gov.in/';
+/// Dataset the card calls "LGD snapshot 2024". Card updated date.
+const String kDistrictBoundaryDatasetVersion = 'LGD snapshot 2024';
 
-const String kDistrictBoundaryCc0 =
-    'https://creativecommons.org/publicdomain/zero/1.0/';
-
-const String kDistrictBoundaryCcBy4 =
-    'https://creativecommons.org/licenses/by/4.0/';
-
-/// Registers the district-boundary credit for the platform licence page.
-void registerDistrictBoundaryLicenses() {
-  LicenseRegistry.addLicense(() async* {
-    yield LicenseEntryWithLineBreaks(
-      const <String>[kDistrictBoundarySourceName],
-      '$kDistrictBoundaryAttribution\n\n'
-      'Licence: $kDistrictBoundaryLicence.\n'
-      'CC0-1.0 ($kDistrictBoundaryCc0) and CC-BY-4.0 '
-      '($kDistrictBoundaryCcBy4) both allow this geometry to be bundled '
-      'in the app. CC-BY-4.0 requires the credit line above.\n'
-      'Layer: $kDistrictBoundarySourcePage\n'
-      'Upstream: $kDistrictBoundaryUpstream\n',
-    );
-  });
-}
+const String kDistrictBoundarySourceUpdated = '2026-05-19';

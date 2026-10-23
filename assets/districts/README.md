@@ -1,32 +1,35 @@
-# India district boundaries
+# India district boundaries — not bundled
 
-Source: LGD. Published via bharatlas (bharatlas.com). Licence: CC0-1.0 / CC-BY-4.0.
+The Bharatlas LGD district file is **not** in this app. The publisher does
+not name one licence for this version, so the geometry was not shipped.
 
-Both CC0-1.0 and CC-BY-4.0 allow this geometry to be bundled in the app.
-CC-BY-4.0 requires the credit line above.
+Evaluated layer (local only, not committed):
 
 - Source: Bharatlas LGD Districts (2024)
+- Dataset version: LGD snapshot 2024
+- Card updated: 2026-05-19
 - Layer: https://bharatlas.com/view/lgd_districts
-- Download: https://bharatlas.com/api/dl/admin/districts/LGD_Districts.geojson
-- Upstream: https://lgdirectory.gov.in/
-- Licence: CC0-1.0 / CC-BY-4.0
-- Asset version: `lgd-2024-dsb1-500m`
-- Districts: 785 (LGD district code + canonical name)
-- Points after quantizing to 4 decimal degrees: 138200
-- Uncompressed: 1143600 bytes
-- gzip -9 (the size Android deflates into the AAB): 473665 bytes
-- Source SHA-256: `95829298abdd0e80fc514b8c70787bdeef9aaf0e63b348177493045e8b22bab5`
-- Asset SHA-256: `28af9e9a8cb6e488da40461dd0d9558ade982a25a01b6301dd33944df3027991`
+- Terms: https://bharatlas.com/terms (updated 2026-05-22)
+- Download that was measured: https://bharatlas.com/api/dl/admin/districts/LGD_Districts.geojson
+- Upstream directory (codes, not a polygon licence): https://lgdirectory.gov.in/
 
-Simplification (mapshaper 0.6.113), Visvalingam effective area,
-topology kept, intersection repair off so shared borders stay aligned and
-concave districts keep their centroids:
+What the source itself says, on the same page:
 
-```
-mapshaper@0.6.113 LGD_Districts.geojson -filter-fields dtname,stname,dist_lgd,state_lgd -proj aea -simplify visvalingam interval=500 keep-shapes no-repair -proj wgs84 -o precision=0.0001 format=geojson simplified.geojson
-```
+- Layer card and catalog field: `CC0-1.0 / CC-BY-4.0`
+- schema.org Dataset `license`: https://creativecommons.org/publicdomain/zero/1.0/
+- schema.org `creditText`: `Source: LGD. Published via bharatlas (bharatlas.com). Licence: CC0-1.0 / CC-BY-4.0.`
+- The GeoJSON file has no licence property
+- Terms say use follows the licence shown on the card, and the card shows both
 
-`interval=500` is 500 metres in the Albers projection mapshaper builds from
-the layer. The binary is delta-encoded int32 (`DSB1`), not GeoJSON.
-District is computed in memory from this asset. It is not a Firestore field
-and it is not part of the temple index shard.
+Those statements do not pick one licence. This repo does not treat
+`CC0-1.0 / CC-BY-4.0` as a pin, and it does not treat the schema.org URL
+as a pin while the card disagrees.
+
+Asset version that was encoded locally and then removed: `lgd-2024-dsb1-500m`.
+That binary is not in git. `scripts/build_district_boundaries.mjs` refuses
+to write it again until `--licence` is exactly `CC0-1.0` or `CC-BY-4.0`,
+and only after the publisher itself names that single licence for this
+version.
+
+The lookup code still must not render a boundary asset. Only the district
+lookup service may decode one, if a licensed file is added later.

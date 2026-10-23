@@ -5,7 +5,6 @@ import 'package:temple_app/district/district_attribution.dart';
 import 'package:temple_app/district/district_lookup.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/near_me/coarse_location.dart';
-import 'package:temple_app/near_me/near_me_copy.dart';
 import 'package:temple_app/screens/licences_screen.dart';
 import 'package:temple_app/screens/temples_near_me_screen.dart';
 import 'package:temple_app/utils/directory_filters.dart';
@@ -353,15 +352,25 @@ void main() {
     );
   });
 
-  testWidgets('licences show the district attribution', (tester) async {
+  testWidgets('licences do not pin a district licence', (tester) async {
     await tester.pumpWidget(const MaterialApp(home: LicencesScreen()));
     expect(find.text(kDistrictBoundarySourceName), findsOneWidget);
     expect(find.text(kDistrictBoundaryLicence), findsOneWidget);
     expect(find.text(kDistrictBoundaryAttribution), findsOneWidget);
-    expect(find.textContaining('bundled in the app'), findsOneWidget);
+    expect(find.textContaining('Not bundled'), findsWidgets);
+    expect(find.textContaining('CC-BY-4.0 requires'), findsNothing);
+    expect(find.text('CC0-1.0 / CC-BY-4.0'), findsNothing);
+    expect(
+      find.textContaining(kDistrictBoundaryDatasetVersion),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining(kDistrictBoundarySourceUpdated),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('near me loads a district only when the picker opens', (
+  testWidgets('near me does not load a boundary asset when none is bundled', (
     tester,
   ) async {
     DistrictDirectory.instance.resetForTest();
@@ -385,27 +394,9 @@ void main() {
     await tester.tap(find.byKey(const Key('near-me-not-now')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('near-me-district')), findsOneWidget);
-    expect(find.text(NearMeCopy.chooseDistrict), findsOneWidget);
+    expect(find.byKey(const Key('near-me-district')), findsNothing);
     expect(DistrictDirectory.instance.assetLoadCount, 0);
-
-    await tester.tap(find.byKey(const Key('near-me-district')));
-    await tester.pump();
-    // compute() runs on a real isolate. The widget tester's fake async
-    // does not deliver that result until this real wait.
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(seconds: 2)),
-    );
-    await tester.pumpAndSettle();
-    expect(DistrictDirectory.instance.assetLoadCount, 1);
-    expect(DistrictDirectory.instance.peek(temples.first), 'Madurai');
-    expect(
-      find.byKey(const Key('near-me-district-option-Madurai')),
-      findsOneWidget,
-    );
-    await tester.tap(find.byKey(const Key('near-me-district-option-Madurai')));
-    await tester.pumpAndSettle();
-    expect(find.text('Madurai'), findsWidgets);
+    expect(DistrictDirectory.instance.peek(temples.first), isNull);
   });
 }
 
