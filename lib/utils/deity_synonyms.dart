@@ -35,18 +35,24 @@ const List<DeitySynonymGroup> deitySynonymGroups = [
     synonyms: [
       'Krishnan',
       'Kannan',
-      'Guruvayurappan',
-      'Guruvayoorappan',
       'Krishn',
       'Kanha',
       'Gopal',
       'Gopala',
       // Also a Venkateswara name below. Searching Govinda returns both groups.
       'Govinda',
+    ],
+    // Shrine and place names. Searching Krishna finds them; searching the
+    // shrine does not return every Krishna temple.
+    oneWay: [
+      'Jagannath',
+      'Vithoba',
+      'Vitthal',
+      'Guruvayurappan',
+      'Guruvayoorappan',
       'Shrinathji',
       'Udupi Krishna',
     ],
-    oneWay: ['Jagannath', 'Vithoba', 'Vitthal'],
   ),
   DeitySynonymGroup(
     name: 'Vishnu',
@@ -55,14 +61,12 @@ const List<DeitySynonymGroup> deitySynonymGroups = [
       'Narayanan',
       'Perumal',
       'Padmanabha',
-      'Padmanabhaswamy',
       'Ranganatha',
       'Ranganathar',
-      'Ranganathaswamy',
-      'Varadaraja',
       'Narasimha',
       'Lakshmi Narasimha',
     ],
+    oneWay: ['Padmanabhaswamy', 'Ranganathaswamy', 'Varadaraja'],
   ),
   DeitySynonymGroup(
     name: 'Venkateswara',
@@ -73,11 +77,11 @@ const List<DeitySynonymGroup> deitySynonymGroups = [
       'Venkatachalapathy',
       'Srinivasa',
       'Balaji',
-      'Tirupati Balaji',
       'Yedukondalavadu',
       'Thimmappa',
       'Govinda',
     ],
+    oneWay: ['Tirupati Balaji'],
   ),
   // No extra Rama spellings were in the validated list.
   DeitySynonymGroup(name: 'Rama', parent: 'Vishnu'),
@@ -104,10 +108,8 @@ const List<DeitySynonymGroup> deitySynonymGroups = [
       'Mahesh',
       'Linga',
       'Lingeswara',
-      'Somnath',
-      'Mahakal',
     ],
-    oneWay: ['Nataraja'],
+    oneWay: ['Nataraja', 'Somnath', 'Mahakal'],
   ),
   DeitySynonymGroup(
     name: 'Murugan',
@@ -129,8 +131,8 @@ const List<DeitySynonymGroup> deitySynonymGroups = [
       'Kumaraswamy',
       'Swaminatha',
       'Dandayudhapani',
-      'Palani Andavar',
     ],
+    oneWay: ['Palani Andavar'],
   ),
   DeitySynonymGroup(
     name: 'Ayyappa',
@@ -162,8 +164,8 @@ const List<DeitySynonymGroup> deitySynonymGroups = [
   DeitySynonymGroup(
     name: 'Durga',
     parent: 'Devi',
-    synonyms: ['Durgamma', 'Kanaka Durga', 'Chamundi', 'Chamundeshwari'],
-    oneWay: ['Vaishno Devi'],
+    synonyms: ['Durgamma', 'Chamundi', 'Chamundeshwari'],
+    oneWay: ['Vaishno Devi', 'Kanaka Durga'],
   ),
   DeitySynonymGroup(
     name: 'Parvati',
@@ -194,10 +196,10 @@ const List<DeitySynonymGroup> deitySynonymGroups = [
       'Pillaiyar',
       'Pillayar',
       'Vigneshwara',
-      'Siddhivinayak',
       'Gajanan',
       'Ganpati',
     ],
+    oneWay: ['Siddhivinayak'],
   ),
   DeitySynonymGroup(
     name: 'Hanuman',

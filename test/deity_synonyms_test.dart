@@ -86,6 +86,31 @@ void main() {
     ]);
   });
 
+  test('shrine names are one-way into the deity', () {
+    final somnath = temple(name: 'Somnath Temple', deity: 'Shiva');
+    final mahakal = temple(name: 'Mahakaleshwar Temple', deity: 'Shiva');
+    final other = temple(name: 'Local Shrine', deity: 'Shiva');
+    final krishna = temple(name: 'Krishna Shrine', deity: 'Krishna');
+    final guruvayur = temple(
+      name: 'Guruvayur Sri Krishna Temple',
+      deity: 'Krishna',
+    );
+
+    expect(names([other, somnath], 'somnath'), ['Somnath Temple']);
+    expect(names([other, mahakal], 'mahakal'), ['Mahakaleshwar Temple']);
+    expect(names([other, somnath], 'shiva'), [
+      'Somnath Temple',
+      'Local Shrine',
+    ]);
+    expect(names([krishna, guruvayur], 'guruvayurappan'), [
+      'Guruvayur Sri Krishna Temple',
+    ]);
+    expect(names([guruvayur, krishna], 'krishna'), [
+      'Guruvayur Sri Krishna Temple',
+      'Krishna Shrine',
+    ]);
+  });
+
   test('short deity tokens do not match inside a longer word', () {
     final sivakasi = temple(
       name: 'Sivakasi Temple',

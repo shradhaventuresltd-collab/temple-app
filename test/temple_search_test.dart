@@ -168,13 +168,7 @@ void main() {
       query: 'somnath',
     );
     expect(onList.map((t) => t.name), combined.map((t) => t.name));
-    // Somnath is a Shiva synonym, so the other Gujarat Shiva temple matches
-    // too. The original .single assertion counted only the place name.
-    expect(combined.first.name, 'Somnath Temple');
-    expect(
-      combined.map((t) => t.name),
-      contains('Nageshwar Jyotirlinga Temple'),
-    );
+    expect(combined.single.name, 'Somnath Temple');
 
     expect(
       filterTemples(sampleTemples, state: 'Kerala', query: 'madurai'),
