@@ -5,7 +5,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/config/build_flags.dart';
 import 'package:temple_app/data/heritage_content.dart';
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/near_me/near_me_copy.dart';
 import 'package:temple_app/screens/admin_screen.dart';
+import 'package:temple_app/screens/temples_near_me_screen.dart';
 import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/services/app_update.dart';
 import 'package:temple_app/services/index_resume.dart';
@@ -263,6 +265,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           MaterialPageRoute(
             builder: (_) =>
                 TempleListScreen(temples: allTemples, title: 'All Temples'),
+          ),
+        );
+      },
+      onNearMe: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                TemplesNearMeScreen(temples: List<Temple>.from(allTemples)),
           ),
         );
       },
@@ -552,10 +563,15 @@ class _HomeEmptyBody extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _HomeBody extends StatelessWidget {
-  const _HomeBody({required this.allTemples, required this.onBrowseTemples});
+  const _HomeBody({
+    required this.allTemples,
+    required this.onBrowseTemples,
+    required this.onNearMe,
+  });
 
   final List<Temple> allTemples;
   final VoidCallback onBrowseTemples;
+  final VoidCallback onNearMe;
 
   @override
   Widget build(BuildContext context) {
@@ -570,6 +586,7 @@ class _HomeBody extends StatelessWidget {
           child: _BrowseTemplesCta(
             templeCount: allTemples.length,
             onPressed: onBrowseTemples,
+            onNearMe: onNearMe,
           ),
         ),
 
@@ -584,10 +601,15 @@ class _HomeBody extends StatelessWidget {
 }
 
 class _BrowseTemplesCta extends StatelessWidget {
-  const _BrowseTemplesCta({required this.templeCount, required this.onPressed});
+  const _BrowseTemplesCta({
+    required this.templeCount,
+    required this.onPressed,
+    required this.onNearMe,
+  });
 
   final int templeCount;
   final VoidCallback onPressed;
+  final VoidCallback onNearMe;
 
   static const Color _saffron = Color(0xFFFF8F00);
   static const Color _deepSaffron = Color(0xFFE65100);
@@ -631,6 +653,19 @@ class _BrowseTemplesCta extends StatelessWidget {
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                 ),
+              ),
+            ),
+          ),
+          TextButton.icon(
+            key: const Key('home-near-me'),
+            onPressed: onNearMe,
+            icon: const Icon(Icons.near_me_outlined),
+            label: const Text(NearMeCopy.title),
+            style: TextButton.styleFrom(
+              foregroundColor: _deepSaffron,
+              textStyle: GoogleFonts.poppins(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
