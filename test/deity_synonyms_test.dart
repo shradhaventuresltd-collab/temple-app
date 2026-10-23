@@ -112,6 +112,14 @@ void main() {
     expect(names([ramanathapuram], 'rama'), isEmpty);
     expect(names([kumaraswamy], 'uma'), isEmpty);
     expect(names([maathru], 'maa'), isEmpty);
+    expect(
+      names([temple(name: 'Sammam Hall', deity: 'Surya')], 'amma'),
+      isEmpty,
+    );
+    expect(
+      names([temple(name: 'Vakanda Hall', deity: 'Surya')], 'kanda'),
+      isEmpty,
+    );
     expect(names([lingaraj], 'linga'), isEmpty);
     expect(names([linga], 'linga'), ['Linga Shrine']);
     expect(

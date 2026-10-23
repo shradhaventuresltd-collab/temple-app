@@ -17,10 +17,12 @@ const Duration templeSearchDebounce = Duration(milliseconds: 300);
 /// text, so `ee`, `th`, and `it` stay ordinary substrings and `-` stays a
 /// hyphen.
 ///
-/// Longer words match a whole token, a prefix, a partial token, or a short
-/// edit (Damerau-Levenshtein). Deity synonyms in [deitySynonymGroups] match
-/// whole tokens. Words of 4 characters or fewer that name a deity, and the
-/// word `linga`, do not match inside a longer word.
+/// Longer words match a whole token or a token prefix. A hyphen or space that
+/// folding removes can join neighbouring tokens (`Tiru-pathi`, `Meena kshi`).
+/// A short Damerau-Levenshtein edit is dropped when some temple already
+/// matched a whole token. Deity synonyms in [deitySynonymGroups] match
+/// whole tokens. A deity name of 5 characters or fewer, and the word `linga`,
+/// do not match inside a longer word.
 bool templeMatchesQuery(Temple temple, String query) {
   if (query.trim().isEmpty) return true;
   final indexed = _indexFor(temple);
@@ -39,9 +41,9 @@ bool templeMatchesQuery(Temple temple, String query) {
 /// multi-word query is literal, then by deity-group tier (exact group before
 /// a parent expansion), then by field: name, deity, town, state, address.
 /// Inside a field, the typed word beats a sibling synonym, then exact beats
-/// prefix, prefix beats a partial token, and a partial token beats a typo.
-/// Ties keep input order. Queries under 3 characters stay plain substrings
-/// in input order.
+/// a token prefix, then a typo. A typo is dropped when some temple already
+/// matched a whole token. Ties keep input order. Queries under 3 characters
+/// stay plain substrings in input order.
 List<Temple> filterTemples(
   List<Temple> temples, {
   String? state,
@@ -76,8 +78,15 @@ List<Temple> filterTemples(
     if (score != null) hits.add(score);
     index++;
   }
-  hits.sort(_compareScore);
-  return [for (final hit in hits) hit.temple];
+  final anyExact = hits.any((hit) => !hit.fuzzy && hit.kind == _kindExact);
+  final ranked = anyExact
+      ? [
+          for (final hit in hits)
+            if (!hit.fuzzy) hit,
+        ]
+      : hits;
+  ranked.sort(_compareScore);
+  return [for (final hit in ranked) hit.temple];
 }
 
 /// Folded place names. Tirupathi is already `tirupati` before this lookup.
@@ -180,8 +189,7 @@ const Set<String> _genericNameTokens = {
 
 const int _kindExact = 0;
 const int _kindPrefix = 1;
-const int _kindPartial = 2;
-const int _kindFuzzy = 3;
+const int _kindFuzzy = 2;
 
 class _ProminentTemple {
   const _ProminentTemple({
@@ -330,12 +338,11 @@ _TempleIndex _indexFor(Temple temple) {
 }
 
 class _FieldText {
-  const _FieldText(this.tokens, this.blob);
+  const _FieldText(this.tokens);
 
   final List<String> tokens;
-  final String blob;
 
-  static const empty = _FieldText(<String>[], '');
+  static const empty = _FieldText(<String>[]);
 
   static _FieldText build(String value) {
     final trimmed = value.trim().toLowerCase();
@@ -345,7 +352,7 @@ class _FieldText {
       final token = foldTempleSearchText(word);
       if (token.isNotEmpty) tokens.add(token);
     }
-    return _FieldText(tokens, foldTempleSearchText(trimmed));
+    return _FieldText(tokens);
   }
 }
 
@@ -424,6 +431,7 @@ class _Score {
     required this.origin,
     required this.kind,
     required this.distance,
+    required this.fuzzy,
     required this.index,
   });
 
@@ -435,6 +443,9 @@ class _Score {
   final int origin;
   final int kind;
   final int distance;
+
+  /// True when a query word matched only by edit distance.
+  final bool fuzzy;
   final int index;
 }
 
@@ -478,13 +489,15 @@ _WordHit _prefer(_WordHit? current, _WordHit next) {
 
 /// Short deity names, and `linga`, match a whole token only.
 ///
-/// `shiv`, `kali`, `rama`, `maa`, and `uma` must not match inside Sivakasi,
-/// Kalina, Ramanathapuram, or a longer word. Other words of 4 or more
-/// characters may be a prefix or a partial token (`tiru` → Tirupati).
+/// `shiv`, `siva`, `kali`, `rama`, `kanda`, `amma`, `maa`, and `uma` must not
+/// match inside Sivakasi, Kalina, Ramanathapuram, or a longer word. Other
+/// words may be a token prefix in either direction (`tiru` → Tirupati,
+/// `ganesha` → Ganesh). A token shorter than 5 characters is not treated as
+/// a prefix of a longer query, so `sivakasi` does not boost Kashi.
 bool _strictWord(String word) {
   if (word.length < 4 || word == 'linga') return true;
   final synonym = _synonyms.word(word);
-  return synonym != null && word.length == 4;
+  return synonym != null && word.length <= 5;
 }
 
 _Score? _scoreTemple(_TempleIndex indexed, List<String> words, int index) {
@@ -503,10 +516,31 @@ _Score? _scoreTemple(_TempleIndex indexed, List<String> words, int index) {
         origin: hit.origin,
         kind: hit.kind,
         distance: hit.distance,
+        fuzzy: false,
         index: index,
       );
       if (best == null || _compareScore(phraseScore, best) < 0) {
         best = phraseScore;
+      }
+    }
+  }
+  if (words.length >= 2) {
+    final joined = _directHit(words.join(), indexed);
+    if (joined != null) {
+      final joinedScore = _Score(
+        temple: indexed.temple,
+        boost: boost,
+        literalWords: words.length,
+        tier: joined.tier,
+        field: joined.field,
+        origin: joined.origin,
+        kind: joined.kind,
+        distance: joined.distance,
+        fuzzy: joined.kind == _kindFuzzy,
+        index: index,
+      );
+      if (best == null || _compareScore(joinedScore, best) < 0) {
+        best = joinedScore;
       }
     }
   }
@@ -532,12 +566,14 @@ _Score? _scoreWords(
   var origin = 0;
   var kind = 0;
   var distance = 0;
+  var fuzzy = false;
   for (final hit in hits) {
     if (hit.tier > tier) tier = hit.tier;
     field += hit.field;
     origin += hit.origin;
     kind += hit.kind;
     distance += hit.distance;
+    if (hit.kind == _kindFuzzy) fuzzy = true;
   }
   return _Score(
     temple: indexed.temple,
@@ -548,6 +584,7 @@ _Score? _scoreWords(
     origin: origin,
     kind: kind,
     distance: distance,
+    fuzzy: fuzzy,
     index: index,
   );
 }
@@ -615,14 +652,15 @@ _WordHit? _matchField(
       );
     }
   }
-  if (!strict && word.isNotEmpty && field.blob.contains(word)) {
-    final kind = field.blob.startsWith(word) ? _kindPrefix : _kindPartial;
-    best = _prefer(best, _WordHit(0, fieldRank, 0, kind, 0, true));
+  if (!strict) {
+    final joined = _matchJoinedTokens(word, field.tokens, fieldRank);
+    if (joined != null) best = _prefer(best, joined);
   }
   final canonical = _aliasCanonical(word);
   if (canonical != null && canonical != word) {
     for (final token in field.tokens) {
-      if (token != canonical) continue;
+      if (token != canonical && !token.startsWith(canonical)) continue;
+      final exactToken = token == canonical;
       final exactKey = _searchAliases.containsKey(word);
       best = _prefer(
         best,
@@ -630,11 +668,37 @@ _WordHit? _matchField(
           0,
           fieldRank,
           0,
-          exactKey ? _kindExact : _kindFuzzy,
-          exactKey ? 0 : 1,
+          exactKey && exactToken ? _kindExact : _kindPrefix,
+          0,
           true,
         ),
       );
+    }
+  }
+  return best;
+}
+
+/// Whole tokens that folding had split on a space or hyphen.
+///
+/// `Tiru-pathi` is the tokens `tiru` and `pati`, which together are `tirupati`.
+/// A match has to begin at a token boundary, so `kasi` does not hit `sivakasi`.
+_WordHit? _matchJoinedTokens(String word, List<String> tokens, int fieldRank) {
+  if (word.isEmpty || tokens.length < 2) return null;
+  _WordHit? best;
+  for (var start = 0; start < tokens.length; start++) {
+    var joined = '';
+    for (var end = start; end < tokens.length; end++) {
+      joined += tokens[end];
+      if (joined == word) {
+        best = _prefer(best, _WordHit(0, fieldRank, 0, _kindExact, 0, true));
+        break;
+      }
+      if (joined.length > word.length) {
+        if (joined.startsWith(word)) {
+          best = _prefer(best, _WordHit(0, fieldRank, 0, _kindPrefix, 0, true));
+        }
+        break;
+      }
     }
   }
   return best;

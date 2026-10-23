@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:temple_app/data/sample_data.dart';
+import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/utils/temple_search.dart';
 
 /// Expected first result for queries a tester actually types, including typos.
@@ -80,4 +81,75 @@ void main() {
     }
     expect(mismatches, isEmpty);
   });
+
+  test('negative queries reject mid-word deity hits', () {
+    final sivakasi = _temple(
+      name: 'Sivakasi Temple',
+      city: 'Sivakasi',
+      deity: 'Murugan',
+    );
+    final kalina = _temple(
+      name: 'Kalina Temple',
+      city: 'Kalina',
+      deity: 'Ganesha',
+    );
+    final ramanathapuram = _temple(
+      name: 'Coast Temple',
+      city: 'Ramanathapuram',
+      deity: 'Shiva',
+    );
+    final kumaraswamy = _temple(name: 'Kumaraswamy Temple', deity: 'Murugan');
+    final maathru = _temple(name: 'Maathru Hall', deity: 'Shiva');
+    final lingaraj = _temple(name: 'Lingaraj Temple', deity: 'Surya');
+    final krishna = _temple(name: 'Krishna Shrine', deity: 'Krishna');
+    final balaji = _temple(name: 'Balaji Shrine', deity: 'Venkateswara');
+    final perumal = _temple(name: 'Perumal Koil', deity: 'Perumal');
+
+    final kasi = filterTemples([sivakasi, ...sampleTemples], query: 'kasi');
+    expect(kasi.map((t) => t.name), isNot(contains('Sivakasi Temple')));
+    expect(kasi.first.name, 'Kashi Vishwanath Temple');
+    expect(kasi.map((t) => t.city), contains('Varanasi'));
+
+    expect(filterTemples([sivakasi], query: 'siva'), isEmpty);
+    expect(filterTemples([sivakasi], query: 'shiva'), isEmpty);
+    expect(filterTemples([kalina], query: 'kali'), isEmpty);
+    expect(filterTemples([ramanathapuram], query: 'rama'), isEmpty);
+    expect(
+      filterTemples(sampleTemples, query: 'rama').map((t) => t.name),
+      isNot(contains('Ramanathaswamy Temple')),
+    );
+    expect(filterTemples([kumaraswamy], query: 'uma'), isEmpty);
+    expect(filterTemples([maathru], query: 'maa'), isEmpty);
+    expect(filterTemples([lingaraj], query: 'linga'), isEmpty);
+
+    expect(
+      filterTemples([
+        perumal,
+        krishna,
+        balaji,
+      ], query: 'govinda').map((t) => t.name),
+      ['Krishna Shrine', 'Balaji Shrine'],
+    );
+  });
+}
+
+Temple _temple({
+  required String name,
+  String deity = 'Devi',
+  String city = 'Madurai',
+}) {
+  return Temple(
+    name: name,
+    state: 'Tamil Nadu',
+    city: city,
+    deity: deity,
+    imageUrl: '',
+    description: '',
+    story: '',
+    location: 'Temple Street',
+    timings: '',
+    specialities: const [],
+    latitude: 0,
+    longitude: 0,
+  );
 }
