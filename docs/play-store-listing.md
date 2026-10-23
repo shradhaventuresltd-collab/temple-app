@@ -37,6 +37,8 @@ Visitors do not need an account to browse. When a connection is available, the d
 
 The Android app shows ads: a banner on the temple list, and a full-screen ad on every third temple you open.
 
+Temples near me can sort the list by distance. Approximate location is used on the device only and is not collected or shared. You can pick a state or city instead.
+
 Timings, photos, and other facts are a starting point for planning a visit. Confirm details with the temple before you travel.
 ```
 
@@ -56,7 +58,7 @@ Answer the IARC questionnaire from the release app, not from the debug admin too
 - The app is religious and cultural reference material (temple history, mythology, and worship timings).
 - No chat, no public user posts, and no social graph. Visitors cannot create an account in the release app. The admin CMS (including sign-in) and seed tools are debug-only; release/profile builds do not present that UI.
 - No unrestricted web browser. Directions open Google Maps for a temple’s published coordinates. Terms and Privacy open two fixed hosted https pages in an in-app browser.
-- The app does not request device location.
+- Approximate location: Temples near me asks for approximate location, used on the device only, and not collected or shared. Precise location and background location are not requested. See [`docs/play-data-safety.md`](play-data-safety.md).
 - Advertising: **yes**. Google AdMob on Android (banner on the temple list; interstitial every third temple detail), after the Terms and Privacy acceptance gate and a Google UMP consent check. Ads are disabled on web. No ads load before Terms are accepted.
 - Digital purchases: none in this repo (no in-app purchases or subscriptions).
 
@@ -72,7 +74,7 @@ Draft bullets for the Data safety form. Sanu should confirm them against Play’
 - **App activity and device IDs (advertising):** Google AdMob on Android, after the on-device Terms and Privacy acceptance gate (KAN-93) and Google’s User Messaging Platform consent check (KAN-69 / KAN-60). Startup does not request a consent-info update until Terms are accepted. After acceptance, Home opens immediately and the consent check runs in the background. When Google requires a form, the app shows it before `MobileAds.initialize`. Ad requests wait until that check resolves. Where UMP says consent is not required, ad requests may be personalized. Where the user completes the form, requests do not force non-personalized ads; the Mobile Ads SDK applies the choices UMP stored. If the user dismisses a required form without consent, the app does not request ads. If UMP fails or times out, the app still runs and any ad request is non-personalized. When ads are requested, Google may receive the advertising ID and ad interactions under Google’s policies. The manifest declares `com.google.android.gms.permission.AD_ID` for that case. Debug and profile builds use Google’s test ad units; release uses the AdMob units already in the project. This draft does not change those IDs. iOS App Tracking Transparency is not part of this Android listing.
 - **Directory content, not a user profile:** Cloud Firestore holds temple records (name, state, city, deity, story, description, timings, address, coordinates, image URLs). Visitors read that published content. They do not write it.
 - **Photos:** Firebase Storage holds temple images uploaded by admins (debug CMS). Visitors download them. The release app does not ask visitors to pick or upload photos, even though the Storage SDK is present in the binary.
-- **Location:** the app does not request device location and does not read GPS. “Directions” opens Google Maps with the temple’s published coordinates.
+- **Location:** Temples near me accesses approximate location. Approximate location is used on the device only and is not collected or shared. The manifest adds `ACCESS_COARSE_LOCATION` only; fine and background location are removed if a plugin merges them. Precise location is not accessed. “Directions” opens Google Maps with the temple’s published coordinates and does not send the device reading. Play Console answers for this device reading are in [`docs/play-data-safety.md`](play-data-safety.md). A person updates the form; this draft does not submit it. IP-derived approximate location that Google AdMob may receive is separate and stays under the advertising bullet above.
 - **In transit:** Firebase and AdMob traffic uses HTTPS. Answer encryption-in-transit as yes only after confirming the form’s wording against that.
 - **Deletion:** there is no visitor account to delete in the release app. Admin accounts are created outside the consumer UI.
 
@@ -84,7 +86,7 @@ When filling Play Console, declare SDKs that the scan reports (including Auth/St
 
 Enter that URL in Play Console. Terms of Service: https://temple-directory-india.web.app/terms-of-service.html. Deployer publishes both with `firebase deploy --only hosting --project temple-directory-india`.
 
-The page should cover public temple data in Cloud Firestore and Firebase Storage, AdMob on Android (including the UMP consent form where Google requires it, non-personalized ads when UMP fails, and no ad request when a required form is dismissed without consent), the fact that `firebase_auth` / `firebase_storage` may ship in the release binary while visitors are never asked to sign in, upload photos, or share device location, and a contact for Sanu Vimal. This file is not the policy.
+The page should cover public temple data in Cloud Firestore and Firebase Storage, AdMob on Android (including the UMP consent form where Google requires it, non-personalized ads when UMP fails, and no ad request when a required form is dismissed without consent), the fact that `firebase_auth` / `firebase_storage` may ship in the release binary while visitors are never asked to sign in or upload photos, and Temples near me. Approximate location is used on the device only and is not collected or shared. The owner on the page is Sanu Vimal. This file is not the policy.
 
 ## Screenshot shot list
 

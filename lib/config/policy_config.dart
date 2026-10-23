@@ -5,7 +5,10 @@
 /// on the device; nothing here is written to Firestore.
 abstract final class PolicyConfig {
   /// Monotonic policy version. First shipped documents are version 1.
-  static const int currentVersion = 1;
+  /// Version 2 is the 23 October 2026 Temples near me update (KAN-184):
+  /// approximate location is used on the device only and is not collected
+  /// or shared. A device that stored version 1 sees the update gate again.
+  static const int currentVersion = 2;
 
   static const String termsOfServiceUrl =
       'https://temple-directory-india.web.app/terms-of-service.html';
