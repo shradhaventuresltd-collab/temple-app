@@ -16,6 +16,9 @@ const Duration templeSearchDebounce = Duration(milliseconds: 300);
 ///
 /// This is the normalised exact check. [filterTemples] adds a short
 /// edit-distance fallback only when that check matches nothing.
+///
+/// A folded query word also matches the canonical place or deity it aliases
+/// (`tirupati` → Tirumala, `sivan` → Shiva). See [_searchAliases].
 bool templeMatchesQuery(Temple temple, String query) {
   if (query.trim().isEmpty) return true;
   final indexed = _indexFor(temple);
@@ -24,17 +27,18 @@ bool templeMatchesQuery(Temple temple, String query) {
   }
   final words = _queryWords(query);
   if (words.isEmpty) return false;
-  return words.every(indexed.blob.contains);
+  return _wordsMatchBlob(words, indexed.blob);
 }
 
 /// Temples that match [state], [deity], and [query] together.
 ///
 /// A null [state] or [deity] does not constrain that field (exact match when
-/// set, same as the drawer chips). Normalised matches keep the order of
-/// [temples] and outrank edit-distance matches. Edit distance runs only when
-/// no temple matched every word exactly, then closer matches come first and
-/// equal distances keep input order. Queries under 3 characters are plain
-/// substrings, in that same order.
+/// set, same as the drawer chips). An exact match on a name, field, or
+/// [_searchAliases] entry outranks every edit-distance match. Edit distance
+/// runs only when no temple matched every word exactly. Among equal matches,
+/// a [_prominentTemples] entry that the query hits by name or alias sorts
+/// ahead of the others; remaining ties keep input order. Queries under 3
+/// characters stay plain substrings in input order, with no alias or boost.
 List<Temple> filterTemples(
   List<Temple> temples, {
   String? state,
@@ -61,20 +65,27 @@ List<Temple> filterTemples(
   final words = _queryWords(query);
   if (words.isEmpty) return const [];
 
-  final exact = <Temple>[];
+  final exact = <({Temple temple, int index})>[];
   final missed = <({Temple temple, _TempleIndex indexed, int index})>[];
   var index = 0;
   for (final temple in temples) {
     if (!_passesChips(temple, state, deity)) continue;
     final indexed = _indexFor(temple);
-    if (words.every(indexed.blob.contains)) {
-      exact.add(temple);
+    if (_wordsMatchBlob(words, indexed.blob)) {
+      exact.add((temple: temple, index: index));
     } else {
       missed.add((temple: temple, indexed: indexed, index: index));
     }
     index++;
   }
-  if (exact.isNotEmpty) return exact;
+  if (exact.isNotEmpty) {
+    exact.sort((a, b) {
+      final byBoost = _boostRank(a.temple, words) - _boostRank(b.temple, words);
+      if (byBoost != 0) return byBoost;
+      return a.index.compareTo(b.index);
+    });
+    return [for (final row in exact) row.temple];
+  }
 
   final fuzzy = <_FuzzyHit>[];
   for (final row in missed) {
@@ -85,9 +96,197 @@ List<Temple> filterTemples(
   fuzzy.sort((a, b) {
     final byScore = a.score.compareTo(b.score);
     if (byScore != 0) return byScore;
+    final byBoost = _boostRank(a.temple, words) - _boostRank(b.temple, words);
+    if (byBoost != 0) return byBoost;
     return a.index.compareTo(b.index);
   });
   return [for (final hit in fuzzy) hit.temple];
+}
+
+/// Folded spellings that mean one place or deity.
+///
+/// Applied after [foldTempleSearchText], so `Tirupathi` is already `tirupati`
+/// and `Shiva` is already `siva`. `Shiv` folds to `siv`, which is a prefix of
+/// `siva`, so it needs no alias of its own. The value is the folded canonical
+/// form stored on the temple (Tirumala, or deity Shiva).
+const Map<String, String> _searchAliases = {
+  'tirupati': 'tirumala',
+  'sivan': 'siva',
+};
+
+/// Well-known temples that should lead when the query actually names them.
+///
+/// Ids are the Firestore document ids in the seed and sample packs. Names
+/// cover sample rows, which leave [Temple.id] empty. The bonus is code-only:
+/// no new Firestore field and no extra read. It applies only when a query
+/// word hits the temple name or one of [aliases], not when the hit is only
+/// a city, state, or address.
+const List<_ProminentTemple> _prominentTemples = [
+  _ProminentTemple(
+    id: 'tirumala-venkateswara-temple',
+    name: 'Tirumala Venkateswara Temple',
+    aliases: {'tirumala'},
+  ),
+  _ProminentTemple(
+    id: 'brihadeeswarar-temple',
+    name: 'Brihadeeswarar Temple',
+    aliases: _shivaAliases,
+  ),
+  _ProminentTemple(
+    id: 'arunachaleswarar-temple',
+    name: 'Arunachaleswarar Temple',
+    aliases: _shivaAliases,
+  ),
+  _ProminentTemple(
+    id: 'ramanathaswamy-temple',
+    name: 'Ramanathaswamy Temple',
+    aliases: _shivaAliases,
+  ),
+  _ProminentTemple(
+    id: 'sri-mallikarjuna-swamy-temple',
+    name: 'Sri Mallikarjuna Swamy Temple',
+    aliases: _shivaAliases,
+  ),
+  _ProminentTemple(
+    id: 'somnath-temple',
+    name: 'Somnath Temple',
+    aliases: _shivaAliases,
+  ),
+  _ProminentTemple(
+    id: 'nageshwar-jyotirlinga-temple',
+    name: 'Nageshwar Jyotirlinga Temple',
+    aliases: _shivaAliases,
+  ),
+  _ProminentTemple(
+    id: 'kashi-vishwanath-temple',
+    name: 'Kashi Vishwanath Temple',
+    aliases: _shivaAliases,
+  ),
+  _ProminentTemple(
+    id: 'trimbakeshwar-temple',
+    name: 'Trimbakeshwar Temple',
+    aliases: _shivaAliases,
+  ),
+  _ProminentTemple(
+    id: 'bhimashankar-temple',
+    name: 'Bhimashankar Temple',
+    aliases: _shivaAliases,
+  ),
+  _ProminentTemple(
+    id: 'grishneshwar-temple',
+    name: 'Grishneshwar Temple',
+    aliases: _shivaAliases,
+  ),
+  _ProminentTemple(
+    id: 'mahakaleshwar-temple',
+    name: 'Mahakaleshwar Temple',
+    aliases: _shivaAliases,
+  ),
+  _ProminentTemple(
+    id: 'omkareshwar-temple',
+    name: 'Omkareshwar Temple',
+    aliases: _shivaAliases,
+  ),
+];
+
+/// Folded deity Shiva. `shiva` folds to this; `shiv` folds to `siv`.
+const Set<String> _shivaAliases = {'siva'};
+
+/// Name tokens that are too common to count as "this temple's name".
+const Set<String> _genericNameTokens = {
+  'temple',
+  'mandir',
+  'kovil',
+  'swamy',
+  'swami',
+  'sri',
+  'shri',
+};
+
+class _ProminentTemple {
+  const _ProminentTemple({
+    required this.id,
+    required this.name,
+    required this.aliases,
+  });
+
+  final String id;
+  final String name;
+  final Set<String> aliases;
+}
+
+Map<String, _ProminentTemple>? _prominentById;
+Map<String, _ProminentTemple>? _prominentByName;
+
+_ProminentTemple? _prominentFor(Temple temple) {
+  final byId = _prominentById ??= {
+    for (final row in _prominentTemples) row.id: row,
+  };
+  if (temple.id.isNotEmpty) {
+    final match = byId[temple.id];
+    if (match != null) return match;
+  }
+  final byName = _prominentByName ??= {
+    for (final row in _prominentTemples) foldTempleSearchText(row.name): row,
+  };
+  return byName[foldTempleSearchText(temple.name)];
+}
+
+/// 0 when this curated temple should lead, 1 otherwise.
+int _boostRank(Temple temple, List<String> words) {
+  final spec = _prominentFor(temple);
+  if (spec == null) return 1;
+  if (_queryHitsNameOrAlias(temple, spec, words)) return 0;
+  return 1;
+}
+
+bool _queryHitsNameOrAlias(
+  Temple temple,
+  _ProminentTemple spec,
+  List<String> words,
+) {
+  final tokens = _nameTokens(temple.name);
+  for (final word in words) {
+    if (_wordHitsName(tokens, word)) return true;
+    final canonical = _searchAliases[word];
+    if (canonical != null && spec.aliases.contains(canonical)) return true;
+    if (spec.aliases.contains(word)) return true;
+  }
+  return false;
+}
+
+List<String> _nameTokens(String name) {
+  final tokens = <String>[];
+  for (final word in name.trim().toLowerCase().split(_whitespace)) {
+    final token = foldTempleSearchText(word);
+    if (token.isEmpty || _genericNameTokens.contains(token)) continue;
+    tokens.add(token);
+  }
+  return tokens;
+}
+
+/// Whole name token, or a prefix in either direction.
+///
+/// A mid-word [String.contains] would treat `sivakasi` as a hit on the token
+/// `kasi` and boost Kashi.
+bool _wordHitsName(List<String> tokens, String word) {
+  if (word.length < 4 || _genericNameTokens.contains(word)) return false;
+  for (final token in tokens) {
+    if (token == word || token.startsWith(word) || word.startsWith(token)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool _wordsMatchBlob(List<String> words, String blob) {
+  for (final word in words) {
+    if (blob.contains(word)) continue;
+    final canonical = _searchAliases[word];
+    if (canonical != null && blob.contains(canonical)) continue;
+    return false;
+  }
+  return true;
 }
 
 /// Folds common Indian transliteration variants.
