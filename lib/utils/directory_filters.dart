@@ -61,14 +61,104 @@ String? directoryDeityFilterNote(Iterable<String> deities) {
   return '$joined labels are the listed tradition, not Hindu darshan filters.';
 }
 
+/// District name for one loaded temple, or null when it is not resolved.
+typedef TempleDistrictName = String? Function(Temple temple);
+
+/// District names for temples in [state], sorted. Blank names are skipped.
+///
+/// A null [districtOf] means the boundary asset has not been opened yet.
+List<String> directoryDistrictsFrom(
+  Iterable<Temple> temples, {
+  String? state,
+  TempleDistrictName? districtOf,
+}) {
+  if (districtOf == null) return const [];
+  final names = <String>{};
+  for (final temple in temples) {
+    if (state != null && state.isNotEmpty && temple.state != state) continue;
+    final name = districtOf(temple)?.trim() ?? '';
+    if (name.isEmpty) continue;
+    names.add(name);
+  }
+  final sorted = names.toList()..sort();
+  return sorted;
+}
+
+/// Whether the District chip should be on screen.
+///
+/// Before the asset loads ([districtOf] is null) the chip is shown when any
+/// in-scope temple has coordinates. After it loads, the chip is shown only
+/// when at least one district name resolved, or a district is already chosen.
+bool directoryDistrictChipVisible({
+  required Iterable<Temple> temples,
+  String? state,
+  String? selectedDistrict,
+  TempleDistrictName? districtOf,
+}) {
+  if (selectedDistrict != null && selectedDistrict.trim().isNotEmpty) {
+    return true;
+  }
+  if (districtOf == null) {
+    for (final temple in temples) {
+      if (!temple.hasCoordinates) continue;
+      if (state != null && state.isNotEmpty && temple.state != state) {
+        continue;
+      }
+      return true;
+    }
+    return false;
+  }
+  return directoryDistrictsFrom(
+    temples,
+    state: state,
+    districtOf: districtOf,
+  ).isNotEmpty;
+}
+
+/// [filterTemples], then the district name when one is selected.
+///
+/// District is applied here so search stays untouched. A selected district
+/// with no lookup yet matches nothing.
+List<Temple> directoryMatchingTemples(
+  List<Temple> temples, {
+  String? state,
+  String? deity,
+  String? district,
+  String query = '',
+  TempleDistrictName? districtOf,
+}) {
+  final matched = filterTemples(
+    temples,
+    state: state,
+    deity: deity,
+    query: query,
+  );
+  if (district == null || district.trim().isEmpty) return matched;
+  if (districtOf == null) return const [];
+  final wanted = district.trim();
+  return [
+    for (final temple in matched)
+      if ((districtOf(temple)?.trim() ?? '') == wanted) temple,
+  ];
+}
+
 /// App-bar title for a browse list constrained by these chips.
-String directoryBrowseTitle({String? state, String? deity}) {
+String directoryBrowseTitle({String? state, String? deity, String? district}) {
   final parts = <String>[
     if (deity != null && deity.isNotEmpty) deity,
+    if (district != null && district.isNotEmpty) district,
     if (state != null && state.isNotEmpty) state,
   ];
   if (parts.isEmpty) return 'All Temples';
   return parts.join(' · ');
+}
+
+/// Empty-state copy. Mentions district only when that chip is constraining.
+String directoryEmptyFilterMessage({String? district}) {
+  if (district != null && district.isNotEmpty) {
+    return 'Nothing in the loaded directory fits this state, district, and deity.';
+  }
+  return 'Nothing in the loaded directory fits this state and deity.';
 }
 
 /// How many loaded temples match this state, deity, and query together.

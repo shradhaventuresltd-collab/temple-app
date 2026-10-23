@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:temple_app/district/district_lookup.dart';
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/screens/licences_screen.dart';
 import 'package:temple_app/screens/temple_detail_screen.dart';
 import 'package:temple_app/services/ad_consent.dart';
 import 'package:temple_app/services/ad_helper.dart';
@@ -35,6 +37,7 @@ class _AppDrawerState extends State<AppDrawer> {
 
   String? _selectedState;
   String? _selectedDeity;
+  String? _selectedDistrict;
 
   late final Future<List<Temple>> _templesFuture;
   final TextEditingController _searchController = TextEditingController();
@@ -94,6 +97,7 @@ class _AppDrawerState extends State<AppDrawer> {
     setState(() {
       _selectedState = null;
       _selectedDeity = null;
+      _selectedDistrict = null;
       _showClear = false;
       _hasDraft = false;
       _appliedQuery = '';
@@ -107,14 +111,20 @@ class _AppDrawerState extends State<AppDrawer> {
       builder: (context, snapshot) {
         final all = snapshot.data ?? [];
 
-        final filtered = filterTemples(
+        final districtOf = bundledDistrictLookup();
+        final filtered = directoryMatchingTemples(
           all,
           state: _selectedState,
           deity: _selectedDeity,
+          district: _selectedDistrict,
           query: _appliedQuery,
+          districtOf: districtOf,
         );
 
-        final hasFilter = _selectedState != null || _selectedDeity != null;
+        final hasFilter =
+            _selectedState != null ||
+            _selectedDeity != null ||
+            (_selectedDistrict != null && _selectedDistrict!.isNotEmpty);
 
         return Drawer(
           backgroundColor: const Color(0xFFFFFBF2),
@@ -199,7 +209,9 @@ class _AppDrawerState extends State<AppDrawer> {
                   onSubmitted: (_) {
                     if (_searchController.text.trim().isEmpty &&
                         _selectedState == null &&
-                        _selectedDeity == null) {
+                        _selectedDeity == null &&
+                        (_selectedDistrict == null ||
+                            _selectedDistrict!.isEmpty)) {
                       return;
                     }
                     _openBrowse(context, all, directory: snapshot);
@@ -234,9 +246,17 @@ class _AppDrawerState extends State<AppDrawer> {
                   query: _appliedQuery,
                   selectedState: _selectedState,
                   selectedDeity: _selectedDeity,
-                  onChanged: (state, deity) => setState(() {
+                  selectedDistrict: _selectedDistrict,
+                  districtOf: districtOf,
+                  prepareDistricts: () async {
+                    final lookup = await prepareDirectoryDistricts(all);
+                    if (mounted) setState(() {});
+                    return lookup;
+                  },
+                  onChanged: (state, deity, district) => setState(() {
                     _selectedState = state;
                     _selectedDeity = deity;
+                    _selectedDistrict = district;
                   }),
                 ),
               ),
@@ -344,6 +364,20 @@ class _AppDrawerState extends State<AppDrawer> {
                 ),
               ),
               const SizedBox(height: 8),
+              _DrawerNavTile(
+                key: const Key('drawer-licences'),
+                label: 'Licences',
+                icon: Icons.article_outlined,
+                onTap: () {
+                  final navigator = Navigator.of(context);
+                  navigator.pop();
+                  navigator.push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const LicencesScreen(),
+                    ),
+                  );
+                },
+              ),
               const AdPrivacyChoicesTile(),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -366,6 +400,9 @@ class _AppDrawerState extends State<AppDrawer> {
   String get _summaryLabel {
     final parts = <String>[];
     if (_selectedDeity != null) parts.add(_selectedDeity!);
+    if (_selectedDistrict != null && _selectedDistrict!.isNotEmpty) {
+      parts.add(_selectedDistrict!);
+    }
     if (_selectedState != null) parts.add(_selectedState!);
     final query = _appliedQuery.trim();
     if (query.isNotEmpty) parts.add('"$query"');
@@ -374,8 +411,16 @@ class _AppDrawerState extends State<AppDrawer> {
   }
 
   String _browseTitle() {
-    if (_selectedState == null && _selectedDeity == null) return 'Search';
-    return directoryBrowseTitle(state: _selectedState, deity: _selectedDeity);
+    if (_selectedState == null &&
+        _selectedDeity == null &&
+        (_selectedDistrict == null || _selectedDistrict!.isEmpty)) {
+      return 'Search';
+    }
+    return directoryBrowseTitle(
+      state: _selectedState,
+      deity: _selectedDeity,
+      district: _selectedDistrict,
+    );
   }
 
   String _matchButtonLabel(int count) {
@@ -401,6 +446,7 @@ class _AppDrawerState extends State<AppDrawer> {
       initialQuery: query,
       stateFilter: _selectedState,
       deityFilter: _selectedDeity,
+      districtFilter: _selectedDistrict,
       directory: directory,
     );
   }
@@ -412,6 +458,7 @@ class _AppDrawerState extends State<AppDrawer> {
     String initialQuery = '',
     String? stateFilter,
     String? deityFilter,
+    String? districtFilter,
     required AsyncSnapshot<List<Temple>> directory,
   }) {
     final waiting = directory.connectionState == ConnectionState.waiting;
@@ -427,6 +474,7 @@ class _AppDrawerState extends State<AppDrawer> {
           templesFuture: waiting ? _templesFuture : null,
           stateFilter: stateFilter,
           deityFilter: deityFilter,
+          districtFilter: districtFilter,
           loadFailed: failed,
         ),
       ),
@@ -447,6 +495,7 @@ class TempleListScreen extends StatefulWidget {
     this.templesFuture,
     this.stateFilter,
     this.deityFilter,
+    this.districtFilter,
     this.loadFailed = false,
   });
 
@@ -464,6 +513,7 @@ class TempleListScreen extends StatefulWidget {
   /// the list filters it on the device.
   final String? stateFilter;
   final String? deityFilter;
+  final String? districtFilter;
 
   final bool loadFailed;
 
@@ -511,11 +561,14 @@ class _TempleListScreenState extends State<TempleListScreen> {
     }
   }
 
-  void _onFiltersChanged(String? state, String? deity) {
-    final next =
-        state == null && deity == null && widget.initialQuery.trim().isNotEmpty
+  void _onFiltersChanged(String? state, String? deity, String? district) {
+    final unconstrained =
+        state == null &&
+        deity == null &&
+        (district == null || district.isEmpty);
+    final next = unconstrained && widget.initialQuery.trim().isNotEmpty
         ? 'Search'
-        : directoryBrowseTitle(state: state, deity: deity);
+        : directoryBrowseTitle(state: state, deity: deity, district: district);
     if (next == _title) return;
     setState(() => _title = next);
   }
@@ -604,6 +657,7 @@ class _TempleListScreenState extends State<TempleListScreen> {
         initialQuery: widget.initialQuery,
         initialState: widget.stateFilter,
         initialDeity: widget.deityFilter,
+        initialDistrict: widget.districtFilter,
         onFiltersChanged: _onFiltersChanged,
         onTempleTap: _onTempleTap,
         footer: const BannerAdWidget(),
@@ -636,6 +690,7 @@ class _TempleListScreenState extends State<TempleListScreen> {
           initialQuery: widget.initialQuery,
           initialState: widget.stateFilter,
           initialDeity: widget.deityFilter,
+          initialDistrict: widget.districtFilter,
           onFiltersChanged: _onFiltersChanged,
           onTempleTap: _onTempleTap,
           footer: const BannerAdWidget(),
@@ -656,6 +711,7 @@ class TempleBrowseList extends StatefulWidget {
     this.initialQuery = '',
     this.initialState,
     this.initialDeity,
+    this.initialDistrict,
     this.onFiltersChanged,
     this.onTempleTap,
     this.footer,
@@ -669,7 +725,9 @@ class TempleBrowseList extends StatefulWidget {
   final String initialQuery;
   final String? initialState;
   final String? initialDeity;
-  final void Function(String? state, String? deity)? onFiltersChanged;
+  final String? initialDistrict;
+  final void Function(String? state, String? deity, String? district)?
+  onFiltersChanged;
   final ValueChanged<Temple>? onTempleTap;
 
   /// Banner slot under the cards when at least one temple is visible.
@@ -691,6 +749,7 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
   bool _showClear = false;
   String? _selectedState;
   String? _selectedDeity;
+  String? _selectedDistrict;
 
   @override
   void initState() {
@@ -699,6 +758,7 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
     _showClear = widget.initialQuery.isNotEmpty;
     _selectedState = widget.initialState;
     _selectedDeity = widget.initialDeity;
+    _selectedDistrict = widget.initialDistrict;
     _searchController = TextEditingController(text: widget.initialQuery);
   }
 
@@ -744,24 +804,31 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
     });
   }
 
-  void _setFilters(String? state, String? deity) {
+  void _setFilters(String? state, String? deity, String? district) {
     setState(() {
       _selectedState = state;
       _selectedDeity = deity;
+      _selectedDistrict = district;
     });
-    widget.onFiltersChanged?.call(state, deity);
+    widget.onFiltersChanged?.call(state, deity, district);
   }
 
   @override
   Widget build(BuildContext context) {
-    final visible = filterTemples(
+    final districtOf = bundledDistrictLookup();
+    final visible = directoryMatchingTemples(
       widget.temples,
       state: _selectedState,
       deity: _selectedDeity,
+      district: _selectedDistrict,
       query: _appliedQuery,
+      districtOf: districtOf,
     );
     final query = _appliedQuery.trim();
-    final filtersActive = _selectedState != null || _selectedDeity != null;
+    final filtersActive =
+        _selectedState != null ||
+        _selectedDeity != null ||
+        (_selectedDistrict != null && _selectedDistrict!.isNotEmpty);
     final showFilterBar = !widget.isLoading && !widget.loadFailed;
 
     return Align(
@@ -790,6 +857,15 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
                   query: _appliedQuery,
                   selectedState: _selectedState,
                   selectedDeity: _selectedDeity,
+                  selectedDistrict: _selectedDistrict,
+                  districtOf: districtOf,
+                  prepareDistricts: () async {
+                    final lookup = await prepareDirectoryDistricts(
+                      widget.temples,
+                    );
+                    if (mounted) setState(() {});
+                    return lookup;
+                  },
                   onChanged: _setFilters,
                 ),
               ),
@@ -848,8 +924,11 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
       return _SearchEmptyState(
         query: query,
         filtersActive: filtersActive,
+        district: _selectedDistrict,
         onClearSearch: query.isEmpty ? null : _clearSearch,
-        onClearFilters: filtersActive ? () => _setFilters(null, null) : null,
+        onClearFilters: filtersActive
+            ? () => _setFilters(null, null, null)
+            : null,
       );
     }
     return ListView.separated(
@@ -938,12 +1017,14 @@ class _SearchEmptyState extends StatelessWidget {
   const _SearchEmptyState({
     required this.query,
     this.filtersActive = false,
+    this.district,
     this.onClearSearch,
     this.onClearFilters,
   });
 
   final String query;
   final bool filtersActive;
+  final String? district;
   final VoidCallback? onClearSearch;
   final VoidCallback? onClearFilters;
 
@@ -960,7 +1041,7 @@ class _SearchEmptyState extends StatelessWidget {
     final message = filtersActive && searching
         ? 'Clear the filters or the search. The list is the directory already loaded.'
         : filtersActive
-        ? 'Nothing in the loaded directory fits this state and deity.'
+        ? directoryEmptyFilterMessage(district: district)
         : searching
         ? 'Try a name, city, state, deity, or address.'
         : 'Nothing is listed in this view yet.';
@@ -1136,6 +1217,7 @@ class _SectionHeader extends StatelessWidget {
 
 class _DrawerNavTile extends StatelessWidget {
   const _DrawerNavTile({
+    super.key,
     required this.label,
     required this.icon,
     this.count,

@@ -145,7 +145,7 @@ void main() {
             temples: [temple],
             selectedState: 'Andhra Pradesh',
             selectedDeity: temple.deity,
-            onChanged: (_, _) {},
+            onChanged: (_, _, _) {},
           ),
           textScale: textScale,
         );

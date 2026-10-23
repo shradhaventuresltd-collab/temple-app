@@ -8,7 +8,10 @@ import 'package:temple_app/utils/haversine.dart';
 /// [nearbyDistricts] already honour a lookup that returns names.
 typedef TempleDistrictLookup = String? Function(Temple temple);
 
-/// Default district hook. The index does not carry a district.
+/// Default district hook. Shards have no district field, so this stays null.
+///
+/// Temples near me uses the on-device boundary lookup when the screen is
+/// given no hook of its own. This function does not read Firestore.
 String? indexDistrictName(Temple temple) => null;
 
 /// One temple and its distance from the anchor, in kilometres.

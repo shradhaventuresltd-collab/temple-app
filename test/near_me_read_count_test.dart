@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:temple_app/district/district_lookup.dart';
 import 'package:temple_app/models/temple_index.dart';
 import 'package:temple_app/near_me/coarse_location.dart';
 import 'package:temple_app/near_me/near_me_session.dart';
@@ -14,8 +15,16 @@ const _shardCount = 33;
 const _stamp = 1760000000000;
 
 void main() {
-  setUp(TempleService.resetSessionForTest);
-  tearDown(TempleService.resetSessionForTest);
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    TempleService.resetSessionForTest();
+    DistrictDirectory.instance.resetForTest();
+  });
+  tearDown(() {
+    TempleService.resetSessionForTest();
+    DistrictDirectory.instance.resetForTest();
+  });
 
   test('cold stays at 34 reads and warm stays at 1', () async {
     final cold = _harness(applied: false);
@@ -80,6 +89,13 @@ void main() {
     );
     await warmSession.acceptRationale();
     expect(warmSession.rows.first.temple.id, 'state-32');
+    expect(warm.log.serverReads, 1);
+    expect(warm.fake.gets, warmGets);
+
+    await DistrictDirectory.instance.ensureFor(coldRows);
+    expect(cold.log.serverReads, 34);
+    expect(cold.fake.gets, coldGets);
+    await DistrictDirectory.instance.ensureFor(warmRows);
     expect(warm.log.serverReads, 1);
     expect(warm.fake.gets, warmGets);
   });

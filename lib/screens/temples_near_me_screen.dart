@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:temple_app/district/district_boundary.dart';
+import 'package:temple_app/district/district_lookup.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/near_me/coarse_location.dart';
 import 'package:temple_app/near_me/geolocator_coarse_location.dart';
@@ -14,19 +16,21 @@ import 'package:temple_app/widgets/temple_browse_card.dart';
 /// Sorted temples from one coarse fix, or from a state/city centroid.
 ///
 /// [temples] is the directory already on screen. This widget does not read
-/// Firestore. Pass [location] in tests. [districtOf] stays [indexDistrictName]
-/// until district names exist on the loaded entries.
+/// Firestore. Pass [location] in tests. A null [districtOf] uses the on-device
+/// boundary lookup, and only after the district picker is opened.
 class TemplesNearMeScreen extends StatefulWidget {
   const TemplesNearMeScreen({
     super.key,
     required this.temples,
     this.location,
-    this.districtOf = indexDistrictName,
+    this.districtOf,
   });
 
   final List<Temple> temples;
   final CoarseLocationClient? location;
-  final TempleDistrictLookup districtOf;
+
+  /// Explicit names. Null means compute a district from the bundled boundaries.
+  final TempleDistrictLookup? districtOf;
 
   @override
   State<TemplesNearMeScreen> createState() => _TemplesNearMeScreenState();
@@ -46,7 +50,7 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen> {
     _session = NearMeSession(
       temples: widget.temples,
       location: widget.location ?? GeolocatorCoarseLocation(),
-      districtOf: widget.districtOf,
+      districtOf: widget.districtOf ?? DistrictDirectory.instance.peek,
     );
     _session.addListener(_onSession);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -140,12 +144,28 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen> {
     );
   }
 
-  Widget _fallback() {
-    final districts = nearbyDistricts(
+  bool _showDistrictPicker() {
+    final lookup = widget.districtOf ?? DistrictDirectory.instance.peek;
+    final names = nearbyDistricts(
       widget.temples,
       state: _session.anchorState,
-      districtOf: widget.districtOf,
+      districtOf: lookup,
     );
+    if (names.isNotEmpty) return true;
+    if (widget.districtOf != null) return false;
+    if (!kDistrictBoundariesBundled) return false;
+    final state = _session.anchorState;
+    for (final temple in widget.temples) {
+      if (!temple.hasCoordinates) continue;
+      if (state != null && state.isNotEmpty && temple.state != state) {
+        continue;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  Widget _fallback() {
     return ListView(
       key: const Key('near-me-fallback'),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
@@ -173,7 +193,7 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen> {
           label: _session.anchorCity ?? NearMeCopy.chooseCity,
           onPressed: _session.anchorState == null ? null : _chooseCity,
         ),
-        if (districts.isNotEmpty) ...[
+        if (_showDistrictPicker()) ...[
           const SizedBox(height: 8),
           _placeButton(
             key: const Key('near-me-district'),
@@ -427,10 +447,16 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen> {
   }
 
   Future<void> _chooseDistrict() async {
+    if (widget.districtOf == null) {
+      await DistrictDirectory.instance.ensureFor(widget.temples);
+      if (!mounted) return;
+      setState(() {});
+    }
+    final lookup = widget.districtOf ?? DistrictDirectory.instance.peek;
     final districts = nearbyDistricts(
       widget.temples,
       state: _session.anchorState,
-      districtOf: widget.districtOf,
+      districtOf: lookup,
     );
     final picked = await _pick(
       options: [

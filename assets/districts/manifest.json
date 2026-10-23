@@ -1,0 +1,24 @@
+{
+  "bundled": false,
+  "allowsBundling": false,
+  "assetVersion": "lgd-2024-dsb1-500m",
+  "datasetVersion": "LGD snapshot 2024",
+  "sourceUpdated": "2026-05-19",
+  "source": "Bharatlas LGD Districts (2024)",
+  "sourcePage": "https://bharatlas.com/view/lgd_districts",
+  "terms": "https://bharatlas.com/terms",
+  "licence": "unconfirmed",
+  "cardLicence": "CC0-1.0 / CC-BY-4.0",
+  "schemaLicense": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "attribution": "Not bundled. The layer card says CC0-1.0 / CC-BY-4.0, schema.org on the same page links only to CC0-1.0, and the GeoJSON file has no licence property.",
+  "evaluatedLocally": {
+    "note": "Measured on a local copy. Those bytes are not committed.",
+    "sha256": "28af9e9a8cb6e488da40461dd0d9558ade982a25a01b6301dd33944df3027991",
+    "bytes": 1143600,
+    "gzipBytes": 473665,
+    "districts": 785,
+    "points": 138200,
+    "toleranceMetres": 500,
+    "sourceSha256": "95829298abdd0e80fc514b8c70787bdeef9aaf0e63b348177493045e8b22bab5"
+  }
+}
