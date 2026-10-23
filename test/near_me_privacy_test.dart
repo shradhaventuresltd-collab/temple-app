@@ -2,7 +2,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:temple_app/config/policy_config.dart';
 import 'package:temple_app/near_me/near_me_copy.dart';
+
+/// Wording per KAN-184 for the policy and the Play Data safety form.
+const _onDeviceOnly =
+    'approximate location is used on the device only and is not collected or shared';
 
 /// Permissions a plugin must not merge into the app.
 const _blockedPermissions = {
@@ -119,6 +124,23 @@ void main() {
     );
     expect(coarse, hasLength(1));
     expect(coarse.single.removed, isFalse);
+    final grantedLocation = parsed['android/app/src/main/AndroidManifest.xml']!
+        .where(
+          (permission) =>
+              permission.name.contains('LOCATION') && !permission.removed,
+        )
+        .map((permission) => permission.name);
+    expect(grantedLocation, ['android.permission.ACCESS_COARSE_LOCATION']);
+    for (final path in [
+      'android/app/src/debug/AndroidManifest.xml',
+      'android/app/src/profile/AndroidManifest.xml',
+    ]) {
+      final granted = parsed[path]!.where(
+        (permission) =>
+            permission.name.contains('LOCATION') && !permission.removed,
+      );
+      expect(granted, isEmpty, reason: path);
+    }
     expect(main, contains('tools:remove="android:foregroundServiceType"'));
     expect(main, isNot(contains('android:foregroundServiceType="location"')));
 
@@ -150,6 +172,91 @@ void main() {
         );
       }
     }
+  });
+
+  test('privacy policy and Data safety use the KAN-184 location wording', () {
+    const pages = ['docs/privacy-policy.html', 'hosting/privacy-policy.html'];
+    final docs = File(pages[0]).readAsStringSync();
+    final hosted = File(pages[1]).readAsStringSync();
+    expect(hosted, docs);
+    expect(docs, contains('Sanu Vimal'));
+    expect(docs, contains('<strong>Updated:</strong> 23 October 2026'));
+    expect(docs, contains('<strong>Effective date:</strong> 23 October 2026'));
+    expect(docs.toLowerCase(), contains(_onDeviceOnly));
+    expect(docs, isNot(contains('does not request location permission')));
+    expect(docs, contains('<h2>6. Temples near me</h2>'));
+
+    final listing = File('docs/play-store-listing.md').readAsStringSync();
+    expect(listing.toLowerCase(), contains(_onDeviceOnly));
+    expect(listing, isNot(contains('does not request device location')));
+
+    final dataSafety = File('docs/play-data-safety.md').readAsStringSync();
+    expect(dataSafety.toLowerCase(), contains(_onDeviceOnly));
+    expect(
+      dataSafety.toLowerCase(),
+      contains('accessed, not collected and not shared'),
+    );
+    expect(dataSafety, contains('Sanu Vimal'));
+    expect(dataSafety, contains('23 October 2026'));
+
+    expect(PolicyConfig.currentVersion, 2);
+    expect(
+      NearMeCopy.rationaleBody,
+      'Used once on your phone to sort temples by distance. Never stored or sent.',
+    );
+  });
+
+  test('ads, UMP, analytics, and crashlytics are not given the device fix', () {
+    final pubspec = File('pubspec.yaml').readAsStringSync();
+    final lock = File('pubspec.lock').readAsStringSync();
+    for (final name in ['firebase_analytics', 'firebase_crashlytics']) {
+      expect(pubspec, isNot(contains('$name:')));
+      expect(lock, isNot(contains('name: $name')));
+    }
+
+    const forbidden = [
+      'CoarseFix',
+      'geolocator',
+      'setLocation',
+      'LocationAccuracy',
+      'ACCESS_COARSE_LOCATION',
+      'ACCESS_FINE_LOCATION',
+      'ACCESS_BACKGROUND_LOCATION',
+      'latitude',
+      'longitude',
+    ];
+    final sdkFiles = Directory('lib')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.dart'))
+        .where((file) {
+          final source = file.readAsStringSync();
+          return source.contains('package:google_mobile_ads/') ||
+              source.contains('firebase_analytics') ||
+              source.contains('firebase_crashlytics') ||
+              source.contains('FirebaseAnalytics') ||
+              source.contains('FirebaseCrashlytics');
+        });
+    expect(sdkFiles, isNotEmpty);
+    for (final file in sdkFiles) {
+      final source = file.readAsStringSync();
+      for (final token in forbidden) {
+        expect(
+          source.contains(token),
+          isFalse,
+          reason: '${file.path} contains $token',
+        );
+      }
+    }
+
+    final consent = File('lib/services/ad_consent.dart').readAsStringSync();
+    expect(
+      consent,
+      contains('return const AdRequest(nonPersonalizedAds: true);'),
+    );
+    expect(consent, contains('return const AdRequest();'));
+    expect(consent, contains('return ConsentRequestParameters();'));
+    expect(RegExp(r'(?<!\w)AdRequest\(').allMatches(consent), hasLength(2));
   });
 
   test('iOS asks for when-in-use only, with the same rationale', () {
