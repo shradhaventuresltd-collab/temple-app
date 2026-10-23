@@ -1,6 +1,6 @@
 import 'dart:math' as math;
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:temple_app/district/district_attribution.dart';
 
 /// Bundled district polygons. Bump this when the asset bytes change so the
@@ -12,9 +12,16 @@ const String kDistrictBoundaryAssetVersion = 'lgd-2024-dsb1-500m';
 /// Only the district lookup service may decode it.
 const String kDistrictBoundaryAsset = 'assets/districts/india_districts.dsb';
 
-/// False while no district file has a single licence confirmed from its
-/// publisher. The evaluated Bharatlas LGD 2024 layer is not bundled.
-const bool kDistrictBoundariesBundled = false;
+/// The Bharatlas LGD 2024 layer is bundled under CC BY 4.0.
+const bool kDistrictBoundariesBundled = true;
+
+/// Test hook. Null uses [kDistrictBoundariesBundled].
+@visibleForTesting
+bool? debugDistrictBoundariesBundled;
+
+/// Whether district geometry is available to the filter and near-me button.
+bool get districtBoundariesAreBundled =>
+    debugDistrictBoundariesBundled ?? kDistrictBoundariesBundled;
 
 /// Coordinate scale. 4 decimal degrees, about 11 metres.
 const int kDistrictCoordinateScale = 10000;
@@ -173,7 +180,7 @@ class DistrictIndex {
       throw FormatException('District boundary asset is not DSB1 ($magic).');
     }
     final version = reader.u16();
-    if (version != 1) {
+    if (version != 1 && version != 2) {
       throw FormatException('Unsupported district boundary version $version.');
     }
     final count = reader.u16();
@@ -206,8 +213,13 @@ class DistrictIndex {
           coords[0] = lat;
           coords[1] = lng;
           for (var n = 1; n < pointCount; n++) {
-            lat += reader.i32();
-            lng += reader.i32();
+            if (version == 2) {
+              lat += reader.i16();
+              lng += reader.i16();
+            } else {
+              lat += reader.i32();
+              lng += reader.i32();
+            }
             coords[n * 2] = lat;
             coords[n * 2 + 1] = lng;
           }
@@ -560,6 +572,12 @@ class _Reader {
   int i32() {
     final value = data.getInt32(offset, Endian.little);
     offset += 4;
+    return value;
+  }
+
+  int i16() {
+    final value = data.getInt16(offset, Endian.little);
+    offset += 2;
     return value;
   }
 }

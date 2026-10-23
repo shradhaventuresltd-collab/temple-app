@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/district/district_attribution.dart';
+import 'package:temple_app/district/district_boundary.dart';
 import 'package:temple_app/district/district_lookup.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/near_me/coarse_location.dart';
@@ -354,25 +356,46 @@ void main() {
     );
   });
 
-  testWidgets('licences do not pin a district licence', (tester) async {
+  testWidgets('licences credit Bharatlas LGD 2024 under CC BY 4.0', (
+    tester,
+  ) async {
     await tester.pumpWidget(const MaterialApp(home: LicencesScreen()));
     expect(find.text(kDistrictBoundarySourceName), findsOneWidget);
     expect(find.text(kDistrictBoundaryLicence), findsOneWidget);
     expect(find.text(kDistrictBoundaryAttribution), findsOneWidget);
-    expect(find.textContaining('Not bundled'), findsWidgets);
-    expect(find.textContaining('CC-BY-4.0 requires'), findsNothing);
+    expect(find.textContaining('Not bundled'), findsNothing);
     expect(find.text('CC0-1.0 / CC-BY-4.0'), findsNothing);
+    expect(find.text('CC0-1.0'), findsNothing);
+    expect(find.byKey(const Key('licences-source-link')), findsOneWidget);
+    expect(find.byKey(const Key('licences-licence-link')), findsOneWidget);
+    expect(find.text('Bharatlas LGD Districts'), findsOneWidget);
+    expect(find.text('CC BY 4.0'), findsOneWidget);
+    expect(find.textContaining('simplified'), findsWidgets);
     expect(
       find.textContaining(kDistrictBoundaryDatasetVersion),
       findsOneWidget,
     );
-    expect(
-      find.textContaining(kDistrictBoundarySourceUpdated),
-      findsOneWidget,
-    );
+    expect(find.textContaining(kDistrictBoundarySourceUpdated), findsOneWidget);
   });
 
-  testWidgets('near me does not load a boundary asset when none is bundled', (
+  testWidgets('LicenseRegistry credits the simplified Bharatlas layer', (
+    tester,
+  ) async {
+    registerDistrictBoundaryLicense();
+    final entries = await LicenseRegistry.licenses.toList();
+    final entry = entries.whereType<LicenseEntryWithLineBreaks>().singleWhere(
+      (item) => item.packages.contains(kDistrictBoundaryLicensePackage),
+    );
+    expect(entry.packages, contains(kDistrictBoundaryLicensePackage));
+    expect(entry.text, kDistrictBoundaryLicenseEntry);
+    expect(entry.text, contains(kDistrictBoundaryAttribution));
+    expect(entry.text, contains(kDistrictBoundarySourcePage));
+    expect(entry.text, contains(kDistrictBoundaryLicenceUrl));
+    expect(entry.text, contains('simplified'));
+    expect(entry.text, isNot(contains('Not bundled')));
+  });
+
+  testWidgets('near me shows the district button before the asset loads', (
     tester,
   ) async {
     DistrictDirectory.instance.resetForTest();
@@ -396,13 +419,13 @@ void main() {
     await tester.tap(find.byKey(const Key('near-me-not-now')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('near-me-district')), findsNothing);
+    expect(find.byKey(const Key('near-me-district')), findsOneWidget);
     expect(DistrictDirectory.instance.assetLoadCount, 0);
     expect(DistrictDirectory.instance.peek(temples.first), isNull);
   });
 
   testWidgets(
-    'the district chip stays hidden for Sita while nothing is bundled',
+    'the district chip lists Bhadradri Kothagudem for Sita without the asset',
     (tester) async {
       DistrictDirectory.instance.resetForTest();
       addTearDown(DistrictDirectory.instance.resetForTest);
@@ -416,6 +439,59 @@ void main() {
         longitude: 80.8828,
       );
       await DistrictDirectory.instance.ensureFor([sita]);
+      expect(DistrictDirectory.instance.peek(sita), 'Bhadradri Kothagudem');
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DirectoryFilterBar(
+              temples: [sita],
+              selectedState: 'Telangana',
+              selectedDeity: null,
+              selectedDistrict: null,
+              query: '',
+              districtOf: bundledDistrictLookup(),
+              onChanged: (_, _, _) {},
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byKey(const Key('filter-chip-district')), findsOneWidget);
+      expect(find.text('All districts'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('filter-chip-district')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('filter-option-district-Bhadradri Kothagudem')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Bhadradri Kothagudem'), findsOneWidget);
+      expect(DistrictDirectory.instance.assetLoadCount, 0);
+    },
+  );
+
+  testWidgets(
+    'the district chip and near-me button hide when the flag is false',
+    (tester) async {
+      debugDistrictBoundariesBundled = false;
+      addTearDown(() => debugDistrictBoundariesBundled = null);
+      DistrictDirectory.instance.resetForTest();
+      addTearDown(DistrictDirectory.instance.resetForTest);
+      final sita = _temple(
+        id: 'sita-ramachandra-swamy-temple',
+        name: 'Sita Ramachandra Swamy Temple',
+        state: 'Telangana',
+        city: 'Bhadrachalam',
+        deity: 'Vishnu',
+        latitude: 17.6669,
+        longitude: 80.8828,
+      );
+      await DistrictDirectory.instance.ensureFor([sita]);
+      expect(DistrictDirectory.instance.isReady, isFalse);
+      expect(DistrictDirectory.instance.peek(sita), isNull);
       tester.view.physicalSize = const Size(800, 1600);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
@@ -439,6 +515,21 @@ void main() {
       expect(find.byKey(const Key('filter-chip-district')), findsNothing);
       expect(find.text('All districts'), findsNothing);
       expect(find.text('Bhadradri Kothagudem'), findsNothing);
+      expect(DistrictDirectory.instance.assetLoadCount, 0);
+
+      final location = FakeCoarseLocation(
+        permission: CoarsePermission.denied,
+        afterRequest: CoarsePermission.denied,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TemplesNearMeScreen(temples: [sita], location: location),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('near-me-not-now')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('near-me-district')), findsNothing);
       expect(DistrictDirectory.instance.assetLoadCount, 0);
     },
   );

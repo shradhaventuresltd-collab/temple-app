@@ -153,7 +153,7 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen> {
     );
     if (names.isNotEmpty) return true;
     if (widget.districtOf != null) return false;
-    if (!kDistrictBoundariesBundled) return false;
+    if (!districtBoundariesAreBundled) return false;
     final state = _session.anchorState;
     for (final temple in widget.temples) {
       if (!temple.hasCoordinates) continue;

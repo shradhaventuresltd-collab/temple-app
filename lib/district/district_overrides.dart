@@ -9,12 +9,13 @@ class DistrictOverride {
   final String state;
 }
 
-/// Pins Pavi checked against Wikidata and OSM.
+/// Border pins kept unconditionally.
 ///
-/// The boundary layer put these points in the neighbouring state. The stored
-/// state is the one they verified, so the name is fixed here. An override
-/// wins over the polygon lookup. It is ignored when its state does not match
-/// the temple's stored state.
+/// The bundled lookup already names the same district as nearest-in-state
+/// for both temples. These overrides still win over the polygon so a later
+/// simplification cannot move the pin. An override is ignored when its
+/// state does not match the temple's stored state. There is no general
+/// post-2011 override table.
 const Map<String, DistrictOverride> kDistrictOverrides = {
   'sita-ramachandra-swamy-temple': DistrictOverride(
     name: 'Bhadradri Kothagudem',

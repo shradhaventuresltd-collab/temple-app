@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/bundled_fonts.dart';
 import 'package:temple_app/config/build_flags.dart';
 import 'package:temple_app/config/policy_config.dart';
+import 'package:temple_app/district/district_attribution.dart';
 import 'package:temple_app/release_error_widget.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/force_update_screen.dart';
@@ -43,6 +44,9 @@ Future<void> main() async {
   // unhandled async error. onError logs that future.
   installFontLoadErrorLogging();
   registerBundledFontLicenses();
+  // Const credit only. The district geometry stays unread until a filter
+  // or the near-me district button asks for it.
+  registerDistrictBoundaryLicense();
   GoogleFonts.config.allowRuntimeFetching = false;
   // Cap decoded bitmaps before the first list paints full-size covers.
   ClientCache.installImageMemoryLimits();

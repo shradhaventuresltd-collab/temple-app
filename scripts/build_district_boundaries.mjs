@@ -1,18 +1,20 @@
 /**
- * Builds assets/districts/india_districts.dsb from the Bharatlas LGD
- * district layer.
+ * Builds assets/districts/india_districts.dsb from Bharatlas LGD
+ * Districts (2024).
  *
- *   node scripts/build_district_boundaries.mjs \
- *     --input /path/LGD_Districts.geojson \
- *     --simplified /path/simplified.geojson
+ *   node scripts/build_district_boundaries.mjs --licence CC-BY-4.0
+ *
+ * The gate accepts CC-BY-4.0 only. CC0-1.0 is refused. An omitted or
+ * unknown licence is refused. The source page states both CC0 and CC BY;
+ * this build complies with CC BY 4.0 and records that in the NOTICE.
  *
  * Omit --simplified to run mapshaper 0.6.113 (MAPSHAPER, or npx).
- * The 88 MB source is cached under scripts/.cache and is not committed.
+ * The source GeoJSON is cached under scripts/.cache and is not committed.
+ * Pass --tolerance <metres> to change the Visvalingam interval (default
+ * 500). Deltas are int16 so the 500 m asset stays under 600 KB.
  * Accuracy fixtures are written from the seed in lib/data/sample_data.dart.
- *
- * This script refuses to write the asset unless --licence is exactly
- * CC0-1.0 or CC-BY-4.0. Bharatlas currently publishes both labels for
- * LGD Districts 2024, so the default run must not ship a file.
+ * A production coordinate CSV, if passed with --temples-csv, is audited
+ * in memory and is never written back.
  */
 import { spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
@@ -21,35 +23,52 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 
+import { loadSampleTemples } from './temple_seed.js';
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SCALE = 10000;
-const TOLERANCE_METRES = 500;
-const ASSET_VERSION = 'lgd-2024-dsb1-500m';
+const PINNED_LICENCE = 'CC-BY-4.0';
+const LICENCE_URL = 'https://creativecommons.org/licenses/by/4.0/';
+let TOLERANCE_METRES = 500;
 const SOURCE_NAME = 'Bharatlas LGD Districts (2024)';
+const DATASET_VERSION = 'LGD snapshot 2024';
+const SOURCE_UPDATED = '2026-05-19';
+const FETCHED_ON = '2026-10-23';
 const DOWNLOAD =
   'https://bharatlas.com/api/dl/admin/districts/LGD_Districts.geojson';
 const SOURCE_PAGE = 'https://bharatlas.com/view/lgd_districts';
 const UPSTREAM = 'https://lgdirectory.gov.in/';
+const SOURCE_SHA256 =
+  '95829298abdd0e80fc514b8c70787bdeef9aaf0e63b348177493045e8b22bab5';
 const MAPSHAPER_VERSION = '0.6.113';
-const MAPSHAPER_COMMAND = [
-  `mapshaper@${MAPSHAPER_VERSION}`,
-  'LGD_Districts.geojson',
-  '-filter-fields',
-  'dtname,stname,dist_lgd,state_lgd',
-  '-proj',
-  'aea',
-  '-simplify',
-  'visvalingam',
-  'interval=500',
-  'keep-shapes',
-  'no-repair',
-  '-proj',
-  'wgs84',
-  '-o',
-  'precision=0.0001',
-  'format=geojson',
-  'simplified.geojson',
-].join(' ');
+const NEAREST_LIMIT_METRES = 2000;
+const RAW_BYTE_LIMIT = 600 * 1024;
+
+function assetVersion() {
+  return `lgd-2024-dsb1-${TOLERANCE_METRES}m`;
+}
+
+function mapshaperCommand() {
+  return [
+    `mapshaper@${MAPSHAPER_VERSION}`,
+    'LGD_Districts.geojson',
+    '-filter-fields',
+    'dtname,stname,dist_lgd,state_lgd',
+    '-proj',
+    'aea',
+    '-simplify',
+    'visvalingam',
+    `interval=${TOLERANCE_METRES}`,
+    'keep-shapes',
+    'no-repair',
+    '-proj',
+    'wgs84',
+    '-o',
+    'precision=0.0001',
+    'format=geojson',
+    'simplified.geojson',
+  ].join(' ');
+}
 
 const STATE_DISPLAY = {
   'ANDAMAN & NICOBAR': 'Andaman and Nicobar Islands',
@@ -404,7 +423,8 @@ function encode(districts) {
         const count = ring.length / 2;
         if (count > 65535) throw new Error(`Ring too long in ${district.name}`);
         points += count;
-        size += 2 + count * 8;
+        // First point is int32 lat/lng. Later points are int16 deltas.
+        size += 2 + 8 + (count - 1) * 4;
       }
     }
   }
@@ -414,7 +434,7 @@ function encode(districts) {
   let offset = 0;
   buffer.write('DSB1', offset, 'ascii');
   offset += 4;
-  buffer.writeUInt16LE(1, offset);
+  buffer.writeUInt16LE(2, offset);
   offset += 2;
   buffer.writeUInt16LE(rows.length, offset);
   offset += 2;
@@ -466,10 +486,15 @@ function encode(districts) {
         for (let n = 1; n < count; n++) {
           const lat = ring[n * 2];
           const lng = ring[n * 2 + 1];
-          buffer.writeInt32LE(lat - prevLat, offset);
-          offset += 4;
-          buffer.writeInt32LE(lng - prevLng, offset);
-          offset += 4;
+          const dLat = lat - prevLat;
+          const dLng = lng - prevLng;
+          if (dLat < -32768 || dLat > 32767 || dLng < -32768 || dLng > 32767) {
+            throw new Error(`Delta does not fit in int16 in ${district.name}`);
+          }
+          buffer.writeInt16LE(dLat, offset);
+          offset += 2;
+          buffer.writeInt16LE(dLng, offset);
+          offset += 2;
           prevLat = lat;
           prevLng = lng;
         }
@@ -487,7 +512,7 @@ function decode(buffer) {
   if (magic !== 'DSB1') throw new Error(`Bad magic ${magic}`);
   const version = buffer.readUInt16LE(offset);
   offset += 2;
-  if (version !== 1) throw new Error(`Bad version ${version}`);
+  if (version !== 1 && version !== 2) throw new Error(`Bad version ${version}`);
   const count = buffer.readUInt16LE(offset);
   offset += 2;
   const stringBytes = buffer.readUInt32LE(offset);
@@ -537,10 +562,17 @@ function decode(buffer) {
         offset += 4;
         coords.push(lat, lng);
         for (let n = 1; n < pointCountRing; n++) {
-          lat += buffer.readInt32LE(offset);
-          offset += 4;
-          lng += buffer.readInt32LE(offset);
-          offset += 4;
+          if (version === 2) {
+            lat += buffer.readInt16LE(offset);
+            offset += 2;
+            lng += buffer.readInt16LE(offset);
+            offset += 2;
+          } else {
+            lat += buffer.readInt32LE(offset);
+            offset += 4;
+            lng += buffer.readInt32LE(offset);
+            offset += 4;
+          }
           coords.push(lat, lng);
         }
         rings.push(coords);
@@ -641,27 +673,170 @@ function assertCentroids(fullCollection, fullDistricts, simplified) {
   console.log(`centroids kept ${checked}, skipped non-interior ${skipped}`);
 }
 
-function loadTemples() {
-  const text = fs.readFileSync(path.join(root, 'lib/data/sample_data.dart'), 'utf8');
-  const parts = text.split(/\n  Temple\(/).slice(1);
-  const temples = [];
-  for (const part of parts) {
-    const name = part.match(/name:\s*'((?:\\'|[^'])*)'/)?.[1]?.replace(/\\'/g, "'");
-    const state = part.match(/state:\s*'((?:\\'|[^'])*)'/)?.[1];
-    const latitude = part.match(/latitude:\s*([-+0-9.]+)/)?.[1];
-    const longitude = part.match(/longitude:\s*([-+0-9.]+)/)?.[1];
-    if (!name || !state || latitude == null || longitude == null) {
-      throw new Error(`Could not read a seed temple near: ${part.slice(0, 120)}`);
+const OVERRIDES = {
+  'sita-ramachandra-swamy-temple': {
+    name: 'Bhadradri Kothagudem',
+    state: 'Telangana',
+  },
+  malinithan: { name: 'Lower Siang', state: 'Arunachal Pradesh' },
+};
+
+function segmentDistance(ax, ay, bx, by) {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const len2 = dx * dx + dy * dy;
+  if (len2 === 0) return Math.hypot(ax, ay);
+  const t = Math.min(1, Math.max(0, (-ax * dx - ay * dy) / len2));
+  return Math.hypot(ax + t * dx, ay + t * dy);
+}
+
+function boundaryDistance(district, latitude, longitude) {
+  const kx = 111320 * Math.cos((latitude * Math.PI) / 180);
+  const ky = 110540;
+  let best = Infinity;
+  for (const rings of district.polygons) {
+    for (const ring of rings) {
+      const n = ring.length / 2;
+      for (let i = 0; i < n; i++) {
+        const j = (i + 1) % n;
+        const ax = (ring[i * 2 + 1] / SCALE - longitude) * kx;
+        const ay = (ring[i * 2] / SCALE - latitude) * ky;
+        const bx = (ring[j * 2 + 1] / SCALE - longitude) * kx;
+        const by = (ring[j * 2] / SCALE - latitude) * ky;
+        const distance = segmentDistance(ax, ay, bx, by);
+        if (distance < best) best = distance;
+      }
     }
-    temples.push({
-      name,
-      state,
-      latitude: Number(latitude),
-      longitude: Number(longitude),
-    });
   }
-  if (temples.length < 100) throw new Error(`Only parsed ${temples.length} temples`);
-  return temples;
+  return best;
+}
+
+function locateInStoredState(districts, latitude, longitude, storedState) {
+  const latQ = quantize(latitude);
+  const lngQ = quantize(longitude);
+  const hits = [];
+  const pool = [];
+  for (const district of districts) {
+    if (canonicalState(storedState) !== canonicalState(district.stateName)) continue;
+    pool.push(district);
+    if (
+      lngQ < district.minLng ||
+      lngQ > district.maxLng ||
+      latQ < district.minLat ||
+      latQ > district.maxLat
+    ) {
+      continue;
+    }
+    if (contains(district, latQ, lngQ)) hits.push(district);
+  }
+  if (hits.length > 0) {
+    hits.sort((a, b) => {
+      if (a.area < b.area) return -1;
+      if (a.area > b.area) return 1;
+      if (a.lgd !== b.lgd) return a.lgd - b.lgd;
+      return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+    });
+    return { district: hits[0], kind: 'inside' };
+  }
+  let best = null;
+  let bestKey = null;
+  for (const district of pool) {
+    if (bboxDistance(district, latitude, longitude) > NEAREST_LIMIT_METRES) {
+      continue;
+    }
+    const distance = boundaryDistance(district, latitude, longitude);
+    if (distance > NEAREST_LIMIT_METRES) continue;
+    const key = {
+      distance,
+      area: district.area,
+      lgd: district.lgd,
+      name: district.name,
+    };
+    if (bestKey == null || nearer(key, bestKey)) {
+      best = district;
+      bestKey = key;
+    }
+  }
+  if (!best) return { district: null, kind: 'none' };
+  return { district: best, kind: 'nearest', distance: bestKey.distance };
+}
+
+function foldDistrictName(name) {
+  return String(name)
+    .toLowerCase()
+    .replace(/[–—-]/g, ' ')
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\bdistrict\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function addressDistrict(location) {
+  if (!location) return null;
+  const match = String(location).match(/([A-Za-z][^,\n]{0,80}?) District\b/i);
+  if (!match) return null;
+  return match[1].replace(/\s+/g, ' ').trim();
+}
+
+function overrideFor(temple) {
+  const fixed = OVERRIDES[temple.id];
+  if (!fixed) return null;
+  if (canonicalState(fixed.state) !== canonicalState(temple.state)) return null;
+  return fixed;
+}
+
+function loadTemples() {
+  const { temples } = loadSampleTemples();
+  const rows = temples.map((row) => ({
+    id: row.id,
+    name: row.temple.name,
+    state: row.temple.state,
+    city: row.temple.city,
+    location: row.temple.location,
+    latitude: row.temple.latitude,
+    longitude: row.temple.longitude,
+  }));
+  if (rows.length < 100) throw new Error(`Only parsed ${rows.length} temples`);
+  return rows;
+}
+
+function parseTempleCsv(csvPath) {
+  const text = fs.readFileSync(csvPath, 'utf8');
+  const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
+  const header = lines[0].split(',').map((cell) => cell.trim());
+  const index = Object.fromEntries(header.map((name, i) => [name, i]));
+  for (const required of ['id', 'name', 'state', 'latitude', 'longitude']) {
+    if (index[required] == null) throw new Error(`CSV is missing ${required}`);
+  }
+  return lines.slice(1).map((line) => {
+    const cells = [];
+    let current = '';
+    let quoted = false;
+    for (const ch of line) {
+      if (ch === '"') {
+        quoted = !quoted;
+        continue;
+      }
+      if (ch === ',' && !quoted) {
+        cells.push(current);
+        current = '';
+        continue;
+      }
+      current += ch;
+    }
+    cells.push(current);
+    const at = (name) => cells[index[name]] ?? '';
+    return {
+      id: at('id').trim(),
+      name: at('name').trim(),
+      state: at('state').trim(),
+      city: index.city == null ? '' : at('city').trim(),
+      location: index.location == null ? at('address') : at('location'),
+      latitude: Number(at('latitude')),
+      longitude: Number(at('longitude')),
+    };
+  });
 }
 
 function sameDistrict(a, b) {
@@ -682,7 +857,7 @@ function runMapshaper(input, output) {
     'aea',
     '-simplify',
     'visvalingam',
-    'interval=500',
+    `interval=${TOLERANCE_METRES}`,
     'keep-shapes',
     'no-repair',
     '-proj',
@@ -717,22 +892,97 @@ function sha256(file) {
   return hash.digest('hex');
 }
 
+function classifyTemples(districts, temples) {
+  const counts = { inside: 0, nearest: 0, none: 0, override: 0, cross: 0 };
+  const rows = [];
+  const addressMismatches = [];
+  let addressCompared = 0;
+  for (const temple of temples) {
+    const fixed = overrideFor(temple);
+    const located = locateInStoredState(
+      districts,
+      temple.latitude,
+      temple.longitude,
+      temple.state,
+    );
+    let kind = located.kind;
+    let name = located.district?.name ?? '';
+    let state = located.district?.stateName ?? '';
+    let lgd = located.district?.lgd ?? 0;
+    if (fixed) {
+      kind = 'override';
+      name = fixed.name;
+      state = fixed.state;
+      lgd = 0;
+    }
+    if (kind === 'inside') counts.inside += 1;
+    else if (kind === 'nearest') counts.nearest += 1;
+    else if (kind === 'none') counts.none += 1;
+    else if (kind === 'override') counts.override += 1;
+    const cross =
+      kind !== 'none' && canonicalState(temple.state) !== canonicalState(state);
+    if (cross) counts.cross += 1;
+    const storedAddressDistrict = addressDistrict(temple.location);
+    let addressMatch = null;
+    if (storedAddressDistrict && kind !== 'none') {
+      addressCompared += 1;
+      addressMatch = foldDistrictName(storedAddressDistrict) === foldDistrictName(name);
+      if (!addressMatch) {
+        addressMismatches.push({
+          id: temple.id,
+          name: temple.name,
+          state: temple.state,
+          addressDistrict: storedAddressDistrict,
+          assigned: name,
+          kind,
+        });
+      }
+    }
+    rows.push({
+      id: temple.id,
+      name: temple.name,
+      state: temple.state,
+      kind,
+      district: name,
+      districtState: state,
+      lgd,
+      polygonDistrict: located.district?.name ?? '',
+      polygonState: located.district?.stateName ?? '',
+      polygonKind: located.kind,
+      addressDistrict: storedAddressDistrict,
+      addressMatch,
+      cross,
+    });
+  }
+  return { counts, rows, addressCompared, addressMismatches };
+}
+
 function main() {
   const pinnedLicence = arg('--licence', '');
-  if (pinnedLicence !== 'CC0-1.0' && pinnedLicence !== 'CC-BY-4.0') {
+  if (pinnedLicence !== PINNED_LICENCE) {
     throw new Error(
-      'Refusing to write assets/districts. Bharatlas does not name one ' +
-        'licence for LGD Districts 2024 (layer card: CC0-1.0 / CC-BY-4.0; ' +
-        'schema.org on the same page: CC0-1.0 only; the GeoJSON has no ' +
-        'licence property). Pass --licence CC0-1.0 or --licence CC-BY-4.0 ' +
-        'only after the publisher itself names that single licence for ' +
-        'this version.',
+      'Refusing to write assets/districts. Pass --licence CC-BY-4.0. ' +
+        'CC0-1.0 is not accepted. An omitted or unknown licence is refused.',
     );
   }
+  const requestedTolerance = Number(arg('--tolerance', String(TOLERANCE_METRES)));
+  if (!Number.isInteger(requestedTolerance) || requestedTolerance < 100) {
+    throw new Error('--tolerance must be an integer number of metres, at least 100');
+  }
+  TOLERANCE_METRES = requestedTolerance;
   const input = ensureInput(arg('--input', ''));
+  const sourceSha = sha256(input);
+  if (sourceSha !== SOURCE_SHA256) {
+    throw new Error(
+      `Source SHA-256 ${sourceSha} does not match the pinned Bharatlas file ${SOURCE_SHA256}`,
+    );
+  }
   let simplified = arg('--simplified', '');
   if (!simplified) {
-    simplified = path.join(root, 'scripts/.cache/simplified_500_norepair.geojson');
+    simplified = path.join(
+      root,
+      `scripts/.cache/simplified_${TOLERANCE_METRES}_norepair.geojson`,
+    );
     fs.mkdirSync(path.dirname(simplified), { recursive: true });
     console.log(`simplifying with mapshaper ${MAPSHAPER_VERSION}`);
     runMapshaper(input, simplified);
@@ -821,10 +1071,7 @@ function main() {
   }
 
   const temples = loadTemples();
-  const assignments = [];
-  const simplificationMismatches = [];
-  const stateMismatches = [];
-  const perState = {};
+  const polygonMismatches = [];
   for (const temple of temples) {
     const fullHits = hitsAt(fullDistricts, temple.latitude, temple.longitude);
     const located = locate(decoded.districts, temple.latitude, temple.longitude);
@@ -832,107 +1079,238 @@ function main() {
       lgd: located.district.lgd,
       name: located.district.name,
       state: located.district.stateName,
-      inside: located.inside,
     };
-    const inSet = fullHits.some((hit) => sameDistrict(hit, computed));
-    if (!inSet) {
-      simplificationMismatches.push({
+    if (!fullHits.some((hit) => sameDistrict(hit, computed))) {
+      polygonMismatches.push({
+        id: temple.id,
         name: temple.name,
         state: temple.state,
-        latitude: temple.latitude,
-        longitude: temple.longitude,
-        computed,
-        fullHits,
+        simplified: computed.name,
+        full: fullHits.map((hit) => hit.name),
       });
     }
-    const stateOk = canonicalState(temple.state) === canonicalState(computed.state);
-    if (!stateOk) {
-      stateMismatches.push({
-        name: temple.name,
-        templeState: temple.state,
-        district: computed.name,
-        districtState: computed.state,
-        lgd: computed.lgd,
-      });
-    }
-    const bucket = perState[temple.state] ?? {
-      temples: 0,
-      resolved: 0,
-      stateMismatches: 0,
-    };
-    bucket.temples += 1;
-    bucket.resolved += 1;
-    if (!stateOk) bucket.stateMismatches += 1;
-    perState[temple.state] = bucket;
-    assignments.push({ ...temple, hits: fullHits });
   }
-  const rate = simplificationMismatches.length / temples.length;
-  if (rate > 0.02) {
+
+  const fullAudit = classifyTemples(fullDistricts, temples);
+  const simpleAudit = classifyTemples(decoded.districts, temples);
+  if (simpleAudit.counts.cross !== 0 || fullAudit.counts.cross !== 0) {
     throw new Error(
-      `Simplification mismatch rate ${rate} exceeds 2%: ${simplificationMismatches.map((row) => row.name).join(', ')}`,
+      `Cross-state assignments: simplified ${simpleAudit.counts.cross}, full ${fullAudit.counts.cross}`,
+    );
+  }
+  const assignmentMismatches = [];
+  for (let i = 0; i < temples.length; i++) {
+    const fullRow = fullAudit.rows[i];
+    const simpleRow = simpleAudit.rows[i];
+    if (fullRow.district === simpleRow.district) continue;
+    assignmentMismatches.push({
+      id: simpleRow.id,
+      name: simpleRow.name,
+      state: simpleRow.state,
+      full: fullRow.district,
+      simplified: simpleRow.district,
+      fullKind: fullRow.kind,
+      simplifiedKind: simpleRow.kind,
+    });
+  }
+  const assignmentRate = assignmentMismatches.length / temples.length;
+  const polygonRate = polygonMismatches.length / temples.length;
+  if (assignmentRate > 0.02 || polygonRate > 0.02) {
+    throw new Error(
+      `Simplification mismatch exceeds 2% (assignment ${(assignmentRate * 100).toFixed(2)}%, polygon ${(polygonRate * 100).toFixed(2)}%)`,
     );
   }
   console.log(
-    `temples ${temples.length}, simplification mismatches ${simplificationMismatches.length} (${(rate * 100).toFixed(2)}%), state mismatches ${stateMismatches.length}`,
+    `seed ${temples.length} simplified in-state ${simpleAudit.counts.inside} nearest ${simpleAudit.counts.nearest} none ${simpleAudit.counts.none} overrides ${simpleAudit.counts.override} cross ${simpleAudit.counts.cross}`,
   );
+  console.log(
+    `assignment mismatches ${assignmentMismatches.length} (${(assignmentRate * 100).toFixed(2)}%), polygon mismatches ${polygonMismatches.length} (${(polygonRate * 100).toFixed(2)}%)`,
+  );
+  console.log(
+    `address districts compared ${simpleAudit.addressCompared}, mismatches ${simpleAudit.addressMismatches.length}`,
+  );
+  for (const row of simpleAudit.rows.filter((item) => item.kind === 'override')) {
+    console.log(
+      `override ${row.id} -> ${row.district}; polygon would say ${row.polygonKind} ${row.polygonDistrict || '(none)'} / ${row.polygonState || '(none)'}`,
+    );
+  }
+
+  const borderProbes = [
+    {
+      id: 'sita-ramachandra-swamy-temple',
+      state: 'Telangana',
+      latitude: 17.6669,
+      longitude: 80.8828,
+    },
+    {
+      id: 'malinithan',
+      state: 'Arunachal Pradesh',
+      latitude: 27.6567,
+      longitude: 94.7058,
+    },
+  ];
+  const overrideProbes = borderProbes.map((probe) => {
+    const located = locateInStoredState(
+      decoded.districts,
+      probe.latitude,
+      probe.longitude,
+      probe.state,
+    );
+    const fixed = OVERRIDES[probe.id];
+    const disagrees = (located.district?.name ?? '') !== fixed.name;
+    console.log(
+      `border ${probe.id} polygon ${located.kind} ${located.district?.name ?? '(none)'} disagrees=${disagrees}`,
+    );
+    return {
+      id: probe.id,
+      override: fixed.name,
+      polygonKind: located.kind,
+      polygonDistrict: located.district?.name ?? '',
+      polygonState: located.district?.stateName ?? '',
+      disagrees,
+    };
+  });
+
+  let production = null;
+  const templesCsv = arg('--temples-csv', '');
+  if (templesCsv) {
+    const prodRows = parseTempleCsv(templesCsv);
+    const prodFull = classifyTemples(fullDistricts, prodRows);
+    const prodSimple = classifyTemples(decoded.districts, prodRows);
+    if (prodSimple.counts.cross !== 0 || prodFull.counts.cross !== 0) {
+      throw new Error('Production coordinate audit assigned a cross-state district');
+    }
+    let prodMismatch = 0;
+    for (let i = 0; i < prodRows.length; i++) {
+      if (prodFull.rows[i].district !== prodSimple.rows[i].district) prodMismatch += 1;
+    }
+    production = {
+      templeCount: prodRows.length,
+      simplified: prodSimple.counts,
+      full: prodFull.counts,
+      assignmentMismatchCount: prodMismatch,
+      assignmentMismatchPercent: (prodMismatch / prodRows.length) * 100,
+      addressCompared: prodSimple.addressCompared,
+      addressMismatchCount: prodSimple.addressMismatches.length,
+      addressMismatches: prodSimple.addressMismatches,
+    };
+    console.log('production csv', JSON.stringify(production.simplified), 'mismatches', prodMismatch);
+  }
 
   const assetDir = path.join(root, 'assets/districts');
   fs.mkdirSync(assetDir, { recursive: true });
   const assetPath = path.join(assetDir, 'india_districts.dsb');
   fs.writeFileSync(assetPath, encoded.buffer);
   const gzipBytes = zlib.gzipSync(encoded.buffer, { level: 9 }).length;
-  if (gzipBytes >= 600 * 1024) {
-    throw new Error(`Gzip size ${gzipBytes} is not under 600 KB`);
+  if (encoded.buffer.length >= RAW_BYTE_LIMIT) {
+    throw new Error(
+      `Asset is ${encoded.buffer.length} bytes, which is not under 600 KB`,
+    );
   }
   const assetSha = crypto.createHash('sha256').update(encoded.buffer).digest('hex');
-  const sourceSha = sha256(input);
+  const attribution =
+    'District boundaries © Bharatlas (LGD 2024), licensed CC BY 4.0, simplified for this app.';
   const manifest = {
-    assetVersion: ASSET_VERSION,
+    bundled: true,
+    allowsBundling: true,
+    assetVersion: assetVersion(),
+    datasetVersion: DATASET_VERSION,
+    sourceUpdated: SOURCE_UPDATED,
+    fetchedOn: FETCHED_ON,
     sha256: assetSha,
     bytes: encoded.buffer.length,
     gzipBytes,
     districts: decoded.districts.length,
     points: encoded.points,
     toleranceMetres: TOLERANCE_METRES,
+    coordinateDecimals: 4,
     source: SOURCE_NAME,
+    sourcePage: SOURCE_PAGE,
+    sourceUrl: DOWNLOAD,
+    upstream: UPSTREAM,
     sourceSha256: sourceSha,
     licence: pinnedLicence,
-    attribution: `Source: LGD. Published via bharatlas (bharatlas.com). Licence: ${pinnedLicence}.`,
-    allowsBundling: true,
+    licenceUrl: LICENCE_URL,
+    attribution,
+    mapshaper: mapshaperCommand(),
   };
   fs.writeFileSync(
     path.join(assetDir, 'manifest.json'),
     `${JSON.stringify(manifest, null, 2)}\n`,
   );
+  const notice = `India district boundaries
+=========================
+
+These polygons are a simplified, quantised, delta-encoded derivative of the
+Bharatlas LGD Districts (2024) layer.
+
+Source page: ${SOURCE_PAGE}
+Download: ${DOWNLOAD}
+Upstream codes: ${UPSTREAM}
+Dataset: ${DATASET_VERSION} (card updated ${SOURCE_UPDATED})
+Fetched: ${FETCHED_ON}
+Source SHA-256: ${sourceSha}
+
+The source page states both CC0-1.0 and CC-BY-4.0. This copy complies with
+CC BY 4.0: ${LICENCE_URL}
+
+© Bharatlas. Source: Local Government Directory.
+
+Credit Bharatlas, link the licence, and indicate that changes were made.
+Changes: Visvalingam simplification at ${TOLERANCE_METRES} metres (mapshaper
+${MAPSHAPER_VERSION}, topology kept, intersection repair off), coordinates
+quantised to 4 decimal degrees, rings stored as DSB1 version 2 (int32
+anchor, int16 deltas) in india_districts.dsb (${assetVersion()}).
+`;
+  fs.writeFileSync(path.join(assetDir, 'LICENSE'), notice);
   const readme = `# India district boundaries
 
-Source: LGD. Published via bharatlas (bharatlas.com). Licence: ${pinnedLicence}.
+This asset is **derived**. It is not the publisher's GeoJSON. Mapshaper
+simplified the rings, coordinates were quantised to 4 decimal degrees, and
+the rings were delta-encoded into \`india_districts.dsb\`.
 
 - Source: ${SOURCE_NAME}
+- Dataset: ${DATASET_VERSION} (card updated ${SOURCE_UPDATED}, fetched ${FETCHED_ON})
 - Layer: ${SOURCE_PAGE}
 - Download: ${DOWNLOAD}
 - Upstream: ${UPSTREAM}
-- Licence: ${pinnedLicence}
-- Asset version: \`${ASSET_VERSION}\`
-- Districts: ${decoded.districts.length} (LGD district code + canonical name)
-- Points after quantizing to 4 decimal degrees: ${encoded.points}
-- Uncompressed: ${encoded.buffer.length} bytes
-- gzip -9 (the size Android deflates into the AAB): ${gzipBytes} bytes
+- Licence pinned for this build: ${pinnedLicence} (${LICENCE_URL})
+- The source page states both CC0-1.0 and CC-BY-4.0. This repository complies with CC BY 4.0. CC0 is not the licence recorded for the asset.
+- Asset version: \`${assetVersion()}\`
+- Districts: ${decoded.districts.length} (LGD district code and name)
+- Points after quantising to 4 decimal degrees: ${encoded.points}
+- Uncompressed: ${encoded.buffer.length} bytes (must stay under 600 KB)
+- gzip -9: ${gzipBytes} bytes
 - Source SHA-256: \`${sourceSha}\`
 - Asset SHA-256: \`${assetSha}\`
 
-Simplification (mapshaper ${MAPSHAPER_VERSION}), Visvalingam effective area,
-topology kept, intersection repair off so shared borders stay aligned and
-concave districts keep their centroids:
+Simplification (mapshaper ${MAPSHAPER_VERSION}). \`interval=${TOLERANCE_METRES}\`
+is ${TOLERANCE_METRES} metres in the Albers projection mapshaper builds from
+the layer. Topology is kept and intersection repair is off so shared borders
+stay aligned:
 
 \`\`\`
-${MAPSHAPER_COMMAND}
+${mapshaperCommand()}
 \`\`\`
 
-\`interval=500\` is 500 metres in the Albers projection mapshaper builds from
-the layer. The binary is delta-encoded int32 (\`DSB1\`), not GeoJSON.
-District is computed in memory from this asset. It is not a Firestore field
-and it is not part of the temple index shard.
+The binary is DSB1 version 2: the first point of each ring is int32 and
+later points are int16 deltas (every simplified step fits). It is not
+GeoJSON. District is
+computed in memory from this asset. It is not a Firestore field and it is
+not part of the temple index shard. The file is loaded only when a district
+filter or the near-me district button needs it.
+
+Stored state wins. A pin is matched only to districts of that state. If it
+is in none of them, the nearest district of that state within 2 km is used.
+Beyond that the temple has no district. The result is never a district of
+another state.
+
+Two id-keyed overrides stay in \`lib/district/district_overrides.dart\`.
+They fix border pins and win over the polygon lookup when the stored state
+matches:
+
+- \`sita-ramachandra-swamy-temple\` → Bhadradri Kothagudem (Telangana)
+- \`malinithan\` → Lower Siang (Arunachal Pradesh)
 `;
   fs.writeFileSync(path.join(assetDir, 'README.md'), readme);
 
@@ -940,23 +1318,26 @@ and it is not part of the temple index shard.
   fs.mkdirSync(fixtureDir, { recursive: true });
   fs.writeFileSync(
     path.join(fixtureDir, 'district_full_assignments.json'),
-    `${JSON.stringify({ temples: assignments }, null, 2)}\n`,
+    `${JSON.stringify({ temples: simpleAudit.rows }, null, 2)}\n`,
   );
   const report = {
     templeCount: temples.length,
-    unresolved: 0,
-    simplificationMismatchCount: simplificationMismatches.length,
-    simplificationMismatches: simplificationMismatches.map((row) => ({
-      name: row.name,
-      state: row.state,
-      computedName: row.computed.name,
-      computedState: row.computed.state,
-      computedLgd: row.computed.lgd,
-      fullHits: row.fullHits,
-    })),
-    stateMismatchCount: stateMismatches.length,
-    stateMismatches,
-    perState,
+    toleranceMetres: TOLERANCE_METRES,
+    bytes: encoded.buffer.length,
+    gzipBytes,
+    simplified: simpleAudit.counts,
+    full: fullAudit.counts,
+    assignmentMismatchCount: assignmentMismatches.length,
+    assignmentMismatchPercent: Number((assignmentRate * 100).toFixed(2)),
+    polygonMismatchCount: polygonMismatches.length,
+    polygonMismatchPercent: Number((polygonRate * 100).toFixed(2)),
+    assignmentMismatches,
+    polygonMismatches,
+    addressCompared: simpleAudit.addressCompared,
+    addressMismatchCount: simpleAudit.addressMismatches.length,
+    addressMismatches: simpleAudit.addressMismatches,
+    overrideProbes,
+    crossState: simpleAudit.counts.cross,
     probes: probes.map((probe) => ({
       label: probe.label,
       latitude: probe.latitude,
@@ -966,6 +1347,7 @@ and it is not part of the temple index shard.
       lgd: probe.resolvedLgd,
       inside: probe.resolvedInside,
     })),
+    production,
   };
   fs.writeFileSync(
     path.join(fixtureDir, 'district_accuracy_report.json'),
