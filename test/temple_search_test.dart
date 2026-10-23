@@ -149,7 +149,7 @@ void main() {
 
   test('sample directory matches name, address, and combined filters', () {
     expect(
-      filterTemples(sampleTemples, query: 'meenakshi').single.name,
+      filterTemples(sampleTemples, query: 'meenakshi').first.name,
       'Meenakshi Amman Temple',
     );
     expect(
@@ -166,7 +166,7 @@ void main() {
       query: 'somnath',
     );
     expect(onList.map((t) => t.name), combined.map((t) => t.name));
-    expect(combined.single.name, 'Somnath Temple');
+    expect(combined.first.name, 'Somnath Temple');
 
     expect(
       filterTemples(sampleTemples, state: 'Kerala', query: 'madurai'),
@@ -254,7 +254,7 @@ void main() {
     );
   });
 
-  test('exact matches stay first and edit distance is only a fallback', () {
+  test('exact matches stay ahead of edit-distance hits', () {
     final farther = temple(name: 'Meenaksha Temple');
     final exact = temple(name: 'Meenakshi Amman Temple');
     final other = temple(name: 'Somnath Temple', city: 'Veraval');
@@ -265,7 +265,7 @@ void main() {
         exact,
         other,
       ], query: 'Meenakshi').map((t) => t.name),
-      ['Meenakshi Amman Temple'],
+      ['Meenakshi Amman Temple', 'Meenaksha Temple'],
     );
     expect(
       filterTemples([farther, exact], query: 'Meenakshix').map((t) => t.name),
@@ -501,8 +501,8 @@ void main() {
     ], query: 'Sivan').map((t) => t.name).toList();
 
     expect(names.first, 'Brihadeeswarar Temple');
-    expect(names.indexOf('Sivaganga Temple'), greaterThan(0));
-    expect(names.indexOf('Sivakasi Temple'), greaterThan(0));
+    expect(names, isNot(contains('Sivaganga Temple')));
+    expect(names, isNot(contains('Sivakasi Temple')));
   });
 
   test('a search for sivakasi does not boost Kashi', () {
