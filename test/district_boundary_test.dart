@@ -141,6 +141,64 @@ void main() {
     );
   });
 
+  test('a computed district never leaves the stored state', () {
+    final index = DistrictIndex.fromGeoRings([
+      (
+        hit: hit(lgd: 1, name: 'Madurai', state: 'Tamil Nadu'),
+        polygons: [
+          [
+            [
+              [78.00, 10.00],
+              [78.01, 10.00],
+              [78.01, 10.01],
+              [78.00, 10.01],
+              [78.00, 10.00],
+            ],
+          ],
+        ],
+      ),
+      (
+        hit: hit(lgd: 2, name: 'Kollam', state: 'Kerala'),
+        polygons: [
+          [
+            [
+              [78.014, 10.004],
+              [78.020, 10.004],
+              [78.020, 10.010],
+              [78.014, 10.010],
+              [78.014, 10.004],
+            ],
+          ],
+        ],
+      ),
+    ]);
+
+    final insideTamil = index.locateInStoredState(10.005, 78.005, 'Tamil Nadu');
+    final insideKeralaBox = index.locateInStoredState(10.006, 78.016, 'Tamil Nadu');
+    final far = index.locateInStoredState(10.006, 78.05, 'Tamil Nadu');
+    final keralaStored = index.locateInStoredState(10.006, 78.016, 'Kerala');
+
+    expect(insideTamil?.name, 'Madurai');
+    expect(sameDistrictState('Tamil Nadu', insideTamil!.stateName), isTrue);
+    expect(insideKeralaBox?.name, 'Madurai');
+    expect(insideKeralaBox!.stateName, isNot('Kerala'));
+    expect(far, isNull);
+    expect(keralaStored?.name, 'Kollam');
+    expect(sameDistrictState('Kerala', keralaStored!.stateName), isTrue);
+
+    for (var lat = 10.0; lat <= 10.08; lat += 0.01) {
+      for (var lng = 78.0; lng <= 78.08; lng += 0.01) {
+        final computed = index.locateInStoredState(lat, lng, 'Tamil Nadu');
+        if (computed == null) continue;
+        expect(
+          sameDistrictState('Tamil Nadu', computed.stateName),
+          isTrue,
+          reason: '$lat,$lng -> ${computed.name} ${computed.stateName}',
+        );
+      }
+    }
+  });
+
   test('a short buffer is rejected', () {
     expect(
       () => DistrictIndex.decode(Uint8List.fromList([1, 2, 3, 4])),

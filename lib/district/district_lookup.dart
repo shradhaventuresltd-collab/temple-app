@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:temple_app/district/district_boundary.dart';
+import 'package:temple_app/district/district_overrides.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/utils/directory_filters.dart';
 
@@ -139,7 +140,8 @@ class DistrictDirectory {
   bool get isReady => _version == kDistrictBoundaryAssetVersion;
 
   /// District name for [temple], or null when this directory is cold,
-  /// the temple has no coordinates, or the stored point does not match.
+  /// the temple has no coordinates, the point has no in-state district,
+  /// or the stored point does not match.
   String? peek(Temple temple) {
     if (!isReady || !temple.hasCoordinates) return null;
     final row = _byKey[_templeKey(temple)];
@@ -147,6 +149,8 @@ class DistrictDirectory {
     if (row.latitude != temple.latitude || row.longitude != temple.longitude) {
       return null;
     }
+    if (row.name.isEmpty) return null;
+    if (!sameDistrictState(temple.state, row.state)) return null;
     return row.name;
   }
 
@@ -182,9 +186,14 @@ class DistrictDirectory {
   }
 
   Future<void> _ensure(List<Temple> temples) async {
-    // No bundled file until a publisher names one licence. A test loader
-    // still runs. This path does not read Firestore.
-    if (_bundledLoader && !kDistrictBoundariesBundled) return;
+    // No bundled file until a publisher names one licence. Overrides are
+    // names, so they still apply. A test loader still runs. This path does
+    // not read Firestore.
+    if (_bundledLoader && !kDistrictBoundariesBundled) {
+      _applyOverrides(temples);
+      _version = kDistrictBoundaryAssetVersion;
+      return;
+    }
     if (_version != kDistrictBoundaryAssetVersion) {
       _byKey.clear();
       _version = null;
@@ -199,14 +208,18 @@ class DistrictDirectory {
       } catch (_) {}
     }
 
+    _applyOverrides(temples);
     final pending = <Temple>[];
     for (final temple in temples) {
       if (!temple.hasCoordinates) continue;
+      if (districtOverrideFor(temple) != null) continue;
       final key = _templeKey(temple);
       final cached = _byKey[key];
       if (cached != null &&
           cached.latitude == temple.latitude &&
-          cached.longitude == temple.longitude) {
+          cached.longitude == temple.longitude &&
+          (cached.name.isEmpty ||
+              sameDistrictState(temple.state, cached.state))) {
         continue;
       }
       pending.add(temple);
@@ -223,6 +236,7 @@ class DistrictDirectory {
       DistrictBatchRequest(
         bytes: bytes,
         ids: [for (final temple in pending) _templeKey(temple)],
+        states: [for (final temple in pending) temple.state],
         latitudes: [for (final temple in pending) temple.latitude!],
         longitudes: [for (final temple in pending) temple.longitude!],
       ),
@@ -230,11 +244,14 @@ class DistrictDirectory {
     for (var i = 0; i < pending.length; i++) {
       final temple = pending[i];
       final row = located[i];
+      final name = row['name']! as String;
+      final state = row['state']! as String;
+      final inState = name.isNotEmpty && sameDistrictState(temple.state, state);
       _byKey[_templeKey(temple)] = DistrictAssignment(
         id: _templeKey(temple),
-        lgd: row['lgd']! as int,
-        name: row['name']! as String,
-        state: row['state']! as String,
+        lgd: inState ? row['lgd']! as int : 0,
+        name: inState ? name : '',
+        state: inState ? state : temple.state,
         latitude: temple.latitude!,
         longitude: temple.longitude!,
       );
@@ -243,6 +260,22 @@ class DistrictDirectory {
     try {
       await _store.write(kDistrictBoundaryAssetVersion, _byKey.values.toList());
     } catch (_) {}
+  }
+
+  void _applyOverrides(List<Temple> temples) {
+    for (final temple in temples) {
+      if (!temple.hasCoordinates) continue;
+      final override = districtOverrideFor(temple);
+      if (override == null) continue;
+      _byKey[_templeKey(temple)] = DistrictAssignment(
+        id: _templeKey(temple),
+        lgd: 0,
+        name: override.name,
+        state: override.state,
+        latitude: temple.latitude!,
+        longitude: temple.longitude!,
+      );
+    }
   }
 }
 
@@ -266,16 +299,12 @@ Future<Uint8List> _loadBundledBoundaries() async {
 
 /// Lookup passed into the directory filter.
 ///
-/// Null until a bundled asset has loaded, which lets the chip show first.
-/// When no asset is bundled this returns a lookup that resolves nothing,
-/// so the chip stays off the screen instead of offering an empty filter.
+/// Null until assignments are ready, which lets the chip show first.
+/// After that, temples with no in-state district are omitted.
 TempleDistrictName? bundledDistrictLookup() {
-  if (!kDistrictBoundariesBundled) return _noBundledDistrict;
   if (!DistrictDirectory.instance.isReady) return null;
   return DistrictDirectory.instance.peek;
 }
-
-String? _noBundledDistrict(Temple temple) => null;
 
 /// Loads boundaries for [temples]. A failure still returns [peek] so the
 /// sheet can open with whatever is already in memory.

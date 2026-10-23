@@ -33,3 +33,10 @@ version.
 
 The lookup code still must not render a boundary asset. Only the district
 lookup service may decode one, if a licensed file is added later.
+
+Stored state wins. A pin is matched only to districts of that state. If it
+is in none of them, the nearest district of that state is used within 2 km,
+and beyond that the temple has no district. Two name-only overrides are
+committed in `lib/district/district_overrides.dart`:
+`sita-ramachandra-swamy-temple` is Bhadradri Kothagudem (Telangana), and
+`malinithan` is Lower Siang (Arunachal Pradesh). They win over the lookup.

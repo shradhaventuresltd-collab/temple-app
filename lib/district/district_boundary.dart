@@ -19,6 +19,10 @@ const bool kDistrictBoundariesBundled = false;
 /// Coordinate scale. 4 decimal degrees, about 11 metres.
 const int kDistrictCoordinateScale = 10000;
 
+/// Nearest in-state district is used only inside this distance.
+/// Farther pins get no district.
+const double kStoredStateNearestLimitMetres = 2000;
+
 /// Cache key for assignments computed from [assetVersion].
 ///
 /// The key changes only when the boundary asset version changes. It does not
@@ -57,29 +61,38 @@ class DistrictBatchRequest {
   const DistrictBatchRequest({
     required this.bytes,
     required this.ids,
+    required this.states,
     required this.latitudes,
     required this.longitudes,
   });
 
   final Uint8List bytes;
   final List<String> ids;
+
+  /// Stored state of each temple. The lookup may not leave this state.
+  final List<String> states;
   final List<double> latitudes;
   final List<double> longitudes;
 }
 
-/// Isolate entry. Decodes [DistrictBatchRequest.bytes] and locates every point.
+/// Isolate entry. Decodes [DistrictBatchRequest.bytes] and locates every point
+/// inside that temple's stored state. An empty name means no district.
 List<Map<String, Object>> matchDistrictBatch(DistrictBatchRequest request) {
   final index = DistrictIndex.decode(request.bytes);
   final out = <Map<String, Object>>[];
   for (var i = 0; i < request.ids.length; i++) {
-    final located = index.locate(request.latitudes[i], request.longitudes[i]);
+    final hit = index.locateInStoredState(
+      request.latitudes[i],
+      request.longitudes[i],
+      request.states[i],
+    );
     out.add({
       'id': request.ids[i],
-      'lgd': located.hit.lgdCode,
-      'stateLgd': located.hit.stateLgdCode,
-      'name': located.hit.name,
-      'state': located.hit.stateName,
-      'inside': located.insidePolygon,
+      'lgd': hit?.lgdCode ?? 0,
+      'stateLgd': hit?.stateLgdCode ?? 0,
+      'name': hit?.name ?? '',
+      'state': hit?.stateName ?? '',
+      'inside': hit != null,
     });
   }
   return out;
@@ -224,12 +237,66 @@ class DistrictIndex {
     return DistrictIndex._(districts);
   }
 
+  /// District of [storedState] only.
+  ///
+  /// A pin inside a polygon of that state uses the smallest such polygon,
+  /// then the lower LGD code, then the name. A pin in none of them uses the
+  /// nearest district of that state within [kStoredStateNearestLimitMetres].
+  /// Beyond that limit the result is null. It is never a district of
+  /// another state.
+  DistrictHit? locateInStoredState(
+    double latitude,
+    double longitude,
+    String storedState,
+  ) {
+    final latQ = quantizeCoordinate(latitude);
+    final lngQ = quantizeCoordinate(longitude);
+    final hits = <_DistrictShape>[];
+    final pool = <_DistrictShape>[];
+    for (final district in _districts) {
+      if (!sameDistrictState(storedState, district.hit.stateName)) continue;
+      pool.add(district);
+      if (lngQ < district.minLng ||
+          lngQ > district.maxLng ||
+          latQ < district.minLat ||
+          latQ > district.maxLat) {
+        continue;
+      }
+      if (district.contains(latQ, lngQ)) hits.add(district);
+    }
+    if (hits.isNotEmpty) {
+      hits.sort(_bySpecificity);
+      return hits.first.hit;
+    }
+    _DistrictShape? best;
+    (double, int, int, String)? bestKey;
+    for (final district in pool) {
+      if (district.bboxDistanceMetres(latitude, longitude) >
+          kStoredStateNearestLimitMetres) {
+        continue;
+      }
+      final distance = district.boundaryDistanceMetres(latitude, longitude);
+      if (distance > kStoredStateNearestLimitMetres) continue;
+      final key = (
+        distance,
+        district.area,
+        district.hit.lgdCode,
+        district.hit.name,
+      );
+      if (bestKey == null || _nearer(key, bestKey)) {
+        best = district;
+        bestKey = key;
+      }
+    }
+    return best?.hit;
+  }
+
   /// Point-in-polygon with a bounding-box prefilter.
   ///
   /// A point in several polygons (the source layer overlaps) uses the
   /// smallest polygon, then the lower LGD code, then the name. A point in
-  /// no polygon is the nearest district by bounding-box distance. The result
-  /// is never null.
+  /// no polygon is the nearest district by bounding-box distance. Temple
+  /// assignment uses [locateInStoredState], which can return null.
   DistrictLocate locate(double latitude, double longitude) {
     if (_districts.isEmpty) {
       throw StateError('District boundary asset has no districts.');
@@ -324,6 +391,23 @@ int _bySpecificity(_DistrictShape a, _DistrictShape b) {
   );
 }
 
+double _segmentDistanceFromOrigin(
+  double ax,
+  double ay,
+  double bx,
+  double by,
+) {
+  final dx = bx - ax;
+  final dy = by - ay;
+  final len2 = dx * dx + dy * dy;
+  if (len2 == 0) return math.sqrt(ax * ax + ay * ay);
+  final t = ((-ax * dx) + (-ay * dy)) / len2;
+  final clamped = t.clamp(0.0, 1.0);
+  final px = ax + clamped * dx;
+  final py = ay + clamped * dy;
+  return math.sqrt(px * px + py * py);
+}
+
 bool _nearer(
   (double, int, int, String) candidate,
   (double, int, int, String) best,
@@ -369,6 +453,30 @@ class _DistrictShape {
       if (!hole) return true;
     }
     return false;
+  }
+
+  /// Metres from [latitude], [longitude] to the nearest ring edge.
+  double boundaryDistanceMetres(double latitude, double longitude) {
+    final kx = 111320 * math.cos(latitude * math.pi / 180);
+    const ky = 110540.0;
+    var best = double.infinity;
+    for (final rings in polygons) {
+      for (final ring in rings) {
+        final n = ring.length ~/ 2;
+        for (var i = 0; i < n; i++) {
+          final j = (i + 1) % n;
+          final ax =
+              (ring[i * 2 + 1] / kDistrictCoordinateScale - longitude) * kx;
+          final ay = (ring[i * 2] / kDistrictCoordinateScale - latitude) * ky;
+          final bx =
+              (ring[j * 2 + 1] / kDistrictCoordinateScale - longitude) * kx;
+          final by = (ring[j * 2] / kDistrictCoordinateScale - latitude) * ky;
+          final distance = _segmentDistanceFromOrigin(ax, ay, bx, by);
+          if (distance < best) best = distance;
+        }
+      }
+    }
+    return best;
   }
 
   double bboxDistanceMetres(double latitude, double longitude) {

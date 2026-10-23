@@ -394,9 +394,17 @@ void main() {
     await tester.tap(find.byKey(const Key('near-me-not-now')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('near-me-district')), findsNothing);
+    expect(find.byKey(const Key('near-me-district')), findsOneWidget);
+    expect(DistrictDirectory.instance.assetLoadCount, 0);
+
+    await tester.tap(find.byKey(const Key('near-me-district')));
+    await tester.pumpAndSettle();
     expect(DistrictDirectory.instance.assetLoadCount, 0);
     expect(DistrictDirectory.instance.peek(temples.first), isNull);
+    expect(
+      find.byKey(const Key('near-me-district-option-Madurai')),
+      findsNothing,
+    );
   });
 }
 
