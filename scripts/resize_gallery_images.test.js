@@ -21,11 +21,13 @@ import {
   assignGalleryUrls,
   authorizeApply,
   formatGalleryReport,
+  galleryUrlMatchesTarget,
   loadResume,
   main,
   parseArgs,
   persistGalleryUrls,
   planGalleryPhotos,
+  rememberResume,
   saveResume,
 } from "./resize_gallery_images.js";
 import {
@@ -999,4 +1001,106 @@ test("no-source-generation and other skip reasons are separate summary counts", 
     /summary written=0 failed=0 skipped=3 \(no-source-generation=1 other-bucket=1 wikimedia-full=1\) elapsed=/,
   );
   assert.match(text, /APPLY-FINISHED/);
+});
+
+test("galleryUrl matches the target string, its token, or its gallery checksum", () => {
+  const path = "temples/nartiang/01_1080_g3.jpg";
+  const target = tokenUrl(path, "target-token");
+  assert.equal(galleryUrlMatchesTarget(target, target), true);
+  const reordered = target.replace("alt=media&token=", "token=target-token&alt=media");
+  assert.notEqual(reordered, target);
+  assert.equal(galleryUrlMatchesTarget(reordered, target), true);
+  assert.equal(galleryUrlMatchesTarget(tokenUrl(path, "other-token"), target), true);
+  assert.equal(
+    galleryUrlMatchesTarget(tokenUrl("temples/nartiang/01_1080_g9.jpg", "different-token"), target),
+    false,
+  );
+  const photos = new Map();
+  assert.equal(rememberResume(photos, "nartiang", target), true);
+  assert.equal(rememberResume(photos, "nartiang", target), false);
+  assert.equal(saveResume("demo-temple-index", photos).split("target-token").length, 2);
+});
+
+test("a gallery write that commits after the client timeout is linked, not counted as new", { timeout: 5_000 }, async () => {
+  const lines = [];
+  let code = null;
+  let writes = 0;
+  const temple = onePhoto("timeout-temple");
+  const rows = await main(["--apply", "--timeout-ms", "40", "--project", "demo-temple-index"], {
+    env: emulator,
+    ...fastNet({ attempts: 2, timeoutMs: 5_000 }),
+    log: (line) => lines.push(line),
+    exit: (status) => {
+      code = status;
+    },
+    load: async () => [temple],
+    stat: async (path) => (path.includes("_1080") ? null : { generation: "3" }),
+    download: async () => Buffer.alloc(80, 1),
+    encode: async () => Buffer.alloc(20, 2),
+    upload: async (file) => ({ url: tokenUrl(file.path, "gallery-token") }),
+    verifyPublic: async () => true,
+    reread: async () => temple,
+    writeGalleryUrls: (assigned) => {
+      writes += 1;
+      const committed = tokenUrl("temples/timeout-temple/01_1080_g3.jpg", "committed-token");
+      assert.notEqual(committed, assigned.assignments[0].galleryUrl);
+      temple.photos[0].galleryUrl = committed;
+      return new Promise(() => {});
+    },
+    writeResume: () => {},
+  });
+  assert.equal(code, 0);
+  assert.equal(writes, 1);
+  assert.equal(rows.filter((row) => row.result === "linked-after-timeout").length, 1);
+  assert.equal(rows.filter((row) => row.result === "uploaded").length, 0);
+  const text = lines.join("\n");
+  assert.match(text, /summary written=0 failed=0 skipped=0 linked-after-timeout=1 elapsed=/);
+  assert.match(text, /linked-after-timeout timeout-temple/);
+  assert.match(text, /APPLY-FINISHED/);
+  assert.doesNotMatch(text, /APPLY-INCOMPLETE/);
+});
+
+test("a resume write that commits after timeout is not recorded twice", { timeout: 5_000 }, async () => {
+  const lines = [];
+  let code = null;
+  let resumeWrites = 0;
+  let body = "";
+  const temple = onePhoto("resume-once");
+  const rows = await main(["--apply", "--timeout-ms", "40", "--project", "demo-temple-index"], {
+    env: emulator,
+    ...fastNet({ attempts: 2, timeoutMs: 5_000 }),
+    log: (line) => lines.push(line),
+    exit: (status) => {
+      code = status;
+    },
+    load: async () => [temple],
+    stat: async (path) => (path.includes("_1080") ? null : { generation: "3" }),
+    download: async () => Buffer.alloc(80, 1),
+    encode: async () => Buffer.alloc(20, 2),
+    upload: async (file) => ({ url: tokenUrl(file.path, "gallery") }),
+    verifyPublic: async () => true,
+    writeGalleryUrls: async (assigned) => ({
+      ok: true,
+      storedUrls: assigned.assignments.map((item) => item.source),
+      skippedUrls: [],
+    }),
+    readResume: () => body,
+    writeResume: (next) => {
+      resumeWrites += 1;
+      body = next;
+      return new Promise(() => {});
+    },
+  });
+  assert.equal(code, 0);
+  assert.equal(resumeWrites, 1);
+  const saved = JSON.parse(body);
+  const urls = saved.photos["resume-once"];
+  assert.equal(urls.length, 1);
+  assert.equal(new Set(urls).size, 1);
+  assert.equal(rows.filter((row) => row.result === "uploaded").length, 1);
+  assert.equal(rows.filter((row) => row.result === "failed").length, 0);
+  const text = lines.join("\n");
+  assert.match(text, /summary written=1 failed=0 skipped=0 elapsed=/);
+  assert.match(text, /APPLY-FINISHED/);
+  assert.doesNotMatch(text, /APPLY-INCOMPLETE/);
 });

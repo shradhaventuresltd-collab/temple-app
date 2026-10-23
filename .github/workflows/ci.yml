@@ -53,7 +53,7 @@ jobs:
         run: node -e "require('sharp')"
 
       - name: state batch and index checks
-        run: node --test scripts/state_batch.test.js scripts/rebuild_index.test.js scripts/resize_cover_thumbs.test.js scripts/resize_gallery_images.test.js scripts/audit_coords.test.js scripts/audit_temple_coords.test.js scripts/backfill_cover_photos.test.js scripts/cap_wikimedia_images.test.js scripts/clear_placeholder_covers.test.js scripts/fix_karaikal_address.test.js scripts/no_public_acl.test.js scripts/download_token.test.js scripts/redact_url.test.js scripts/purge_places_photos.test.js scripts/no_places_photos.test.js scripts/upload_research_pack.test.js
+        run: node --test scripts/state_batch.test.js scripts/rebuild_index.test.js scripts/resize_cover_thumbs.test.js scripts/resize_gallery_images.test.js scripts/audit_coords.test.js scripts/audit_temple_coords.test.js scripts/backfill_cover_photos.test.js scripts/cap_wikimedia_images.test.js scripts/clear_placeholder_covers.test.js scripts/no_public_acl.test.js scripts/download_token.test.js scripts/redact_url.test.js scripts/purge_places_photos.test.js scripts/no_places_photos.test.js scripts/upload_research_pack.test.js
 
       - name: photo patch checks
         run: node --test scripts/photo_patch.test.js
@@ -66,7 +66,7 @@ jobs:
       # Local Firestore emulator only. demo-* never reaches production.
       - name: temple index emulator rules
         run: |
-          scripts/node_modules/.bin/firebase emulators:exec --only firestore --project demo-temple-index "node --test scripts/temple_index_rules.test.js && node --test --test-name-pattern \"existing meta and shard|would pass 400|temple id exists\" scripts/state_batch.test.js && node --test --test-name-pattern \"emulator apply clears\" scripts/purge_places_photos.test.js && node --test --test-name-pattern \"emulator dry-run writes nothing\" scripts/fix_karaikal_address.test.js"
+          scripts/node_modules/.bin/firebase emulators:exec --only firestore --project demo-temple-index "node --test scripts/temple_index_rules.test.js && node --test --test-name-pattern \"existing meta and shard|would pass 400|temple id exists\" scripts/state_batch.test.js && node --test --test-name-pattern \"emulator apply clears\" scripts/purge_places_photos.test.js"
 
       # Firestore emulator only. The empty-cover test seeds demo-empty-cover,
       # applies a pack, resizes the thumb, then checks the index for drift.

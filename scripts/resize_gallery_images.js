@@ -32,6 +32,11 @@
  *
  * Fetch, Storage, Firestore, image encoding, the resume file, and admin
  * init abort after --timeout-ms (default 60000) and retry with backoff.
+ * A Firestore write that times out is re-read before the next try. When
+ * galleryUrl already equals the target, or the download token or the
+ * gallery object checksum matches, the photo is counted as linked after
+ * timeout and is not written again. A resume row that is already on disk
+ * is not recorded a second time.
  * Apply prints a progress line per batch and a final summary of written,
  * failed, and skipped photos. APPLY-FINISHED is printed only when every
  * photo succeeded. A failed photo prints APPLY-INCOMPLETE and the process
@@ -50,6 +55,7 @@ import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard
 import { redactDownloadToken, redactThrown } from "./redact_url.js";
 import {
   DEFAULT_TIMEOUT_MS,
+  attemptWithTimeout,
   beginRun,
   boundIo,
   callBounded,
@@ -57,6 +63,7 @@ import {
   failureText,
   finishRun,
   incompleteOnBeforeExit,
+  isTimeoutError,
   logBatch,
   networkLimits,
   objectAfterUploadTimeout,
@@ -171,6 +178,75 @@ export async function authorizeApply(project, env = process.env, deps = {}) {
   if (usesEmulator(env)) return id;
   const confirm = deps.confirm ?? confirmProject;
   return confirm(id);
+}
+
+function downloadToken(url) {
+  try {
+    return new URL(String(url)).searchParams.get("token") || "";
+  } catch {
+    return "";
+  }
+}
+
+/** Generation-named gallery object. Two URLs of that object share a checksum. */
+function galleryChecksum(url) {
+  const located = storageObjectFromUrl(url);
+  if (!located) return "";
+  const file = located.objectPath.split("/").pop() || "";
+  if (!/_1080_g\d+/.test(file)) return "";
+  return `${located.bucket}/${located.objectPath}`;
+}
+
+/**
+ * True when [existing] is already the gallery this run would store.
+ * Equality, the same download token, or the same gallery-object checksum
+ * all count. A different object does not.
+ */
+export function galleryUrlMatchesTarget(existing, target) {
+  const left = typeof existing === "string" ? existing.trim() : "";
+  const right = typeof target === "string" ? target.trim() : "";
+  if (!left.startsWith("https://") || !right.startsWith("https://")) return false;
+  if (left === right) return true;
+  const tokenA = downloadToken(left);
+  const tokenB = downloadToken(right);
+  if (tokenA && tokenB && tokenA === tokenB) return true;
+  const sumA = galleryChecksum(left);
+  const sumB = galleryChecksum(right);
+  return sumA !== "" && sumA === sumB;
+}
+
+/**
+ * Every assignment whose photo is still on [temple] already points at the
+ * target gallery. Used after a client timeout, before another write.
+ */
+export function galleryLinksMatch(temple, assignments) {
+  const photos = Array.isArray(temple?.photos) ? temple.photos : [];
+  const storedUrls = [];
+  for (const assignment of assignments ?? []) {
+    const source = assignment?.source;
+    const target = typeof assignment?.galleryUrl === "string" ? assignment.galleryUrl.trim() : "";
+    if (!source || !target) return { complete: false, storedUrls: [] };
+    const matches = photos.filter((photo) => photo && samePhotoUrl(photo.url, source));
+    if (matches.length === 0) return { complete: false, storedUrls: [] };
+    if (!matches.every((photo) => galleryUrlMatchesTarget(existingGalleryUrl(photo), target))) {
+      return { complete: false, storedUrls: [] };
+    }
+    storedUrls.push(source);
+  }
+  return { complete: storedUrls.length > 0 && storedUrls.length === (assignments ?? []).length, storedUrls };
+}
+
+/**
+ * Record [source] once. A retry that already has the URL returns false so
+ * resume state is not counted again.
+ */
+export function rememberResume(photos, id, source) {
+  if (typeof id !== "string" || id === "" || typeof source !== "string" || source === "") return false;
+  if (!photos.has(id)) photos.set(id, new Set());
+  const set = photos.get(id);
+  if (set.has(source)) return false;
+  set.add(source);
+  return true;
 }
 
 function samePhotoUrl(photoUrl, source) {
@@ -447,7 +523,9 @@ async function runGalleryGroup(group, deps, report) {
   }
   for (const index of pending) {
     const source = report[index].source;
-    if (skipped.has(source) && !stored.has(source)) {
+    if (written.linkedAfterTimeout === true && stored.has(source)) {
+      report[index] = { ...report[index], result: "linked-after-timeout", stored: false };
+    } else if (skipped.has(source) && !stored.has(source)) {
       report[index] = { ...report[index], result: "skipped", reason: "url-changed" };
     } else {
       report[index] = { ...report[index], stored: true };
@@ -575,18 +653,22 @@ async function prepareGalleryPhoto(plan, deps) {
 
 export function formatGalleryReport(rows, { apply = false } = {}) {
   const lines = [apply ? "Mode: apply" : "Mode: dry-run"];
-  const counts = { upload: 0, exists: 0, skip: 0, uploaded: 0 };
+  const counts = { upload: 0, exists: 0, skip: 0, uploaded: 0, linked: 0 };
   for (const row of rows) {
-    if (row.result === "would-upload" || row.result === "uploaded") counts.upload += 1;
+    if (row.result === "linked-after-timeout") counts.linked += 1;
+    else if (row.result === "would-upload" || row.result === "uploaded") counts.upload += 1;
     else if (row.result === "exists") counts.exists += 1;
     else counts.skip += 1;
     if (row.result === "uploaded") counts.uploaded += 1;
   }
+  const linkedNote = counts.linked > 0 ? `  linked-after-timeout: ${counts.linked}` : "";
   lines.push(
-    `photos: ${rows.length}  gallery: ${counts.upload}  exists: ${counts.exists}  skip: ${counts.skip}`,
+    `photos: ${rows.length}  gallery: ${counts.upload}  exists: ${counts.exists}  skip: ${counts.skip}${linkedNote}`,
   );
   for (const row of rows) {
-    if (row.result === "would-upload" || row.result === "uploaded" || row.result === "exists") {
+    if (row.result === "linked-after-timeout") {
+      lines.push(`linked-after-timeout ${row.id} ${row.galleryPath || ""}`.trimEnd());
+    } else if (row.result === "would-upload" || row.result === "uploaded" || row.result === "exists") {
       lines.push(`${row.result} ${row.id} ${row.galleryPath}`);
     } else if (row.result === "failed") {
       lines.push(`failed ${row.id ?? ""} ${row.reason ?? ""}`.trimEnd());
@@ -765,10 +847,11 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
             return { ...snap.data(), id: snap.id };
           }
         : undefined);
+    const readResumeNow = () =>
+      (deps.readResume ?? (() => (existsSync(RESUME_FILE) ? readFileSync(RESUME_FILE, "utf8") : "")))();
     const onResume = opts.apply
       ? async (id, source) => {
-          if (!resumePhotos.has(id)) resumePhotos.set(id, new Set());
-          if (typeof source === "string" && source !== "") resumePhotos.get(id).add(source);
+          rememberResume(resumePhotos, id, source);
           const body = saveResume(project, resumePhotos);
           if (deps.writeResume) await deps.writeResume(body);
           else {
@@ -776,6 +859,51 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
             writeFileSync(tmp, body);
             renameSync(tmp, RESUME_FILE);
           }
+        }
+      : undefined;
+    const beforeRetry = opts.apply
+      ? async ({ key, error, args }) => {
+          if (!isTimeoutError(error)) return undefined;
+          if (key === "writeGalleryUrls") {
+            if (typeof reread !== "function") return undefined;
+            const assigned = args?.[0];
+            let fresh = null;
+            try {
+              fresh = await attemptWithTimeout(
+                () => reread(assigned?.id),
+                limits.timeoutMs,
+                "firestore read",
+              );
+            } catch {
+              return undefined;
+            }
+            const linked = galleryLinksMatch(fresh, assigned?.assignments);
+            if (!linked.complete) return undefined;
+            return {
+              recover: true,
+              value: {
+                ok: true,
+                linkedAfterTimeout: true,
+                storedUrls: linked.storedUrls,
+                skippedUrls: [],
+                wrote: false,
+              },
+            };
+          }
+          if (key === "onResume") {
+            const [id, source] = args ?? [];
+            let raw = "";
+            try {
+              raw = readResumeNow() ?? "";
+            } catch {
+              return undefined;
+            }
+            const persisted = loadResume(typeof raw === "string" ? raw : "", project);
+            if (!persisted.get(id)?.has(source)) return undefined;
+            rememberResume(resumePhotos, id, source);
+            return { recover: true, value: undefined };
+          }
+          return undefined;
         }
       : undefined;
     rows = await applyGalleryPlans(plans, {
@@ -790,6 +918,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
       writeGalleryUrls: opts.apply ? writeGalleryUrls : undefined,
       reread,
       onResume,
+      beforeRetry,
       track: tracker,
       log,
     });

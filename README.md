@@ -285,28 +285,13 @@ node merge_devtamura_into_chabimura.js --apply --backup-dir /path/outside/the/re
 node rebuild_index.js --project temple-directory-india
 ```
 
-### One-use: Karaikal address
+### Karaikal addresses
 
-Satyavrat (architect) signed off. Research Pavi verified the places. [`scripts/fix_karaikal_address.js`](scripts/fix_karaikal_address.js) is **one-use**. The district/city driver aborted because these documents have no `district` field and `city` and `state` are already correct. This script writes only `address` on exactly three documents, and only when the current address equals the before string exactly. Any other current address aborts the whole run:
+Deployer applied the one-use address correction in production. These three documents now store the Karaikal district in `address`, and `scripts/fix_karaikal_address.js` has been removed. Do not add it back.
 
-- `temples/rajacholeeswarar-temple-thirumalairayanpattinam`: `Thirumalairayanpattinam, Puducherry` becomes `Thirumalairayanpattinam, Karaikal, Puducherry`
-- `temples/thanthondreeswarar-temple-nedungadu`: `Nedungadu, Puducherry` becomes `Nedungadu, Karaikal, Puducherry`
-- `temples/yazhmoorinathar-temple-dharmapuram`: `Dharmapuram, Puducherry` becomes `Dharmapuram, Karaikal, Puducherry`
-
-`address` is the Firestore field from `Temple.location`. `scripts/apply_field_patches.js` is unchanged. `district`, `city`, `state`, and coordinates are not written. Any other document or field is refused.
-
-Dry-run is the default and prints a before/after diff per document. It does not write Firestore. `--backup-dir` on a dry run exports each current document to that folder and still does not write Firestore. `--apply` is Deployer-only, in a terminal, after a dry-run, and is refused in CI. It asks you to type the project id. `--backup-dir` is required with `--apply`. Each document is written there before any Firestore write, and a failed backup aborts. Do not commit that folder. All three documents are read and written in one transaction. `APPLY-FINISHED` is printed only after that transaction commits. A second run aborts because the live address is no longer the before string.
-
-This script does not call `rebuild_index.js`. After `--apply`, Deployer runs a rebuild_index dry run. State is not written, so these three stay on the puducherry shard. That dry run should show address drift for these 3 ids only and no other drift. Then retire the driver: delete `scripts/fix_karaikal_address.js`. Do not run it again.
-
-```bash
-cd scripts
-npm install
-node fix_karaikal_address.js --project temple-directory-india
-node fix_karaikal_address.js --backup-dir /path/outside/the/repo --project temple-directory-india
-node fix_karaikal_address.js --apply --backup-dir /path/outside/the/repo --project temple-directory-india
-node rebuild_index.js --project temple-directory-india
-```
+- `temples/rajacholeeswarar-temple-thirumalairayanpattinam`: `Thirumalairayanpattinam, Karaikal, Puducherry`
+- `temples/thanthondreeswarar-temple-nedungadu`: `Nedungadu, Karaikal, Puducherry`
+- `temples/yazhmoorinathar-temple-dharmapuram`: `Dharmapuram, Karaikal, Puducherry`
 
 Release and profile builds hide Seed/Admin entirely (including the Admin sign-in panel); `seedTempleData` and Admin CMS writes also refuse to run outside debug, and rules reject non-admin writes even if a client tried. The release App Bundle still links `firebase_auth` and `firebase_storage` — Play Data safety must not claim those SDKs are absent (see [`docs/play-store-listing.md`](docs/play-store-listing.md)).
 

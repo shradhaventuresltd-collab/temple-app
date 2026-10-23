@@ -66,6 +66,7 @@ export async function callBounded(
     backoffMs = DEFAULT_BACKOFF_MS,
     label = "network",
     sleep = delay,
+    beforeRetry,
   } = {},
 ) {
   const tries = Math.max(1, Number(attempts) || 1);
@@ -76,6 +77,10 @@ export async function callBounded(
     } catch (error) {
       last = error;
       if (attempt >= tries) break;
+      if (typeof beforeRetry === "function") {
+        const decision = await beforeRetry(error, attempt);
+        if (decision && decision.recover === true) return decision.value;
+      }
       const wait = Math.min(backoffMs * 2 ** (attempt - 1), 2_000);
       if (wait > 0) await sleep(wait);
     }
@@ -89,6 +94,7 @@ export function networkLimits(deps = {}) {
     attempts: deps.attempts ?? DEFAULT_ATTEMPTS,
     backoffMs: deps.backoffMs ?? DEFAULT_BACKOFF_MS,
     sleep: deps.sleep,
+    beforeRetry: deps.beforeRetry,
   };
 }
 
@@ -97,6 +103,15 @@ export function networkLimits(deps = {}) {
  * AbortSignal and timeout are added to opts. URL checks are called as
  * (url, { signal }). Document writes keep their first argument.
  */
+function boundedCall(fn, limits, label, key, kind, args) {
+  const { beforeRetry: retryHook, ...rest } = limits;
+  const beforeRetry =
+    typeof retryHook === "function"
+      ? (error, attempt) => retryHook({ key, kind, label, error, attempt, args })
+      : undefined;
+  return callBounded(fn, { ...rest, label, beforeRetry });
+}
+
 export function boundIo(deps, keys) {
   const limits = networkLimits(deps);
   const next = { ...deps };
@@ -105,46 +120,74 @@ export function boundIo(deps, keys) {
     if (typeof fn !== "function") continue;
     if (kind === "path") {
       next[key] = (path, opts = {}) =>
-        callBounded((signal) => fn(path, { ...opts, signal, timeoutMs: limits.timeoutMs }), {
-          ...limits,
+        boundedCall(
+          (signal) => fn(path, { ...opts, signal, timeoutMs: limits.timeoutMs }),
+          limits,
           label,
-        });
+          key,
+          kind,
+          [path, opts],
+        );
     } else if (kind === "file") {
       next[key] = (file) =>
-        callBounded((signal) => fn({ ...file, signal, timeoutMs: limits.timeoutMs }), {
-          ...limits,
+        boundedCall(
+          (signal) => fn({ ...file, signal, timeoutMs: limits.timeoutMs }),
+          limits,
           label,
-        });
+          key,
+          kind,
+          [file],
+        );
     } else if (kind === "url") {
       next[key] = (url) =>
-        callBounded((signal) => fn(url, { signal, timeoutMs: limits.timeoutMs }), {
-          ...limits,
+        boundedCall(
+          (signal) => fn(url, { signal, timeoutMs: limits.timeoutMs }),
+          limits,
           label,
-        });
+          key,
+          kind,
+          [url],
+        );
     } else if (kind === "doc") {
       next[key] = (doc) =>
-        callBounded((signal) => fn(doc, { signal, timeoutMs: limits.timeoutMs }), {
-          ...limits,
+        boundedCall(
+          (signal) => fn(doc, { signal, timeoutMs: limits.timeoutMs }),
+          limits,
           label,
-        });
+          key,
+          kind,
+          [doc],
+        );
     } else if (kind === "id") {
       next[key] = (id) =>
-        callBounded((signal) => fn(id, { signal, timeoutMs: limits.timeoutMs }), {
-          ...limits,
+        boundedCall(
+          (signal) => fn(id, { signal, timeoutMs: limits.timeoutMs }),
+          limits,
           label,
-        });
+          key,
+          kind,
+          [id],
+        );
     } else if (kind === "bytes") {
       next[key] = (bytes, ext) =>
-        callBounded((signal) => fn(bytes, ext, { signal, timeoutMs: limits.timeoutMs }), {
-          ...limits,
+        boundedCall(
+          (signal) => fn(bytes, ext, { signal, timeoutMs: limits.timeoutMs }),
+          limits,
           label,
-        });
+          key,
+          kind,
+          [bytes, ext],
+        );
     } else if (kind === "pair") {
       next[key] = (left, right) =>
-        callBounded((signal) => fn(left, right, { signal, timeoutMs: limits.timeoutMs }), {
-          ...limits,
+        boundedCall(
+          (signal) => fn(left, right, { signal, timeoutMs: limits.timeoutMs }),
+          limits,
           label,
-        });
+          key,
+          kind,
+          [left, right],
+        );
     }
   }
   return next;
@@ -213,10 +256,13 @@ export function tallyRows(rows) {
   let failed = 0;
   let skipped = 0;
   let pending = 0;
+  let linkedAfterTimeout = 0;
   const reasons = new Map();
   for (const row of rows ?? []) {
     if (row?.result === "uploaded" || (row?.result === "exists" && row.stored === true)) {
       written += 1;
+    } else if (row?.result === "linked-after-timeout") {
+      linkedAfterTimeout += 1;
     } else if (row?.result === "failed" || row?.result === "not-public") {
       failed += 1;
     } else if (row?.result === "skipped") {
@@ -227,7 +273,7 @@ export function tallyRows(rows) {
       pending += 1;
     }
   }
-  return { written, failed, skipped, pending, reasons };
+  return { written, failed, skipped, pending, reasons, linkedAfterTimeout };
 }
 
 export function formatElapsed(ms) {
@@ -247,12 +293,21 @@ export function formatProgress({
   return `batch ${batch}/${batches} temples ${temples} ${noun} written ${written} failed ${failed} skipped ${skipped} so far`;
 }
 
-export function formatSummary({ written, failed, skipped, pending = 0, reasons, elapsedMs }) {
+export function formatSummary({
+  written,
+  failed,
+  skipped,
+  pending = 0,
+  reasons,
+  elapsedMs,
+  linkedAfterTimeout = 0,
+}) {
   const parts = [...(reasons ?? [])].sort((a, b) => String(a[0]).localeCompare(String(b[0])));
   const reasonText = parts.map(([key, count]) => `${key}=${count}`).join(" ");
   const skippedText = reasonText ? `skipped=${skipped} (${reasonText})` : `skipped=${skipped}`;
   const pendingText = pending > 0 ? ` pending=${pending}` : "";
-  return `summary written=${written} failed=${failed} ${skippedText}${pendingText} elapsed=${formatElapsed(elapsedMs)}`;
+  const linkedText = linkedAfterTimeout > 0 ? ` linked-after-timeout=${linkedAfterTimeout}` : "";
+  return `summary written=${written} failed=${failed} ${skippedText}${pendingText}${linkedText} elapsed=${formatElapsed(elapsedMs)}`;
 }
 
 /**
