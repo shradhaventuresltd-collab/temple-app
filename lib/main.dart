@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/bundled_fonts.dart';
+import 'package:temple_app/district/district_attribution.dart';
 import 'package:temple_app/config/build_flags.dart';
 import 'package:temple_app/config/policy_config.dart';
 import 'package:temple_app/release_error_widget.dart';
@@ -43,6 +44,7 @@ Future<void> main() async {
   // unhandled async error. onError logs that future.
   installFontLoadErrorLogging();
   registerBundledFontLicenses();
+  registerDistrictBoundaryLicenses();
   GoogleFonts.config.allowRuntimeFetching = false;
   // Cap decoded bitmaps before the first list paints full-size covers.
   ClientCache.installImageMemoryLimits();

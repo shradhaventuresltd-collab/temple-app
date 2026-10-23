@@ -1,0 +1,14 @@
+{
+  "assetVersion": "lgd-2024-dsb1-500m",
+  "sha256": "28af9e9a8cb6e488da40461dd0d9558ade982a25a01b6301dd33944df3027991",
+  "bytes": 1143600,
+  "gzipBytes": 473665,
+  "districts": 785,
+  "points": 138200,
+  "toleranceMetres": 500,
+  "source": "Bharatlas LGD Districts (2024)",
+  "sourceSha256": "95829298abdd0e80fc514b8c70787bdeef9aaf0e63b348177493045e8b22bab5",
+  "licence": "CC0-1.0 / CC-BY-4.0",
+  "attribution": "Source: LGD. Published via bharatlas (bharatlas.com). Licence: CC0-1.0 / CC-BY-4.0.",
+  "allowsBundling": true
+}

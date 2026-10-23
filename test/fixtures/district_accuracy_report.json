@@ -1,0 +1,180 @@
+{
+  "templeCount": 180,
+  "unresolved": 0,
+  "simplificationMismatchCount": 3,
+  "simplificationMismatches": [
+    {
+      "name": "Shore Temple",
+      "state": "Tamil Nadu",
+      "computedName": "Kanchipuram",
+      "computedState": "Tamil Nadu",
+      "computedLgd": 574,
+      "fullHits": [
+        {
+          "lgd": 730,
+          "name": "Chengalpattu",
+          "state": "Tamil Nadu"
+        }
+      ]
+    },
+    {
+      "name": "Murudeshwar Temple",
+      "state": "Karnataka",
+      "computedName": "Uttara Kannada",
+      "computedState": "Karnataka",
+      "computedLgd": 550,
+      "fullHits": []
+    },
+    {
+      "name": "Mahalakshmi Temple",
+      "state": "Maharashtra",
+      "computedName": "Mumbai",
+      "computedState": "Maharashtra",
+      "computedLgd": 482,
+      "fullHits": []
+    }
+  ],
+  "stateMismatchCount": 1,
+  "stateMismatches": [
+    {
+      "name": "Sita Ramachandra Swamy Temple",
+      "templeState": "Telangana",
+      "district": "Alluri Sitharama Raju",
+      "districtState": "Andhra Pradesh",
+      "lgd": 745
+    }
+  ],
+  "perState": {
+    "Tamil Nadu": {
+      "temples": 20,
+      "resolved": 20,
+      "stateMismatches": 0
+    },
+    "Kerala": {
+      "temples": 20,
+      "resolved": 20,
+      "stateMismatches": 0
+    },
+    "Karnataka": {
+      "temples": 20,
+      "resolved": 20,
+      "stateMismatches": 0
+    },
+    "Andhra Pradesh": {
+      "temples": 10,
+      "resolved": 10,
+      "stateMismatches": 0
+    },
+    "Telangana": {
+      "temples": 10,
+      "resolved": 10,
+      "stateMismatches": 1
+    },
+    "Gujarat": {
+      "temples": 10,
+      "resolved": 10,
+      "stateMismatches": 0
+    },
+    "Odisha": {
+      "temples": 10,
+      "resolved": 10,
+      "stateMismatches": 0
+    },
+    "Uttar Pradesh": {
+      "temples": 10,
+      "resolved": 10,
+      "stateMismatches": 0
+    },
+    "Jammu and Kashmir": {
+      "temples": 10,
+      "resolved": 10,
+      "stateMismatches": 0
+    },
+    "Maharashtra": {
+      "temples": 10,
+      "resolved": 10,
+      "stateMismatches": 0
+    },
+    "Rajasthan": {
+      "temples": 10,
+      "resolved": 10,
+      "stateMismatches": 0
+    },
+    "West Bengal": {
+      "temples": 10,
+      "resolved": 10,
+      "stateMismatches": 0
+    },
+    "Madhya Pradesh": {
+      "temples": 10,
+      "resolved": 10,
+      "stateMismatches": 0
+    },
+    "Bihar": {
+      "temples": 10,
+      "resolved": 10,
+      "stateMismatches": 0
+    },
+    "Himachal Pradesh": {
+      "temples": 10,
+      "resolved": 10,
+      "stateMismatches": 0
+    }
+  },
+  "probes": [
+    {
+      "label": "karaikal",
+      "latitude": 10.92,
+      "longitude": 79.83,
+      "name": "Karaikal",
+      "state": "Puducherry",
+      "lgd": 598,
+      "inside": true
+    },
+    {
+      "label": "mahe-gap",
+      "latitude": 11.7,
+      "longitude": 75.53,
+      "name": "Mahe",
+      "state": "Puducherry",
+      "lgd": 599,
+      "inside": false
+    },
+    {
+      "label": "mahe-interior",
+      "latitude": 11.701,
+      "longitude": 75.532,
+      "name": "Mahe",
+      "state": "Puducherry",
+      "lgd": 599,
+      "inside": true
+    },
+    {
+      "label": "yanam",
+      "latitude": 16.73,
+      "longitude": 82.21,
+      "name": "Yanam",
+      "state": "Puducherry",
+      "lgd": 601,
+      "inside": true
+    },
+    {
+      "label": "meenakshi",
+      "latitude": 9.9195,
+      "longitude": 78.1193,
+      "name": "Madurai",
+      "state": "Tamil Nadu",
+      "lgd": 578,
+      "inside": true
+    },
+    {
+      "label": "sea",
+      "latitude": 13,
+      "longitude": 81,
+      "name": "Thiruvallur",
+      "state": "Tamil Nadu",
+      "lgd": 589,
+      "inside": false
+    }
+  ]
+}

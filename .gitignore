@@ -52,6 +52,7 @@ scripts/node_modules/
 scripts/ci/firebase-cli/node_modules/
 scripts/.resize_cover_thumbs.resume.json
 scripts/.resize_gallery_images.resume.json
+scripts/.cache/
 
 # Android Play upload key. Also ignored under android/.gitignore.
 android/key.properties
