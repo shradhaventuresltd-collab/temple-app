@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:temple_app/config/policy_config.dart';
 import 'package:temple_app/near_me/near_me_copy.dart';
 
-/// Sanu's approved sentence for the policy and the Play Data safety form.
+/// Wording per KAN-184 for the policy and the Play Data safety form.
 const _onDeviceOnly =
     'approximate location is used on the device only and is not collected or shared';
 
@@ -174,7 +174,7 @@ void main() {
     }
   });
 
-  test('privacy policy and Data safety use the approved location wording', () {
+  test('privacy policy and Data safety use the KAN-184 location wording', () {
     const pages = ['docs/privacy-policy.html', 'hosting/privacy-policy.html'];
     final docs = File(pages[0]).readAsStringSync();
     final hosted = File(pages[1]).readAsStringSync();

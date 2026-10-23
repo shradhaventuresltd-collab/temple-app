@@ -14,7 +14,7 @@ Answer the form for the device reading as follows:
 - **Collected:** no.
 - **Shared:** no.
 
-Approved wording, for the form and the policy: approximate location is used on the device only and is not collected or shared.
+Wording per KAN-184, for the form and the policy: approximate location is used on the device only and is not collected or shared.
 
 Precise location is not accessed. Background location is not accessed. The only location permission the app keeps is `android.permission.ACCESS_COARSE_LOCATION`. The app manifest removes `ACCESS_FINE_LOCATION`, `ACCESS_BACKGROUND_LOCATION`, and `FOREGROUND_SERVICE_LOCATION` if a plugin merges them, and it strips the geolocator location foreground-service type. The fix is not written to disk, logs, Firestore, or an ad request.
 
@@ -29,6 +29,7 @@ Reviewed in this repo, not by running an ad request on a device:
 - App code does not pass coordinates into `AdRequest`, UMP `ConsentRequestParameters`, Analytics, or Crashlytics. `AdRequest` is built with no location fields (`nonPersonalizedAds` only on the fail-soft path, otherwise an empty request). Release consent parameters are an empty `ConsentRequestParameters()`.
 - `pubspec.yaml` and `pubspec.lock` do not depend on `firebase_analytics` or `firebase_crashlytics`. Those SDKs are not in the app, so they receive no location.
 - `google_mobile_ads` 5.3.1 pulls `com.google.android.gms:play-services-ads:23.6.0` and `com.google.android.ump:user-messaging-platform:3.1.0`. Those library manifests declare no location permission. UMP classes do not reference location APIs. The ads SDK does not call `LocationManager` or `FusedLocationProviderClient`. `geolocator_android` 5.2.1 declares no coarse, fine, or background permission; it does declare a location foreground service, which the app manifest strips.
-- Residual, for the person filling the form: in `play-services-ads` 23.6.0, the ad WebView’s `onGeolocationPermissionsShowPrompt` grants HTML5 geolocation when `ACCESS_FINE_LOCATION` or `ACCESS_COARSE_LOCATION` is already granted to the app, and denies it otherwise. The app does not pass the Temples near me fix into that WebView. Confirm with Play’s SDK scan whether that capability changes the Approximate location collected or shared answers. This note does not check that box.
+- Residual, for the person filling the form: in `play-services-ads` 23.6.0, the ad WebView’s `onGeolocationPermissionsShowPrompt` grants HTML5 geolocation when `ACCESS_FINE_LOCATION` or `ACCESS_COARSE_LOCATION` is already granted to the app, and denies it otherwise. The app does not pass the Temples near me fix into that WebView. This note does not check that box.
+- [ ] Before filling in the Play Data safety form, check this note against Play's SDK scan or Play Console's SDK data declarations for AdMob and UMP.
 
 `test/near_me_privacy_test.dart` checks the manifest rules and that ad, consent, analytics, and crashlytics code is not given the device fix.
