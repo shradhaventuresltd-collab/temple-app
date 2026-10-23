@@ -371,6 +371,8 @@ void main() {
     expect(find.text('Bharatlas LGD Districts'), findsOneWidget);
     expect(find.text('CC BY 4.0'), findsOneWidget);
     expect(find.textContaining('simplified'), findsWidgets);
+    expect(find.text(kDistrictBoundaryOriginalData), findsOneWidget);
+    expect(find.byKey(const Key('licences-original-data')), findsOneWidget);
     expect(
       find.textContaining(kDistrictBoundaryDatasetVersion),
       findsOneWidget,

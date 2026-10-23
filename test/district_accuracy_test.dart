@@ -16,9 +16,9 @@ void main() {
     final pubspec = File('pubspec.yaml').readAsStringSync();
     expect(pubspec, contains('assets/districts/india_districts.dsb'));
 
-    final manifest = jsonDecode(
-      File('assets/districts/manifest.json').readAsStringSync(),
-    ) as Map<String, dynamic>;
+    final manifest =
+        jsonDecode(File('assets/districts/manifest.json').readAsStringSync())
+            as Map<String, dynamic>;
     expect(manifest['bundled'], isTrue);
     expect(manifest['allowsBundling'], isTrue);
     expect(manifest['licence'], 'CC-BY-4.0');
@@ -55,6 +55,17 @@ void main() {
     expect(license, contains('CC BY 4.0'));
     expect(license, contains('CC0-1.0'));
     expect(license, contains('CC-BY-4.0'));
+    expect(
+      license,
+      contains(
+        'Publisher: yashveeeeeeer/india-geodata (https://github.com/yashveeeeeeer/india-geodata).',
+      ),
+    );
+    expect(
+      kDistrictBoundaryLicenseEntry,
+      contains(kDistrictBoundaryOriginalData),
+    );
+    expect(kDistrictBoundaryAttribution, endsWith('simplified for this app.'));
     final readme = File('assets/districts/README.md').readAsStringSync();
     expect(readme.toLowerCase(), contains('simplif'));
     expect(readme, contains('500'));
@@ -70,9 +81,13 @@ void main() {
     expect(meenakshi?.name, 'Madurai');
     expect(meenakshi?.stateName, 'Tamil Nadu');
 
-    final report = jsonDecode(
-      File('test/fixtures/district_accuracy_report.json').readAsStringSync(),
-    ) as Map<String, dynamic>;
+    final report =
+        jsonDecode(
+              File(
+                'test/fixtures/district_accuracy_report.json',
+              ).readAsStringSync(),
+            )
+            as Map<String, dynamic>;
     expect(report['crossState'], 0);
     expect((report['simplified'] as Map)['cross'], 0);
     expect((report['full'] as Map)['cross'], 0);

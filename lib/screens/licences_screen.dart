@@ -116,6 +116,16 @@ class LicencesScreen extends StatelessWidget {
               color: Colors.brown.shade600,
             ),
           ),
+          const SizedBox(height: 8),
+          Text(
+            kDistrictBoundaryOriginalData,
+            key: const Key('licences-original-data'),
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              height: 1.45,
+              color: Colors.brown.shade800,
+            ),
+          ),
         ],
       ),
     );

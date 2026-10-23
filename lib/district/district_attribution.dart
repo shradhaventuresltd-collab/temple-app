@@ -19,6 +19,12 @@ const String kDistrictBoundarySourcePage =
 const String kDistrictBoundaryLicenceUrl =
     'https://creativecommons.org/licenses/by/4.0/';
 
+/// Licensor credit. The sentence above stays unchanged; this line is added.
+const String kDistrictBoundaryOriginalData =
+    'Original data: Local Government Directory (https://lgdirectory.gov.in/). '
+    'Published via Bharatlas (bharatlas.com) from yashveeeeeeer/india-geodata '
+    '(https://github.com/yashveeeeeeer/india-geodata).';
+
 /// Dataset the card calls "LGD snapshot 2024". Card updated date.
 const String kDistrictBoundaryDatasetVersion = 'LGD snapshot 2024';
 
@@ -34,6 +40,7 @@ const String kDistrictBoundaryLicenseEntry =
     'District boundaries © Bharatlas (LGD 2024), licensed CC BY 4.0, '
     'simplified for this app.\n\n'
     'Source: https://bharatlas.com/view/lgd_districts\n'
+    '$kDistrictBoundaryOriginalData\n'
     'Licence: https://creativecommons.org/licenses/by/4.0/\n\n'
     'The polygons in this app were simplified from the Bharatlas LGD '
     'Districts 2024 layer.';

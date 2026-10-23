@@ -1255,6 +1255,7 @@ The source page states both CC0-1.0 and CC-BY-4.0. This copy complies with
 CC BY 4.0: ${LICENCE_URL}
 
 © Bharatlas. Source: Local Government Directory.
+Publisher: yashveeeeeeer/india-geodata (https://github.com/yashveeeeeeer/india-geodata).
 
 Credit Bharatlas, link the licence, and indicate that changes were made.
 Changes: Visvalingam simplification at ${TOLERANCE_METRES} metres (mapshaper
