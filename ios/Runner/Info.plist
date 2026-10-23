@@ -66,6 +66,8 @@
 			<string>UIInterfaceOrientationLandscapeLeft</string>
 			<string>UIInterfaceOrientationLandscapeRight</string>
 		</array>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>Used once on your phone to sort temples by distance. Never stored or sent.</string>
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>Choose temple photographs to upload from the admin editor.</string>
 		<key>UIStatusBarHidden</key>
