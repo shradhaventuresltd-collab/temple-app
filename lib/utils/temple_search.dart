@@ -106,12 +106,12 @@ List<Temple> filterTemples(
 /// Folded spellings that mean one place or deity.
 ///
 /// Applied after [foldTempleSearchText], so `Tirupathi` is already `tirupati`
-/// and `Shiva` / `Shiv` are already `siva` / `siv`. The value is the folded
-/// canonical form stored on the temple (Tirumala, or deity Shiva).
+/// and `Shiva` is already `siva`. `Shiv` folds to `siv`, which is a prefix of
+/// `siva`, so it needs no alias of its own. The value is the folded canonical
+/// form stored on the temple (Tirumala, or deity Shiva).
 const Map<String, String> _searchAliases = {
   'tirupati': 'tirumala',
   'sivan': 'siva',
-  'siv': 'siva',
 };
 
 /// Well-known temples that should lead when the query actually names them.
@@ -265,10 +265,16 @@ List<String> _nameTokens(String name) {
   return tokens;
 }
 
+/// Whole name token, or a prefix in either direction.
+///
+/// A mid-word [String.contains] would treat `sivakasi` as a hit on the token
+/// `kasi` and boost Kashi.
 bool _wordHitsName(List<String> tokens, String word) {
   if (word.length < 4 || _genericNameTokens.contains(word)) return false;
   for (final token in tokens) {
-    if (token.contains(word) || word.contains(token)) return true;
+    if (token == word || token.startsWith(word) || word.startsWith(token)) {
+      return true;
+    }
   }
   return false;
 }

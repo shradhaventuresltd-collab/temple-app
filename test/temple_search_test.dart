@@ -468,6 +468,65 @@ void main() {
     );
   });
 
+  test('sivan still finds Shiva temples', () {
+    final found = filterTemples(sampleTemples, query: 'Sivan');
+
+    expect(found, isNotEmpty);
+    expect(found.where((t) => t.deity == 'Shiva'), isNotEmpty);
+    expect(majorShiva, contains(found.first.name));
+  });
+
+  test('sivan does not rank Sivaganga or Sivakasi as Shiva matches', () {
+    final sivaganga = temple(
+      name: 'Sivaganga Temple',
+      city: 'Sivaganga',
+      deity: 'Murugan',
+    );
+    final sivakasi = temple(
+      name: 'Sivakasi Temple',
+      city: 'Sivakasi',
+      deity: 'Murugan',
+    );
+    final shiva = temple(
+      id: 'brihadeeswarar-temple',
+      name: 'Brihadeeswarar Temple',
+      city: 'Thanjavur',
+      deity: 'Shiva',
+    );
+
+    final names = filterTemples([
+      sivaganga,
+      sivakasi,
+      shiva,
+    ], query: 'Sivan').map((t) => t.name).toList();
+
+    expect(names.first, 'Brihadeeswarar Temple');
+    expect(names.indexOf('Sivaganga Temple'), greaterThan(0));
+    expect(names.indexOf('Sivakasi Temple'), greaterThan(0));
+  });
+
+  test('a search for sivakasi does not boost Kashi', () {
+    final sivakasi = temple(
+      name: 'Sivakasi Temple',
+      city: 'Sivakasi',
+      deity: 'Devi',
+    );
+    // The address keeps Kashi in the same result set. Only a name-token
+    // boost would move it ahead, and `sivakasi` is not the token `kasi`.
+    final kashi = temple(
+      id: 'kashi-vishwanath-temple',
+      name: 'Kashi Vishwanath Temple',
+      city: 'Varanasi',
+      deity: 'Shiva',
+      location: 'Sivakasi Road, Varanasi',
+    );
+
+    expect(
+      filterTemples([sivakasi, kashi], query: 'sivakasi').map((t) => t.name),
+      ['Sivakasi Temple', 'Kashi Vishwanath Temple'],
+    );
+  });
+
   test('Minakshi, Tiruchendur, and short queries keep their top result', () {
     expect(
       filterTemples(sampleTemples, query: 'Minakshi').first.name,
