@@ -4,12 +4,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { coverFrameForPack } from "./backfill_cover_photos.js";
+import { coverFrameForPack, manifestPair } from "./backfill_cover_photos.js";
 import { downloadTokenUrl } from "./download_token.js";
 import {
   formatEmptyCoverReport,
   isEmptyCover,
   packDirForSlug,
+  persistCoverReorder,
   persistEmptyCover,
   photosFromFrames,
   planEmptyCoverPack,
@@ -20,7 +21,7 @@ import { encodeWithSharp } from "./resize_cover_thumbs.js";
 import { main as resizeMain } from "./resize_cover_thumbs.js";
 import { main as rebuildMain } from "./rebuild_index.js";
 import { assertStorageAuth, STORAGE_AUTH_LIST } from "./storage_auth.js";
-import { emptyCoverMode, parseArgs } from "./upload_research_pack.js";
+import { emptyCoverMode, parseArgs, resolvePhotoCredit } from "./upload_research_pack.js";
 
 const bucket = "temple-directory-india.firebasestorage.app";
 const emulator = { FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080" };
@@ -605,6 +606,134 @@ test("empty cover pack apply then resize then rebuild has no drift", { skip: !pr
     assert.equal(report.drifted.length, 0);
     assert.equal(report.missing.length, 0);
     assert.equal(report.unchanged >= 1, true);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a manifest credit is stored verbatim for a shani-dham public-domain frame", () => {
+  const basis = "Public domain (published in the US before 1930). Mrmysterious at en.wikipedia";
+  const row = {
+    filename: "01_shani.jpg",
+    author: "Mrmysterious at en.wikipedia",
+    license: "Public domain",
+    credit: basis,
+  };
+  assert.equal(resolvePhotoCredit(row), basis);
+  const pair = manifestPair(row);
+  assert.equal(pair.ok, true);
+  assert.equal(pair.licence, "CC0");
+  assert.equal(pair.credit, basis);
+  assert.notEqual(pair.credit, "Mrmysterious at en.wikipedia");
+  assert.equal(pair.credit.includes("CC0"), false);
+  assert.equal(
+    resolvePhotoCredit({ author: "Ada Lovelace", license: "CC BY 4.0", credit: "  " }),
+    "Ada Lovelace · CC BY 4.0",
+  );
+});
+
+test("a re-run moves nartiang's existing cover to frame 01 and prints a diff", async () => {
+  const id = "nartiang-durga-temple";
+  const gate = "01_gate.jpg";
+  const shrine = "02_shrine.jpg";
+  const extra = "03_yard.jpg";
+  const dir = writePack({
+    temple_slug: id,
+    photos: [photo(gate, { license: "CC BY-SA 4.0" }), photo(shrine, { license: "CC BY-SA 4.0" })],
+  });
+  const url = (filename) => downloadTokenUrl(bucket, `temples/${id}/${filename}`, "live-token");
+  const thumb = "https://example.com/shrine-thumb.jpg";
+  const live = {
+    ...emptyTemple(id),
+    imageUrl: url(shrine),
+    images: [url(shrine), url(gate), url(extra)],
+    photos: [
+      { url: url(shrine), credit: "Ada Lovelace · CC BY-SA 4.0", licence: "CC-BY-SA", order: 0, thumbUrl: thumb },
+      { url: url(gate), credit: "Ada Lovelace · CC BY-SA 4.0", licence: "CC-BY-SA", order: 1 },
+      { url: url(extra), credit: "Keeper", licence: "CC0", order: 2, galleryUrl: "https://example.com/yard-1080.jpg" },
+    ],
+  };
+  const manifest = JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8"));
+  const planned = planEmptyCoverPack({ temple: live, packDir: dir, manifest });
+  assert.equal(planned.action, "reorder");
+  assert.equal(planned.coverFilename, gate);
+  assert.equal(planned.fromFilename, shrine);
+  assert.equal(planned.photos.length, 3);
+  assert.deepEqual(
+    planned.photos.map((item) => item.order),
+    [0, 1, 2],
+  );
+  assert.match(planned.photos[0].url, /01_gate/);
+  assert.equal(planned.photos[1].thumbUrl, thumb);
+  assert.equal(planned.photos[2].galleryUrl, "https://example.com/yard-1080.jpg");
+  assert.equal(planned.photos[2].credit, "Keeper");
+  assert.deepEqual(Object.keys(planned.photos[0]).sort(), ["credit", "licence", "order", "url"]);
+  assert.equal(planned.images.length, 3);
+  assert.match(planned.images[0], /01_gate/);
+  assert.match(planned.imageUrl, /01_gate/);
+  const again = planEmptyCoverPack({
+    temple: { ...live, imageUrl: planned.imageUrl, images: planned.images, photos: planned.photos },
+    packDir: dir,
+    manifest,
+  });
+  assert.equal(again.reason, "cover-current");
+
+  const uploads = [];
+  const writes = [];
+  const lines = [];
+  try {
+    const dry = await runEmptyCoverPacks(baseOpts({ packDirs: [dir] }), {
+      env: emulator,
+      log: (line) => lines.push(line),
+      warn: () => {},
+      load: async () => [live],
+      uploadFrames: async () => {
+        uploads.push("upload");
+        return { urls: [], created: [] };
+      },
+      writeCover: async () => {
+        writes.push("write");
+        return { ok: true, wrote: true };
+      },
+      confirm: async () => {
+        throw new Error("dry-run must not ask for the project id");
+      },
+    });
+    assert.equal(uploads.length, 0);
+    assert.equal(writes.length, 0);
+    assert.equal(dry[0].result, "would-reorder");
+    const report = lines.join("\n");
+    assert.match(report, /reorder: 1/);
+    assert.match(report, /would-reorder nartiang-durga-temple cover 02_shrine\.jpg -> 01_gate\.jpg/);
+    assert.match(report, /cover 02_shrine\.jpg -> 01_gate\.jpg/);
+    assert.match(report, /Dry-run only/);
+
+    const state = structuredClone(live);
+    const db = {
+      collection() {
+        return { doc: () => ({}) };
+      },
+      async runTransaction(fn) {
+        const patches = [];
+        const result = await fn({
+          get: async () => ({ exists: true, id, data: () => state }),
+          update: (_ref, patch) => patches.push(patch),
+        });
+        if (patches[0]) Object.assign(state, patches[0]);
+        return result;
+      },
+    };
+    const first = await persistCoverReorder(db, planned);
+    assert.equal(first.wrote, true);
+    assert.equal(state.photos.length, 3);
+    assert.match(state.photos[0].url, /01_gate/);
+    assert.equal(state.photos[1].thumbUrl, thumb);
+    assert.equal(state.photos[2].credit, "Keeper");
+    assert.deepEqual(Object.keys(state).sort(), Object.keys(live).sort());
+    const second = await persistCoverReorder(db, planned);
+    assert.equal(second.unchanged, true);
+    assert.equal(second.reason, "cover-current");
+    assert.match(state.photos[0].url, /01_gate/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

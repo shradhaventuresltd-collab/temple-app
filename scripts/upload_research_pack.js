@@ -6,7 +6,7 @@ import { assertOneCoverOk } from "./cover_ok.js";
 import { downloadTokenUrl, ensureDownloadToken, withDownloadToken } from "./download_token.js";
 import { redactDownloadToken, redactThrown } from "./redact_url.js";
 import { assertStorageAuth, useNativeFetchForStorageAuth } from "./storage_auth.js";
-import { mapPhotoLicence, photoCredit } from "./photo_licence.js";
+import { manifestPhotoCredit, mapPhotoLicence } from "./photo_licence.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "..");
@@ -300,6 +300,10 @@ Empty covers use --apply. That mode is dry-run unless --apply is present.
 It writes photos, imageUrl, and images only when all three are empty.
 A cover that appears after upload deletes the objects this run created.
 photos[].thumbUrl is left unset.
+A temple that already has photos is not re-uploaded. The manifest cover
+(cover, then cover_ok, then frame 01) is moved to order 0 when that frame
+is already in photos[]. Other photos stay. Dry-run prints the diff.
+A non-empty manifest credit is stored on the existing credit field.
 
 Requires service-account.json in the repo root or scripts/ (gitignored).
 Does not use Google Places. Prefer only filenames listed in manifest.json.
@@ -402,6 +406,11 @@ function loadServiceAccount() {
   return null;
 }
 
+/** Manifest `credit` when it is non-empty. Otherwise author plus licence. */
+export function resolvePhotoCredit(photo) {
+  return manifestPhotoCredit(photo);
+}
+
 function loadManifest(packDir) {
   const manifestPath = resolve(packDir, "manifest.json");
   if (!existsSync(manifestPath)) {
@@ -434,7 +443,7 @@ function resolvePhotos(packDir, manifest) {
       license,
       // Enum value. CC0 and public domain both map to CC0 (KAN-49).
       licence: mapPhotoLicence(license),
-      credit: photoCredit(photo.author || "", license),
+      credit: resolvePhotoCredit(photo),
       sourceUrl: photo.source_url || "",
       downloadedUrl: photo.downloaded_url || "",
     });

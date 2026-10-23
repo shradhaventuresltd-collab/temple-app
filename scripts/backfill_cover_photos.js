@@ -88,7 +88,7 @@ import { downloadTokenUrl, ensureDownloadToken, withDownloadToken } from "./down
 import { redactDownloadToken, redactThrown } from "./redact_url.js";
 import { firebaseMediaUrl } from "./resize_cover_thumbs.js";
 import { assertStorageAuth, STORAGE_AUTH_BUCKET, useNativeFetchForStorageAuth } from "./storage_auth.js";
-import { cleanAuthor, mapPhotoLicence, photoCredit } from "./photo_licence.js";
+import { cleanAuthor, manifestPhotoCredit, mapPhotoLicence, photoCredit } from "./photo_licence.js";
 import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard.js";
 import { changedFields, entryFromTemple, photoRecord, stateSlug, storageObjectFromUrl } from "./temple_index.js";
 import {
@@ -387,7 +387,8 @@ export function placeholderAuthor(author) {
 }
 
 export function manifestPair(photo) {
-  if (placeholderAuthor(photo?.author)) return { ok: false, reason: "no-credit" };
+  const explicit = typeof photo?.credit === "string" ? photo.credit.trim() : "";
+  if (!explicit && placeholderAuthor(photo?.author)) return { ok: false, reason: "no-credit" };
   let licence;
   try {
     licence = mapPhotoLicence(photo.license);
@@ -397,7 +398,7 @@ export function manifestPair(photo) {
   if (!PHOTO_LICENCES.includes(licence)) return { ok: false, reason: "licence" };
   let credit = "";
   try {
-    credit = photoCredit(photo.author || "", photo.license).trim();
+    credit = manifestPhotoCredit(photo).trim();
   } catch {
     return { ok: false, reason: "licence" };
   }

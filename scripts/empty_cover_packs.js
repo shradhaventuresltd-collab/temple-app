@@ -9,6 +9,10 @@
  * do not have one. resize_cover_thumbs --apply fills thumbUrl afterwards.
  *
  * --patch-firestore is refused by the uploader. This is the write to use.
+ * A temple that already has photos is not filled again and its photos are
+ * not deleted. When the manifest cover (cover, then cover_ok, then frame 01)
+ * is already in photos[], that entry moves to order 0 and imageUrl / images
+ * follow it. Dry-run prints the diff. The second run is a no-op.
  * prod --apply is run only by the Deployer agent or Sanu, dry run first, never from CI.
  */
 import { existsSync, readFileSync } from "node:fs";
@@ -22,7 +26,7 @@ import { assertExplicitProject, assertNotCi, confirmProject } from "./prod_guard
 import { redactDownloadToken, redactThrown } from "./redact_url.js";
 import { firebaseMediaUrl } from "./resize_cover_thumbs.js";
 import { assertStorageAuth, STORAGE_AUTH_BUCKET, useNativeFetchForStorageAuth } from "./storage_auth.js";
-import { photoRecord } from "./temple_index.js";
+import { photoRecord, storageObjectFromUrl } from "./temple_index.js";
 import { resolveSeedDocId } from "./upload_research_pack.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -130,14 +134,138 @@ function assertGalleryOnlyNotCover(id, photos) {
   }
 }
 
+function photoFilename(url, templeId) {
+  const located = storageObjectFromUrl(url);
+  if (!located) return "";
+  const parts = located.objectPath.split("/").filter(Boolean);
+  if (parts.length !== 3 || parts[0] !== "temples") return "";
+  if (templeId && parts[1] !== templeId) return "";
+  return parts[2];
+}
+
+function photosInCoverOrder(photos) {
+  return photos
+    .map((photo, index) => ({ photo, index }))
+    .sort((a, b) => {
+      const ao = Number.isInteger(a.photo?.order) ? a.photo.order : a.index;
+      const bo = Number.isInteger(b.photo?.order) ? b.photo.order : b.index;
+      if (ao !== bo) return ao - bo;
+      return a.index - b.index;
+    });
+}
+
+function samePhotoUrls(before, after) {
+  if (before.length !== after.length) return false;
+  const counts = new Map();
+  for (const photo of before) {
+    const url = typeof photo?.url === "string" ? photo.url : "";
+    counts.set(url, (counts.get(url) ?? 0) + 1);
+  }
+  for (const photo of after) {
+    const url = typeof photo?.url === "string" ? photo.url : "";
+    const left = counts.get(url) ?? 0;
+    if (left < 1) return false;
+    counts.set(url, left - 1);
+  }
+  return true;
+}
+
+function reorderImageList(images, id, filename, coverUrl) {
+  const list = Array.isArray(images) ? [...images] : [];
+  const index = list.findIndex((item) => typeof item === "string" && photoFilename(item, id) === filename);
+  if (index === 0) return list;
+  if (index > 0) {
+    const [item] = list.splice(index, 1);
+    list.unshift(item);
+    return list;
+  }
+  return [coverUrl, ...list];
+}
+
+/**
+ * Move the manifest cover to order 0 inside an existing gallery.
+ * Photos are reordered and their order field is rewritten. No photo is
+ * added or removed, and no new field is added. imageUrl and images, which
+ * already mirror the gallery, follow that order. Already-correct galleries
+ * are `cover-current`.
+ */
+export function planCoverPickup({ id, temple, manifest }) {
+  const photos = Array.isArray(temple?.photos)
+    ? temple.photos.filter((photo) => photo && typeof photo === "object" && !Array.isArray(photo))
+    : [];
+  if (photos.length === 0) return { id, action: "skip", reason: "has-cover" };
+  const chosen = coverFrameForPack(manifest);
+  if (!chosen?.filename) return { id, action: "skip", reason: "has-cover" };
+  const ordered = photosInCoverOrder(photos);
+  const matchAt = ordered.findIndex((item) => photoFilename(item.photo.url, id) === chosen.filename);
+  if (matchAt < 0) return { id, action: "skip", reason: "has-cover" };
+  const names = ordered.map((item) => photoFilename(item.photo.url, id) || "(other)");
+  const images = Array.isArray(temple?.images) ? temple.images : [];
+  const coverIsFirst = matchAt === 0;
+  const ordersMatch = ordered.every((item, index) => item.photo.order === index);
+  const imageNames = photoFilename(temple?.imageUrl, id) === chosen.filename;
+  const imagesName = images.length > 0 && photoFilename(images[0], id) === chosen.filename;
+  if (coverIsFirst && ordersMatch && imageNames && imagesName) {
+    return { id, action: "skip", reason: "cover-current", coverFilename: chosen.filename };
+  }
+  const next = ordered.map((item) => ({ ...item.photo }));
+  const [cover] = next.splice(matchAt, 1);
+  next.unshift(cover);
+  const photosOut = next.map((photo, order) => ({ ...photo, order }));
+  const imageUrl = imageNames ? temple.imageUrl : cover.url;
+  const imagesOut = reorderImageList(images, id, chosen.filename, cover.url);
+  const afterNames = photosOut.map((photo) => photoFilename(photo.url, id) || "(other)");
+  return {
+    id,
+    action: "reorder",
+    coverFilename: chosen.filename,
+    fromFilename: names[0],
+    diff: [`cover ${names[0]} -> ${chosen.filename}`, `photos ${names.join(", ")} -> ${afterNames.join(", ")}`],
+    photos: photosOut,
+    imageUrl,
+    images: imagesOut,
+    manifest,
+    temple,
+  };
+}
+
+/**
+ * Re-read the temple and reorder only while every current photo URL is kept.
+ * The patch is photos, imageUrl, and images. A gallery that is already on
+ * the manifest cover is not written.
+ */
+export async function persistCoverReorder(db, planned) {
+  const id = String(planned?.id ?? "");
+  if (!id || !planned?.manifest) return { ok: false, reason: "missing" };
+  return db.runTransaction(async (tx) => {
+    const ref = db.collection("temples").doc(id);
+    const snap = await tx.get(ref);
+    if (!snap.exists) return { ok: false, reason: "missing" };
+    const fresh = { ...(snap.data() ?? {}), id: snap.id };
+    const again = planCoverPickup({ id, temple: fresh, manifest: planned.manifest });
+    if (again.action !== "reorder") {
+      return { ok: true, unchanged: true, reason: again.reason || "cover-current" };
+    }
+    const before = Array.isArray(fresh.photos) ? fresh.photos : [];
+    if (!samePhotoUrls(before, again.photos)) return { ok: false, reason: "photo-set" };
+    tx.update(ref, {
+      photos: again.photos,
+      imageUrl: again.imageUrl,
+      images: again.images,
+    });
+    return { ok: true, wrote: true };
+  });
+}
+
 /**
  * Plan one pack against one temple. Validation failures throw.
- * A temple that already has a cover is skipped and reported.
+ * A temple that already has a cover is skipped, unless the manifest cover
+ * is already one of its photos. That photo is moved to order 0.
  */
 export function planEmptyCoverPack({ temple, packDir, manifest, docIdOverride = null }) {
   const id = resolveSeedDocId(packDir, manifest, docIdOverride);
   if (!temple) return { id, action: "skip", reason: "missing" };
-  if (!isEmptyCover(temple)) return { id, action: "skip", reason: "has-cover" };
+  if (!isEmptyCover(temple)) return planCoverPickup({ id, temple, manifest });
   const photos = Array.isArray(manifest?.photos) ? manifest.photos : [];
   if (photos.length === 0) return { id, action: "skip", reason: "empty-pack" };
   if (photos.length > MAX_PHOTOS) {
@@ -338,11 +466,17 @@ async function urlIsPublic(url, deps) {
 export function formatEmptyCoverReport(rows, { apply = false } = {}) {
   const lines = [apply ? "Mode: apply" : "Mode: dry-run"];
   const writes = rows.filter((row) => row.action === "write" && row.result !== "skipped");
+  const reorders = rows.filter((row) => row.action === "reorder");
   const skipped = rows.filter((row) => row.action === "skip" || row.result === "skipped");
   lines.push(`write: ${writes.length}`);
   for (const row of writes) {
     const count = row.frames?.length ?? row.photos?.length ?? 0;
     lines.push(`${row.result ?? "would-write"} ${row.id} cover ${row.coverFilename} photos ${count}`);
+  }
+  lines.push(`reorder: ${reorders.length}`);
+  for (const row of reorders) {
+    lines.push(`${row.result ?? "would-reorder"} ${row.id} cover ${row.fromFilename} -> ${row.coverFilename}`);
+    for (const line of row.diff ?? []) lines.push(`  ${line}`);
   }
   lines.push(`skipped: ${skipped.length}`);
   for (const row of skipped) {
@@ -447,6 +581,34 @@ export async function runEmptyCoverPacks(opts, deps = {}) {
   }
   const rows = [];
   for (const plan of plans) {
+    if (plan.action === "reorder") {
+      if (!opts.apply) {
+        rows.push({ ...plan, result: "would-reorder" });
+        continue;
+      }
+      const writeCover =
+        deps.writeCover ??
+        (async (item) => {
+          const admin = await openAdmin(project, env, bucketName);
+          return persistCoverReorder(admin.firestore(), item);
+        });
+      const written = await writeCover(plan);
+      if (written && written.ok === false) {
+        rows.push({ ...plan, action: "skip", result: "skipped", reason: written.reason || "photo-set" });
+        continue;
+      }
+      if (written?.unchanged) {
+        rows.push({
+          ...plan,
+          action: "skip",
+          result: "skipped",
+          reason: written.reason || "cover-current",
+        });
+        continue;
+      }
+      rows.push({ ...plan, result: "wrote" });
+      continue;
+    }
     if (plan.action !== "write") {
       rows.push({ ...plan, result: "skipped" });
       continue;

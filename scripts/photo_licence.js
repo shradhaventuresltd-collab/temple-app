@@ -85,6 +85,21 @@ function clampCredit(value) {
 }
 
 /**
+ * Credit stored from a manifest row onto the existing `credit` field.
+ * A non-empty `credit` is kept as written (trimmed, and cut only at the
+ * existing 200-character cap). An empty credit is still built from the
+ * author and the licence.
+ *
+ * @param {object} photo
+ * @returns {string}
+ */
+export function manifestPhotoCredit(photo) {
+  const explicit = typeof photo?.credit === "string" ? photo.credit.trim() : "";
+  if (explicit) return clampCredit(explicit);
+  return photoCredit(photo?.author || "", photo?.license);
+}
+
+/**
  * Keep the person named in a Commons author field and drop the usage note
  * and any bracketed note, such as "(talk)" or a Panoramio user id.
  * A leading `User:` prefix is dropped, so User:Shyam is Shyam.
