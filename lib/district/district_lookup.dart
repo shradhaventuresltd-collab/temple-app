@@ -186,14 +186,10 @@ class DistrictDirectory {
   }
 
   Future<void> _ensure(List<Temple> temples) async {
-    // No bundled file until a publisher names one licence. Overrides are
-    // names, so they still apply. A test loader still runs. This path does
-    // not read Firestore.
-    if (_bundledLoader && !kDistrictBoundariesBundled) {
-      _applyOverrides(temples);
-      _version = kDistrictBoundaryAssetVersion;
-      return;
-    }
+    // No bundled file until a publisher names one licence. Overrides stay
+    // in code, but they must not surface a district while the asset is
+    // absent. A test loader still runs. This path does not read Firestore.
+    if (_bundledLoader && !kDistrictBoundariesBundled) return;
     if (_version != kDistrictBoundaryAssetVersion) {
       _byKey.clear();
       _version = null;
@@ -299,12 +295,16 @@ Future<Uint8List> _loadBundledBoundaries() async {
 
 /// Lookup passed into the directory filter.
 ///
-/// Null until assignments are ready, which lets the chip show first.
-/// After that, temples with no in-state district are omitted.
+/// Null until a bundled asset has loaded, which lets the chip show first.
+/// When no asset is bundled this returns a lookup that resolves nothing,
+/// so the chip stays off the screen instead of offering an empty filter.
 TempleDistrictName? bundledDistrictLookup() {
+  if (!kDistrictBoundariesBundled) return _noBundledDistrict;
   if (!DistrictDirectory.instance.isReady) return null;
   return DistrictDirectory.instance.peek;
 }
+
+String? _noBundledDistrict(Temple temple) => null;
 
 /// Loads boundaries for [temples]. A failure still returns [peek] so the
 /// sheet can open with whatever is already in memory.

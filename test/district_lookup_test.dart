@@ -118,7 +118,7 @@ void main() {
     expect(directory.assetLoadCount, 0);
   });
 
-  test('overrides win and stay in the stored state without the asset', () async {
+  test('overrides stay unpublished while the asset is not bundled', () async {
     DistrictDirectory.instance.resetForTest();
     final directory = DistrictDirectory.instance;
     final sita = _temple(
@@ -135,17 +135,13 @@ void main() {
       latitude: 27.6567,
       longitude: 94.7058,
     );
-    final neighbour = _temple(
-      id: 'neighbour',
-      state: 'Andhra Pradesh',
-      latitude: 17.6669,
-      longitude: 80.8828,
-    );
-    await directory.ensureFor([sita, malinithan, neighbour]);
+    await directory.ensureFor([sita, malinithan]);
     expect(directory.assetLoadCount, 0);
-    expect(directory.peek(sita), 'Bhadradri Kothagudem');
-    expect(directory.peek(malinithan), 'Lower Siang');
-    expect(directory.peek(neighbour), isNull);
+    expect(directory.isReady, isFalse);
+    expect(directory.peek(sita), isNull);
+    expect(directory.peek(malinithan), isNull);
+    expect(districtOverrideFor(sita)?.name, 'Bhadradri Kothagudem');
+    expect(districtOverrideFor(malinithan)?.name, 'Lower Siang');
     expect(
       districtOverrideFor(
         _temple(

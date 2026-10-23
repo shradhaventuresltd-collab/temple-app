@@ -11,6 +11,7 @@ import 'package:temple_app/utils/directory_filters.dart';
 import 'package:temple_app/widgets/directory_filter_bar.dart';
 
 Temple _temple({
+  String id = '',
   required String name,
   required String state,
   required String city,
@@ -19,6 +20,7 @@ Temple _temple({
   double longitude = 0,
 }) {
   return Temple(
+    id: id,
     name: name,
     state: state,
     city: city,
@@ -394,18 +396,52 @@ void main() {
     await tester.tap(find.byKey(const Key('near-me-not-now')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('near-me-district')), findsOneWidget);
-    expect(DistrictDirectory.instance.assetLoadCount, 0);
-
-    await tester.tap(find.byKey(const Key('near-me-district')));
-    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('near-me-district')), findsNothing);
     expect(DistrictDirectory.instance.assetLoadCount, 0);
     expect(DistrictDirectory.instance.peek(temples.first), isNull);
-    expect(
-      find.byKey(const Key('near-me-district-option-Madurai')),
-      findsNothing,
-    );
   });
+
+  testWidgets(
+    'the district chip stays hidden for Sita while nothing is bundled',
+    (tester) async {
+      DistrictDirectory.instance.resetForTest();
+      addTearDown(DistrictDirectory.instance.resetForTest);
+      final sita = _temple(
+        id: 'sita-ramachandra-swamy-temple',
+        name: 'Sita Ramachandra Swamy Temple',
+        state: 'Telangana',
+        city: 'Bhadrachalam',
+        deity: 'Vishnu',
+        latitude: 17.6669,
+        longitude: 80.8828,
+      );
+      await DistrictDirectory.instance.ensureFor([sita]);
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DirectoryFilterBar(
+              temples: [sita],
+              selectedState: 'Telangana',
+              selectedDeity: null,
+              selectedDistrict: null,
+              query: '',
+              districtOf: bundledDistrictLookup(),
+              onChanged: (_, _, _) {},
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byKey(const Key('filter-chip-district')), findsNothing);
+      expect(find.text('All districts'), findsNothing);
+      expect(find.text('Bhadradri Kothagudem'), findsNothing);
+      expect(DistrictDirectory.instance.assetLoadCount, 0);
+    },
+  );
 }
 
 class FakeCoarseLocation implements CoarseLocationClient {
