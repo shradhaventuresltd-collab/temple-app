@@ -278,18 +278,40 @@ resume_app() {
   launch_app
 }
 
+# The cached AVD can already contain this package signed by another runner.
+# adb install -r then fails with INSTALL_FAILED_UPDATE_INCOMPATIBLE.
+uninstall_app() {
+  if [[ -z "${PKG:-}" ]]; then
+    return 0
+  fi
+  adb uninstall "$PKG" >/dev/null 2>&1 || true
+}
+
+install_once() {
+  adb install -r -d "$EMULATOR_APK" 2>&1
+}
+
 install_apk() {
   if [[ -z "${EMULATOR_APK:-}" || ! -f "$EMULATOR_APK" ]]; then
     record_fail "install" "APK missing (${EMULATOR_APK:-unset})"
     return 1
   fi
   local log
-  if ! log="$(adb install -r -d "$EMULATOR_APK" 2>&1)"; then
-    record_fail "install" "adb install failed: ${log}"
-    return 1
+  uninstall_app
+  if ! log="$(install_once)"; then
+    if [[ "$log" == *"INSTALL_FAILED_UPDATE_INCOMPATIBLE"* ]]; then
+      uninstall_app
+      if ! log="$(install_once)"; then
+        record_fail "install" "adb install failed after uninstall retry: $(printf '%s' "$log" | tr '\n' ' ')"
+        return 1
+      fi
+    else
+      record_fail "install" "adb install failed: $(printf '%s' "$log" | tr '\n' ' ')"
+      return 1
+    fi
   fi
   if [[ "$log" != *"Success"* ]]; then
-    record_fail "install" "adb install did not report Success: ${log}"
+    record_fail "install" "adb install did not report Success: $(printf '%s' "$log" | tr '\n' ' ')"
     return 1
   fi
   return 0
