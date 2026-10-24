@@ -59,11 +59,23 @@ class AppAnalytics {
         ? firebaseClient()
         : ProductAnalyticsClient.live();
     var enabled = false;
+    var consentDenied = false;
+    try {
+      await client
+          .setConsent(
+            adPersonalizationSignalsConsentGranted: false,
+            adUserDataConsentGranted: false,
+          )
+          .timeout(const Duration(seconds: 2));
+      consentDenied = true;
+    } catch (e, st) {
+      debugPrint('Analytics consent flag failed: $e\n$st');
+    }
     try {
       await client
           .setCollectionEnabled(allowed)
           .timeout(const Duration(seconds: 2));
-      enabled = allowed;
+      enabled = allowed && consentDenied;
     } catch (e, st) {
       debugPrint('Analytics collection flag failed: $e\n$st');
     }

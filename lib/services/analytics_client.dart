@@ -6,6 +6,12 @@ abstract class AnalyticsClient {
 
   Future<void> setCollectionEnabled(bool enabled);
 
+  /// Denies Analytics use for ads. Does not touch the ad UMP pass.
+  Future<void> setConsent({
+    required bool adPersonalizationSignalsConsentGranted,
+    required bool adUserDataConsentGranted,
+  });
+
   Future<void> logScreenView({required String screenName});
 
   Future<void> logEvent({
@@ -21,6 +27,12 @@ class NoopAnalyticsClient implements AnalyticsClient {
 
   @override
   Future<void> setCollectionEnabled(bool enabled) async {}
+
+  @override
+  Future<void> setConsent({
+    required bool adPersonalizationSignalsConsentGranted,
+    required bool adUserDataConsentGranted,
+  }) async {}
 
   @override
   Future<void> logScreenView({required String screenName}) async {}

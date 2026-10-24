@@ -39,6 +39,12 @@ void main() {
       firebaseClient: () => client,
     );
     expect(client.collection, [true]);
+    expect(client.consent, [
+      (
+        adPersonalizationSignalsConsentGranted: false,
+        adUserDataConsentGranted: false,
+      ),
+    ]);
     expect(AppAnalytics.instance.collectionEnabled, isTrue);
     expect(AppAnalytics.instance.client, same(client));
   });
@@ -63,6 +69,12 @@ void main() {
           firebaseClient: () => client,
         );
         expect(client.collection, [false], reason: '$flags');
+        expect(client.consent, [
+          (
+            adPersonalizationSignalsConsentGranted: false,
+            adUserDataConsentGranted: false,
+          ),
+        ], reason: '$flags');
         await AppAnalytics.instance.logScreenView(AnalyticsScreens.home);
         expect(client.screens, isEmpty, reason: '$flags');
         expect(AppAnalytics.instance.collectionEnabled, isFalse);
@@ -228,32 +240,41 @@ void main() {
     expect(dumped, isNot(contains('77.5946')));
   });
 
-  test(
-    'manifest keeps collection off until the production process enables it',
-    () {
-      final manifest = File(
-        'android/app/src/main/AndroidManifest.xml',
-      ).readAsStringSync();
-      expect(
-        manifest,
-        contains('android:name="firebase_analytics_collection_enabled"'),
-      );
-      expect(
-        manifest,
-        contains('android:name="google_analytics_adid_collection_enabled"'),
-      );
-      expect(
-        manifest,
-        contains('android:name="google_analytics_ssaid_collection_enabled"'),
-      );
-      expect(
-        RegExp(
-          r'android:name="firebase_analytics_collection_enabled"\s+android:value="false"',
-        ).hasMatch(manifest),
-        isTrue,
-      );
-    },
-  );
+  test('manifest keeps collection off until the production process enables it', () {
+    final manifest = File(
+      'android/app/src/main/AndroidManifest.xml',
+    ).readAsStringSync();
+    expect(
+      manifest,
+      contains('android:name="firebase_analytics_collection_enabled"'),
+    );
+    expect(
+      manifest,
+      contains('android:name="google_analytics_adid_collection_enabled"'),
+    );
+    expect(
+      manifest,
+      contains('android:name="google_analytics_ssaid_collection_enabled"'),
+    );
+    expect(
+      manifest,
+      contains(
+        'android:name="google_analytics_default_allow_ad_personalization_signals"',
+      ),
+    );
+    expect(
+      RegExp(
+        r'android:name="google_analytics_default_allow_ad_personalization_signals"\s+android:value="false"',
+      ).hasMatch(manifest),
+      isTrue,
+    );
+    expect(
+      RegExp(
+        r'android:name="firebase_analytics_collection_enabled"\s+android:value="false"',
+      ).hasMatch(manifest),
+      isTrue,
+    );
+  });
 }
 
 class RecordingAnalyticsClient implements AnalyticsClient {
@@ -261,6 +282,13 @@ class RecordingAnalyticsClient implements AnalyticsClient {
 
   final bool failCollection;
   final collection = <bool>[];
+  final consent =
+      <
+        ({
+          bool adPersonalizationSignalsConsentGranted,
+          bool adUserDataConsentGranted,
+        })
+      >[];
   final screens = <String>[];
   final events = <({String name, Map<String, Object>? parameters})>[];
 
@@ -268,6 +296,18 @@ class RecordingAnalyticsClient implements AnalyticsClient {
   Future<void> setCollectionEnabled(bool enabled) async {
     collection.add(enabled);
     if (failCollection) throw StateError('collection flag failed');
+  }
+
+  @override
+  Future<void> setConsent({
+    required bool adPersonalizationSignalsConsentGranted,
+    required bool adUserDataConsentGranted,
+  }) async {
+    consent.add((
+      adPersonalizationSignalsConsentGranted:
+          adPersonalizationSignalsConsentGranted,
+      adUserDataConsentGranted: adUserDataConsentGranted,
+    ));
   }
 
   @override

@@ -17,6 +17,18 @@ class ProductAnalyticsClient implements AnalyticsClient {
   }
 
   @override
+  Future<void> setConsent({
+    required bool adPersonalizationSignalsConsentGranted,
+    required bool adUserDataConsentGranted,
+  }) {
+    return _analytics.setConsent(
+      adPersonalizationSignalsConsentGranted:
+          adPersonalizationSignalsConsentGranted,
+      adUserDataConsentGranted: adUserDataConsentGranted,
+    );
+  }
+
+  @override
   Future<void> logScreenView({required String screenName}) {
     return _analytics.logScreenView(screenName: screenName);
   }
