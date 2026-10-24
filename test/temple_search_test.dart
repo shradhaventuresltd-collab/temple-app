@@ -148,10 +148,12 @@ void main() {
   });
 
   test('sample directory matches name, address, and combined filters', () {
-    expect(
-      filterTemples(sampleTemples, query: 'meenakshi').single.name,
-      'Meenakshi Amman Temple',
-    );
+    // Meenakshi is a Parvati synonym, so Uma and Gauri temples match too.
+    // The original .single assertion counted only the name; the top stays
+    // Meenakshi Amman Temple.
+    final meenakshi = filterTemples(sampleTemples, query: 'meenakshi');
+    expect(meenakshi.first.name, 'Meenakshi Amman Temple');
+    expect(meenakshi.map((t) => t.name), contains('Mangala Gauri Temple'));
     expect(
       filterTemples(sampleTemples, query: '362268').single.name,
       'Somnath Temple',
