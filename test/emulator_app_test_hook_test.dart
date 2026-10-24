@@ -8,15 +8,10 @@ void main() {
       emulatorAppTestHooksEnabled(debugMode: false, define: false),
       isFalse,
     );
-    expect(
-      emulatorAppTestHooksEnabled(debugMode: true, define: false),
-      isTrue,
-    );
-    expect(
-      emulatorAppTestHooksEnabled(debugMode: false, define: true),
-      isTrue,
-    );
+    expect(emulatorAppTestHooksEnabled(debugMode: true, define: false), isTrue);
+    expect(emulatorAppTestHooksEnabled(debugMode: false, define: true), isTrue);
     expect(kEmulatorAppTestHooks, kDebugMode || kEmulatorAppTestDefine);
+    expect(identical(kEmulatorAppTestReleaseGuard, true), isFalse);
   });
 
   test('force-update override blocks locally and does not change defaults', () {

@@ -35,7 +35,7 @@ on:
 
 permissions:
   contents: read
-  actions: write
+  actions: read
 
 concurrency:
   group: emulator-app-test-${{ github.ref }}
@@ -45,6 +45,19 @@ jobs:
   emulator-app-test:
     runs-on: ubuntu-latest
     timeout-minutes: 180
+    # Shared emulator-runner inputs. GitHub Actions does not expand YAML
+    # anchors, so each flow step reads these env values.
+    env:
+      EMULATOR_API_LEVEL: "30"
+      EMULATOR_TARGET: google_apis
+      EMULATOR_ARCH: x86_64
+      EMULATOR_DISK_SIZE: 2048M
+      EMULATOR_AVD_NAME: emulator-app-test-30
+      EMULATOR_FORCE_AVD_CREATION: false
+      EMULATOR_DISABLE_ANIMATIONS: true
+      EMULATOR_BOOT_TIMEOUT: "600"
+      EMULATOR_OPTIONS: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
+      EMULATOR_PRE_LAUNCH: bash tool/emulator/prepare_avd.sh
     steps:
       - name: Checkout workflow scripts
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -173,17 +186,17 @@ jobs:
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
-          api-level: 30
-          target: google_apis
-          arch: x86_64
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
           cores: ${{ env.EMULATOR_CORES }}
-          disk-size: 2048M
-          avd-name: emulator-app-test-30
-          force-avd-creation: false
-          disable-animations: true
-          emulator-boot-timeout: 600
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
-          pre-emulator-launch-script: bash tool/emulator/prepare_avd.sh
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
           script: bash tool/emulator/run_one_flow.sh 01-first-launch tool/emulator/flows/01_first_launch.sh
 
       - name: Flow 02 policy gate
@@ -191,17 +204,17 @@ jobs:
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
-          api-level: 30
-          target: google_apis
-          arch: x86_64
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
           cores: ${{ env.EMULATOR_CORES }}
-          disk-size: 2048M
-          avd-name: emulator-app-test-30
-          force-avd-creation: false
-          disable-animations: true
-          emulator-boot-timeout: 600
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
-          pre-emulator-launch-script: bash tool/emulator/prepare_avd.sh
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
           script: bash tool/emulator/run_one_flow.sh 02-policy-gate tool/emulator/flows/02_policy_gate.sh
 
       - name: Flow 03 force update
@@ -209,17 +222,17 @@ jobs:
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
-          api-level: 30
-          target: google_apis
-          arch: x86_64
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
           cores: ${{ env.EMULATOR_CORES }}
-          disk-size: 2048M
-          avd-name: emulator-app-test-30
-          force-avd-creation: false
-          disable-animations: true
-          emulator-boot-timeout: 600
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
-          pre-emulator-launch-script: bash tool/emulator/prepare_avd.sh
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
           script: bash tool/emulator/run_one_flow.sh 03-force-update tool/emulator/flows/03_force_update.sh
 
       - name: Flow 04 home
@@ -227,17 +240,17 @@ jobs:
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
-          api-level: 30
-          target: google_apis
-          arch: x86_64
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
           cores: ${{ env.EMULATOR_CORES }}
-          disk-size: 2048M
-          avd-name: emulator-app-test-30
-          force-avd-creation: false
-          disable-animations: true
-          emulator-boot-timeout: 600
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
-          pre-emulator-launch-script: bash tool/emulator/prepare_avd.sh
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
           script: bash tool/emulator/run_one_flow.sh 04-home tool/emulator/flows/04_home.sh
 
       - name: Flow 05 search
@@ -245,17 +258,17 @@ jobs:
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
-          api-level: 30
-          target: google_apis
-          arch: x86_64
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
           cores: ${{ env.EMULATOR_CORES }}
-          disk-size: 2048M
-          avd-name: emulator-app-test-30
-          force-avd-creation: false
-          disable-animations: true
-          emulator-boot-timeout: 600
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
-          pre-emulator-launch-script: bash tool/emulator/prepare_avd.sh
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
           script: bash tool/emulator/run_one_flow.sh 05-search tool/emulator/flows/05_search.sh
 
       - name: Flow 06 filters
@@ -263,17 +276,17 @@ jobs:
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
-          api-level: 30
-          target: google_apis
-          arch: x86_64
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
           cores: ${{ env.EMULATOR_CORES }}
-          disk-size: 2048M
-          avd-name: emulator-app-test-30
-          force-avd-creation: false
-          disable-animations: true
-          emulator-boot-timeout: 600
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
-          pre-emulator-launch-script: bash tool/emulator/prepare_avd.sh
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
           script: bash tool/emulator/run_one_flow.sh 06-filters tool/emulator/flows/06_filters.sh
 
       - name: Flow 07 district filter
@@ -281,17 +294,17 @@ jobs:
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
-          api-level: 30
-          target: google_apis
-          arch: x86_64
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
           cores: ${{ env.EMULATOR_CORES }}
-          disk-size: 2048M
-          avd-name: emulator-app-test-30
-          force-avd-creation: false
-          disable-animations: true
-          emulator-boot-timeout: 600
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
-          pre-emulator-launch-script: bash tool/emulator/prepare_avd.sh
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
           script: bash tool/emulator/run_one_flow.sh 07-district tool/emulator/flows/07_district.sh
 
       - name: Flow 08 temple list and detail
@@ -299,17 +312,17 @@ jobs:
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
-          api-level: 30
-          target: google_apis
-          arch: x86_64
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
           cores: ${{ env.EMULATOR_CORES }}
-          disk-size: 2048M
-          avd-name: emulator-app-test-30
-          force-avd-creation: false
-          disable-animations: true
-          emulator-boot-timeout: 600
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
-          pre-emulator-launch-script: bash tool/emulator/prepare_avd.sh
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
           script: bash tool/emulator/run_one_flow.sh 08-list-detail tool/emulator/flows/08_list_detail.sh
 
       - name: Flow 09 photos
@@ -317,17 +330,17 @@ jobs:
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
-          api-level: 30
-          target: google_apis
-          arch: x86_64
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
           cores: ${{ env.EMULATOR_CORES }}
-          disk-size: 2048M
-          avd-name: emulator-app-test-30
-          force-avd-creation: false
-          disable-animations: true
-          emulator-boot-timeout: 600
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
-          pre-emulator-launch-script: bash tool/emulator/prepare_avd.sh
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
           script: bash tool/emulator/run_one_flow.sh 09-photos tool/emulator/flows/09_photos.sh
 
       - name: Flow 10 directions
@@ -335,17 +348,17 @@ jobs:
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
-          api-level: 30
-          target: google_apis
-          arch: x86_64
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
           cores: ${{ env.EMULATOR_CORES }}
-          disk-size: 2048M
-          avd-name: emulator-app-test-30
-          force-avd-creation: false
-          disable-animations: true
-          emulator-boot-timeout: 600
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
-          pre-emulator-launch-script: bash tool/emulator/prepare_avd.sh
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
           script: bash tool/emulator/run_one_flow.sh 10-directions tool/emulator/flows/10_directions.sh
 
       - name: Flow 11 temples near me
@@ -353,17 +366,17 @@ jobs:
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
-          api-level: 30
-          target: google_apis
-          arch: x86_64
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
           cores: ${{ env.EMULATOR_CORES }}
-          disk-size: 2048M
-          avd-name: emulator-app-test-30
-          force-avd-creation: false
-          disable-animations: true
-          emulator-boot-timeout: 600
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
-          pre-emulator-launch-script: bash tool/emulator/prepare_avd.sh
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
           script: bash tool/emulator/run_one_flow.sh 11-near-me tool/emulator/flows/11_near_me.sh
 
       - name: Flow 12 ads
@@ -371,17 +384,17 @@ jobs:
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
-          api-level: 30
-          target: google_apis
-          arch: x86_64
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
           cores: ${{ env.EMULATOR_CORES }}
-          disk-size: 2048M
-          avd-name: emulator-app-test-30
-          force-avd-creation: false
-          disable-animations: true
-          emulator-boot-timeout: 600
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
-          pre-emulator-launch-script: bash tool/emulator/prepare_avd.sh
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
           script: bash tool/emulator/run_one_flow.sh 12-ads tool/emulator/flows/12_ads.sh
 
       - name: Flow 13 licences
@@ -389,17 +402,17 @@ jobs:
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
-          api-level: 30
-          target: google_apis
-          arch: x86_64
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
           cores: ${{ env.EMULATOR_CORES }}
-          disk-size: 2048M
-          avd-name: emulator-app-test-30
-          force-avd-creation: false
-          disable-animations: true
-          emulator-boot-timeout: 600
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
-          pre-emulator-launch-script: bash tool/emulator/prepare_avd.sh
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
           script: bash tool/emulator/run_one_flow.sh 13-licences tool/emulator/flows/13_licences.sh
 
       - name: Flow 14 back button and relaunch
@@ -407,17 +420,17 @@ jobs:
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
-          api-level: 30
-          target: google_apis
-          arch: x86_64
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
           cores: ${{ env.EMULATOR_CORES }}
-          disk-size: 2048M
-          avd-name: emulator-app-test-30
-          force-avd-creation: false
-          disable-animations: true
-          emulator-boot-timeout: 600
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
-          pre-emulator-launch-script: bash tool/emulator/prepare_avd.sh
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
           script: bash tool/emulator/run_one_flow.sh 14-back-relaunch tool/emulator/flows/14_back_relaunch.sh
 
       - name: Flow 15 offline
@@ -425,17 +438,17 @@ jobs:
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
-          api-level: 30
-          target: google_apis
-          arch: x86_64
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
           cores: ${{ env.EMULATOR_CORES }}
-          disk-size: 2048M
-          avd-name: emulator-app-test-30
-          force-avd-creation: false
-          disable-animations: true
-          emulator-boot-timeout: 600
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
-          pre-emulator-launch-script: bash tool/emulator/prepare_avd.sh
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
           script: bash tool/emulator/run_one_flow.sh 15-offline tool/emulator/flows/15_offline.sh
 
       - name: Write results summary

@@ -93,6 +93,18 @@ if [[ "$runner_steps" -ne 15 ]]; then
   echo "expected 15 emulator steps, found ${runner_steps}" >&2
   exit 1
 fi
+if [[ "$(grep -F -c 'emulator-options: ${{ env.EMULATOR_OPTIONS }}' "$workflow")" -ne 15 ]]; then
+  echo "each flow step should read EMULATOR_OPTIONS from env" >&2
+  exit 1
+fi
+if [[ "$(grep -c -- '-no-snapshot' "$workflow")" -ne 1 ]]; then
+  echo "emulator options should be declared once" >&2
+  exit 1
+fi
+if ! grep -q 'actions: read' "$workflow"; then
+  echo "workflow token should be actions: read" >&2
+  exit 1
+fi
 
 flows=(
   01-first-launch

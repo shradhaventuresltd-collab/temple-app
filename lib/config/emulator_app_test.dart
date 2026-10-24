@@ -2,17 +2,37 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:temple_app/services/app_config.dart';
 
-/// `--dart-define=EMULATOR_APP_TEST=true`. Release and profile builds omit it.
+/// `--dart-define=EMULATOR_APP_TEST=true`.
 ///
-/// Play AABs are not built with this define. Debug builds already have the
-/// hooks because [kDebugMode] is true there.
+/// Debug builds already have the hooks because [kDebugMode] is true there.
+/// A release build that sets this define fails while evaluating
+/// [kEmulatorAppTestReleaseGuard]. `scripts/build_play_aab.sh` refuses the
+/// name before Gradle runs.
 const bool kEmulatorAppTestDefine = bool.fromEnvironment('EMULATOR_APP_TEST');
+
+/// Fails a release compile when [kEmulatorAppTestDefine] is true.
+class _ReleaseBuildForbidsEmulatorAppTest {
+  const _ReleaseBuildForbidsEmulatorAppTest()
+    : assert(
+        !kReleaseMode || !kEmulatorAppTestDefine,
+        'EMULATOR_APP_TEST must not be set for a release build',
+      );
+}
+
+/// Part of [kEmulatorAppTestHooks], so every release compile evaluates it.
+const Object kEmulatorAppTestReleaseGuard =
+    _ReleaseBuildForbidsEmulatorAppTest();
 
 /// True in debug, or in any build compiled with [kEmulatorAppTestDefine].
 ///
 /// Release without the define is a constant false, so the startup block that
 /// reads the force-update preference is not in the Play binary.
-const bool kEmulatorAppTestHooks = kDebugMode || kEmulatorAppTestDefine;
+/// [identical] is always false. It keeps [kEmulatorAppTestReleaseGuard] in
+/// the compile so a release build with the define stops here.
+const bool kEmulatorAppTestHooks =
+    kDebugMode ||
+    kEmulatorAppTestDefine ||
+    identical(kEmulatorAppTestReleaseGuard, true);
 
 /// Shared-preferences key. The Android XML name is `flutter.` plus this key.
 ///
