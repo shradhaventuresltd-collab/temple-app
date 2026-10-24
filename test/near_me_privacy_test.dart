@@ -5,8 +5,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:temple_app/config/policy_config.dart';
 import 'package:temple_app/near_me/near_me_copy.dart';
 
-/// Wording per KAN-184 for the policy and the Play Data safety form.
-const _onDeviceOnly =
+/// Location wording Sanu approved on 24 October 2026. Replaces the KAN-184
+/// sentence in the policy, the Data safety note, and the listing location line.
+const _approvedLocation =
+    "Temples near me uses your device's approximate location only on your device, "
+    'to sort temples by distance. That reading is never stored or sent off your '
+    'device. Separately, the Google Mobile Ads SDK in this app may collect '
+    'approximate location derived from your IP address, and share it with Google, '
+    'for advertising, analytics and fraud prevention.';
+
+/// Retired KAN-184 slogan. The policy and Data safety note must not keep it.
+const _retiredOnDeviceOnly =
     'approximate location is used on the device only and is not collected or shared';
 
 /// Permissions a plugin must not merge into the app.
@@ -174,29 +183,37 @@ void main() {
     }
   });
 
-  test('privacy policy and Data safety use the KAN-184 location wording', () {
+  test('privacy policy and Data safety use the approved location wording', () {
     const pages = ['docs/privacy-policy.html', 'hosting/privacy-policy.html'];
     final docs = File(pages[0]).readAsStringSync();
     final hosted = File(pages[1]).readAsStringSync();
     expect(hosted, docs);
     expect(docs, contains('Sanu Vimal'));
-    expect(docs, contains('<strong>Updated:</strong> 23 October 2026'));
+    expect(docs, contains('<strong>Updated:</strong> 24 October 2026'));
     expect(docs, contains('<strong>Effective date:</strong> 23 October 2026'));
-    expect(docs.toLowerCase(), contains(_onDeviceOnly));
+    expect(docs, contains(_approvedLocation));
+    expect(docs.toLowerCase(), isNot(contains(_retiredOnDeviceOnly)));
     expect(docs, isNot(contains('does not request location permission')));
     expect(docs, contains('<h2>6. Temples near me</h2>'));
 
     final listing = File('docs/play-store-listing.md').readAsStringSync();
-    expect(listing.toLowerCase(), contains(_onDeviceOnly));
+    expect(
+      listing,
+      contains(
+        '**Location:** Temples near me accesses approximate location. $_approvedLocation',
+      ),
+    );
     expect(listing, isNot(contains('does not request device location')));
 
     final dataSafety = File('docs/play-data-safety.md').readAsStringSync();
-    expect(dataSafety.toLowerCase(), contains(_onDeviceOnly));
+    expect(dataSafety, contains(_approvedLocation));
+    expect(dataSafety.toLowerCase(), isNot(contains(_retiredOnDeviceOnly)));
     expect(
       dataSafety.toLowerCase(),
       contains('accessed, not collected and not shared'),
     );
     expect(dataSafety, contains('Sanu Vimal'));
+    expect(dataSafety, contains('Policy **updated 24 October 2026**.'));
     expect(dataSafety, contains('23 October 2026'));
 
     expect(PolicyConfig.currentVersion, 2);
