@@ -10,6 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:google_fonts/src/google_fonts_base.dart' as google_fonts_base;
 import 'package:http/http.dart' as http;
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/screens/policy_acceptance_gate.dart';
 import 'package:temple_app/services/policy_acceptance_store.dart';
 
@@ -68,6 +69,8 @@ Future<void> _pumpGate(
     RepaintBoundary(
       key: const Key('policy-shot'),
       child: MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           useMaterial3: true,

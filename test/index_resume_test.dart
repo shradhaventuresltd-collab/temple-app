@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/config/policy_config.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/main.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_index.dart';
@@ -96,6 +97,8 @@ void main() {
       final harness = _harness(() => now);
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocale.localizationsDelegates,
+          supportedLocales: AppLocale.supportedLocales,
           home: HomeScreen(
             adminToolsEnabled: false,
             templeService: harness.service,
@@ -135,6 +138,8 @@ void main() {
     final harness = _harness(() => now);
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: HomeScreen(
           adminToolsEnabled: false,
           templeService: harness.service,
@@ -182,6 +187,8 @@ void main() {
     var version = 4;
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: HomeScreen(
           adminToolsEnabled: false,
           templeService: harness.service,
@@ -201,6 +208,8 @@ void main() {
     version = 5;
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: HomeScreen(
           adminToolsEnabled: false,
           templeService: harness.service,

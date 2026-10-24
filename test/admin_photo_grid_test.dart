@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/models/photo_licence.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/admin_temple_form_screen.dart';
@@ -60,6 +61,8 @@ Future<void> _pump(
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: AppLocale.localizationsDelegates,
+      supportedLocales: AppLocale.supportedLocales,
       home: AdminTempleFormScreen(
         adminTemples: api,
         existing: _temple(),
@@ -116,6 +119,8 @@ void main() {
     final api = FakeAdminTempleService();
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: AdminTempleFormScreen(
           adminTemples: api,
           existing: _temple().copyWith(
@@ -282,6 +287,8 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: AdminTempleFormScreen(
           adminTemples: FakeAdminTempleService(),
           existing: _temple(),

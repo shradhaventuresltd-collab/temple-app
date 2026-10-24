@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:temple_app/config/build_flags.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/services/seed_service.dart';
@@ -17,12 +18,14 @@ class AdminDeleteResult {
   final String docId;
   final int storageObjectsDeleted;
 
-  String get successMessage {
+  String successMessageOf(AppLocalizations l10n) {
     if (storageObjectsDeleted > 0) {
-      return 'Deleted temple and $storageObjectsDeleted uploaded image(s).';
+      return l10n.deletedTempleAndImages(storageObjectsDeleted);
     }
-    return 'Deleted temple.';
+    return l10n.deletedTemple;
   }
+
+  String get successMessage => successMessageOf(L10nLookup.english);
 }
 
 /// Debug Admin CMS surface: live list plus create / update / delete.

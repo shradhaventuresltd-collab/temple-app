@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/widgets/cover_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
@@ -23,14 +24,17 @@ String templeBrowsePlaceLabel(Temple temple) {
 /// sites add [DetailHonesty.traditionLabel]. Monument / ASI sites add
 /// [DetailHonesty.framingLabel] only when that label is a heritage visit.
 /// "Living temple" is not repeated on the card.
-List<String> templeBrowseHonestyLabels(Temple temple) {
+List<String> templeBrowseHonestyLabels(
+  Temple temple, [
+  AppLocalizations? l10n,
+]) {
+  final copy = l10n ?? L10nLookup.english;
   final honesty = DetailHonesty.of(temple);
-  return [
-    if (honesty.traditionLabel != null) honesty.traditionLabel!,
-    if (honesty.framing == SiteFraming.monumentVisit &&
-        honesty.framingLabel != null)
-      honesty.framingLabel!,
-  ];
+  final tradition = honesty.traditionLabelOf(copy);
+  final framing = honesty.framing == SiteFraming.monumentVisit
+      ? honesty.framingLabelOf(copy)
+      : null;
+  return [?tradition, ?framing];
 }
 
 /// Browse card: cover, name, place, and deity chip.
@@ -55,7 +59,8 @@ class TempleBrowseCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final place = templeBrowsePlaceLabel(temple);
     final deity = temple.deity.trim();
-    final honestyLabels = templeBrowseHonestyLabels(temple);
+    final copy = context.l10n;
+    final honestyLabels = templeBrowseHonestyLabels(temple, copy);
 
     return Semantics(
       identifier: 'temple-browse-card',
@@ -165,7 +170,7 @@ class TempleBrowseCard extends StatelessWidget {
                                 for (final label in honestyLabels)
                                   chip(
                                     label,
-                                    background: label == 'Heritage visit'
+                                    background: label == copy.heritageVisit
                                         ? const Color(0xFFFFF3D8)
                                         : const Color(0xFFFFF9E3),
                                   ),

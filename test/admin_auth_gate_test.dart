@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/screens/admin_screen.dart';
 import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/services/seed_service.dart';
@@ -17,6 +18,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: AdminScreen(adminAuth: auth, adminToolsEnabled: false),
       ),
     );
@@ -48,7 +51,7 @@ void main() {
     final auth = FakeAdminAuth();
 
     await tester.pumpWidget(
-      MaterialApp(home: AdminScreen(adminAuth: auth, adminToolsEnabled: true)),
+      MaterialApp(localizationsDelegates: AppLocale.localizationsDelegates, supportedLocales: AppLocale.supportedLocales, home: AdminScreen(adminAuth: auth, adminToolsEnabled: true)),
     );
     await tester.pump();
 
@@ -68,7 +71,7 @@ void main() {
     final auth = FakeAdminAuth()..signInError = Exception('invalid-credential');
 
     await tester.pumpWidget(
-      MaterialApp(home: AdminScreen(adminAuth: auth, adminToolsEnabled: true)),
+      MaterialApp(localizationsDelegates: AppLocale.localizationsDelegates, supportedLocales: AppLocale.supportedLocales, home: AdminScreen(adminAuth: auth, adminToolsEnabled: true)),
     );
     await tester.pump();
 
@@ -94,7 +97,7 @@ void main() {
     final auth = FakeAdminAuth();
 
     await tester.pumpWidget(
-      MaterialApp(home: AdminScreen(adminAuth: auth, adminToolsEnabled: true)),
+      MaterialApp(localizationsDelegates: AppLocale.localizationsDelegates, supportedLocales: AppLocale.supportedLocales, home: AdminScreen(adminAuth: auth, adminToolsEnabled: true)),
     );
     await tester.pump();
 
@@ -131,6 +134,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           appBar: AppBar(
             actions: [
@@ -195,6 +200,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: AdminScreen(
           adminAuth: _HangingAdminAuth(hanging.stream),
           adminToolsEnabled: true,

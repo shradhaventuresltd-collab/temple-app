@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/services/seed_service.dart';
 import 'package:temple_app/widgets/seed_temples_control.dart';
@@ -42,7 +43,9 @@ class DebugHomeAdminActions extends StatelessWidget {
                 key: const Key('home-admin-sign-in'),
                 onPressed: onOpenAdmin,
                 child: Text(
-                  session.isSignedIn ? 'Not admin' : 'Admin sign-in',
+                  session.isSignedIn
+                      ? context.l10n.notAdmin
+                      : context.l10n.adminSignIn,
                   style: GoogleFonts.poppins(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
@@ -52,7 +55,7 @@ class DebugHomeAdminActions extends StatelessWidget {
               ),
             IconButton(
               icon: const Icon(Icons.admin_panel_settings_rounded),
-              tooltip: 'Admin Panel',
+              tooltip: context.l10n.adminPanel,
               onPressed: onOpenAdmin,
             ),
           ],

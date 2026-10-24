@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/home_screen.dart';
 import 'package:temple_app/services/firestore_read_log.dart';
@@ -45,6 +46,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: HomeScreen(adminAuth: auth, templesLoader: () async => temples),
       ),
     );
@@ -70,6 +73,8 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: HomeScreen(
           adminAuth: FakeAdminAuth(),
           templesLoader: () async => [sampleTemple()],
@@ -99,6 +104,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: HomeScreen(
           adminAuth: auth,
           templesLoader: () async => const <Temple>[],
@@ -120,6 +127,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: HomeScreen(
           adminAuth: auth,
           templesLoader: () => completer.future,
@@ -142,6 +151,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: HomeScreen(
           adminAuth: auth,
           templesLoader: () async => throw Exception('network'),
@@ -159,6 +170,8 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: HomeScreen(
           adminAuth: FakeAdminAuth(),
           templesLoader: () async => [sampleTemple()],
@@ -186,6 +199,8 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocale.localizationsDelegates,
+          supportedLocales: AppLocale.supportedLocales,
           home: HomeScreen(
             adminAuth: FakeAdminAuth(),
             templesLoader: () async => [sampleTemple()],
@@ -287,6 +302,8 @@ void main() {
 Future<void> _pumpHome(WidgetTester tester) async {
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: AppLocale.localizationsDelegates,
+      supportedLocales: AppLocale.supportedLocales,
       home: HomeScreen(
         adminAuth: FakeAdminAuth(),
         templesLoader: () async => [

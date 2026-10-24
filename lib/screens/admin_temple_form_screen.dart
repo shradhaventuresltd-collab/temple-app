@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
@@ -134,21 +135,21 @@ class _AdminTempleFormScreenState extends State<AdminTempleFormScreen> {
 
   bool get _photosBlockSave => _drafts.any((draft) => draft.blocksSave);
 
-  String? get _photoBlockReason {
+  String? _photoBlockReason(AppLocalizations l10n) {
     if (_drafts.any((draft) => draft.uploading)) {
-      return 'Wait for photo uploads to finish.';
+      return l10n.waitForPhotoUploads;
     }
     if (_drafts.any((draft) => draft.failed)) {
-      return 'Retry the photos that failed to upload.';
+      return l10n.retryFailedPhotos;
     }
     if (_drafts.any((draft) => draft.needsLicence)) {
-      return 'Add a licence to every photo before saving.';
+      return l10n.addLicenceBeforeSaving;
     }
     if (_drafts.any((draft) => draft.needsCredit)) {
-      return 'Add a credit for CC-BY and CC-BY-SA photos before saving.';
+      return l10n.addCreditBeforeSaving;
     }
     if (_drafts.any((draft) => draft.blocksSave)) {
-      return 'Finish the photo grid before saving.';
+      return l10n.finishPhotoGrid;
     }
     return null;
   }
@@ -164,12 +165,12 @@ class _AdminTempleFormScreenState extends State<AdminTempleFormScreen> {
     if (_busy || _picking) return;
     final remaining = kMaxTemplePhotos - _drafts.length;
     if (remaining <= 0) {
-      _snack('A temple can have at most $kMaxTemplePhotos photos.');
+      _snack(context.l10n.maxPhotos(kMaxTemplePhotos));
       return;
     }
     final docId = _storageDocId();
     if (docId == null) {
-      _snack('Enter a temple name before adding photos.');
+      _snack(context.l10n.enterNameBeforePhotos);
       return;
     }
 
@@ -182,7 +183,7 @@ class _AdminTempleFormScreenState extends State<AdminTempleFormScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _picking = false);
-      _snack('Could not open the photo picker. ${adminWriteErrorMessage(e)}');
+      _snack(context.l10n.couldNotOpenPhotoPicker(adminWriteErrorMessage(e)));
       return;
     }
     if (!mounted) return;
@@ -192,9 +193,7 @@ class _AdminTempleFormScreenState extends State<AdminTempleFormScreen> {
     final room = kMaxTemplePhotos - _drafts.length;
     final accepted = files.take(room).toList();
     if (accepted.length < files.length) {
-      _snack(
-        'Only $kMaxTemplePhotos photos can be saved. Extra picks were skipped.',
-      );
+      _snack(context.l10n.extraPhotosSkipped(kMaxTemplePhotos));
     }
 
     final start = _drafts.length;
@@ -279,7 +278,7 @@ class _AdminTempleFormScreenState extends State<AdminTempleFormScreen> {
       setState(() {
         draft.uploading = false;
         draft.failed = true;
-        _submitError = 'Upload failed: ${adminWriteErrorMessage(e)}';
+        _submitError = context.l10n.uploadFailed(adminWriteErrorMessage(e));
       });
     }
   }
@@ -287,7 +286,7 @@ class _AdminTempleFormScreenState extends State<AdminTempleFormScreen> {
   Future<void> _retryDraft(int index) async {
     final docId = _storageDocId();
     if (docId == null) {
-      _snack('Enter a temple name before adding photos.');
+      _snack(context.l10n.enterNameBeforePhotos);
       return;
     }
     final draft = _drafts[index];
@@ -373,7 +372,7 @@ class _AdminTempleFormScreenState extends State<AdminTempleFormScreen> {
     if (!result.isValid) {
       setState(() {
         _fieldErrors = result.errors;
-        _submitError = 'Fix the highlighted fields and try again.';
+        _submitError = context.l10n.fixHighlightedFields;
       });
       return;
     }
@@ -430,7 +429,9 @@ class _AdminTempleFormScreenState extends State<AdminTempleFormScreen> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
-          widget.isEditing ? 'Edit temple' : 'Create temple',
+          widget.isEditing
+              ? context.l10n.editTemple
+              : context.l10n.createTemple,
           style: GoogleFonts.lora(
             fontWeight: FontWeight.w700,
             color: Colors.white,
@@ -447,8 +448,7 @@ class _AdminTempleFormScreenState extends State<AdminTempleFormScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'Same Firestore fields as Seed and the public directory '
-                    '(name, state, city, deity, address, story, timings, …).',
+                    context.l10n.adminFormIntro,
                     style: GoogleFonts.poppins(
                       fontSize: 13,
                       height: 1.45,
@@ -471,38 +471,37 @@ class _AdminTempleFormScreenState extends State<AdminTempleFormScreen> {
                   _field(
                     key: const Key('admin-temple-name-field'),
                     controller: _name,
-                    label: 'Name',
+                    label: context.l10n.nameLabel,
                     fieldKey: 'name',
                     textInputAction: TextInputAction.next,
                   ),
                   _field(
                     key: const Key('admin-temple-state-field'),
                     controller: _state,
-                    label: 'State',
-                    hint:
-                        'Tamil Nadu, Kerala, Karnataka, Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, Jammu and Kashmir, Maharashtra, Rajasthan, West Bengal, Madhya Pradesh, Bihar, Himachal Pradesh',
+                    label: context.l10n.stateLabel,
+                    hint: context.l10n.adminStateHint,
                     fieldKey: 'state',
                     textInputAction: TextInputAction.next,
                   ),
                   _field(
                     key: const Key('admin-temple-city-field'),
                     controller: _city,
-                    label: 'City',
+                    label: context.l10n.cityLabel,
                     fieldKey: 'city',
                     textInputAction: TextInputAction.next,
                   ),
                   _field(
                     key: const Key('admin-temple-deity-field'),
                     controller: _deity,
-                    label: 'Deity',
-                    hint: 'Shiva, Vishnu, Devi, Murugan, …',
+                    label: context.l10n.deityLabel,
+                    hint: context.l10n.deityHint,
                     fieldKey: 'deity',
                     textInputAction: TextInputAction.next,
                   ),
                   _field(
                     key: const Key('admin-temple-location-field'),
                     controller: _location,
-                    label: 'Location / address',
+                    label: context.l10n.locationAddressLabel,
                     fieldKey: 'location',
                     maxLines: 2,
                     textInputAction: TextInputAction.next,
@@ -510,35 +509,35 @@ class _AdminTempleFormScreenState extends State<AdminTempleFormScreen> {
                   _field(
                     key: const Key('admin-temple-timings-field'),
                     controller: _timings,
-                    label: 'Timings',
-                    hint: '5:00 AM – 12:30 PM, 4:00 PM – 10:00 PM',
+                    label: context.l10n.timings,
+                    hint: context.l10n.timingsHint,
                     fieldKey: 'timings',
                     textInputAction: TextInputAction.next,
                   ),
                   _field(
                     key: const Key('admin-temple-description-field'),
                     controller: _description,
-                    label: 'Description',
+                    label: context.l10n.descriptionLabel,
                     fieldKey: 'description',
                     maxLines: 4,
                   ),
                   _field(
                     key: const Key('admin-temple-story-field'),
                     controller: _story,
-                    label: 'Story',
+                    label: context.l10n.storyLabel,
                     fieldKey: 'story',
                     maxLines: 5,
                   ),
                   _field(
                     key: const Key('admin-temple-specialities-field'),
                     controller: _specialities,
-                    label: 'Specialities',
-                    hint: 'One per line, or comma-separated',
+                    label: context.l10n.specialities,
+                    hint: context.l10n.specialitiesHint,
                     fieldKey: 'specialities',
                     maxLines: 4,
                   ),
                   Text(
-                    'Photos',
+                    context.l10n.photos,
                     style: GoogleFonts.poppins(
                       fontWeight: FontWeight.w600,
                       color: _deepSaffron,
@@ -547,10 +546,8 @@ class _AdminTempleFormScreenState extends State<AdminTempleFormScreen> {
                   const SizedBox(height: 4),
                   Text(
                     _drafts.isEmpty
-                        ? 'No photos yet. The temple stays Photo pending. '
-                              'Seed does not add stock photos.'
-                        : 'First photo is the cover. Long-press a tile to reorder. '
-                              'Each photo needs a licence before Save.',
+                        ? context.l10n.noPhotosYet
+                        : context.l10n.photoCoverHelp,
                     style: GoogleFonts.poppins(
                       fontSize: 12.5,
                       height: 1.4,
@@ -567,10 +564,10 @@ class _AdminTempleFormScreenState extends State<AdminTempleFormScreen> {
                     onReorder: _reorderDraft,
                     onEditLicence: _editLicence,
                   ),
-                  if (_photoBlockReason != null) ...[
+                  if (_photoBlockReason(context.l10n) != null) ...[
                     const SizedBox(height: 8),
                     Text(
-                      _photoBlockReason!,
+                      _photoBlockReason(context.l10n)!,
                       key: const Key('admin-photo-save-blocked'),
                       style: GoogleFonts.poppins(
                         fontSize: 12.5,
@@ -587,7 +584,7 @@ class _AdminTempleFormScreenState extends State<AdminTempleFormScreen> {
                         child: _field(
                           key: const Key('admin-temple-latitude-field'),
                           controller: _latitude,
-                          label: 'Latitude',
+                          label: context.l10n.latitude,
                           fieldKey: 'latitude',
                           keyboardType: const TextInputType.numberWithOptions(
                             decimal: true,
@@ -601,7 +598,7 @@ class _AdminTempleFormScreenState extends State<AdminTempleFormScreen> {
                         child: _field(
                           key: const Key('admin-temple-longitude-field'),
                           controller: _longitude,
-                          label: 'Longitude',
+                          label: context.l10n.longitude,
                           fieldKey: 'longitude',
                           keyboardType: const TextInputType.numberWithOptions(
                             decimal: true,
@@ -627,10 +624,10 @@ class _AdminTempleFormScreenState extends State<AdminTempleFormScreen> {
                         : const Icon(Icons.save_rounded, size: 18),
                     label: Text(
                       _busy
-                          ? 'Saving…'
+                          ? context.l10n.saving
                           : widget.isEditing
-                          ? 'Save changes'
-                          : 'Create temple',
+                          ? context.l10n.saveChanges
+                          : context.l10n.createTemple,
                       style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
                     ),
                     style: FilledButton.styleFrom(

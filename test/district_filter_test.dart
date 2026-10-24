@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/district/district_attribution.dart';
 import 'package:temple_app/district/district_boundary.dart';
 import 'package:temple_app/district/district_lookup.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/near_me/coarse_location.dart';
 import 'package:temple_app/screens/licences_screen.dart';
@@ -94,6 +95,8 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: DirectoryFilterBar(
             temples: temples,
@@ -198,6 +201,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: StatefulBuilder(
             builder: (context, setState) {
@@ -302,6 +307,8 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: StatefulBuilder(
             builder: (context, setState) {
@@ -359,7 +366,7 @@ void main() {
   testWidgets('licences credit Bharatlas LGD 2024 under CC BY 4.0', (
     tester,
   ) async {
-    await tester.pumpWidget(const MaterialApp(home: LicencesScreen()));
+    await tester.pumpWidget(const MaterialApp(localizationsDelegates: AppLocale.localizationsDelegates, supportedLocales: AppLocale.supportedLocales, home: LicencesScreen()));
     expect(find.text(kDistrictBoundarySourceName), findsOneWidget);
     expect(find.text(kDistrictBoundaryLicence), findsOneWidget);
     expect(find.text(kDistrictBoundaryAttribution), findsOneWidget);
@@ -413,6 +420,8 @@ void main() {
     );
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: TemplesNearMeScreen(temples: [temples.first], location: location),
       ),
     );
@@ -448,6 +457,8 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocale.localizationsDelegates,
+          supportedLocales: AppLocale.supportedLocales,
           home: Scaffold(
             body: DirectoryFilterBar(
               temples: [sita],
@@ -500,6 +511,8 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocale.localizationsDelegates,
+          supportedLocales: AppLocale.supportedLocales,
           home: Scaffold(
             body: DirectoryFilterBar(
               temples: [sita],
@@ -525,6 +538,8 @@ void main() {
       );
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocale.localizationsDelegates,
+          supportedLocales: AppLocale.supportedLocales,
           home: TemplesNearMeScreen(temples: [sita], location: location),
         ),
       );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_index.dart';
 import 'package:temple_app/screens/admin_screen.dart';
@@ -34,6 +35,8 @@ Future<void> _pumpForm(
 }) async {
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: AppLocale.localizationsDelegates,
+      supportedLocales: AppLocale.supportedLocales,
       home: AdminTempleFormScreen(adminTemples: api, existing: existing),
     ),
   );
@@ -47,6 +50,8 @@ Future<void> _pumpAdmin(
 }) async {
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: AppLocale.localizationsDelegates,
+      supportedLocales: AppLocale.supportedLocales,
       home: AdminScreen(
         adminAuth: auth,
         adminTemples: api,

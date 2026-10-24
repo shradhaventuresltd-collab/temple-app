@@ -3,6 +3,7 @@ import 'package:temple_app/config/build_flags.dart';
 import 'package:temple_app/data/sample_data.dart';
 import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/services/temple_write_store.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
 
 /// Stable Firestore document ID for a temple name.
@@ -115,16 +116,19 @@ class SeedResult {
   /// Documents that already existed and were merged.
   final int updatedCount;
 
-  String get successMessage {
+  String successMessageOf(AppLocalizations l10n) {
     if (createdCount > 0 && updatedCount > 0) {
-      return 'Seeded $writtenCount temples '
-          '($createdCount new, $updatedCount updated).';
+      return l10n.seededCreatedAndUpdated(
+        writtenCount,
+        createdCount,
+        updatedCount,
+      );
     }
-    if (updatedCount > 0) {
-      return 'Updated $updatedCount existing sample temples. No duplicates created.';
-    }
-    return 'Seeded $createdCount temples into Firestore.';
+    if (updatedCount > 0) return l10n.seededUpdatedOnly(updatedCount);
+    return l10n.seededCreatedOnly(createdCount);
   }
+
+  String get successMessage => successMessageOf(L10nLookup.english);
 }
 
 Future<Map<String, Map<String, dynamic>>> _existingTempleDocs(

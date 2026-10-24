@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/data/sample_data.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/services/client_cache.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
@@ -66,6 +67,8 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(body: HomeMosaicCollage(temples: sampleTemples)),
       ),
     );
@@ -96,6 +99,8 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: HomeMosaicCollage(
             temples: [
@@ -130,6 +135,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(body: HomeMosaicCollage(temples: temples)),
       ),
     );
@@ -162,6 +169,8 @@ void main() {
   ) async {
     await tester.pumpWidget(
       const MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(body: HomeMosaicCollage(temples: [])),
       ),
     );
@@ -179,6 +188,8 @@ void main() {
     );
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(body: HomeMosaicCollage(temples: [purmandal])),
       ),
     );
@@ -191,6 +202,8 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: HomeMosaicCollage(
             temples: [
@@ -225,6 +238,8 @@ void main() {
     expect(failed, isA<TempleImagePlaceholder>());
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(body: SizedBox(width: 180, height: 140, child: failed)),
       ),
     );
@@ -251,7 +266,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      const MaterialApp(home: Scaffold(body: MosaicTilePlaceholder())),
+      const MaterialApp(localizationsDelegates: AppLocale.localizationsDelegates, supportedLocales: AppLocale.supportedLocales, home: Scaffold(body: MosaicTilePlaceholder())),
     );
     expect(find.byType(MosaicTilePlaceholder), findsOneWidget);
     expect(find.byIcon(Icons.temple_hindu_outlined), findsOneWidget);
@@ -259,6 +274,8 @@ void main() {
 
     await tester.pumpWidget(
       const MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(body: MosaicTilePlaceholder(animate: true)),
       ),
     );
@@ -284,6 +301,8 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocale.localizationsDelegates,
+          supportedLocales: AppLocale.supportedLocales,
           home: Scaffold(
             body: TempleBrowseCard(temple: temple, onTap: () {}),
           ),
@@ -297,12 +316,16 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocale.localizationsDelegates,
+          supportedLocales: AppLocale.supportedLocales,
           home: Scaffold(body: HomeMosaicCollage(temples: [temple])),
         ),
       );
       await tester.pump();
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocale.localizationsDelegates,
+          supportedLocales: AppLocale.supportedLocales,
           home: Scaffold(body: HomeMosaicCollage(temples: [temple])),
         ),
       );
@@ -366,6 +389,8 @@ void main() {
       expect(failed, isA<TempleImagePlaceholder>());
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocale.localizationsDelegates,
+          supportedLocales: AppLocale.supportedLocales,
           home: Scaffold(
             body: SizedBox(width: 240, height: 180, child: failed),
           ),
@@ -381,6 +406,8 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: HomeMosaicCollage(
             temples: [
@@ -392,6 +419,8 @@ void main() {
     );
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: HomeMosaicCollage(
             temples: [
