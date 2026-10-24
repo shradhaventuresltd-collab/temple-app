@@ -6,6 +6,8 @@ import 'package:temple_app/district/district_lookup.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/licences_screen.dart';
 import 'package:temple_app/screens/temple_detail_screen.dart';
+import 'package:temple_app/services/analytics_routes.dart';
+import 'package:temple_app/services/app_analytics.dart';
 import 'package:temple_app/services/ad_consent.dart';
 import 'package:temple_app/services/ad_helper.dart';
 import 'package:temple_app/services/interstitial_ad_manager.dart';
@@ -77,8 +79,33 @@ class _AppDrawerState extends State<AppDrawer> {
     }
     _searchDebounce = Timer(templeSearchDebounce, () {
       if (!mounted) return;
+      final previous = _appliedQuery;
       setState(() => _appliedQuery = value);
+      _reportSearchIfChanged(previous, value);
     });
+  }
+
+  void _reportSearchIfChanged(String previous, String next) {
+    final query = next.trim();
+    if (query.isEmpty || query == previous.trim()) return;
+    unawaited(_reportSearch(query));
+  }
+
+  Future<void> _reportSearch(String query) async {
+    final temples = await _templesFuture;
+    if (!mounted) return;
+    final matches = directoryMatchingTemples(
+      temples,
+      state: _selectedState,
+      deity: _selectedDeity,
+      district: _selectedDistrict,
+      query: query,
+      districtOf: bundledDistrictLookup(),
+    );
+    await AppAnalytics.instance.logSearch(
+      queryLength: query.length,
+      hasResults: matches.isNotEmpty,
+    );
   }
 
   void _clearSearch() {
@@ -253,11 +280,26 @@ class _AppDrawerState extends State<AppDrawer> {
                     if (mounted) setState(() {});
                     return lookup;
                   },
-                  onChanged: (state, deity, district) => setState(() {
-                    _selectedState = state;
-                    _selectedDeity = deity;
-                    _selectedDistrict = district;
-                  }),
+                  onChanged: (state, deity, district) {
+                    final previousState = _selectedState;
+                    final previousDeity = _selectedDeity;
+                    final previousDistrict = _selectedDistrict;
+                    setState(() {
+                      _selectedState = state;
+                      _selectedDeity = deity;
+                      _selectedDistrict = district;
+                    });
+                    unawaited(
+                      AppAnalytics.instance.logFilterTransition(
+                        previousState: previousState,
+                        nextState: state,
+                        previousDeity: previousDeity,
+                        nextDeity: deity,
+                        previousDistrict: previousDistrict,
+                        nextDistrict: district,
+                      ),
+                    );
+                  },
                 ),
               ),
 
@@ -372,7 +414,8 @@ class _AppDrawerState extends State<AppDrawer> {
                   final navigator = Navigator.of(context);
                   navigator.pop();
                   navigator.push(
-                    MaterialPageRoute<void>(
+                    namedAnalyticsRoute<void>(
+                      name: AnalyticsScreens.licences,
                       builder: (_) => const LicencesScreen(),
                     ),
                   );
@@ -435,8 +478,10 @@ class _AppDrawerState extends State<AppDrawer> {
     required AsyncSnapshot<List<Temple>> directory,
   }) {
     _searchDebounce?.cancel();
+    final previous = _appliedQuery;
     final query = _searchController.text;
     _appliedQuery = query;
+    _reportSearchIfChanged(previous, query);
     _showClear = query.isNotEmpty;
     _hasDraft = query.trim().isNotEmpty;
     _navigateToList(
@@ -466,7 +511,8 @@ class _AppDrawerState extends State<AppDrawer> {
     Navigator.pop(context);
     Navigator.push(
       context,
-      MaterialPageRoute(
+      namedAnalyticsRoute<void>(
+        name: AnalyticsScreens.templeList,
         builder: (_) => TempleListScreen(
           temples: waiting || failed ? const [] : temples,
           title: title,
@@ -587,7 +633,11 @@ class _TempleListScreenState extends State<TempleListScreen> {
     }
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => TempleDetailScreen(temple: temple)),
+      namedAnalyticsRoute<void>(
+        name: AnalyticsScreens.templeDetail,
+        arguments: temple.id,
+        builder: (_) => TempleDetailScreen(temple: temple),
+      ),
     );
   }
 
@@ -783,16 +833,37 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
     }
     _searchDebounce = Timer(templeSearchDebounce, () {
       if (!mounted) return;
-      setState(() => _appliedQuery = value);
+      _applySearch(value);
     });
   }
 
   void _submitSearch(String value) {
     _searchDebounce?.cancel();
+    _applySearch(value);
+  }
+
+  void _applySearch(String raw) {
+    final previous = _appliedQuery;
     setState(() {
-      _showClear = value.isNotEmpty;
-      _appliedQuery = value;
+      _showClear = raw.isNotEmpty;
+      _appliedQuery = raw;
     });
+    final query = raw.trim();
+    if (query.isEmpty || query == previous.trim()) return;
+    final matches = directoryMatchingTemples(
+      widget.temples,
+      state: _selectedState,
+      deity: _selectedDeity,
+      district: _selectedDistrict,
+      query: query,
+      districtOf: bundledDistrictLookup(),
+    );
+    unawaited(
+      AppAnalytics.instance.logSearch(
+        queryLength: query.length,
+        hasResults: matches.isNotEmpty,
+      ),
+    );
   }
 
   void _clearSearch() {
@@ -805,12 +876,25 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
   }
 
   void _setFilters(String? state, String? deity, String? district) {
+    final previousState = _selectedState;
+    final previousDeity = _selectedDeity;
+    final previousDistrict = _selectedDistrict;
     setState(() {
       _selectedState = state;
       _selectedDeity = deity;
       _selectedDistrict = district;
     });
     widget.onFiltersChanged?.call(state, deity, district);
+    unawaited(
+      AppAnalytics.instance.logFilterTransition(
+        previousState: previousState,
+        nextState: state,
+        previousDeity: previousDeity,
+        nextDeity: deity,
+        previousDistrict: previousDistrict,
+        nextDistrict: district,
+      ),
+    );
   }
 
   @override

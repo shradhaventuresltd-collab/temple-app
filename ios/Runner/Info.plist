@@ -80,5 +80,8 @@
 		     that requests the advertising identifier. -->
 		<key>GADDelayAppMeasurementInit</key>
 		<true/>
+		<!-- Analytics stays off until a Play production process enables it. -->
+		<key>FIREBASE_ANALYTICS_COLLECTION_ENABLED</key>
+		<false/>
 	</dict>
 </plist>

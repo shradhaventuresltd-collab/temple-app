@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/config/build_flags.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/admin_temple_form_screen.dart';
+import 'package:temple_app/services/analytics_routes.dart';
 import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/services/admin_temple_service.dart';
 import 'package:temple_app/services/client_cache.dart';
@@ -46,7 +47,8 @@ class _AdminScreenState extends State<AdminScreen> {
 
   Future<void> _openForm({Temple? existing}) async {
     await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
+      namedAnalyticsRoute<bool>(
+        name: AnalyticsScreens.adminTempleForm,
         builder: (_) =>
             AdminTempleFormScreen(adminTemples: _temples, existing: existing),
       ),

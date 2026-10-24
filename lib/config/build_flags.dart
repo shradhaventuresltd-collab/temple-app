@@ -21,8 +21,7 @@ bool androidDemoUsesGoogleServices({
   required bool demoAppIdSuffix,
   required bool isWeb,
   required bool isAndroid,
-}) =>
-    demoAppIdSuffix && !isWeb && isAndroid;
+}) => demoAppIdSuffix && !isWeb && isAndroid;
 
 /// Pure gating rule (testable): debug builds, or any build with the define.
 ///
@@ -36,3 +35,17 @@ bool adminToolsEnabled({required bool debug, required bool define}) =>
 ///
 /// Same expression as [adminToolsEnabled]: `debug || define`.
 const bool kAdminToolsEnabled = kDebugMode || kEnableAdminToolsDefine;
+
+/// Firebase Analytics collection for the Play production binary only.
+///
+/// Debug and profile are off because [releaseMode] is false there, and
+/// `flutter test` runs as debug. A release build is still off when it is a
+/// demo (`DEMO_BUILD`), demo distribution (`DEMO_APP_ID_SUFFIX`), or a
+/// seed/admin build (`ENABLE_ADMIN_TOOLS`). The Play AAB script refuses
+/// those defines.
+bool analyticsCollectionAllowed({
+  required bool releaseMode,
+  required bool demoBuild,
+  required bool adminToolsDefine,
+  required bool demoAppIdSuffix,
+}) => releaseMode && !demoBuild && !adminToolsDefine && !demoAppIdSuffix;

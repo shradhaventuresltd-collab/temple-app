@@ -196,14 +196,40 @@ void main() {
     expect(docs, isNot(contains('. (section 6).')));
     expect(
       docs,
-      contains(
-        'We do not pass the Temples near me reading to Google AdMob',
-      ),
+      contains('We do not pass the Temples near me reading to Google AdMob'),
     );
     expect(docs, isNot(contains('does not request location permission')));
     expect(docs, contains('<h2>6. Temples near me</h2>'));
+    const analyticsDisclosure =
+        'Firebase Analytics collects app interactions, device or other IDs (app instance ID) and diagnostics. '
+        'We use this information for analytics. It is not used for ads by us. '
+        'Firebase Analytics does not collect precise location.';
+    expect(docs, contains(analyticsDisclosure));
+    expect(
+      docs,
+      isNot(
+        contains(
+          'The app does not include Firebase Analytics, Firebase Crashlytics',
+        ),
+      ),
+    );
+    expect(
+      docs,
+      isNot(
+        contains(
+          'The app does not include Firebase Analytics or Firebase Crashlytics',
+        ),
+      ),
+    );
+    expect(docs, contains('The app does not include Firebase Crashlytics.'));
 
     final listing = File('docs/play-store-listing.md').readAsStringSync();
+    expect(
+      RegExp(
+        r'Temples near me can sort the list by distance\.',
+      ).allMatches(listing),
+      hasLength(1),
+    );
     expect(
       listing,
       contains(
@@ -221,10 +247,11 @@ void main() {
       contains('accessed, not collected and not shared'),
     );
     expect(dataSafety, contains('Sanu Vimal'));
+    expect(dataSafety, contains(analyticsDisclosure));
     expect(dataSafety, contains('Policy **updated 24 October 2026**.'));
     expect(dataSafety, contains('23 October 2026'));
 
-    expect(PolicyConfig.currentVersion, 2);
+    expect(PolicyConfig.currentVersion, 3);
     expect(
       NearMeCopy.rationaleBody,
       'Used once on your phone to sort temples by distance. Never stored or sent.',
@@ -234,10 +261,10 @@ void main() {
   test('ads, UMP, analytics, and crashlytics are not given the device fix', () {
     final pubspec = File('pubspec.yaml').readAsStringSync();
     final lock = File('pubspec.lock').readAsStringSync();
-    for (final name in ['firebase_analytics', 'firebase_crashlytics']) {
-      expect(pubspec, isNot(contains('$name:')));
-      expect(lock, isNot(contains('name: $name')));
-    }
+    expect(pubspec, contains('firebase_analytics:'));
+    expect(lock, contains('name: firebase_analytics'));
+    expect(pubspec, isNot(contains('firebase_crashlytics:')));
+    expect(lock, isNot(contains('name: firebase_crashlytics')));
 
     const forbidden = [
       'CoarseFix',

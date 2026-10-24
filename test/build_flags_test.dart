@@ -63,6 +63,51 @@ void main() {
     });
   });
 
+  group('analyticsCollectionAllowed', () {
+    test('Play release collects', () {
+      expect(
+        analyticsCollectionAllowed(
+          releaseMode: true,
+          demoBuild: false,
+          adminToolsDefine: false,
+          demoAppIdSuffix: false,
+        ),
+        isTrue,
+      );
+    });
+
+    test('debug, profile, and flutter test do not collect', () {
+      expect(
+        analyticsCollectionAllowed(
+          releaseMode: false,
+          demoBuild: false,
+          adminToolsDefine: false,
+          demoAppIdSuffix: false,
+        ),
+        isFalse,
+      );
+    });
+
+    test('demo, demo suffix, and seed/admin release builds do not collect', () {
+      for (final flags in [
+        (demo: true, admin: false, suffix: false),
+        (demo: false, admin: true, suffix: false),
+        (demo: false, admin: false, suffix: true),
+      ]) {
+        expect(
+          analyticsCollectionAllowed(
+            releaseMode: true,
+            demoBuild: flags.demo,
+            adminToolsDefine: flags.admin,
+            demoAppIdSuffix: flags.suffix,
+          ),
+          isFalse,
+          reason: '$flags',
+        );
+      }
+    });
+  });
+
   test('ENABLE_ADMIN_TOOLS define is read from --dart-define', () {
     // Must be const: fromEnvironment only reads the define in a const context.
     // Passes without the flag (false) and with

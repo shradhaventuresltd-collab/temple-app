@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/screens/temple_detail_screen.dart';
+import 'package:temple_app/services/analytics_routes.dart';
 import 'package:temple_app/services/client_cache.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
 import 'package:temple_app/widgets/temple_image_placeholder.dart';
@@ -82,7 +83,9 @@ class TempleBrowseCard extends StatelessWidget {
                 onTap ??
                 () => Navigator.push(
                   context,
-                  MaterialPageRoute(
+                  namedAnalyticsRoute<void>(
+                    name: AnalyticsScreens.templeDetail,
+                    arguments: temple.id,
                     builder: (_) => TempleDetailScreen(temple: temple),
                   ),
                 ),

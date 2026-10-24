@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/services/app_analytics.dart';
 import 'package:temple_app/services/client_cache.dart';
 import 'package:temple_app/widgets/offline_banner.dart';
 import 'package:temple_app/models/temple_photo.dart';
@@ -261,6 +262,7 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
       "Couldn't open directions on this device.";
 
   Future<void> _openGoogleMaps() async {
+    unawaited(AppAnalytics.instance.logGetDirections(temple.id));
     final url = googleMapsDirectionsUri(
       name: temple.name,
       city: temple.city,
