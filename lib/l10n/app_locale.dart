@@ -5,21 +5,44 @@ export 'package:temple_app/l10n/app_localizations.dart';
 
 /// Locales wired into [MaterialApp].
 ///
-/// The device locale is used when its language is one of the nine ARB
-/// locales. Anything else resolves to English. Flutter 3.47 already ships
-/// Odia Material and Cupertino strings, so those delegates are the generated
-/// set with no extra fallback.
+/// Every ARB is generated, but a language is advertised only when its file
+/// has no `@@x-needs-translation` flag. Placeholders stay English, so
+/// offering them would claim a translation that is not there. [resolve]
+/// only returns a language from [supportedLocales]. Removing the flag and
+/// adding that language here is what turns it on; the ARB key test fails
+/// until the two match.
 abstract final class AppLocale {
-  static const List<Locale> supportedLocales =
+  /// Generated bundles. Includes locales that are still placeholders.
+  static const List<Locale> generatedLocales =
       AppLocalizations.supportedLocales;
+
+  /// Locales a device may resolve to. English until the other ARBs are translated.
+  static const List<Locale> supportedLocales = <Locale>[Locale('en')];
 
   static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
       AppLocalizations.localizationsDelegates;
 
+  /// Locales from [generated] whose language is not in [needsTranslation].
+  ///
+  /// Order follows [generated], which lists English first.
+  static List<Locale> localesReady(
+    Iterable<Locale> generated,
+    Set<String> needsTranslation,
+  ) {
+    return [
+      for (final Locale locale in generated)
+        if (!needsTranslation.contains(locale.languageCode)) locale,
+    ];
+  }
+
   static Locale resolve(Locale? locale, Iterable<Locale> supported) {
     if (locale != null) {
-      for (final Locale item in supported) {
-        if (item.languageCode == locale.languageCode) return item;
+      for (final Locale item in supportedLocales) {
+        final matchesDevice = item.languageCode == locale.languageCode;
+        final offered = supported.any(
+          (Locale candidate) => candidate.languageCode == item.languageCode,
+        );
+        if (matchesDevice && offered) return item;
       }
     }
     return const Locale('en');

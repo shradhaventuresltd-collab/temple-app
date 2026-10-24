@@ -700,7 +700,13 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String imageCount(int count) {
-    return '$count image(s)';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count images',
+      one: '$count image',
+    );
+    return '$_temp0';
   }
 
   @override

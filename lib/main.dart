@@ -401,6 +401,7 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
       title: L10nLookup.english.appName,
       localeResolutionCallback: AppLocale.resolve,
       localizationsDelegates: AppLocale.localizationsDelegates,
+      // Only locales whose ARB is actually translated. See AppLocale.
       supportedLocales: AppLocale.supportedLocales,
       theme: ThemeData(
         useMaterial3: true,

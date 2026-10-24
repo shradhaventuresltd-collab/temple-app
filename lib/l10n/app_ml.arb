@@ -191,7 +191,7 @@
   "addTemple": "Add temple",
   "deleteTempleTitle": "Delete temple?",
   "deleteTempleBody": "Permanently remove \"{name}\" from Firestore? Images uploaded under temples/{id}/ in Storage will also be deleted. External image URLs (for example seed photos) are not Storage files and are left as-is.",
-  "imageCount": "{count} image(s)",
+  "imageCount": "{count, plural, one{{count} image} other{{count} images}}",
   "deleting": "Deleting…",
   "editTemple": "Edit temple",
   "adminFormIntro": "Same Firestore fields as Seed and the public directory (name, state, city, deity, address, story, timings, …).",

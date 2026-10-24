@@ -1252,10 +1252,10 @@ abstract class AppLocalizations {
   /// **'Permanently remove \"{name}\" from Firestore? Images uploaded under temples/{id}/ in Storage will also be deleted. External image URLs (for example seed photos) are not Storage files and are left as-is.'**
   String deleteTempleBody(String name, String id);
 
-  /// Admin row subtitle. The parenthetical plural is the existing English.
+  /// Admin row subtitle for how many photos a temple has.
   ///
   /// In en, this message translates to:
-  /// **'{count} image(s)'**
+  /// **'{count, plural, one{{count} image} other{{count} images}}'**
   String imageCount(int count);
 
   /// Admin row status while a delete is in progress.

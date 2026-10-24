@@ -881,9 +881,9 @@
       }
     }
   },
-  "imageCount": "{count} image(s)",
+  "imageCount": "{count, plural, one{{count} image} other{{count} images}}",
   "@imageCount": {
-    "description": "Admin row subtitle. The parenthetical plural is the existing English.",
+    "description": "Admin row subtitle for how many photos a temple has.",
     "placeholders": {
       "count": {
         "type": "int"
