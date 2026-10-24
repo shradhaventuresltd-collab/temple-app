@@ -67,6 +67,27 @@
         <meta-data
             android:name="com.google.android.gms.ads.DELAY_APP_MEASUREMENT_INIT"
             android:value="true"/>
+        <!-- Analytics stays off until the Play production process enables
+             it. Debug, profile, demo, and seed/admin builds never enable it.
+             Advertising id and Android id are not collected for analytics;
+             the app instance id is the device id Analytics may keep. This
+             does not change the ad UMP pass. -->
+        <meta-data
+            android:name="firebase_analytics_collection_enabled"
+            android:value="false"
+            tools:replace="android:value" />
+        <meta-data
+            android:name="google_analytics_adid_collection_enabled"
+            android:value="false"
+            tools:replace="android:value" />
+        <meta-data
+            android:name="google_analytics_ssaid_collection_enabled"
+            android:value="false"
+            tools:replace="android:value" />
+        <meta-data
+            android:name="google_analytics_default_allow_ad_personalization_signals"
+            android:value="false"
+            tools:replace="android:value" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

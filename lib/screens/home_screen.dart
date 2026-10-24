@@ -8,6 +8,7 @@ import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/near_me/near_me_copy.dart';
 import 'package:temple_app/screens/admin_screen.dart';
 import 'package:temple_app/screens/temples_near_me_screen.dart';
+import 'package:temple_app/services/analytics_routes.dart';
 import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/services/app_update.dart';
 import 'package:temple_app/services/index_resume.dart';
@@ -262,7 +263,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       onBrowseTemples: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
+          namedAnalyticsRoute<void>(
+            name: AnalyticsScreens.templeList,
             builder: (_) =>
                 TempleListScreen(temples: allTemples, title: 'All Temples'),
           ),
@@ -271,7 +273,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       onNearMe: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
+          namedAnalyticsRoute<void>(
+            name: AnalyticsScreens.templesNearMe,
             builder: (_) =>
                 TemplesNearMeScreen(temples: List<Temple>.from(allTemples)),
           ),
@@ -286,7 +289,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final auth = widget.adminAuth ?? AdminAuth.instance;
     await Navigator.push(
       context,
-      MaterialPageRoute(
+      namedAnalyticsRoute<void>(
+        name: AnalyticsScreens.admin,
         builder: (_) =>
             AdminScreen(adminAuth: auth, adminToolsEnabled: _showAdminTools),
       ),

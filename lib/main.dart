@@ -1,11 +1,15 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/bundled_fonts.dart';
 import 'package:temple_app/config/build_flags.dart';
 import 'package:temple_app/config/policy_config.dart';
+import 'package:temple_app/services/analytics_navigator.dart';
+import 'package:temple_app/services/analytics_routes.dart';
+import 'package:temple_app/services/app_analytics.dart';
 import 'package:temple_app/district/district_attribution.dart';
 import 'package:temple_app/release_error_widget.dart';
 import 'package:temple_app/models/temple.dart';
@@ -57,6 +61,16 @@ Future<void> main() async {
   // launches; Home then reads cache or the bundled sample. Ads stay after
   // Terms (KAN-93) and are not awaited here.
   final firebaseReady = await AppBootstrap.initializeFirebase();
+  // Manifest collection is off. This turns it on only for the Play
+  // production binary. Demo, seed/admin, debug, and profile stay off.
+  // The ad UMP pass still runs later, after Terms, and is not called here.
+  await AppAnalytics.configure(
+    firebaseReady: firebaseReady,
+    releaseMode: kReleaseMode,
+    demoBuild: kDemoBuild,
+    adminToolsDefine: kEnableAdminToolsDefine,
+    demoAppIdSuffix: kDemoAppIdSuffix,
+  );
   // Defaults and the last activated cache before the first frame. The fetch
   // is not awaited: a slow or failed fetch must not hold the saffron splash.
   // Remote Config is not constructed unless Firebase already has an app.
@@ -170,6 +184,9 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
   bool _adsStarted = false;
   int? _buildNumber;
   bool _offerSoftUpdate = false;
+  final AnalyticsNavigatorObserver _analyticsObserver =
+      AnalyticsNavigatorObserver();
+  String? _loggedStartupScreen;
 
   @override
   void initState() {
@@ -203,7 +220,29 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
   void _onConfig() {
     if (!mounted) return;
     setState(() {});
+    _logStartupScreen();
     _startAdsIfAllowed();
+  }
+
+  String? _startupScreenName() {
+    if (_config.snapshot.killSwitch) return AnalyticsScreens.maintenance;
+    switch (_phase) {
+      case _StartupPhase.checking:
+        return null;
+      case _StartupPhase.gate:
+        return AnalyticsScreens.policyGate;
+      case _StartupPhase.update:
+        return AnalyticsScreens.forceUpdate;
+      case _StartupPhase.home:
+        return AnalyticsScreens.home;
+    }
+  }
+
+  void _logStartupScreen() {
+    final name = _startupScreenName();
+    if (name == null || name == _loggedStartupScreen) return;
+    _loggedStartupScreen = name;
+    unawaited(AppAnalytics.instance.logScreenView(name));
   }
 
   Future<void> _loadAcceptance() async {
@@ -221,6 +260,7 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
         _gateKind = kind;
         _phase = _StartupPhase.gate;
       });
+      _logStartupScreen();
       return;
     }
     // Second launch reads Terms from SharedPreferences and would open Home
@@ -282,12 +322,14 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
         _offerSoftUpdate = false;
         _phase = _StartupPhase.update;
       });
+      _logStartupScreen();
       return;
     }
     setState(() {
       _offerSoftUpdate = requirement == UpdateRequirement.soft;
       _phase = _StartupPhase.home;
     });
+    _logStartupScreen();
     _startAdsIfAllowed();
   }
 
@@ -396,6 +438,7 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      navigatorObservers: [_analyticsObserver],
       title: 'Temple Directory India',
       theme: ThemeData(
         useMaterial3: true,

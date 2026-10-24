@@ -11,6 +11,7 @@ import 'package:temple_app/near_me/near_me_copy.dart';
 import 'package:temple_app/near_me/near_me_session.dart';
 import 'package:temple_app/near_me/nearby_temples.dart';
 import 'package:temple_app/screens/temple_detail_screen.dart';
+import 'package:temple_app/services/analytics_routes.dart';
 import 'package:temple_app/widgets/temple_browse_card.dart';
 
 /// Sorted temples from one coarse fix, or from a state/city centroid.
@@ -358,7 +359,11 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen> {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => TempleDetailScreen(temple: temple)),
+          namedAnalyticsRoute<void>(
+            name: AnalyticsScreens.templeDetail,
+            arguments: temple.id,
+            builder: (_) => TempleDetailScreen(temple: temple),
+          ),
         );
       },
     );
