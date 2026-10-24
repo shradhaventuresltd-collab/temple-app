@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/services/firestore_read_log.dart';
 
 /// Shown when a shard could not be loaded. That state is omitted.
@@ -8,7 +9,9 @@ class UnavailableStatesNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final message = FirestoreReadLog.instance.unavailableShardsMessage;
+    final message = FirestoreReadLog.instance.unavailableShardsMessageOf(
+      context.l10n,
+    );
     if (message == null) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),

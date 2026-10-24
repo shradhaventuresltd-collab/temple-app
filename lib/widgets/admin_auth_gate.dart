@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/services/admin_auth.dart';
 
 const Color _saffron = Color(0xFFFF8F00);
@@ -33,7 +34,7 @@ class _AdminSignInPanelState extends State<AdminSignInPanel> {
     final email = _email.text.trim();
     final password = _password.text;
     if (email.isEmpty || password.isEmpty) {
-      setState(() => _error = 'Enter email and password.');
+      setState(() => _error = context.l10n.enterEmailAndPassword);
       return;
     }
 
@@ -60,13 +61,11 @@ class _AdminSignInPanelState extends State<AdminSignInPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return _AdminStatusCard(
       icon: Icons.lock_rounded,
-      title: 'Admin sign-in required',
-      body:
-          'Temple data is publicly readable, but Seed and Admin writes need a '
-          'signed-in account with the Firebase custom claim admin: true. '
-          'Production browsing does not require signing in.',
+      title: l10n.adminSignInRequired,
+      body: l10n.adminSignInBody,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -77,9 +76,9 @@ class _AdminSignInPanelState extends State<AdminSignInPanel> {
             keyboardType: TextInputType.emailAddress,
             autocorrect: false,
             autofillHints: const [AutofillHints.email],
-            decoration: const InputDecoration(
-              labelText: 'Admin email',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.adminEmail,
+              border: const OutlineInputBorder(),
             ),
             onSubmitted: (_) => _submit(),
           ),
@@ -90,9 +89,9 @@ class _AdminSignInPanelState extends State<AdminSignInPanel> {
             enabled: !_busy,
             obscureText: true,
             autofillHints: const [AutofillHints.password],
-            decoration: const InputDecoration(
-              labelText: 'Password',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.password,
+              border: const OutlineInputBorder(),
             ),
             onSubmitted: (_) => _submit(),
           ),
@@ -123,7 +122,7 @@ class _AdminSignInPanelState extends State<AdminSignInPanel> {
                   )
                 : const Icon(Icons.login_rounded, size: 18),
             label: Text(
-              _busy ? 'Signing in…' : 'Sign in',
+              _busy ? l10n.signingIn : l10n.signIn,
               style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
             ),
             style: FilledButton.styleFrom(
@@ -152,14 +151,12 @@ class AdminNotAuthorizedPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final who = session.email ?? session.uid ?? 'this account';
+    final l10n = context.l10n;
+    final who = session.email ?? session.uid ?? l10n.thisAccount;
     return _AdminStatusCard(
       icon: Icons.gpp_maybe_rounded,
-      title: 'Signed in, but not an admin',
-      body:
-          'Signed in as $who. Writes are blocked until this user has the '
-          'custom claim admin: true. Grant the claim with scripts/grant_admin.js, '
-          'then refresh or sign out and back in.',
+      title: l10n.signedInNotAdmin,
+      body: l10n.signedInNotAdminBody(who),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -168,7 +165,7 @@ class AdminNotAuthorizedPanel extends StatelessWidget {
             onPressed: () => auth.refreshClaims(),
             icon: const Icon(Icons.refresh_rounded),
             label: Text(
-              'Refresh admin status',
+              l10n.refreshAdminStatus,
               style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
             ),
           ),
@@ -178,7 +175,7 @@ class AdminNotAuthorizedPanel extends StatelessWidget {
             onPressed: () => auth.signOut(),
             icon: const Icon(Icons.logout_rounded),
             label: Text(
-              'Sign out',
+              l10n.signOut,
               style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
             ),
           ),

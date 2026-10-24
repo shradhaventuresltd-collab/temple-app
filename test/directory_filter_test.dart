@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/utils/directory_filters.dart';
 import 'package:temple_app/widgets/app_drawer.dart';
@@ -66,6 +67,8 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: TempleBrowseList(
             temples: temples,
@@ -286,6 +289,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: DirectoryFilterBar(
             temples: many,

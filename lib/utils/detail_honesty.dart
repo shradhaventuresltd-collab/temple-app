@@ -1,3 +1,4 @@
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/utils/wikimedia_gallery.dart';
@@ -48,7 +49,7 @@ class DetailHonesty {
       framing: framing,
       tradition: tradition,
       timingsCaveat: caveat,
-      timingsCaveatText: _timingsCaveatText(timings, caveat),
+      timingsCaveatText: timingsCaveatCopy(L10nLookup.english, timings, caveat),
     );
   }
 
@@ -62,43 +63,51 @@ class DetailHonesty {
 
   bool get photoPending => verifiedImages.isEmpty;
 
-  String? get traditionLabel => switch (tradition) {
-    SiteTradition.jain => 'Jain',
-    SiteTradition.buddhist => 'Buddhist',
-    SiteTradition.sikh => 'Sikh',
+  String? traditionLabelOf(AppLocalizations l10n) => switch (tradition) {
+    SiteTradition.jain => l10n.traditionJain,
+    SiteTradition.buddhist => l10n.traditionBuddhist,
+    SiteTradition.sikh => l10n.traditionSikh,
     SiteTradition.unspecified => null,
   };
 
+  String? get traditionLabel => traditionLabelOf(L10nLookup.english);
+
   /// Living-temple chip is withheld when a tradition chip already frames the site.
-  String? get framingLabel => switch (framing) {
-    SiteFraming.monumentVisit => 'Heritage visit',
+  String? framingLabelOf(AppLocalizations l10n) => switch (framing) {
+    SiteFraming.monumentVisit => l10n.heritageVisit,
     SiteFraming.livingTemple when tradition == SiteTradition.unspecified =>
-      'Living temple',
+      l10n.livingTemple,
     SiteFraming.livingTemple => null,
     SiteFraming.neutral => null,
   };
 
-  String get timingsHeading =>
-      framing == SiteFraming.monumentVisit ? 'Visiting hours' : 'Timings';
+  String? get framingLabel => framingLabelOf(L10nLookup.english);
 
-  String get storyHeading {
-    if (tradition != SiteTradition.unspecified) return 'About this place';
+  String timingsHeadingOf(AppLocalizations l10n) =>
+      framing == SiteFraming.monumentVisit ? l10n.visitingHours : l10n.timings;
+
+  String get timingsHeading => timingsHeadingOf(L10nLookup.english);
+
+  String storyHeadingOf(AppLocalizations l10n) {
+    if (tradition != SiteTradition.unspecified) return l10n.aboutThisPlace;
     return switch (framing) {
-      SiteFraming.livingTemple => 'Temple story',
-      SiteFraming.monumentVisit => 'Site history',
-      SiteFraming.neutral => 'Background',
+      SiteFraming.livingTemple => l10n.templeStory,
+      SiteFraming.monumentVisit => l10n.siteHistory,
+      SiteFraming.neutral => l10n.background,
     };
   }
 
-  String get framingNote {
+  String get storyHeading => storyHeadingOf(L10nLookup.english);
+
+  String framingNoteOf(AppLocalizations l10n) {
     final buffer = StringBuffer();
     switch (tradition) {
       case SiteTradition.jain:
-        buffer.write('Jain pilgrimage site. ');
+        buffer.write('${l10n.jainPilgrimageSite} ');
       case SiteTradition.buddhist:
-        buffer.write('Buddhist pilgrimage site. ');
+        buffer.write('${l10n.buddhistPilgrimageSite} ');
       case SiteTradition.sikh:
-        buffer.write('Sikh site. ');
+        buffer.write('${l10n.sikhSite} ');
       case SiteTradition.unspecified:
         break;
     }
@@ -106,24 +115,18 @@ class DetailHonesty {
       case SiteFraming.livingTemple:
         buffer.write(
           tradition == SiteTradition.unspecified
-              ? 'Notes describe continuing worship at a living temple. '
-                    'The hours below are published text from the listing.'
-              : 'Notes describe continuing observance. '
-                    'The hours below are published text from the listing.',
+              ? l10n.livingTempleUnspecifiedNote
+              : l10n.livingTempleTraditionNote,
         );
       case SiteFraming.monumentVisit:
-        buffer.write(
-          'Heritage visit. The hours below are visitor access for a '
-          'monument or archaeological site.',
-        );
+        buffer.write(l10n.monumentVisitNote);
       case SiteFraming.neutral:
-        buffer.write(
-          'These notes do not say clearly whether worship continues or '
-          'this is only a monument visit.',
-        );
+        buffer.write(l10n.neutralFramingNote);
     }
     return buffer.toString().trim();
   }
+
+  String get framingNote => framingNoteOf(L10nLookup.english);
 }
 
 /// Pinch scale past which the detail gallery may fetch the original.
@@ -137,10 +140,7 @@ const double kDetailGalleryFullSizeScale = 1.5;
 /// the 1280px Commons thumb. A frame that asks for the original uses
 /// [sourceUrl].
 class DetailGalleryFrame {
-  const DetailGalleryFrame({
-    required this.sourceUrl,
-    required this.displayUrl,
-  });
+  const DetailGalleryFrame({required this.sourceUrl, required this.displayUrl});
 
   final String sourceUrl;
   final String displayUrl;
@@ -401,7 +401,8 @@ bool _isOurPlacesObject(String raw) {
       segs[0] == 'v0' &&
       segs[1] == 'b' &&
       segs[3] == 'o' &&
-      (host == 'firebasestorage.googleapis.com' || host == placesStorageBucket)) {
+      (host == 'firebasestorage.googleapis.com' ||
+          host == placesStorageBucket)) {
     return (segs[2], segs.sublist(4).join('/'));
   }
   if (host == 'storage.googleapis.com' && segs.length >= 2) {
@@ -478,14 +479,20 @@ String _cleanAuthor(String? author) {
     caseSensitive: false,
   ).firstMatch(name);
   if (takenBy != null) name = takenBy.group(1)!.trim();
-  final wikiUser = RegExp(r'^user:\s*(.+)$', caseSensitive: false).firstMatch(name);
+  final wikiUser = RegExp(
+    r'^user:\s*(.+)$',
+    caseSensitive: false,
+  ).firstMatch(name);
   if (wikiUser != null) name = wikiUser.group(1)!.trim();
   final note = RegExp(
     r'\.\s+(?:feel free|please\b|i would|otherwise|you may|for my information|contact me|do not)\b',
     caseSensitive: false,
   ).firstMatch(name);
   if (note != null) name = name.substring(0, note.start);
-  name = name.replaceAll(RegExp(r'\s*\([^)]*\)'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+  name = name
+      .replaceAll(RegExp(r'\s*\([^)]*\)'), ' ')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
   name = name.replaceAll(RegExp(r'[,;:\s]+$'), '').trim();
   if (name.endsWith('.') && !RegExp(r'(?:^|\s)[A-Za-z]\.$').hasMatch(name)) {
     name = name.replaceAll(RegExp(r'\.+$'), '').trim();
@@ -496,7 +503,9 @@ String _cleanAuthor(String? author) {
 bool _placeholderAuthor(String? author) {
   final spaced = (author ?? '').replaceAll(RegExp(r'\s+'), ' ').trim();
   if (_seePlaceholder(spaced)) return true;
-  if (RegExp(r'^unknown\s*\(', caseSensitive: false).hasMatch(spaced)) return true;
+  if (RegExp(r'^unknown\s*\(', caseSensitive: false).hasMatch(spaced)) {
+    return true;
+  }
   if (_authorIsUrl(spaced)) return true;
   final name = _cleanAuthor(author);
   if (name.isEmpty) return true;
@@ -1071,27 +1080,19 @@ TimingsCaveatKind _timingsCaveat(String raw) {
   return TimingsCaveatKind.none;
 }
 
-String? _timingsCaveatText(String raw, TimingsCaveatKind kind) {
+String? timingsCaveatCopy(
+  AppLocalizations l10n,
+  String raw,
+  TimingsCaveatKind kind,
+) {
   final multi = _isMultiWindow(raw);
   return switch (kind) {
     TimingsCaveatKind.none => null,
-    TimingsCaveatKind.missing =>
-      'No visiting hours are published in this listing. Confirm locally. '
-          'Nothing here is an always-open clock.',
-    TimingsCaveatKind.seasonal when multi =>
-      'Provisional / seasonal. Several visiting windows or a limited season '
-          'are described. This is not a single always-open clock. Confirm '
-          'before you travel.',
-    TimingsCaveatKind.seasonal =>
-      'Provisional / seasonal. These notes describe season-dependent access. '
-          'This is not a single always-open clock. Confirm before you travel.',
-    TimingsCaveatKind.multiWindow =>
-      'Provisional. More than one visiting window is listed, or the notes '
-          'disagree. This is not a single always-open clock. Confirm the '
-          "day's board.",
-    TimingsCaveatKind.provisional =>
-      'Provisional. Published hours here are thin or incomplete. This is not '
-          'a fixed always-open clock. Confirm locally.',
+    TimingsCaveatKind.missing => l10n.timingsMissing,
+    TimingsCaveatKind.seasonal when multi => l10n.timingsSeasonalMulti,
+    TimingsCaveatKind.seasonal => l10n.timingsSeasonal,
+    TimingsCaveatKind.multiWindow => l10n.timingsMultiWindow,
+    TimingsCaveatKind.provisional => l10n.timingsProvisional,
   };
 }
 

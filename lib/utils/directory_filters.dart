@@ -1,3 +1,4 @@
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
 import 'package:temple_app/utils/temple_search.dart';
@@ -27,38 +28,54 @@ List<String> directoryDeitiesFrom(Iterable<Temple> temples) {
 /// Honesty chip for a listed deity, or null for the Hindu-first default.
 ///
 /// Jain, Buddhist, and Sikh strings stay labeled as those traditions.
-String? listedDeityTraditionLabel(String deity) {
+String? listedDeityTraditionLabel(String deity, [AppLocalizations? l10n]) {
+  final copy = l10n ?? L10nLookup.english;
   return switch (traditionFromDeityText(deity)) {
-    SiteTradition.jain => 'Jain',
-    SiteTradition.buddhist => 'Buddhist',
-    SiteTradition.sikh => 'Sikh',
+    SiteTradition.jain => copy.traditionJain,
+    SiteTradition.buddhist => copy.traditionBuddhist,
+    SiteTradition.sikh => copy.traditionSikh,
     SiteTradition.unspecified => null,
   };
 }
 
 /// Chip text for a selected deity, with a tradition suffix when one applies.
-String directoryDeityChipLabel(String deity) {
-  final tradition = listedDeityTraditionLabel(deity);
+String directoryDeityChipLabel(String deity, [AppLocalizations? l10n]) {
+  final tradition = listedDeityTraditionLabel(deity, l10n);
   if (tradition == null) return deity;
   return '$deity · $tradition';
 }
 
 /// Note under the deity section when [deities] includes a non-Hindu label.
-String? directoryDeityFilterNote(Iterable<String> deities) {
-  const order = ['Jain', 'Buddhist', 'Sikh'];
+String? directoryDeityFilterNote(
+  Iterable<String> deities, [
+  AppLocalizations? l10n,
+]) {
+  final copy = l10n ?? L10nLookup.english;
+  const order = [
+    SiteTradition.jain,
+    SiteTradition.buddhist,
+    SiteTradition.sikh,
+  ];
   final present = [
-    for (final label in order)
-      if (deities.any((deity) => listedDeityTraditionLabel(deity) == label))
-        label,
+    for (final tradition in order)
+      if (deities.any((deity) => traditionFromDeityText(deity) == tradition))
+        switch (tradition) {
+          SiteTradition.jain => copy.traditionJain,
+          SiteTradition.buddhist => copy.traditionBuddhist,
+          SiteTradition.sikh => copy.traditionSikh,
+          SiteTradition.unspecified => '',
+        },
   ];
   if (present.isEmpty) return null;
   final joined = switch (present.length) {
     1 => present.single,
-    2 => '${present[0]} and ${present[1]}',
-    _ =>
-      '${present.sublist(0, present.length - 1).join(', ')}, and ${present.last}',
+    2 => copy.listPair(present[0], present[1]),
+    _ => copy.listAndLast(
+      present.sublist(0, present.length - 1).join(', '),
+      present.last,
+    ),
   };
-  return '$joined labels are the listed tradition, not Hindu darshan filters.';
+  return copy.deityTraditionNote(joined);
 }
 
 /// District name for one loaded temple, or null when it is not resolved.
@@ -143,22 +160,28 @@ List<Temple> directoryMatchingTemples(
 }
 
 /// App-bar title for a browse list constrained by these chips.
-String directoryBrowseTitle({String? state, String? deity, String? district}) {
+String directoryBrowseTitle({
+  String? state,
+  String? deity,
+  String? district,
+  AppLocalizations? l10n,
+}) {
   final parts = <String>[
     if (deity != null && deity.isNotEmpty) deity,
     if (district != null && district.isNotEmpty) district,
     if (state != null && state.isNotEmpty) state,
   ];
-  if (parts.isEmpty) return 'All Temples';
+  if (parts.isEmpty) return (l10n ?? L10nLookup.english).allTemples;
   return parts.join(' · ');
 }
 
 /// Empty-state copy. Mentions district only when that chip is constraining.
-String directoryEmptyFilterMessage({String? district}) {
+String directoryEmptyFilterMessage({String? district, AppLocalizations? l10n}) {
+  final copy = l10n ?? L10nLookup.english;
   if (district != null && district.isNotEmpty) {
-    return 'Nothing in the loaded directory fits this state, district, and deity.';
+    return copy.emptyFilterWithDistrict;
   }
-  return 'Nothing in the loaded directory fits this state and deity.';
+  return copy.emptyFilterStateDeity;
 }
 
 /// How many loaded temples match this state, deity, and query together.
@@ -177,7 +200,6 @@ int directoryFilterCount(
 }
 
 /// Label for the sheet's apply action.
-String directoryFilterResultLabel(int count) {
-  final noun = count == 1 ? 'temple' : 'temples';
-  return 'Show $count $noun';
+String directoryFilterResultLabel(int count, [AppLocalizations? l10n]) {
+  return (l10n ?? L10nLookup.english).showTempleCount(count);
 }

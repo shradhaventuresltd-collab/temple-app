@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 
 /// Dismissible prompt when the build is below `recommended_build`.
 ///
@@ -14,7 +15,7 @@ class SoftUpdateNudgeBanner extends StatelessWidget {
   final VoidCallback onUpdate;
   final VoidCallback onDismiss;
 
-  static const String message = 'A newer version is ready on the Play Store.';
+  static String get message => L10nLookup.english.softUpdateMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +34,7 @@ class SoftUpdateNudgeBanner extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                message,
+                context.l10n.softUpdateMessage,
                 style: GoogleFonts.poppins(
                   color: const Color(0xFF0A2540),
                   fontSize: 13,
@@ -45,12 +46,12 @@ class SoftUpdateNudgeBanner extends StatelessWidget {
             TextButton(
               key: const Key('soft-update-open'),
               onPressed: onUpdate,
-              child: const Text('Update'),
+              child: Text(context.l10n.update),
             ),
             TextButton(
               key: const Key('soft-update-dismiss'),
               onPressed: onDismiss,
-              child: const Text('Not now'),
+              child: Text(context.l10n.notNow),
             ),
           ],
         ),

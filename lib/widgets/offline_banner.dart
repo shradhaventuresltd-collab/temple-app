@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/services/offline_link.dart';
 import 'package:temple_app/services/temple_service.dart';
 
@@ -16,17 +17,20 @@ class OfflineBanner extends StatelessWidget {
 
   final int savedTempleCount;
 
-  static const offlineMessage = "You're offline";
+  static String get offlineMessage => L10nLookup.english.offlineMessage;
 
-  static const message =
-      "You're offline. Showing temples saved on this device.";
+  static String get message => L10nLookup.english.offlineWithSavedTemples;
 
-  static String textFor(int savedTempleCount) =>
-      savedTempleCount > 0 ? message : offlineMessage;
+  static String textFor(int savedTempleCount, [AppLocalizations? l10n]) {
+    final copy = l10n ?? L10nLookup.english;
+    return savedTempleCount > 0
+        ? copy.offlineWithSavedTemples
+        : copy.offlineMessage;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final text = textFor(savedTempleCount);
+    final text = textFor(savedTempleCount, context.l10n);
     return ValueListenableBuilder<bool>(
       valueListenable: DirectoryLink.offline,
       builder: (context, offline, _) {
@@ -76,8 +80,8 @@ class SavedListBanner extends StatelessWidget {
 
   final VoidCallback onRetry;
 
-  static const offlineMessage = 'Offline, showing saved list';
-  static const savedMessage = 'Showing saved list';
+  static String get offlineMessage => L10nLookup.english.savedListOffline;
+  static String get savedMessage => L10nLookup.english.savedListOnline;
 
   @override
   Widget build(BuildContext context) {
@@ -111,7 +115,9 @@ class SavedListBanner extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        offline ? offlineMessage : savedMessage,
+                        offline
+                            ? context.l10n.savedListOffline
+                            : context.l10n.savedListOnline,
                         style: GoogleFonts.poppins(
                           color: const Color(0xFFFFF8EE),
                           fontSize: 13,
@@ -124,7 +130,7 @@ class SavedListBanner extends StatelessWidget {
                       key: const Key('saved-list-retry'),
                       onPressed: onRetry,
                       child: Text(
-                        'Retry',
+                        context.l10n.retry,
                         style: GoogleFonts.poppins(
                           color: const Color(0xFFFFF8EE),
                           fontWeight: FontWeight.w700,

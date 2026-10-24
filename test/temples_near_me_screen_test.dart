@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/near_me/coarse_location.dart';
 import 'package:temple_app/near_me/near_me_copy.dart';
@@ -23,6 +24,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: HomeScreen(templesLoader: () async => [_sample().first]),
       ),
     );
@@ -274,6 +277,8 @@ Future<void> _pumpNearMe(
 }) async {
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: AppLocale.localizationsDelegates,
+      supportedLocales: AppLocale.supportedLocales,
       home: TemplesNearMeScreen(
         temples: temples ?? _sample(),
         location: location,

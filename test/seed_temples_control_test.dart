@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/services/seed_service.dart';
 import 'package:temple_app/widgets/seed_temples_control.dart';
 
@@ -11,6 +12,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: Center(
             child: SeedTemplesControl(seed: () => gate.future),
@@ -40,6 +43,8 @@ void main() {
   testWidgets('panel shows a short error and retry on failure', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: Center(
             child: SeedTemplesControl(
@@ -63,6 +68,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           appBar: AppBar(
             actions: [
@@ -104,6 +111,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           appBar: AppBar(
             actions: [
@@ -145,6 +154,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: Center(
             child: SeedTemplesControl(

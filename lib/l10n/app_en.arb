@@ -1,0 +1,1232 @@
+{
+  "@@locale": "en",
+  "appName": "Temple Directory India",
+  "@appName": {
+    "description": "App name in the policy header, task switcher, and error fallback copy."
+  },
+  "appTitleShort": "Temple Directory",
+  "@appTitleShort": {
+    "description": "Home and drawer title."
+  },
+  "india": "India",
+  "@india": {
+    "description": "Drawer subtitle under the app title."
+  },
+  "home": "Home",
+  "@home": {
+    "description": "Drawer navigation label for the home screen."
+  },
+  "allTemples": "All Temples",
+  "@allTemples": {
+    "description": "Browse-all label in the drawer and empty filter title."
+  },
+  "search": "Search",
+  "@search": {
+    "description": "Browse title when only a search is active, and the search section is separate."
+  },
+  "searchSection": "SEARCH",
+  "@searchSection": {
+    "description": "Drawer section heading above the search field."
+  },
+  "filtersSection": "FILTERS",
+  "@filtersSection": {
+    "description": "Drawer section heading above the filter chips."
+  },
+  "aboutSection": "ABOUT",
+  "@aboutSection": {
+    "description": "Drawer section heading above the directory blurb."
+  },
+  "licences": "Licences",
+  "@licences": {
+    "description": "Drawer item and licences screen title."
+  },
+  "adPrivacyChoices": "Ad privacy choices",
+  "@adPrivacyChoices": {
+    "description": "Drawer item that opens ad privacy options."
+  },
+  "moreTooltip": "More",
+  "@moreTooltip": {
+    "description": "Tooltip for the home overflow menu."
+  },
+  "adminSignIn": "Admin sign-in",
+  "@adminSignIn": {
+    "description": "Home overflow and debug action that opens admin sign-in."
+  },
+  "notAdmin": "Not admin",
+  "@notAdmin": {
+    "description": "Debug home action when the signed-in user is not an admin."
+  },
+  "adminPanel": "Admin Panel",
+  "@adminPanel": {
+    "description": "Admin screen title and debug tooltip."
+  },
+  "retry": "Retry",
+  "@retry": {
+    "description": "Button that tries a failed load or upload again."
+  },
+  "tryAgain": "Try again",
+  "@tryAgain": {
+    "description": "Near-me button after a location failure."
+  },
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Dismiss button on the delete-temple dialog."
+  },
+  "delete": "Delete",
+  "@delete": {
+    "description": "Confirm button that deletes a temple."
+  },
+  "clear": "Clear",
+  "@clear": {
+    "description": "Clears the active directory filters."
+  },
+  "update": "Update",
+  "@update": {
+    "description": "Soft-update banner action that opens the Play Store."
+  },
+  "notNow": "Not now",
+  "@notNow": {
+    "description": "Dismisses the soft-update banner or the location rationale."
+  },
+  "edit": "Edit",
+  "@edit": {
+    "description": "Opens the temple form for an existing temple."
+  },
+  "upload": "Upload",
+  "@upload": {
+    "description": "Opens the temple form to add photos."
+  },
+  "signOut": "Sign out",
+  "@signOut": {
+    "description": "Signs the admin out."
+  },
+  "signIn": "Sign in",
+  "@signIn": {
+    "description": "Submits the admin sign-in form."
+  },
+  "orDivider": "or",
+  "@orDivider": {
+    "description": "Divider between seeding and creating a temple."
+  },
+  "continueLabel": "Continue",
+  "@continueLabel": {
+    "description": "Accepts approximate location on the near-me rationale."
+  },
+  "discover": "Discover",
+  "@discover": {
+    "description": "Home mosaic kicker."
+  },
+  "indiasSacredTemples": "India's Sacred Temples",
+  "@indiasSacredTemples": {
+    "description": "Home mosaic headline."
+  },
+  "noTemplesLoadedYet": "No temples loaded yet",
+  "@noTemplesLoadedYet": {
+    "description": "Home mosaic subtitle when the directory is empty."
+  },
+  "templesAcrossIndia": "{count, plural, one{{count} temples across India} other{{count} temples across India}}",
+  "@templesAcrossIndia": {
+    "description": "Home mosaic subtitle with the loaded directory size. The word stays temples for every count.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "drawerAboutEmpty": "Explore famous temples across Tamil Nadu, Kerala, Karnataka, Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, Jammu and Kashmir, Maharashtra, Rajasthan, West Bengal, Madhya Pradesh, Bihar, and Himachal Pradesh. Discover histories, legends, timings and specialities — all in one curated directory.",
+  "@drawerAboutEmpty": {
+    "description": "Drawer about blurb when no temples are loaded."
+  },
+  "drawerAboutWithCount": "{count, plural, one{Explore {count} famous temples across Tamil Nadu, Kerala, Karnataka, Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, Jammu and Kashmir, Maharashtra, Rajasthan, West Bengal, Madhya Pradesh, Bihar, and Himachal Pradesh. Discover histories, legends, timings and specialities — all in one curated directory.} other{Explore {count} famous temples across Tamil Nadu, Kerala, Karnataka, Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, Jammu and Kashmir, Maharashtra, Rajasthan, West Bengal, Madhya Pradesh, Bihar, and Himachal Pradesh. Discover histories, legends, timings and specialities — all in one curated directory.}}",
+  "@drawerAboutWithCount": {
+    "description": "Drawer about blurb including the loaded temple count. The word stays temples for every count.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "loadingTemplesEllipsis": "Loading temples…",
+  "@loadingTemplesEllipsis": {
+    "description": "Home loading title."
+  },
+  "preparingDirectory": "Preparing the directory. This usually takes a moment.",
+  "@preparingDirectory": {
+    "description": "Home loading detail."
+  },
+  "couldNotLoadTemplesPeriod": "Could not load temples.",
+  "@couldNotLoadTemplesPeriod": {
+    "description": "Home error title."
+  },
+  "checkConnection": "Check your connection and try again.",
+  "@checkConnection": {
+    "description": "Home error detail when no shard message is available."
+  },
+  "noTemplesAvailable": "No temples available yet.",
+  "@noTemplesAvailable": {
+    "description": "Home empty-directory title."
+  },
+  "directoryEmptyRetry": "The directory came back empty. Tap Retry, or try again later.",
+  "@directoryEmptyRetry": {
+    "description": "Home empty-directory detail."
+  },
+  "browseTempleCount": "{count, plural, =0{Browse temples} one{Browse {count} Temple} other{Browse {count} Temples}}",
+  "@browseTempleCount": {
+    "description": "Home button that opens the directory. Zero keeps the uncounted label.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "drawerBrowseTempleCount": "{count, plural, one{Browse {count} Temple} other{Browse {count} Temples}}",
+  "@drawerBrowseTempleCount": {
+    "description": "Drawer button that opens the filtered directory.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "openDirectoryHint": "Open the directory for temple cards, search, and filters. You can also use the menu (☰).",
+  "@openDirectoryHint": {
+    "description": "Hint under the home browse button."
+  },
+  "heritageContinuesBelow": "Heritage reading continues below",
+  "@heritageContinuesBelow": {
+    "description": "Note under the home browse actions."
+  },
+  "templeHeritageTitle": "Temple Heritage of India",
+  "@templeHeritageTitle": {
+    "description": "Heading of the home heritage essay."
+  },
+  "templeHeritageSubtitle": "A comprehensive exploration of India's sacred architectural legacy",
+  "@templeHeritageSubtitle": {
+    "description": "Subtitle of the home heritage essay."
+  },
+  "couldNotLoadThisTemple": "Could not load this temple.",
+  "@couldNotLoadThisTemple": {
+    "description": "Detail screen when the temple document is missing."
+  },
+  "couldNotOpenDirections": "Couldn't open directions on this device.",
+  "@couldNotOpenDirections": {
+    "description": "Snack bar when maps cannot be opened."
+  },
+  "listedFocus": "Listed focus: {deity}",
+  "@listedFocus": {
+    "description": "Detail line for the listed deity.",
+    "placeholders": {
+      "deity": {
+        "type": "String"
+      }
+    }
+  },
+  "pageMayBeOutOfDate": "This page may be out of date.",
+  "@pageMayBeOutOfDate": {
+    "description": "Shown when the detail document came from cache."
+  },
+  "location": "Location",
+  "@location": {
+    "description": "Detail card title for the address."
+  },
+  "notListedInEntry": "Not listed in this entry.",
+  "@notListedInEntry": {
+    "description": "Timings card when the listing has no hours."
+  },
+  "coordinates": "Coordinates",
+  "@coordinates": {
+    "description": "Detail card title for latitude and longitude."
+  },
+  "coordinatesNorthEast": "{lat}° N, {lng}° E",
+  "@coordinatesNorthEast": {
+    "description": "Coordinate line. Digits stay Latin.",
+    "placeholders": {
+      "lat": {
+        "type": "String"
+      },
+      "lng": {
+        "type": "String"
+      }
+    }
+  },
+  "howToReach": "How to Reach",
+  "@howToReach": {
+    "description": "Detail section heading for directions."
+  },
+  "getDirections": "Get Directions",
+  "@getDirections": {
+    "description": "Button that opens maps."
+  },
+  "about": "About",
+  "@about": {
+    "description": "Detail section heading for the description."
+  },
+  "specialities": "Specialities",
+  "@specialities": {
+    "description": "Detail section heading and admin form label."
+  },
+  "galleryPosition": "{current} / {total}",
+  "@galleryPosition": {
+    "description": "Detail gallery page indicator.",
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "photoPending": "Photo pending",
+  "@photoPending": {
+    "description": "Placeholder title when no verified photo is on file."
+  },
+  "noVerifiedPhotograph": "No verified photograph is on file.",
+  "@noVerifiedPhotograph": {
+    "description": "Placeholder caption under Photo pending."
+  },
+  "photoPendingSemantics": "Photo pending. No verified photograph is on file.",
+  "@photoPendingSemantics": {
+    "description": "Screen-reader label for the photo placeholder."
+  },
+  "templePhotoSemantics": "Temple photo",
+  "@templePhotoSemantics": {
+    "description": "Screen-reader label for a mosaic tile that is still loading."
+  },
+  "heritageVisit": "Heritage visit",
+  "@heritageVisit": {
+    "description": "Chip for a monument or archaeological site."
+  },
+  "livingTemple": "Living temple",
+  "@livingTemple": {
+    "description": "Chip when notes describe continuing worship and no tradition chip is shown."
+  },
+  "visitingHours": "Visiting hours",
+  "@visitingHours": {
+    "description": "Timings heading for a heritage visit."
+  },
+  "timings": "Timings",
+  "@timings": {
+    "description": "Timings heading for a living or unspecified site, and the admin form label."
+  },
+  "aboutThisPlace": "About this place",
+  "@aboutThisPlace": {
+    "description": "Story heading when a tradition chip is shown."
+  },
+  "templeStory": "Temple story",
+  "@templeStory": {
+    "description": "Story heading for a living temple."
+  },
+  "siteHistory": "Site history",
+  "@siteHistory": {
+    "description": "Story heading for a heritage visit."
+  },
+  "background": "Background",
+  "@background": {
+    "description": "Story heading when the listing is neutral."
+  },
+  "traditionJain": "Jain",
+  "@traditionJain": {
+    "description": "Tradition chip."
+  },
+  "traditionBuddhist": "Buddhist",
+  "@traditionBuddhist": {
+    "description": "Tradition chip."
+  },
+  "traditionSikh": "Sikh",
+  "@traditionSikh": {
+    "description": "Tradition chip."
+  },
+  "jainPilgrimageSite": "Jain pilgrimage site.",
+  "@jainPilgrimageSite": {
+    "description": "Opening sentence of the detail framing note."
+  },
+  "buddhistPilgrimageSite": "Buddhist pilgrimage site.",
+  "@buddhistPilgrimageSite": {
+    "description": "Opening sentence of the detail framing note."
+  },
+  "sikhSite": "Sikh site.",
+  "@sikhSite": {
+    "description": "Opening sentence of the detail framing note."
+  },
+  "livingTempleUnspecifiedNote": "Notes describe continuing worship at a living temple. The hours below are published text from the listing.",
+  "@livingTempleUnspecifiedNote": {
+    "description": "Framing note for a living temple with no tradition chip."
+  },
+  "livingTempleTraditionNote": "Notes describe continuing observance. The hours below are published text from the listing.",
+  "@livingTempleTraditionNote": {
+    "description": "Framing note for a living site that already has a tradition sentence."
+  },
+  "monumentVisitNote": "Heritage visit. The hours below are visitor access for a monument or archaeological site.",
+  "@monumentVisitNote": {
+    "description": "Framing note for a heritage visit."
+  },
+  "neutralFramingNote": "These notes do not say clearly whether worship continues or this is only a monument visit.",
+  "@neutralFramingNote": {
+    "description": "Framing note when the listing is ambiguous."
+  },
+  "timingsMissing": "No visiting hours are published in this listing. Confirm locally. Nothing here is an always-open clock.",
+  "@timingsMissing": {
+    "description": "Caveat when the listing has no timings."
+  },
+  "timingsSeasonalMulti": "Provisional / seasonal. Several visiting windows or a limited season are described. This is not a single always-open clock. Confirm before you travel.",
+  "@timingsSeasonalMulti": {
+    "description": "Caveat for seasonal notes that also list more than one window."
+  },
+  "timingsSeasonal": "Provisional / seasonal. These notes describe season-dependent access. This is not a single always-open clock. Confirm before you travel.",
+  "@timingsSeasonal": {
+    "description": "Caveat for season-dependent access."
+  },
+  "timingsMultiWindow": "Provisional. More than one visiting window is listed, or the notes disagree. This is not a single always-open clock. Confirm the day's board.",
+  "@timingsMultiWindow": {
+    "description": "Caveat when more than one visiting window is listed."
+  },
+  "timingsProvisional": "Provisional. Published hours here are thin or incomplete. This is not a fixed always-open clock. Confirm locally.",
+  "@timingsProvisional": {
+    "description": "Caveat when published hours are thin or incomplete."
+  },
+  "offlineMessage": "You're offline",
+  "@offlineMessage": {
+    "description": "Banner when the device is offline and nothing is cached."
+  },
+  "offlineWithSavedTemples": "You're offline. Showing temples saved on this device.",
+  "@offlineWithSavedTemples": {
+    "description": "Banner when the device is offline and cached temples are on screen."
+  },
+  "savedListOffline": "Offline, showing saved list",
+  "@savedListOffline": {
+    "description": "Saved-list banner while the device is offline."
+  },
+  "savedListOnline": "Showing saved list",
+  "@savedListOnline": {
+    "description": "Saved-list banner while a refresh is not in progress."
+  },
+  "softUpdateMessage": "A newer version is ready on the Play Store.",
+  "@softUpdateMessage": {
+    "description": "Dismissible soft-update banner."
+  },
+  "forceUpdateTitle": "Update required",
+  "@forceUpdateTitle": {
+    "description": "Full-screen title when the installed build is below the minimum."
+  },
+  "forceUpdateBody": "This version of Temple Directory India is no longer supported. Install the latest version from the Play Store to continue.",
+  "@forceUpdateBody": {
+    "description": "Full-screen explanation for a required update."
+  },
+  "forceUpdateButton": "Update on Play Store",
+  "@forceUpdateButton": {
+    "description": "Button that opens the Play listing from the required-update screen."
+  },
+  "couldNotOpenPlayStore": "Could not open the Play Store.",
+  "@couldNotOpenPlayStore": {
+    "description": "Snack bar when the Play listing cannot be opened."
+  },
+  "maintenanceTitle": "We'll be back soon",
+  "@maintenanceTitle": {
+    "description": "Full-screen title while the kill switch is on."
+  },
+  "maintenanceFallback": "Temple Directory is temporarily unavailable. Please try again later.",
+  "@maintenanceFallback": {
+    "description": "Maintenance body when Remote Config sends an empty message."
+  },
+  "acceptAndContinue": "Accept & continue",
+  "@acceptAndContinue": {
+    "description": "Policy gate accept button and its accessibility label."
+  },
+  "acceptHint": "Agrees to the Terms of Service and Privacy Policy",
+  "@acceptHint": {
+    "description": "Accessibility hint for the policy accept button."
+  },
+  "termsOfService": "Terms of Service",
+  "@termsOfService": {
+    "description": "First-launch link to the terms."
+  },
+  "termsShort": "Terms",
+  "@termsShort": {
+    "description": "Policy-update link to the terms."
+  },
+  "privacyPolicy": "Privacy Policy",
+  "@privacyPolicy": {
+    "description": "Link to the privacy policy."
+  },
+  "opensInTheApp": "Opens in the app",
+  "@opensInTheApp": {
+    "description": "Accessibility hint for a policy link."
+  },
+  "beforeYouBegin": "Before you begin",
+  "@beforeYouBegin": {
+    "description": "First-launch policy gate title."
+  },
+  "policyFirstLaunchLead": "To use the app, please review and accept our ",
+  "@policyFirstLaunchLead": {
+    "description": "Text before the first-launch policy links. The trailing space is intentional."
+  },
+  "policyFirstLaunchTail": ".",
+  "@policyFirstLaunchTail": {
+    "description": "Text after the first-launch policy links."
+  },
+  "policyUpdatedTitle": "We've updated our terms",
+  "@policyUpdatedTitle": {
+    "description": "Title when the policy version has changed."
+  },
+  "policyUpdateLead": "Please review and accept the updated ",
+  "@policyUpdateLead": {
+    "description": "Text before the updated policy links. The trailing space is intentional."
+  },
+  "policyUpdateTail": " to continue.",
+  "@policyUpdateTail": {
+    "description": "Text after the updated policy links."
+  },
+  "policyAnd": " and ",
+  "@policyAnd": {
+    "description": "Conjunction between the terms and privacy links, including both spaces."
+  },
+  "policySaveFailed": "Could not save your acceptance on this device. Please try again.",
+  "@policySaveFailed": {
+    "description": "Snack bar when policy acceptance cannot be stored."
+  },
+  "policyLinkFailed": "Could not open that link.",
+  "@policyLinkFailed": {
+    "description": "Snack bar when a policy link cannot be opened."
+  },
+  "districtBoundaries": "District boundaries",
+  "@districtBoundaries": {
+    "description": "Licences screen section heading."
+  },
+  "bharatlasLink": "Bharatlas LGD Districts",
+  "@bharatlasLink": {
+    "description": "Link label for the district source page."
+  },
+  "ccBy40": "CC BY 4.0",
+  "@ccBy40": {
+    "description": "Link label for the Creative Commons licence."
+  },
+  "districtBundlingNote": "Dataset {version}, updated {updated}, fetched {fetched}. The polygons in this app were simplified.",
+  "@districtBundlingNote": {
+    "description": "Licences note for the bundled district polygons.",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "updated": {
+        "type": "String"
+      },
+      "fetched": {
+        "type": "String"
+      }
+    }
+  },
+  "nearMeTitle": "Temples near me",
+  "@nearMeTitle": {
+    "description": "Near-me screen title and home button."
+  },
+  "nearMeRationaleTitle": "Sort by distance",
+  "@nearMeRationaleTitle": {
+    "description": "Title of the approximate-location explanation."
+  },
+  "nearMeRationaleBody": "Used once on your phone to sort temples by distance. Never stored or sent.",
+  "@nearMeRationaleBody": {
+    "description": "Body of the approximate-location explanation. Must match the platform permission text."
+  },
+  "nearMeLocating": "Finding temples near you…",
+  "@nearMeLocating": {
+    "description": "Status while a location fix is in progress."
+  },
+  "nearMeNearestHeading": "Nearest temples",
+  "@nearMeNearestHeading": {
+    "description": "Heading when results are sorted from the device location."
+  },
+  "nearMeDeniedBody": "Location is off for this app. Pick a state or city and the list is sorted from there.",
+  "@nearMeDeniedBody": {
+    "description": "Shown when location permission is denied."
+  },
+  "nearMeDeniedForeverBody": "Location stays off until you allow approximate location in settings. You can still pick a state or city.",
+  "@nearMeDeniedForeverBody": {
+    "description": "Shown when location permission is permanently denied."
+  },
+  "nearMeOpenSettings": "Open settings",
+  "@nearMeOpenSettings": {
+    "description": "Opens app settings so location can be allowed."
+  },
+  "nearMeEnableLocation": "Enable location",
+  "@nearMeEnableLocation": {
+    "description": "Asks for approximate location again."
+  },
+  "nearMeServiceOffBody": "Location is turned off on this phone. Turn it on and try again, or pick a state or city.",
+  "@nearMeServiceOffBody": {
+    "description": "Shown when the device location service is off."
+  },
+  "nearMeOpenLocationSettings": "Open location settings",
+  "@nearMeOpenLocationSettings": {
+    "description": "Opens the system location settings."
+  },
+  "nearMeTimedOutBody": "Could not read a location in time. Try again, or pick a state or city.",
+  "@nearMeTimedOutBody": {
+    "description": "Shown when a location fix times out."
+  },
+  "nearMeDeclinedBody": "Pick a state or city to sort the list.",
+  "@nearMeDeclinedBody": {
+    "description": "Shown when the person skips location."
+  },
+  "nearMeUseLocation": "Use approximate location",
+  "@nearMeUseLocation": {
+    "description": "Offers location after it was skipped."
+  },
+  "chooseState": "Choose a state",
+  "@chooseState": {
+    "description": "Near-me and filter prompt for a state."
+  },
+  "chooseCity": "Choose a city",
+  "@chooseCity": {
+    "description": "Near-me prompt for a city."
+  },
+  "chooseDistrict": "Choose a district",
+  "@chooseDistrict": {
+    "description": "Near-me and filter prompt for a district."
+  },
+  "anyCity": "Any city",
+  "@anyCity": {
+    "description": "Near-me city option that clears the city."
+  },
+  "anyDistrict": "Any district",
+  "@anyDistrict": {
+    "description": "Near-me district option that clears the district."
+  },
+  "nearMeNoMapPoints": "None of these listings have a map point.",
+  "@nearMeNoMapPoints": {
+    "description": "Shown when no result has coordinates."
+  },
+  "nearMeNoAnchorMatch": "None of the temples in that place have a map point.",
+  "@nearMeNoAnchorMatch": {
+    "description": "Shown when the chosen place has no coordinates."
+  },
+  "nearMeKilometres": "km",
+  "@nearMeKilometres": {
+    "description": "Distance unit. The number is formatted in code and stays in Latin digits."
+  },
+  "nearMeSortedFrom": "Sorted from {place}",
+  "@nearMeSortedFrom": {
+    "description": "Heading when results are sorted from a chosen place.",
+    "placeholders": {
+      "place": {
+        "type": "String"
+      }
+    }
+  },
+  "stateLabel": "State",
+  "@stateLabel": {
+    "description": "Filter chip when no state is selected, and the admin form label."
+  },
+  "clearStateFilter": "Clear state filter",
+  "@clearStateFilter": {
+    "description": "Tooltip that clears the state chip."
+  },
+  "allDistricts": "All districts",
+  "@allDistricts": {
+    "description": "District chip and sheet option for every district."
+  },
+  "clearDistrictFilter": "Clear district filter",
+  "@clearDistrictFilter": {
+    "description": "Tooltip that clears the district chip."
+  },
+  "deityLabel": "Deity",
+  "@deityLabel": {
+    "description": "Filter chip when no deity is selected, and the admin form label."
+  },
+  "chooseDeity": "Choose a deity",
+  "@chooseDeity": {
+    "description": "Tooltip that opens the deity filter."
+  },
+  "clearDeityFilter": "Clear deity filter",
+  "@clearDeityFilter": {
+    "description": "Tooltip that clears the deity chip."
+  },
+  "stateSection": "STATE",
+  "@stateSection": {
+    "description": "Filter sheet section heading."
+  },
+  "anyState": "Any state",
+  "@anyState": {
+    "description": "Filter sheet option that clears the state."
+  },
+  "districtSection": "DISTRICT",
+  "@districtSection": {
+    "description": "Filter sheet section heading."
+  },
+  "deitySection": "DEITY",
+  "@deitySection": {
+    "description": "Filter sheet section heading."
+  },
+  "anyDeity": "Any deity",
+  "@anyDeity": {
+    "description": "Filter sheet option that clears the deity."
+  },
+  "filters": "Filters",
+  "@filters": {
+    "description": "Filter sheet title."
+  },
+  "closeFilters": "Close filters",
+  "@closeFilters": {
+    "description": "Tooltip that closes the filter sheet."
+  },
+  "filterSheetWithDistrict": "State, district, and deity, on the temples already loaded.",
+  "@filterSheetWithDistrict": {
+    "description": "Filter sheet explanation when the district section is shown."
+  },
+  "filterSheetNoDistrict": "State and deity, on the temples already loaded.",
+  "@filterSheetNoDistrict": {
+    "description": "Filter sheet explanation when the district section is hidden."
+  },
+  "showTempleCount": "{count, plural, one{Show {count} temple} other{Show {count} temples}}",
+  "@showTempleCount": {
+    "description": "Filter sheet button that applies the draft and shows how many temples match.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "emptyFilterWithDistrict": "Nothing in the loaded directory fits this state, district, and deity.",
+  "@emptyFilterWithDistrict": {
+    "description": "Empty browse message when a district filter is active."
+  },
+  "emptyFilterStateDeity": "Nothing in the loaded directory fits this state and deity.",
+  "@emptyFilterStateDeity": {
+    "description": "Empty browse message when state and deity filters exclude a district."
+  },
+  "deityTraditionNote": "{traditions} labels are the listed tradition, not Hindu darshan filters.",
+  "@deityTraditionNote": {
+    "description": "Note under deity filters that include a non-Hindu tradition.",
+    "placeholders": {
+      "traditions": {
+        "type": "String"
+      }
+    }
+  },
+  "listPair": "{first} and {second}",
+  "@listPair": {
+    "description": "Joins two labels in a sentence.",
+    "placeholders": {
+      "first": {
+        "type": "String"
+      },
+      "second": {
+        "type": "String"
+      }
+    }
+  },
+  "listAndLast": "{rest}, and {last}",
+  "@listAndLast": {
+    "description": "Joins a comma-separated list to its last item.",
+    "placeholders": {
+      "rest": {
+        "type": "String"
+      },
+      "last": {
+        "type": "String"
+      }
+    }
+  },
+  "clearSearchAndFilters": "Clear search and filters",
+  "@clearSearchAndFilters": {
+    "description": "Drawer action while a search draft is also set."
+  },
+  "clearAllFilters": "Clear All Filters",
+  "@clearAllFilters": {
+    "description": "Drawer action that clears applied filters."
+  },
+  "searchDirectory": "Search directory",
+  "@searchDirectory": {
+    "description": "Drawer button before a query is typed."
+  },
+  "noMatchingTemples": "No matching temples",
+  "@noMatchingTemples": {
+    "description": "Drawer button when the query matches nothing."
+  },
+  "viewMatchCount": "{count, plural, one{View {count} match} other{View {count} matches}}",
+  "@viewMatchCount": {
+    "description": "Drawer button that opens the search results.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "loadingTemples": "Loading temples",
+  "@loadingTemples": {
+    "description": "Browse list title while the directory loads."
+  },
+  "fetchingDirectory": "Fetching the directory.",
+  "@fetchingDirectory": {
+    "description": "Browse list detail while the directory loads."
+  },
+  "couldNotLoadTemples": "Could not load temples",
+  "@couldNotLoadTemples": {
+    "description": "Browse list title after a load failure."
+  },
+  "directoryDidNotLoad": "The directory did not load. Go back and try again.",
+  "@directoryDidNotLoad": {
+    "description": "Browse list detail after a load failure."
+  },
+  "searchHint": "Name, city, state, deity, or address",
+  "@searchHint": {
+    "description": "Search field hint."
+  },
+  "clearSearch": "Clear search",
+  "@clearSearch": {
+    "description": "Tooltip and button that clear the search field."
+  },
+  "noMatchFiltersAndQuery": "No temples match these filters and \"{query}\".",
+  "@noMatchFiltersAndQuery": {
+    "description": "Empty title when filters and a query are both active.",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "noMatchFilters": "No temples match these filters.",
+  "@noMatchFilters": {
+    "description": "Empty title when only filters are active."
+  },
+  "noMatchQuery": "No temples match \"{query}\".",
+  "@noMatchQuery": {
+    "description": "Empty title when only a query is active.",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "noTemplesToBrowse": "No temples to browse",
+  "@noTemplesToBrowse": {
+    "description": "Empty title when the directory view has no rows."
+  },
+  "clearFiltersOrSearch": "Clear the filters or the search. The list is the directory already loaded.",
+  "@clearFiltersOrSearch": {
+    "description": "Empty detail when filters and a query are both active."
+  },
+  "trySearchHint": "Try a name, city, state, deity, or address.",
+  "@trySearchHint": {
+    "description": "Empty detail when a query matches nothing."
+  },
+  "nothingListedYet": "Nothing is listed in this view yet.",
+  "@nothingListedYet": {
+    "description": "Empty detail when the view has no rows and no query."
+  },
+  "clearFilters": "Clear filters",
+  "@clearFilters": {
+    "description": "Button on the empty filter state."
+  },
+  "templeCountLabel": "{count, plural, one{{count} temple} other{{count} temples}}",
+  "@templeCountLabel": {
+    "description": "Count line above a filtered browse list.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "offlineSampleTemples": "Could not load temples. Showing the offline sample.",
+  "@offlineSampleTemples": {
+    "description": "Notice when the whole directory fell back to the bundled sample."
+  },
+  "offlineSampleTemplesIn": "Could not load temples in {states}. Showing the offline sample.",
+  "@offlineSampleTemplesIn": {
+    "description": "Notice when named states fell back to the bundled sample.",
+    "placeholders": {
+      "states": {
+        "type": "String"
+      }
+    }
+  },
+  "couldNotLoadTemplesIn": "Could not load temples in {states}.",
+  "@couldNotLoadTemplesIn": {
+    "description": "Notice when named states could not be loaded.",
+    "placeholders": {
+      "states": {
+        "type": "String"
+      }
+    }
+  },
+  "adminCmsUnavailable": "Admin CMS is available in debug or demo builds (ENABLE_ADMIN_TOOLS).",
+  "@adminCmsUnavailable": {
+    "description": "Shown when admin tools are not compiled in."
+  },
+  "createTemple": "Create temple",
+  "@createTemple": {
+    "description": "App-bar tooltip and form title for a new temple."
+  },
+  "createATemple": "Create a temple",
+  "@createATemple": {
+    "description": "Empty admin list button."
+  },
+  "addTemple": "Add temple",
+  "@addTemple": {
+    "description": "Admin list action. Kept for the same English label where the button says Add temple."
+  },
+  "deleteTempleTitle": "Delete temple?",
+  "@deleteTempleTitle": {
+    "description": "Confirmation dialog title."
+  },
+  "deleteTempleBody": "Permanently remove \"{name}\" from Firestore? Images uploaded under temples/{id}/ in Storage will also be deleted. External image URLs (for example seed photos) are not Storage files and are left as-is.",
+  "@deleteTempleBody": {
+    "description": "Confirmation dialog body. The id is the Firestore document id.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "imageCount": "{count, plural, one{{count} image} other{{count} images}}",
+  "@imageCount": {
+    "description": "Admin row subtitle for how many photos a temple has.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deleting": "Deleting…",
+  "@deleting": {
+    "description": "Admin row status while a delete is in progress."
+  },
+  "editTemple": "Edit temple",
+  "@editTemple": {
+    "description": "Form title when editing an existing temple."
+  },
+  "adminFormIntro": "Same Firestore fields as Seed and the public directory (name, state, city, deity, address, story, timings, …).",
+  "@adminFormIntro": {
+    "description": "Intro on the admin temple form."
+  },
+  "nameLabel": "Name",
+  "@nameLabel": {
+    "description": "Admin form label for the temple name."
+  },
+  "cityLabel": "City",
+  "@cityLabel": {
+    "description": "Admin form label for the city."
+  },
+  "adminStateHint": "Tamil Nadu, Kerala, Karnataka, Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, Jammu and Kashmir, Maharashtra, Rajasthan, West Bengal, Madhya Pradesh, Bihar, Himachal Pradesh",
+  "@adminStateHint": {
+    "description": "Admin form hint listing known state names."
+  },
+  "deityHint": "Shiva, Vishnu, Devi, Murugan, …",
+  "@deityHint": {
+    "description": "Admin form hint for the deity field."
+  },
+  "locationAddressLabel": "Location / address",
+  "@locationAddressLabel": {
+    "description": "Admin form label for the address."
+  },
+  "timingsHint": "5:00 AM – 12:30 PM, 4:00 PM – 10:00 PM",
+  "@timingsHint": {
+    "description": "Admin form hint for timings."
+  },
+  "descriptionLabel": "Description",
+  "@descriptionLabel": {
+    "description": "Admin form label for the description."
+  },
+  "storyLabel": "Story",
+  "@storyLabel": {
+    "description": "Admin form label for the story."
+  },
+  "specialitiesHint": "One per line, or comma-separated",
+  "@specialitiesHint": {
+    "description": "Admin form hint for specialities."
+  },
+  "photos": "Photos",
+  "@photos": {
+    "description": "Admin form section heading."
+  },
+  "noPhotosYet": "No photos yet. The temple stays Photo pending. Seed does not add stock photos.",
+  "@noPhotosYet": {
+    "description": "Admin form help before any photo is added."
+  },
+  "photoCoverHelp": "First photo is the cover. Long-press a tile to reorder. Each photo needs a licence before Save.",
+  "@photoCoverHelp": {
+    "description": "Admin form help after a photo is added."
+  },
+  "latitude": "Latitude",
+  "@latitude": {
+    "description": "Admin form label."
+  },
+  "longitude": "Longitude",
+  "@longitude": {
+    "description": "Admin form label."
+  },
+  "saving": "Saving…",
+  "@saving": {
+    "description": "Admin form button while a save is in progress."
+  },
+  "saveChanges": "Save changes",
+  "@saveChanges": {
+    "description": "Admin form button when editing."
+  },
+  "waitForPhotoUploads": "Wait for photo uploads to finish.",
+  "@waitForPhotoUploads": {
+    "description": "Form error while uploads are still running."
+  },
+  "retryFailedPhotos": "Retry the photos that failed to upload.",
+  "@retryFailedPhotos": {
+    "description": "Form error when a photo upload failed."
+  },
+  "addLicenceBeforeSaving": "Add a licence to every photo before saving.",
+  "@addLicenceBeforeSaving": {
+    "description": "Form error when a photo has no licence."
+  },
+  "addCreditBeforeSaving": "Add a credit for CC-BY and CC-BY-SA photos before saving.",
+  "@addCreditBeforeSaving": {
+    "description": "Form error when a credited licence has no credit."
+  },
+  "finishPhotoGrid": "Finish the photo grid before saving.",
+  "@finishPhotoGrid": {
+    "description": "Form error when the photo grid is incomplete."
+  },
+  "maxPhotos": "A temple can have at most {max} photos.",
+  "@maxPhotos": {
+    "description": "Form error when another photo would pass the cap.",
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "enterNameBeforePhotos": "Enter a temple name before adding photos.",
+  "@enterNameBeforePhotos": {
+    "description": "Form error when photos are added before a name."
+  },
+  "couldNotOpenPhotoPicker": "Could not open the photo picker. {error}",
+  "@couldNotOpenPhotoPicker": {
+    "description": "Snack bar when the photo picker fails. The error is the existing admin write message.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "extraPhotosSkipped": "Only {max} photos can be saved. Extra picks were skipped.",
+  "@extraPhotosSkipped": {
+    "description": "Snack bar when the picker returns more photos than the cap.",
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "uploadFailed": "Upload failed: {error}",
+  "@uploadFailed": {
+    "description": "Form error when a photo upload fails. The error is the existing admin write message.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "fixHighlightedFields": "Fix the highlighted fields and try again.",
+  "@fixHighlightedFields": {
+    "description": "Form error when validation fails."
+  },
+  "addPhoto": "+ Add photo",
+  "@addPhoto": {
+    "description": "Admin photo grid add tile."
+  },
+  "removePhoto": "Remove photo",
+  "@removePhoto": {
+    "description": "Tooltip that removes a photo tile."
+  },
+  "needsLicence": "Needs licence",
+  "@needsLicence": {
+    "description": "Badge on a photo that has no licence."
+  },
+  "needsCredit": "Needs credit",
+  "@needsCredit": {
+    "description": "Badge on a photo whose licence requires a credit."
+  },
+  "cover": "Cover",
+  "@cover": {
+    "description": "Badge on the first photo."
+  },
+  "photoLicence": "Photo licence",
+  "@photoLicence": {
+    "description": "Title of the licence sheet."
+  },
+  "photoLicenceHelp": "CC-BY and CC-BY-SA need a credit. CC0, Own, and Permission can leave credit blank.",
+  "@photoLicenceHelp": {
+    "description": "Help on the licence sheet."
+  },
+  "creditRequired": "Credit required",
+  "@creditRequired": {
+    "description": "Subtitle for a licence that needs a credit."
+  },
+  "creditOptional": "Credit optional",
+  "@creditOptional": {
+    "description": "Subtitle for a licence that does not need a credit."
+  },
+  "creditRequiredLabel": "Credit (required)",
+  "@creditRequiredLabel": {
+    "description": "Credit field label when a credit is required."
+  },
+  "creditLabel": "Credit",
+  "@creditLabel": {
+    "description": "Credit field label when a credit is optional."
+  },
+  "creditHint": "Photographer or source",
+  "@creditHint": {
+    "description": "Credit field hint."
+  },
+  "useThisLicence": "Use this licence",
+  "@useThisLicence": {
+    "description": "Button that applies the chosen licence."
+  },
+  "adminSignInRequired": "Admin sign-in required",
+  "@adminSignInRequired": {
+    "description": "Title of the admin sign-in card."
+  },
+  "adminSignInBody": "Temple data is publicly readable, but Seed and Admin writes need a signed-in account with the Firebase custom claim admin: true. Production browsing does not require signing in.",
+  "@adminSignInBody": {
+    "description": "Explanation on the admin sign-in card."
+  },
+  "adminEmail": "Admin email",
+  "@adminEmail": {
+    "description": "Admin sign-in email field label."
+  },
+  "password": "Password",
+  "@password": {
+    "description": "Admin sign-in password field label."
+  },
+  "enterEmailAndPassword": "Enter email and password.",
+  "@enterEmailAndPassword": {
+    "description": "Validation message on the admin sign-in form."
+  },
+  "signingIn": "Signing in…",
+  "@signingIn": {
+    "description": "Admin sign-in button while the request is in progress."
+  },
+  "thisAccount": "this account",
+  "@thisAccount": {
+    "description": "Fallback name when a signed-in admin has no email or uid."
+  },
+  "signedInNotAdmin": "Signed in, but not an admin",
+  "@signedInNotAdmin": {
+    "description": "Title when the account lacks the admin claim."
+  },
+  "signedInNotAdminBody": "Signed in as {who}. Writes are blocked until this user has the custom claim admin: true. Grant the claim with scripts/grant_admin.js, then refresh or sign out and back in.",
+  "@signedInNotAdminBody": {
+    "description": "Explanation when the account lacks the admin claim.",
+    "placeholders": {
+      "who": {
+        "type": "String"
+      }
+    }
+  },
+  "refreshAdminStatus": "Refresh admin status",
+  "@refreshAdminStatus": {
+    "description": "Button that reloads the admin custom claim."
+  },
+  "seedUnauthorized": "Sign in as an admin (custom claim admin: true) to seed Firestore.",
+  "@seedUnauthorized": {
+    "description": "Message when Seed is tapped without admin write access."
+  },
+  "seedingSampleTemples": "Seeding sample temples…",
+  "@seedingSampleTemples": {
+    "description": "Status while the sample seed is running."
+  },
+  "seedingFailed": "Seeding failed.",
+  "@seedingFailed": {
+    "description": "Fallback when a seed error has no message."
+  },
+  "seedBundledTooltip": "Seed bundled sample temples into Firestore",
+  "@seedBundledTooltip": {
+    "description": "Tooltip on the compact seed button."
+  },
+  "seed": "Seed",
+  "@seed": {
+    "description": "Compact seed button while idle."
+  },
+  "seeding": "Seeding",
+  "@seeding": {
+    "description": "Compact seed button while running."
+  },
+  "seeded": "Seeded",
+  "@seeded": {
+    "description": "Compact seed button after success."
+  },
+  "adminSignInRequiredToSeed": "Admin sign-in required to seed",
+  "@adminSignInRequiredToSeed": {
+    "description": "Title of the locked seed panel."
+  },
+  "noTemplesInFirestore": "No temples in Firestore",
+  "@noTemplesInFirestore": {
+    "description": "Empty admin seed panel title."
+  },
+  "seedPanelBody": "Seed the bundled sample temples to populate the Admin list. Re-running is safe — each temple uses a stable document ID, so you will not get duplicates.",
+  "@seedPanelBody": {
+    "description": "Empty admin seed panel explanation."
+  },
+  "seedingEllipsis": "Seeding…",
+  "@seedingEllipsis": {
+    "description": "Seed panel button while running."
+  },
+  "retrySeed": "Retry seed",
+  "@retrySeed": {
+    "description": "Seed panel button after a failure."
+  },
+  "seedAgain": "Seed again",
+  "@seedAgain": {
+    "description": "Seed panel button after success."
+  },
+  "seedSampleTemples": "Seed sample temples",
+  "@seedSampleTemples": {
+    "description": "Seed panel button while idle."
+  },
+  "seededCreatedOnly": "Seeded {count} temples into Firestore.",
+  "@seededCreatedOnly": {
+    "description": "Seed result when every write created a document.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "seededUpdatedOnly": "Updated {count} existing sample temples. No duplicates created.",
+  "@seededUpdatedOnly": {
+    "description": "Seed result when every write updated an existing document.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "seededCreatedAndUpdated": "Seeded {written} temples ({created} new, {updated} updated).",
+  "@seededCreatedAndUpdated": {
+    "description": "Seed result when some documents were created and some updated.",
+    "placeholders": {
+      "written": {
+        "type": "int"
+      },
+      "created": {
+        "type": "int"
+      },
+      "updated": {
+        "type": "int"
+      }
+    }
+  },
+  "deletedTemple": "Deleted temple.",
+  "@deletedTemple": {
+    "description": "Snack bar after a temple document is deleted with no Storage objects."
+  },
+  "deletedTempleAndImages": "Deleted temple and {count} uploaded image(s).",
+  "@deletedTempleAndImages": {
+    "description": "Snack bar after a temple and its uploaded images are deleted.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
+}

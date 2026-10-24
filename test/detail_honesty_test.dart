@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/data/sample_data.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/models/photo_licence.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_photo.dart';
@@ -1018,6 +1019,8 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: TempleDetailBody(temple: _named('Dilwara Temples')),
         ),
@@ -1046,6 +1049,8 @@ void main() {
   testWidgets('monument visit and missing hours stay honest', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: TempleDetailBody(temple: _named('Martand Sun Temple')),
         ),
@@ -1064,6 +1069,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: TempleDetailBody(
             temple: _draft(
@@ -1097,6 +1104,8 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocale.localizationsDelegates,
+          supportedLocales: AppLocale.supportedLocales,
           home: Scaffold(
             body: TempleDetailBody(temple: _named('Meenakshi Amman Temple')),
           ),
@@ -1125,6 +1134,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: TempleDetailBody(temple: _named('Martand Sun Temple')),
         ),
@@ -1297,6 +1308,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: TempleDetailBody(
             temple: credited(PhotoLicence.ccBy, 'Ada Lovelace · CC BY 4.0'),
@@ -1311,6 +1324,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: TempleDetailBody(
             temple: credited(PhotoLicence.cc0, 'Ada Lovelace'),
@@ -1323,6 +1338,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: TempleDetailBody(
             temple: credited(
@@ -1343,6 +1360,8 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(body: TempleDetailBody(temple: _named('Shore Temple'))),
       ),
     );

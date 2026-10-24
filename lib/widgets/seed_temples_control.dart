@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/config/build_flags.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/services/seed_service.dart';
 
 /// Injectable seeder so widget tests do not need Firebase.
@@ -18,8 +19,7 @@ class SeedTemplesControl extends StatefulWidget {
     this.onSuccess,
     this.seed = seedTempleData,
     this.canWrite = true,
-    this.unauthorizedMessage =
-        'Sign in as an admin (custom claim admin: true) to seed Firestore.',
+    this.unauthorizedMessage,
     this.onUnauthorized,
   });
 
@@ -35,7 +35,8 @@ class SeedTemplesControl extends StatefulWidget {
   /// When false, tapping Seed does not write; shows [unauthorizedMessage].
   final bool canWrite;
 
-  final String unauthorizedMessage;
+  /// When null, the localized [AppLocalizations.seedUnauthorized] string.
+  final String? unauthorizedMessage;
   final VoidCallback? onUnauthorized;
 
   @override
@@ -53,12 +54,13 @@ class _SeedTemplesControlState extends State<SeedTemplesControl> {
     if (_phase == SeedPhase.running) return;
     if (!widget.canWrite) {
       widget.onUnauthorized?.call();
+      final blocked = _unauthorizedMessage;
       if (widget.compact) {
-        _showSnackBar(widget.unauthorizedMessage, isError: true);
+        _showSnackBar(blocked, isError: true);
       } else {
         setState(() {
           _phase = SeedPhase.failure;
-          _message = widget.unauthorizedMessage;
+          _message = blocked;
         });
       }
       return;
@@ -66,21 +68,22 @@ class _SeedTemplesControlState extends State<SeedTemplesControl> {
 
     setState(() {
       _phase = SeedPhase.running;
-      _message = 'Seeding sample temples…';
+      _message = context.l10n.seedingSampleTemples;
     });
 
     try {
       final result = await widget.seed();
       if (!mounted) return;
+      final message = result.successMessageOf(context.l10n);
       setState(() {
         _phase = SeedPhase.success;
-        _message = result.successMessage;
+        _message = message;
       });
       widget.onSuccess?.call();
-      _showSnackBar(result.successMessage, isError: false);
+      _showSnackBar(message, isError: false);
     } catch (e) {
       if (!mounted) return;
-      final error = _shortError(e);
+      final error = _shortError(e, context.l10n);
       setState(() {
         _phase = SeedPhase.failure;
         _message = error;
@@ -98,23 +101,27 @@ class _SeedTemplesControlState extends State<SeedTemplesControl> {
       ..showSnackBar(
         SnackBar(
           content: Text(text, style: GoogleFonts.poppins()),
-          backgroundColor:
-              isError ? Colors.red.shade700 : const Color(0xFF2E7D32),
+          backgroundColor: isError
+              ? Colors.red.shade700
+              : const Color(0xFF2E7D32),
           behavior: SnackBarBehavior.floating,
         ),
       );
   }
 
-  static String _shortError(Object error) {
+  String get _unauthorizedMessage =>
+      widget.unauthorizedMessage ?? context.l10n.seedUnauthorized;
+
+  static String _shortError(Object error, AppLocalizations l10n) {
     var text = error.toString().trim();
-    const prefix = 'Exception: ';
+    const prefix = 'Exception: '; // l10n-allow: exception prefix, not copy
     if (text.startsWith(prefix)) {
       text = text.substring(prefix.length);
     }
     if (text.length > 180) {
       text = '${text.substring(0, 177)}…';
     }
-    if (text.isEmpty) return 'Seeding failed.';
+    if (text.isEmpty) return l10n.seedingFailed;
     return text;
   }
 
@@ -129,24 +136,20 @@ class _SeedTemplesControlState extends State<SeedTemplesControl> {
     final running = _phase == SeedPhase.running;
     final blocked = !widget.canWrite;
 
+    final l10n = context.l10n;
     return Tooltip(
-      message: blocked
-          ? widget.unauthorizedMessage
-          : 'Seed bundled sample temples into Firestore',
+      message: blocked ? _unauthorizedMessage : l10n.seedBundledTooltip,
       child: TextButton.icon(
         onPressed: running ? null : _runSeed,
         icon: running
             ? SizedBox(
                 width: 16,
                 height: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: fg,
-                ),
+                child: CircularProgressIndicator(strokeWidth: 2, color: fg),
               )
             : Icon(_compactIcon, color: fg, size: 20),
         label: Text(
-          _compactLabel,
+          _compactLabel(l10n),
           style: GoogleFonts.poppins(
             color: fg,
             fontWeight: FontWeight.w600,
@@ -170,16 +173,16 @@ class _SeedTemplesControlState extends State<SeedTemplesControl> {
     }
   }
 
-  String get _compactLabel {
+  String _compactLabel(AppLocalizations l10n) {
     switch (_phase) {
       case SeedPhase.idle:
-        return 'Seed';
+        return l10n.seed;
       case SeedPhase.running:
-        return 'Seeding';
+        return l10n.seeding;
       case SeedPhase.success:
-        return 'Seeded';
+        return l10n.seeded;
       case SeedPhase.failure:
-        return 'Retry';
+        return l10n.retry;
     }
   }
 
@@ -193,7 +196,7 @@ class _SeedTemplesControlState extends State<SeedTemplesControl> {
             const Icon(Icons.lock_rounded, size: 52, color: _saffron),
             const SizedBox(height: 14),
             Text(
-              'Admin sign-in required to seed',
+              context.l10n.adminSignInRequiredToSeed,
               textAlign: TextAlign.center,
               style: GoogleFonts.lora(
                 fontSize: 20,
@@ -203,7 +206,7 @@ class _SeedTemplesControlState extends State<SeedTemplesControl> {
             ),
             const SizedBox(height: 8),
             Text(
-              widget.unauthorizedMessage,
+              _unauthorizedMessage,
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 fontSize: 13.5,
@@ -226,15 +229,13 @@ class _SeedTemplesControlState extends State<SeedTemplesControl> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            succeeded
-                ? Icons.check_circle_rounded
-                : Icons.cloud_upload_rounded,
+            succeeded ? Icons.check_circle_rounded : Icons.cloud_upload_rounded,
             size: 52,
             color: succeeded ? const Color(0xFF2E7D32) : _saffron,
           ),
           const SizedBox(height: 14),
           Text(
-            'No temples in Firestore',
+            context.l10n.noTemplesInFirestore,
             textAlign: TextAlign.center,
             style: GoogleFonts.lora(
               fontSize: 20,
@@ -244,9 +245,7 @@ class _SeedTemplesControlState extends State<SeedTemplesControl> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Seed the bundled sample temples to populate the Admin list. '
-            'Re-running is safe — each temple uses a stable document ID, '
-            'so you will not get duplicates.',
+            context.l10n.seedPanelBody,
             textAlign: TextAlign.center,
             style: GoogleFonts.poppins(
               fontSize: 13.5,
@@ -267,19 +266,17 @@ class _SeedTemplesControlState extends State<SeedTemplesControl> {
                     ),
                   )
                 : Icon(
-                    failed
-                        ? Icons.refresh_rounded
-                        : Icons.cloud_upload_rounded,
+                    failed ? Icons.refresh_rounded : Icons.cloud_upload_rounded,
                     size: 18,
                   ),
             label: Text(
               running
-                  ? 'Seeding…'
+                  ? context.l10n.seedingEllipsis
                   : failed
-                      ? 'Retry seed'
-                      : succeeded
-                          ? 'Seed again'
-                          : 'Seed sample temples',
+                  ? context.l10n.retrySeed
+                  : succeeded
+                  ? context.l10n.seedAgain
+                  : context.l10n.seedSampleTemples,
               style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
             ),
             style: FilledButton.styleFrom(
@@ -300,8 +297,8 @@ class _SeedTemplesControlState extends State<SeedTemplesControl> {
                 color: failed
                     ? Colors.red.shade700
                     : succeeded
-                        ? const Color(0xFF2E7D32)
-                        : Colors.brown.shade700,
+                    ? const Color(0xFF2E7D32)
+                    : Colors.brown.shade700,
               ),
             ),
           ],

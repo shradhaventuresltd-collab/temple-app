@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/models/photo_licence.dart';
 import 'package:temple_app/services/client_cache.dart';
 import 'package:temple_app/models/temple_photo.dart';
@@ -193,7 +194,7 @@ class _AddPhotoTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '+ Add photo',
+                  context.l10n.addPhoto,
                   textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(
                     fontSize: 11,
@@ -229,7 +230,7 @@ class _PhotoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tile = _tileBody();
+    final tile = _tileBody(context);
     return DragTarget<int>(
       onWillAcceptWithDetails: (details) => details.data != index,
       onAcceptWithDetails: (details) => onReorder(details.data, index),
@@ -260,7 +261,7 @@ class _PhotoTile extends StatelessWidget {
     );
   }
 
-  Widget _tileBody() {
+  Widget _tileBody(BuildContext context) {
     return ClipRRect(
       key: Key('admin-photo-tile-$index'),
       borderRadius: BorderRadius.circular(12),
@@ -282,7 +283,7 @@ class _PhotoTile extends StatelessWidget {
             top: 0,
             child: IconButton(
               key: Key('admin-photo-remove-$index'),
-              tooltip: 'Remove photo',
+              tooltip: context.l10n.removePhoto,
               onPressed: onRemove,
               style: IconButton.styleFrom(
                 minimumSize: const Size(48, 48),
@@ -318,12 +319,12 @@ class _PhotoTile extends StatelessWidget {
                 ),
                 onPressed: onRetry,
                 child: Text(
-                  'Retry',
+                  context.l10n.retry,
                   style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
                 ),
               ),
             ),
-          if (!draft.uploading && !draft.failed) _statusBadge(),
+          if (!draft.uploading && !draft.failed) _statusBadge(context),
         ],
       ),
     );
@@ -352,7 +353,7 @@ class _PhotoTile extends StatelessWidget {
     return const _PhotoFallback();
   }
 
-  Widget _statusBadge() {
+  Widget _statusBadge(BuildContext context) {
     if (draft.needsLicence) {
       return Positioned(
         left: 4,
@@ -360,7 +361,7 @@ class _PhotoTile extends StatelessWidget {
         bottom: 4,
         child: _Badge(
           key: Key('admin-photo-needs-licence-$index'),
-          label: 'Needs licence',
+          label: context.l10n.needsLicence,
         ),
       );
     }
@@ -371,7 +372,7 @@ class _PhotoTile extends StatelessWidget {
         bottom: 4,
         child: _Badge(
           key: Key('admin-photo-needs-credit-$index'),
-          label: 'Needs credit',
+          label: context.l10n.needsCredit,
         ),
       );
     }
@@ -403,7 +404,7 @@ class _CoverChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
-        'Cover',
+        context.l10n.cover,
         style: GoogleFonts.poppins(
           color: Colors.white,
           fontSize: 10,
@@ -522,7 +523,7 @@ class _PhotoLicenceSheetState extends State<_PhotoLicenceSheet> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Photo licence',
+            context.l10n.photoLicence,
             style: GoogleFonts.lora(
               fontSize: 20,
               fontWeight: FontWeight.w700,
@@ -531,8 +532,7 @@ class _PhotoLicenceSheetState extends State<_PhotoLicenceSheet> {
           ),
           const SizedBox(height: 4),
           Text(
-            'CC-BY and CC-BY-SA need a credit. CC0, Own, and Permission '
-            'can leave credit blank.',
+            context.l10n.photoLicenceHelp,
             style: GoogleFonts.poppins(
               fontSize: 13,
               height: 1.4,
@@ -557,8 +557,8 @@ class _PhotoLicenceSheetState extends State<_PhotoLicenceSheet> {
                     ),
                     subtitle: Text(
                       licence.requiresCredit
-                          ? 'Credit required'
-                          : 'Credit optional',
+                          ? context.l10n.creditRequired
+                          : context.l10n.creditOptional,
                       style: GoogleFonts.poppins(fontSize: 12),
                     ),
                   ),
@@ -571,8 +571,10 @@ class _PhotoLicenceSheetState extends State<_PhotoLicenceSheet> {
             maxLength: kMaxPhotoCreditLength,
             onChanged: (_) => setState(() {}),
             decoration: InputDecoration(
-              labelText: _creditRequired ? 'Credit (required)' : 'Credit',
-              hintText: 'Photographer or source',
+              labelText: _creditRequired
+                  ? context.l10n.creditRequiredLabel
+                  : context.l10n.creditLabel,
+              hintText: context.l10n.creditHint,
               border: const OutlineInputBorder(),
             ),
           ),
@@ -598,7 +600,7 @@ class _PhotoLicenceSheetState extends State<_PhotoLicenceSheet> {
               minimumSize: const Size(48, 48),
             ),
             child: Text(
-              'Use this licence',
+              context.l10n.useThisLicence,
               style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
             ),
           ),

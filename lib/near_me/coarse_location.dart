@@ -20,7 +20,7 @@ class LocationFailure implements Exception {
   final LocationFailureKind kind;
 
   @override
-  String toString() => 'LocationFailure(${kind.name})';
+  String toString() => 'LocationFailure(${kind.name})'; // l10n-allow: diagnostic, not UI copy
 }
 
 /// One-shot approximate location. Tests pass a fake. Production uses

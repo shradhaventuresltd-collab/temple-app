@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 
 /// Full-screen stop when Remote Config `kill_switch` is true.
 ///
@@ -13,9 +14,8 @@ class MaintenanceScreen extends StatelessWidget {
 
   final VoidCallback? onExit;
 
-  static const String title = "We'll be back soon";
-  static const String fallbackMessage =
-      'Temple Directory is temporarily unavailable. Please try again later.';
+  static String get title => L10nLookup.english.maintenanceTitle;
+  static String get fallbackMessage => L10nLookup.english.maintenanceFallback;
 
   static const Color saffron = Color(0xFFFF8F00);
   static const Color cream = Color(0xFFFFFBF2);
@@ -32,7 +32,9 @@ class MaintenanceScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final body = message.trim().isEmpty ? fallbackMessage : message.trim();
+    final body = message.trim().isEmpty
+        ? context.l10n.maintenanceFallback
+        : message.trim();
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -55,7 +57,7 @@ class MaintenanceScreen extends StatelessWidget {
                 ),
                 const Spacer(),
                 Text(
-                  title,
+                  context.l10n.maintenanceTitle,
                   style: GoogleFonts.lora(
                     fontSize: 32,
                     height: 1.15,

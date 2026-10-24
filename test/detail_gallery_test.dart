@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/models/photo_licence.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_index.dart';
@@ -114,6 +115,8 @@ void main() {
     );
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(body: TempleDetailBody(temple: temple)),
       ),
     );
@@ -130,6 +133,8 @@ void main() {
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocale.localizationsDelegates,
+          supportedLocales: AppLocale.supportedLocales,
           home: Scaffold(
             body: TempleDetailBody(temple: _temple(original: original)),
           ),
@@ -154,6 +159,8 @@ void main() {
     final detailKey = GlobalKey();
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: TempleDetailBody(key: detailKey, temple: temple),
         ),
@@ -173,6 +180,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: Stack(
             children: [
@@ -207,6 +216,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: Stack(
             children: [
@@ -257,6 +268,8 @@ void main() {
     final detailKey = GlobalKey();
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: TempleDetailBody(key: detailKey, temple: temple),
         ),
@@ -276,6 +289,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: Stack(
             children: [
@@ -310,6 +325,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: Stack(
             children: [

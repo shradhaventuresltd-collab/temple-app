@@ -4,6 +4,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/home_screen.dart';
 import 'package:temple_app/services/offline_link.dart';
@@ -74,7 +75,7 @@ void main() {
   ) async {
     DirectoryLink.offline.value = false;
     await tester.pumpWidget(
-      const MaterialApp(home: Scaffold(body: OfflineBanner())),
+      const MaterialApp(localizationsDelegates: AppLocale.localizationsDelegates, supportedLocales: AppLocale.supportedLocales, home: Scaffold(body: OfflineBanner())),
     );
     expect(find.byKey(const Key('offline-banner')), findsNothing);
 
@@ -85,6 +86,8 @@ void main() {
 
     await tester.pumpWidget(
       const MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(body: OfflineBanner(savedTempleCount: 4)),
       ),
     );
@@ -101,6 +104,8 @@ void main() {
     DirectoryLink.offline.value = true;
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: HomeScreen(
           adminAuth: FakeAdminAuth(),
           templesLoader: () async => throw Exception('offline'),
@@ -120,6 +125,8 @@ void main() {
     var calls = 0;
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: HomeScreen(
           adminAuth: FakeAdminAuth(),
           templesLoader: () async {

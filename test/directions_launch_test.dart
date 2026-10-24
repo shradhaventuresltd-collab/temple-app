@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/temple_detail_screen.dart';
 import 'package:url_launcher_platform_interface/link.dart';
@@ -78,6 +79,8 @@ void main() {
   Future<void> pumpDetail(WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(body: TempleDetailBody(temple: _temple())),
       ),
     );
@@ -95,6 +98,8 @@ void main() {
   testWidgets('missing coordinates are not sent to maps', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: TempleDetailBody(
             temple: Temple(
@@ -137,6 +142,8 @@ void main() {
   testWidgets('a cached detail says it may be out of date', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: TempleDetailBody(temple: _temple(), fromCache: true),
         ),

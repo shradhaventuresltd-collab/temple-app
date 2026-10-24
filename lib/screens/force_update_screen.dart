@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/services/app_update.dart';
 
 /// Full-screen block when the installed build is below `min_supported_build`.
@@ -17,11 +18,9 @@ class ForceUpdateScreen extends StatefulWidget {
   final Future<bool> Function(Uri url) launch;
   final VoidCallback? onExit;
 
-  static const String title = 'Update required';
-  static const String body =
-      'This version of Temple Directory India is no longer supported. '
-      'Install the latest version from the Play Store to continue.';
-  static const String buttonLabel = 'Update on Play Store';
+  static String get title => L10nLookup.english.forceUpdateTitle;
+  static String get body => L10nLookup.english.forceUpdateBody;
+  static String get buttonLabel => L10nLookup.english.forceUpdateButton;
 
   @override
   State<ForceUpdateScreen> createState() => _ForceUpdateScreenState();
@@ -45,7 +44,7 @@ class _ForceUpdateScreenState extends State<ForceUpdateScreen> {
     setState(() => _opening = false);
     if (!opened) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open the Play Store.')),
+        SnackBar(content: Text(context.l10n.couldNotOpenPlayStore)),
       );
     }
   }
@@ -74,7 +73,7 @@ class _ForceUpdateScreenState extends State<ForceUpdateScreen> {
                 ),
                 const Spacer(),
                 Text(
-                  ForceUpdateScreen.title,
+                  context.l10n.forceUpdateTitle,
                   style: GoogleFonts.lora(
                     fontSize: 32,
                     height: 1.15,
@@ -84,7 +83,7 @@ class _ForceUpdateScreenState extends State<ForceUpdateScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  ForceUpdateScreen.body,
+                  context.l10n.forceUpdateBody,
                   style: GoogleFonts.poppins(
                     fontSize: 16,
                     height: 1.45,
@@ -102,7 +101,7 @@ class _ForceUpdateScreenState extends State<ForceUpdateScreen> {
                       minimumSize: const Size.fromHeight(48),
                     ),
                     onPressed: _opening ? null : _openStore,
-                    child: Text(ForceUpdateScreen.buttonLabel),
+                    child: Text(context.l10n.forceUpdateButton),
                   ),
                 ),
                 const Spacer(flex: 2),

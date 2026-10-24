@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/district/district_lookup.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/licences_screen.dart';
 import 'package:temple_app/screens/temple_detail_screen.dart';
@@ -151,7 +152,7 @@ class _AppDrawerState extends State<AppDrawer> {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      'Temple Directory',
+                      context.l10n.appTitleShort,
                       style: GoogleFonts.lora(
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
@@ -160,7 +161,7 @@ class _AppDrawerState extends State<AppDrawer> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'India',
+                      context.l10n.india,
                       style: GoogleFonts.poppins(
                         fontSize: 13,
                         color: Colors.white70,
@@ -173,7 +174,7 @@ class _AppDrawerState extends State<AppDrawer> {
 
               // ── Home ──
               _DrawerNavTile(
-                label: 'Home',
+                label: context.l10n.home,
                 icon: Icons.home_rounded,
                 onTap: () {
                   Navigator.pop(context);
@@ -185,13 +186,13 @@ class _AppDrawerState extends State<AppDrawer> {
 
               // ── All Temples ──
               _DrawerNavTile(
-                label: 'All Temples',
+                label: context.l10n.allTemples,
                 icon: Icons.temple_hindu_rounded,
                 count: all.length,
                 onTap: () => _navigateToList(
                   context,
                   all,
-                  'All Temples',
+                  context.l10n.allTemples,
                   directory: snapshot,
                 ),
               ),
@@ -199,7 +200,7 @@ class _AppDrawerState extends State<AppDrawer> {
               const Divider(height: 20, indent: 18, endIndent: 18),
 
               // ── Search (combines with the state / deity chips below) ──
-              _SectionHeader(label: 'SEARCH'),
+              _SectionHeader(label: context.l10n.searchSection),
               Padding(
                 padding: const EdgeInsets.fromLTRB(18, 0, 18, 4),
                 child: _DirectorySearchField(
@@ -238,7 +239,7 @@ class _AppDrawerState extends State<AppDrawer> {
                 ),
 
               // ── State + deity chips (sheet). Same control as the browse list. ──
-              _SectionHeader(label: 'FILTERS'),
+              _SectionHeader(label: context.l10n.filtersSection),
               Padding(
                 padding: const EdgeInsets.fromLTRB(18, 0, 8, 4),
                 child: DirectoryFilterBar(
@@ -315,7 +316,7 @@ class _AppDrawerState extends State<AppDrawer> {
                             _openBrowse(context, all, directory: snapshot),
                         icon: const Icon(Icons.search_rounded),
                         label: Text(
-                          'Browse ${filtered.length} Temple${filtered.length == 1 ? '' : 's'}',
+                          context.l10n.drawerBrowseTempleCount(filtered.length),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _saffron,
@@ -335,8 +336,8 @@ class _AppDrawerState extends State<AppDrawer> {
                         onPressed: _clearFiltersAndSearch,
                         child: Text(
                           _hasDraft
-                              ? 'Clear search and filters'
-                              : 'Clear All Filters',
+                              ? context.l10n.clearSearchAndFilters
+                              : context.l10n.clearAllFilters,
                           style: GoogleFonts.poppins(
                             fontSize: 13,
                             color: _deepSaffron,
@@ -351,11 +352,11 @@ class _AppDrawerState extends State<AppDrawer> {
               const Divider(height: 24, indent: 18, endIndent: 18),
 
               // ── About ──
-              _SectionHeader(label: 'ABOUT'),
+              _SectionHeader(label: context.l10n.aboutSection),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: Text(
-                  drawerAboutDirectoryBlurb(all.length),
+                  drawerAboutDirectoryBlurb(all.length, context.l10n),
                   style: GoogleFonts.poppins(
                     fontSize: 13,
                     color: Colors.brown.shade600,
@@ -366,7 +367,7 @@ class _AppDrawerState extends State<AppDrawer> {
               const SizedBox(height: 8),
               _DrawerNavTile(
                 key: const Key('drawer-licences'),
-                label: 'Licences',
+                label: context.l10n.licences,
                 icon: Icons.article_outlined,
                 onTap: () {
                   final navigator = Navigator.of(context);
@@ -382,7 +383,7 @@ class _AppDrawerState extends State<AppDrawer> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: Text(
-                  'v1.0.0',
+                  'v1.0.0', // l10n-allow: version stamp, not copy
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: Colors.brown.shade300,
@@ -406,7 +407,7 @@ class _AppDrawerState extends State<AppDrawer> {
     if (_selectedState != null) parts.add(_selectedState!);
     final query = _appliedQuery.trim();
     if (query.isNotEmpty) parts.add('"$query"');
-    if (parts.isEmpty) return 'All Temples';
+    if (parts.isEmpty) return context.l10n.allTemples;
     return parts.join(' · ');
   }
 
@@ -414,19 +415,20 @@ class _AppDrawerState extends State<AppDrawer> {
     if (_selectedState == null &&
         _selectedDeity == null &&
         (_selectedDistrict == null || _selectedDistrict!.isEmpty)) {
-      return 'Search';
+      return context.l10n.search;
     }
     return directoryBrowseTitle(
       state: _selectedState,
       deity: _selectedDeity,
       district: _selectedDistrict,
+      l10n: context.l10n,
     );
   }
 
   String _matchButtonLabel(int count) {
-    if (_appliedQuery.trim().isEmpty) return 'Search directory';
-    if (count == 0) return 'No matching temples';
-    return 'View $count match${count == 1 ? '' : 'es'}';
+    if (_appliedQuery.trim().isEmpty) return context.l10n.searchDirectory;
+    if (count == 0) return context.l10n.noMatchingTemples;
+    return context.l10n.viewMatchCount(count);
   }
 
   void _openBrowse(
@@ -567,8 +569,13 @@ class _TempleListScreenState extends State<TempleListScreen> {
         deity == null &&
         (district == null || district.isEmpty);
     final next = unconstrained && widget.initialQuery.trim().isNotEmpty
-        ? 'Search'
-        : directoryBrowseTitle(state: state, deity: deity, district: district);
+        ? context.l10n.search
+        : directoryBrowseTitle(
+            state: state,
+            deity: deity,
+            district: district,
+            l10n: context.l10n,
+          );
     if (next == _title) return;
     setState(() => _title = next);
   }
@@ -622,7 +629,7 @@ class _TempleListScreenState extends State<TempleListScreen> {
             button: true,
             child: IconButton(
               icon: const Icon(Icons.home_rounded),
-              tooltip: 'Home',
+              tooltip: context.l10n.home,
               onPressed: () =>
                   Navigator.popUntil(context, (route) => route.isFirst),
             ),
@@ -875,7 +882,7 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    '${visible.length} temple${visible.length == 1 ? '' : 's'}',
+                    context.l10n.templeCountLabel(visible.length),
                     style: GoogleFonts.poppins(
                       fontSize: 12,
                       color: Colors.brown.shade500,
@@ -907,17 +914,17 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
     required bool filtersActive,
   }) {
     if (widget.isLoading) {
-      return const _BrowseMessage(
+      return _BrowseMessage(
         progress: true,
-        title: 'Loading temples',
-        message: 'Fetching the directory.',
+        title: context.l10n.loadingTemples,
+        message: context.l10n.fetchingDirectory,
       );
     }
     if (widget.loadFailed) {
-      return const _BrowseMessage(
+      return _BrowseMessage(
         icon: Icons.cloud_off_rounded,
-        title: 'Could not load temples',
-        message: 'The directory did not load. Go back and try again.',
+        title: context.l10n.couldNotLoadTemples,
+        message: context.l10n.directoryDidNotLoad,
       );
     }
     if (visible.isEmpty) {
@@ -978,7 +985,7 @@ class _DirectorySearchField extends StatelessWidget {
         enableSuggestions: false,
         style: GoogleFonts.poppins(fontSize: 14, color: Colors.brown.shade800),
         decoration: InputDecoration(
-          hintText: 'Name, city, state, deity, or address',
+          hintText: context.l10n.searchHint,
           hintStyle: GoogleFonts.poppins(
             fontSize: 13,
             color: Colors.brown.shade300,
@@ -989,7 +996,7 @@ class _DirectorySearchField extends StatelessWidget {
           ),
           suffixIcon: showClear
               ? IconButton(
-                  tooltip: 'Clear search',
+                  tooltip: context.l10n.clearSearch,
                   onPressed: onClear,
                   icon: Icon(Icons.close_rounded, color: Colors.brown.shade400),
                 )
@@ -1031,20 +1038,21 @@ class _SearchEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final searching = query.isNotEmpty;
+    final l10n = context.l10n;
     final title = filtersActive && searching
-        ? 'No temples match these filters and "$query".'
+        ? l10n.noMatchFiltersAndQuery(query)
         : filtersActive
-        ? 'No temples match these filters.'
+        ? l10n.noMatchFilters
         : searching
-        ? 'No temples match "$query".'
-        : 'No temples to browse';
+        ? l10n.noMatchQuery(query)
+        : l10n.noTemplesToBrowse;
     final message = filtersActive && searching
-        ? 'Clear the filters or the search. The list is the directory already loaded.'
+        ? l10n.clearFiltersOrSearch
         : filtersActive
-        ? directoryEmptyFilterMessage(district: district)
+        ? directoryEmptyFilterMessage(district: district, l10n: l10n)
         : searching
-        ? 'Try a name, city, state, deity, or address.'
-        : 'Nothing is listed in this view yet.';
+        ? l10n.trySearchHint
+        : l10n.nothingListedYet;
     final icon = filtersActive
         ? Icons.filter_alt_off_rounded
         : searching
@@ -1086,12 +1094,12 @@ class _SearchEmptyState extends StatelessWidget {
                     TextButton(
                       key: const Key('filter-empty-clear'),
                       onPressed: onClearFilters,
-                      child: const Text('Clear filters'),
+                      child: Text(context.l10n.clearFilters),
                     ),
                   if (onClearSearch != null)
                     TextButton(
                       onPressed: onClearSearch,
-                      child: const Text('Clear search'),
+                      child: Text(context.l10n.clearSearch),
                     ),
                 ],
               ),
@@ -1178,7 +1186,7 @@ class AdPrivacyChoicesTile extends StatelessWidget {
           return const SizedBox.shrink();
         }
         return _DrawerNavTile(
-          label: 'Ad privacy choices',
+          label: context.l10n.adPrivacyChoices,
           icon: Icons.privacy_tip_outlined,
           onTap: () {
             final navigator = Navigator.maybeOf(context);

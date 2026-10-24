@@ -3,6 +3,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/data/sample_data.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/temple_detail_screen.dart';
 
@@ -50,6 +51,8 @@ Future<void> _pumpDetail(
 
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: AppLocale.localizationsDelegates,
+      supportedLocales: AppLocale.supportedLocales,
       builder: (context, child) {
         return MediaQuery(
           data: MediaQuery.of(

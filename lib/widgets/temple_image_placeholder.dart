@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 
 /// Shown when a temple has no verified photograph.
 ///
@@ -54,7 +55,7 @@ class TempleImagePlaceholder extends StatelessWidget {
     }
 
     return Semantics(
-      label: 'Photo pending. No verified photograph is on file.',
+      label: context.l10n.photoPendingSemantics,
       child: expand
           ? SizedBox.expand(child: core)
           : SizedBox(height: height, width: double.infinity, child: core),
@@ -89,7 +90,7 @@ class _PendingColumn extends StatelessWidget {
           if (showCaption) ...[
             SizedBox(height: large ? 14 : 8),
             Text(
-              'Photo pending',
+              context.l10n.photoPending,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w700,
@@ -99,7 +100,7 @@ class _PendingColumn extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'No verified photograph is on file.',
+              context.l10n.noVerifiedPhotograph,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: const Color(0xFF6D4C41),

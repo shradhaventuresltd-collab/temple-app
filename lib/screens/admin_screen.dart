@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/config/build_flags.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/admin_temple_form_screen.dart';
 import 'package:temple_app/services/admin_auth.dart';
@@ -66,7 +67,7 @@ class _AdminScreenState extends State<AdminScreen> {
           elevation: 0,
           centerTitle: true,
           title: Text(
-            'Admin Panel',
+            context.l10n.adminPanel,
             style: GoogleFonts.lora(
               fontWeight: FontWeight.w700,
               color: Colors.white,
@@ -78,8 +79,7 @@ class _AdminScreenState extends State<AdminScreen> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 28),
             child: Text(
-              'Admin CMS is available in debug or demo builds '
-              '(ENABLE_ADMIN_TOOLS).',
+              context.l10n.adminCmsUnavailable,
               key: const Key('admin-unavailable-message'),
               style: GoogleFonts.poppins(color: Colors.brown.shade700),
               textAlign: TextAlign.center,
@@ -102,7 +102,7 @@ class _AdminScreenState extends State<AdminScreen> {
             elevation: 0,
             centerTitle: true,
             title: Text(
-              'Admin Panel',
+              context.l10n.adminPanel,
               style: GoogleFonts.lora(
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
@@ -114,7 +114,7 @@ class _AdminScreenState extends State<AdminScreen> {
                 const SeedTemplesControl(compact: true, light: true),
                 IconButton(
                   key: const Key('admin-add-temple-appbar'),
-                  tooltip: 'Create temple',
+                  tooltip: context.l10n.createTemple,
                   icon: const Icon(Icons.add_rounded),
                   onPressed: () => _openForm(),
                 ),
@@ -122,7 +122,7 @@ class _AdminScreenState extends State<AdminScreen> {
               if (session.isSignedIn)
                 IconButton(
                   key: const Key('admin-appbar-sign-out'),
-                  tooltip: 'Sign out',
+                  tooltip: context.l10n.signOut,
                   icon: const Icon(Icons.logout_rounded),
                   onPressed: () => _auth.signOut(),
                 ),
@@ -161,8 +161,7 @@ class _AdminTemplesBody extends StatelessWidget {
     if (!kAdminToolsEnabled) {
       return Center(
         child: Text(
-          'Admin CMS is available in debug or demo builds '
-          '(ENABLE_ADMIN_TOOLS).',
+          context.l10n.adminCmsUnavailable,
           style: GoogleFonts.poppins(color: Colors.brown.shade700),
           textAlign: TextAlign.center,
         ),
@@ -204,7 +203,7 @@ class _AdminTemplesBody extends StatelessWidget {
                   const SeedTemplesControl(),
                   const SizedBox(height: 20),
                   Text(
-                    'or',
+                    context.l10n.orDivider,
                     style: GoogleFonts.poppins(color: Colors.brown.shade400),
                   ),
                   const SizedBox(height: 12),
@@ -213,7 +212,7 @@ class _AdminTemplesBody extends StatelessWidget {
                     onPressed: onCreate,
                     icon: const Icon(Icons.add_rounded, size: 18),
                     label: Text(
-                      'Create a temple',
+                      context.l10n.createATemple,
                       style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
                     ),
                     style: FilledButton.styleFrom(
@@ -251,7 +250,7 @@ class _AdminTemplesBody extends StatelessWidget {
                 foregroundColor: Colors.white,
                 icon: const Icon(Icons.add_rounded),
                 label: Text(
-                  'Add temple',
+                  context.l10n.addTemple,
                   style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
                 ),
               ),
@@ -308,23 +307,21 @@ class _AdminTempleCardState extends State<_AdminTempleCard> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) {
+        final l10n = context.l10n;
         return AlertDialog(
           title: Text(
-            'Delete temple?',
+            l10n.deleteTempleTitle,
             style: GoogleFonts.lora(fontWeight: FontWeight.w700),
           ),
           content: Text(
-            'Permanently remove "${temple.name}" from Firestore? '
-            'Images uploaded under temples/${temple.id}/ in Storage will '
-            'also be deleted. External image URLs (for example seed photos) '
-            'are not Storage files and are left as-is.',
+            l10n.deleteTempleBody(temple.name, temple.id),
             style: GoogleFonts.poppins(height: 1.45),
           ),
           actions: [
             TextButton(
               key: const Key('admin-delete-cancel-button'),
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             FilledButton(
               key: const Key('admin-delete-confirm-button'),
@@ -333,7 +330,7 @@ class _AdminTempleCardState extends State<_AdminTempleCard> {
                 backgroundColor: Colors.red.shade700,
                 foregroundColor: Colors.white,
               ),
-              child: const Text('Delete'),
+              child: Text(l10n.delete),
             ),
           ],
         );
@@ -346,7 +343,7 @@ class _AdminTempleCardState extends State<_AdminTempleCard> {
     try {
       final result = await widget.adminTemples.deleteTemple(temple.id);
       if (!mounted) return;
-      _snack(result.successMessage, isError: false);
+      _snack(result.successMessageOf(context.l10n), isError: false);
     } catch (e) {
       if (!mounted) return;
       setState(() => _deleting = false);
@@ -437,7 +434,7 @@ class _AdminTempleCardState extends State<_AdminTempleCard> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '${temple.images.length} image(s)',
+                        context.l10n.imageCount(temple.images.length),
                         style: GoogleFonts.poppins(
                           fontSize: 12,
                           color: Colors.brown.shade400,
@@ -446,7 +443,7 @@ class _AdminTempleCardState extends State<_AdminTempleCard> {
                       if (_deleting) ...[
                         const SizedBox(height: 6),
                         Text(
-                          'Deleting…',
+                          context.l10n.deleting,
                           style: GoogleFonts.poppins(
                             fontSize: 12,
                             color: Colors.red.shade700,
@@ -466,7 +463,7 @@ class _AdminTempleCardState extends State<_AdminTempleCard> {
                   onPressed: busy ? null : widget.onEdit,
                   icon: const Icon(Icons.add_photo_alternate_rounded, size: 18),
                   label: Text(
-                    'Upload',
+                    context.l10n.upload,
                     style: GoogleFonts.poppins(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
@@ -492,7 +489,7 @@ class _AdminTempleCardState extends State<_AdminTempleCard> {
                   onPressed: busy ? null : widget.onEdit,
                   icon: const Icon(Icons.edit_rounded, size: 18),
                   label: Text(
-                    'Edit',
+                    context.l10n.edit,
                     style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -501,7 +498,7 @@ class _AdminTempleCardState extends State<_AdminTempleCard> {
                   onPressed: busy ? null : _confirmDelete,
                   icon: const Icon(Icons.delete_outline_rounded, size: 18),
                   label: Text(
-                    'Delete',
+                    context.l10n.delete,
                     style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
                   ),
                   style: TextButton.styleFrom(

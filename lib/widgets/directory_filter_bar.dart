@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/utils/directory_filters.dart';
@@ -130,10 +131,10 @@ class DirectoryFilterBar extends StatelessWidget {
             semanticsId: 'filter-chip-state',
             clearKey: const Key('filter-chip-state-clear'),
             icon: Icons.place_rounded,
-            label: selectedState ?? 'State',
+            label: selectedState ?? context.l10n.stateLabel,
             selected: selectedState != null,
-            openTooltip: 'Choose a state',
-            clearTooltip: 'Clear state filter',
+            openTooltip: context.l10n.chooseState,
+            clearTooltip: context.l10n.clearStateFilter,
             onOpen: () => _openSheet(
               context,
               loadDistricts: false,
@@ -149,12 +150,12 @@ class DirectoryFilterBar extends StatelessWidget {
               clearKey: const Key('filter-chip-district-clear'),
               icon: Icons.map_outlined,
               label: selectedDistrict == null || selectedDistrict!.isEmpty
-                  ? 'All districts'
+                  ? context.l10n.allDistricts
                   : selectedDistrict!,
               selected:
                   selectedDistrict != null && selectedDistrict!.isNotEmpty,
-              openTooltip: 'Choose a district',
-              clearTooltip: 'Clear district filter',
+              openTooltip: context.l10n.chooseDistrict,
+              clearTooltip: context.l10n.clearDistrictFilter,
               onOpen: () => _openSheet(
                 context,
                 loadDistricts: true,
@@ -169,11 +170,11 @@ class DirectoryFilterBar extends StatelessWidget {
             clearKey: const Key('filter-chip-deity-clear'),
             icon: Icons.auto_awesome_rounded,
             label: selectedDeity == null
-                ? 'Deity'
-                : directoryDeityChipLabel(selectedDeity!),
+                ? context.l10n.deityLabel
+                : directoryDeityChipLabel(selectedDeity!, context.l10n),
             selected: selectedDeity != null,
-            openTooltip: 'Choose a deity',
-            clearTooltip: 'Clear deity filter',
+            openTooltip: context.l10n.chooseDeity,
+            clearTooltip: context.l10n.clearDeityFilter,
             onOpen: () => _openSheet(
               context,
               loadDistricts: false,
@@ -187,7 +188,7 @@ class DirectoryFilterBar extends StatelessWidget {
               key: const Key('filter-clear'),
               onPressed: () => onChanged(null, null, null),
               child: Text(
-                'Clear',
+                context.l10n.clear,
                 style: GoogleFonts.poppins(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -273,13 +274,16 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
     required String? note,
   }) {
     final stateSection = <Widget>[
-      const _SheetSectionLabel('STATE', key: Key('filter-section-state')),
+      _SheetSectionLabel(
+        context.l10n.stateSection,
+        key: const Key('filter-section-state'),
+      ),
       const SizedBox(height: 8),
       _OptionWrap(
         children: [
           _OptionChip(
             optionKey: const Key('filter-option-state-any'),
-            label: 'Any state',
+            label: context.l10n.anyState,
             count: _count(deity: _deity, district: _district),
             selected: _state == null,
             onTap: () => _chooseState(null),
@@ -296,13 +300,16 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
       ),
     ];
     final districtSection = <Widget>[
-      const _SheetSectionLabel('DISTRICT', key: Key('filter-section-district')),
+      _SheetSectionLabel(
+        context.l10n.districtSection,
+        key: const Key('filter-section-district'),
+      ),
       const SizedBox(height: 8),
       _OptionWrap(
         children: [
           _OptionChip(
             optionKey: const Key('filter-option-district-any'),
-            label: 'All districts',
+            label: context.l10n.allDistricts,
             count: _count(state: _state, deity: _deity),
             selected: _district == null || _district!.isEmpty,
             onTap: () => setState(() => _district = null),
@@ -319,7 +326,10 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
       ),
     ];
     final deitySection = <Widget>[
-      const _SheetSectionLabel('DEITY', key: Key('filter-section-deity')),
+      _SheetSectionLabel(
+        context.l10n.deitySection,
+        key: const Key('filter-section-deity'),
+      ),
       if (note != null) ...[
         const SizedBox(height: 6),
         Text(
@@ -337,7 +347,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
         children: [
           _OptionChip(
             optionKey: const Key('filter-option-deity-any'),
-            label: 'Any deity',
+            label: context.l10n.anyDeity,
             count: _count(state: _state, district: _district),
             selected: _deity == null,
             onTap: () => setState(() => _deity = null),
@@ -345,7 +355,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
           for (final deity in deities)
             _OptionChip(
               optionKey: Key('filter-option-deity-$deity'),
-              label: directoryDeityChipLabel(deity),
+              label: directoryDeityChipLabel(deity, context.l10n),
               count: _count(state: _state, deity: deity, district: _district),
               selected: _deity == deity,
               onTap: () => setState(() => _deity = deity),
@@ -392,7 +402,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
     final showDistricts =
         widget.districtOf != null &&
         (districts.isNotEmpty || (_district != null && _district!.isNotEmpty));
-    final note = directoryDeityFilterNote(deities);
+    final note = directoryDeityFilterNote(deities, context.l10n);
     final matched = _count(state: _state, deity: _deity, district: _district);
     final draftActive =
         _state != null ||
@@ -424,7 +434,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
                   const SizedBox(width: 40),
                   Expanded(
                     child: Text(
-                      'Filters',
+                      context.l10n.filters,
                       textAlign: TextAlign.center,
                       style: GoogleFonts.lora(
                         fontSize: 22,
@@ -435,7 +445,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
                   ),
                   IconButton(
                     key: const Key('filter-sheet-close'),
-                    tooltip: 'Close filters',
+                    tooltip: context.l10n.closeFilters,
                     onPressed: () => Navigator.pop(context),
                     icon: Icon(
                       Icons.close_rounded,
@@ -449,8 +459,8 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
               child: Text(
                 showDistricts
-                    ? 'State, district, and deity, on the temples already loaded.'
-                    : 'State and deity, on the temples already loaded.',
+                    ? context.l10n.filterSheetWithDistrict
+                    : context.l10n.filterSheetNoDistrict,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(
                   fontSize: 12.5,
@@ -484,7 +494,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
                           })
                         : null,
                     child: Text(
-                      'Clear',
+                      context.l10n.clear,
                       style: GoogleFonts.poppins(
                         fontWeight: FontWeight.w600,
                         color: draftActive
@@ -516,7 +526,9 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
                           district: _district,
                         ));
                       },
-                      child: Text(directoryFilterResultLabel(matched)),
+                      child: Text(
+                        directoryFilterResultLabel(matched, context.l10n),
+                      ),
                     ),
                   ),
                 ],

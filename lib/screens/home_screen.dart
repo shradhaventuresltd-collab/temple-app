@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/config/build_flags.dart';
 import 'package:temple_app/data/heritage_content.dart';
@@ -249,7 +250,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
 
     final allTemples = snapshot.data ?? [];
-    final missing = FirestoreReadLog.instance.unavailableShardsMessage;
+    final missing = FirestoreReadLog.instance.unavailableShardsMessageOf(
+      context.l10n,
+    );
     if (allTemples.isEmpty) {
       if (missing != null) {
         return _HomeErrorBody(onRetry: _reloadTemples, detail: missing);
@@ -263,8 +266,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) =>
-                TempleListScreen(temples: allTemples, title: 'All Temples'),
+            builder: (_) => TempleListScreen(
+              temples: allTemples,
+              title: context.l10n.allTemples,
+            ),
           ),
         );
       },
@@ -304,7 +309,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         centerTitle: true,
         toolbarHeight: _titleBarHeight,
         title: Text(
-          'Temple Directory',
+          context.l10n.appTitleShort,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           softWrap: true,
@@ -404,7 +409,7 @@ class _HomeAdminOverflowState extends State<_HomeAdminOverflow> {
                 _close();
                 widget.onOpenAdmin();
               },
-              child: const Text('Admin sign-in'),
+              child: Text(overlayContext.l10n.adminSignIn),
             ),
           ),
         );
@@ -417,7 +422,7 @@ class _HomeAdminOverflowState extends State<_HomeAdminOverflow> {
   Widget build(BuildContext context) {
     return IconButton(
       key: const Key('home-admin-menu'),
-      tooltip: 'More',
+      tooltip: context.l10n.moreTooltip,
       onPressed: _toggle,
       icon: const Icon(Icons.more_vert),
     );
@@ -442,7 +447,7 @@ class _HomeLoadingBody extends StatelessWidget {
             const CircularProgressIndicator(color: _saffron),
             const SizedBox(height: 16),
             Text(
-              'Loading temples…',
+              context.l10n.loadingTemplesEllipsis,
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 color: Colors.brown.shade700,
@@ -452,7 +457,7 @@ class _HomeLoadingBody extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Preparing the directory. This usually takes a moment.',
+              context.l10n.preparingDirectory,
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 color: Colors.brown.shade500,
@@ -488,7 +493,7 @@ class _HomeErrorBody extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'Could not load temples.',
+              context.l10n.couldNotLoadTemplesPeriod,
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 color: Colors.brown.shade700,
@@ -497,7 +502,7 @@ class _HomeErrorBody extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              detail ?? 'Check your connection and try again.',
+              detail ?? context.l10n.checkConnection,
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 color: Colors.brown.shade500,
@@ -505,7 +510,7 @@ class _HomeErrorBody extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            TextButton(onPressed: onRetry, child: const Text('Retry')),
+            TextButton(onPressed: onRetry, child: Text(context.l10n.retry)),
           ],
         ),
       ),
@@ -533,7 +538,7 @@ class _HomeEmptyBody extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'No temples available yet.',
+              context.l10n.noTemplesAvailable,
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 color: Colors.brown.shade700,
@@ -542,7 +547,7 @@ class _HomeEmptyBody extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'The directory came back empty. Tap Retry, or try again later.',
+              context.l10n.directoryEmptyRetry,
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 color: Colors.brown.shade500,
@@ -550,7 +555,7 @@ class _HomeEmptyBody extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            TextButton(onPressed: onRetry, child: const Text('Retry')),
+            TextButton(onPressed: onRetry, child: Text(context.l10n.retry)),
           ],
         ),
       ),
@@ -616,9 +621,7 @@ class _BrowseTemplesCta extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = templeCount == 0
-        ? 'Browse temples'
-        : 'Browse $templeCount Temple${templeCount == 1 ? '' : 's'}';
+    final label = context.l10n.browseTempleCount(templeCount);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 20, 14, 0),
@@ -626,8 +629,7 @@ class _BrowseTemplesCta extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Open the directory for temple cards, search, and filters. '
-            'You can also use the menu (☰).',
+            context.l10n.openDirectoryHint,
             style: GoogleFonts.poppins(
               fontSize: 13,
               height: 1.45,
@@ -660,7 +662,7 @@ class _BrowseTemplesCta extends StatelessWidget {
             key: const Key('home-near-me'),
             onPressed: onNearMe,
             icon: const Icon(Icons.near_me_outlined),
-            label: const Text(NearMeCopy.title),
+            label: Text(NearMeCopy.titleOf(context.l10n)),
             style: TextButton.styleFrom(
               foregroundColor: _deepSaffron,
               textStyle: GoogleFonts.poppins(
@@ -671,7 +673,7 @@ class _BrowseTemplesCta extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Heritage reading continues below',
+            context.l10n.heritageContinuesBelow,
             textAlign: TextAlign.center,
             style: GoogleFonts.poppins(
               fontSize: 12,
@@ -720,7 +722,7 @@ class _HeritageWriteUp extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Temple Heritage of India',
+                  context.l10n.templeHeritageTitle,
                   style: GoogleFonts.lora(
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
@@ -732,7 +734,7 @@ class _HeritageWriteUp extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'A comprehensive exploration of India\'s sacred architectural legacy',
+            context.l10n.templeHeritageSubtitle,
             style: GoogleFonts.poppins(
               fontSize: 12.5,
               color: Colors.brown.shade500,

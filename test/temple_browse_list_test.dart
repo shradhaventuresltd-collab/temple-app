@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/utils/temple_search.dart';
 import 'package:temple_app/widgets/app_drawer.dart';
@@ -50,6 +51,8 @@ void main() {
   Future<void> pumpList(WidgetTester tester, {String initialQuery = ''}) async {
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: TempleBrowseList(temples: temples, initialQuery: initialQuery),
         ),
@@ -132,6 +135,8 @@ void main() {
   ) async {
     await tester.pumpWidget(
       const MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(body: TempleBrowseList(temples: [], isLoading: true)),
       ),
     );
@@ -143,6 +148,8 @@ void main() {
 
     await tester.pumpWidget(
       const MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(body: TempleBrowseList(temples: [])),
       ),
     );
@@ -155,6 +162,8 @@ void main() {
   testWidgets('banner slot stays below the card', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
         home: Scaffold(
           body: TempleBrowseList(
             temples: temples,

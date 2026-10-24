@@ -2,38 +2,40 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/config/policy_config.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/services/policy_acceptance_store.dart';
 
-/// Copy for the acceptance gate.
+/// English copy for the acceptance gate.
 ///
 /// Frame A is [firstLaunchTitle]. Frame C is [updateTitle]. Wording matches
-/// the Figma section for KAN-93.
+/// the Figma section for KAN-93. The screen itself reads
+/// [AppLocalizationsBuildContext.l10n]; these getters stay on the English
+/// bundle so the wording tests keep a single source.
 abstract final class PolicyGateCopy {
-  static const String acceptButton = 'Accept & continue';
-  static const String acceptHint =
-      'Agrees to the Terms of Service and Privacy Policy';
-  static const String termsLabel = 'Terms of Service';
-  static const String updateTermsLabel = 'Terms';
-  static const String privacyLabel = 'Privacy Policy';
-  static const String linkHint = 'Opens in the app';
-  static const String appName = 'Temple Directory India';
+  static final _en = L10nLookup.english;
 
-  static const String firstLaunchTitle = 'Before you begin';
-  static const String firstLaunchLead =
-      'To use the app, please review and accept our ';
-  static const String firstLaunchTail = '.';
-  static const String firstLaunchBody =
-      'To use the app, please review and accept our Terms of Service and Privacy Policy.';
+  static String get acceptButton => _en.acceptAndContinue;
+  static String get acceptHint => _en.acceptHint;
+  static String get termsLabel => _en.termsOfService;
+  static String get updateTermsLabel => _en.termsShort;
+  static String get privacyLabel => _en.privacyPolicy;
+  static String get linkHint => _en.opensInTheApp;
+  static String get appName => _en.appName;
 
-  static const String updateTitle = "We've updated our terms";
-  static const String updateLead = 'Please review and accept the updated ';
-  static const String updateTail = ' to continue.';
-  static const String updateBody =
-      'Please review and accept the updated Terms and Privacy Policy to continue.';
+  static String get firstLaunchTitle => _en.beforeYouBegin;
+  static String get firstLaunchLead => _en.policyFirstLaunchLead;
+  static String get firstLaunchTail => _en.policyFirstLaunchTail;
+  static String get firstLaunchBody =>
+      '$firstLaunchLead$termsLabel${_en.policyAnd}$privacyLabel$firstLaunchTail';
 
-  static const String saveFailed =
-      'Could not save your acceptance on this device. Please try again.';
-  static const String linkFailed = 'Could not open that link.';
+  static String get updateTitle => _en.policyUpdatedTitle;
+  static String get updateLead => _en.policyUpdateLead;
+  static String get updateTail => _en.policyUpdateTail;
+  static String get updateBody =>
+      '$updateLead$updateTermsLabel${_en.policyAnd}$privacyLabel$updateTail';
+
+  static String get saveFailed => _en.policySaveFailed;
+  static String get linkFailed => _en.policyLinkFailed;
 }
 
 /// Colours for the gate.
@@ -90,7 +92,7 @@ class _PolicyAcceptanceGateState extends State<PolicyAcceptanceGate> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(PolicyGateCopy.saveFailed)));
+      ).showSnackBar(SnackBar(content: Text(context.l10n.policySaveFailed)));
       setState(() => _saving = false);
     }
   }
@@ -100,25 +102,18 @@ class _PolicyAcceptanceGateState extends State<PolicyAcceptanceGate> {
     final opened = await widget.onOpenUrl(url);
     if (!opened && mounted) {
       messenger.showSnackBar(
-        SnackBar(content: Text(PolicyGateCopy.linkFailed)),
+        SnackBar(content: Text(context.l10n.policyLinkFailed)),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final title = _update
-        ? PolicyGateCopy.updateTitle
-        : PolicyGateCopy.firstLaunchTitle;
-    final lead = _update
-        ? PolicyGateCopy.updateLead
-        : PolicyGateCopy.firstLaunchLead;
-    final tail = _update
-        ? PolicyGateCopy.updateTail
-        : PolicyGateCopy.firstLaunchTail;
-    final termsLabel = _update
-        ? PolicyGateCopy.updateTermsLabel
-        : PolicyGateCopy.termsLabel;
+    final l10n = context.l10n;
+    final title = _update ? l10n.policyUpdatedTitle : l10n.beforeYouBegin;
+    final lead = _update ? l10n.policyUpdateLead : l10n.policyFirstLaunchLead;
+    final tail = _update ? l10n.policyUpdateTail : l10n.policyFirstLaunchTail;
+    final termsLabel = _update ? l10n.termsShort : l10n.termsOfService;
 
     return PopScope(
       canPop: false,
@@ -171,11 +166,11 @@ class _PolicyAcceptanceGateState extends State<PolicyAcceptanceGate> {
                                   : () => _open(PolicyConfig.termsOfServiceUri),
                             ),
                           ),
-                          const TextSpan(text: ' and '),
+                          TextSpan(text: l10n.policyAnd),
                           WidgetSpan(
                             alignment: PlaceholderAlignment.middle,
                             child: _InlinePolicyLink(
-                              label: PolicyGateCopy.privacyLabel,
+                              label: l10n.privacyPolicy,
                               semanticsId: 'policy-privacy-link',
                               onPressed: _saving
                                   ? null
@@ -233,7 +228,7 @@ class _BrandHeader extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    PolicyGateCopy.appName,
+                    context.l10n.appName,
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       height: 1.2,
@@ -278,7 +273,7 @@ class _InlinePolicyLink extends StatelessWidget {
       button: true,
       link: true,
       label: label,
-      hint: PolicyGateCopy.linkHint,
+      hint: context.l10n.opensInTheApp,
       enabled: onPressed != null,
       child: ExcludeSemantics(
         child: TextButton(
@@ -316,8 +311,8 @@ class _AcceptButton extends StatelessWidget {
       key: const Key('policy-accept-button'),
       identifier: 'policy-accept-button',
       button: true,
-      label: PolicyGateCopy.acceptButton,
-      hint: PolicyGateCopy.acceptHint,
+      label: context.l10n.acceptAndContinue,
+      hint: context.l10n.acceptHint,
       enabled: enabled,
       onTap: activate,
       child: ExcludeSemantics(
@@ -366,7 +361,7 @@ class _AcceptButton extends StatelessWidget {
                       color: Colors.white,
                     ),
                   )
-                : const Text(PolicyGateCopy.acceptButton),
+                : Text(context.l10n.acceptAndContinue),
           ),
         ),
       ),
