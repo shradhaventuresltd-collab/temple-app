@@ -18,8 +18,8 @@ else
   fail_step filter-bar "state filter chip was not on the list"
 fi
 
-if ! ui_wait_scrolled 25 --text-contains "Meenakshi Amman Temple"; then
-  if ! ui_wait_scrolled 15 --text-regex '.+Temple$'; then
+if ! ui_wait_scrolled 25 --resource-id temple-browse-card --text-contains "Meenakshi Amman Temple"; then
+  if ! ui_wait_scrolled 15 --resource-id temple-browse-card --text-contains "Temple"; then
     fail_step open-detail "no temple card was shown"
     return 0
   fi

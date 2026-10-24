@@ -10,9 +10,11 @@ if ! ui_wait 12 --resource-id temple-list-search-field && ! ui_wait 8 --text-con
   fail_step search "search field was not shown"
   return 0
 fi
-ui_tap
-ui_type "Meenakshi"
-if ! ui_wait_scrolled 25 --text-contains "Meenakshi Amman Temple"; then
+if ! ui_replace_field_text "Meenakshi"; then
+  fail_step open-detail "search field text was '${UI_FIELD_ACTUAL:-unreadable}', expected Meenakshi"
+  return 0
+fi
+if ! ui_wait_scrolled 25 --resource-id temple-browse-card --text-contains "Meenakshi Amman Temple"; then
   fail_step open-detail "Meenakshi Amman Temple was not listed"
   return 0
 fi

@@ -25,10 +25,15 @@ def _bounds(raw: str) -> tuple[int, int, int, int] | None:
     return x1, y1, x2, y2
 
 
+def _flat(value: str | None) -> str:
+    """Collapse newlines and repeated spaces so a multi-line label matches a substring."""
+    return " ".join((value or "").split())
+
+
 def _own_bits(node: ET.Element) -> list[str]:
     bits = []
     for key in ("text", "content-desc"):
-        value = (node.attrib.get(key) or "").strip()
+        value = _flat(node.attrib.get(key))
         if value and value not in bits:
             bits.append(value)
     return bits
@@ -74,8 +79,9 @@ def _contains_ok(needle: str | None, haystack: str) -> bool:
 
 def _node_matches(node: ET.Element, args: argparse.Namespace, text: str) -> bool:
     resource_id = _resource_id(node)
-    content = (node.attrib.get("content-desc") or "").strip()
-    own = (node.attrib.get("text") or "").strip()
+    content = _flat(node.attrib.get("content-desc"))
+    own = _flat(node.attrib.get("text"))
+    text = _flat(text)
     package = (node.attrib.get("package") or "").strip()
     clazz = (node.attrib.get("class") or "").strip()
     blob = " ".join(bit for bit in (own, content, text) if bit)

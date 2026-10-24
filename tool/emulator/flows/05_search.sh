@@ -18,35 +18,23 @@ focus_search() {
   return 1
 }
 
-clear_and_type() {
-  local query="$1"
-  adb shell input keyevent 123
-  local i
-  for i in $(seq 1 40); do
-    adb shell input keyevent 67
-  done
-  ui_type "$query"
-}
-
 if ! focus_search; then
   fail_step search-field "search field was not shown"
   return 0
 fi
 pass_step search-field
 
-clear_and_type "Krishna"
-if ui_wait_scrolled 25 --text-contains "Guruvayur"; then
+if ! ui_replace_field_text "Krishna"; then
+  fail_step krishna "search field text was '${UI_FIELD_ACTUAL:-unreadable}', expected Krishna"
+elif ui_wait_scrolled 25 --resource-id temple-browse-card --text-contains "Guruvayur"; then
   pass_step krishna
 else
   fail_step krishna "Guruvayur was not listed for Krishna"
 fi
 
-if ! focus_search; then
-  fail_step guruvayoorappan "search field went missing"
-  return 0
-fi
-clear_and_type "Guruvayoorappan"
-if ui_wait_scrolled 25 --text-contains "Guruvayur"; then
+if ! ui_replace_field_text "Guruvayoorappan"; then
+  fail_step guruvayoorappan "search field text was '${UI_FIELD_ACTUAL:-unreadable}', expected Guruvayoorappan"
+elif ui_wait_scrolled 25 --resource-id temple-browse-card --text-contains "Guruvayur"; then
   pass_step guruvayoorappan
 else
   fail_step guruvayoorappan "Guruvayur was not listed for Guruvayoorappan"

@@ -11,8 +11,7 @@ if ! wait_for_home; then
 fi
 pass_step home
 
-adb shell settings put secure location_mode 3 >/dev/null 2>&1 || true
-adb emu geo fix 78.1193 9.9195 >/dev/null 2>&1 || true
+push_emulator_geo
 
 if ! adb shell pm grant "$PKG" android.permission.ACCESS_COARSE_LOCATION >/tmp/pm-grant.err 2>&1; then
   fail_step grant "pm grant ACCESS_COARSE_LOCATION failed ($(tr '\n' ' ' < /tmp/pm-grant.err))"
@@ -43,13 +42,24 @@ if ! open_near_me; then
   fail_step open-granted "Temples near me was not shown"
   return 0
 fi
-if ui_wait 15 --text-contains "Sort by distance"; then
-  if ui_wait 8 --text-regex '^Continue$'; then
-    ui_tap
-  fi
+if ui_wait 12 --text-contains "Sort by distance"; then
+  dismiss_location_consent Continue || true
 fi
 dismiss_permission_dialog '^(Allow|While using the app)$' || true
-if ui_wait 30 --text-contains "Nearest temples" || ui_wait 8 --text-regex '[0-9]+(\.[0-9]+)? km$'; then
+dismiss_location_consent Continue || true
+
+granted_sorted=0
+granted_start="$SECONDS"
+while (( SECONDS - granted_start < 30 )); do
+  push_emulator_geo
+  if ui_dump && { ui_find --text-contains "Nearest temples" || ui_find --text-regex '[0-9]+(\.[0-9]+)? km$'; }; then
+    granted_sorted=1
+    break
+  fi
+  dismiss_location_consent Continue || true
+  sleep 2
+done
+if [[ "$granted_sorted" -eq 1 ]]; then
   pass_step granted-sorted
 else
   ui_dump || true
@@ -78,10 +88,7 @@ if ! open_near_me; then
   return 0
 fi
 if ui_wait 12 --text-contains "Sort by distance"; then
-  if ui_wait 8 --text-regex '^Continue$'; then
-    ui_tap
-    sleep 1
-  fi
+  dismiss_location_consent Continue || true
 fi
 dismiss_permission_dialog "^(Don.t allow|Deny)$" || true
 if ui_wait 20 --text-contains "Location is off" || ui_wait 8 --text-contains "Pick a state or city"; then
