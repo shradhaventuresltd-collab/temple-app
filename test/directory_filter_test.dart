@@ -340,4 +340,156 @@ void main() {
       findsNothing,
     );
   });
+
+  testWidgets(
+    'dismissing the sheet does not block the next state, deity, or district selection',
+    (tester) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      String? state;
+      String? deity;
+      String? district;
+      String? districtOf(Temple temple) => switch (temple.city) {
+        'Madurai' => 'Madurai',
+        'Kottayam' => 'Kottayam',
+        'Mount Abu' => 'Sirohi',
+        _ => null,
+      };
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) {
+                final visible = directoryMatchingTemples(
+                  temples,
+                  state: state,
+                  deity: deity,
+                  district: district,
+                  districtOf: districtOf,
+                );
+                return Column(
+                  children: [
+                    DirectoryFilterBar(
+                      temples: temples,
+                      selectedState: state,
+                      selectedDeity: deity,
+                      selectedDistrict: district,
+                      districtOf: districtOf,
+                      onChanged: (nextState, nextDeity, nextDistrict) {
+                        setState(() {
+                          state = nextState;
+                          deity = nextDeity;
+                          district = nextDistrict;
+                        });
+                      },
+                    ),
+                    for (final temple in visible) Text(temple.name),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      Future<void> openDismissReopen(
+        Key chip,
+        Future<void> Function() dismiss,
+      ) async {
+        await tester.tap(find.byKey(chip));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
+        await dismiss();
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('filter-sheet')), findsNothing);
+        expect(find.byKey(chip), findsOneWidget);
+        await tester.tap(find.byKey(chip));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
+      }
+
+      Future<void> applyOption(Key option) async {
+        await tester.tap(find.byKey(option));
+        await tester.pump();
+        await tester.ensureVisible(find.byKey(const Key('filter-sheet-apply')));
+        await tester.tap(find.byKey(const Key('filter-sheet-apply')));
+        await tester.pumpAndSettle();
+      }
+
+      await openDismissReopen(
+        const Key('filter-chip-deity'),
+        () => tester.tap(find.byKey(const Key('filter-sheet-close'))),
+      );
+      await applyOption(const Key('filter-option-deity-Shiva'));
+      expect(find.text('Vaikom Mahadeva Temple'), findsOneWidget);
+      expect(find.text('Meenakshi Amman Temple'), findsNothing);
+      expect(find.text('Dilwara Temples'), findsNothing);
+      expect(find.text('Shiva'), findsWidgets);
+
+      await tester.tap(find.byKey(const Key('filter-clear')));
+      await tester.pump();
+
+      await openDismissReopen(const Key('filter-chip-state'), () async {
+        await tester.binding.handlePopRoute();
+      });
+      await applyOption(const Key('filter-option-state-Kerala'));
+      expect(find.text('Vaikom Mahadeva Temple'), findsOneWidget);
+      expect(find.text('Meenakshi Amman Temple'), findsNothing);
+      expect(find.text('Kerala'), findsWidgets);
+
+      await tester.tap(find.byKey(const Key('filter-clear')));
+      await tester.pump();
+
+      await openDismissReopen(const Key('filter-chip-district'), () async {
+        await tester.drag(find.byType(ListView), const Offset(0, 400));
+      });
+      await applyOption(const Key('filter-option-district-Madurai'));
+      expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
+      expect(find.text('Vaikom Mahadeva Temple'), findsNothing);
+      expect(find.text('Madurai'), findsWidgets);
+    },
+  );
+
+  testWidgets('scrolling options does not dismiss the sheet', (tester) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final many = [
+      for (var i = 0; i < 40; i++)
+        temple(
+          name: 'Temple $i',
+          state: 'State ${i.toString().padLeft(2, '0')}',
+          city: 'City $i',
+          deity: 'Deity ${i.toString().padLeft(2, '0')}',
+        ),
+    ];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: DirectoryFilterBar(
+            temples: many,
+            selectedState: null,
+            selectedDeity: null,
+            onChanged: (_, _, _) {},
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('filter-chip-deity')));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView), const Offset(0, -240));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
+    expect(
+      find.byKey(const Key('filter-option-deity-Deity 20')).hitTestable(),
+      findsOneWidget,
+    );
+  });
 }
