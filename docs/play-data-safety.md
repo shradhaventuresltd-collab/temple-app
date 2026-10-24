@@ -2,7 +2,7 @@
 
 **Note for a person to enter in Play Console.** This file is not a submission. Confirm it against Play’s SDK scan of the uploaded App Bundle before publishing. Do not commit keystores or other secrets.
 
-Owner on the privacy policy remains **Sanu Vimal**. Policy **updated 23 October 2026**.
+Owner on the privacy policy remains **Sanu Vimal**. Policy **updated 24 October 2026**.
 
 ## Approximate location (Temples near me)
 
@@ -14,7 +14,9 @@ Answer the form for the device reading as follows:
 - **Collected:** no.
 - **Shared:** no.
 
-Wording per KAN-184, for the form and the policy: approximate location is used on the device only and is not collected or shared.
+Wording per KAN-184, for the form and the policy:
+
+Temples near me uses your device's approximate location only on your device, to sort temples by distance. That reading is never stored or sent off your device. Separately, the Google Mobile Ads SDK in this app may collect approximate location derived from your IP address, and share it with Google, for advertising, analytics and fraud prevention.
 
 Precise location is not accessed. Background location is not accessed. The only location permission the app keeps is `android.permission.ACCESS_COARSE_LOCATION`. The app manifest removes `ACCESS_FINE_LOCATION`, `ACCESS_BACKGROUND_LOCATION`, and `FOREGROUND_SERVICE_LOCATION` if a plugin merges them, and it strips the geolocator location foreground-service type. The fix is not written to disk, logs, Firestore, or an ad request.
 
