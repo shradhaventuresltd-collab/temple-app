@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/bundled_fonts.dart';
 import 'package:temple_app/config/build_flags.dart';
+import 'package:temple_app/config/emulator_app_test.dart';
 import 'package:temple_app/config/policy_config.dart';
 import 'package:temple_app/services/analytics_navigator.dart';
 import 'package:temple_app/services/analytics_routes.dart';
@@ -34,6 +35,10 @@ import 'package:url_launcher/url_launcher.dart';
 /// Test-only hook. Integration tests may set this before [main].
 /// It must stay null in production and in the Play build. A non-null
 /// value skips Remote Config, and production never assigns it.
+///
+/// Debug builds, and builds compiled with `EMULATOR_APP_TEST`, may assign
+/// it from a local shared preference so the emulator can open the
+/// force-update screen without fetching or writing Remote Config.
 AppConfig? integrationTestConfigOverride;
 
 Future<void> main() async {
@@ -74,6 +79,16 @@ Future<void> main() async {
   // Defaults and the last activated cache before the first frame. The fetch
   // is not awaited: a slow or failed fetch must not hold the saffron splash.
   // Remote Config is not constructed unless Firebase already has an app.
+  // The force-update preference is read only when emulator hooks are
+  // compiled in. Release without EMULATOR_APP_TEST skips this block.
+  Object installedBuild = usePlatformBuildNumber;
+  if (kEmulatorAppTestHooks) {
+    final hooked = await readEmulatorForceUpdateOverride();
+    if (hooked != null) {
+      integrationTestConfigOverride = hooked;
+      installedBuild = kEmulatorForceUpdateInstalledBuild;
+    }
+  }
   final override = integrationTestConfigOverride;
   final AppConfigController appConfig;
   if (override != null) {
@@ -91,7 +106,11 @@ Future<void> main() async {
     unawaited(remoteConfigStartup.fetch);
   }
   runApp(
-    TempleDirectoryApp(firebaseReady: firebaseReady, appConfig: appConfig),
+    TempleDirectoryApp(
+      firebaseReady: firebaseReady,
+      appConfig: appConfig,
+      installedBuildNumber: installedBuild,
+    ),
   );
 }
 

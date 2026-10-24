@@ -9,6 +9,7 @@ cd "$(dirname "$0")/.."
 
 unset ENABLE_ADMIN_TOOLS || true
 unset DEMO_BUILD || true
+unset EMULATOR_APP_TEST || true
 unset DEMO_APP_ID_SUFFIX || true
 unset ORG_GRADLE_PROJECT_demo_suffix || true
 unset SMOKE_GATE_OVERRIDE || true
@@ -74,6 +75,23 @@ expect_fail "DEMO_BUILD space form" \
 expect_fail "DEMO_BUILD env" \
   "DEMO_BUILD" \
   env DEMO_BUILD=true ./scripts/build_play_aab.sh
+
+expect_fail "EMULATOR_APP_TEST equals form" \
+  "EMULATOR_APP_TEST" \
+  ./scripts/build_play_aab.sh --dart-define=EMULATOR_APP_TEST=true
+
+expect_fail "EMULATOR_APP_TEST space form" \
+  "EMULATOR_APP_TEST" \
+  ./scripts/build_play_aab.sh --dart-define EMULATOR_APP_TEST=true
+
+expect_fail "EMULATOR_APP_TEST env" \
+  "EMULATOR_APP_TEST" \
+  env EMULATOR_APP_TEST=true ./scripts/build_play_aab.sh
+
+printf '%s\n' 'EMULATOR_APP_TEST=true' >"$defines_dir/emulator.env"
+expect_fail "dart-define-from-file EMULATOR_APP_TEST" \
+  "EMULATOR_APP_TEST" \
+  ./scripts/build_play_aab.sh --dart-define-from-file="$defines_dir/emulator.env"
 
 printf '%s\n' 'DEMO_BUILD=true' >"$defines_dir/demo.env"
 expect_fail "dart-define-from-file DEMO_BUILD" \

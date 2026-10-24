@@ -2,7 +2,8 @@
 # Build the Play release app bundle.
 #
 # Refuses ENABLE_ADMIN_TOOLS so Seed / CMS / Upload stay out of the Play AAB,
-# and refuses DEMO_BUILD so a Play upload cannot ship AdMob test units.
+# refuses DEMO_BUILD so a Play upload cannot ship AdMob test units, and
+# refuses EMULATOR_APP_TEST so the emulator force-update hook stays out.
 # Refuses DEMO_APP_ID_SUFFIX and demo_suffix so the Play bundle stays
 # com.shradhaventures.temple. The .demo suffix is only for the App
 # Distribution demo APK.
@@ -13,7 +14,8 @@
 #   ENABLE_ADMIN_TOOLS=... in the environment (any value, including empty)
 #   --dart-define-from-file <file>           when the file contains
 #   --dart-define-from-file=<file>           ENABLE_ADMIN_TOOLS or DEMO_BUILD
-# The same = / space / env / from-file forms refuse DEMO_BUILD.
+# The same = / space / env / from-file forms refuse DEMO_BUILD and
+# EMULATOR_APP_TEST. A release compile also fails if that define is true.
 # The same forms refuse DEMO_APP_ID_SUFFIX. -Pdemo_suffix and
 # ORG_GRADLE_PROJECT_demo_suffix are refused too: Gradle would install
 # the Play bundle as com.shradhaventures.temple.demo.
@@ -52,6 +54,12 @@ refuse_admin() {
 refuse_demo() {
   echo "error: Play AAB must not be built with DEMO_BUILD." >&2
   echo "DEMO_BUILD forces AdMob test units. Play builds use production ad units." >&2
+  exit 1
+}
+
+refuse_emulator_app_test() {
+  echo "error: Play AAB must not be built with EMULATOR_APP_TEST." >&2
+  echo "That define is only for the emulator-app-test debug APK." >&2
   exit 1
 }
 
@@ -167,6 +175,9 @@ check_define_file() {
   if grep -q 'DEMO_BUILD' "$file"; then
     refuse_demo
   fi
+  if grep -q 'EMULATOR_APP_TEST' "$file"; then
+    refuse_emulator_app_test
+  fi
   if grep -q 'DEMO_APP_ID_SUFFIX\|demo_suffix' "$file"; then
     refuse_demo_suffix
   fi
@@ -178,6 +189,9 @@ check_blocked_defines() {
   fi
   if env | grep -q '^DEMO_BUILD='; then
     refuse_demo
+  fi
+  if env | grep -q '^EMULATOR_APP_TEST='; then
+    refuse_emulator_app_test
   fi
   if env | grep -q -e '^DEMO_APP_ID_SUFFIX=' -e '^ORG_GRADLE_PROJECT_demo_suffix='; then
     refuse_demo_suffix
@@ -207,6 +221,9 @@ check_blocked_defines() {
         ;;
       *DEMO_BUILD*)
         refuse_demo
+        ;;
+      *EMULATOR_APP_TEST*)
+        refuse_emulator_app_test
         ;;
       *DEMO_APP_ID_SUFFIX*|*demo_suffix*)
         refuse_demo_suffix

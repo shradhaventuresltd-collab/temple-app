@@ -1,0 +1,483 @@
+name: emulator-app-test
+
+# Manual whole-app checklist on an API 30 emulator.
+# workflow_dispatch only: push and pull_request do not start this job.
+#
+# APK source, first match wins:
+#   apk_url          https URL of an APK
+#   artifact_run_id  plus artifact_name, downloaded with actions/download-artifact
+#   ref              checkout that ref and build a debug APK
+# The job fails if none of those resolve.
+#
+# Debug builds pass --dart-define=EMULATOR_APP_TEST=true. That hook reads a
+# local shared preference and does not fetch or write Remote Config.
+# No keystore, google-services file, or token is added by this workflow.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apk_url:
+        description: "Optional https URL of an APK to install"
+        required: false
+        type: string
+      artifact_run_id:
+        description: "Optional run id whose APK artifact to download"
+        required: false
+        type: string
+      artifact_name:
+        description: "Artifact name (required with artifact_run_id)"
+        required: false
+        type: string
+      ref:
+        description: "Git ref to build when no APK is given"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: emulator-app-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  emulator-app-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    # Shared emulator-runner inputs. GitHub Actions does not expand YAML
+    # anchors, so each flow step reads these env values.
+    env:
+      EMULATOR_API_LEVEL: "30"
+      EMULATOR_TARGET: google_apis
+      EMULATOR_ARCH: x86_64
+      EMULATOR_DISK_SIZE: 2048M
+      EMULATOR_AVD_NAME: emulator-app-test-30
+      EMULATOR_FORCE_AVD_CREATION: false
+      EMULATOR_DISABLE_ANIMATIONS: true
+      EMULATOR_BOOT_TIMEOUT: "600"
+      EMULATOR_OPTIONS: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
+      EMULATOR_PRE_LAUNCH: bash tool/emulator/prepare_avd.sh
+    steps:
+      - name: Checkout workflow scripts
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Check emulator scripts
+        run: bash tool/emulator/self_test.sh
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Resolve APK source
+        id: plan
+        env:
+          INPUT_APK_URL: ${{ inputs.apk_url }}
+          INPUT_ARTIFACT_RUN_ID: ${{ inputs.artifact_run_id }}
+          INPUT_ARTIFACT_NAME: ${{ inputs.artifact_name }}
+          INPUT_REF: ${{ inputs.ref }}
+        run: bash tool/emulator/resolve_apk.sh
+
+      - name: Free disk space
+        if: steps.plan.outputs.mode == 'build'
+        run: bash scripts/ci/free_runner_disk.sh
+
+      - name: Checkout ref to build
+        if: steps.plan.outputs.mode == 'build'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ inputs.ref }}
+          path: build-src
+
+      - name: Set up Java
+        if: steps.plan.outputs.mode == 'build'
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Flutter
+        if: steps.plan.outputs.mode == 'build'
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version: "3.47.7"
+          cache: true
+          pub-cache: true
+
+      - name: Cache Gradle
+        if: steps.plan.outputs.mode == 'build'
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-emulator-app-test-${{ hashFiles('build-src/pubspec.lock', 'build-src/android/**/*.gradle*', 'build-src/android/**/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      - name: Cache Android NDK
+        if: steps.plan.outputs.mode == 'build'
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: /usr/local/lib/android/sdk/ndk/28.2.13676358
+          key: ndk-28.2.13676358
+
+      - name: Build debug APK
+        if: steps.plan.outputs.mode == 'build'
+        working-directory: build-src
+        run: |
+          set -euo pipefail
+          if [[ -f scripts/ci/disable_impeller_for_emulator_apk.sh ]]; then
+            if ! grep -q 'io.flutter.embedding.android.EnableImpeller' android/app/src/main/AndroidManifest.xml; then
+              bash scripts/ci/disable_impeller_for_emulator_apk.sh
+            fi
+          fi
+          if [[ -f android/gradle.properties ]]; then
+            sed -i 's/^org\.gradle\.jvmargs=.*/org.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=1g -XX:ReservedCodeCacheSize=256m -Dfile.encoding=UTF-8/' android/gradle.properties
+          fi
+          flutter pub get
+          flutter build apk --debug --target-platform android-x64 \
+            --dart-define=EMULATOR_APP_TEST=true
+
+      - name: Download APK artifact
+        if: steps.plan.outputs.mode == 'artifact'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ${{ inputs.artifact_name }}
+          run-id: ${{ inputs.artifact_run_id }}
+          github-token: ${{ github.token }}
+          path: downloaded-artifact
+
+      - name: Locate APK
+        id: resolve-apk
+        if: success()
+        run: bash tool/emulator/locate_apk.sh
+
+      - name: Restore emulator system image
+        id: system-image-cache
+        if: steps.resolve-apk.outcome == 'success'
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: /usr/local/lib/android/sdk/system-images
+          key: system-image-android-30-google_apis-x86_64
+
+      - name: Restore AVD cache
+        id: avd-cache
+        if: steps.resolve-apk.outcome == 'success'
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.android/avd
+            ~/.android/adb*
+          key: avd-30-x86_64-google_apis-emulator-app-test
+
+      - name: Choose emulator core count
+        if: steps.resolve-apk.outcome == 'success'
+        run: |
+          if [[ "$(nproc)" -ge 4 ]]; then
+            echo "EMULATOR_CORES=4" >> "$GITHUB_ENV"
+          else
+            echo "EMULATOR_CORES=2" >> "$GITHUB_ENV"
+          fi
+
+      - name: Flow 01 first launch
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 01-first-launch tool/emulator/flows/01_first_launch.sh
+
+      - name: Flow 02 policy gate
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 02-policy-gate tool/emulator/flows/02_policy_gate.sh
+
+      - name: Flow 03 force update
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 03-force-update tool/emulator/flows/03_force_update.sh
+
+      - name: Flow 04 home
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 04-home tool/emulator/flows/04_home.sh
+
+      - name: Flow 05 search
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 05-search tool/emulator/flows/05_search.sh
+
+      - name: Flow 06 filters
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 06-filters tool/emulator/flows/06_filters.sh
+
+      - name: Flow 07 district filter
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 07-district tool/emulator/flows/07_district.sh
+
+      - name: Flow 08 temple list and detail
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 08-list-detail tool/emulator/flows/08_list_detail.sh
+
+      - name: Flow 09 photos
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 09-photos tool/emulator/flows/09_photos.sh
+
+      - name: Flow 10 directions
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 10-directions tool/emulator/flows/10_directions.sh
+
+      - name: Flow 11 temples near me
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 11-near-me tool/emulator/flows/11_near_me.sh
+
+      - name: Flow 12 ads
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 12-ads tool/emulator/flows/12_ads.sh
+
+      - name: Flow 13 licences
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 13-licences tool/emulator/flows/13_licences.sh
+
+      - name: Flow 14 back button and relaunch
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 14-back-relaunch tool/emulator/flows/14_back_relaunch.sh
+
+      - name: Flow 15 offline
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 15-offline tool/emulator/flows/15_offline.sh
+
+      - name: Write results summary
+        if: always()
+        run: bash tool/emulator/summarize.sh
+
+      - name: Upload emulator artifacts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: emulator-app-test
+          path: emulator-app-test-artifacts
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Save emulator system image
+        if: always() && steps.system-image-cache.outcome == 'success' && steps.system-image-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: /usr/local/lib/android/sdk/system-images
+          key: system-image-android-30-google_apis-x86_64
+
+      - name: Save AVD cache
+        if: always() && steps.avd-cache.outcome == 'success' && steps.avd-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.android/avd
+            ~/.android/adb*
+          key: avd-30-x86_64-google_apis-emulator-app-test
