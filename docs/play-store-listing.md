@@ -37,7 +37,7 @@ Visitors do not need an account to browse. When a connection is available, the d
 
 The Android app shows ads: a banner on the temple list, and a full-screen ad on every third temple you open.
 
-Temples near me can sort the list by distance. Approximate location is used on the device only and is not collected or shared. You can pick a state or city instead.
+Temples near me can sort the list by distance. Temples near me uses your device's approximate location only on your device, to sort temples by distance. That reading is never stored or sent off your device. Separately, the Google Mobile Ads SDK in this app may collect approximate location derived from your IP address, and share it with Google, for advertising, analytics and fraud prevention. You can pick a state or city instead.
 
 Timings, photos, and other facts are a starting point for planning a visit. Confirm details with the temple before you travel.
 ```
@@ -58,7 +58,7 @@ Answer the IARC questionnaire from the release app, not from the debug admin too
 - The app is religious and cultural reference material (temple history, mythology, and worship timings).
 - No chat, no public user posts, and no social graph. Visitors cannot create an account in the release app. The admin CMS (including sign-in) and seed tools are debug-only; release/profile builds do not present that UI.
 - No unrestricted web browser. Directions open Google Maps for a temple’s published coordinates. Terms and Privacy open two fixed hosted https pages in an in-app browser.
-- Approximate location: Temples near me asks for approximate location, used on the device only, and not collected or shared. Precise location and background location are not requested. See [`docs/play-data-safety.md`](play-data-safety.md).
+- Approximate location: Temples near me uses your device's approximate location only on your device, to sort temples by distance. That reading is never stored or sent off your device. Separately, the Google Mobile Ads SDK in this app may collect approximate location derived from your IP address, and share it with Google, for advertising, analytics and fraud prevention. Precise location and background location are not requested. See [`docs/play-data-safety.md`](play-data-safety.md).
 - Advertising: **yes**. Google AdMob on Android (banner on the temple list; interstitial every third temple detail), after the Terms and Privacy acceptance gate and a Google UMP consent check. Ads are disabled on web. No ads load before Terms are accepted.
 - Digital purchases: none in this repo (no in-app purchases or subscriptions).
 
@@ -86,7 +86,7 @@ When filling Play Console, declare SDKs that the scan reports (including Auth/St
 
 Enter that URL in Play Console. Terms of Service: https://temple-directory-india.web.app/terms-of-service.html. Deployer publishes both with `firebase deploy --only hosting --project temple-directory-india`.
 
-The page should cover public temple data in Cloud Firestore and Firebase Storage, AdMob on Android (including the UMP consent form where Google requires it, non-personalized ads when UMP fails, and no ad request when a required form is dismissed without consent), the fact that `firebase_auth` / `firebase_storage` may ship in the release binary while visitors are never asked to sign in or upload photos, and Temples near me. Approximate location is used on the device only and is not collected or shared. The owner on the page is Sanu Vimal. This file is not the policy.
+The page should cover public temple data in Cloud Firestore and Firebase Storage, AdMob on Android (including the UMP consent form where Google requires it, non-personalized ads when UMP fails, and no ad request when a required form is dismissed without consent), the fact that `firebase_auth` / `firebase_storage` may ship in the release binary while visitors are never asked to sign in or upload photos, and Temples near me. Temples near me uses your device's approximate location only on your device, to sort temples by distance. That reading is never stored or sent off your device. Separately, the Google Mobile Ads SDK in this app may collect approximate location derived from your IP address, and share it with Google, for advertising, analytics and fraud prevention. The owner on the page is Sanu Vimal. This file is not the policy.
 
 ## Screenshot shot list
 

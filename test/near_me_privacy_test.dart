@@ -193,6 +193,13 @@ void main() {
     expect(docs, contains('<strong>Effective date:</strong> 23 October 2026'));
     expect(docs, contains(_approvedLocation));
     expect(docs.toLowerCase(), isNot(contains(_retiredOnDeviceOnly)));
+    expect(docs, isNot(contains('. (section 6).')));
+    expect(
+      docs,
+      contains(
+        'We do not pass the Temples near me reading to Google AdMob',
+      ),
+    );
     expect(docs, isNot(contains('does not request location permission')));
     expect(docs, contains('<h2>6. Temples near me</h2>'));
 
@@ -204,6 +211,7 @@ void main() {
       ),
     );
     expect(listing, isNot(contains('does not request device location')));
+    expect(listing.toLowerCase(), isNot(contains(_retiredOnDeviceOnly)));
 
     final dataSafety = File('docs/play-data-safety.md').readAsStringSync();
     expect(dataSafety, contains(_approvedLocation));
