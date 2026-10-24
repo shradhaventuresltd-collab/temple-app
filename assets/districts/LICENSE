@@ -1,0 +1,24 @@
+India district boundaries
+=========================
+
+These polygons are a simplified, quantised, delta-encoded derivative of the
+Bharatlas LGD Districts (2024) layer.
+
+Source page: https://bharatlas.com/view/lgd_districts
+Download: https://bharatlas.com/api/dl/admin/districts/LGD_Districts.geojson
+Upstream codes: https://lgdirectory.gov.in/
+Dataset: LGD snapshot 2024 (card updated 2026-05-19)
+Fetched: 2026-10-23
+Source SHA-256: 95829298abdd0e80fc514b8c70787bdeef9aaf0e63b348177493045e8b22bab5
+
+The source page states both CC0-1.0 and CC-BY-4.0. This copy complies with
+CC BY 4.0: https://creativecommons.org/licenses/by/4.0/
+
+© Bharatlas. Source: Local Government Directory.
+Publisher: yashveeeeeeer/india-geodata (https://github.com/yashveeeeeeer/india-geodata).
+
+Credit Bharatlas, link the licence, and indicate that changes were made.
+Changes: Visvalingam simplification at 500 metres (mapshaper
+0.6.113, topology kept, intersection repair off), coordinates
+quantised to 4 decimal degrees, rings stored as DSB1 version 2 (int32
+anchor, int16 deltas) in india_districts.dsb (lgd-2024-dsb1-500m).

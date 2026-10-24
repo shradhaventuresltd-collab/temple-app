@@ -1,126 +1,203 @@
 {
   "templeCount": 180,
-  "unresolved": 0,
-  "simplificationMismatchCount": 3,
-  "simplificationMismatches": [
+  "toleranceMetres": 500,
+  "bytes": 595044,
+  "gzipBytes": 430581,
+  "simplified": {
+    "inside": 176,
+    "nearest": 3,
+    "none": 0,
+    "override": 1,
+    "cross": 0
+  },
+  "full": {
+    "inside": 177,
+    "nearest": 2,
+    "none": 0,
+    "override": 1,
+    "cross": 0
+  },
+  "assignmentMismatchCount": 0,
+  "assignmentMismatchPercent": 0,
+  "polygonMismatchCount": 3,
+  "polygonMismatchPercent": 1.67,
+  "assignmentMismatches": [],
+  "polygonMismatches": [
     {
+      "id": "shore-temple",
       "name": "Shore Temple",
       "state": "Tamil Nadu",
-      "computedName": "Kanchipuram",
-      "computedState": "Tamil Nadu",
-      "computedLgd": 574,
-      "fullHits": [
-        {
-          "lgd": 730,
-          "name": "Chengalpattu",
-          "state": "Tamil Nadu"
-        }
+      "simplified": "Kanchipuram",
+      "full": [
+        "Chengalpattu"
       ]
     },
     {
+      "id": "murudeshwar-temple",
       "name": "Murudeshwar Temple",
       "state": "Karnataka",
-      "computedName": "Uttara Kannada",
-      "computedState": "Karnataka",
-      "computedLgd": 550,
-      "fullHits": []
+      "simplified": "Uttara Kannada",
+      "full": []
     },
     {
+      "id": "mahalakshmi-temple",
       "name": "Mahalakshmi Temple",
       "state": "Maharashtra",
-      "computedName": "Mumbai",
-      "computedState": "Maharashtra",
-      "computedLgd": 482,
-      "fullHits": []
+      "simplified": "Mumbai",
+      "full": []
     }
   ],
-  "stateMismatchCount": 1,
-  "stateMismatches": [
+  "addressCompared": 96,
+  "addressMismatchCount": 16,
+  "addressMismatches": [
     {
-      "name": "Sita Ramachandra Swamy Temple",
-      "templeState": "Telangana",
-      "district": "Alluri Sitharama Raju",
-      "districtState": "Andhra Pradesh",
-      "lgd": 745
+      "id": "subramanya-swamy-temple",
+      "name": "Subramanya Swamy Temple",
+      "state": "Tamil Nadu",
+      "addressDistrict": "Thoothukudi",
+      "assigned": "Tuticorin",
+      "kind": "inside"
+    },
+    {
+      "id": "thyagaraja-temple",
+      "name": "Thyagaraja Temple",
+      "state": "Tamil Nadu",
+      "addressDistrict": "Tiruvarur",
+      "assigned": "Thiruvarur",
+      "kind": "inside"
+    },
+    {
+      "id": "kanyakumari-bhagavathi-amman-temple",
+      "name": "Kanyakumari Bhagavathi Amman Temple",
+      "state": "Tamil Nadu",
+      "addressDistrict": "Kanyakumari",
+      "assigned": "Kanniyakumari",
+      "kind": "inside"
+    },
+    {
+      "id": "tiruttani-murugan-temple",
+      "name": "Tiruttani Murugan Temple",
+      "state": "Tamil Nadu",
+      "addressDistrict": "Tiruvallur",
+      "assigned": "Thiruvallur",
+      "kind": "inside"
+    },
+    {
+      "id": "talakaveri-temple",
+      "name": "Talakaveri Temple",
+      "state": "Karnataka",
+      "addressDistrict": "Kodagu (Coorg)",
+      "assigned": "Kodagu",
+      "kind": "inside"
+    },
+    {
+      "id": "kaleshwara-mukteswara-temple",
+      "name": "Kaleshwara Mukteswara Temple",
+      "state": "Telangana",
+      "addressDistrict": "Jayashankar Bhupalpally",
+      "assigned": "Jayashankar Bhupalapally",
+      "kind": "inside"
+    },
+    {
+      "id": "ambaji-temple",
+      "name": "Ambaji Temple",
+      "state": "Gujarat",
+      "addressDistrict": "Banaskantha",
+      "assigned": "Banas Kantha",
+      "kind": "inside"
+    },
+    {
+      "id": "kalika-mata-temple",
+      "name": "Kalika Mata Temple",
+      "state": "Gujarat",
+      "addressDistrict": "Panchmahal",
+      "assigned": "Panch Mahals",
+      "kind": "inside"
+    },
+    {
+      "id": "modhera-sun-temple",
+      "name": "Modhera Sun Temple",
+      "state": "Gujarat",
+      "addressDistrict": "Mehsana",
+      "assigned": "Mahesana",
+      "kind": "inside"
+    },
+    {
+      "id": "bahucharaji-temple",
+      "name": "Bahucharaji Temple",
+      "state": "Gujarat",
+      "addressDistrict": "Mehsana",
+      "assigned": "Mahesana",
+      "kind": "inside"
+    },
+    {
+      "id": "biraja-temple",
+      "name": "Biraja Temple",
+      "state": "Odisha",
+      "addressDistrict": "Jajpur",
+      "assigned": "Jajapur",
+      "kind": "inside"
+    },
+    {
+      "id": "grishneshwar-temple",
+      "name": "Grishneshwar Temple",
+      "state": "Maharashtra",
+      "addressDistrict": "Chhatrapati Sambhajinagar",
+      "assigned": "Aurangabad",
+      "kind": "inside"
+    },
+    {
+      "id": "kapil-muni-temple",
+      "name": "Kapil Muni Temple",
+      "state": "West Bengal",
+      "addressDistrict": "South 24 Parganas",
+      "assigned": "24 Paraganas South",
+      "kind": "inside"
+    },
+    {
+      "id": "omkareshwar-temple",
+      "name": "Omkareshwar Temple",
+      "state": "Madhya Pradesh",
+      "addressDistrict": "Khandwa",
+      "assigned": "East Nimar",
+      "kind": "inside"
+    },
+    {
+      "id": "sharda-devi-temple-maihar",
+      "name": "Sharda Devi Temple Maihar",
+      "state": "Madhya Pradesh",
+      "addressDistrict": "Maihar",
+      "assigned": "Satna",
+      "kind": "inside"
+    },
+    {
+      "id": "mundeshwari-devi-temple",
+      "name": "Mundeshwari Devi Temple",
+      "state": "Bihar",
+      "addressDistrict": "Kaimur",
+      "assigned": "Kaimur (Bhabua)",
+      "kind": "inside"
     }
   ],
-  "perState": {
-    "Tamil Nadu": {
-      "temples": 20,
-      "resolved": 20,
-      "stateMismatches": 0
+  "overrideProbes": [
+    {
+      "id": "sita-ramachandra-swamy-temple",
+      "override": "Bhadradri Kothagudem",
+      "polygonKind": "nearest",
+      "polygonDistrict": "Bhadradri Kothagudem",
+      "polygonState": "Telangana",
+      "disagrees": false
     },
-    "Kerala": {
-      "temples": 20,
-      "resolved": 20,
-      "stateMismatches": 0
-    },
-    "Karnataka": {
-      "temples": 20,
-      "resolved": 20,
-      "stateMismatches": 0
-    },
-    "Andhra Pradesh": {
-      "temples": 10,
-      "resolved": 10,
-      "stateMismatches": 0
-    },
-    "Telangana": {
-      "temples": 10,
-      "resolved": 10,
-      "stateMismatches": 1
-    },
-    "Gujarat": {
-      "temples": 10,
-      "resolved": 10,
-      "stateMismatches": 0
-    },
-    "Odisha": {
-      "temples": 10,
-      "resolved": 10,
-      "stateMismatches": 0
-    },
-    "Uttar Pradesh": {
-      "temples": 10,
-      "resolved": 10,
-      "stateMismatches": 0
-    },
-    "Jammu and Kashmir": {
-      "temples": 10,
-      "resolved": 10,
-      "stateMismatches": 0
-    },
-    "Maharashtra": {
-      "temples": 10,
-      "resolved": 10,
-      "stateMismatches": 0
-    },
-    "Rajasthan": {
-      "temples": 10,
-      "resolved": 10,
-      "stateMismatches": 0
-    },
-    "West Bengal": {
-      "temples": 10,
-      "resolved": 10,
-      "stateMismatches": 0
-    },
-    "Madhya Pradesh": {
-      "temples": 10,
-      "resolved": 10,
-      "stateMismatches": 0
-    },
-    "Bihar": {
-      "temples": 10,
-      "resolved": 10,
-      "stateMismatches": 0
-    },
-    "Himachal Pradesh": {
-      "temples": 10,
-      "resolved": 10,
-      "stateMismatches": 0
+    {
+      "id": "malinithan",
+      "override": "Lower Siang",
+      "polygonKind": "nearest",
+      "polygonDistrict": "Lower Siang",
+      "polygonState": "Arunachal Pradesh",
+      "disagrees": false
     }
-  },
+  ],
+  "crossState": 0,
   "probes": [
     {
       "label": "karaikal",
@@ -176,5 +253,6 @@
       "lgd": 589,
       "inside": false
     }
-  ]
+  ],
+  "production": null
 }

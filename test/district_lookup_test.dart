@@ -82,10 +82,7 @@ void main() {
     );
     await directory.ensureFor([otherState]);
     expect(directory.peek(otherState), isNull);
-    expect(
-      directory.peek(moved),
-      'Karaikal',
-    );
+    expect(directory.peek(moved), 'Karaikal');
   });
 
   test('the preferences key is only the boundary asset version', () async {
@@ -118,7 +115,46 @@ void main() {
     expect(directory.assetLoadCount, 0);
   });
 
-  test('overrides stay unpublished while the asset is not bundled', () async {
+  test('overrides publish without reading the boundary asset', () async {
+    DistrictDirectory.instance.resetForTest();
+    final directory = DistrictDirectory.instance;
+    final sita = _temple(
+      id: 'sita-ramachandra-swamy-temple',
+      name: 'Sita Ramachandra Swamy Temple',
+      state: 'Telangana',
+      latitude: 17.6669,
+      longitude: 80.8828,
+    );
+    final malinithan = _temple(
+      id: 'malinithan',
+      name: 'Malinithan',
+      state: 'Arunachal Pradesh',
+      latitude: 27.6567,
+      longitude: 94.7058,
+    );
+    await directory.ensureFor([sita, malinithan]);
+    expect(directory.assetLoadCount, 0);
+    expect(directory.isReady, isTrue);
+    expect(directory.peek(sita), 'Bhadradri Kothagudem');
+    expect(directory.peek(malinithan), 'Lower Siang');
+    expect(districtOverrideFor(sita)?.name, 'Bhadradri Kothagudem');
+    expect(districtOverrideFor(malinithan)?.name, 'Lower Siang');
+    expect(
+      districtOverrideFor(
+        _temple(
+          id: 'sita-ramachandra-swamy-temple',
+          state: 'Andhra Pradesh',
+          latitude: 17.6669,
+          longitude: 80.8828,
+        ),
+      ),
+      isNull,
+    );
+  });
+
+  test('overrides stay unpublished when boundaries are not bundled', () async {
+    debugDistrictBoundariesBundled = false;
+    addTearDown(() => debugDistrictBoundariesBundled = null);
     DistrictDirectory.instance.resetForTest();
     final directory = DistrictDirectory.instance;
     final sita = _temple(
@@ -140,19 +176,6 @@ void main() {
     expect(directory.isReady, isFalse);
     expect(directory.peek(sita), isNull);
     expect(directory.peek(malinithan), isNull);
-    expect(districtOverrideFor(sita)?.name, 'Bhadradri Kothagudem');
-    expect(districtOverrideFor(malinithan)?.name, 'Lower Siang');
-    expect(
-      districtOverrideFor(
-        _temple(
-          id: 'sita-ramachandra-swamy-temple',
-          state: 'Andhra Pradesh',
-          latitude: 17.6669,
-          longitude: 80.8828,
-        ),
-      ),
-      isNull,
-    );
   });
 
   test('an override beats a polygon in another state', () async {

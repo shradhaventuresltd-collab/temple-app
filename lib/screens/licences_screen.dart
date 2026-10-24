@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/district/district_attribution.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Credit for data bundled with the app, including district boundaries.
 class LicencesScreen extends StatelessWidget {
@@ -9,8 +12,24 @@ class LicencesScreen extends StatelessWidget {
   static const Color _saffron = Color(0xFFFF8F00);
   static const Color _cream = Color(0xFFFFFBF2);
 
+  Future<void> _open(String url) {
+    return launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final body = GoogleFonts.poppins(
+      fontSize: 14,
+      height: 1.45,
+      color: Colors.brown.shade800,
+    );
+    final linkStyle = GoogleFonts.poppins(
+      fontSize: 14,
+      fontWeight: FontWeight.w600,
+      color: const Color(0xFFE65100),
+      decoration: TextDecoration.underline,
+      decorationColor: const Color(0xFFE65100),
+    );
     return Scaffold(
       backgroundColor: _cream,
       appBar: AppBar(
@@ -39,6 +58,12 @@ class LicencesScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
+            kDistrictBoundaryAttribution,
+            key: const Key('licences-attribution'),
+            style: body,
+          ),
+          const SizedBox(height: 12),
+          Text(
             kDistrictBoundarySourceName,
             key: const Key('licences-source'),
             style: GoogleFonts.poppins(
@@ -56,24 +81,49 @@ class LicencesScreen extends StatelessWidget {
               color: Colors.brown.shade700,
             ),
           ),
-          const SizedBox(height: 12),
-          Text(
-            kDistrictBoundaryAttribution,
-            key: const Key('licences-attribution'),
-            style: GoogleFonts.poppins(
-              fontSize: 14,
-              height: 1.45,
-              color: Colors.brown.shade800,
+          const SizedBox(height: 4),
+          TextButton(
+            key: const Key('licences-source-link'),
+            onPressed: () => unawaited(_open(kDistrictBoundarySourcePage)),
+            style: TextButton.styleFrom(
+              minimumSize: const Size(48, 48),
+              padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              alignment: Alignment.centerLeft,
             ),
+            child: Text('Bharatlas LGD Districts', style: linkStyle),
           ),
-          const SizedBox(height: 12),
+          TextButton(
+            key: const Key('licences-licence-link'),
+            onPressed: () => unawaited(_open(kDistrictBoundaryLicenceUrl)),
+            style: TextButton.styleFrom(
+              minimumSize: const Size(48, 48),
+              padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              alignment: Alignment.centerLeft,
+            ),
+            child: Text('CC BY 4.0', style: linkStyle),
+          ),
+          const SizedBox(height: 8),
           Text(
-            'Dataset $kDistrictBoundaryDatasetVersion, updated $kDistrictBoundarySourceUpdated. This geometry is not in the app.',
+            'Dataset $kDistrictBoundaryDatasetVersion, updated '
+            '$kDistrictBoundarySourceUpdated, fetched '
+            '$kDistrictBoundaryFetchedOn. The polygons in this app were simplified.',
             key: const Key('licences-bundling'),
             style: GoogleFonts.poppins(
               fontSize: 13,
               height: 1.45,
               color: Colors.brown.shade600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            kDistrictBoundaryOriginalData,
+            key: const Key('licences-original-data'),
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              height: 1.45,
+              color: Colors.brown.shade800,
             ),
           ),
         ],

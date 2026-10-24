@@ -186,10 +186,10 @@ class DistrictDirectory {
   }
 
   Future<void> _ensure(List<Temple> temples) async {
-    // No bundled file until a publisher names one licence. Overrides stay
-    // in code, but they must not surface a district while the asset is
-    // absent. A test loader still runs. This path does not read Firestore.
-    if (_bundledLoader && !kDistrictBoundariesBundled) return;
+    // A test can hide the bundled asset. Overrides stay in code, but they
+    // must not surface a district while that hook says the file is absent.
+    // A test loader still runs. This path does not read Firestore.
+    if (_bundledLoader && !districtBoundariesAreBundled) return;
     if (_version != kDistrictBoundaryAssetVersion) {
       _byKey.clear();
       _version = null;
@@ -283,11 +283,8 @@ String _templeKey(Temple temple) {
 Future<Uint8List> _loadBundledBoundaries() async {
   // Lookup only. This asset must never be rendered. Widgets, painters, and
   // map layers must not read it.
-  if (!kDistrictBoundariesBundled) {
-    throw StateError(
-      'District boundaries are not bundled. The evaluated LGD file does not '
-      'name a single licence.',
-    );
+  if (!districtBoundariesAreBundled) {
+    throw StateError('District boundaries are not bundled.');
   }
   final data = await rootBundle.load(kDistrictBoundaryAsset);
   return data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
@@ -299,7 +296,7 @@ Future<Uint8List> _loadBundledBoundaries() async {
 /// When no asset is bundled this returns a lookup that resolves nothing,
 /// so the chip stays off the screen instead of offering an empty filter.
 TempleDistrictName? bundledDistrictLookup() {
-  if (!kDistrictBoundariesBundled) return _noBundledDistrict;
+  if (!districtBoundariesAreBundled) return _noBundledDistrict;
   if (!DistrictDirectory.instance.isReady) return null;
   return DistrictDirectory.instance.peek;
 }
