@@ -451,6 +451,29 @@ void main() {
       expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
       expect(find.text('Vaikom Mahadeva Temple'), findsNothing);
       expect(find.text('Madurai'), findsWidgets);
+
+      await tester.tap(find.byKey(const Key('filter-clear')));
+      await tester.pump();
+
+      await openDismissReopen(const Key('filter-chip-deity'), () async {
+        await tester.drag(find.byType(ListView), const Offset(0, 400));
+      });
+      await applyOption(const Key('filter-option-deity-Devi'));
+      expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
+      expect(find.text('Vaikom Mahadeva Temple'), findsNothing);
+      expect(find.text('Dilwara Temples'), findsNothing);
+
+      await tester.tap(find.byKey(const Key('filter-clear')));
+      await tester.pump();
+
+      await openDismissReopen(const Key('filter-chip-state'), () async {
+        await tester.drag(find.byType(ListView), const Offset(0, 400));
+      });
+      await applyOption(const Key('filter-option-state-Tamil Nadu'));
+      expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
+      expect(find.text('Vaikom Mahadeva Temple'), findsNothing);
+      expect(find.text('Dilwara Temples'), findsNothing);
+      expect(find.text('Tamil Nadu'), findsWidgets);
     },
   );
 
@@ -484,11 +507,31 @@ void main() {
 
     await tester.tap(find.byKey(const Key('filter-chip-deity')));
     await tester.pumpAndSettle();
-    await tester.drag(find.byType(ListView), const Offset(0, -240));
+    await tester.drag(find.byType(ListView), const Offset(0, -320));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
     expect(
       find.byKey(const Key('filter-option-deity-Deity 20')).hitTestable(),
+      findsOneWidget,
+    );
+
+    final optionList = find.descendant(
+      of: find.byKey(const Key('filter-sheet')),
+      matching: find.byType(ListView),
+    );
+    final scrollable = tester.state<ScrollableState>(
+      find.descendant(of: optionList, matching: find.byType(Scrollable)),
+    );
+    // Each return drag stays under the 72px pull-to-dismiss threshold, including
+    // the last one that reaches the top and overscrolls.
+    for (var step = 0; step < 40 && scrollable.position.pixels > 0; step++) {
+      await tester.drag(optionList, const Offset(0, 64));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
+    }
+    expect(scrollable.position.pixels, 0);
+    expect(
+      find.byKey(const Key('filter-option-deity-Deity 00')).hitTestable(),
       findsOneWidget,
     );
   });
