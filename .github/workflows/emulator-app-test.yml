@@ -455,6 +455,8 @@ jobs:
 
       - name: Write results summary
         if: always()
+        env:
+          EMULATOR_RESOLVE_OUTCOME: ${{ steps.plan.outcome }}
         run: bash tool/emulator/summarize.sh
 
       - name: Upload emulator artifacts

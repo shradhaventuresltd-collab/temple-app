@@ -99,7 +99,7 @@ check_child() {
 
 open_detail() {
   open_list || return 1
-  ui_wait_scrolled 20 --text-regex '.+Temple$' || return 1
+  ui_wait_scrolled 20 --resource-id temple-browse-card --text-contains "Temple" || return 1
   ui_tap
   ui_wait_scrolled 15 --text-contains "How to Reach"
 }
@@ -113,6 +113,11 @@ open_near() {
   fi
   ui_wait_scrolled 20 --text-contains "Temples near me" || return 1
   ui_tap
+  sleep 1
+  # Not now is enough for the back-stack check. The sheet must not stay up.
+  if ui_wait 8 --text-contains "Sort by distance"; then
+    dismiss_location_consent "Not now" || true
+  fi
   ui_wait 15 --text-contains "Temples near me"
 }
 

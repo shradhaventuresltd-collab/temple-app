@@ -79,6 +79,37 @@ fi
 
 rm -f "$fixture"
 
+card_fixture="$(mktemp)"
+cat > "$card_fixture" <<'EOF'
+<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<hierarchy rotation="0">
+  <node text="" content-desc="All Temples" resource-id="" class="android.view.View" package="com.example" clickable="true" bounds="[0,40][200,100]" />
+  <node text="" content-desc="Meenakshi Amman
+Temple
+Madurai" resource-id="temple-browse-card" class="android.view.View" package="com.example" clickable="true" bounds="[16,400][300,560]" />
+</hierarchy>
+EOF
+
+card="$(python3 tool/emulator/lib/ui.py find "$card_fixture" --resource-id temple-browse-card --text-contains "Meenakshi Amman Temple")"
+case "$card" in
+  "158 480 16 400 300 560 Meenakshi Amman Temple Madurai") ;;
+  *) echo "card match was: ${card}" >&2; exit 1 ;;
+esac
+temple_bit="$(python3 tool/emulator/lib/ui.py find "$card_fixture" --resource-id temple-browse-card --text-contains "Temple")"
+case "$temple_bit" in
+  "158 480 16 400 300 560 Meenakshi Amman Temple Madurai") ;;
+  *) echo "partial Temple match was: ${temple_bit}" >&2; exit 1 ;;
+esac
+if python3 tool/emulator/lib/ui.py find "$card_fixture" --resource-id temple-browse-card --text-regex '.+Temple$' >/dev/null; then
+  echo "a multi-line card label should not have to end with Temple" >&2
+  exit 1
+fi
+if python3 tool/emulator/lib/ui.py find "$card_fixture" --resource-id temple-browse-card --text-contains "All Temples" >/dev/null; then
+  echo "app bar All Temples should not match a temple card" >&2
+  exit 1
+fi
+rm -f "$card_fixture"
+
 workflow=".github/workflows/emulator-app-test.yml"
 if grep -Eq '<<:|&[A-Za-z]' "$workflow"; then
   echo "workflow uses a YAML anchor; GitHub Actions will not expand it" >&2
@@ -103,6 +134,10 @@ if [[ "$(grep -c -- '-no-snapshot' "$workflow")" -ne 1 ]]; then
 fi
 if ! grep -q 'actions: read' "$workflow"; then
   echo "workflow token should be actions: read" >&2
+  exit 1
+fi
+if ! grep -Fq 'EMULATOR_RESOLVE_OUTCOME: ${{ steps.plan.outcome }}' "$workflow"; then
+  echo "summary step should receive steps.plan.outcome" >&2
   exit 1
 fi
 
@@ -184,6 +219,48 @@ if ! EMULATOR_ARTIFACTS="$summary_dir" GITHUB_STEP_SUMMARY="${summary_dir}/summa
   echo "summarize.sh should pass once every flow has a PASS" >&2
   exit 1
 fi
+
+printf 'XFAIL 06-filters: force-stop-keeps-filter: filters live in memory and reset after force-stop\n' >> "${summary_dir}/results.txt"
+if ! EMULATOR_ARTIFACTS="$summary_dir" GITHUB_STEP_SUMMARY="${summary_dir}/summary.md" \
+  bash tool/emulator/summarize.sh >"${summary_dir}/xfail.out"; then
+  echo "summarize.sh should pass when the only extra line is XFAIL" >&2
+  cat "${summary_dir}/xfail.out" >&2
+  exit 1
+fi
+if ! grep -q 'expected failures' "${summary_dir}/xfail.out"; then
+  echo "summary should mention expected failures" >&2
+  exit 1
+fi
+
+printf 'FAIL 05-search: krishna: typed text did not match\n' >> "${summary_dir}/results.txt"
+if EMULATOR_ARTIFACTS="$summary_dir" GITHUB_STEP_SUMMARY="${summary_dir}/summary.md" \
+  bash tool/emulator/summarize.sh >"${summary_dir}/real-fail.out" 2>&1; then
+  echo "summarize.sh should fail when a FAIL line is present" >&2
+  exit 1
+fi
 rm -rf "$summary_dir"
+
+not_run_dir="$(mktemp -d)"
+if ! EMULATOR_ARTIFACTS="$not_run_dir" EMULATOR_RESOLVE_OUTCOME=failure \
+  GITHUB_STEP_SUMMARY="${not_run_dir}/summary.md" \
+  bash tool/emulator/summarize.sh >"${not_run_dir}/out"; then
+  echo "summarize.sh should exit 0 when APK resolution failed" >&2
+  cat "${not_run_dir}/out" >&2
+  exit 1
+fi
+not_run="$(grep -c '^NOT RUN ' "${not_run_dir}/results.txt")"
+if [[ "$not_run" -ne 15 ]]; then
+  echo "expected 15 NOT RUN lines, found ${not_run}" >&2
+  exit 1
+fi
+if grep -q '^FAIL ' "${not_run_dir}/results.txt"; then
+  echo "NOT RUN flows should stay out of the FAIL count" >&2
+  exit 1
+fi
+if ! grep -qx 'NOT RUN 05-search' "${not_run_dir}/results.txt"; then
+  echo "NOT RUN line should be 'NOT RUN <flow>'" >&2
+  exit 1
+fi
+rm -rf "$not_run_dir"
 
 echo "emulator self-test ok"

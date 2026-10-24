@@ -31,6 +31,10 @@ record_fail() {
   printf 'FAIL %s: %s: %s\n' "$FLOW" "$1" "$2" | tee -a "$RESULTS"
 }
 
+record_xfail() {
+  printf 'XFAIL %s: %s: %s\n' "$FLOW" "$1" "$2" | tee -a "$RESULTS"
+}
+
 step_shot() {
   local safe
   SHOT_N=$((SHOT_N + 1))
@@ -47,6 +51,14 @@ fail_step() {
   record_fail "$1" "$2"
   step_shot "$1"
   cp -f "$DUMP" "${DUMP_DIR}/${FLOW}_${1}.xml" 2>/dev/null || true
+  # A sheet left open makes the next step fail on the wrong screen.
+  dismiss_blockers || true
+}
+
+xfail_step() {
+  record_xfail "$1" "$2"
+  step_shot "$1"
+  cp -f "$DUMP" "${DUMP_DIR}/${FLOW}_${1}.xml" 2>/dev/null || true
 }
 
 ui_screen_size() {
@@ -61,15 +73,33 @@ ui_screen_size() {
 }
 
 ui_dump() {
-  local attempt
-  for attempt in 1 2 3 4; do
-    if adb shell uiautomator dump /sdcard/uidump.xml >/tmp/uidump.err 2>&1; then
-      if adb pull /sdcard/uidump.xml "$DUMP" >/dev/null 2>&1 && [[ -s "$DUMP" ]]; then
+  local attempt err noisy
+  local saved=""
+  for attempt in 1 2 3 4 5; do
+    # Drop the previous file so a failed dump cannot be reread as success.
+    adb shell rm -f /sdcard/uidump.xml >/dev/null 2>&1 || true
+    err="$(adb shell uiautomator dump /sdcard/uidump.xml 2>&1 || true)"
+    noisy=0
+    if printf '%s' "$err" | grep -Eq 'Bad file descriptor|ERROR:|could not get idle|null root node'; then
+      noisy=1
+    fi
+    rm -f "$DUMP"
+    if adb pull /sdcard/uidump.xml "$DUMP" >/dev/null 2>&1 && [[ -s "$DUMP" ]] && grep -q '<node ' "$DUMP"; then
+      if [[ "$noisy" -eq 0 ]]; then
+        rm -f "${DUMP}.partial"
         return 0
       fi
+      cp -f "$DUMP" "${DUMP}.partial"
+      saved=1
     fi
     sleep 1
   done
+  if [[ "$saved" == 1 && -s "${DUMP}.partial" ]]; then
+    cp -f "${DUMP}.partial" "$DUMP"
+    rm -f "${DUMP}.partial"
+    return 0
+  fi
+  rm -f "${DUMP}.partial"
   return 1
 }
 
@@ -156,6 +186,83 @@ ui_type() {
   adb shell input text "$encoded"
 }
 
+# Visible field text with the search hint and clear tooltip removed.
+ui_field_value() {
+  python3 -c '
+import sys
+text = " ".join(sys.argv[1].split())
+for extra in ("Name, city, state, deity, or address", "Clear search"):
+    text = text.replace(extra, " ")
+print(" ".join(text.split()))
+' "$1"
+}
+
+# Delete only the characters currently in the field. Extra deletes on an
+# empty Flutter field were leaving junk ("Krishna" became "Krishnayyyyy").
+ui_clear_field() {
+  local value="$1"
+  local n=${#value}
+  local i
+  if [[ "$n" -eq 0 ]]; then
+    return 0
+  fi
+  adb shell input keyevent 123 >/dev/null 2>&1 || true
+  for ((i = 0; i < n; i++)); do
+    adb shell input keyevent 67 >/dev/null 2>&1 || true
+  done
+}
+
+# Clear the field, type, and require a dump of the field to equal the query.
+# Retries once. On failure UI_FIELD_ACTUAL is the text that was read.
+ui_replace_field_text() {
+  local query="$1"
+  local rid="${2:-temple-list-search-field}"
+  local attempt value
+  UI_FIELD_ACTUAL=""
+  for attempt in 1 2; do
+    value=""
+    if ! ui_dump; then
+      UI_FIELD_ACTUAL="unreadable"
+      sleep 1
+      continue
+    fi
+    if ui_find --resource-id "$rid"; then
+      ui_tap
+      sleep 0.4
+      value="$(ui_field_value "$UI_TEXT")"
+    elif ui_find --text-contains "Name, city, state"; then
+      ui_tap
+      sleep 0.4
+      value="$(ui_field_value "$UI_TEXT")"
+    else
+      UI_FIELD_ACTUAL="field not found"
+      sleep 0.5
+      continue
+    fi
+    ui_clear_field "$value"
+    ui_type "$query"
+    sleep 0.8
+    if ui_dump && ui_find --resource-id "$rid"; then
+      UI_FIELD_ACTUAL="$(ui_field_value "$UI_TEXT")"
+      if [[ "$UI_FIELD_ACTUAL" == "$query" ]]; then
+        return 0
+      fi
+    else
+      UI_FIELD_ACTUAL="${UI_FIELD_ACTUAL:-unreadable}"
+    fi
+  done
+  return 1
+}
+
+# Swipe inside a bottom-sheet list. The apply button sits near the bottom,
+# so the gesture stays between about 36% and 72% of the screen height.
+ui_sheet_swipe() {
+  local width height
+  read -r width height < <(ui_screen_size) || return 1
+  local x=$((width / 2))
+  adb shell input swipe "$x" $((height * 72 / 100)) "$x" $((height * 36 / 100)) 160
+}
+
 launch_app() {
   adb shell am start -n "${PKG}/.MainActivity" >/dev/null 2>&1 || \
     adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
@@ -226,8 +333,72 @@ clean_install() {
 
 sheet_open() {
   ui_dump || return 1
-  ui_find --text-regex '^Filters$' && return 0
+  # Prefer the title so a dismiss swipe starts on the sheet, not the close icon.
+  if ui_find --text-regex '^Filters$' || ui_find --content-desc-regex '^Filters$'; then
+    return 0
+  fi
+  ui_find --content-desc "Close filters" && return 0
   ui_find --text-regex '^Show [0-9]+ temples?$'
+}
+
+# Close a sheet that would block the next step. Does not press back on Home.
+dismiss_blockers() {
+  ui_dump || return 0
+  if ui_find --text-contains "Sort by distance"; then
+    if ui_find --text-regex '^Not now$'; then
+      ui_tap
+      sleep 1
+      return 0
+    fi
+    if ui_find --text-regex '^Continue$'; then
+      ui_tap
+      sleep 1
+      return 0
+    fi
+  fi
+  if ui_find --content-desc "Close filters"; then
+    ui_tap
+    sleep 1
+    return 0
+  fi
+  if ui_find --text-regex '^Filters$' || ui_find --content-desc-regex '^Filters$' || ui_find --text-regex '^Show [0-9]+ temples?$'; then
+    ui_back
+    sleep 1
+    return 0
+  fi
+  if ui_find --content-desc "Scrim"; then
+    ui_back
+    sleep 1
+  fi
+}
+
+dismiss_location_consent() {
+  local preference="${1:-Not now}"
+  ui_dump || return 1
+  ui_find --text-contains "Sort by distance" || return 1
+  case "$preference" in
+    Continue)
+      if ui_find --text-regex '^Continue$'; then
+        ui_tap
+        sleep 1
+        return 0
+      fi
+      ;;
+    *)
+      if ui_find --text-regex '^Not now$'; then
+        ui_tap
+        sleep 1
+        return 0
+      fi
+      ;;
+  esac
+  return 1
+}
+
+push_emulator_geo() {
+  adb shell settings put secure location_mode 3 >/dev/null 2>&1 || true
+  # adb emu geo fix is longitude then latitude (Madurai).
+  adb emu geo fix 78.1193 9.9195 >/dev/null 2>&1 || true
 }
 
 dismiss_sheet_swipe() {
@@ -369,12 +540,24 @@ reach_browse() {
 seed_prefs_file() {
   local file="$1"
   local step="$2"
-  adb shell run-as "$PKG" mkdir -p shared_prefs >/tmp/runas.err 2>&1 || {
-    record_fail "$step" "run-as failed ($(tr '\n' ' ' < /tmp/runas.err)); APK is not debuggable, so shared_prefs cannot be seeded"
+  local data_dir err
+  # mkdir and the redirect must share one run-as shell and an absolute path.
+  # A separate mkdir can succeed in the data dir while `sh -c` starts
+  # elsewhere, so the relative shared_prefs path does not exist for cat.
+  data_dir="$(adb shell run-as "$PKG" pwd 2>/tmp/runas.err | tr -d '\r' || true)"
+  if [[ -z "$data_dir" || ! "$data_dir" =~ ^/[A-Za-z0-9._/-]+$ ]]; then
+    launch_app
+    force_stop_app
+    data_dir="$(adb shell run-as "$PKG" pwd 2>/tmp/runas.err | tr -d '\r' || true)"
+  fi
+  if [[ -z "$data_dir" || ! "$data_dir" =~ ^/[A-Za-z0-9._/-]+$ ]]; then
+    err="$(tr '\n' ' ' < /tmp/runas.err 2>/dev/null || true)"
+    record_fail "$step" "run-as failed (${err:-no data dir}); APK is not debuggable, so shared_prefs cannot be seeded"
     return 1
-  }
-  if ! adb shell run-as "$PKG" sh -c 'cat > shared_prefs/FlutterSharedPreferences.xml' < "$file" 2>/tmp/runas.err; then
-    record_fail "$step" "could not write FlutterSharedPreferences.xml ($(tr '\n' ' ' < /tmp/runas.err))"
+  fi
+  if ! adb shell run-as "$PKG" sh -c "mkdir -p '${data_dir}/shared_prefs' && cat > '${data_dir}/shared_prefs/FlutterSharedPreferences.xml'" < "$file" 2>/tmp/runas.err; then
+    err="$(tr '\n' ' ' < /tmp/runas.err 2>/dev/null || true)"
+    record_fail "$step" "could not write FlutterSharedPreferences.xml (${err})"
     return 1
   fi
   return 0
