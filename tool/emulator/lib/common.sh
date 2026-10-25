@@ -717,3 +717,160 @@ dump_logcat() {
 app_pid() {
   adb shell pidof "$PKG" 2>/dev/null | tr -d '\r' || true
 }
+
+# Filter-sheet helpers shared by flow 06 and flows 17 and 19.
+# scroll_chip_bar_at, find_filter_chip, and re_escape support the ones
+# the flow scripts call directly.
+
+scroll_chip_bar_at() {
+  local y="$1"
+  local direction="$2"
+  local width
+  read -r width _ < <(ui_screen_size) || return 1
+  if [[ "$direction" == "right" ]]; then
+    adb shell input swipe \
+      $((width * 25 / 100)) "$y" \
+      $((width * 80 / 100)) "$y" 250
+  else
+    adb shell input swipe \
+      $((width * 80 / 100)) "$y" \
+      $((width * 25 / 100)) "$y" 250
+  fi
+}
+
+# The selected chip's text is the value ("Shiva"), and it may sit past the
+# right edge. Match the idle label or the applied value, and scroll the bar.
+find_filter_chip() {
+  local rid="$1"
+  local regex="$2"
+  local desc="${3:-}"
+  local i width height max_top y found
+  read -r width height < <(ui_screen_size) || return 1
+  max_top=$((height * 38 / 100))
+  y=$((height * 22 / 100))
+  for i in $(seq 1 8); do
+    ui_dump || true
+    found=0
+    if [[ -n "$rid" ]] && ui_find --resource-id "$rid" --max-top "$max_top"; then
+      found=1
+    elif [[ -n "$regex" ]] && ui_find --text-regex "$regex" --max-top "$max_top" --prefer upper; then
+      found=1
+    elif [[ -n "$desc" ]] && ui_find --content-desc "$desc" --max-top "$max_top"; then
+      found=1
+    fi
+    if [[ "$found" -eq 1 ]]; then
+      y=$UI_CY
+      if (( UI_CX > 24 && UI_CX < width - 24 )); then
+        return 0
+      fi
+      if (( UI_CX >= width - 24 )); then
+        scroll_chip_bar_at "$y" left || true
+      else
+        scroll_chip_bar_at "$y" right || true
+      fi
+      sleep 0.4
+      continue
+    fi
+    if ui_find --resource-id filter-chip-state --max-top "$max_top"; then
+      y=$UI_CY
+    fi
+    if (( i <= 4 )); then
+      scroll_chip_bar_at "$y" left || true
+    else
+      scroll_chip_bar_at "$y" right || true
+    fi
+    sleep 0.4
+  done
+  return 1
+}
+
+scroll_chips_until() {
+  local i y width height max_top
+  read -r width height < <(ui_screen_size) || return 1
+  max_top=$((height * 40 / 100))
+  y=$((height * 22 / 100))
+  for i in $(seq 1 6); do
+    if ui_dump && ui_find "$@" --max-top "$max_top"; then
+      y=$UI_CY
+      if (( UI_CX > 24 && UI_CX < width - 24 )); then
+        return 0
+      fi
+    elif ui_dump && ui_find --resource-id filter-chip-state --max-top "$max_top"; then
+      y=$UI_CY
+    fi
+    scroll_chip_bar_at "$y" left || true
+    sleep 0.4
+  done
+  return 1
+}
+
+re_escape() {
+  python3 -c 'import re,sys; print(re.escape(sys.argv[1]))' "$1"
+}
+
+select_labeled() {
+  local regex="$1"
+  # Callers still pass the section name. The list ends when a swipe leaves
+  # the dump unchanged, not when the next header first peeks in.
+  local _section="${2:-}"
+  local i height min_top max_top prev="" current
+  for i in $(seq 1 60); do
+    ui_dump || return 1
+    read -r _ height < <(ui_screen_size) || return 1
+    min_top=$((height * 20 / 100))
+    max_top=$((height * 86 / 100))
+    if ui_find --text-regex "$regex" --min-top "$min_top" --max-top "$max_top" --prefer upper; then
+      SELECTED_LABEL="$(chip_label "$UI_TEXT")"
+      ui_tap
+      sleep 1
+      return 0
+    fi
+    current="$(cksum "$DUMP" | awk 'NR==1 { print $1 }')"
+    if [[ -n "$prev" && "$current" == "$prev" ]]; then
+      return 1
+    fi
+    prev="$current"
+    ui_sheet_swipe up || return 1
+    sleep 0.35
+  done
+  return 1
+}
+
+apply_sheet() {
+  if ! ui_wait 12 --text-regex '^Show [0-9]+ temples?$'; then
+    return 1
+  fi
+  ui_tap
+  sleep 1
+  if sheet_open; then
+    return 1
+  fi
+  return 0
+}
+
+chip_exact() {
+  local label="$1"
+  find_filter_chip "" "^$(re_escape "$label")$"
+}
+
+recover_sheet() {
+  if sheet_open; then
+    ui_back
+    sleep 1
+  fi
+}
+
+clear_named() {
+  local which="$1"
+  if ui_dump && ui_find --content-desc "Clear ${which} filter"; then
+    ui_tap
+    sleep 1
+    return 0
+  fi
+  if ui_dump && ui_find --text-regex '^Clear$' --prefer upper; then
+    ui_tap
+    sleep 1
+    return 0
+  fi
+  return 1
+}

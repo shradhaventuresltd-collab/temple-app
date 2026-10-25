@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/district/district_lookup.dart';
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/screens/home_scroll.dart';
 import 'package:temple_app/screens/licences_screen.dart';
 import 'package:temple_app/screens/temple_detail_screen.dart';
 import 'package:temple_app/services/analytics_routes.dart';
@@ -203,8 +204,10 @@ class _AppDrawerState extends State<AppDrawer> {
                 label: 'Home',
                 icon: Icons.home_rounded,
                 onTap: () {
-                  Navigator.pop(context);
-                  Navigator.popUntil(context, (route) => route.isFirst);
+                  final navigator = Navigator.of(context);
+                  navigator.pop();
+                  navigator.popUntil((route) => route.isFirst);
+                  unawaited(HomeScroll.animateToTop());
                 },
               ),
 
@@ -275,10 +278,9 @@ class _AppDrawerState extends State<AppDrawer> {
                   selectedDeity: _selectedDeity,
                   selectedDistrict: _selectedDistrict,
                   districtOf: districtOf,
-                  prepareDistricts: () async {
-                    final lookup = await prepareDirectoryDistricts(all);
+                  prepareDistricts: () => prepareDirectoryDistricts(all),
+                  onDistrictsLoaded: () {
                     if (mounted) setState(() {});
-                    return lookup;
                   },
                   onChanged: (state, deity, district) {
                     final previousState = _selectedState;
@@ -508,9 +510,12 @@ class _AppDrawerState extends State<AppDrawer> {
   }) {
     final waiting = directory.connectionState == ConnectionState.waiting;
     final failed = directory.hasError;
-    Navigator.pop(context);
-    Navigator.push(
-      context,
+    // Close the drawer, then replace any list already on the stack so Back
+    // returns to Home instead of an older copy of the same directory.
+    final navigator = Navigator.of(context);
+    navigator.pop();
+    navigator.popUntil((route) => route.isFirst);
+    navigator.push(
       namedAnalyticsRoute<void>(
         name: AnalyticsScreens.templeList,
         builder: (_) => TempleListScreen(
@@ -673,8 +678,10 @@ class _TempleListScreenState extends State<TempleListScreen> {
             child: IconButton(
               icon: const Icon(Icons.home_rounded),
               tooltip: 'Home',
-              onPressed: () =>
-                  Navigator.popUntil(context, (route) => route.isFirst),
+              onPressed: () {
+                Navigator.popUntil(context, (route) => route.isFirst);
+                unawaited(HomeScroll.animateToTop());
+              },
             ),
           ),
         ],
@@ -723,6 +730,7 @@ class _TempleListScreenState extends State<TempleListScreen> {
             initialQuery: widget.initialQuery,
             initialState: widget.stateFilter,
             initialDeity: widget.deityFilter,
+            initialDistrict: widget.districtFilter,
             isLoading: true,
             onTempleTap: _onTempleTap,
           );
@@ -943,12 +951,10 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
                   selectedDeity: _selectedDeity,
                   selectedDistrict: _selectedDistrict,
                   districtOf: districtOf,
-                  prepareDistricts: () async {
-                    final lookup = await prepareDirectoryDistricts(
-                      widget.temples,
-                    );
+                  prepareDistricts: () =>
+                      prepareDirectoryDistricts(widget.temples),
+                  onDistrictsLoaded: () {
                     if (mounted) setState(() {});
-                    return lookup;
                   },
                   onChanged: _setFilters,
                 ),

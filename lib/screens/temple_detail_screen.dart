@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/screens/home_scroll.dart';
 import 'package:temple_app/services/app_analytics.dart';
 import 'package:temple_app/services/client_cache.dart';
 import 'package:temple_app/widgets/offline_banner.dart';
@@ -403,8 +404,10 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
                     right: hasMultiple ? 100 : 16,
                     child: _CircleIconButton(
                       icon: Icons.home_rounded,
-                      onTap: () =>
-                          Navigator.popUntil(context, (route) => route.isFirst),
+                      onTap: () {
+                        Navigator.popUntil(context, (route) => route.isFirst);
+                        unawaited(HomeScroll.animateToTop());
+                      },
                     ),
                   ),
 

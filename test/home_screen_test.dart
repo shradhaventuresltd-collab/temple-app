@@ -6,6 +6,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/home_screen.dart';
+import 'package:temple_app/screens/home_scroll.dart';
+import 'package:temple_app/screens/temple_detail_screen.dart';
+import 'package:temple_app/widgets/home_mosaic_collage.dart';
 import 'package:temple_app/services/firestore_read_log.dart';
 import 'package:temple_app/services/offline_link.dart';
 import 'package:temple_app/services/temple_service.dart';
@@ -282,6 +285,190 @@ void main() {
     expect(find.text('Retry'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('Home browse opens a filter chip and applies it', (tester) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomeScreen(
+          adminAuth: FakeAdminAuth(),
+          adminToolsEnabled: false,
+          templesLoader: () async => [
+            _sampleTemple(),
+            _sampleTemple(
+              name: 'Vaikom Mahadeva Temple',
+              state: 'Kerala',
+              city: 'Kottayam',
+              deity: 'Shiva',
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('home-browse-temples')));
+    await tester.pumpAndSettle();
+    expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
+    expect(find.text('Vaikom Mahadeva Temple'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('filter-chip-state')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('filter-option-state-Kerala')));
+    await tester.pump();
+    await tester.ensureVisible(find.byKey(const Key('filter-sheet-apply')));
+    await tester.tap(find.byKey(const Key('filter-sheet-apply')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('filter-sheet')), findsNothing);
+    expect(find.text('Vaikom Mahadeva Temple'), findsOneWidget);
+    expect(find.text('Meenakshi Amman Temple'), findsNothing);
+    expect(find.text('Kerala'), findsWidgets);
+  });
+
+  testWidgets('drawer Home and the list Home icon scroll back to the collage', (
+    tester,
+  ) async {
+    final temples = [_sampleTemple()];
+    TempleService.readsBlocked = () => true;
+    TempleService.published = temples;
+    addTearDown(TempleService.resetSessionForTest);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomeScreen(
+          adminAuth: FakeAdminAuth(),
+          adminToolsEnabled: false,
+          templesLoader: () async => temples,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    Future<void> scrollDown() async {
+      await tester.scrollUntilVisible(
+        find.text(
+          'A comprehensive exploration of India\'s sacred architectural legacy',
+        ),
+        400,
+      );
+      await tester.pumpAndSettle();
+      expect(HomeScroll.controller!.offset, greaterThan(0));
+      expect(find.byType(HomeMosaicCollage).hitTestable(), findsNothing);
+    }
+
+    Future<void> expectCollage() async {
+      expect(HomeScroll.controller!.offset, 0);
+      expect(find.byType(HomeMosaicCollage).hitTestable(), findsOneWidget);
+      expect(find.text('Discover'), findsOneWidget);
+    }
+
+    await scrollDown();
+    await tester.tap(find.byTooltip('Open navigation menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(of: find.byType(Drawer), matching: find.text('Home')),
+    );
+    await tester.pumpAndSettle();
+    await expectCollage();
+
+    Future<void> leaveScrolledHome() async {
+      await scrollDown();
+      final offset = HomeScroll.controller!.offset;
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('home-browse-temples')),
+        -300,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('home-browse-temples')));
+      await tester.pumpAndSettle();
+      expect(find.byType(TempleListScreen), findsOneWidget);
+      final scroll = HomeScroll.controller!;
+      if (scroll.hasClients && scroll.offset < 200) {
+        scroll.jumpTo(offset);
+      }
+      expect(scroll.offset, greaterThan(200));
+    }
+
+    await leaveScrolledHome();
+    await tester.tap(find.byTooltip('Home'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TempleListScreen), findsNothing);
+    await expectCollage();
+
+    await leaveScrolledHome();
+    await tester.tap(find.text('Meenakshi Amman Temple'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TempleDetailScreen), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.home_rounded).hitTestable());
+    await tester.pumpAndSettle();
+    expect(find.byType(TempleDetailScreen), findsNothing);
+    await expectCollage();
+  });
+
+  testWidgets('All Temples from a list replaces that list', (tester) async {
+    final temples = [_sampleTemple()];
+    TempleService.readsBlocked = () => true;
+    TempleService.published = temples;
+    addTearDown(TempleService.resetSessionForTest);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomeScreen(
+          adminAuth: FakeAdminAuth(),
+          adminToolsEnabled: false,
+          templesLoader: () async => temples,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('home-browse-temples')));
+    await tester.pumpAndSettle();
+    expect(find.byType(TempleListScreen), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Open navigation menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(Drawer),
+        matching: find.text('All Temples'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(TempleListScreen), findsOneWidget);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byType(TempleListScreen), findsNothing);
+    expect(find.byKey(const Key('home-browse-temples')), findsOneWidget);
+  });
+}
+
+Temple _sampleTemple({
+  String name = 'Meenakshi Amman Temple',
+  String state = 'Tamil Nadu',
+  String city = 'Madurai',
+  String deity = 'Devi',
+}) {
+  return Temple(
+    name: name,
+    state: state,
+    city: city,
+    deity: deity,
+    imageUrl: '',
+    description: 'A historic temple.',
+    story: 'Story',
+    location: '$city, $state',
+    timings: '',
+    specialities: const [],
+  );
 }
 
 Future<void> _pumpHome(WidgetTester tester) async {

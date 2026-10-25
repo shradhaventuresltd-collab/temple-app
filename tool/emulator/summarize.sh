@@ -28,6 +28,10 @@ flows=(
   14-back-relaunch
   15-offline
   16-home-browse
+  17-entry-matrix
+  18-home-reselect
+  19-rotation-state
+  20-empty-and-back
 )
 
 resolve_outcome="${EMULATOR_RESOLVE_OUTCOME:-success}"
