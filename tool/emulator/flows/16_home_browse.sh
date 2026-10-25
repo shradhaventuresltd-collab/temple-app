@@ -24,7 +24,7 @@ open_home_browse() {
     sleep 0.2
   done
   for i in $(seq 1 12); do
-    if ui_dump && { ui_find --resource-id home-browse-temples || ui_find --text-regex '^Browse .+Temples?$'; }; then
+    if ui_dump && { ui_find --resource-id home-browse-temples || ui_find --text-regex '^Browse .+[Tt]emples?$'; }; then
       if (( UI_CY > 48 && UI_CY < height - 48 )); then
         ui_tap
         sleep 1
