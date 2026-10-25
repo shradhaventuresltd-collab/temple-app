@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/utils/directory_filters.dart';
@@ -54,7 +55,7 @@ Future<DirectoryFilterSelection?> showDirectoryFilterSheet({
 /// Trigger chips for state, district, and deity. Each chip opens that list.
 ///
 /// The district asset loads only when the district chip is opened.
-class DirectoryFilterBar extends StatelessWidget {
+class DirectoryFilterBar extends StatefulWidget {
   const DirectoryFilterBar({
     super.key,
     required this.temples,
@@ -65,6 +66,7 @@ class DirectoryFilterBar extends StatelessWidget {
     this.query = '',
     this.districtOf,
     this.prepareDistricts,
+    this.onDistrictsLoaded,
   });
 
   final List<Temple> temples;
@@ -77,115 +79,207 @@ class DirectoryFilterBar extends StatelessWidget {
   final TempleDistrictName? districtOf;
 
   /// Called only from the district chip, before the sheet opens.
+  ///
+  /// Must not rebuild the bar. A setState here runs while the sheet route is
+  /// being pushed and the district list then swallows the dismiss drag.
   final Future<TempleDistrictName?> Function()? prepareDistricts;
+
+  /// Called after the district sheet closes, so the bar can show loaded names.
+  final VoidCallback? onDistrictsLoaded;
 
   /// Called with the new triple. Any value may be null (that chip is cleared).
   final void Function(String? state, String? deity, String? district) onChanged;
 
+  @override
+  State<DirectoryFilterBar> createState() => _DirectoryFilterBarState();
+}
+
+class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
+  final ScrollController _chipScroll = ScrollController();
+  final GlobalKey _stateChip = GlobalKey();
+  final GlobalKey _districtChip = GlobalKey();
+  final GlobalKey _deityChip = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduleReveal();
+  }
+
+  @override
+  void didUpdateWidget(DirectoryFilterBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedState != widget.selectedState ||
+        oldWidget.selectedDeity != widget.selectedDeity ||
+        oldWidget.selectedDistrict != widget.selectedDistrict) {
+      _scheduleReveal();
+    }
+  }
+
+  @override
+  void dispose() {
+    _chipScroll.dispose();
+    super.dispose();
+  }
+
+  /// The rightmost selected chip stays on screen at 320dp. State sits at the
+  /// start of the row; a selected deity used to be clipped past the edge.
+  ///
+  /// Only [_chipScroll] moves. [Scrollable.ensureVisible] would also scroll
+  /// every ancestor, including the drawer list that holds this bar.
+  void _scheduleReveal() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_chipScroll.hasClients) return;
+      final target = _chipToReveal()?.currentContext?.findRenderObject();
+      if (target is! RenderBox || !target.hasSize || !target.attached) return;
+      final viewport = RenderAbstractViewport.maybeOf(target);
+      if (viewport == null) return;
+      final position = _chipScroll.position;
+      final next = viewport
+          .getOffsetToReveal(target, 1)
+          .offset
+          .clamp(position.minScrollExtent, position.maxScrollExtent)
+          .toDouble();
+      if ((next - position.pixels).abs() < 0.5) return;
+      _chipScroll.animateTo(
+        next,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  GlobalKey? _chipToReveal() {
+    if (widget.selectedDeity != null) return _deityChip;
+    final district = widget.selectedDistrict;
+    if (district != null && district.isNotEmpty) return _districtChip;
+    if (widget.selectedState != null) return _stateChip;
+    return null;
+  }
+
   bool get _active =>
-      selectedState != null ||
-      selectedDeity != null ||
-      (selectedDistrict != null && selectedDistrict!.isNotEmpty);
+      widget.selectedState != null ||
+      widget.selectedDeity != null ||
+      (widget.selectedDistrict != null && widget.selectedDistrict!.isNotEmpty);
 
   bool get _showDistrict => directoryDistrictChipVisible(
-    temples: temples,
-    state: selectedState,
-    selectedDistrict: selectedDistrict,
-    districtOf: districtOf,
+    temples: widget.temples,
+    state: widget.selectedState,
+    selectedDistrict: widget.selectedDistrict,
+    districtOf: widget.districtOf,
   );
 
-  Future<void> _openSheet(
-    BuildContext context, {
+  Future<void> _openSheet({
     required bool loadDistricts,
     required DirectoryFilterSection section,
   }) async {
-    var lookup = districtOf;
+    var lookup = widget.districtOf;
+    var loadedDistricts = false;
     if (loadDistricts && lookup == null) {
-      final prepare = prepareDistricts;
-      if (prepare != null) lookup = await prepare();
+      final prepare = widget.prepareDistricts;
+      if (prepare != null) {
+        lookup = await prepare();
+        loadedDistricts = true;
+      }
     }
-    if (!context.mounted) return;
+    if (!mounted) return;
     final result = await showDirectoryFilterSheet(
       context: context,
-      temples: temples,
-      selectedState: selectedState,
-      selectedDeity: selectedDeity,
-      selectedDistrict: selectedDistrict,
-      query: query,
+      temples: widget.temples,
+      selectedState: widget.selectedState,
+      selectedDeity: widget.selectedDeity,
+      selectedDistrict: widget.selectedDistrict,
+      query: widget.query,
       districtOf: lookup,
       section: section,
     );
-    if (result == null || !context.mounted) return;
-    onChanged(result.state, result.deity, result.district);
+    if (!mounted) return;
+    if (loadedDistricts) widget.onDistrictsLoaded?.call();
+    if (result == null) return;
+    widget.onChanged(result.state, result.deity, result.district);
   }
 
   @override
   Widget build(BuildContext context) {
+    final selectedState = widget.selectedState;
+    final selectedDeity = widget.selectedDeity;
+    final selectedDistrict = widget.selectedDistrict;
     return SingleChildScrollView(
+      controller: _chipScroll,
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          _TriggerChip(
-            chipKey: const Key('filter-chip-state'),
-            semanticsId: 'filter-chip-state',
-            clearKey: const Key('filter-chip-state-clear'),
-            icon: Icons.place_rounded,
-            label: selectedState ?? 'State',
-            selected: selectedState != null,
-            openTooltip: 'Choose a state',
-            clearTooltip: 'Clear state filter',
-            onOpen: () => _openSheet(
-              context,
-              loadDistricts: false,
-              section: DirectoryFilterSection.state,
+          KeyedSubtree(
+            key: _stateChip,
+            child: _TriggerChip(
+              chipKey: const Key('filter-chip-state'),
+              semanticsId: 'filter-chip-state',
+              clearKey: const Key('filter-chip-state-clear'),
+              icon: Icons.place_rounded,
+              label: selectedState ?? 'State',
+              selected: selectedState != null,
+              openTooltip: 'Choose a state',
+              clearTooltip: 'Clear state filter',
+              onOpen: () => _openSheet(
+                loadDistricts: false,
+                section: DirectoryFilterSection.state,
+              ),
+              onClear: () =>
+                  widget.onChanged(null, selectedDeity, selectedDistrict),
             ),
-            onClear: () => onChanged(null, selectedDeity, selectedDistrict),
           ),
           if (_showDistrict) ...[
             const SizedBox(width: 8),
-            _TriggerChip(
-              chipKey: const Key('filter-chip-district'),
-              semanticsId: 'filter-chip-district',
-              clearKey: const Key('filter-chip-district-clear'),
-              icon: Icons.map_outlined,
-              label: selectedDistrict == null || selectedDistrict!.isEmpty
-                  ? 'All districts'
-                  : selectedDistrict!,
-              selected:
-                  selectedDistrict != null && selectedDistrict!.isNotEmpty,
-              openTooltip: 'Choose a district',
-              clearTooltip: 'Clear district filter',
-              onOpen: () => _openSheet(
-                context,
-                loadDistricts: true,
-                section: DirectoryFilterSection.district,
+            KeyedSubtree(
+              key: _districtChip,
+              child: _TriggerChip(
+                chipKey: const Key('filter-chip-district'),
+                semanticsId: 'filter-chip-district',
+                clearKey: const Key('filter-chip-district-clear'),
+                icon: Icons.map_outlined,
+                label: selectedDistrict == null || selectedDistrict.isEmpty
+                    ? 'All districts'
+                    : selectedDistrict,
+                selected:
+                    selectedDistrict != null && selectedDistrict.isNotEmpty,
+                openTooltip: 'Choose a district',
+                clearTooltip: 'Clear district filter',
+                onOpen: () => _openSheet(
+                  loadDistricts: true,
+                  section: DirectoryFilterSection.district,
+                ),
+                onClear: () =>
+                    widget.onChanged(selectedState, selectedDeity, null),
               ),
-              onClear: () => onChanged(selectedState, selectedDeity, null),
             ),
           ],
           const SizedBox(width: 8),
-          _TriggerChip(
-            chipKey: const Key('filter-chip-deity'),
-            clearKey: const Key('filter-chip-deity-clear'),
-            icon: Icons.auto_awesome_rounded,
-            label: selectedDeity == null
-                ? 'Deity'
-                : directoryDeityChipLabel(selectedDeity!),
-            selected: selectedDeity != null,
-            openTooltip: 'Choose a deity',
-            clearTooltip: 'Clear deity filter',
-            onOpen: () => _openSheet(
-              context,
-              loadDistricts: false,
-              section: DirectoryFilterSection.deity,
+          KeyedSubtree(
+            key: _deityChip,
+            child: _TriggerChip(
+              chipKey: const Key('filter-chip-deity'),
+              semanticsId: 'filter-chip-deity',
+              clearKey: const Key('filter-chip-deity-clear'),
+              icon: Icons.auto_awesome_rounded,
+              label: selectedDeity == null
+                  ? 'Deity'
+                  : directoryDeityChipLabel(selectedDeity),
+              selected: selectedDeity != null,
+              openTooltip: 'Choose a deity',
+              clearTooltip: 'Clear deity filter',
+              onOpen: () => _openSheet(
+                loadDistricts: false,
+                section: DirectoryFilterSection.deity,
+              ),
+              onClear: () =>
+                  widget.onChanged(selectedState, null, selectedDistrict),
             ),
-            onClear: () => onChanged(selectedState, null, selectedDistrict),
           ),
           if (_active) ...[
             const SizedBox(width: 4),
             TextButton(
               key: const Key('filter-clear'),
-              onPressed: () => onChanged(null, null, null),
+              onPressed: () => widget.onChanged(null, null, null),
               child: Text(
                 'Clear',
                 style: GoogleFonts.poppins(
@@ -233,8 +327,16 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
   /// A swipe on the option list does not move the sheet. The list wins the
   /// drag, so the modal route stays current and the next chip tap never
   /// lands. [_dismiss] pops that route once the pull passes the threshold.
+  ///
+  /// The district list is long enough that a downward drag never overscrolls.
+  /// [_options] plus the [Listener] below dismiss that drag when it starts
+  /// at the top, including a swipe that begins on the Filters title.
+  final ScrollController _options = ScrollController();
   bool _dismissed = false;
+  bool _pullArmed = false;
   double _pullDown = 0;
+  double _overscrollPull = 0;
+  double _pointerY = 0;
 
   @override
   void initState() {
@@ -243,6 +345,14 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
     _deity = widget.initialDeity;
     _district = widget.initialDistrict;
   }
+
+  @override
+  void dispose() {
+    _options.dispose();
+    super.dispose();
+  }
+
+  bool get _listAtTop => !_options.hasClients || _options.offset <= 0;
 
   int _count({String? state, String? deity, String? district}) {
     return directoryMatchingTemples(
@@ -270,12 +380,38 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
     if (notification is OverscrollNotification &&
         notification.overscroll < 0 &&
         notification.metrics.pixels <= notification.metrics.minScrollExtent) {
-      _pullDown += -notification.overscroll;
-      if (_pullDown >= 72) _dismiss();
+      _overscrollPull += -notification.overscroll;
+      if (_overscrollPull >= 72) _dismiss();
       return false;
     }
-    if (notification is ScrollEndNotification) _pullDown = 0;
+    if (notification is ScrollEndNotification) _overscrollPull = 0;
     return false;
+  }
+
+  void _onPointerDown(PointerDownEvent event) {
+    _pointerY = event.position.dy;
+    _pullArmed = _listAtTop;
+    if (_pullArmed) _pullDown = 0;
+  }
+
+  /// Downward travel while the option list is already at the top. An upward
+  /// move is a scroll into the list, so that gesture must not dismiss.
+  void _onPointerMove(PointerMoveEvent event) {
+    final dy = event.position.dy - _pointerY;
+    _pointerY = event.position.dy;
+    if (_dismissed || !_pullArmed) return;
+    if (dy <= 0) {
+      _pullArmed = false;
+      _pullDown = 0;
+      return;
+    }
+    _pullDown += dy;
+    if (_pullDown >= 72) _dismiss();
+  }
+
+  void _onPointerEnd(PointerEvent event) {
+    _pullArmed = false;
+    if (!_dismissed) _pullDown = 0;
   }
 
   void _chooseState(String? state) {
@@ -428,133 +564,140 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
         _deity != null ||
         (_district != null && _district!.isNotEmpty);
 
-    return SafeArea(
-      child: SizedBox(
-        key: const Key('filter-sheet'),
-        height: height,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SizedBox(height: 10),
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.brown.shade200,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
-              child: Row(
-                children: [
-                  const SizedBox(width: 40),
-                  Expanded(
-                    child: Text(
-                      'Filters',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.lora(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: _deepSaffron,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    key: const Key('filter-sheet-close'),
-                    tooltip: 'Close filters',
-                    onPressed: () => Navigator.pop(context),
-                    icon: Icon(
-                      Icons.close_rounded,
-                      color: Colors.brown.shade400,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-              child: Text(
-                showDistricts
-                    ? 'State, district, and deity, on the temples already loaded.'
-                    : 'State and deity, on the temples already loaded.',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.poppins(
-                  fontSize: 12.5,
-                  color: Colors.brown.shade500,
-                ),
-              ),
-            ),
-            Expanded(
-              child: NotificationListener<ScrollNotification>(
-                onNotification: _pullToDismiss,
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                  children: _sections(
-                    states: states,
-                    deities: deities,
-                    districts: districts,
-                    showDistricts: showDistricts,
-                    note: note,
+    return Listener(
+      onPointerDown: _onPointerDown,
+      onPointerMove: _onPointerMove,
+      onPointerUp: _onPointerEnd,
+      onPointerCancel: _onPointerEnd,
+      child: SafeArea(
+        child: SizedBox(
+          key: const Key('filter-sheet'),
+          height: height,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 10),
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.brown.shade200,
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-              child: Row(
-                children: [
-                  TextButton(
-                    key: const Key('filter-sheet-clear'),
-                    onPressed: draftActive
-                        ? () => setState(() {
-                            _state = null;
-                            _deity = null;
-                            _district = null;
-                          })
-                        : null,
-                    child: Text(
-                      'Clear',
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w600,
-                        color: draftActive
-                            ? _deepSaffron
-                            : Colors.brown.shade300,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: FilledButton(
-                      key: const Key('filter-sheet-apply'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: TempleBrowseCard.saffron,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 40),
+                    Expanded(
+                      child: Text(
+                        'Filters',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.lora(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: _deepSaffron,
                         ),
-                        textStyle: GoogleFonts.poppins(
-                          fontSize: 15,
+                      ),
+                    ),
+                    IconButton(
+                      key: const Key('filter-sheet-close'),
+                      tooltip: 'Close filters',
+                      onPressed: () => Navigator.pop(context),
+                      icon: Icon(
+                        Icons.close_rounded,
+                        color: Colors.brown.shade400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: Text(
+                  showDistricts
+                      ? 'State, district, and deity, on the temples already loaded.'
+                      : 'State and deity, on the temples already loaded.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 12.5,
+                    color: Colors.brown.shade500,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: NotificationListener<ScrollNotification>(
+                  onNotification: _pullToDismiss,
+                  child: ListView(
+                    controller: _options,
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                    children: _sections(
+                      states: states,
+                      deities: deities,
+                      districts: districts,
+                      showDistricts: showDistricts,
+                      note: note,
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: Row(
+                  children: [
+                    TextButton(
+                      key: const Key('filter-sheet-clear'),
+                      onPressed: draftActive
+                          ? () => setState(() {
+                              _state = null;
+                              _deity = null;
+                              _district = null;
+                            })
+                          : null,
+                      child: Text(
+                        'Clear',
+                        style: GoogleFonts.poppins(
                           fontWeight: FontWeight.w600,
+                          color: draftActive
+                              ? _deepSaffron
+                              : Colors.brown.shade300,
                         ),
                       ),
-                      onPressed: () {
-                        Navigator.pop(context, (
-                          state: _state,
-                          deity: _deity,
-                          district: _district,
-                        ));
-                      },
-                      child: Text(directoryFilterResultLabel(matched)),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: FilledButton(
+                        key: const Key('filter-sheet-apply'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: TempleBrowseCard.saffron,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          textStyle: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context, (
+                            state: _state,
+                            deity: _deity,
+                            district: _district,
+                          ));
+                        },
+                        child: Text(directoryFilterResultLabel(matched)),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -534,5 +536,250 @@ void main() {
       find.byKey(const Key('filter-option-deity-Deity 00')).hitTestable(),
       findsOneWidget,
     );
+  });
+
+  testWidgets(
+    'district sheet swipe down dismisses from the title and the list',
+    (tester) async {
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final many = [
+        for (var i = 0; i < 80; i++)
+          Temple(
+            name: 'Temple $i',
+            state: 'Tamil Nadu',
+            city: 'District ${i.toString().padLeft(2, '0')} long name',
+            deity: 'Shiva',
+            imageUrl: '',
+            description: '',
+            story: '',
+            location: 'District $i, Tamil Nadu',
+            timings: '',
+            specialities: const [],
+            latitude: 9.9 + i / 1000,
+            longitude: 78.1,
+          ),
+      ];
+      String? districtOf(Temple temple) => temple.city;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DirectoryFilterBar(
+              temples: many,
+              selectedState: null,
+              selectedDeity: null,
+              districtOf: districtOf,
+              onChanged: (_, _, _) {},
+            ),
+          ),
+        ),
+      );
+
+      Future<void> openDistrict() async {
+        await tester.tap(find.byKey(const Key('filter-chip-district')));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
+        expect(find.text('DISTRICT'), findsOneWidget);
+      }
+
+      final optionList = find.descendant(
+        of: find.byKey(const Key('filter-sheet')),
+        matching: find.byType(ListView),
+      );
+
+      await openDistrict();
+      await tester.drag(find.text('Filters'), const Offset(0, 400));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('filter-sheet')), findsNothing);
+
+      await openDistrict();
+      await tester.drag(optionList, const Offset(0, 64));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
+
+      await tester.drag(optionList, const Offset(0, -320));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
+      final scrolled = tester
+          .state<ScrollableState>(
+            find.descendant(of: optionList, matching: find.byType(Scrollable)),
+          )
+          .position
+          .pixels;
+      expect(scrolled, greaterThan(200));
+      await tester.drag(optionList, const Offset(0, 200));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
+
+      await tester.drag(find.text('Filters'), const Offset(0, 400));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('filter-sheet')), findsNothing);
+
+      await openDistrict();
+      await tester.drag(optionList, const Offset(0, 400));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('filter-sheet')), findsNothing);
+      expect(find.byKey(const Key('filter-chip-district')), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'selected deity chip stays on screen at 320dp and exposes its id',
+    (tester) async {
+      final semantics = tester.ensureSemantics();
+      try {
+        tester.view.physicalSize = const Size(320, 640);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        String? districtOf(Temple temple) => temple.city;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: DirectoryFilterBar(
+                temples: temples,
+                selectedState: 'Tamil Nadu',
+                selectedDeity: 'Shiva',
+                selectedDistrict: 'Madurai',
+                districtOf: districtOf,
+                onChanged: (_, _, _) {},
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final clear = find.byKey(const Key('filter-chip-deity-clear'));
+        expect(clear.hitTestable(), findsOneWidget);
+        expect(tester.getRect(clear).right, lessThanOrEqualTo(320));
+
+        final deity = tester.getSemantics(
+          find.byKey(const Key('filter-chip-deity')),
+        );
+        expect(deity.identifier, 'filter-chip-deity');
+      } finally {
+        semantics.dispose();
+      }
+    },
+  );
+
+  testWidgets('revealing a filter chip does not scroll the drawer', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    String? districtOf(Temple temple) => temple.city;
+    final drawerScroll = ScrollController(initialScrollOffset: 80);
+    addTearDown(drawerScroll.dispose);
+    String? state = 'Tamil Nadu';
+    String? deity = 'Shiva';
+    String? district = 'Madurai';
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StatefulBuilder(
+          builder: (context, setState) {
+            return Scaffold(
+              appBar: AppBar(),
+              drawer: Drawer(
+                child: ListView(
+                  controller: drawerScroll,
+                  children: [
+                    const SizedBox(height: 200),
+                    DirectoryFilterBar(
+                      temples: temples,
+                      selectedState: state,
+                      selectedDeity: deity,
+                      selectedDistrict: district,
+                      districtOf: districtOf,
+                      onChanged: (nextState, nextDeity, nextDistrict) {
+                        setState(() {
+                          state = nextState;
+                          deity = nextDeity;
+                          district = nextDistrict;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 900),
+                  ],
+                ),
+              ),
+              body: const SizedBox.shrink(),
+            );
+          },
+        ),
+      ),
+    );
+
+    await tester.tap(find.byTooltip('Open navigation menu'));
+    await tester.pumpAndSettle();
+
+    expect(drawerScroll.offset, 80);
+    final chipScroller = tester.state<ScrollableState>(
+      find.descendant(
+        of: find.byType(DirectoryFilterBar),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    expect(chipScroller.position.pixels, greaterThan(0));
+    expect(
+      find.byKey(const Key('filter-chip-deity-clear')).hitTestable(),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('filter-chip-deity')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('filter-option-deity-Devi')));
+    await tester.pump();
+    await tester.ensureVisible(find.byKey(const Key('filter-sheet-apply')));
+    await tester.tap(find.byKey(const Key('filter-sheet-apply')));
+    await tester.pumpAndSettle();
+
+    expect(drawerScroll.offset, 80);
+    expect(find.text('Devi'), findsWidgets);
+    expect(
+      find.byKey(const Key('filter-chip-deity-clear')).hitTestable(),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('district chosen while the directory is loading is kept', (
+    tester,
+  ) async {
+    final completer = Completer<List<Temple>>();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TempleListScreen(
+          temples: const [],
+          title: 'All Temples',
+          templesFuture: completer.future,
+          districtFilter: 'Sirohi',
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.text('Sirohi'), findsNothing);
+
+    completer.complete([
+      temple(
+        name: 'Dilwara Temples',
+        state: 'Rajasthan',
+        city: 'Mount Abu',
+        deity: 'Jain Tirthankaras',
+      ),
+    ]);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('filter-chip-district')), findsOneWidget);
+    expect(find.text('Sirohi'), findsOneWidget);
+    expect(find.text('All districts'), findsNothing);
   });
 }

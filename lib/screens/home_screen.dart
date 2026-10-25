@@ -7,6 +7,7 @@ import 'package:temple_app/data/heritage_content.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/near_me/near_me_copy.dart';
 import 'package:temple_app/screens/admin_screen.dart';
+import 'package:temple_app/screens/home_scroll.dart';
 import 'package:temple_app/screens/temples_near_me_screen.dart';
 import 'package:temple_app/services/analytics_routes.dart';
 import 'package:temple_app/services/admin_auth.dart';
@@ -102,6 +103,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   late final TempleService _templeService;
   final SoftUpdateNudge _nudge = SoftUpdateNudge();
+  final ScrollController _homeScroll = ScrollController();
   late Future<List<Temple>> _templesFuture;
   bool _showSoftUpdate = false;
   bool _leftForeground = false;
@@ -130,6 +132,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     _templeService = widget.templeService ?? TempleService(now: widget.now);
+    HomeScroll.attach(_homeScroll);
     _templesFuture = _loadTemples();
     unawaited(_markInitialLoadFinished());
     DirectoryReconnect.tick.addListener(_onReconnect);
@@ -173,6 +176,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     DirectoryReconnect.tick.removeListener(_onReconnect);
     TempleService.revision.removeListener(_onPublished);
+    HomeScroll.detach(_homeScroll);
+    _homeScroll.dispose();
     super.dispose();
   }
 
@@ -260,6 +265,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     return _HomeBody(
       allTemples: allTemples,
+      scrollController: _homeScroll,
       onBrowseTemples: () {
         Navigator.push(
           context,
@@ -571,15 +577,18 @@ class _HomeBody extends StatelessWidget {
     required this.allTemples,
     required this.onBrowseTemples,
     required this.onNearMe,
+    required this.scrollController,
   });
 
   final List<Temple> allTemples;
   final VoidCallback onBrowseTemples;
   final VoidCallback onNearMe;
+  final ScrollController scrollController;
 
   @override
   Widget build(BuildContext context) {
     return CustomScrollView(
+      controller: scrollController,
       slivers: [
         const SliverToBoxAdapter(child: UnavailableStatesNotice()),
         // Verified-photo mosaic (KAN-73) — picsum never shown as temple art.
