@@ -230,6 +230,12 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
   String? _deity;
   String? _district;
 
+  /// A swipe on the option list does not move the sheet. The list wins the
+  /// drag, so the modal route stays current and the next chip tap never
+  /// lands. [_dismiss] pops that route once the pull passes the threshold.
+  bool _dismissed = false;
+  double _pullDown = 0;
+
   @override
   void initState() {
     super.initState();
@@ -247,6 +253,29 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
       query: widget.query,
       districtOf: widget.districtOf,
     ).length;
+  }
+
+  /// Pops this sheet with null. A second notification in the same gesture
+  /// must not pop the page underneath.
+  void _dismiss() {
+    if (_dismissed || !mounted) return;
+    final route = ModalRoute.of(context);
+    if (route == null || !route.isCurrent) return;
+    _dismissed = true;
+    Navigator.of(context).pop();
+  }
+
+  bool _pullToDismiss(ScrollNotification notification) {
+    if (_dismissed) return false;
+    if (notification is OverscrollNotification &&
+        notification.overscroll < 0 &&
+        notification.metrics.pixels <= notification.metrics.minScrollExtent) {
+      _pullDown += -notification.overscroll;
+      if (_pullDown >= 72) _dismiss();
+      return false;
+    }
+    if (notification is ScrollEndNotification) _pullDown = 0;
+    return false;
   }
 
   void _chooseState(String? state) {
@@ -459,14 +488,17 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
               ),
             ),
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                children: _sections(
-                  states: states,
-                  deities: deities,
-                  districts: districts,
-                  showDistricts: showDistricts,
-                  note: note,
+              child: NotificationListener<ScrollNotification>(
+                onNotification: _pullToDismiss,
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                  children: _sections(
+                    states: states,
+                    deities: deities,
+                    districts: districts,
+                    showDistricts: showDistricts,
+                    note: note,
+                  ),
                 ),
               ),
             ),
