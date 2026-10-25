@@ -96,6 +96,13 @@ class DirectoryFilterBar extends StatefulWidget {
 
 class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
   final ScrollController _chipScroll = ScrollController();
+
+  /// True from the moment a chip asks for the sheet until that route pops.
+  ///
+  /// District boundaries load before the sheet exists, so the chip stays
+  /// tappable. A second tap in that gap pushed another sheet on top. Closing
+  /// the one on screen left the other route up, and later chip taps hit it.
+  bool _opening = false;
   final GlobalKey _stateChip = GlobalKey();
   final GlobalKey _districtChip = GlobalKey();
   final GlobalKey _deityChip = GlobalKey();
@@ -173,26 +180,38 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
     required bool loadDistricts,
     required DirectoryFilterSection section,
   }) async {
-    var lookup = widget.districtOf;
+    if (_opening) return;
+    _opening = true;
     var loadedDistricts = false;
-    if (loadDistricts && lookup == null) {
-      final prepare = widget.prepareDistricts;
-      if (prepare != null) {
-        lookup = await prepare();
-        loadedDistricts = true;
+    DirectoryFilterSelection? result;
+    try {
+      var lookup = widget.districtOf;
+      if (loadDistricts && lookup == null) {
+        final prepare = widget.prepareDistricts;
+        if (prepare != null) {
+          lookup = await prepare();
+          loadedDistricts = true;
+        }
       }
+      if (!mounted) return;
+      result =
+          await showDirectoryFilterSheet(
+            context: context,
+            temples: widget.temples,
+            selectedState: widget.selectedState,
+            selectedDeity: widget.selectedDeity,
+            selectedDistrict: widget.selectedDistrict,
+            query: widget.query,
+            districtOf: lookup,
+            section: section,
+          ).whenComplete(() {
+            _opening = false;
+          });
+    } catch (error, stack) {
+      debugPrint('Filter sheet did not open: $error\n$stack');
+    } finally {
+      _opening = false;
     }
-    if (!mounted) return;
-    final result = await showDirectoryFilterSheet(
-      context: context,
-      temples: widget.temples,
-      selectedState: widget.selectedState,
-      selectedDeity: widget.selectedDeity,
-      selectedDistrict: widget.selectedDistrict,
-      query: widget.query,
-      districtOf: lookup,
-      section: section,
-    );
     if (!mounted) return;
     if (loadedDistricts) widget.onDistrictsLoaded?.call();
     if (result == null) return;

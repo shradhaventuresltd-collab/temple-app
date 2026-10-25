@@ -32,6 +32,14 @@ flows=(
   18-home-reselect
   19-rotation-state
   20-empty-and-back
+  21-district-close-then-other-chip
+  22-filter-combos-reset
+  23-near-me-settings-roundtrip
+  24-gallery-autoadvance-viewer
+  25-directions-edge
+  26-drawer-nav-stack
+  27-offline-cold-start
+  28-small-screen-rotation-overflow
 )
 
 resolve_outcome="${EMULATOR_RESOLVE_OUTCOME:-success}"
