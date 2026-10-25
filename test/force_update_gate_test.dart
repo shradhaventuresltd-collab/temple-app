@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -133,6 +135,42 @@ void main() {
     expect(find.byKey(const Key('soft-update-nudge')), findsNothing);
   });
 
+  testWidgets(
+    'a background fetch raises the force-update gate on first launch',
+    (tester) async {
+      final client = _FetchLater()..hangFetch = Completer<bool>();
+      final config = AppConfigController(
+        client: client,
+        fetchTimeout: const Duration(seconds: 30),
+      );
+      final startup = startRemoteConfig(config);
+      await startup.ready;
+
+      await tester.pumpWidget(
+        _app(
+          store: _AcceptedStore(),
+          buildNumber: 2,
+          config: AppConfig.defaults,
+          controller: config,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(HomeScreen), findsOneWidget);
+      expect(find.byType(ForceUpdateScreen), findsNothing);
+      expect(config.snapshot.minSupportedBuild, 1);
+
+      client.fetched = {RemoteConfigKeys.minSupportedBuild: 9};
+      client.hangFetch!.complete(true);
+      await startup.fetch;
+      await tester.pump();
+
+      expect(config.snapshot.minSupportedBuild, 9);
+      expect(find.byKey(const Key('force-update-screen')), findsOneWidget);
+      expect(find.byType(HomeScreen), findsNothing);
+    },
+  );
+
   testWidgets('a missing build number fails open', (tester) async {
     await tester.pumpWidget(
       _app(
@@ -180,6 +218,7 @@ TempleDirectoryApp _app({
   required PolicyAcceptanceStore store,
   required Object? buildNumber,
   required AppConfig config,
+  AppConfigController? controller,
   UpdateNudgeStore? nudgeStore,
   DateTime Function()? now,
   Future<bool> Function(Uri url)? launchStoreUrl,
@@ -197,7 +236,7 @@ TempleDirectoryApp _app({
       loads?.call();
       return [_temple];
     },
-    appConfig: AppConfigController(initial: config),
+    appConfig: controller ?? AppConfigController(initial: config),
     installedBuildNumber: buildNumber,
     nudgeStore: nudgeStore,
     now: now,
@@ -207,6 +246,57 @@ TempleDirectoryApp _app({
     launchPolicyUrl: (_) async => true,
     adminToolsEnabled: false,
   );
+}
+
+class _FetchLater implements RemoteConfigClient {
+  Map<String, Object> defaults = {};
+  Map<String, Object> activated = {};
+  Map<String, Object> fetched = {};
+  Completer<bool>? hangFetch;
+
+  @override
+  Future<void> setDefaults(Map<String, Object> defaults) async {
+    this.defaults = Map<String, Object>.from(defaults);
+  }
+
+  @override
+  Future<void> setSettings({
+    required Duration fetchTimeout,
+    required Duration minimumFetchInterval,
+  }) async {}
+
+  @override
+  Future<void> activate() async {}
+
+  @override
+  Future<bool> fetchAndActivate() async {
+    final hang = hangFetch;
+    if (hang != null) await hang.future;
+    activated = {...activated, ...fetched};
+    return true;
+  }
+
+  Object? _value(String key) {
+    if (activated.containsKey(key)) return activated[key];
+    return defaults[key];
+  }
+
+  @override
+  bool getBool(String key) => _value(key) == true;
+
+  @override
+  int getInt(String key) {
+    final value = _value(key);
+    if (value is int) return value;
+    return 0;
+  }
+
+  @override
+  String getString(String key) {
+    final value = _value(key);
+    if (value is String) return value;
+    return '';
+  }
 }
 
 class _AcceptedStore implements PolicyAcceptanceStore {

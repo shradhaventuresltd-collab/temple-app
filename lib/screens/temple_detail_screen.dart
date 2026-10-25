@@ -194,7 +194,8 @@ class TempleDetailBody extends StatefulWidget {
   State<TempleDetailBody> createState() => _TempleDetailBodyState();
 }
 
-class _TempleDetailBodyState extends State<TempleDetailBody> {
+class _TempleDetailBodyState extends State<TempleDetailBody>
+    with WidgetsBindingObserver {
   static const Color _deepSaffron = Color(0xFFE65100);
   static const _autoAdvanceInterval = Duration(seconds: 5);
   static const double _imageHeight = 450;
@@ -203,6 +204,10 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
   late final PageController _pageController;
   Timer? _autoTimer;
   final Set<int> _fullSizePages = {};
+  final GlobalKey _galleryKey = GlobalKey();
+  var _appVisible = true;
+  var _routeCurrent = true;
+  var _galleryInView = true;
 
   Temple get temple => widget.temple;
   DetailHonesty get honesty => DetailHonesty.of(temple);
@@ -222,26 +227,88 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
     setState(() => _fullSizePages.add(index));
   }
 
+  bool get _autoAdvanceAllowed =>
+      _appVisible && _routeCurrent && _galleryInView;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _pageController = PageController();
     _startAutoAdvance();
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final current = ModalRoute.of(context)?.isCurrent ?? true;
+    if (current == _routeCurrent) return;
+    _routeCurrent = current;
+    _startAutoAdvance();
+  }
+
+  @override
+  void didUpdateWidget(TempleDetailBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _clampCurrentPage(jumpNow: true);
+    _startAutoAdvance();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final visible = state == AppLifecycleState.resumed;
+    if (visible == _appVisible) return;
+    _appVisible = visible;
+    _startAutoAdvance();
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _autoTimer?.cancel();
     _pageController.dispose();
     super.dispose();
   }
 
+  /// Keeps [_currentPage] inside [gallery]. A shorter list, for example
+  /// after a reload, must not index past the end.
+  void _clampCurrentPage({bool jumpNow = false}) {
+    final length = gallery.length;
+    final next = length == 0 ? 0 : _currentPage.clamp(0, length - 1).toInt();
+    if (next == _currentPage) return;
+    _currentPage = next;
+    if (!jumpNow || length == 0 || !_pageController.hasClients) return;
+    _pageController.jumpToPage(next);
+  }
+
+  void _onGalleryScroll(ScrollNotification notification) {
+    if (notification.metrics.axis != Axis.vertical) return;
+    final shown = _galleryShown();
+    if (shown == _galleryInView) return;
+    _galleryInView = shown;
+    _startAutoAdvance();
+  }
+
+  bool _galleryShown() {
+    final box = _galleryKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.attached || !box.hasSize) return _galleryInView;
+    final origin = box.localToGlobal(Offset.zero);
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    return origin.dy < screenHeight && origin.dy + box.size.height > 0;
+  }
+
   void _startAutoAdvance() {
-    if (gallery.length <= 1) return;
     _autoTimer?.cancel();
+    _autoTimer = null;
+    if (!_autoAdvanceAllowed || gallery.length <= 1) return;
     _autoTimer = Timer.periodic(_autoAdvanceInterval, (_) {
-      if (!mounted) return;
-      final nextPage = (_currentPage + 1) % gallery.length;
+      if (!mounted || !_autoAdvanceAllowed) return;
+      final length = gallery.length;
+      if (length <= 1) return;
+      if (_currentPage < 0 || _currentPage >= length) {
+        _currentPage = _currentPage.clamp(0, length - 1).toInt();
+      }
+      final nextPage = (_currentPage + 1) % length;
       _pageController.animateToPage(
         nextPage,
         duration: const Duration(milliseconds: 600),
@@ -262,22 +329,30 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
   static const String _directionsUnavailableMessage =
       "Couldn't open directions on this device.";
 
+  var _openingDirections = false;
+
   Future<void> _openGoogleMaps() async {
-    unawaited(AppAnalytics.instance.logGetDirections(temple.id));
-    final url = googleMapsDirectionsUri(
-      name: temple.name,
-      city: temple.city,
-      state: temple.state,
-      latitude: temple.latitude,
-      longitude: temple.longitude,
-    );
-    if (url == null) {
-      if (mounted) _showDirectionsUnavailable();
-      return;
-    }
-    final opened = await _tryOpenMaps(url);
-    if (!opened && mounted) {
-      _showDirectionsUnavailable();
+    if (_openingDirections) return;
+    _openingDirections = true;
+    try {
+      unawaited(AppAnalytics.instance.logGetDirections(temple.id));
+      final url = googleMapsDirectionsUri(
+        name: temple.name,
+        city: temple.city,
+        state: temple.state,
+        latitude: temple.latitude,
+        longitude: temple.longitude,
+      );
+      if (url == null) {
+        if (mounted) _showDirectionsUnavailable();
+        return;
+      }
+      final opened = await _tryOpenMaps(url);
+      if (!opened && mounted) {
+        _showDirectionsUnavailable();
+      }
+    } finally {
+      _openingDirections = false;
     }
   }
 
@@ -308,6 +383,7 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
 
   @override
   Widget build(BuildContext context) {
+    _clampCurrentPage();
     final hasMultiple = gallery.length > 1;
     final topPadding = MediaQuery.of(context).padding.top;
     final photoCredit = gallery.isEmpty
@@ -325,13 +401,19 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
 
     return Stack(
       children: [
-        SingleChildScrollView(
+        NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            _onGalleryScroll(notification);
+            return false;
+          },
+          child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const OfflineBanner(savedTempleCount: 1),
               // ── Image gallery with PageView ──
               Stack(
+                key: _galleryKey,
                 children: [
                   Container(
                     width: double.infinity,
@@ -824,6 +906,7 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
               ),
             ],
           ),
+        ),
         ),
         if (topPadding > 0)
           Positioned(

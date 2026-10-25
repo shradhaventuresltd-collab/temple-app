@@ -333,4 +333,155 @@ void main() {
         .toList();
     expect(requested, [original]);
   });
+
+  Temple twoPhotos() {
+    return Temple(
+      name: 'Shore Temple',
+      state: 'Tamil Nadu',
+      city: 'Mahabalipuram',
+      deity: 'Shiva',
+      imageUrl: 'https://example.com/a.jpg',
+      images: const ['https://example.com/a.jpg', 'https://example.com/b.jpg'],
+      description: 'A place listed in the directory.',
+      story: 'Notes are still being checked.',
+      location: 'Temple Street',
+      timings: '6:00 AM–8:00 PM daily.',
+      specialities: const ['Stone gateway'],
+      photos: const [
+        TemplePhoto(
+          url: 'https://example.com/a.jpg',
+          credit: 'Ada · CC BY 4.0',
+          licence: PhotoLicence.ccBy,
+          order: 0,
+        ),
+        TemplePhoto(
+          url: 'https://example.com/b.jpg',
+          credit: 'Ben · CC BY 4.0',
+          licence: PhotoLicence.ccBy,
+          order: 1,
+        ),
+      ],
+      latitude: 12.6,
+      longitude: 80.2,
+    );
+  }
+
+  testWidgets('auto-advance pauses while the app is not visible', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: TempleDetailBody(temple: twoPhotos())),
+      ),
+    );
+    await tester.pump();
+    expect(find.text('1 / 2'), findsOneWidget);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(find.text('1 / 2'), findsOneWidget);
+    expect(find.text('2 / 2'), findsNothing);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump(const Duration(seconds: 5, milliseconds: 50));
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(find.text('2 / 2'), findsOneWidget);
+  });
+
+  testWidgets('auto-advance pauses while another route covers the gallery', (
+    tester,
+  ) async {
+    final navigator = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(
+      MaterialApp(
+        navigatorKey: navigator,
+        home: Scaffold(body: TempleDetailBody(temple: twoPhotos())),
+      ),
+    );
+    await tester.pump();
+    expect(find.text('1 / 2'), findsOneWidget);
+
+    navigator.currentState!.push(
+      MaterialPageRoute<void>(
+        builder: (_) => const Scaffold(body: Text('viewer')),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pump(const Duration(milliseconds: 700));
+
+    expect(find.text('viewer'), findsOneWidget);
+    expect(find.text('2 / 2', skipOffstage: false), findsNothing);
+    expect(find.text('1 / 2', skipOffstage: false), findsOneWidget);
+
+    navigator.currentState!.pop();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(seconds: 5, milliseconds: 50));
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(find.text('2 / 2'), findsOneWidget);
+  });
+
+  testWidgets('auto-advance pauses when the gallery is scrolled off screen', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 500);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: TempleDetailBody(temple: twoPhotos())),
+      ),
+    );
+    await tester.pump();
+    expect(find.text('1 / 2'), findsOneWidget);
+
+    await tester.drag(find.text('1 / 2'), const Offset(0, -900));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(find.text('1 / 2'), findsOneWidget);
+    expect(find.text('2 / 2'), findsNothing);
+  });
+
+  testWidgets('the photo credit clamps when the gallery shrinks', (
+    tester,
+  ) async {
+    final key = GlobalKey();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TempleDetailBody(key: key, temple: twoPhotos()),
+        ),
+      ),
+    );
+    await tester.pump();
+    // A chevron animation races the image error relayout in tests and snaps
+    // back. Move to the second photo directly, which is the state that used
+    // to index off the end when the gallery shrank.
+    tester.widget<PageView>(find.byType(PageView)).controller!.jumpToPage(1);
+    await tester.pump();
+    expect(find.text('2 / 2'), findsOneWidget);
+    expect(find.text('Ben · CC BY 4.0'), findsOneWidget);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TempleDetailBody(
+            key: key,
+            temple: _temple(original: 'https://example.com/a.jpg'),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Ada · CC BY 4.0'), findsOneWidget);
+    expect(find.text('Ben · CC BY 4.0'), findsNothing);
+    expect(find.text('2 / 2'), findsNothing);
+  });
 }

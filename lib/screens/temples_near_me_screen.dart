@@ -37,7 +37,8 @@ class TemplesNearMeScreen extends StatefulWidget {
   State<TemplesNearMeScreen> createState() => _TemplesNearMeScreenState();
 }
 
-class _TemplesNearMeScreenState extends State<TemplesNearMeScreen> {
+class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
+    with WidgetsBindingObserver {
   static const Color _saffron = Color(0xFFFF8F00);
   static const Color _cream = Color(0xFFFFFBF2);
   static const Color _deepSaffron = Color(0xFFE65100);
@@ -48,6 +49,7 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _session = NearMeSession(
       temples: widget.temples,
       location: widget.location ?? GeolocatorCoarseLocation(),
@@ -66,9 +68,17 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _session.removeListener(_onSession);
     _session.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_session.onAppResumed());
+    }
   }
 
   Future<void> _showRationale() async {

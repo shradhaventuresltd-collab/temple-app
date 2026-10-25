@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/district/district_lookup.dart';
@@ -54,7 +55,18 @@ class _AppDrawerState extends State<AppDrawer> {
   /// The drawer's local-history entry is removed as soon as it starts to
   /// close. A second tap in that same turn would otherwise [Navigator.pop]
   /// the page underneath (Home disappears, or another list is pushed).
+  ///
+  /// The flag stays up for [_navGuardHold]. Clearing it on the next frame
+  /// was too soon: a finger's second contact arrives during the close fling,
+  /// moves past the touch slop, and the drawer's drag recognizer accepts it
+  /// before this tile's [onTap]. That stops the fling and opens the drawer
+  /// again, because the panel is still more than half on screen.
   bool _navBusy = false;
+
+  /// Close fling is about 246ms. Hold the guard until that fling is done.
+  static const _navGuardHold = Duration(milliseconds: 400);
+
+  Timer? _navGuardTimer;
 
   @override
   void initState() {
@@ -64,6 +76,7 @@ class _AppDrawerState extends State<AppDrawer> {
 
   @override
   void dispose() {
+    _navGuardTimer?.cancel();
     _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
@@ -210,6 +223,7 @@ class _AppDrawerState extends State<AppDrawer> {
               _DrawerNavTile(
                 label: 'Home',
                 icon: Icons.home_rounded,
+                absorbDrawerDrag: _navBusy,
                 onTap: () => _goHome(context),
               ),
 
@@ -220,6 +234,7 @@ class _AppDrawerState extends State<AppDrawer> {
                 label: 'All Temples',
                 icon: Icons.temple_hindu_rounded,
                 count: all.length,
+                absorbDrawerDrag: _navBusy,
                 onTap: () => _navigateToList(
                   context,
                   all,
@@ -414,6 +429,7 @@ class _AppDrawerState extends State<AppDrawer> {
                 key: const Key('drawer-licences'),
                 label: 'Licences',
                 icon: Icons.article_outlined,
+                absorbDrawerDrag: _navBusy,
                 onTap: () => _openLicences(context),
               ),
               const AdPrivacyChoicesTile(),
@@ -497,7 +513,6 @@ class _AppDrawerState extends State<AppDrawer> {
     final alreadyHome = ModalRoute.of(context)?.isFirst ?? false;
     if (alreadyHome) {
       unawaited(HomeScroll.animateToTop());
-      _endDrawerNavigation();
       return;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -505,7 +520,6 @@ class _AppDrawerState extends State<AppDrawer> {
         navigator.popUntil((route) => route.isFirst);
         unawaited(HomeScroll.animateToTop());
       }
-      if (mounted) _navBusy = false;
     });
   }
 
@@ -513,7 +527,6 @@ class _AppDrawerState extends State<AppDrawer> {
     if (!_beginDrawerNavigation(context)) return;
     final navigator = Navigator.of(context);
     if (ModalRoute.of(context)?.settings.name == AnalyticsScreens.licences) {
-      _endDrawerNavigation();
       return;
     }
     final page = namedAnalyticsRoute<void>(
@@ -522,7 +535,6 @@ class _AppDrawerState extends State<AppDrawer> {
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (navigator.mounted) navigator.push(page);
-      if (mounted) _navBusy = false;
     });
   }
 
@@ -538,6 +550,7 @@ class _AppDrawerState extends State<AppDrawer> {
     final handlesPop = ModalRoute.of(context)?.willHandlePopInternally ?? false;
     if (!drawerOpen && !handlesPop) return false;
     _navBusy = true;
+    _holdNavGuard();
     if (drawerOpen) {
       scaffold!.closeDrawer();
     } else {
@@ -546,10 +559,15 @@ class _AppDrawerState extends State<AppDrawer> {
     return true;
   }
 
-  void _endDrawerNavigation() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _navBusy = false;
+  /// Rebuilds the nav tiles so they claim the next pointer, and keeps
+  /// [_navBusy] set until the close fling can no longer be reversed.
+  void _holdNavGuard() {
+    _navGuardTimer?.cancel();
+    _navGuardTimer = Timer(_navGuardHold, () {
+      if (!mounted) return;
+      setState(() => _navBusy = false);
     });
+    if (mounted) setState(() {});
   }
 
   bool _isSameOpenList(
@@ -598,7 +616,6 @@ class _AppDrawerState extends State<AppDrawer> {
       deityFilter: deityFilter,
       districtFilter: districtFilter,
     )) {
-      _endDrawerNavigation();
       return;
     }
     final navigator = Navigator.of(context);
@@ -622,7 +639,6 @@ class _AppDrawerState extends State<AppDrawer> {
         navigator.popUntil((route) => route.isFirst);
         navigator.push(page);
       }
-      if (mounted) _navBusy = false;
     });
   }
 }
@@ -1406,6 +1422,7 @@ class _DrawerNavTile extends StatelessWidget {
     required this.icon,
     this.count,
     required this.onTap,
+    this.absorbDrawerDrag = false,
   });
 
   final String label;
@@ -1413,41 +1430,80 @@ class _DrawerNavTile extends StatelessWidget {
   final int? count;
   final VoidCallback onTap;
 
+  /// While the drawer is closing, claim horizontal drags on this tile.
+  ///
+  /// The drawer's own drag recognizer would otherwise accept the next
+  /// finger, stop the close, and open the drawer again.
+  final bool absorbDrawerDrag;
+
   @override
   Widget build(BuildContext context) {
+    final tile = ListTile(
+      dense: true,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      leading: Icon(icon, size: 20, color: Colors.brown.shade400),
+      title: Text(
+        label,
+        style: GoogleFonts.poppins(
+          fontSize: 14.5,
+          fontWeight: FontWeight.w500,
+          color: Colors.brown.shade800,
+        ),
+      ),
+      trailing: count != null
+          ? Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.brown.shade100,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                '$count',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.brown.shade500,
+                ),
+              ),
+            )
+          : null,
+      onTap: absorbDrawerDrag ? null : onTap,
+    );
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-      child: ListTile(
-        dense: true,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        leading: Icon(icon, size: 20, color: Colors.brown.shade400),
-        title: Text(
-          label,
-          style: GoogleFonts.poppins(
-            fontSize: 14.5,
-            fontWeight: FontWeight.w500,
-            color: Colors.brown.shade800,
-          ),
-        ),
-        trailing: count != null
-            ? Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.brown.shade100,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  '$count',
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.brown.shade500,
-                  ),
-                ),
-              )
-            : null,
-        onTap: onTap,
-      ),
+      child: absorbDrawerDrag
+          ? RawGestureDetector(
+              behavior: HitTestBehavior.opaque,
+              excludeFromSemantics: true,
+              gestures: <Type, GestureRecognizerFactory>{
+                EagerGestureRecognizer:
+                    GestureRecognizerFactoryWithHandlers<
+                      EagerGestureRecognizer
+                    >(
+                      () => EagerGestureRecognizer(),
+                      (EagerGestureRecognizer instance) {},
+                    ),
+              },
+              child: Listener(
+                behavior: HitTestBehavior.opaque,
+                onPointerDown: (_) => _keepDrawerClosing(context),
+                child: tile,
+              ),
+            )
+          : tile,
     );
   }
+}
+
+/// The drawer's drag recognizer stops the close on pointer down, then opens
+/// again if the panel is still mostly on screen. Claim the pointer on the
+/// tile, and close once more after that recognizer has settled.
+void _keepDrawerClosing(BuildContext context) {
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (!context.mounted) return;
+    final scaffold = Scaffold.maybeOf(context);
+    if (scaffold != null && scaffold.isDrawerOpen) {
+      scaffold.closeDrawer();
+    }
+  });
 }

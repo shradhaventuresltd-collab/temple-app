@@ -97,47 +97,58 @@ void main() {
     expect(config.snapshot.adsEnabled, isTrue);
   });
 
-  test(
-    'kill switch applies on fetch; other keys wait for the next launch',
-    () async {
-      final client = _FakeRemoteConfig();
-      final config = AppConfigController(client: client);
-      await config.activateCachedOrDefaults();
-      expect(config.snapshot.minSupportedBuild, 1);
+  test('the background fetch cap is one minute, not three seconds', () {
+    expect(AppConfigController().fetchTimeout, const Duration(minutes: 1));
+  });
 
-      client.fetched = {
-        RemoteConfigKeys.killSwitch: true,
-        RemoteConfigKeys.maintenanceMessage: 'Closed for the procession',
-        RemoteConfigKeys.minSupportedBuild: 40,
-        RemoteConfigKeys.recommendedBuild: 41,
-        RemoteConfigKeys.contentVersion: 7,
-        RemoteConfigKeys.adsEnabled: false,
-        RemoteConfigKeys.newFilters: true,
-      };
-      await config.fetchAndActivateInBackground();
+  test('kill switch and min build apply on fetch; other keys wait', () async {
+    final client = _FakeRemoteConfig();
+    final config = AppConfigController(client: client);
+    await config.activateCachedOrDefaults();
+    expect(config.snapshot.minSupportedBuild, 1);
 
-      expect(config.snapshot.killSwitch, isTrue);
-      expect(config.snapshot.maintenanceMessage, 'Closed for the procession');
-      expect(config.snapshot.minSupportedBuild, 1);
-      expect(config.snapshot.recommendedBuild, 1);
-      expect(config.snapshot.contentVersion, 0);
-      expect(config.snapshot.adsEnabled, isTrue);
-      expect(config.snapshot.newFiltersEnabled, isFalse);
+    client.fetched = {
+      RemoteConfigKeys.killSwitch: true,
+      RemoteConfigKeys.maintenanceMessage: 'Closed for the procession',
+      RemoteConfigKeys.minSupportedBuild: 40,
+      RemoteConfigKeys.recommendedBuild: 41,
+      RemoteConfigKeys.contentVersion: 7,
+      RemoteConfigKeys.adsEnabled: false,
+      RemoteConfigKeys.newFilters: true,
+    };
+    await config.fetchAndActivateInBackground();
 
-      final nextLaunch = AppConfigController(client: client);
-      await nextLaunch.activateCachedOrDefaults();
-      expect(nextLaunch.snapshot.killSwitch, isTrue);
-      expect(
-        nextLaunch.snapshot.maintenanceMessage,
-        'Closed for the procession',
-      );
-      expect(nextLaunch.snapshot.minSupportedBuild, 40);
-      expect(nextLaunch.snapshot.recommendedBuild, 41);
-      expect(nextLaunch.snapshot.contentVersion, 7);
-      expect(nextLaunch.snapshot.adsEnabled, isFalse);
-      expect(nextLaunch.snapshot.newFiltersEnabled, isTrue);
-    },
-  );
+    expect(config.snapshot.killSwitch, isTrue);
+    expect(config.snapshot.maintenanceMessage, 'Closed for the procession');
+    expect(config.snapshot.minSupportedBuild, 40);
+    expect(config.snapshot.recommendedBuild, 1);
+    expect(config.snapshot.contentVersion, 0);
+    expect(config.snapshot.adsEnabled, isTrue);
+    expect(config.snapshot.newFiltersEnabled, isFalse);
+
+    final nextLaunch = AppConfigController(client: client);
+    await nextLaunch.activateCachedOrDefaults();
+    expect(nextLaunch.snapshot.killSwitch, isTrue);
+    expect(nextLaunch.snapshot.maintenanceMessage, 'Closed for the procession');
+    expect(nextLaunch.snapshot.minSupportedBuild, 40);
+    expect(nextLaunch.snapshot.recommendedBuild, 41);
+    expect(nextLaunch.snapshot.contentVersion, 7);
+    expect(nextLaunch.snapshot.adsEnabled, isFalse);
+    expect(nextLaunch.snapshot.newFiltersEnabled, isTrue);
+  });
+
+  test('min build applies when the kill switch does not change', () async {
+    final client = _FakeRemoteConfig();
+    final config = AppConfigController(client: client);
+    await config.activateCachedOrDefaults();
+    client.fetched = {RemoteConfigKeys.minSupportedBuild: 12};
+    await config.fetchAndActivateInBackground();
+    expect(config.snapshot.killSwitch, isFalse);
+    expect(config.snapshot.minSupportedBuild, 12);
+    expect(config.snapshot.recommendedBuild, 1);
+    expect(config.snapshot.adsEnabled, isTrue);
+    expect(config.snapshot.newFiltersEnabled, isFalse);
+  });
 
   test('a cached kill switch is active before the fetch', () async {
     final client = _FakeRemoteConfig()

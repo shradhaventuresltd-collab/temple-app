@@ -93,6 +93,28 @@ void main() {
     expect(routes.depth, 1, reason: routes.events.join(' | '));
   });
 
+  testWidgets(
+    'a second Home tap during the close does not leave the drawer open',
+    (tester) async {
+      await _pumpHome(tester, routes);
+      await tester.tap(find.byTooltip('Open navigation menu'));
+      await tester.pumpAndSettle();
+      final homeTile = find.descendant(
+        of: find.byType(Drawer),
+        matching: find.text('Home'),
+      );
+      await _tapTwiceWithDelay(tester, homeTile);
+
+      expect(find.byType(Drawer), findsNothing);
+      expect(find.byType(HomeScreen), findsOneWidget);
+      expect(
+        find.byKey(const Key('home-browse-temples')).hitTestable(),
+        findsOneWidget,
+      );
+      expect(routes.depth, 1, reason: routes.events.join(' | '));
+    },
+  );
+
   testWidgets('P3 double tap Home from a list returns to one home route', (
     tester,
   ) async {
@@ -160,6 +182,24 @@ Temple _sampleTemple() {
     timings: '',
     specialities: [],
   );
+}
+
+/// Two real contacts, 80ms apart, the second moving past the touch slop.
+///
+/// A device double-tap is not two [onTap] calls in one turn, and it is not
+/// a zero-delta pointer. The second finger arrives while the drawer is
+/// still closing and moves far enough for the drawer's drag recognizer to
+/// accept. That used to stop the fling and open the drawer again.
+Future<void> _tapTwiceWithDelay(WidgetTester tester, Finder finder) async {
+  final first = await tester.startGesture(tester.getCenter(finder));
+  await first.up();
+  await tester.pump(const Duration(milliseconds: 80));
+  // The tile has slid. A second contact lands on the tile where it is now
+  // and moves past the touch slop, the way a finger does on a device.
+  final second = await tester.startGesture(tester.getCenter(finder));
+  await second.moveBy(const Offset(24, 4));
+  await second.up();
+  await tester.pumpAndSettle();
 }
 
 /// Delivers two taps before the next frame.

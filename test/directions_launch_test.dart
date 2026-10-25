@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -30,11 +32,13 @@ class _FakeUrlLauncher extends UrlLauncherPlatform {
     required this.canOpen,
     this.launchResult = true,
     this.throwOnLaunch = false,
+    this.hangCanLaunch,
   });
 
   final bool canOpen;
   final bool launchResult;
   final bool throwOnLaunch;
+  final Completer<bool>? hangCanLaunch;
 
   @override
   LinkDelegate? get linkDelegate => null;
@@ -42,15 +46,19 @@ class _FakeUrlLauncher extends UrlLauncherPlatform {
   String? launchedUrl;
   PreferredLaunchMode? launchMode;
   int canLaunchCount = 0;
+  int launchCount = 0;
 
   @override
   Future<bool> canLaunch(String url) async {
     canLaunchCount++;
+    final hang = hangCanLaunch;
+    if (hang != null) await hang.future;
     return canOpen;
   }
 
   @override
   Future<bool> launchUrl(String url, LaunchOptions options) async {
+    launchCount++;
     launchedUrl = url;
     launchMode = options.mode;
     if (throwOnLaunch) {
@@ -186,6 +194,30 @@ void main() {
 
     expect(find.text(_unavailable), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a second tap does not open directions twice', (tester) async {
+    final hang = Completer<bool>();
+    final launcher = _FakeUrlLauncher(canOpen: true, hangCanLaunch: hang);
+    UrlLauncherPlatform.instance = launcher;
+
+    await pumpDetail(tester);
+    final button = find.byKey(const Key('get-directions-button'));
+    await tester.ensureVisible(button);
+    await tester.tap(button);
+    await tester.pump();
+    await tester.tap(button);
+    await tester.pump();
+
+    expect(launcher.canLaunchCount, 1);
+    expect(launcher.launchCount, 0);
+
+    hang.complete(true);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(launcher.launchCount, 1);
+    expect(find.text(_unavailable), findsNothing);
   });
 
   testWidgets('opens the existing https maps link without a snackbar', (

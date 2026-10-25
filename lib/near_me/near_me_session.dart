@@ -24,7 +24,7 @@ class NearMeSession extends ChangeNotifier {
     required this.temples,
     required CoarseLocationClient location,
     this.districtOf = indexDistrictName,
-    this.fixTimeout = const Duration(seconds: 10),
+    this.fixTimeout = const Duration(seconds: 20),
   }) : _location = location;
 
   final List<Temple> temples;
@@ -50,6 +50,41 @@ class NearMeSession extends ChangeNotifier {
 
   /// Service was off, or the read timed out. Tries the same steps again.
   Future<void> retry() => _locate(requestIfDenied: true);
+
+  /// App returned to the foreground. Re-checks the service and permission
+  /// after Settings. A timeout stays on the error until [retry], so coming
+  /// back cannot start another read and flash the locating message again.
+  Future<void> onAppResumed() async {
+    if (_busy) return;
+    switch (phase) {
+      case NearMePhase.denied:
+      case NearMePhase.deniedForever:
+      case NearMePhase.serviceOff:
+        break;
+      case NearMePhase.rationale:
+      case NearMePhase.locating:
+      case NearMePhase.sorted:
+      case NearMePhase.timedOut:
+      case NearMePhase.declined:
+        return;
+    }
+    if (!await _location.isServiceEnabled()) {
+      if (phase != NearMePhase.serviceOff) _fail(NearMePhase.serviceOff);
+      return;
+    }
+    final permission = await _location.checkPermission();
+    if (permission == CoarsePermission.deniedForever) {
+      if (phase != NearMePhase.deniedForever) {
+        _fail(NearMePhase.deniedForever);
+      }
+      return;
+    }
+    if (permission != CoarsePermission.granted) {
+      if (phase != NearMePhase.denied) _fail(NearMePhase.denied);
+      return;
+    }
+    await _locate(requestIfDenied: false);
+  }
 
   Future<void> openAppSettings() => _location.openAppSettings();
 
@@ -115,7 +150,14 @@ class NearMeSession extends ChangeNotifier {
   }
 
   Future<void> _readFix() async {
-    final fix = await _location.currentFix(timeout: fixTimeout);
+    CoarseFix? fix;
+    try {
+      fix = await _location.currentFix(timeout: fixTimeout);
+    } on LocationFailure catch (failure) {
+      if (failure.kind != LocationFailureKind.timeout) rethrow;
+      fix = await _location.lastKnownFix();
+      if (fix == null) rethrow;
+    }
     anchorState = null;
     anchorCity = null;
     anchorDistrict = null;

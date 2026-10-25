@@ -238,9 +238,29 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
 
   void _onConfig() {
     if (!mounted) return;
+    _applyForceUpdateFromConfig();
     setState(() {});
     _logStartupScreen();
     _startAdsIfAllowed();
+  }
+
+  /// A background fetch can raise [AppConfig.minSupportedBuild] after Home
+  /// is already on screen. Re-read the gate so that flag still blocks this
+  /// launch. The policy gate applies the same snapshot when it finishes.
+  void _applyForceUpdateFromConfig() {
+    if (_phase == _StartupPhase.checking ||
+        _phase == _StartupPhase.gate ||
+        _phase == _StartupPhase.update) {
+      return;
+    }
+    final requirement = updateRequirement(
+      buildNumber: _buildNumber,
+      minSupportedBuild: _config.snapshot.minSupportedBuild,
+      recommendedBuild: _config.snapshot.recommendedBuild,
+    );
+    if (requirement != UpdateRequirement.hard) return;
+    _offerSoftUpdate = false;
+    _phase = _StartupPhase.update;
   }
 
   String? _startupScreenName() {

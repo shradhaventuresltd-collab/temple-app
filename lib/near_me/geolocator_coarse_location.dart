@@ -41,8 +41,22 @@ class GeolocatorCoarseLocation implements CoarseLocationClient {
   }
 
   @override
+  Future<CoarseFix?> lastKnownFix() async {
+    try {
+      final position = await Geolocator.getLastKnownPosition();
+      if (position == null) return null;
+      final latitude = position.latitude;
+      final longitude = position.longitude;
+      if (!latitude.isFinite || !longitude.isFinite) return null;
+      return CoarseFix(latitude: latitude, longitude: longitude);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
   Future<CoarseFix> currentFix({
-    Duration timeout = const Duration(seconds: 10),
+    Duration timeout = const Duration(seconds: 20),
   }) async {
     try {
       final position = await Geolocator.getCurrentPosition(

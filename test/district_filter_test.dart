@@ -547,8 +547,11 @@ class FakeCoarseLocation implements CoarseLocationClient {
   Future<CoarsePermission> checkPermission() async => permission;
 
   @override
+  Future<CoarseFix?> lastKnownFix() async => null;
+
+  @override
   Future<CoarseFix> currentFix({
-    Duration timeout = const Duration(seconds: 10),
+    Duration timeout = const Duration(seconds: 20),
   }) async {
     return const CoarseFix(latitude: 9.9195, longitude: 78.1193);
   }

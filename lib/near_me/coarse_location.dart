@@ -32,10 +32,14 @@ abstract class CoarseLocationClient {
 
   Future<CoarsePermission> requestPermission();
 
-  /// Low-accuracy fix. Times out after [timeout] (10 seconds).
+  /// Low-accuracy fix. Times out after [timeout].
   Future<CoarseFix> currentFix({
-    Duration timeout = const Duration(seconds: 10),
+    Duration timeout = const Duration(seconds: 20),
   });
+
+  /// Platform cache from an earlier read, or null. Used only after
+  /// [currentFix] times out. Not written to disk, logs, or a network call.
+  Future<CoarseFix?> lastKnownFix();
 
   Future<void> openAppSettings();
 
