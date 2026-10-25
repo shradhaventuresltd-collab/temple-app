@@ -35,6 +35,10 @@ record_xfail() {
   printf 'XFAIL %s: %s: %s\n' "$FLOW" "$1" "$2" | tee -a "$RESULTS"
 }
 
+record_not_run() {
+  printf 'NOT RUN %s: %s: %s\n' "$FLOW" "$1" "$2" | tee -a "$RESULTS"
+}
+
 step_shot() {
   local safe
   SHOT_N=$((SHOT_N + 1))
@@ -59,6 +63,11 @@ xfail_step() {
   record_xfail "$1" "$2"
   step_shot "$1"
   cp -f "$DUMP" "${DUMP_DIR}/${FLOW}_${1}.xml" 2>/dev/null || true
+}
+
+skip_step() {
+  record_not_run "$1" "$2"
+  step_shot "$1"
 }
 
 ui_screen_size() {
@@ -254,13 +263,17 @@ ui_replace_field_text() {
   return 1
 }
 
-# Swipe inside a bottom-sheet list. The apply button sits near the bottom,
-# so the gesture stays between about 36% and 72% of the screen height.
+# Small step inside the sheet list. A long fling jumps out of State into Deity.
 ui_sheet_swipe() {
+  local direction="${1:-up}"
   local width height
   read -r width height < <(ui_screen_size) || return 1
   local x=$((width / 2))
-  adb shell input swipe "$x" $((height * 72 / 100)) "$x" $((height * 36 / 100)) 160
+  if [[ "$direction" == "down" ]]; then
+    adb shell input swipe "$x" $((height * 50 / 100)) "$x" $((height * 62 / 100)) 220
+  else
+    adb shell input swipe "$x" $((height * 62 / 100)) "$x" $((height * 50 / 100)) 220
+  fi
 }
 
 launch_app() {
@@ -423,6 +436,28 @@ push_emulator_geo() {
   adb emu geo fix 78.1193 9.9195 >/dev/null 2>&1 || true
 }
 
+# Drag from the sheet handle or title. A swipe that starts in the list scrolls
+# the options instead of dismissing the sheet.
+dismiss_sheet_from_handle() {
+  local width="$1"
+  local height="$2"
+  local start_x=$((width / 2))
+  local start_y=$((height * 24 / 100))
+  local max_title=$((height * 36 / 100))
+  if ui_find --text-regex '^Filters$' --max-top "$max_title" || ui_find --content-desc-regex '^Filters$' --max-top "$max_title"; then
+    local node_h=$((UI_Y2 - UI_Y1))
+    if (( node_h > 0 && node_h < height / 6 && UI_CY < max_title )); then
+      start_x=$UI_CX
+      start_y=$UI_CY
+    fi
+  fi
+  if (( start_y > max_title )); then
+    start_x=$((width / 2))
+    start_y=$((height * 24 / 100))
+  fi
+  adb shell input swipe "$start_x" "$start_y" "$start_x" $((height * 96 / 100)) 80
+}
+
 dismiss_sheet_swipe() {
   local width height
   if ! sheet_open; then
@@ -430,11 +465,10 @@ dismiss_sheet_swipe() {
     return 1
   fi
   read -r width height < <(ui_screen_size)
-  # Fling from the Filters title (inside the sheet) toward the bottom edge.
-  adb shell input swipe "$UI_CX" "$UI_Y1" "$UI_CX" $((height * 92 / 100)) 90
+  dismiss_sheet_from_handle "$width" "$height"
   sleep 1
   if sheet_open; then
-    adb shell input swipe "$UI_CX" "$UI_Y1" "$UI_CX" $((height * 96 / 100)) 40
+    dismiss_sheet_from_handle "$width" "$height"
     sleep 1
   fi
   if sheet_open; then
@@ -562,22 +596,27 @@ reach_browse() {
 seed_prefs_file() {
   local file="$1"
   local step="$2"
-  local data_dir err
-  # mkdir and the redirect must share one run-as shell and an absolute path.
-  # A separate mkdir can succeed in the data dir while `sh -c` starts
-  # elsewhere, so the relative shared_prefs path does not exist for cat.
-  data_dir="$(adb shell run-as "$PKG" pwd 2>/tmp/runas.err | tr -d '\r' || true)"
-  if [[ -z "$data_dir" || ! "$data_dir" =~ ^/[A-Za-z0-9._/-]+$ ]]; then
-    launch_app
-    force_stop_app
-    data_dir="$(adb shell run-as "$PKG" pwd 2>/tmp/runas.err | tr -d '\r' || true)"
-  fi
-  if [[ -z "$data_dir" || ! "$data_dir" =~ ^/[A-Za-z0-9._/-]+$ ]]; then
-    err="$(tr '\n' ' ' < /tmp/runas.err 2>/dev/null || true)"
-    record_fail "$step" "run-as failed (${err:-no data dir}); APK is not debuggable, so shared_prefs cannot be seeded"
+  local err prefs
+  # Package names are dotted identifiers. Reject anything else before it
+  # is interpolated into a device shell command.
+  if [[ -z "${PKG:-}" || ! "$PKG" =~ ^[A-Za-z0-9._]+$ ]]; then
+    record_fail "$step" "package name is not set, so shared_prefs cannot be seeded"
     return 1
   fi
-  if ! adb shell run-as "$PKG" sh -c "mkdir -p '${data_dir}/shared_prefs' && cat > '${data_dir}/shared_prefs/FlutterSharedPreferences.xml'" < "$file" 2>/tmp/runas.err; then
+  prefs="/data/data/${PKG}/shared_prefs"
+  # mkdir must receive the directory as its own argument. Wrapping it in
+  # sh -c lets the device shell keep only the word mkdir, which then
+  # prints "Needs 1 argument".
+  if ! adb shell run-as "$PKG" mkdir -p "$prefs" >/tmp/runas.err 2>&1; then
+    launch_app
+    force_stop_app
+    if ! adb shell run-as "$PKG" mkdir -p "$prefs" >/tmp/runas.err 2>&1; then
+      err="$(tr '\n' ' ' < /tmp/runas.err 2>/dev/null || true)"
+      record_fail "$step" "run-as failed (${err:-mkdir}); APK is not debuggable, so shared_prefs cannot be seeded"
+      return 1
+    fi
+  fi
+  if ! adb shell "run-as ${PKG} sh -c 'cat > ${prefs}/FlutterSharedPreferences.xml'" < "$file" 2>/tmp/runas.err; then
     err="$(tr '\n' ' ' < /tmp/runas.err 2>/dev/null || true)"
     record_fail "$step" "could not write FlutterSharedPreferences.xml (${err})"
     return 1

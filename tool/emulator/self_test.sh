@@ -232,6 +232,15 @@ fi
 rm -rf "$locate_dir"
 rm -f "$locate_out"
 
+if ! grep -Fq 'run-as "$PKG" mkdir -p "$prefs"' tool/emulator/lib/common.sh; then
+  echo "prefs seed should mkdir /data/data/<pkg>/shared_prefs via run-as" >&2
+  exit 1
+fi
+if ! grep -Fq '/data/data/${PKG}/shared_prefs' tool/emulator/lib/common.sh; then
+  echo "prefs path should be absolute" >&2
+  exit 1
+fi
+
 summary_dir="$(mktemp -d)"
 if EMULATOR_ARTIFACTS="$summary_dir" GITHUB_STEP_SUMMARY="${summary_dir}/summary.md" \
   bash tool/emulator/summarize.sh >"${summary_dir}/fail.out" 2>&1; then
@@ -296,5 +305,23 @@ if ! grep -qx 'NOT RUN 05-search' "${not_run_dir}/results.txt"; then
   exit 1
 fi
 rm -rf "$not_run_dir"
+
+step_dir="$(mktemp -d)"
+: > "${step_dir}/results.txt"
+for flow in "${flows[@]}"; do
+  printf 'PASS %s: ok\n' "$flow" >> "${step_dir}/results.txt"
+done
+printf 'NOT RUN 06-filters: combined-state: state-select did not apply a state\n' >> "${step_dir}/results.txt"
+if ! EMULATOR_ARTIFACTS="$step_dir" GITHUB_STEP_SUMMARY="${step_dir}/summary.md" \
+  bash tool/emulator/summarize.sh >"${step_dir}/out"; then
+  echo "a skipped step should not fail the summary" >&2
+  cat "${step_dir}/out" >&2
+  exit 1
+fi
+if grep -q 'FAIL 06-filters: missing' "${step_dir}/results.txt"; then
+  echo "a skipped step should count as the flow reporting" >&2
+  exit 1
+fi
+rm -rf "$step_dir"
 
 echo "emulator self-test ok"

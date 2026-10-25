@@ -33,7 +33,8 @@ for flow in "${flows[@]}"; do
   if grep -Eq "^(PASS|FAIL|XFAIL) ${flow}:" "$results"; then
     continue
   fi
-  if grep -Eq "^NOT RUN ${flow}$" "$results"; then
+  # Whole-flow "NOT RUN <flow>" or a skipped step "NOT RUN <flow>: <step>".
+  if grep -Eq "^NOT RUN ${flow}(:|$)" "$results"; then
     continue
   fi
   if [[ "$resolve_outcome" == "failure" ]]; then

@@ -7,40 +7,142 @@ if ! err="$(reach_browse)"; then
 fi
 pass_step browse
 
-scroll_chips_until() {
-  local i
-  for i in 1 2 3; do
-    if ui_dump && ui_find "$@"; then
-      return 0
-    fi
-    local width height
-    read -r width height < <(ui_screen_size) || return 1
+STATE_SELECT_OK=0
+DEITY_SELECT_OK=0
+DISTRICT_SELECT_OK=0
+STATE_LABEL=""
+DEITY_LABEL=""
+DISTRICT_LABEL=""
+COMBINED_STATE=""
+COMBINED_DEITY=""
+COMBINED_DISTRICT=""
+
+scroll_chip_bar_at() {
+  local y="$1"
+  local direction="$2"
+  local width
+  read -r width _ < <(ui_screen_size) || return 1
+  if [[ "$direction" == "right" ]]; then
     adb shell input swipe \
-      $((width * 75 / 100)) $((height * 16 / 100)) \
-      $((width * 20 / 100)) $((height * 16 / 100)) 250
-    sleep 1
+      $((width * 25 / 100)) "$y" \
+      $((width * 80 / 100)) "$y" 250
+  else
+    adb shell input swipe \
+      $((width * 80 / 100)) "$y" \
+      $((width * 25 / 100)) "$y" 250
+  fi
+}
+
+# The selected chip's text is the value ("Shiva"), and it may sit past the
+# right edge. Match the idle label or the applied value, and scroll the bar.
+find_filter_chip() {
+  local rid="$1"
+  local regex="$2"
+  local desc="${3:-}"
+  local i width height max_top y found
+  read -r width height < <(ui_screen_size) || return 1
+  max_top=$((height * 38 / 100))
+  y=$((height * 22 / 100))
+  for i in $(seq 1 8); do
+    ui_dump || true
+    found=0
+    if [[ -n "$rid" ]] && ui_find --resource-id "$rid" --max-top "$max_top"; then
+      found=1
+    elif [[ -n "$regex" ]] && ui_find --text-regex "$regex" --max-top "$max_top" --prefer upper; then
+      found=1
+    elif [[ -n "$desc" ]] && ui_find --content-desc "$desc" --max-top "$max_top"; then
+      found=1
+    fi
+    if [[ "$found" -eq 1 ]]; then
+      y=$UI_CY
+      if (( UI_CX > 24 && UI_CX < width - 24 )); then
+        return 0
+      fi
+      if (( UI_CX >= width - 24 )); then
+        scroll_chip_bar_at "$y" left || true
+      else
+        scroll_chip_bar_at "$y" right || true
+      fi
+      sleep 0.4
+      continue
+    fi
+    if ui_find --resource-id filter-chip-state --max-top "$max_top"; then
+      y=$UI_CY
+    fi
+    if (( i <= 4 )); then
+      scroll_chip_bar_at "$y" left || true
+    else
+      scroll_chip_bar_at "$y" right || true
+    fi
+    sleep 0.4
   done
   return 1
 }
 
+scroll_chips_until() {
+  local i y width height max_top
+  read -r width height < <(ui_screen_size) || return 1
+  max_top=$((height * 40 / 100))
+  y=$((height * 22 / 100))
+  for i in $(seq 1 6); do
+    if ui_dump && ui_find "$@" --max-top "$max_top"; then
+      y=$UI_CY
+      if (( UI_CX > 24 && UI_CX < width - 24 )); then
+        return 0
+      fi
+    elif ui_dump && ui_find --resource-id filter-chip-state --max-top "$max_top"; then
+      y=$UI_CY
+    fi
+    scroll_chip_bar_at "$y" left || true
+    sleep 0.4
+  done
+  return 1
+}
+
+re_escape() {
+  python3 -c 'import re,sys; print(re.escape(sys.argv[1]))' "$1"
+}
+
 select_labeled() {
   local regex="$1"
-  local i height min_top max_top
-  # Shiva and Madurai sit below the fold. Stay inside the sheet list
-  # (above the Show button) and keep swiping until the option is visible.
-  for i in $(seq 1 40); do
+  local section="${2:-}"
+  local i height min_top max_top other back
+  # Stay inside this section. A long fling scrolls State past Kerala into Deity.
+  for i in $(seq 1 24); do
     ui_dump || true
     read -r _ height < <(ui_screen_size) || return 1
-    min_top=$((height * 28 / 100))
-    max_top=$((height * 82 / 100))
-    if ui_find --text-regex "$regex" --min-top "$min_top" --max-top "$max_top" --prefer lower; then
+    min_top=$((height * 30 / 100))
+    max_top=$((height * 78 / 100))
+    if ui_find --text-regex "$regex" --min-top "$min_top" --max-top "$max_top" --prefer upper; then
       SELECTED_LABEL="$(chip_label "$UI_TEXT")"
       ui_tap
       sleep 1
       return 0
     fi
-    ui_sheet_swipe || true
-    sleep 0.4
+    if [[ -n "$section" ]]; then
+      local header_top=$((height * 42 / 100))
+      for other in STATE DISTRICT DEITY; do
+        [[ "$other" == "$section" ]] && continue
+        # The next section has reached the top of the list, so this section
+        # has scrolled off. Step back instead of entering the next list.
+        if ui_find --text-regex "^${other}$" --min-top "$min_top" --max-top "$header_top"; then
+          for back in 1 2 3; do
+            ui_sheet_swipe down || true
+            sleep 0.3
+            ui_dump || true
+            if ui_find --text-regex "$regex" --min-top "$min_top" --max-top "$max_top" --prefer upper; then
+              SELECTED_LABEL="$(chip_label "$UI_TEXT")"
+              ui_tap
+              sleep 1
+              return 0
+            fi
+          done
+          return 1
+        fi
+      done
+    fi
+    ui_sheet_swipe up || true
+    sleep 0.3
   done
   return 1
 }
@@ -58,24 +160,55 @@ apply_sheet() {
 }
 
 chip_exact() {
-  ui_dump || return 1
-  ui_find --text-regex "^$(python3 -c 'import re,sys; print(re.escape(sys.argv[1]))' "$1")$"
+  local label="$1"
+  find_filter_chip "" "^$(re_escape "$label")$"
+}
+
+remember_applied() {
+  local key="$1"
+  local label="$2"
+  case "$key" in
+    state) STATE_SELECT_OK=1; STATE_LABEL="$label" ;;
+    deity) DEITY_SELECT_OK=1; DEITY_LABEL="$label" ;;
+    district) DISTRICT_SELECT_OK=1; DISTRICT_LABEL="$label" ;;
+  esac
+}
+
+section_for() {
+  case "$1" in
+    state) printf 'STATE' ;;
+    deity) printf 'DEITY' ;;
+    district) printf 'DISTRICT' ;;
+    *) printf '' ;;
+  esac
 }
 
 open_state() {
-  scroll_chips_until --resource-id filter-chip-state || scroll_chips_until --text-regex '^State$' || return 1
+  local rx='^State$'
+  if [[ -n "${STATE_LABEL:-}" ]]; then
+    rx="^($(re_escape "$STATE_LABEL")|State)$"
+  fi
+  find_filter_chip filter-chip-state "$rx" "Choose a state" || return 1
   ui_tap
   ui_wait 12 --text-regex '^Filters$'
 }
 
 open_deity() {
-  scroll_chips_until --text-regex '^Deity$' || scroll_chips_until --content-desc "Choose a deity" || return 1
+  local rx='^Deity$'
+  if [[ -n "${DEITY_LABEL:-}" ]]; then
+    rx="^($(re_escape "$DEITY_LABEL")|Deity)$"
+  fi
+  find_filter_chip "" "$rx" "Choose a deity" || return 1
   ui_tap
   ui_wait 12 --text-regex '^Filters$'
 }
 
 open_district() {
-  scroll_chips_until --resource-id filter-chip-district || scroll_chips_until --text-regex '^All districts$' || return 1
+  local rx='^All districts$'
+  if [[ -n "${DISTRICT_LABEL:-}" ]]; then
+    rx="^($(re_escape "$DISTRICT_LABEL")|All districts)$"
+  fi
+  find_filter_chip filter-chip-district "$rx" "Choose a district" || return 1
   ui_tap
   ui_wait 20 --text-regex '^DISTRICT$' || ui_wait 8 --text-regex '^Filters$'
 }
@@ -144,9 +277,10 @@ exercise_filter() {
     fail_step "${key}-reopen" "could not reopen the ${key} sheet"
     return 0
   fi
-  if select_labeled "$regex"; then
+  if select_labeled "$regex" "$(section_for "$key")"; then
     picked="$SELECTED_LABEL"
     if apply_sheet && chip_exact "$picked"; then
+      remember_applied "$key" "$picked"
       pass_step "${key}-select"
     else
       fail_step "${key}-select" "tapped '${picked}' but the chip did not show it"
@@ -207,13 +341,14 @@ exercise_filter() {
       fail_step "${key}-repeat-${n}" "could not open"
       continue
     fi
-    if ! select_labeled "$regex"; then
+    if ! select_labeled "$regex" "$(section_for "$key")"; then
       fail_step "${key}-repeat-${n}" "option not found"
       recover_sheet
       continue
     fi
     local again="$SELECTED_LABEL"
     if apply_sheet && chip_exact "$again"; then
+      remember_applied "$key" "$again"
       pass_step "${key}-repeat-${n}"
     else
       fail_step "${key}-repeat-${n}" "tapped '${again}' but the chip did not show it"
@@ -249,35 +384,65 @@ while read -r chip_id; do
   exercise_filter "$chip_id" '^(?!Any |All ).+[0-9]+$' "" opener_unknown "$chip_id"
 done < <(python3 "$UI_PY" resource-ids "$DUMP" --prefix filter-chip- || true)
 
-# Combined state + deity (+ district when the chip exists), then navigation.
-if ! open_state || ! select_labeled '^Kerala( +[0-9]+)?$' || ! apply_sheet; then
-  fail_step combined-state "could not apply Kerala"
+# Combined filters. A step whose select never landed is NOT RUN, and later
+# checks assert only the values that were actually applied.
+applied_chips_present() {
+  APPLIED_MISSING=""
+  local missing=""
+  if [[ -n "$COMBINED_STATE" ]] && ! chip_exact "$COMBINED_STATE"; then
+    missing+=" ${COMBINED_STATE}"
+  fi
+  if [[ -n "$COMBINED_DEITY" ]] && ! chip_exact "$COMBINED_DEITY"; then
+    missing+=" ${COMBINED_DEITY}"
+  fi
+  if [[ -n "$COMBINED_DISTRICT" ]] && ! chip_exact "$COMBINED_DISTRICT"; then
+    missing+=" ${COMBINED_DISTRICT}"
+  fi
+  APPLIED_MISSING="${missing# }"
+  [[ -z "$APPLIED_MISSING" ]]
+}
+
+if [[ "$STATE_SELECT_OK" -ne 1 || -z "$STATE_LABEL" ]]; then
+  skip_step combined-state "state-select did not apply a state"
 else
-  pass_step combined-state
+  if open_state && select_labeled "^$(re_escape "$STATE_LABEL")( +[0-9]+)?$" STATE && apply_sheet && chip_exact "$STATE_LABEL"; then
+    COMBINED_STATE="$STATE_LABEL"
+    pass_step combined-state
+  else
+    fail_step combined-state "could not apply ${STATE_LABEL}"
+    recover_sheet
+  fi
 fi
-if ! open_deity || ! select_labeled '^Shiva( +[0-9]+)?$' || ! apply_sheet; then
-  fail_step combined-deity "could not apply Shiva"
+if [[ "$DEITY_SELECT_OK" -ne 1 || -z "$DEITY_LABEL" ]]; then
+  skip_step combined-deity "deity-select did not apply a deity"
 else
-  pass_step combined-deity
+  if open_deity && select_labeled "^$(re_escape "$DEITY_LABEL")( +[0-9]+)?$" DEITY && apply_sheet && chip_exact "$DEITY_LABEL"; then
+    COMBINED_DEITY="$DEITY_LABEL"
+    pass_step combined-deity
+  else
+    fail_step combined-deity "could not apply ${DEITY_LABEL}"
+    recover_sheet
+  fi
 fi
 if scroll_chips_until --resource-id filter-chip-district || scroll_chips_until --text-regex '^All districts$'; then
-  if open_district && select_labeled '^(?!All districts).+[0-9]+$' && apply_sheet; then
-    pass_step combined-district
+  if open_district && select_labeled '^(?!All districts).+[0-9]+$' DISTRICT && apply_sheet; then
+    COMBINED_DISTRICT="$SELECTED_LABEL"
     DISTRICT_LABEL="$SELECTED_LABEL"
+    pass_step combined-district
   else
     fail_step combined-district "could not apply a district inside the selected state"
     recover_sheet
-    DISTRICT_LABEL=""
   fi
 else
-  DISTRICT_LABEL=""
   pass_step combined-district-not-visible
 fi
 
-if chip_exact "Kerala" && chip_exact "Shiva"; then
+if [[ -z "$COMBINED_STATE" && -z "$COMBINED_DEITY" && -z "$COMBINED_DISTRICT" ]]; then
+  skip_step combined-chips "no combined filter was applied"
+elif applied_chips_present; then
   pass_step combined-chips
 else
-  fail_step combined-chips "Kerala and Shiva were not both selected"
+  fail_step combined-chips "applied filters were not showing: ${APPLIED_MISSING}"
 fi
 
 if ui_wait_scrolled 20 --resource-id temple-browse-card --text-contains "Temple"; then
@@ -286,10 +451,12 @@ if ui_wait_scrolled 20 --resource-id temple-browse-card --text-contains "Temple"
     pass_step detail-open
     ui_back
     sleep 2
-    if chip_exact "Kerala" && chip_exact "Shiva"; then
+    if [[ -z "$COMBINED_STATE" && -z "$COMBINED_DEITY" && -z "$COMBINED_DISTRICT" ]]; then
+      skip_step detail-back-keeps-filter "no combined filter was applied"
+    elif applied_chips_present; then
       pass_step detail-back-keeps-filter
     else
-      fail_step detail-back-keeps-filter "filters were not on the list after back"
+      fail_step detail-back-keeps-filter "applied filters were not on the list after back: ${APPLIED_MISSING}"
     fi
   else
     fail_step detail-open "temple detail did not show How to Reach"
@@ -301,10 +468,12 @@ fi
 ui_home_key
 sleep 1
 resume_app
-if chip_exact "Kerala" && chip_exact "Shiva"; then
+if [[ -z "$COMBINED_STATE" && -z "$COMBINED_DEITY" && -z "$COMBINED_DISTRICT" ]]; then
+  skip_step home-resume-keeps-filter "no combined filter was applied"
+elif applied_chips_present; then
   pass_step home-resume-keeps-filter
 else
-  fail_step home-resume-keeps-filter "filters were not kept after HOME and resume"
+  fail_step home-resume-keeps-filter "applied filters were not kept after HOME and resume: ${APPLIED_MISSING}"
 fi
 
 force_stop_app
@@ -312,11 +481,11 @@ launch_app
 accept_policy_if_shown || true
 if ! open_browse || ! wait_browse_ready; then
   fail_step force-stop-relaunch "browse list did not return after force-stop"
+elif [[ -z "$COMBINED_STATE" && -z "$COMBINED_DEITY" && -z "$COMBINED_DISTRICT" ]]; then
+  skip_step force-stop-keeps-filter "no combined filter was applied"
+elif applied_chips_present; then
+  pass_step force-stop-keeps-filter
 else
-  if chip_exact "Kerala" && chip_exact "Shiva"; then
-    pass_step force-stop-keeps-filter
-  else
-    # Filters are in memory only. Force-stop clears them; that is expected.
-    xfail_step force-stop-keeps-filter "filters live in memory and reset after force-stop"
-  fi
+  # Filters are in memory only. Force-stop clears them; that is expected.
+  xfail_step force-stop-keeps-filter "filters live in memory and reset after force-stop"
 fi
