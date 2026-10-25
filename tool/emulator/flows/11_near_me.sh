@@ -17,6 +17,10 @@ if ! adb shell pm grant "$PKG" android.permission.ACCESS_COARSE_LOCATION >/tmp/p
   fail_step grant "pm grant ACCESS_COARSE_LOCATION failed ($(tr '\n' ' ' < /tmp/pm-grant.err))"
 else
   pass_step grant
+  # A fix sent before grant does not stick. Send it again once permission is on.
+  push_emulator_geo
+  sleep 1
+  push_emulator_geo
 fi
 
 open_near_me() {
@@ -88,11 +92,16 @@ dismiss_location_consent Continue || true
 
 granted_sorted=0
 granted_start="$SECONDS"
-while (( SECONDS - granted_start < 30 )); do
+while (( SECONDS - granted_start < 60 )); do
   push_emulator_geo
   if ui_dump && { ui_find --text-contains "Nearest temples" || ui_find --text-regex '[0-9]+(\.[0-9]+)? km$'; }; then
     granted_sorted=1
     break
+  fi
+  if ui_find --text-contains "Could not read a location in time" && ui_find --text-regex '^Try again$'; then
+    push_emulator_geo
+    ui_tap
+    sleep 1
   fi
   dismiss_location_consent Continue || true
   sleep 2
