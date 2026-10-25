@@ -22,7 +22,9 @@ enter_drawer_all() {
 enter_drawer_search() {
   launch_app; accept_policy_if_shown || return 1; wait_for_home || return 1
   open_drawer || return 1
-  ui_find --resource-id temple-list-search-field || return 1
+  # The field is under the drawer header. A dump taken at the top does not
+  # contain temple-list-search-field (screenshot 39_).
+  scroll_drawer_until --resource-id temple-list-search-field || return 1
   ui_tap; ui_type "temple"; adb shell input keyevent 66; sleep 2
   wait_browse_ready
 }
@@ -56,6 +58,7 @@ swipe_from_list() {
 }
 
 declare -A PICK=( [state]='^Kerala( +[0-9]+)?$' [deity]='^Shiva( +[0-9]+)?$' [district]='^Agra( +[0-9]+)?$' )
+declare -A SECTION=( [state]=STATE [deity]=DEITY [district]=DISTRICT )
 
 for entry in home_button drawer_all drawer_search list_drawer_all; do
   if ! err="$(enter_$entry)"; then
@@ -71,7 +74,7 @@ for entry in home_button drawer_all drawer_search list_drawer_all; do
     pass_step "$id-open"
     if err="$(dismiss_sheet_swipe 2>&1)"; then pass_step "$id-swipe-header"; else fail_step "$id-swipe-header" "$err"; recover_sheet; fi
     open_chip "$f" && { if swipe_from_list; then pass_step "$id-swipe-list"; else fail_step "$id-swipe-list" "sheet stayed open"; recover_sheet; fi; }
-    if open_chip "$f" && select_labeled "${PICK[$f]}" && apply_sheet && chip_exact "$SELECTED_LABEL"; then
+    if open_chip "$f" && select_labeled "${PICK[$f]}" "${SECTION[$f]}" && apply_sheet && chip_exact "$SELECTED_LABEL"; then
       pass_step "$id-select"
     else
       fail_step "$id-select" "chip did not take the selection on this route"; recover_sheet; continue

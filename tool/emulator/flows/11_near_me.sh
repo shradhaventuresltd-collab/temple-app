@@ -90,6 +90,23 @@ fi
 dismiss_permission_dialog '^(Allow|While using the app)$' || true
 dismiss_location_consent Continue || true
 
+# Play services sometimes asks to turn location on again after the grant.
+# Accept that dialog. While the screen stays on "Finding temples", send
+# another fix so the in-flight low-power request can see it.
+accept_fix_dialog() {
+  ui_dump || return 1
+  ui_find --text-contains "Improve location" \
+    || ui_find --text-contains "location accuracy" \
+    || ui_find --text-contains "Turn on location" \
+    || return 1
+  if ui_find --text-regex '^(OK|Turn on|Yes)$'; then
+    ui_tap
+    sleep 1
+    return 0
+  fi
+  return 1
+}
+
 granted_sorted=0
 granted_start="$SECONDS"
 while (( SECONDS - granted_start < 60 )); do
@@ -98,11 +115,16 @@ while (( SECONDS - granted_start < 60 )); do
     granted_sorted=1
     break
   fi
+  if ui_find --text-contains "Finding temples"; then
+    push_emulator_geo
+    accept_fix_dialog || true
+  fi
   if ui_find --text-contains "Could not read a location in time" && ui_find --text-regex '^Try again$'; then
     push_emulator_geo
     ui_tap
     sleep 1
   fi
+  accept_fix_dialog || true
   dismiss_location_consent Continue || true
   sleep 2
 done

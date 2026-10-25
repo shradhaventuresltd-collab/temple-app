@@ -40,6 +40,7 @@ flows=(
   26-drawer-nav-stack
   27-offline-cold-start
   28-small-screen-rotation-overflow
+  29-filter-matrix
 )
 
 resolve_outcome="${EMULATOR_RESOLVE_OUTCOME:-success}"
