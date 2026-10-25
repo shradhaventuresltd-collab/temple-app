@@ -519,6 +519,11 @@ dismiss_sheet_from_handle() {
 
 dismiss_sheet_swipe() {
   local width height
+  # The sheet title can land a moment after the chip tap. Flows 06 and 17
+  # otherwise report "sheet was not open" while Filters is still animating in.
+  if ! sheet_open; then
+    ui_wait 3 --text-regex '^Filters$' || true
+  fi
   if ! sheet_open; then
     echo "sheet was not open"
     return 1
@@ -539,6 +544,9 @@ dismiss_sheet_swipe() {
 
 dismiss_sheet_outside() {
   local target_y
+  if ! sheet_open; then
+    ui_wait 3 --text-regex '^Filters$' || true
+  fi
   if ! sheet_open; then
     echo "sheet was not open"
     return 1
@@ -886,7 +894,7 @@ select_labeled() {
     prev=""
     moved=0
     stuck=0
-    for i in $(seq 1 50); do
+    for i in $(seq 1 80); do
       ui_dump || return 1
       read -r _ height < <(ui_screen_size) || return 1
       min_top=$((height * 24 / 100))
@@ -913,9 +921,12 @@ select_labeled() {
       if [[ -n "$prev" && "$current" == "$prev" ]]; then
         stuck=$((stuck + 1))
         # A drag that misses the list leaves the dump unchanged before
-        # anything has scrolled. Try a higher finger before giving up.
-        if [[ "$moved" -eq 0 && "$stuck" -le 3 ]]; then
-          ui_sheet_swipe up $((70 - stuck * 10)) || return 1
+        # anything has scrolled. After the list has moved, one unchanged
+        # dump is also not the end: the finger can land on a chip and the
+        # next swipe is a no-op, which used to stop at Ganesha and the
+        # A-districts. Try other finger heights before giving up.
+        if [[ "$stuck" -le 4 ]]; then
+          ui_sheet_swipe up $((46 + stuck * 8)) || return 1
           sleep 0.3
           continue
         fi

@@ -96,16 +96,29 @@ void main() {
       );
 
       await tester.tap(find.byKey(const Key('filter-chip-district')));
-      await tester.pump();
-      expect(find.byKey(const Key('filter-sheet')), findsNothing);
-      await tester.tap(find.byKey(const Key('filter-chip-district')));
       if (kind == 'other-chip') {
-        await tester.tap(find.byKey(const Key('filter-chip-state')));
-        await tester.tap(find.byKey(const Key('filter-chip-deity')));
+        await tester.tap(
+          find.byKey(const Key('filter-chip-state')),
+          warnIfMissed: false,
+        );
+        await tester.tap(
+          find.byKey(const Key('filter-chip-deity')),
+          warnIfMissed: false,
+        );
+      } else {
+        await tester.tap(
+          find.byKey(const Key('filter-chip-district')),
+          warnIfMissed: false,
+        );
       }
+      await tester.pump();
+      expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
+      expect(find.byKey(const Key('filter-district-loading')), findsOneWidget);
       gate.complete();
+      await tester.pump();
       await tester.pumpAndSettle();
 
+      expect(find.byKey(const Key('filter-district-loading')), findsNothing);
       expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
       expect(find.byKey(const Key('filter-section-district')), findsOneWidget);
       await _tapRealOption(tester, 'district');
@@ -130,15 +143,193 @@ void main() {
     );
 
     await tester.tap(find.byKey(const Key('filter-chip-district')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('filter-sheet')), findsNothing);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
+    expect(find.byKey(const Key('filter-district-error')), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
     expect(tester.takeException(), isNull);
 
+    await tester.tap(find.byKey(const Key('filter-sheet-close')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('filter-sheet')), findsNothing);
+
     await tester.tap(find.byKey(const Key('filter-chip-district')));
+    await tester.pump();
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
+    expect(find.byKey(const Key('filter-section-district')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('a synchronous prepare failure still opens the sheet', (
+    tester,
+  ) async {
+    await _size(tester);
+    await _pumpBar(
+      tester,
+      temples: temples,
+      prepareDistricts: () => throw StateError('boundaries'),
+    );
+
+    await tester.tap(find.byKey(const Key('filter-chip-district')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
+    expect(find.byKey(const Key('filter-district-error')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'double-tap All districts on All Temples keeps the list and the next chip',
+    (tester) async {
+      await _size(tester);
+      final gate = Completer<String? Function(Temple)?>();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) {
+                return TextButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (context) => Scaffold(
+                          body: Column(
+                            children: [
+                              const Text('All Temples'),
+                              DirectoryFilterBar(
+                                temples: temples,
+                                selectedState: null,
+                                selectedDeity: null,
+                                prepareDistricts: () => gate.future,
+                                onChanged: (_, _, _) {},
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                  child: const Text('Open All Temples'),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Open All Temples'));
+      await tester.pumpAndSettle();
+      expect(find.text('All Temples'), findsOneWidget);
+      expect(_canPop(tester), isTrue);
+
+      await tester.tap(find.byKey(const Key('filter-chip-district')));
+      await tester.tap(
+        find.byKey(const Key('filter-chip-district')),
+        warnIfMissed: false,
+      );
+      await tester.pump();
+      expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
+      expect(find.byKey(const Key('filter-district-loading')), findsOneWidget);
+
+      await tester.binding.handlePopRoute();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.byKey(const Key('filter-sheet')), findsNothing);
+      expect(find.text('All Temples'), findsOneWidget);
+      expect(_canPop(tester), isTrue);
+
+      await tester.tap(find.byKey(const Key('filter-chip-deity')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('filter-section-deity')), findsOneWidget);
+
+      gate.complete(districtOf);
+      await tester.pump();
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    'a State apply during the district load is kept ahead of a later apply',
+    (tester) async {
+      await _size(tester);
+      final gate = Completer<String? Function(Temple)?>();
+      final changes = <String>[];
+      String? state;
+      String? deity;
+      String? district;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) {
+                return DirectoryFilterBar(
+                  temples: temples,
+                  selectedState: state,
+                  selectedDeity: deity,
+                  selectedDistrict: district,
+                  prepareDistricts: () => gate.future,
+                  onChanged: (nextState, nextDeity, nextDistrict) {
+                    setState(() {
+                      state = nextState;
+                      deity = nextDeity;
+                      district = nextDistrict;
+                    });
+                    changes.add(
+                      '${nextState ?? ''}|${nextDeity ?? ''}|${nextDistrict ?? ''}',
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('filter-chip-district')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.byKey(const Key('filter-district-loading')), findsOneWidget);
+      expect(gate.isCompleted, isFalse);
+
+      final kerala = find.byKey(const Key('filter-option-state-Kerala'));
+      await tester.ensureVisible(kerala);
+      await tester.tap(kerala);
+      await tester.pump();
+      final apply = find.byKey(const Key('filter-sheet-apply'));
+      await tester.ensureVisible(apply);
+      await tester.tap(apply);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(gate.isCompleted, isFalse);
+      expect(state, 'Kerala');
+      expect(deity, isNull);
+      expect(changes, ['Kerala||']);
+
+      await tester.tap(find.byKey(const Key('filter-chip-deity')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('filter-option-deity-Shiva')));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('filter-sheet-apply')));
+      await tester.pumpAndSettle();
+
+      expect(gate.isCompleted, isFalse);
+      expect(state, 'Kerala');
+      expect(deity, 'Shiva');
+      expect(changes, ['Kerala||', 'Kerala|Shiva|']);
+
+      gate.complete(districtOf);
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(state, 'Kerala');
+      expect(deity, 'Shiva');
+      expect(district, isNull);
+      expect(changes, ['Kerala||', 'Kerala|Shiva|']);
+    },
+  );
 
   for (final entry in _Entry.values) {
     testWidgets('${entry.name} chip pairs reopen after every close', (
@@ -195,6 +386,10 @@ Temple _temple({
     latitude: latitude,
     longitude: longitude,
   );
+}
+
+bool _canPop(WidgetTester tester) {
+  return tester.state<NavigatorState>(find.byType(Navigator)).canPop();
 }
 
 Future<void> _size(WidgetTester tester) async {

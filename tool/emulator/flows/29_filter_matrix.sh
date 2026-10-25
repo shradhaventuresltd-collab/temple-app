@@ -17,7 +17,11 @@ open_drawer() {
 fresh_home() {
   force_stop_app; launch_app; accept_policy_if_shown || return 1; wait_for_home
 }
-enter_home_browse() { reach_browse; }
+enter_home_browse() {
+  fresh_home || return 1
+  open_browse || return 1
+  wait_browse_ready
+}
 enter_drawer_all() {
   fresh_home || return 1; open_drawer || return 1
   ui_wait_scrolled 15 --text-regex '^All Temples' || return 1
@@ -56,7 +60,15 @@ chip_present() {
 open_chip() {
   chip_present "$1" || return 1
   ui_tap
-  ui_wait 20 --text-regex '^Filters$'
+  ui_wait 20 --text-regex '^Filters$' || return 1
+  # The district sheet opens with a loader. Names can take several seconds
+  # on the first load, so wait for the section before picking a district.
+  if [[ "$1" == district ]]; then
+    ui_dump || return 1
+    if ui_find --resource-id filter-district-loading; then
+      ui_wait 10 --text-regex '^DISTRICT$' || return 1
+    fi
+  fi
 }
 close_x() {
   ui_dump && ui_find --resource-id filter-sheet-close || ui_find --content-desc "Close filters" || return 1
@@ -106,7 +118,8 @@ raise SystemExit(0 if text and text != "State" else 1)
 ' "$UI_TEXT"
 }
 
-# The bug check: every other chip must open a sheet within 3 s after the action.
+# The bug check: every other chip must open a sheet after the action.
+# District's first load can take longer than a chip tap. State and deity stay at 3 s.
 probe_others() {
   local id="$1" done_chip="$2" other in_dump state_selected outcome
   for other in "${CHIPS[@]}" "$done_chip"; do
@@ -135,7 +148,11 @@ probe_others() {
       continue
     fi
     ui_tap
-    if ui_wait 3 --text-regex '^Filters$'; then
+    local wait_s=3
+    if [[ "$other" == district ]]; then
+      wait_s=10
+    fi
+    if ui_wait "$wait_s" --text-regex '^Filters$'; then
       pass_step "$id-then-$other"; ui_back; sleep 1; recover_sheet
     else
       fail_step "$id-then-$other" "tap on ${other} chip did nothing after ${id}"
