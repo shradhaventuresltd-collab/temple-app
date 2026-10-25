@@ -49,6 +49,13 @@ class _AppDrawerState extends State<AppDrawer> {
   bool _showClear = false;
   bool _hasDraft = false;
 
+  /// True while a drawer item is handling a tap.
+  ///
+  /// The drawer's local-history entry is removed as soon as it starts to
+  /// close. A second tap in that same turn would otherwise [Navigator.pop]
+  /// the page underneath (Home disappears, or another list is pushed).
+  bool _navBusy = false;
+
   @override
   void initState() {
     super.initState();
@@ -203,12 +210,7 @@ class _AppDrawerState extends State<AppDrawer> {
               _DrawerNavTile(
                 label: 'Home',
                 icon: Icons.home_rounded,
-                onTap: () {
-                  final navigator = Navigator.of(context);
-                  navigator.pop();
-                  navigator.popUntil((route) => route.isFirst);
-                  unawaited(HomeScroll.animateToTop());
-                },
+                onTap: () => _goHome(context),
               ),
 
               const Divider(height: 20, indent: 18, endIndent: 18),
@@ -412,16 +414,7 @@ class _AppDrawerState extends State<AppDrawer> {
                 key: const Key('drawer-licences'),
                 label: 'Licences',
                 icon: Icons.article_outlined,
-                onTap: () {
-                  final navigator = Navigator.of(context);
-                  navigator.pop();
-                  navigator.push(
-                    namedAnalyticsRoute<void>(
-                      name: AnalyticsScreens.licences,
-                      builder: (_) => const LicencesScreen(),
-                    ),
-                  );
-                },
+                onTap: () => _openLicences(context),
               ),
               const AdPrivacyChoicesTile(),
               Padding(
@@ -498,6 +491,90 @@ class _AppDrawerState extends State<AppDrawer> {
     );
   }
 
+  void _goHome(BuildContext context) {
+    if (!_beginDrawerNavigation(context)) return;
+    final navigator = Navigator.of(context);
+    final alreadyHome = ModalRoute.of(context)?.isFirst ?? false;
+    if (alreadyHome) {
+      unawaited(HomeScroll.animateToTop());
+      _endDrawerNavigation();
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (navigator.mounted) {
+        navigator.popUntil((route) => route.isFirst);
+        unawaited(HomeScroll.animateToTop());
+      }
+      if (mounted) _navBusy = false;
+    });
+  }
+
+  void _openLicences(BuildContext context) {
+    if (!_beginDrawerNavigation(context)) return;
+    final navigator = Navigator.of(context);
+    if (ModalRoute.of(context)?.settings.name == AnalyticsScreens.licences) {
+      _endDrawerNavigation();
+      return;
+    }
+    final page = namedAnalyticsRoute<void>(
+      name: AnalyticsScreens.licences,
+      builder: (_) => const LicencesScreen(),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (navigator.mounted) navigator.push(page);
+      if (mounted) _navBusy = false;
+    });
+  }
+
+  /// Closes the drawer once and returns false when this tap must not navigate.
+  ///
+  /// [ScaffoldState.closeDrawer] drops the drawer's local history without
+  /// popping the page. A repeat tap, after that history is gone, used to call
+  /// [Navigator.pop] and remove Home or push a second list.
+  bool _beginDrawerNavigation(BuildContext context) {
+    if (_navBusy) return false;
+    final scaffold = Scaffold.maybeOf(context);
+    final drawerOpen = scaffold?.isDrawerOpen ?? false;
+    final handlesPop = ModalRoute.of(context)?.willHandlePopInternally ?? false;
+    if (!drawerOpen && !handlesPop) return false;
+    _navBusy = true;
+    if (drawerOpen) {
+      scaffold!.closeDrawer();
+    } else {
+      Navigator.of(context).pop();
+    }
+    return true;
+  }
+
+  void _endDrawerNavigation() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _navBusy = false;
+    });
+  }
+
+  bool _isSameOpenList(
+    BuildContext context, {
+    required String title,
+    required String initialQuery,
+    String? stateFilter,
+    String? deityFilter,
+    String? districtFilter,
+  }) {
+    final list = context.findAncestorStateOfType<_TempleListScreenState>();
+    if (list == null) return false;
+    return list._title == title &&
+        list.widget.initialQuery == initialQuery &&
+        _blankFilter(list.widget.stateFilter) == _blankFilter(stateFilter) &&
+        _blankFilter(list.widget.deityFilter) == _blankFilter(deityFilter) &&
+        _blankFilter(list.widget.districtFilter) ==
+            _blankFilter(districtFilter);
+  }
+
+  String? _blankFilter(String? value) {
+    if (value == null || value.isEmpty) return null;
+    return value;
+  }
+
   void _navigateToList(
     BuildContext context,
     List<Temple> temples,
@@ -508,28 +585,45 @@ class _AppDrawerState extends State<AppDrawer> {
     String? districtFilter,
     required AsyncSnapshot<List<Temple>> directory,
   }) {
+    if (!_beginDrawerNavigation(context)) return;
     final waiting = directory.connectionState == ConnectionState.waiting;
     final failed = directory.hasError;
-    // Close the drawer, then replace any list already on the stack so Back
-    // returns to Home instead of an older copy of the same directory.
+    // Already showing this directory: closing the drawer is the navigation.
+    // Pushing again covered the list and stacked a duplicate route.
+    if (_isSameOpenList(
+      context,
+      title: title,
+      initialQuery: initialQuery,
+      stateFilter: stateFilter,
+      deityFilter: deityFilter,
+      districtFilter: districtFilter,
+    )) {
+      _endDrawerNavigation();
+      return;
+    }
     final navigator = Navigator.of(context);
-    navigator.pop();
-    navigator.popUntil((route) => route.isFirst);
-    navigator.push(
-      namedAnalyticsRoute<void>(
-        name: AnalyticsScreens.templeList,
-        builder: (_) => TempleListScreen(
-          temples: waiting || failed ? const [] : temples,
-          title: title,
-          initialQuery: initialQuery,
-          templesFuture: waiting ? _templesFuture : null,
-          stateFilter: stateFilter,
-          deityFilter: deityFilter,
-          districtFilter: districtFilter,
-          loadFailed: failed,
-        ),
+    final page = namedAnalyticsRoute<void>(
+      name: AnalyticsScreens.templeList,
+      builder: (_) => TempleListScreen(
+        temples: waiting || failed ? const [] : temples,
+        title: title,
+        initialQuery: initialQuery,
+        templesFuture: waiting ? _templesFuture : null,
+        stateFilter: stateFilter,
+        deityFilter: deityFilter,
+        districtFilter: districtFilter,
+        loadFailed: failed,
       ),
     );
+    // Wait until the drawer history entry is gone, then replace any list so
+    // Back returns to Home instead of an older copy of the same directory.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (navigator.mounted) {
+        navigator.popUntil((route) => route.isFirst);
+        navigator.push(page);
+      }
+      if (mounted) _navBusy = false;
+    });
   }
 }
 
