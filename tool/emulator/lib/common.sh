@@ -272,18 +272,61 @@ ui_replace_field_text() {
   return 1
 }
 
-# Step inside the sheet list. Shorter than the option search window, so a
-# chip is dumped before the next step. A long fling jumps past it.
+# Step inside the sheet list. A short slow drag, not a fling: the old 28%
+# step in 180ms jumped past Kerala, Shiva, and Madurai between dumps.
+# start_pct is where the finger goes down, as a percent of screen height.
 ui_sheet_swipe() {
   local direction="${1:-up}"
-  local width height
+  local start_pct="${2:-58}"
+  local width height travel start_y end_y
   read -r width height < <(ui_screen_size) || return 1
   local x=$((width / 2))
-  if [[ "$direction" == "down" ]]; then
-    adb shell input swipe "$x" $((height * 42 / 100)) "$x" $((height * 70 / 100)) 180
-  else
-    adb shell input swipe "$x" $((height * 70 / 100)) "$x" $((height * 42 / 100)) 180
+  travel=$((height * 7 / 100))
+  if (( travel < 72 )); then
+    travel=72
   fi
+  if (( travel > 140 )); then
+    travel=140
+  fi
+  start_y=$((height * start_pct / 100))
+  if [[ "$direction" == "down" ]]; then
+    end_y=$((start_y + travel))
+  else
+    end_y=$((start_y - travel))
+  fi
+  if (( end_y < height * 30 / 100 )); then
+    end_y=$((height * 30 / 100))
+  fi
+  if (( end_y > height * 88 / 100 )); then
+    end_y=$((height * 88 / 100))
+  fi
+  if (( start_y < height * 30 / 100 )); then
+    start_y=$((height * 30 / 100))
+  fi
+  if (( start_y > height * 88 / 100 )); then
+    start_y=$((height * 88 / 100))
+  fi
+  adb shell input swipe "$x" "$start_y" "$x" "$end_y" 900
+}
+
+# The drawer is narrower than the screen. A center fling misses its list.
+scroll_drawer_until() {
+  local i width height x
+  read -r width height < <(ui_screen_size) || return 1
+  x=$((width * 28 / 100))
+  if (( x < 48 )); then
+    x=48
+  fi
+  for i in $(seq 1 8); do
+    if ui_dump && ui_find "$@"; then
+      if (( UI_CY > 48 && UI_CY < height - 48 )); then
+        return 0
+      fi
+    fi
+    adb shell input swipe "$x" $((height * 72 / 100)) "$x" $((height * 40 / 100)) 320
+    sleep 0.35
+  done
+  return 1
 }
 
 launch_app() {
@@ -441,9 +484,15 @@ dismiss_location_consent() {
 }
 
 push_emulator_geo() {
+  local _i
   adb shell settings put secure location_mode 3 >/dev/null 2>&1 || true
-  # adb emu geo fix is longitude then latitude (Madurai).
-  adb emu geo fix 78.1193 9.9195 >/dev/null 2>&1 || true
+  # adb emu geo fix is longitude, latitude, altitude, satellites (Madurai).
+  # A fix with no satellites is dropped on the API 30 image, and Temples
+  # near me stays on "Finding temples". The first fix after boot is often
+  # ignored, so send it more than once.
+  for _i in 1 2 3; do
+    adb emu geo fix 78.1193 9.9195 0 8 >/dev/null 2>&1 || true
+  done
 }
 
 # Drag from the sheet handle or title. A swipe that starts in the list scrolls
@@ -808,44 +857,101 @@ re_escape() {
   python3 -c 'import re,sys; print(re.escape(sys.argv[1]))' "$1"
 }
 
+# Walk the option list until regex is inside the tap band, then tap it.
+# Callers pass the section name (STATE, DISTRICT, DEITY). The list ends when
+# a swipe leaves the dump unchanged, not when the next header first peeks in.
+# One missed drag is not the end of the list: the finger may have landed on
+# the apply button. A second pass starts again from the top in case a step
+# still moved the chip out of the band.
 select_labeled() {
   local regex="$1"
-  # Callers still pass the section name. The list ends when a swipe leaves
-  # the dump unchanged, not when the next header first peeks in.
+  # Callers still pass the section name. The stop is an unchanged dump.
   local _section="${2:-}"
-  local i height min_top max_top prev="" current
-  for i in $(seq 1 60); do
-    ui_dump || return 1
-    read -r _ height < <(ui_screen_size) || return 1
-    min_top=$((height * 20 / 100))
-    max_top=$((height * 86 / 100))
-    if ui_find --text-regex "$regex" --min-top "$min_top" --max-top "$max_top" --prefer upper; then
-      SELECTED_LABEL="$(chip_label "$UI_TEXT")"
-      ui_tap
-      sleep 1
-      return 0
+  : "${_section}"
+  local pass i height min_top max_top prev="" current moved stuck
+  for pass in 1 2; do
+    if [[ "$pass" -eq 2 ]]; then
+      prev=""
+      for i in $(seq 1 40); do
+        ui_dump || return 1
+        current="$(cksum "$DUMP" | awk 'NR==1 { print $1 }')"
+        if [[ -n "$prev" && "$current" == "$prev" ]]; then
+          break
+        fi
+        prev="$current"
+        ui_sheet_swipe down || return 1
+        sleep 0.25
+      done
     fi
-    current="$(cksum "$DUMP" | awk 'NR==1 { print $1 }')"
-    if [[ -n "$prev" && "$current" == "$prev" ]]; then
-      return 1
-    fi
-    prev="$current"
-    ui_sheet_swipe up || return 1
-    sleep 0.35
+    prev=""
+    moved=0
+    stuck=0
+    for i in $(seq 1 50); do
+      ui_dump || return 1
+      read -r _ height < <(ui_screen_size) || return 1
+      min_top=$((height * 24 / 100))
+      max_top=$((height * 84 / 100))
+      if ui_find --text-regex "$regex" --min-top "$min_top" --max-top "$max_top" --prefer upper \
+        && [[ ! "$UI_TEXT" =~ ^Show[[:space:]]+[0-9]+[[:space:]]+temples?$ ]]; then
+        SELECTED_LABEL="$(chip_label "$UI_TEXT")"
+        ui_tap
+        sleep 1
+        return 0
+      fi
+      if ui_find --text-regex "$regex" --min-top "$max_top" --prefer upper \
+        && [[ ! "$UI_TEXT" =~ ^Show[[:space:]]+[0-9]+[[:space:]]+temples?$ ]]; then
+        ui_sheet_swipe up || return 1
+        sleep 0.3
+        continue
+      fi
+      if ui_find --text-regex "$regex" --max-top "$min_top" --prefer lower; then
+        ui_sheet_swipe down || return 1
+        sleep 0.3
+        continue
+      fi
+      current="$(cksum "$DUMP" | awk 'NR==1 { print $1 }')"
+      if [[ -n "$prev" && "$current" == "$prev" ]]; then
+        stuck=$((stuck + 1))
+        # A drag that misses the list leaves the dump unchanged before
+        # anything has scrolled. Try a higher finger before giving up.
+        if [[ "$moved" -eq 0 && "$stuck" -le 3 ]]; then
+          ui_sheet_swipe up $((70 - stuck * 10)) || return 1
+          sleep 0.3
+          continue
+        fi
+        break
+      fi
+      if [[ -n "$prev" ]]; then
+        moved=1
+      fi
+      stuck=0
+      prev="$current"
+      ui_sheet_swipe up || return 1
+      sleep 0.3
+    done
   done
   return 1
 }
 
 apply_sheet() {
-  if ! ui_wait 12 --text-regex '^Show [0-9]+ temples?$'; then
-    return 1
-  fi
-  ui_tap
-  sleep 1
-  if sheet_open; then
-    return 1
-  fi
-  return 0
+  local height attempt
+  read -r _ height < <(ui_screen_size) || return 1
+  for attempt in 1 2; do
+    # The result button is pinned to the bottom of the sheet. Prefer that
+    # node so a higher label is not tapped and the sheet left open.
+    if ! ui_wait 8 --text-regex '^Show [0-9]+ temples?$' --prefer lower; then
+      return 1
+    fi
+    if (( UI_CY < height * 68 / 100 )); then
+      return 1
+    fi
+    ui_tap
+    sleep 1
+    if ! sheet_open; then
+      return 0
+    fi
+  done
+  return 1
 }
 
 chip_exact() {

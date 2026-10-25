@@ -120,11 +120,11 @@ if grep -Eq '^[[:space:]]*(push|pull_request|schedule):' "$workflow"; then
   exit 1
 fi
 runner_steps="$(grep -c 'uses: reactivecircus/android-emulator-runner@' "$workflow")"
-if [[ "$runner_steps" -ne 29 ]]; then
-  echo "expected 29 emulator steps (snapshot plus 28 flows), found ${runner_steps}" >&2
+if [[ "$runner_steps" -ne 30 ]]; then
+  echo "expected 30 emulator steps (snapshot plus 29 flows), found ${runner_steps}" >&2
   exit 1
 fi
-if [[ "$(grep -F -c 'emulator-options: ${{ env.EMULATOR_OPTIONS }}' "$workflow")" -ne 28 ]]; then
+if [[ "$(grep -F -c 'emulator-options: ${{ env.EMULATOR_OPTIONS }}' "$workflow")" -ne 29 ]]; then
   echo "each flow step should read EMULATOR_OPTIONS from env" >&2
   exit 1
 fi
@@ -204,6 +204,7 @@ flows=(
   26-drawer-nav-stack
   27-offline-cold-start
   28-small-screen-rotation-overflow
+  29-filter-matrix
 )
 for flow in "${flows[@]}"; do
   if ! grep -q "run_one_flow.sh ${flow} " "$workflow"; then
@@ -287,6 +288,39 @@ if ! grep -q 'cksum "$DUMP"' tool/emulator/lib/common.sh; then
   echo "filter option scroll should stop when the dump stops changing" >&2
   exit 1
 fi
+if ! grep -q 'geo fix 78.1193 9.9195 0 8' tool/emulator/lib/common.sh; then
+  echo "geo fix should include altitude and satellites" >&2
+  exit 1
+fi
+if grep -q 'ui_back; ui_back' tool/emulator/flows/20_empty_and_back.sh; then
+  echo "flow 20 must not send two backs after search" >&2
+  exit 1
+fi
+if ! grep -qF "select_labeled '^Kerala( +[0-9]+)?$' STATE" tool/emulator/flows/19_rotation_state.sh; then
+  echo "flow 19 should select Kerala in the STATE section and check the result" >&2
+  exit 1
+fi
+if ! grep -q 'scroll_drawer_until --resource-id temple-list-search-field' tool/emulator/flows/17_entry_matrix.sh; then
+  echo "flow 17 should scroll the drawer to the search field" >&2
+  exit 1
+fi
+if grep -q 'district chip hidden"' tool/emulator/flows/29_filter_matrix.sh; then
+  echo "flow 29 must not xfail a missing district chip unconditionally" >&2
+  exit 1
+fi
+eval "$(sed -n '/^district_miss_outcome()/,/^}/p' tool/emulator/flows/29_filter_matrix.sh)"
+if [[ "$(district_miss_outcome 0 0)" != xfail ]]; then
+  echo "a missing district chip with no state selected should be xfail" >&2
+  exit 1
+fi
+if [[ "$(district_miss_outcome 0 1)" != fail ]]; then
+  echo "a missing district chip after a state was selected should fail" >&2
+  exit 1
+fi
+if [[ "$(district_miss_outcome 1 0)" != fail || "$(district_miss_outcome 1 1)" != fail ]]; then
+  echo "a district chip that is in the dump should not be xfail" >&2
+  exit 1
+fi
 if ! grep -q 'ui_wait 12 --text-contains "Sort by distance"' tool/emulator/flows/11_near_me.sh; then
   echo "denied near-me path should still wait for the location consent sheet" >&2
   exit 1
@@ -300,8 +334,8 @@ if EMULATOR_ARTIFACTS="$summary_dir" GITHUB_STEP_SUMMARY="${summary_dir}/summary
   exit 1
 fi
 missing="$(grep -c ': missing:' "${summary_dir}/results.txt")"
-if [[ "$missing" -ne 28 ]]; then
-  echo "expected 28 missing-flow lines, found ${missing}" >&2
+if [[ "$missing" -ne 29 ]]; then
+  echo "expected 29 missing-flow lines, found ${missing}" >&2
   exit 1
 fi
 : > "${summary_dir}/results.txt"
@@ -343,8 +377,8 @@ if ! EMULATOR_ARTIFACTS="$not_run_dir" EMULATOR_RESOLVE_OUTCOME=failure \
   exit 1
 fi
 not_run="$(grep -c '^NOT RUN ' "${not_run_dir}/results.txt")"
-if [[ "$not_run" -ne 28 ]]; then
-  echo "expected 28 NOT RUN lines, found ${not_run}" >&2
+if [[ "$not_run" -ne 29 ]]; then
+  echo "expected 29 NOT RUN lines, found ${not_run}" >&2
   exit 1
 fi
 if grep -q '^FAIL ' "${not_run_dir}/results.txt"; then
