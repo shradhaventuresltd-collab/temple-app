@@ -304,6 +304,23 @@ if ! grep -q 'scroll_drawer_until --resource-id temple-list-search-field' tool/e
   echo "flow 17 should scroll the drawer to the search field" >&2
   exit 1
 fi
+if grep -q 'district chip hidden"' tool/emulator/flows/29_filter_matrix.sh; then
+  echo "flow 29 must not xfail a missing district chip unconditionally" >&2
+  exit 1
+fi
+eval "$(sed -n '/^district_miss_outcome()/,/^}/p' tool/emulator/flows/29_filter_matrix.sh)"
+if [[ "$(district_miss_outcome 0 0)" != xfail ]]; then
+  echo "a missing district chip with no state selected should be xfail" >&2
+  exit 1
+fi
+if [[ "$(district_miss_outcome 0 1)" != fail ]]; then
+  echo "a missing district chip after a state was selected should fail" >&2
+  exit 1
+fi
+if [[ "$(district_miss_outcome 1 0)" != fail || "$(district_miss_outcome 1 1)" != fail ]]; then
+  echo "a district chip that is in the dump should not be xfail" >&2
+  exit 1
+fi
 if ! grep -q 'ui_wait 12 --text-contains "Sort by distance"' tool/emulator/flows/11_near_me.sh; then
   echo "denied near-me path should still wait for the location consent sheet" >&2
   exit 1

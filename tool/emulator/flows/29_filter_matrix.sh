@@ -76,14 +76,63 @@ do_action() {
   esac
 }
 
+# xfail only when the district chip id is missing from the dump and no state
+# is selected. A chip that is present but off-screen, or missing after a
+# state was applied, is a failure.
+district_miss_outcome() {
+  local in_dump="$1"
+  local state_selected="$2"
+  if [[ "$in_dump" -eq 0 && "$state_selected" -eq 0 ]]; then
+    printf 'xfail\n'
+    return 0
+  fi
+  printf 'fail\n'
+}
+
+district_chip_in_dump() {
+  python3 "$UI_PY" resource-ids "$DUMP" --prefix filter-chip- | grep -qx 'filter-chip-district'
+}
+
+state_is_selected() {
+  if ui_find --content-desc "Clear state filter"; then
+    return 0
+  fi
+  ui_find --resource-id filter-chip-state || return 1
+  python3 -c '
+import sys
+text = " ".join(sys.argv[1].split()).replace("Choose a state", " ")
+text = " ".join(text.split())
+raise SystemExit(0 if text and text != "State" else 1)
+' "$UI_TEXT"
+}
+
 # The bug check: every other chip must open a sheet within 3 s after the action.
 probe_others() {
-  local id="$1" done_chip="$2" other
+  local id="$1" done_chip="$2" other in_dump state_selected outcome
   for other in "${CHIPS[@]}" "$done_chip"; do
     # also re-tap the same chip last
     if ! chip_present "$other"; then
-      [[ $other == district ]] && { xfail_step "$id-then-$other" "district chip hidden"; continue; }
-      fail_step "$id-then-$other" "chip not found"; continue
+      if [[ "$other" == district ]] && ui_dump; then
+        in_dump=0
+        state_selected=0
+        if district_chip_in_dump; then
+          in_dump=1
+        fi
+        if state_is_selected; then
+          state_selected=1
+        fi
+        outcome="$(district_miss_outcome "$in_dump" "$state_selected")"
+        if [[ "$outcome" == xfail ]]; then
+          xfail_step "$id-then-$other" "district chip hidden with no state selected"
+          continue
+        fi
+        if [[ "$state_selected" -eq 1 && "$in_dump" -eq 0 ]]; then
+          fail_step "$id-then-$other" "district chip missing after a state was selected"
+          continue
+        fi
+      fi
+      fail_step "$id-then-$other" "chip not found"
+      continue
     fi
     ui_tap
     if ui_wait 3 --text-regex '^Filters$'; then
