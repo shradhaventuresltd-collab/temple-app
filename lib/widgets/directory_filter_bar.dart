@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/utils/directory_filters.dart';
@@ -123,15 +124,25 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
 
   /// The rightmost selected chip stays on screen at 320dp. State sits at the
   /// start of the row; a selected deity used to be clipped past the edge.
+  ///
+  /// Only [_chipScroll] moves. [Scrollable.ensureVisible] would also scroll
+  /// every ancestor, including the drawer list that holds this bar.
   void _scheduleReveal() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final key = _chipToReveal();
-      final target = key?.currentContext;
-      if (target == null) return;
-      Scrollable.ensureVisible(
-        target,
-        alignment: 1,
+      if (!mounted || !_chipScroll.hasClients) return;
+      final target = _chipToReveal()?.currentContext?.findRenderObject();
+      if (target is! RenderBox || !target.hasSize || !target.attached) return;
+      final viewport = RenderAbstractViewport.maybeOf(target);
+      if (viewport == null) return;
+      final position = _chipScroll.position;
+      final next = viewport
+          .getOffsetToReveal(target, 1)
+          .offset
+          .clamp(position.minScrollExtent, position.maxScrollExtent)
+          .toDouble();
+      if ((next - position.pixels).abs() < 0.5) return;
+      _chipScroll.animateTo(
+        next,
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
       );

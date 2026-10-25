@@ -668,6 +668,89 @@ void main() {
     },
   );
 
+  testWidgets('revealing a filter chip does not scroll the drawer', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    String? districtOf(Temple temple) => temple.city;
+    final drawerScroll = ScrollController(initialScrollOffset: 80);
+    addTearDown(drawerScroll.dispose);
+    String? state = 'Tamil Nadu';
+    String? deity = 'Shiva';
+    String? district = 'Madurai';
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StatefulBuilder(
+          builder: (context, setState) {
+            return Scaffold(
+              appBar: AppBar(),
+              drawer: Drawer(
+                child: ListView(
+                  controller: drawerScroll,
+                  children: [
+                    const SizedBox(height: 200),
+                    DirectoryFilterBar(
+                      temples: temples,
+                      selectedState: state,
+                      selectedDeity: deity,
+                      selectedDistrict: district,
+                      districtOf: districtOf,
+                      onChanged: (nextState, nextDeity, nextDistrict) {
+                        setState(() {
+                          state = nextState;
+                          deity = nextDeity;
+                          district = nextDistrict;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 900),
+                  ],
+                ),
+              ),
+              body: const SizedBox.shrink(),
+            );
+          },
+        ),
+      ),
+    );
+
+    await tester.tap(find.byTooltip('Open navigation menu'));
+    await tester.pumpAndSettle();
+
+    expect(drawerScroll.offset, 80);
+    final chipScroller = tester.state<ScrollableState>(
+      find.descendant(
+        of: find.byType(DirectoryFilterBar),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    expect(chipScroller.position.pixels, greaterThan(0));
+    expect(
+      find.byKey(const Key('filter-chip-deity-clear')).hitTestable(),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('filter-chip-deity')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('filter-option-deity-Devi')));
+    await tester.pump();
+    await tester.ensureVisible(find.byKey(const Key('filter-sheet-apply')));
+    await tester.tap(find.byKey(const Key('filter-sheet-apply')));
+    await tester.pumpAndSettle();
+
+    expect(drawerScroll.offset, 80);
+    expect(find.text('Devi'), findsWidgets);
+    expect(
+      find.byKey(const Key('filter-chip-deity-clear')).hitTestable(),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('district chosen while the directory is loading is kept', (
     tester,
   ) async {
