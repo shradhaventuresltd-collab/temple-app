@@ -105,44 +105,28 @@ re_escape() {
 
 select_labeled() {
   local regex="$1"
-  local section="${2:-}"
-  local i height min_top max_top other back
-  # Stay inside this section. A long fling scrolls State past Kerala into Deity.
-  for i in $(seq 1 24); do
-    ui_dump || true
+  # Callers still pass the section name. The list ends when a swipe leaves
+  # the dump unchanged, not when the next header first peeks in.
+  local _section="${2:-}"
+  local i height min_top max_top prev="" current
+  for i in $(seq 1 60); do
+    ui_dump || return 1
     read -r _ height < <(ui_screen_size) || return 1
-    min_top=$((height * 30 / 100))
-    max_top=$((height * 78 / 100))
+    min_top=$((height * 20 / 100))
+    max_top=$((height * 86 / 100))
     if ui_find --text-regex "$regex" --min-top "$min_top" --max-top "$max_top" --prefer upper; then
       SELECTED_LABEL="$(chip_label "$UI_TEXT")"
       ui_tap
       sleep 1
       return 0
     fi
-    if [[ -n "$section" ]]; then
-      local header_top=$((height * 42 / 100))
-      for other in STATE DISTRICT DEITY; do
-        [[ "$other" == "$section" ]] && continue
-        # The next section has reached the top of the list, so this section
-        # has scrolled off. Step back instead of entering the next list.
-        if ui_find --text-regex "^${other}$" --min-top "$min_top" --max-top "$header_top"; then
-          for back in 1 2 3; do
-            ui_sheet_swipe down || true
-            sleep 0.3
-            ui_dump || true
-            if ui_find --text-regex "$regex" --min-top "$min_top" --max-top "$max_top" --prefer upper; then
-              SELECTED_LABEL="$(chip_label "$UI_TEXT")"
-              ui_tap
-              sleep 1
-              return 0
-            fi
-          done
-          return 1
-        fi
-      done
+    current="$(cksum "$DUMP" | awk 'NR==1 { print $1 }')"
+    if [[ -n "$prev" && "$current" == "$prev" ]]; then
+      return 1
     fi
-    ui_sheet_swipe up || true
-    sleep 0.3
+    prev="$current"
+    ui_sheet_swipe up || return 1
+    sleep 0.35
   done
   return 1
 }

@@ -27,6 +27,7 @@ flows=(
   13-licences
   14-back-relaunch
   15-offline
+  16-home-browse
 )
 
 resolve_outcome="${EMULATOR_RESOLVE_OUTCOME:-success}"

@@ -272,16 +272,17 @@ ui_replace_field_text() {
   return 1
 }
 
-# Small step inside the sheet list. A long fling jumps out of State into Deity.
+# Step inside the sheet list. Shorter than the option search window, so a
+# chip is dumped before the next step. A long fling jumps past it.
 ui_sheet_swipe() {
   local direction="${1:-up}"
   local width height
   read -r width height < <(ui_screen_size) || return 1
   local x=$((width / 2))
   if [[ "$direction" == "down" ]]; then
-    adb shell input swipe "$x" $((height * 50 / 100)) "$x" $((height * 62 / 100)) 220
+    adb shell input swipe "$x" $((height * 42 / 100)) "$x" $((height * 70 / 100)) 180
   else
-    adb shell input swipe "$x" $((height * 62 / 100)) "$x" $((height * 50 / 100)) 220
+    adb shell input swipe "$x" $((height * 70 / 100)) "$x" $((height * 42 / 100)) 180
   fi
 }
 

@@ -120,11 +120,11 @@ if grep -Eq '^[[:space:]]*(push|pull_request|schedule):' "$workflow"; then
   exit 1
 fi
 runner_steps="$(grep -c 'uses: reactivecircus/android-emulator-runner@' "$workflow")"
-if [[ "$runner_steps" -ne 16 ]]; then
-  echo "expected 16 emulator steps (snapshot plus 15 flows), found ${runner_steps}" >&2
+if [[ "$runner_steps" -ne 17 ]]; then
+  echo "expected 17 emulator steps (snapshot plus 16 flows), found ${runner_steps}" >&2
   exit 1
 fi
-if [[ "$(grep -F -c 'emulator-options: ${{ env.EMULATOR_OPTIONS }}' "$workflow")" -ne 15 ]]; then
+if [[ "$(grep -F -c 'emulator-options: ${{ env.EMULATOR_OPTIONS }}' "$workflow")" -ne 16 ]]; then
   echo "each flow step should read EMULATOR_OPTIONS from env" >&2
   exit 1
 fi
@@ -191,6 +191,7 @@ flows=(
   13-licences
   14-back-relaunch
   15-offline
+  16-home-browse
 )
 for flow in "${flows[@]}"; do
   if ! grep -q "run_one_flow.sh ${flow} " "$workflow"; then
@@ -257,6 +258,23 @@ if ! grep -q 'if near_me_destination; then' <<<"$granted_near"; then
   echo "granted near-me path should decide open-granted from near_me_destination" >&2
   exit 1
 fi
+if ! grep -q 'SECONDS - granted_start < 60' tool/emulator/flows/11_near_me.sh; then
+  echo "granted near-me should keep waiting after the geo fix" >&2
+  exit 1
+fi
+if ! awk '
+  /pm grant/ { grant = 1 }
+  grant && /push_emulator_geo/ { found = 1 }
+  grant && /open_near_me\(\)/ { exit }
+  END { exit !found }
+' tool/emulator/flows/11_near_me.sh; then
+  echo "geo fix should be sent again after permission is granted" >&2
+  exit 1
+fi
+if ! grep -q 'cksum "$DUMP"' tool/emulator/flows/06_filters.sh; then
+  echo "filter option scroll should stop when the dump stops changing" >&2
+  exit 1
+fi
 if ! grep -q 'ui_wait 12 --text-contains "Sort by distance"' tool/emulator/flows/11_near_me.sh; then
   echo "denied near-me path should still wait for the location consent sheet" >&2
   exit 1
@@ -270,8 +288,8 @@ if EMULATOR_ARTIFACTS="$summary_dir" GITHUB_STEP_SUMMARY="${summary_dir}/summary
   exit 1
 fi
 missing="$(grep -c ': missing:' "${summary_dir}/results.txt")"
-if [[ "$missing" -ne 15 ]]; then
-  echo "expected 15 missing-flow lines, found ${missing}" >&2
+if [[ "$missing" -ne 16 ]]; then
+  echo "expected 16 missing-flow lines, found ${missing}" >&2
   exit 1
 fi
 : > "${summary_dir}/results.txt"
@@ -313,8 +331,8 @@ if ! EMULATOR_ARTIFACTS="$not_run_dir" EMULATOR_RESOLVE_OUTCOME=failure \
   exit 1
 fi
 not_run="$(grep -c '^NOT RUN ' "${not_run_dir}/results.txt")"
-if [[ "$not_run" -ne 15 ]]; then
-  echo "expected 15 NOT RUN lines, found ${not_run}" >&2
+if [[ "$not_run" -ne 16 ]]; then
+  echo "expected 16 NOT RUN lines, found ${not_run}" >&2
   exit 1
 fi
 if grep -q '^FAIL ' "${not_run_dir}/results.txt"; then
