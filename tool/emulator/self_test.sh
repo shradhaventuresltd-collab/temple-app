@@ -120,16 +120,50 @@ if grep -Eq '^[[:space:]]*(push|pull_request|schedule):' "$workflow"; then
   exit 1
 fi
 runner_steps="$(grep -c 'uses: reactivecircus/android-emulator-runner@' "$workflow")"
-if [[ "$runner_steps" -ne 15 ]]; then
-  echo "expected 15 emulator steps, found ${runner_steps}" >&2
+if [[ "$runner_steps" -ne 16 ]]; then
+  echo "expected 16 emulator steps (snapshot plus 15 flows), found ${runner_steps}" >&2
   exit 1
 fi
 if [[ "$(grep -F -c 'emulator-options: ${{ env.EMULATOR_OPTIONS }}' "$workflow")" -ne 15 ]]; then
   echo "each flow step should read EMULATOR_OPTIONS from env" >&2
   exit 1
 fi
-if [[ "$(grep -c -- '-no-snapshot' "$workflow")" -ne 1 ]]; then
-  echo "emulator options should be declared once" >&2
+if [[ "$(grep -F -c 'emulator-options: ${{ env.EMULATOR_SNAPSHOT_OPTIONS }}' "$workflow")" -ne 1 ]]; then
+  echo "snapshot generation should be the only step with EMULATOR_SNAPSHOT_OPTIONS" >&2
+  exit 1
+fi
+options_line="$(grep -F 'EMULATOR_OPTIONS:' "$workflow")"
+if [[ "$options_line" != *"-no-snapshot-save"* || "$options_line" != *"-wipe-data"* ]]; then
+  echo "flow boots should pass -no-snapshot-save and -wipe-data" >&2
+  exit 1
+fi
+if [[ "$options_line" == *" -no-snapshot "* || "$options_line" == *" -no-snapshot-load"* ]]; then
+  echo "flow boots should still be allowed to load a clean snapshot" >&2
+  exit 1
+fi
+snapshot_line="$(grep -F 'EMULATOR_SNAPSHOT_OPTIONS:' "$workflow")"
+if [[ "$snapshot_line" == *"-no-snapshot"* || "$snapshot_line" == *"-wipe-data"* ]]; then
+  echo "snapshot generation must be allowed to save a clean image" >&2
+  exit 1
+fi
+if ! grep -Fq 'script: echo "Generated AVD snapshot for caching."' "$workflow"; then
+  echo "snapshot step should boot without installing an app" >&2
+  exit 1
+fi
+if ! grep -Fq "if: steps.create-avd.outcome == 'success'" "$workflow"; then
+  echo "AVD cache should be saved only after the clean snapshot boot" >&2
+  exit 1
+fi
+if grep -Eq '^[[:space:]]*EMULATOR_AVD_CACHE_KEY: avd-30-x86_64-google_apis-emulator-app-test$' "$workflow"; then
+  echo "AVD cache key should not be the snapshot that already contains an app" >&2
+  exit 1
+fi
+if ! grep -Fq 'EMULATOR_AVD_CACHE_KEY: avd-30-x86_64-google_apis-emulator-app-test-clean' "$workflow"; then
+  echo "AVD cache key should name the clean snapshot" >&2
+  exit 1
+fi
+if [[ "$(grep -F -c 'EMULATOR_AVD_CACHE_KEY' "$workflow")" -lt 3 ]]; then
+  echo "restore and save should share EMULATOR_AVD_CACHE_KEY" >&2
   exit 1
 fi
 if ! grep -q 'actions: read' "$workflow"; then

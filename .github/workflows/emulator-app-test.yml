@@ -58,7 +58,13 @@ jobs:
       EMULATOR_FORCE_AVD_CREATION: false
       EMULATOR_DISABLE_ANIMATIONS: true
       EMULATOR_BOOT_TIMEOUT: "600"
-      EMULATOR_OPTIONS: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
+      # Flow boots may load a snapshot. They do not write one back, and they
+      # wipe user data so a cached image cannot keep an APK from another runner.
+      EMULATOR_OPTIONS: -no-window -gpu swiftshader_indirect -no-snapshot-save -wipe-data -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
+      # Snapshot generation is allowed to save. It does not wipe, and it does
+      # not install an app.
+      EMULATOR_SNAPSHOT_OPTIONS: -no-window -gpu swiftshader_indirect -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
+      EMULATOR_AVD_CACHE_KEY: avd-30-x86_64-google_apis-emulator-app-test-clean
       EMULATOR_PRE_LAUNCH: bash tool/emulator/prepare_avd.sh
     steps:
       - name: Checkout workflow scripts
@@ -172,7 +178,7 @@ jobs:
           path: |
             ~/.android/avd
             ~/.android/adb*
-          key: avd-30-x86_64-google_apis-emulator-app-test
+          key: ${{ env.EMULATOR_AVD_CACHE_KEY }}
 
       - name: Choose emulator core count
         if: steps.resolve-apk.outcome == 'success'
@@ -182,6 +188,36 @@ jobs:
           else
             echo "EMULATOR_CORES=2" >> "$GITHUB_ENV"
           fi
+
+      # Boot once with no app so the cached snapshot does not contain an APK.
+      # A cache hit skips this. Flow steps then wipe data and do not save.
+      - name: Create AVD snapshot
+        id: create-avd
+        if: steps.avd-cache.outcome == 'success' && steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_SNAPSHOT_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: echo "Generated AVD snapshot for caching."
+
+      - name: Save AVD cache
+        if: steps.create-avd.outcome == 'success'
+        continue-on-error: true
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.android/avd
+            ~/.android/adb*
+          key: ${{ env.EMULATOR_AVD_CACHE_KEY }}
 
       - name: Flow 01 first launch
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
@@ -475,13 +511,3 @@ jobs:
         with:
           path: /usr/local/lib/android/sdk/system-images
           key: system-image-android-30-google_apis-x86_64
-
-      - name: Save AVD cache
-        if: always() && steps.avd-cache.outcome == 'success' && steps.avd-cache.outputs.cache-hit != 'true'
-        continue-on-error: true
-        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: |
-            ~/.android/avd
-            ~/.android/adb*
-          key: avd-30-x86_64-google_apis-emulator-app-test
