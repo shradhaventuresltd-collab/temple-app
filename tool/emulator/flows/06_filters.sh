@@ -386,6 +386,21 @@ done < <(python3 "$UI_PY" resource-ids "$DUMP" --prefix filter-chip- || true)
 
 # Combined filters. A step whose select never landed is NOT RUN, and later
 # checks assert only the values that were actually applied.
+# Record NOT RUN only when one of the named prerequisite steps already failed.
+skip_if_failed() {
+  local step="$1"
+  local reason="$2"
+  shift 2
+  local prereq
+  for prereq in "$@"; do
+    if grep -Eq "^FAIL ${FLOW}: ${prereq}:" "$RESULTS"; then
+      skip_step "$step" "$reason"
+      return 0
+    fi
+  done
+  fail_step "$step" "$reason"
+}
+
 applied_chips_present() {
   APPLIED_MISSING=""
   local missing=""
@@ -403,7 +418,8 @@ applied_chips_present() {
 }
 
 if [[ "$STATE_SELECT_OK" -ne 1 || -z "$STATE_LABEL" ]]; then
-  skip_step combined-state "state-select did not apply a state"
+  skip_if_failed combined-state "state-select did not apply a state" \
+    state-open state-reopen state-select
 else
   if open_state && select_labeled "^$(re_escape "$STATE_LABEL")( +[0-9]+)?$" STATE && apply_sheet && chip_exact "$STATE_LABEL"; then
     COMBINED_STATE="$STATE_LABEL"
@@ -414,7 +430,8 @@ else
   fi
 fi
 if [[ "$DEITY_SELECT_OK" -ne 1 || -z "$DEITY_LABEL" ]]; then
-  skip_step combined-deity "deity-select did not apply a deity"
+  skip_if_failed combined-deity "deity-select did not apply a deity" \
+    deity-open deity-reopen deity-select
 else
   if open_deity && select_labeled "^$(re_escape "$DEITY_LABEL")( +[0-9]+)?$" DEITY && apply_sheet && chip_exact "$DEITY_LABEL"; then
     COMBINED_DEITY="$DEITY_LABEL"
@@ -438,7 +455,11 @@ else
 fi
 
 if [[ -z "$COMBINED_STATE" && -z "$COMBINED_DEITY" && -z "$COMBINED_DISTRICT" ]]; then
-  skip_step combined-chips "no combined filter was applied"
+  skip_if_failed combined-chips "no combined filter was applied" \
+    state-open state-reopen state-select \
+    deity-open deity-reopen deity-select \
+    district-open district-select \
+    combined-state combined-deity combined-district
 elif applied_chips_present; then
   pass_step combined-chips
 else
@@ -452,7 +473,11 @@ if ui_wait_scrolled 20 --resource-id temple-browse-card --text-contains "Temple"
     ui_back
     sleep 2
     if [[ -z "$COMBINED_STATE" && -z "$COMBINED_DEITY" && -z "$COMBINED_DISTRICT" ]]; then
-      skip_step detail-back-keeps-filter "no combined filter was applied"
+      skip_if_failed detail-back-keeps-filter "no combined filter was applied" \
+        state-open state-reopen state-select \
+        deity-open deity-reopen deity-select \
+        district-open district-select \
+        combined-state combined-deity combined-district
     elif applied_chips_present; then
       pass_step detail-back-keeps-filter
     else
@@ -469,7 +494,11 @@ ui_home_key
 sleep 1
 resume_app
 if [[ -z "$COMBINED_STATE" && -z "$COMBINED_DEITY" && -z "$COMBINED_DISTRICT" ]]; then
-  skip_step home-resume-keeps-filter "no combined filter was applied"
+  skip_if_failed home-resume-keeps-filter "no combined filter was applied" \
+    state-open state-reopen state-select \
+    deity-open deity-reopen deity-select \
+    district-open district-select \
+    combined-state combined-deity combined-district
 elif applied_chips_present; then
   pass_step home-resume-keeps-filter
 else
@@ -482,7 +511,11 @@ accept_policy_if_shown || true
 if ! open_browse || ! wait_browse_ready; then
   fail_step force-stop-relaunch "browse list did not return after force-stop"
 elif [[ -z "$COMBINED_STATE" && -z "$COMBINED_DEITY" && -z "$COMBINED_DISTRICT" ]]; then
-  skip_step force-stop-keeps-filter "no combined filter was applied"
+  skip_if_failed force-stop-keeps-filter "no combined filter was applied" \
+    state-open state-reopen state-select \
+    deity-open deity-reopen deity-select \
+    district-open district-select \
+    combined-state combined-deity combined-district
 elif applied_chips_present; then
   pass_step force-stop-keeps-filter
 else

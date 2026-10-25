@@ -66,6 +66,15 @@ xfail_step() {
 }
 
 skip_step() {
+  # NOT RUN is only for a step whose prerequisite already failed.
+  # A skip with no FAIL in this flow is itself a failure.
+  if ! grep -Eq "^FAIL ${FLOW}:" "$RESULTS" 2>/dev/null; then
+    record_fail "$1" "no failed prerequisite: $2"
+    step_shot "$1"
+    cp -f "$DUMP" "${DUMP_DIR}/${FLOW}_${1}.xml" 2>/dev/null || true
+    dismiss_blockers || true
+    return
+  fi
   record_not_run "$1" "$2"
   step_shot "$1"
 }

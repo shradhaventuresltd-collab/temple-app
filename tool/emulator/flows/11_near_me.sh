@@ -71,13 +71,16 @@ if ! open_near_me; then
   fail_step open-granted "could not scroll to Temples near me"
   return 0
 fi
-if near_me_destination || ui_wait 12 --text-contains "Sort by distance"; then
+# near_me_destination already accepts Sort by distance, Location is off,
+# and Pick a state. A second wait for only Sort by distance would record
+# open-granted again and fail those other arrivals.
+if near_me_destination; then
   pass_step open-granted
 else
   fail_step open-granted "Temples near me did not open after navigation"
   return 0
 fi
-if ui_wait 12 --text-contains "Sort by distance"; then
+if ui_dump && ui_find --text-contains "Sort by distance"; then
   dismiss_location_consent Continue || true
 fi
 dismiss_permission_dialog '^(Allow|While using the app)$' || true
