@@ -45,10 +45,7 @@ class GeolocatorCoarseLocation implements CoarseLocationClient {
     try {
       final position = await Geolocator.getLastKnownPosition();
       if (position == null) return null;
-      final latitude = position.latitude;
-      final longitude = position.longitude;
-      if (!latitude.isFinite || !longitude.isFinite) return null;
-      return CoarseFix(latitude: latitude, longitude: longitude);
+      return coarseFixFromLastKnownPosition(position);
     } catch (_) {
       return null;
     }
@@ -88,6 +85,26 @@ class GeolocatorCoarseLocation implements CoarseLocationClient {
   Future<void> openLocationSettings() async {
     await Geolocator.openLocationSettings();
   }
+}
+
+/// A cached platform position is only useful for a short while.
+const Duration lastKnownMaxAge = Duration(minutes: 30);
+
+/// Turns [position] into a last-known [CoarseFix], or null when it is
+/// unusable. Keeps [Position.timestamp]. A fix older than [lastKnownMaxAge]
+/// is rejected so a stale cache is not shown as a live reading.
+CoarseFix? coarseFixFromLastKnownPosition(Position position, {DateTime? now}) {
+  final latitude = position.latitude;
+  final longitude = position.longitude;
+  if (!latitude.isFinite || !longitude.isFinite) return null;
+  final age = (now ?? DateTime.now()).difference(position.timestamp);
+  if (age > lastKnownMaxAge) return null;
+  return CoarseFix(
+    latitude: latitude,
+    longitude: longitude,
+    timestamp: position.timestamp,
+    lastKnown: true,
+  );
 }
 
 /// Low accuracy, a time limit, and no background updates.

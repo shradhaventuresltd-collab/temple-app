@@ -307,6 +307,25 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
           color: _deepSaffron,
         ),
       ),
+      if (!shrinkWrap && _session.usingLastKnown) ...[
+        const SizedBox(height: 8),
+        Text(
+          NearMeCopy.lastKnownNote,
+          key: const Key('near-me-last-known'),
+          style: GoogleFonts.poppins(
+            fontSize: 13.5,
+            height: 1.4,
+            fontWeight: FontWeight.w600,
+            color: Colors.brown.shade700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        _actionButton(
+          key: const Key('near-me-retry'),
+          label: NearMeCopy.retry,
+          onPressed: () => unawaited(_session.retry()),
+        ),
+      ],
       const SizedBox(height: 8),
       if (rows.isEmpty)
         Text(

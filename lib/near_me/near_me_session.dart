@@ -40,7 +40,17 @@ class NearMeSession extends ChangeNotifier {
   String? anchorCity;
   String? anchorDistrict;
 
+  /// True when [rows] were sorted from the platform cache, not a live fix.
+  bool usingLastKnown = false;
+
   bool _busy = false;
+  var _disposed = false;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
 
   /// User accepted the rationale. Checks the service, then permission.
   Future<void> acceptRationale() => _locate(requestIfDenied: true);
@@ -55,7 +65,7 @@ class NearMeSession extends ChangeNotifier {
   /// after Settings. A timeout stays on the error until [retry], so coming
   /// back cannot start another read and flash the locating message again.
   Future<void> onAppResumed() async {
-    if (_busy) return;
+    if (_busy || _disposed) return;
     switch (phase) {
       case NearMePhase.denied:
       case NearMePhase.deniedForever:
@@ -68,22 +78,32 @@ class NearMeSession extends ChangeNotifier {
       case NearMePhase.declined:
         return;
     }
-    if (!await _location.isServiceEnabled()) {
-      if (phase != NearMePhase.serviceOff) _fail(NearMePhase.serviceOff);
-      return;
-    }
-    final permission = await _location.checkPermission();
-    if (permission == CoarsePermission.deniedForever) {
-      if (phase != NearMePhase.deniedForever) {
-        _fail(NearMePhase.deniedForever);
+    _busy = true;
+    var handedToLocate = false;
+    try {
+      final serviceOn = await _location.isServiceEnabled();
+      if (_disposed) return;
+      if (!serviceOn) {
+        if (phase != NearMePhase.serviceOff) _fail(NearMePhase.serviceOff);
+        return;
       }
-      return;
+      final permission = await _location.checkPermission();
+      if (_disposed) return;
+      if (permission == CoarsePermission.deniedForever) {
+        if (phase != NearMePhase.deniedForever) {
+          _fail(NearMePhase.deniedForever);
+        }
+        return;
+      }
+      if (permission != CoarsePermission.granted) {
+        if (phase != NearMePhase.denied) _fail(NearMePhase.denied);
+        return;
+      }
+      handedToLocate = true;
+      await _locate(requestIfDenied: false, holdsBusy: true);
+    } finally {
+      if (!handedToLocate) _busy = false;
     }
-    if (permission != CoarsePermission.granted) {
-      if (phase != NearMePhase.denied) _fail(NearMePhase.denied);
-      return;
-    }
-    await _locate(requestIfDenied: false);
   }
 
   Future<void> openAppSettings() => _location.openAppSettings();
@@ -93,7 +113,7 @@ class NearMeSession extends ChangeNotifier {
   /// User closed the rationale. The place picker is the list from here.
   void declineRationale() {
     phase = NearMePhase.declined;
-    notifyListeners();
+    _notify();
   }
 
   void selectState(String? state) {
@@ -113,11 +133,16 @@ class NearMeSession extends ChangeNotifier {
     _applyAnchor();
   }
 
-  Future<void> _locate({required bool requestIfDenied}) async {
-    if (_busy) return;
-    _busy = true;
+  Future<void> _locate({
+    required bool requestIfDenied,
+    bool holdsBusy = false,
+  }) async {
+    if (!holdsBusy) {
+      if (_busy) return;
+      _busy = true;
+    }
     phase = NearMePhase.locating;
-    notifyListeners();
+    _notify();
     try {
       if (!await _location.isServiceEnabled()) {
         _fail(NearMePhase.serviceOff);
@@ -151,13 +176,18 @@ class NearMeSession extends ChangeNotifier {
 
   Future<void> _readFix() async {
     CoarseFix? fix;
+    var usedLastKnown = false;
     try {
       fix = await _location.currentFix(timeout: fixTimeout);
     } on LocationFailure catch (failure) {
       if (failure.kind != LocationFailureKind.timeout) rethrow;
+      if (_disposed) return;
       fix = await _location.lastKnownFix();
+      if (_disposed) return;
       if (fix == null) rethrow;
+      usedLastKnown = true;
     }
+    if (_disposed) return;
     anchorState = null;
     anchorCity = null;
     anchorDistrict = null;
@@ -167,16 +197,25 @@ class NearMeSession extends ChangeNotifier {
       latitude: fix.latitude,
       longitude: fix.longitude,
     );
+    usingLastKnown = usedLastKnown || fix.lastKnown;
     phase = NearMePhase.sorted;
-    notifyListeners();
+    _notify();
   }
 
   void _fail(NearMePhase next) {
+    if (_disposed) return;
+    usingLastKnown = false;
     phase = next;
+    _notify();
+  }
+
+  void _notify() {
+    if (_disposed) return;
     notifyListeners();
   }
 
   void _applyAnchor() {
+    usingLastKnown = false;
     placeLabel = nearMePlaceLabel(
       state: anchorState,
       city: anchorCity,
@@ -184,7 +223,7 @@ class NearMeSession extends ChangeNotifier {
     );
     if (placeLabel == null) {
       rows = const [];
-      notifyListeners();
+      _notify();
       return;
     }
     final centroid = centroidFor(
@@ -201,7 +240,7 @@ class NearMeSession extends ChangeNotifier {
             latitude: centroid.latitude,
             longitude: centroid.longitude,
           );
-    notifyListeners();
+    _notify();
   }
 
   String? _clean(String? value) {

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -138,36 +139,51 @@ void main() {
   testWidgets(
     'a background fetch raises the force-update gate on first launch',
     (tester) async {
-      final client = _FetchLater()..hangFetch = Completer<bool>();
-      final config = AppConfigController(
-        client: client,
-        fetchTimeout: const Duration(seconds: 30),
-      );
-      final startup = startRemoteConfig(config);
-      await startup.ready;
+      final logs = <String>[];
+      final previousDebugPrint = debugPrint;
+      debugPrint = (String? message, {int? wrapWidth}) {
+        logs.add(message ?? '');
+      };
+      try {
+        final client = _FetchLater()..hangFetch = Completer<bool>();
+        final config = AppConfigController(
+          client: client,
+          fetchTimeout: const Duration(seconds: 30),
+        );
+        final startup = startRemoteConfig(config);
+        await startup.ready;
 
-      await tester.pumpWidget(
-        _app(
-          store: _AcceptedStore(),
-          buildNumber: 2,
-          config: AppConfig.defaults,
-          controller: config,
-        ),
-      );
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          _app(
+            store: _AcceptedStore(),
+            buildNumber: 2,
+            config: AppConfig.defaults,
+            controller: config,
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.byType(HomeScreen), findsOneWidget);
-      expect(find.byType(ForceUpdateScreen), findsNothing);
-      expect(config.snapshot.minSupportedBuild, 1);
+        expect(find.byType(HomeScreen), findsOneWidget);
+        expect(find.byType(ForceUpdateScreen), findsNothing);
+        expect(config.snapshot.minSupportedBuild, 1);
 
-      client.fetched = {RemoteConfigKeys.minSupportedBuild: 9};
-      client.hangFetch!.complete(true);
-      await startup.fetch;
-      await tester.pump();
+        client.fetched = {RemoteConfigKeys.minSupportedBuild: 9};
+        client.hangFetch!.complete(true);
+        await startup.fetch;
+        await tester.pump();
 
-      expect(config.snapshot.minSupportedBuild, 9);
-      expect(find.byKey(const Key('force-update-screen')), findsOneWidget);
-      expect(find.byType(HomeScreen), findsNothing);
+        expect(config.snapshot.minSupportedBuild, 9);
+        expect(find.byKey(const Key('force-update-screen')), findsOneWidget);
+        expect(find.byType(HomeScreen), findsNothing);
+        expect(
+          logs,
+          contains(
+            'Force-update gate moved from home to update (installed 2, min 9).',
+          ),
+        );
+      } finally {
+        debugPrint = previousDebugPrint;
+      }
     },
   );
 

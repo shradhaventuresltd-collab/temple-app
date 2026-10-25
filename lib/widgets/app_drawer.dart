@@ -512,9 +512,11 @@ class _AppDrawerState extends State<AppDrawer> {
     final navigator = Navigator.of(context);
     final alreadyHome = ModalRoute.of(context)?.isFirst ?? false;
     if (alreadyHome) {
+      _releaseNavGuardNextFrame();
       unawaited(HomeScroll.animateToTop());
       return;
     }
+    _holdNavGuard();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (navigator.mounted) {
         navigator.popUntil((route) => route.isFirst);
@@ -527,8 +529,10 @@ class _AppDrawerState extends State<AppDrawer> {
     if (!_beginDrawerNavigation(context)) return;
     final navigator = Navigator.of(context);
     if (ModalRoute.of(context)?.settings.name == AnalyticsScreens.licences) {
+      _releaseNavGuardNextFrame();
       return;
     }
+    _holdNavGuard();
     final page = namedAnalyticsRoute<void>(
       name: AnalyticsScreens.licences,
       builder: (_) => const LicencesScreen(),
@@ -550,13 +554,27 @@ class _AppDrawerState extends State<AppDrawer> {
     final handlesPop = ModalRoute.of(context)?.willHandlePopInternally ?? false;
     if (!drawerOpen && !handlesPop) return false;
     _navBusy = true;
-    _holdNavGuard();
+    // Callers that leave this screen extend the guard for the close fling.
+    // Callers that were already on the screen release it on the next frame.
     if (drawerOpen) {
       scaffold!.closeDrawer();
     } else {
       Navigator.of(context).pop();
     }
     return true;
+  }
+
+  /// Drops the same-turn guard once the closing frame has been handled.
+  ///
+  /// Used when the tap only closes the drawer because that screen is already
+  /// showing. Holding the 400ms drag claim there blocks the next item.
+  void _releaseNavGuardNextFrame() {
+    _navGuardTimer?.cancel();
+    _navGuardTimer = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _navGuardTimer != null) return;
+      setState(() => _navBusy = false);
+    });
   }
 
   /// Rebuilds the nav tiles so they claim the next pointer, and keeps
@@ -616,8 +634,10 @@ class _AppDrawerState extends State<AppDrawer> {
       deityFilter: deityFilter,
       districtFilter: districtFilter,
     )) {
+      _releaseNavGuardNextFrame();
       return;
     }
+    _holdNavGuard();
     final navigator = Navigator.of(context);
     final page = namedAnalyticsRoute<void>(
       name: AnalyticsScreens.templeList,

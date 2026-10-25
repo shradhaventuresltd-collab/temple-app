@@ -447,6 +447,34 @@ void main() {
     expect(find.text('2 / 2'), findsNothing);
   });
 
+  testWidgets('auto-advance resumes when a resize brings the gallery back', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 500);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: TempleDetailBody(temple: twoPhotos())),
+      ),
+    );
+    await tester.pump();
+    await tester.drag(find.text('1 / 2'), const Offset(0, -900));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(find.text('1 / 2'), findsOneWidget);
+
+    tester.view.physicalSize = const Size(400, 8000);
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 5, milliseconds: 50));
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(find.text('2 / 2'), findsOneWidget);
+  });
+
   testWidgets('the photo credit clamps when the gallery shrinks', (
     tester,
   ) async {

@@ -93,6 +93,54 @@ void main() {
     expect(routes.depth, 1, reason: routes.events.join(' | '));
   });
 
+  testWidgets('Home on the home screen does not hold the navigation guard', (
+    tester,
+  ) async {
+    await _pumpHome(tester, routes);
+    await tester.tap(find.byTooltip('Open navigation menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(of: find.byType(Drawer), matching: find.text('Home')),
+    );
+    // The close rebuilds once while the same-turn guard is set. The next
+    // frame drops it. A 400ms hold would still be up here.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    final allTemples = find.descendant(
+      of: find.byType(Drawer),
+      matching: find.text('All Temples'),
+    );
+    final tile = find.ancestor(of: allTemples, matching: find.byType(ListTile));
+    expect(tester.widget<ListTile>(tile).onTap, isNotNull);
+  });
+
+  testWidgets(
+    'All Temples on the open list does not hold the navigation guard',
+    (tester) async {
+      await _pumpHome(tester, routes);
+      await tester.tap(find.byKey(const Key('home-browse-temples')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Open navigation menu'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(Drawer),
+          matching: find.text('All Temples'),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      final home = find.descendant(
+        of: find.byType(Drawer),
+        matching: find.text('Home'),
+      );
+      final tile = find.ancestor(of: home, matching: find.byType(ListTile));
+      expect(tester.widget<ListTile>(tile).onTap, isNotNull);
+    },
+  );
+
   testWidgets(
     'a second Home tap during the close does not leave the drawer open',
     (tester) async {

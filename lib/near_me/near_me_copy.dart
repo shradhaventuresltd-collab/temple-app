@@ -11,6 +11,7 @@ abstract final class NearMeCopy {
   static const notNow = 'Not now';
   static const locating = 'Finding temples near you…';
   static const nearestHeading = 'Nearest temples';
+  static const lastKnownNote = 'Using last known location';
   static const deniedBody =
       'Location is off for this app. Pick a state or city and the list is sorted from there.';
   static const deniedForeverBody =

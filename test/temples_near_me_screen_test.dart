@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -20,6 +22,32 @@ void main() {
       location: FakeCoarseLocation(),
     );
     expect(session.fixTimeout, const Duration(seconds: 20));
+  });
+
+  test('onAppResumed stays busy until the service check finishes', () async {
+    final location = _HangService();
+    final session = NearMeSession(temples: const [], location: location);
+    session.phase = NearMePhase.denied;
+    final first = session.onAppResumed();
+    final second = session.onAppResumed();
+    expect(location.serviceChecks, 1);
+    location.completeService(false);
+    await first;
+    await second;
+    expect(location.serviceChecks, 1);
+    expect(session.phase, NearMePhase.serviceOff);
+    session.dispose();
+  });
+
+  test('onAppResumed does not notify a disposed session', () async {
+    final location = _HangService();
+    final session = NearMeSession(temples: const [], location: location);
+    session.phase = NearMePhase.denied;
+    final pending = session.onAppResumed();
+    session.dispose();
+    location.completeService(false);
+    await pending;
+    expect(session.phase, NearMePhase.denied);
   });
 
   testWidgets('Home opens the rationale before any location request', (
@@ -65,6 +93,7 @@ void main() {
     expect(location.requests, 1);
     expect(location.fixes, 1);
     expect(find.text(NearMeCopy.nearestHeading), findsOneWidget);
+    expect(find.text(NearMeCopy.lastKnownNote), findsNothing);
     expect(_rowNames(tester).first, 'Meenakshi Amman Temple');
     expect(find.text('0.0 km'), findsOneWidget);
     expect(
@@ -251,6 +280,8 @@ void main() {
     expect(location.fixes, 1);
     expect(location.lastKnownReads, 1);
     expect(find.text(NearMeCopy.nearestHeading), findsOneWidget);
+    expect(find.text(NearMeCopy.lastKnownNote), findsOneWidget);
+    expect(find.byKey(const Key('near-me-retry')), findsOneWidget);
     expect(_rowNames(tester).first, 'Meenakshi Amman Temple');
     expect(find.text(NearMeCopy.timedOutBody), findsNothing);
 
@@ -455,6 +486,43 @@ Temple _temple({
     latitude: lat,
     longitude: lng,
   );
+}
+
+class _HangService implements CoarseLocationClient {
+  final Completer<bool> _service = Completer<bool>();
+  int serviceChecks = 0;
+
+  void completeService(bool enabled) {
+    if (!_service.isCompleted) _service.complete(enabled);
+  }
+
+  @override
+  Future<bool> isServiceEnabled() {
+    serviceChecks += 1;
+    return _service.future;
+  }
+
+  @override
+  Future<CoarsePermission> checkPermission() async => CoarsePermission.denied;
+
+  @override
+  Future<CoarsePermission> requestPermission() async => CoarsePermission.denied;
+
+  @override
+  Future<CoarseFix?> lastKnownFix() async => null;
+
+  @override
+  Future<CoarseFix> currentFix({
+    Duration timeout = const Duration(seconds: 20),
+  }) async {
+    return const CoarseFix(latitude: 0, longitude: 0);
+  }
+
+  @override
+  Future<void> openAppSettings() async {}
+
+  @override
+  Future<void> openLocationSettings() async {}
 }
 
 class FakeCoarseLocation implements CoarseLocationClient {

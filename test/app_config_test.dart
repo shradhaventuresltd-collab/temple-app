@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:temple_app/services/app_config.dart';
@@ -99,6 +100,16 @@ void main() {
 
   test('the background fetch cap is one minute, not three seconds', () {
     expect(AppConfigController().fetchTimeout, const Duration(minutes: 1));
+  });
+
+  test('startup awaits the local activate and not the one-minute fetch', () {
+    final source = File('lib/main.dart').readAsStringSync();
+    expect(source, contains('await remoteConfigStartup.ready'));
+    expect(source, contains('unawaited(remoteConfigStartup.fetch)'));
+    expect(
+      RegExp(r'await\s+remoteConfigStartup\.fetch\b').hasMatch(source),
+      isFalse,
+    );
   });
 
   test('kill switch and min build apply on fetch; other keys wait', () async {
