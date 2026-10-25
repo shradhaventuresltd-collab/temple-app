@@ -977,6 +977,35 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
     });
   }
 
+  /// Empty-state Clear filters, and the chip-row Clear. Both drop the
+  /// search text as well as State, district, and deity. A Clear inside the
+  /// sheet does not come through here until Apply.
+  void _clearFiltersAndSearch() {
+    _searchDebounce?.cancel();
+    _searchController.clear();
+    final previousState = _selectedState;
+    final previousDeity = _selectedDeity;
+    final previousDistrict = _selectedDistrict;
+    setState(() {
+      _showClear = false;
+      _appliedQuery = '';
+      _selectedState = null;
+      _selectedDeity = null;
+      _selectedDistrict = null;
+    });
+    widget.onFiltersChanged?.call(null, null, null);
+    unawaited(
+      AppAnalytics.instance.logFilterTransition(
+        previousState: previousState,
+        nextState: null,
+        previousDeity: previousDeity,
+        nextDeity: null,
+        previousDistrict: previousDistrict,
+        nextDistrict: null,
+      ),
+    );
+  }
+
   void _setFilters(String? state, String? deity, String? district) {
     final previousState = _selectedState;
     final previousDeity = _selectedDeity;
@@ -1051,6 +1080,7 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
                     if (mounted) setState(() {});
                   },
                   onChanged: _setFilters,
+                  onClearAll: _clearFiltersAndSearch,
                 ),
               ),
             if ((query.isNotEmpty || filtersActive) && visible.isNotEmpty)
@@ -1110,9 +1140,7 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
         filtersActive: filtersActive,
         district: _selectedDistrict,
         onClearSearch: query.isEmpty ? null : _clearSearch,
-        onClearFilters: filtersActive
-            ? () => _setFilters(null, null, null)
-            : null,
+        onClearFilters: filtersActive ? _clearFiltersAndSearch : null,
       );
     }
     return ListView.separated(

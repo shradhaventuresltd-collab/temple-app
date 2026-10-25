@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -20,6 +22,7 @@ enum DirectoryFilterSection { state, district, deity }
 /// Returns the selection when the user applies it. Returns null when the
 /// sheet is dismissed, so the caller keeps the previous chips.
 /// [districtOf] is null until the boundary asset has been opened.
+/// [districtLookup] loads that asset while the sheet is already on screen.
 /// [section] is the list the user tapped. That block is shown first.
 Future<DirectoryFilterSelection?> showDirectoryFilterSheet({
   required BuildContext context,
@@ -29,6 +32,7 @@ Future<DirectoryFilterSelection?> showDirectoryFilterSheet({
   String? selectedDistrict,
   String query = '',
   TempleDistrictName? districtOf,
+  Future<TempleDistrictName?>? districtLookup,
   DirectoryFilterSection section = DirectoryFilterSection.state,
 }) {
   return showModalBottomSheet<DirectoryFilterSelection>(
@@ -46,6 +50,7 @@ Future<DirectoryFilterSelection?> showDirectoryFilterSheet({
         initialDistrict: selectedDistrict,
         query: query,
         districtOf: districtOf,
+        districtLookup: districtLookup,
         initialSection: section,
       );
     },
@@ -67,6 +72,7 @@ class DirectoryFilterBar extends StatefulWidget {
     this.districtOf,
     this.prepareDistricts,
     this.onDistrictsLoaded,
+    this.onClearAll,
   });
 
   final List<Temple> temples;
@@ -78,10 +84,12 @@ class DirectoryFilterBar extends StatefulWidget {
   /// Null until boundaries have been loaded. Names come from the loaded index.
   final TempleDistrictName? districtOf;
 
-  /// Called only from the district chip, before the sheet opens.
+  /// Called only from the district chip, as the sheet opens.
   ///
-  /// Must not rebuild the bar. A setState here runs while the sheet route is
-  /// being pushed and the district list then swallows the dismiss drag.
+  /// The sheet is already on the navigator, with a loader where the district
+  /// names will go. Must not rebuild the bar. A setState here runs while the
+  /// sheet route is being pushed and the district list then swallows the
+  /// dismiss drag.
   final Future<TempleDistrictName?> Function()? prepareDistricts;
 
   /// Called after the district sheet closes, so the bar can show loaded names.
@@ -89,6 +97,10 @@ class DirectoryFilterBar extends StatefulWidget {
 
   /// Called with the new triple. Any value may be null (that chip is cleared).
   final void Function(String? state, String? deity, String? district) onChanged;
+
+  /// Bar Clear. When set, a cleared triple is not also reported through
+  /// [onChanged], so the caller can drop the search text with the filters.
+  final VoidCallback? onClearAll;
 
   @override
   State<DirectoryFilterBar> createState() => _DirectoryFilterBarState();
@@ -99,9 +111,10 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
 
   /// True from the moment a chip asks for the sheet until that route pops.
   ///
-  /// District boundaries load before the sheet exists, so the chip stays
-  /// tappable. A second tap in that gap pushed another sheet on top. Closing
-  /// the one on screen left the other route up, and later chip taps hit it.
+  /// The district sheet is pushed before boundaries finish loading, so Back
+  /// pops the sheet and leaves All Temples on the stack. The flag drops when
+  /// that route pops, including while the load is still running, so the next
+  /// deity tap is not swallowed.
   bool _opening = false;
   final GlobalKey _stateChip = GlobalKey();
   final GlobalKey _districtChip = GlobalKey();
@@ -182,15 +195,14 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
   }) async {
     if (_opening) return;
     _opening = true;
-    var loadedDistricts = false;
+    Future<TempleDistrictName?>? pending;
     DirectoryFilterSelection? result;
     try {
-      var lookup = widget.districtOf;
+      final lookup = widget.districtOf;
       if (loadDistricts && lookup == null) {
         final prepare = widget.prepareDistricts;
         if (prepare != null) {
-          lookup = await prepare();
-          loadedDistricts = true;
+          pending = _startDistrictLoad(prepare);
         }
       }
       if (!mounted) return;
@@ -203,6 +215,7 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
             selectedDistrict: widget.selectedDistrict,
             query: widget.query,
             districtOf: lookup,
+            districtLookup: pending,
             section: section,
           ).whenComplete(() {
             _opening = false;
@@ -213,9 +226,48 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
       _opening = false;
     }
     if (!mounted) return;
-    if (loadedDistricts) widget.onDistrictsLoaded?.call();
-    if (result == null) return;
+    if (pending != null) {
+      var loaded = false;
+      try {
+        await pending;
+        loaded = true;
+      } catch (_) {
+        // Reported when the load was started.
+      }
+      if (loaded && mounted) widget.onDistrictsLoaded?.call();
+    }
+    if (!mounted || result == null) return;
     widget.onChanged(result.state, result.deity, result.district);
+  }
+
+  /// Starts the boundary load and attaches an error listener immediately.
+  ///
+  /// The sheet listens too. A later `await` is a second listener, so this
+  /// one has to exist before the future can fail, including a synchronous
+  /// throw from [prepare].
+  Future<TempleDistrictName?> _startDistrictLoad(
+    Future<TempleDistrictName?> Function() prepare,
+  ) {
+    Future<TempleDistrictName?> pending;
+    try {
+      pending = prepare();
+    } catch (error, stack) {
+      debugPrint('District boundaries did not load: $error\n$stack');
+      final failed = Completer<TempleDistrictName?>();
+      pending = failed.future;
+      unawaited(pending.then((_) {}, onError: (Object _, StackTrace _) {}));
+      failed.completeError(error, stack);
+      return pending;
+    }
+    unawaited(
+      pending.then(
+        (_) {},
+        onError: (Object error, StackTrace stack) {
+          debugPrint('District boundaries did not load: $error\n$stack');
+        },
+      ),
+    );
+    return pending;
   }
 
   @override
@@ -298,7 +350,8 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
             const SizedBox(width: 4),
             TextButton(
               key: const Key('filter-clear'),
-              onPressed: () => widget.onChanged(null, null, null),
+              onPressed:
+                  widget.onClearAll ?? () => widget.onChanged(null, null, null),
               child: Text(
                 'Clear',
                 style: GoogleFonts.poppins(
@@ -323,6 +376,7 @@ class _DirectoryFilterSheet extends StatefulWidget {
     required this.initialDistrict,
     required this.query,
     required this.districtOf,
+    required this.districtLookup,
     required this.initialSection,
   });
 
@@ -332,6 +386,9 @@ class _DirectoryFilterSheet extends StatefulWidget {
   final String? initialDistrict;
   final String query;
   final TempleDistrictName? districtOf;
+
+  /// In flight when the district chip opened before boundaries were ready.
+  final Future<TempleDistrictName?>? districtLookup;
   final DirectoryFilterSection initialSection;
 
   @override
@@ -342,6 +399,9 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
   String? _state;
   String? _deity;
   String? _district;
+  TempleDistrictName? _resolvedDistrictOf;
+  bool _districtsLoading = false;
+  bool _districtError = false;
 
   /// A swipe on the option list does not move the sheet. The list wins the
   /// drag, so the modal route stays current and the next chip tap never
@@ -363,6 +423,30 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
     _state = widget.initialState;
     _deity = widget.initialDeity;
     _district = widget.initialDistrict;
+    _resolvedDistrictOf = widget.districtOf;
+    final pending = widget.districtLookup;
+    if (widget.districtOf == null && pending != null) {
+      _districtsLoading = true;
+      unawaited(
+        pending.then(
+          (lookup) {
+            if (!mounted) return;
+            setState(() {
+              _resolvedDistrictOf = lookup;
+              _districtsLoading = false;
+              _districtError = lookup == null;
+            });
+          },
+          onError: (Object _, StackTrace _) {
+            if (!mounted) return;
+            setState(() {
+              _districtsLoading = false;
+              _districtError = true;
+            });
+          },
+        ),
+      );
+    }
   }
 
   @override
@@ -380,8 +464,26 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
       deity: deity,
       district: district,
       query: widget.query,
-      districtOf: widget.districtOf,
+      districtOf: _resolvedDistrictOf,
     ).length;
+  }
+
+  bool _showChoice(int count, bool selected) => selected || count > 0;
+
+  /// Count for a state chip. A district from another state is dropped when
+  /// that state is chosen, so it must not paint the chip as "0" or hide it.
+  int _stateOptionCount(String state) {
+    final district = _district;
+    String? kept;
+    if (district != null && district.isNotEmpty) {
+      final names = directoryDistrictsFrom(
+        widget.temples,
+        state: state,
+        districtOf: _resolvedDistrictOf,
+      );
+      if (names.contains(district)) kept = district;
+    }
+    return _count(state: state, deity: _deity, district: kept);
   }
 
   /// Pops this sheet with null. A second notification in the same gesture
@@ -437,7 +539,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
     final names = directoryDistrictsFrom(
       widget.temples,
       state: state,
-      districtOf: widget.districtOf,
+      districtOf: _resolvedDistrictOf,
     );
     setState(() {
       _state = state;
@@ -469,38 +571,56 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
             onTap: () => _chooseState(null),
           ),
           for (final state in states)
-            _OptionChip(
-              optionKey: Key('filter-option-state-$state'),
-              label: state,
-              count: _count(state: state, deity: _deity, district: _district),
-              selected: _state == state,
-              onTap: () => _chooseState(state),
-            ),
+            if (_showChoice(_stateOptionCount(state), _state == state))
+              _OptionChip(
+                optionKey: Key('filter-option-state-$state'),
+                label: state,
+                count: _stateOptionCount(state),
+                selected: _state == state,
+                onTap: () => _chooseState(state),
+              ),
         ],
       ),
     ];
     final districtSection = <Widget>[
-      const _SheetSectionLabel('DISTRICT', key: Key('filter-section-district')),
-      const SizedBox(height: 8),
-      _OptionWrap(
-        children: [
-          _OptionChip(
-            optionKey: const Key('filter-option-district-any'),
-            label: 'All districts',
-            count: _count(state: _state, deity: _deity),
-            selected: _district == null || _district!.isEmpty,
-            onTap: () => setState(() => _district = null),
-          ),
-          for (final district in districts)
+      if (_districtsLoading)
+        const _DistrictLoading()
+      else if (_districtError)
+        const _DistrictLoadError()
+      else ...[
+        const _SheetSectionLabel(
+          'DISTRICT',
+          key: Key('filter-section-district'),
+        ),
+        const SizedBox(height: 8),
+        _OptionWrap(
+          children: [
             _OptionChip(
-              optionKey: Key('filter-option-district-$district'),
-              label: district,
-              count: _count(state: _state, deity: _deity, district: district),
-              selected: _district == district,
-              onTap: () => setState(() => _district = district),
+              optionKey: const Key('filter-option-district-any'),
+              label: 'All districts',
+              count: _count(state: _state, deity: _deity),
+              selected: _district == null || _district!.isEmpty,
+              onTap: () => setState(() => _district = null),
             ),
-        ],
-      ),
+            for (final district in districts)
+              if (_showChoice(
+                _count(state: _state, deity: _deity, district: district),
+                _district == district,
+              ))
+                _OptionChip(
+                  optionKey: Key('filter-option-district-$district'),
+                  label: district,
+                  count: _count(
+                    state: _state,
+                    deity: _deity,
+                    district: district,
+                  ),
+                  selected: _district == district,
+                  onTap: () => setState(() => _district = district),
+                ),
+          ],
+        ),
+      ],
     ];
     final deitySection = <Widget>[
       const _SheetSectionLabel('DEITY', key: Key('filter-section-deity')),
@@ -527,13 +647,17 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
             onTap: () => setState(() => _deity = null),
           ),
           for (final deity in deities)
-            _OptionChip(
-              optionKey: Key('filter-option-deity-$deity'),
-              label: directoryDeityChipLabel(deity),
-              count: _count(state: _state, deity: deity, district: _district),
-              selected: _deity == deity,
-              onTap: () => setState(() => _deity = deity),
-            ),
+            if (_showChoice(
+              _count(state: _state, deity: deity, district: _district),
+              _deity == deity,
+            ))
+              _OptionChip(
+                optionKey: Key('filter-option-deity-$deity'),
+                label: directoryDeityChipLabel(deity),
+                count: _count(state: _state, deity: deity, district: _district),
+                selected: _deity == deity,
+                onTap: () => setState(() => _deity = deity),
+              ),
         ],
       ),
     ];
@@ -571,11 +695,14 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
     final districts = directoryDistrictsFrom(
       widget.temples,
       state: _state,
-      districtOf: widget.districtOf,
+      districtOf: _resolvedDistrictOf,
     );
     final showDistricts =
-        widget.districtOf != null &&
-        (districts.isNotEmpty || (_district != null && _district!.isNotEmpty));
+        _districtsLoading ||
+        _districtError ||
+        (_resolvedDistrictOf != null &&
+            (districts.isNotEmpty ||
+                (_district != null && _district!.isNotEmpty)));
     final note = directoryDeityFilterNote(deities);
     final matched = _count(state: _state, deity: _deity, district: _district);
     final draftActive =
@@ -667,22 +794,27 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
                 child: Row(
                   children: [
-                    TextButton(
-                      key: const Key('filter-sheet-clear'),
-                      onPressed: draftActive
-                          ? () => setState(() {
-                              _state = null;
-                              _deity = null;
-                              _district = null;
-                            })
-                          : null,
-                      child: Text(
-                        'Clear',
-                        style: GoogleFonts.poppins(
-                          fontWeight: FontWeight.w600,
-                          color: draftActive
-                              ? _deepSaffron
-                              : Colors.brown.shade300,
+                    Semantics(
+                      identifier: 'filter-sheet-clear',
+                      button: true,
+                      enabled: draftActive,
+                      child: TextButton(
+                        key: const Key('filter-sheet-clear'),
+                        onPressed: draftActive
+                            ? () => setState(() {
+                                _state = null;
+                                _deity = null;
+                                _district = null;
+                              })
+                            : null,
+                        child: Text(
+                          'Clear',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w600,
+                            color: draftActive
+                                ? _deepSaffron
+                                : Colors.brown.shade300,
+                          ),
                         ),
                       ),
                     ),
@@ -716,6 +848,66 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DistrictLoading extends StatelessWidget {
+  const _DistrictLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      identifier: 'filter-district-loading',
+      label: 'Loading districts',
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                key: Key('filter-district-loading'),
+                strokeWidth: 2,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Loading districts',
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.brown.shade600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DistrictLoadError extends StatelessWidget {
+  const _DistrictLoadError();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      identifier: 'filter-district-error',
+      label: 'Districts could not be loaded',
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Text(
+          'Districts could not be loaded',
+          key: const Key('filter-district-error'),
+          style: GoogleFonts.poppins(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Colors.brown.shade600,
           ),
         ),
       ),

@@ -61,6 +61,7 @@ void main() {
     String? initialState,
     String? initialDeity,
     String initialQuery = '',
+    List<Temple>? directory,
   }) async {
     tester.view.physicalSize = const Size(800, 1600);
     tester.view.devicePixelRatio = 1;
@@ -70,7 +71,10 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: TempleBrowseList(
-            temples: temples,
+            key: ValueKey(
+              '${directory?.length}-$initialState-$initialDeity-$initialQuery',
+            ),
+            temples: directory ?? temples,
             initialQuery: initialQuery,
             initialState: initialState,
             initialDeity: initialDeity,
@@ -249,7 +253,97 @@ void main() {
     await tester.pump();
 
     expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
-    expect(find.text('Vaikom Mahadeva Temple'), findsNothing);
+    expect(find.text('Vaikom Mahadeva Temple'), findsOneWidget);
+    expect(find.text('Dilwara Temples'), findsOneWidget);
+    expect(find.text('madurai'), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('filter-chip-state')),
+        matching: find.text('State'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller?.text,
+      isEmpty,
+    );
+  });
+
+  testWidgets('the chip-row Clear also clears the search text', (tester) async {
+    await pumpList(tester, initialState: 'Kerala', initialQuery: 'vaikom');
+    expect(find.text('Vaikom Mahadeva Temple'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('filter-clear')));
+    await tester.pump();
+
+    expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
+    expect(find.text('Vaikom Mahadeva Temple'), findsOneWidget);
+    expect(find.text('Dilwara Temples'), findsOneWidget);
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller?.text,
+      isEmpty,
+    );
+  });
+
+  testWidgets('sheet clear does not apply when the sheet is dismissed', (
+    tester,
+  ) async {
+    await pumpList(tester, initialDeity: 'Shiva');
+    expect(find.text('Vaikom Mahadeva Temple'), findsOneWidget);
+    expect(find.text('Meenakshi Amman Temple'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('filter-chip-deity')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('filter-sheet-clear')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('filter-sheet-close')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Vaikom Mahadeva Temple'), findsOneWidget);
+    expect(find.text('Dilwara Temples'), findsNothing);
+    expect(find.text('Meenakshi Amman Temple'), findsNothing);
+    expect(find.text('Shiva'), findsWidgets);
+  });
+
+  testWidgets('options with no matches stay hidden', (tester) async {
+    final withAjit = [
+      ...temples,
+      temple(
+        name: 'Ajitnath Temple',
+        state: 'Gujarat',
+        city: 'Taranga',
+        deity: 'Ajitnatha',
+      ),
+    ];
+    await pumpList(tester, directory: withAjit, initialState: 'Tamil Nadu');
+    await tester.tap(find.byKey(const Key('filter-chip-deity')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('filter-option-deity-any')), findsOneWidget);
+    expect(find.byKey(const Key('filter-option-deity-Devi')), findsOneWidget);
+    expect(find.byKey(const Key('filter-option-deity-Shiva')), findsNothing);
+    expect(
+      find.byKey(const Key('filter-option-deity-Ajitnatha')),
+      findsNothing,
+    );
+    expect(find.textContaining('Ajitnatha'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('filter-sheet-close')));
+    await tester.pumpAndSettle();
+
+    await pumpList(
+      tester,
+      directory: withAjit,
+      initialState: 'Tamil Nadu',
+      initialDeity: 'Ajitnatha',
+    );
+    await tester.tap(find.byKey(const Key('filter-chip-deity')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('filter-option-deity-Ajitnatha')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('filter-option-deity-any')), findsOneWidget);
   });
 
   testWidgets('a Jain listing keeps its tradition chip when filtered', (

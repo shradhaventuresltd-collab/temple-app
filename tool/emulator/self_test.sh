@@ -321,6 +321,25 @@ if [[ "$(district_miss_outcome 1 0)" != fail || "$(district_miss_outcome 1 1)" !
   echo "a district chip that is in the dump should not be xfail" >&2
   exit 1
 fi
+if ! grep -A3 '^enter_home_browse()' tool/emulator/flows/29_filter_matrix.sh | grep -q 'fresh_home'; then
+  echo "flow 29 should return home between cases" >&2
+  exit 1
+fi
+if ! grep -q 'filter-district-loading' tool/emulator/flows/29_filter_matrix.sh; then
+  echo "flow 29 should wait out the district loader" >&2
+  exit 1
+fi
+if ! python3 - <<'PY'
+from pathlib import Path
+text = Path("tool/emulator/flows/28_small_screen_rotation_overflow.sh").read_text()
+resize = text.find("wm size 720x1280")
+browse = text.find("reach_browse")
+if browse < 0 or resize < 0 or browse > resize:
+    raise SystemExit("flow 28 should accept the policy before resizing")
+PY
+then
+  exit 1
+fi
 if ! grep -q 'ui_wait 12 --text-contains "Sort by distance"' tool/emulator/flows/11_near_me.sh; then
   echo "denied near-me path should still wait for the location consent sheet" >&2
   exit 1
