@@ -7,22 +7,15 @@
 reach_browse || { fail_step browse "no list"; }
 adb shell wm size 720x1280; adb shell wm density 360; adb shell settings put system font_scale 1.3
 sleep 2
-if ui_dump && ui_find --resource-id policy-accept-button; then
-  ui_tap
-  sleep 2
-elif ui_dump && ui_find --text-contains "Accept & continue"; then
-  ui_tap
-  sleep 2
-else
-  ui_fling up || true
-  sleep 1
-  if ui_dump && ui_find --resource-id policy-accept-button; then
-    ui_tap
-    sleep 2
-  elif ui_dump && ui_find --text-contains "Accept & continue"; then
-    ui_tap
-    sleep 2
-  fi
+# The resize can bring the policy gate back. Reuse the shared accept path.
+# A gate with no accept control fails the step instead of continuing.
+ui_dump || true
+if ui_find --resource-id policy-accept-button || ui_find --text-contains "Accept & continue"; then
+  accept_policy_if_shown || fail_step policy "policy was not accepted after resize"
+elif ui_find --text-contains "Temple Directory India" \
+  && ! ui_find --resource-id home-browse-temples \
+  && ! ui_find --resource-id filter-chip-state; then
+  fail_step policy "no accept button after resize"
 fi
 if ! ui_dump || ! ui_find --resource-id filter-chip-state; then
   open_browse || true

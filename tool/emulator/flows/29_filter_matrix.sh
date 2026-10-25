@@ -119,7 +119,7 @@ raise SystemExit(0 if text and text != "State" else 1)
 }
 
 # The bug check: every other chip must open a sheet after the action.
-# The first district load is slower than a chip tap, so allow 10 s.
+# District's first load can take longer than a chip tap. State and deity stay at 3 s.
 probe_others() {
   local id="$1" done_chip="$2" other in_dump state_selected outcome
   for other in "${CHIPS[@]}" "$done_chip"; do
@@ -148,7 +148,11 @@ probe_others() {
       continue
     fi
     ui_tap
-    if ui_wait 10 --text-regex '^Filters$'; then
+    local wait_s=3
+    if [[ "$other" == district ]]; then
+      wait_s=10
+    fi
+    if ui_wait "$wait_s" --text-regex '^Filters$'; then
       pass_step "$id-then-$other"; ui_back; sleep 1; recover_sheet
     else
       fail_step "$id-then-$other" "tap on ${other} chip did nothing after ${id}"

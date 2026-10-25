@@ -334,8 +334,14 @@ from pathlib import Path
 text = Path("tool/emulator/flows/28_small_screen_rotation_overflow.sh").read_text()
 resize = text.find("wm size 720x1280")
 browse = text.find("reach_browse")
+accept = text.find("accept_policy_if_shown")
+missing = text.find("no accept button")
 if browse < 0 or resize < 0 or browse > resize:
-    raise SystemExit("flow 28 should accept the policy before resizing")
+    raise SystemExit("flow 28 should reach browse before resizing")
+if accept < 0 or accept < resize:
+    raise SystemExit("flow 28 should accept the policy after resizing")
+if missing < 0:
+    raise SystemExit("flow 28 should fail when no accept button is found")
 PY
 then
   exit 1

@@ -162,6 +162,24 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('a synchronous prepare failure still opens the sheet', (
+    tester,
+  ) async {
+    await _size(tester);
+    await _pumpBar(
+      tester,
+      temples: temples,
+      prepareDistricts: () => throw StateError('boundaries'),
+    );
+
+    await tester.tap(find.byKey(const Key('filter-chip-district')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
+    expect(find.byKey(const Key('filter-district-error')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'double-tap All districts on All Temples keeps the list and the next chip',
     (tester) async {
@@ -228,6 +246,88 @@ void main() {
       gate.complete(districtOf);
       await tester.pump();
       await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    'a State apply during the district load is kept ahead of a later apply',
+    (tester) async {
+      await _size(tester);
+      final gate = Completer<String? Function(Temple)?>();
+      final changes = <String>[];
+      String? state;
+      String? deity;
+      String? district;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) {
+                return DirectoryFilterBar(
+                  temples: temples,
+                  selectedState: state,
+                  selectedDeity: deity,
+                  selectedDistrict: district,
+                  prepareDistricts: () => gate.future,
+                  onChanged: (nextState, nextDeity, nextDistrict) {
+                    setState(() {
+                      state = nextState;
+                      deity = nextDeity;
+                      district = nextDistrict;
+                    });
+                    changes.add(
+                      '${nextState ?? ''}|${nextDeity ?? ''}|${nextDistrict ?? ''}',
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('filter-chip-district')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.byKey(const Key('filter-district-loading')), findsOneWidget);
+      expect(gate.isCompleted, isFalse);
+
+      final kerala = find.byKey(const Key('filter-option-state-Kerala'));
+      await tester.ensureVisible(kerala);
+      await tester.tap(kerala);
+      await tester.pump();
+      final apply = find.byKey(const Key('filter-sheet-apply'));
+      await tester.ensureVisible(apply);
+      await tester.tap(apply);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(gate.isCompleted, isFalse);
+      expect(state, 'Kerala');
+      expect(deity, isNull);
+      expect(changes, ['Kerala||']);
+
+      await tester.tap(find.byKey(const Key('filter-chip-deity')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('filter-option-deity-Shiva')));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('filter-sheet-apply')));
+      await tester.pumpAndSettle();
+
+      expect(gate.isCompleted, isFalse);
+      expect(state, 'Kerala');
+      expect(deity, 'Shiva');
+      expect(changes, ['Kerala||', 'Kerala|Shiva|']);
+
+      gate.complete(districtOf);
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(state, 'Kerala');
+      expect(deity, 'Shiva');
+      expect(district, isNull);
+      expect(changes, ['Kerala||', 'Kerala|Shiva|']);
     },
   );
 

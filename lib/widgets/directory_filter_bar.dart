@@ -226,25 +226,32 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
       _opening = false;
     }
     if (!mounted) return;
-    if (pending != null) {
-      var loaded = false;
-      try {
-        await pending;
-        loaded = true;
-      } catch (_) {
-        // Reported when the load was started.
-      }
-      if (loaded && mounted) widget.onDistrictsLoaded?.call();
+    // Apply before the boundary load finishes. Waiting here drops a State or
+    // Deity apply when the load hangs, and a late apply can overwrite a newer
+    // one from another chip.
+    if (result != null) {
+      widget.onChanged(result.state, result.deity, result.district);
     }
-    if (!mounted || result == null) return;
-    widget.onChanged(result.state, result.deity, result.district);
+    final load = pending;
+    if (load != null) unawaited(_finishDistrictLoad(load));
+  }
+
+  Future<void> _finishDistrictLoad(Future<TempleDistrictName?> pending) async {
+    var loaded = false;
+    try {
+      await pending;
+      loaded = true;
+    } catch (_) {
+      // Reported when the load was started.
+    }
+    if (loaded && mounted) widget.onDistrictsLoaded?.call();
   }
 
   /// Starts the boundary load and attaches an error listener immediately.
   ///
-  /// The sheet listens too. A later `await` is a second listener, so this
-  /// one has to exist before the future can fail, including a synchronous
-  /// throw from [prepare].
+  /// The sheet listens too. A later `await` is another listener, so this one
+  /// has to exist before the future can fail, including a synchronous throw
+  /// from [prepare].
   Future<TempleDistrictName?> _startDistrictLoad(
     Future<TempleDistrictName?> Function() prepare,
   ) {
@@ -252,12 +259,7 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
     try {
       pending = prepare();
     } catch (error, stack) {
-      debugPrint('District boundaries did not load: $error\n$stack');
-      final failed = Completer<TempleDistrictName?>();
-      pending = failed.future;
-      unawaited(pending.then((_) {}, onError: (Object _, StackTrace _) {}));
-      failed.completeError(error, stack);
-      return pending;
+      pending = Future<TempleDistrictName?>.error(error, stack);
     }
     unawaited(
       pending.then(
@@ -549,6 +551,46 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
     });
   }
 
+  /// One count per chip. The any/all chip is always listed. A zero-count
+  /// option stays only when it is the current selection.
+  List<Widget> _labeledOptions({
+    required String prefix,
+    required String anyLabel,
+    required int anyCount,
+    required bool anySelected,
+    required VoidCallback onAny,
+    required List<String> names,
+    required int Function(String name) countOf,
+    required bool Function(String name) isSelected,
+    required String Function(String name) labelOf,
+    required void Function(String name) onSelect,
+  }) {
+    final chips = <Widget>[
+      _OptionChip(
+        optionKey: Key('$prefix-any'),
+        label: anyLabel,
+        count: anyCount,
+        selected: anySelected,
+        onTap: onAny,
+      ),
+    ];
+    for (final name in names) {
+      final count = countOf(name);
+      final selected = isSelected(name);
+      if (!_showChoice(count, selected)) continue;
+      chips.add(
+        _OptionChip(
+          optionKey: Key('$prefix-$name'),
+          label: labelOf(name),
+          count: count,
+          selected: selected,
+          onTap: () => onSelect(name),
+        ),
+      );
+    }
+    return chips;
+  }
+
   /// The tapped section leads. One sheet still holds the other filters,
   /// but the list the user asked for is the one on screen.
   List<Widget> _sections({
@@ -562,24 +604,18 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
       const _SheetSectionLabel('STATE', key: Key('filter-section-state')),
       const SizedBox(height: 8),
       _OptionWrap(
-        children: [
-          _OptionChip(
-            optionKey: const Key('filter-option-state-any'),
-            label: 'Any state',
-            count: _count(deity: _deity, district: _district),
-            selected: _state == null,
-            onTap: () => _chooseState(null),
-          ),
-          for (final state in states)
-            if (_showChoice(_stateOptionCount(state), _state == state))
-              _OptionChip(
-                optionKey: Key('filter-option-state-$state'),
-                label: state,
-                count: _stateOptionCount(state),
-                selected: _state == state,
-                onTap: () => _chooseState(state),
-              ),
-        ],
+        children: _labeledOptions(
+          prefix: 'filter-option-state',
+          anyLabel: 'Any state',
+          anyCount: _count(deity: _deity, district: _district),
+          anySelected: _state == null,
+          onAny: () => _chooseState(null),
+          names: states,
+          countOf: _stateOptionCount,
+          isSelected: (state) => _state == state,
+          labelOf: (state) => state,
+          onSelect: _chooseState,
+        ),
       ),
     ];
     final districtSection = <Widget>[
@@ -594,31 +630,19 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
         ),
         const SizedBox(height: 8),
         _OptionWrap(
-          children: [
-            _OptionChip(
-              optionKey: const Key('filter-option-district-any'),
-              label: 'All districts',
-              count: _count(state: _state, deity: _deity),
-              selected: _district == null || _district!.isEmpty,
-              onTap: () => setState(() => _district = null),
-            ),
-            for (final district in districts)
-              if (_showChoice(
+          children: _labeledOptions(
+            prefix: 'filter-option-district',
+            anyLabel: 'All districts',
+            anyCount: _count(state: _state, deity: _deity),
+            anySelected: _district == null || _district!.isEmpty,
+            onAny: () => setState(() => _district = null),
+            names: districts,
+            countOf: (district) =>
                 _count(state: _state, deity: _deity, district: district),
-                _district == district,
-              ))
-                _OptionChip(
-                  optionKey: Key('filter-option-district-$district'),
-                  label: district,
-                  count: _count(
-                    state: _state,
-                    deity: _deity,
-                    district: district,
-                  ),
-                  selected: _district == district,
-                  onTap: () => setState(() => _district = district),
-                ),
-          ],
+            isSelected: (district) => _district == district,
+            labelOf: (district) => district,
+            onSelect: (district) => setState(() => _district = district),
+          ),
         ),
       ],
     ];
@@ -638,27 +662,19 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
       ],
       const SizedBox(height: 8),
       _OptionWrap(
-        children: [
-          _OptionChip(
-            optionKey: const Key('filter-option-deity-any'),
-            label: 'Any deity',
-            count: _count(state: _state, district: _district),
-            selected: _deity == null,
-            onTap: () => setState(() => _deity = null),
-          ),
-          for (final deity in deities)
-            if (_showChoice(
+        children: _labeledOptions(
+          prefix: 'filter-option-deity',
+          anyLabel: 'Any deity',
+          anyCount: _count(state: _state, district: _district),
+          anySelected: _deity == null,
+          onAny: () => setState(() => _deity = null),
+          names: deities,
+          countOf: (deity) =>
               _count(state: _state, deity: deity, district: _district),
-              _deity == deity,
-            ))
-              _OptionChip(
-                optionKey: Key('filter-option-deity-$deity'),
-                label: directoryDeityChipLabel(deity),
-                count: _count(state: _state, deity: deity, district: _district),
-                selected: _deity == deity,
-                onTap: () => setState(() => _deity = deity),
-              ),
-        ],
+          isSelected: (deity) => _deity == deity,
+          labelOf: directoryDeityChipLabel,
+          onSelect: (deity) => setState(() => _deity = deity),
+        ),
       ),
     ];
 
