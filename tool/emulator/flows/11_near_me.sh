@@ -20,10 +20,39 @@ else
 fi
 
 open_near_me() {
-  if ui_wait_scrolled 25 --text-contains "Temples near me"; then
-    ui_tap
-    return 0
-  fi
+  local i width height
+  read -r width height < <(ui_screen_size) || return 1
+  # Home may already have been flung past the entry. Return to the top,
+  # then move down in small steps until the control is on screen.
+  for i in $(seq 1 6); do
+    adb shell input swipe \
+      $((width / 2)) $((height * 32 / 100)) \
+      $((width / 2)) $((height * 78 / 100)) 180
+    sleep 0.2
+  done
+  for i in $(seq 1 12); do
+    if ui_dump && ui_find --text-contains "Temples near me"; then
+      if (( UI_CY > 48 && UI_CY < height - 48 )); then
+        ui_tap
+        sleep 1
+        return 0
+      fi
+    fi
+    adb shell input swipe \
+      $((width / 2)) $((height * 68 / 100)) \
+      $((width / 2)) $((height * 50 / 100)) 220
+    sleep 0.4
+  done
+  return 1
+}
+
+near_me_destination() {
+  ui_dump || return 1
+  ui_find --text-contains "Sort by distance" && return 0
+  ui_find --text-contains "Nearest temples" && return 0
+  ui_find --text-contains "Finding temples" && return 0
+  ui_find --text-contains "Location is off" && return 0
+  ui_find --text-contains "Pick a state or city" && return 0
   return 1
 }
 
@@ -39,10 +68,19 @@ dismiss_permission_dialog() {
 }
 
 if ! open_near_me; then
-  fail_step open-granted "Temples near me was not shown"
+  fail_step open-granted "could not scroll to Temples near me"
   return 0
 fi
-if ui_wait 12 --text-contains "Sort by distance"; then
+# near_me_destination already accepts Sort by distance, Location is off,
+# and Pick a state. A second wait for only Sort by distance would record
+# open-granted again and fail those other arrivals.
+if near_me_destination; then
+  pass_step open-granted
+else
+  fail_step open-granted "Temples near me did not open after navigation"
+  return 0
+fi
+if ui_dump && ui_find --text-contains "Sort by distance"; then
   dismiss_location_consent Continue || true
 fi
 dismiss_permission_dialog '^(Allow|While using the app)$' || true

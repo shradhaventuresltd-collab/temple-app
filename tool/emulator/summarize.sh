@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Write results to the job summary and fail if any flow failed.
-# XFAIL and NOT RUN are reported and do not fail the job.
-# When Resolve APK source failed, a flow that never started is NOT RUN.
+# XFAIL is reported and does not fail the job by itself.
+# A flow with no PASS is a failure, including one that only skipped steps.
+# When Resolve APK source failed, a flow that never started is NOT RUN
+# and is not required to have a PASS.
 set -uo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -33,7 +35,8 @@ for flow in "${flows[@]}"; do
   if grep -Eq "^(PASS|FAIL|XFAIL) ${flow}:" "$results"; then
     continue
   fi
-  if grep -Eq "^NOT RUN ${flow}$" "$results"; then
+  # Whole-flow "NOT RUN <flow>" or a skipped step "NOT RUN <flow>: <step>".
+  if grep -Eq "^NOT RUN ${flow}(:|$)" "$results"; then
     continue
   fi
   if [[ "$resolve_outcome" == "failure" ]]; then
@@ -42,6 +45,20 @@ for flow in "${flows[@]}"; do
     printf 'FAIL %s: missing: flow did not report a result\n' "$flow" | tee -a "$results"
   fi
 done
+
+# Skipped steps do not make a flow green. Require a PASS unless the
+# flow never started because APK resolution failed.
+if [[ "$resolve_outcome" != "failure" ]]; then
+  for flow in "${flows[@]}"; do
+    if grep -Eq "^PASS ${flow}:" "$results"; then
+      continue
+    fi
+    if grep -Eq "^FAIL ${flow}:" "$results"; then
+      continue
+    fi
+    printf 'FAIL %s: missing: flow did not pass any step\n' "$flow" | tee -a "$results"
+  done
+fi
 
 passes="$(grep -c '^PASS ' "$results" || true)"
 fails="$(grep -c '^FAIL ' "$results" || true)"

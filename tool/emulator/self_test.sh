@@ -232,6 +232,36 @@ fi
 rm -rf "$locate_dir"
 rm -f "$locate_out"
 
+if ! grep -Fq 'run-as "$PKG" mkdir -p "$prefs"' tool/emulator/lib/common.sh; then
+  echo "prefs seed should mkdir /data/data/<pkg>/shared_prefs via run-as" >&2
+  exit 1
+fi
+if ! grep -Fq '/data/data/${PKG}/shared_prefs' tool/emulator/lib/common.sh; then
+  echo "prefs path should be absolute" >&2
+  exit 1
+fi
+
+# Granted near-me records open-granted once. Location is off and Pick a
+# state are already destinations, so that path must not wait again for
+# "Sort by distance". The denied path may still wait for the consent sheet.
+granted_near="$(awk '
+  /^if ! open_near_me; then$/ { capture = 1 }
+  capture { print }
+  capture && /^force_stop_app$/ { exit }
+' tool/emulator/flows/11_near_me.sh)"
+if grep -q 'ui_wait 12 --text-contains "Sort by distance"' <<<"$granted_near"; then
+  echo "granted near-me path must not wait again for Sort by distance" >&2
+  exit 1
+fi
+if ! grep -q 'if near_me_destination; then' <<<"$granted_near"; then
+  echo "granted near-me path should decide open-granted from near_me_destination" >&2
+  exit 1
+fi
+if ! grep -q 'ui_wait 12 --text-contains "Sort by distance"' tool/emulator/flows/11_near_me.sh; then
+  echo "denied near-me path should still wait for the location consent sheet" >&2
+  exit 1
+fi
+
 summary_dir="$(mktemp -d)"
 if EMULATOR_ARTIFACTS="$summary_dir" GITHUB_STEP_SUMMARY="${summary_dir}/summary.md" \
   bash tool/emulator/summarize.sh >"${summary_dir}/fail.out" 2>&1; then
@@ -296,5 +326,103 @@ if ! grep -qx 'NOT RUN 05-search' "${not_run_dir}/results.txt"; then
   exit 1
 fi
 rm -rf "$not_run_dir"
+
+step_dir="$(mktemp -d)"
+: > "${step_dir}/results.txt"
+for flow in "${flows[@]}"; do
+  printf 'PASS %s: ok\n' "$flow" >> "${step_dir}/results.txt"
+done
+printf 'NOT RUN 06-filters: combined-state: state-select did not apply a state\n' >> "${step_dir}/results.txt"
+if ! EMULATOR_ARTIFACTS="$step_dir" GITHUB_STEP_SUMMARY="${step_dir}/summary.md" \
+  bash tool/emulator/summarize.sh >"${step_dir}/out"; then
+  echo "a skipped step should not fail the summary" >&2
+  cat "${step_dir}/out" >&2
+  exit 1
+fi
+if grep -q 'FAIL 06-filters: missing' "${step_dir}/results.txt"; then
+  echo "a skipped step should count as the flow reporting" >&2
+  exit 1
+fi
+rm -rf "$step_dir"
+
+only_skip_dir="$(mktemp -d)"
+: > "${only_skip_dir}/results.txt"
+for flow in "${flows[@]}"; do
+  if [[ "$flow" == "06-filters" ]]; then
+    printf 'NOT RUN 06-filters: combined-state: state-select did not apply a state\n' >> "${only_skip_dir}/results.txt"
+  else
+    printf 'PASS %s: ok\n' "$flow" >> "${only_skip_dir}/results.txt"
+  fi
+done
+if EMULATOR_ARTIFACTS="$only_skip_dir" GITHUB_STEP_SUMMARY="${only_skip_dir}/summary.md" \
+  bash tool/emulator/summarize.sh >"${only_skip_dir}/out" 2>&1; then
+  echo "a flow with no PASS should fail the summary" >&2
+  cat "${only_skip_dir}/out" >&2
+  exit 1
+fi
+if ! grep -qx 'FAIL 06-filters: missing: flow did not pass any step' "${only_skip_dir}/results.txt"; then
+  echo "a flow with only NOT RUN steps should be marked failed" >&2
+  cat "${only_skip_dir}/results.txt" >&2
+  exit 1
+fi
+if grep -q '^FAIL 05-search:' "${only_skip_dir}/results.txt"; then
+  echo "flows that passed should stay green" >&2
+  exit 1
+fi
+rm -rf "$only_skip_dir"
+
+fail_only_dir="$(mktemp -d)"
+: > "${fail_only_dir}/results.txt"
+for flow in "${flows[@]}"; do
+  if [[ "$flow" == "05-search" ]]; then
+    printf 'FAIL 05-search: krishna: typed text did not match\n' >> "${fail_only_dir}/results.txt"
+  else
+    printf 'PASS %s: ok\n' "$flow" >> "${fail_only_dir}/results.txt"
+  fi
+done
+if EMULATOR_ARTIFACTS="$fail_only_dir" GITHUB_STEP_SUMMARY="${fail_only_dir}/summary.md" \
+  bash tool/emulator/summarize.sh >"${fail_only_dir}/out" 2>&1; then
+  echo "summarize.sh should fail when a flow has FAIL and no PASS" >&2
+  exit 1
+fi
+if grep -q 'did not pass any step' "${fail_only_dir}/results.txt"; then
+  echo "a flow that already failed should not gain a second missing line" >&2
+  exit 1
+fi
+rm -rf "$fail_only_dir"
+
+skip_dir="$(mktemp -d)"
+(
+  set -euo pipefail
+  export EMULATOR_FLOW=06-filters
+  export EMULATOR_ARTIFACTS="$skip_dir"
+  export EMULATOR_PACKAGE=com.shradhaventures.temple
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  step_shot() { :; }
+  dismiss_blockers() { return 0; }
+  eval "$(sed -n '/^skip_if_failed()/,/^}/p' tool/emulator/flows/06_filters.sh)"
+  : > "$RESULTS"
+
+  skip_step combined-state "state-select did not apply a state"
+  grep -q '^FAIL 06-filters: combined-state: no failed prerequisite: state-select did not apply a state$' "$RESULTS"
+  if grep -q '^NOT RUN ' "$RESULTS"; then
+    echo "skip_step without a failed prerequisite must not record NOT RUN" >&2
+    exit 1
+  fi
+
+  : > "$RESULTS"
+  skip_if_failed combined-chips "no combined filter was applied" state-select
+  grep -q '^FAIL 06-filters: combined-chips: no combined filter was applied$' "$RESULTS"
+  if grep -q '^NOT RUN ' "$RESULTS"; then
+    echo "skip_if_failed without a prerequisite FAIL must not record NOT RUN" >&2
+    exit 1
+  fi
+
+  printf 'FAIL 06-filters: state-select: could not find Kerala\n' >> "$RESULTS"
+  skip_if_failed combined-state "state-select did not apply a state" state-open state-reopen state-select
+  grep -q '^NOT RUN 06-filters: combined-state: state-select did not apply a state$' "$RESULTS"
+)
+rm -rf "$skip_dir"
 
 echo "emulator self-test ok"
