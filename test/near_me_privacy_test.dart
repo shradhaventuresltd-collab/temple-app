@@ -48,7 +48,6 @@ void main() {
       'debugPrint(',
       'print(',
       'getPositionStream',
-      'getLastKnownPosition',
       'ForegroundNotificationConfig',
       'foregroundNotificationConfig',
       'allowBackgroundLocationUpdates: true',
@@ -59,11 +58,14 @@ void main() {
       'LocationAccuracy.reduced',
       'ACCESS_FINE_LOCATION',
       'ACCESS_BACKGROUND_LOCATION',
-      'CoarseFix?',
       'static CoarseFix',
       'late CoarseFix',
     ];
 
+    final storedFix = RegExp(
+      r'^\s*(static|late|final|var)\s+CoarseFix\??\s+\w+',
+      multiLine: true,
+    );
     for (final file in files) {
       final source = file.readAsStringSync();
       for (final token in forbidden) {
@@ -73,6 +75,7 @@ void main() {
           reason: '${file.path} contains $token',
         );
       }
+      expect(storedFix.hasMatch(source), isFalse, reason: file.path);
     }
 
     final location = File(
@@ -81,6 +84,17 @@ void main() {
     expect(location, contains('LocationAccuracy.low'));
     expect(location, contains('allowBackgroundLocationUpdates: false'));
     expect(location, isNot(contains('getPositionStream')));
+    // A timed-out read may use the platform cache. That value stays in
+    // memory for the sort and is not stored. No other file may ask for it.
+    expect(location, contains('getLastKnownPosition'));
+    for (final file in files) {
+      if (file.path.endsWith('geolocator_coarse_location.dart')) continue;
+      expect(
+        file.readAsStringSync().contains('getLastKnownPosition'),
+        isFalse,
+        reason: file.path,
+      );
+    }
 
     final geolocatorImport = RegExp(
       r'''import\s+['"]package:geolocator/geolocator\.dart['"]''',

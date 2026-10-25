@@ -76,8 +76,11 @@ Future<void> main() async {
     adminToolsDefine: kEnableAdminToolsDefine,
     demoAppIdSuffix: kDemoAppIdSuffix,
   );
-  // Defaults and the last activated cache before the first frame. The fetch
-  // is not awaited: a slow or failed fetch must not hold the saffron splash.
+  // Defaults and the last activated cache before the first frame.
+  // [RemoteConfigStartup.ready] is only that local activate (2 second cap).
+  // [RemoteConfigStartup.fetch] is the background fetch, whose cap is one
+  // minute, and it is not awaited. A slow or failed fetch must not hold
+  // the saffron splash.
   // Remote Config is not constructed unless Firebase already has an app.
   // The force-update preference is read only when emulator hooks are
   // compiled in. Release without EMULATOR_APP_TEST skips this block.
@@ -238,9 +241,34 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
 
   void _onConfig() {
     if (!mounted) return;
+    _applyForceUpdateFromConfig();
     setState(() {});
     _logStartupScreen();
     _startAdsIfAllowed();
+  }
+
+  /// A background fetch can raise [AppConfig.minSupportedBuild] after Home
+  /// is already on screen. Re-read the gate so that flag still blocks this
+  /// launch. The policy gate applies the same snapshot when it finishes.
+  void _applyForceUpdateFromConfig() {
+    if (_phase == _StartupPhase.checking ||
+        _phase == _StartupPhase.gate ||
+        _phase == _StartupPhase.update) {
+      return;
+    }
+    final requirement = updateRequirement(
+      buildNumber: _buildNumber,
+      minSupportedBuild: _config.snapshot.minSupportedBuild,
+      recommendedBuild: _config.snapshot.recommendedBuild,
+    );
+    if (requirement != UpdateRequirement.hard) return;
+    final from = _phase;
+    _offerSoftUpdate = false;
+    _phase = _StartupPhase.update;
+    debugPrint(
+      'Force-update gate moved from ${from.name} to ${_phase.name} '
+      '(installed $_buildNumber, min ${_config.snapshot.minSupportedBuild}).',
+    );
   }
 
   String? _startupScreenName() {

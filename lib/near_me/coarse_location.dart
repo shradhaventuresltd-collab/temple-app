@@ -4,10 +4,21 @@ enum CoarsePermission { denied, deniedForever, granted }
 
 /// One in-memory fix. Not written to disk, logs, or a network call.
 class CoarseFix {
-  const CoarseFix({required this.latitude, required this.longitude});
+  const CoarseFix({
+    required this.latitude,
+    required this.longitude,
+    this.timestamp,
+    this.lastKnown = false,
+  });
 
   final double latitude;
   final double longitude;
+
+  /// When the platform determined this position. Set for a last-known fix.
+  final DateTime? timestamp;
+
+  /// True when this is the platform cache, not a live read.
+  final bool lastKnown;
 }
 
 enum LocationFailureKind { timeout, serviceDisabled }
@@ -32,10 +43,14 @@ abstract class CoarseLocationClient {
 
   Future<CoarsePermission> requestPermission();
 
-  /// Low-accuracy fix. Times out after [timeout] (10 seconds).
+  /// Low-accuracy fix. Times out after [timeout].
   Future<CoarseFix> currentFix({
-    Duration timeout = const Duration(seconds: 10),
+    Duration timeout = const Duration(seconds: 20),
   });
+
+  /// Platform cache from an earlier read, or null. Used only after
+  /// [currentFix] times out. Not written to disk, logs, or a network call.
+  Future<CoarseFix?> lastKnownFix();
 
   Future<void> openAppSettings();
 

@@ -110,8 +110,11 @@ class _FixedLocation implements CoarseLocationClient {
   Future<CoarsePermission> checkPermission() async => CoarsePermission.granted;
 
   @override
+  Future<CoarseFix?> lastKnownFix() async => null;
+
+  @override
   Future<CoarseFix> currentFix({
-    Duration timeout = const Duration(seconds: 10),
+    Duration timeout = const Duration(seconds: 20),
   }) async => fix;
 
   @override

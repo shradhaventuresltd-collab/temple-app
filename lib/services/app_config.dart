@@ -38,7 +38,8 @@ const Duration kRemoteConfigMinimumFetchInterval = Duration(hours: 1);
 /// Typed view of the parameters the app reads.
 ///
 /// [AppConfig.defaults] is the offline and first-launch value. A background
-/// fetch does not replace this snapshot mid-session except for [killSwitch].
+/// fetch replaces [killSwitch] and [minSupportedBuild] on this snapshot.
+/// Other keys wait until the next launch.
 class AppConfig {
   const AppConfig({
     this.killSwitch = false,
@@ -141,7 +142,7 @@ class AppConfigController extends ChangeNotifier {
     this.client,
     AppConfig? initial,
     this.minimumFetchInterval = kRemoteConfigMinimumFetchInterval,
-    this.fetchTimeout = const Duration(seconds: 3),
+    this.fetchTimeout = const Duration(minutes: 1),
     this.localActivateTimeout = const Duration(seconds: 2),
   }) : snapshot = initial ?? AppConfig.defaults;
 
@@ -150,7 +151,9 @@ class AppConfigController extends ChangeNotifier {
   /// Release interval is one hour. See [remoteConfigMinimumFetchInterval].
   final Duration minimumFetchInterval;
 
-  /// Cap around `fetchAndActivate`, matching the splash budget in main.
+  /// Cap around the background `fetchAndActivate`. Startup does not wait
+  /// on this. One minute is the plugin default. A 3 second cap aborted the
+  /// cold-start fetch before a force-update value could be read.
   final Duration fetchTimeout;
 
   /// Cap around `setDefaults` and `activate` so a stuck plugin cannot hold
@@ -198,11 +201,12 @@ class AppConfigController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Fetch and activate for the next launch.
+  /// Fetch and activate without holding startup.
   ///
-  /// [killSwitch] is applied as soon as the fetch returns so a bad release
-  /// can be stopped without a restart. Other keys stay on the snapshot this
-  /// process already activated, so the UI does not flip mid-session.
+  /// [killSwitch] and [minSupportedBuild] apply as soon as the fetch
+  /// returns, so a bad release can be stopped and a force-update can block
+  /// this launch. Other keys stay on the snapshot this process already
+  /// activated, so the rest of the UI does not flip mid-session.
   Future<void> fetchAndActivateInBackground() async {
     final remote = client;
     if (remote == null) return;
@@ -210,10 +214,15 @@ class AppConfigController extends ChangeNotifier {
     try {
       await remote.fetchAndActivate().timeout(fetchTimeout);
       final fetched = _read(remote);
-      if (fetched.killSwitch == before.killSwitch) return;
+      final killChanged = fetched.killSwitch != before.killSwitch;
+      final minChanged = fetched.minSupportedBuild != before.minSupportedBuild;
+      if (!killChanged && !minChanged) return;
       snapshot = before.copyWith(
         killSwitch: fetched.killSwitch,
-        maintenanceMessage: fetched.maintenanceMessage,
+        maintenanceMessage: killChanged
+            ? fetched.maintenanceMessage
+            : before.maintenanceMessage,
+        minSupportedBuild: fetched.minSupportedBuild,
       );
       notifyListeners();
     } catch (e, st) {

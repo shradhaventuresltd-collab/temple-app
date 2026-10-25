@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/near_me/coarse_location.dart';
 import 'package:temple_app/near_me/near_me_copy.dart';
+import 'package:temple_app/near_me/near_me_session.dart';
 import 'package:temple_app/near_me/nearby_temples.dart';
 import 'package:temple_app/screens/home_screen.dart';
 import 'package:temple_app/screens/temples_near_me_screen.dart';
@@ -11,6 +14,40 @@ import 'package:temple_app/screens/temples_near_me_screen.dart';
 void main() {
   setUpAll(() {
     GoogleFonts.config.allowRuntimeFetching = false;
+  });
+
+  test('a location read waits 20 seconds before the last-known fallback', () {
+    final session = NearMeSession(
+      temples: const [],
+      location: FakeCoarseLocation(),
+    );
+    expect(session.fixTimeout, const Duration(seconds: 20));
+  });
+
+  test('onAppResumed stays busy until the service check finishes', () async {
+    final location = _HangService();
+    final session = NearMeSession(temples: const [], location: location);
+    session.phase = NearMePhase.denied;
+    final first = session.onAppResumed();
+    final second = session.onAppResumed();
+    expect(location.serviceChecks, 1);
+    location.completeService(false);
+    await first;
+    await second;
+    expect(location.serviceChecks, 1);
+    expect(session.phase, NearMePhase.serviceOff);
+    session.dispose();
+  });
+
+  test('onAppResumed does not notify a disposed session', () async {
+    final location = _HangService();
+    final session = NearMeSession(temples: const [], location: location);
+    session.phase = NearMePhase.denied;
+    final pending = session.onAppResumed();
+    session.dispose();
+    location.completeService(false);
+    await pending;
+    expect(session.phase, NearMePhase.denied);
   });
 
   testWidgets('Home opens the rationale before any location request', (
@@ -56,6 +93,7 @@ void main() {
     expect(location.requests, 1);
     expect(location.fixes, 1);
     expect(find.text(NearMeCopy.nearestHeading), findsOneWidget);
+    expect(find.text(NearMeCopy.lastKnownNote), findsNothing);
     expect(_rowNames(tester).first, 'Meenakshi Amman Temple');
     expect(find.text('0.0 km'), findsOneWidget);
     expect(
@@ -182,8 +220,14 @@ void main() {
 
     expect(location.requests, 0);
     expect(location.fixes, 1);
+    expect(location.lastKnownReads, 1);
     expect(find.text(NearMeCopy.timedOutBody), findsOneWidget);
     expect(find.byKey(const Key('near-me-retry')), findsOneWidget);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(location.fixes, 1);
+    expect(find.text(NearMeCopy.timedOutBody), findsOneWidget);
     expect(find.byKey(const Key('near-me-open-settings')), findsNothing);
 
     location.failure = null;
@@ -194,6 +238,84 @@ void main() {
     expect(location.fixes, 2);
     expect(_rowNames(tester).first, 'Dakshineswar Kali Temple');
     expect(find.text('0.0 km'), findsOneWidget);
+  });
+
+  testWidgets('returning with location services on reads a fix once', (
+    tester,
+  ) async {
+    final location = FakeCoarseLocation(serviceEnabled: false);
+    await _pumpNearMe(tester, location: location);
+    await _continue(tester);
+
+    expect(find.text(NearMeCopy.serviceOffBody), findsOneWidget);
+    expect(location.fixes, 0);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(location.fixes, 0);
+    expect(find.text(NearMeCopy.serviceOffBody), findsOneWidget);
+
+    location.serviceEnabled = true;
+    location.permission = CoarsePermission.granted;
+    location.fix = const CoarseFix(latitude: 20.888, longitude: 70.4012);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(location.fixes, 1);
+    expect(find.text(NearMeCopy.nearestHeading), findsOneWidget);
+    expect(_rowNames(tester).first, 'Somnath Temple');
+  });
+
+  testWidgets('a timeout uses the last known fix instead of looping', (
+    tester,
+  ) async {
+    final location = FakeCoarseLocation(
+      permission: CoarsePermission.granted,
+      failure: const LocationFailure(LocationFailureKind.timeout),
+      lastKnown: const CoarseFix(latitude: 9.9195, longitude: 78.1193),
+    );
+    await _pumpNearMe(tester, location: location);
+    await _continue(tester);
+
+    expect(location.fixes, 1);
+    expect(location.lastKnownReads, 1);
+    expect(find.text(NearMeCopy.nearestHeading), findsOneWidget);
+    expect(find.text(NearMeCopy.lastKnownNote), findsOneWidget);
+    expect(find.byKey(const Key('near-me-retry')), findsOneWidget);
+    expect(_rowNames(tester).first, 'Meenakshi Amman Temple');
+    expect(find.text(NearMeCopy.timedOutBody), findsNothing);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(location.fixes, 1);
+    expect(location.lastKnownReads, 1);
+    expect(find.text(NearMeCopy.nearestHeading), findsOneWidget);
+  });
+
+  testWidgets('returning from settings re-checks permission once', (
+    tester,
+  ) async {
+    final location = FakeCoarseLocation(
+      permission: CoarsePermission.deniedForever,
+    );
+    await _pumpNearMe(tester, location: location);
+    await _continue(tester);
+
+    expect(find.text(NearMeCopy.deniedForeverBody), findsOneWidget);
+    expect(location.fixes, 0);
+    expect(location.requests, 0);
+
+    location.permission = CoarsePermission.granted;
+    location.fix = const CoarseFix(latitude: 9.9195, longitude: 78.1193);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(location.requests, 0);
+    expect(location.fixes, 1);
+    expect(find.text(NearMeCopy.nearestHeading), findsOneWidget);
+    expect(_rowNames(tester).first, 'Meenakshi Amman Temple');
   });
 
   testWidgets('not now keeps location unread and still sorts by a place', (
@@ -366,12 +488,50 @@ Temple _temple({
   );
 }
 
+class _HangService implements CoarseLocationClient {
+  final Completer<bool> _service = Completer<bool>();
+  int serviceChecks = 0;
+
+  void completeService(bool enabled) {
+    if (!_service.isCompleted) _service.complete(enabled);
+  }
+
+  @override
+  Future<bool> isServiceEnabled() {
+    serviceChecks += 1;
+    return _service.future;
+  }
+
+  @override
+  Future<CoarsePermission> checkPermission() async => CoarsePermission.denied;
+
+  @override
+  Future<CoarsePermission> requestPermission() async => CoarsePermission.denied;
+
+  @override
+  Future<CoarseFix?> lastKnownFix() async => null;
+
+  @override
+  Future<CoarseFix> currentFix({
+    Duration timeout = const Duration(seconds: 20),
+  }) async {
+    return const CoarseFix(latitude: 0, longitude: 0);
+  }
+
+  @override
+  Future<void> openAppSettings() async {}
+
+  @override
+  Future<void> openLocationSettings() async {}
+}
+
 class FakeCoarseLocation implements CoarseLocationClient {
   FakeCoarseLocation({
     this.serviceEnabled = true,
     this.permission = CoarsePermission.denied,
     this.afterRequest = CoarsePermission.granted,
     this.fix = const CoarseFix(latitude: 0, longitude: 0),
+    this.lastKnown,
     this.failure,
   });
 
@@ -379,9 +539,11 @@ class FakeCoarseLocation implements CoarseLocationClient {
   CoarsePermission permission;
   CoarsePermission afterRequest;
   CoarseFix fix;
+  CoarseFix? lastKnown;
   LocationFailure? failure;
   int requests = 0;
   int fixes = 0;
+  int lastKnownReads = 0;
   int appSettings = 0;
   int locationSettings = 0;
 
@@ -399,8 +561,14 @@ class FakeCoarseLocation implements CoarseLocationClient {
   }
 
   @override
+  Future<CoarseFix?> lastKnownFix() async {
+    lastKnownReads += 1;
+    return lastKnown;
+  }
+
+  @override
   Future<CoarseFix> currentFix({
-    Duration timeout = const Duration(seconds: 10),
+    Duration timeout = const Duration(seconds: 20),
   }) async {
     fixes += 1;
     final failure = this.failure;

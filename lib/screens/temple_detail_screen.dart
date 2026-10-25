@@ -194,7 +194,8 @@ class TempleDetailBody extends StatefulWidget {
   State<TempleDetailBody> createState() => _TempleDetailBodyState();
 }
 
-class _TempleDetailBodyState extends State<TempleDetailBody> {
+class _TempleDetailBodyState extends State<TempleDetailBody>
+    with WidgetsBindingObserver {
   static const Color _deepSaffron = Color(0xFFE65100);
   static const _autoAdvanceInterval = Duration(seconds: 5);
   static const double _imageHeight = 450;
@@ -203,6 +204,10 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
   late final PageController _pageController;
   Timer? _autoTimer;
   final Set<int> _fullSizePages = {};
+  final GlobalKey _galleryKey = GlobalKey();
+  var _appVisible = true;
+  var _routeCurrent = true;
+  var _galleryInView = true;
 
   Temple get temple => widget.temple;
   DetailHonesty get honesty => DetailHonesty.of(temple);
@@ -222,26 +227,107 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
     setState(() => _fullSizePages.add(index));
   }
 
+  bool get _autoAdvanceAllowed =>
+      _appVisible && _routeCurrent && _galleryInView;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _pageController = PageController();
     _startAutoAdvance();
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final current = ModalRoute.of(context)?.isCurrent ?? true;
+    if (current != _routeCurrent) {
+      _routeCurrent = current;
+      _startAutoAdvance();
+    }
+    _scheduleGalleryVisibilityCheck();
+  }
+
+  @override
+  void didChangeMetrics() {
+    _scheduleGalleryVisibilityCheck();
+  }
+
+  /// Layout from a resize or inset change does not emit a scroll
+  /// notification, so the gallery can enter or leave the screen unnoticed.
+  void _scheduleGalleryVisibilityCheck() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final shown = _galleryShown();
+      if (shown == _galleryInView) return;
+      _galleryInView = shown;
+      _startAutoAdvance();
+    });
+  }
+
+  @override
+  void didUpdateWidget(TempleDetailBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _clampCurrentPage(jumpNow: true);
+    _startAutoAdvance();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final visible = state == AppLifecycleState.resumed;
+    if (visible == _appVisible) return;
+    _appVisible = visible;
+    _startAutoAdvance();
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _autoTimer?.cancel();
     _pageController.dispose();
     super.dispose();
   }
 
+  /// Keeps [_currentPage] inside [gallery]. A shorter list, for example
+  /// after a reload, must not index past the end.
+  void _clampCurrentPage({bool jumpNow = false}) {
+    final length = gallery.length;
+    final next = length == 0 ? 0 : _currentPage.clamp(0, length - 1).toInt();
+    if (next == _currentPage) return;
+    _currentPage = next;
+    if (!jumpNow || length == 0 || !_pageController.hasClients) return;
+    _pageController.jumpToPage(next);
+  }
+
+  void _onGalleryScroll(ScrollNotification notification) {
+    if (notification.metrics.axis != Axis.vertical) return;
+    final shown = _galleryShown();
+    if (shown == _galleryInView) return;
+    _galleryInView = shown;
+    _startAutoAdvance();
+  }
+
+  bool _galleryShown() {
+    final box = _galleryKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.attached || !box.hasSize) return _galleryInView;
+    final origin = box.localToGlobal(Offset.zero);
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    return origin.dy < screenHeight && origin.dy + box.size.height > 0;
+  }
+
   void _startAutoAdvance() {
-    if (gallery.length <= 1) return;
     _autoTimer?.cancel();
+    _autoTimer = null;
+    if (!_autoAdvanceAllowed || gallery.length <= 1) return;
     _autoTimer = Timer.periodic(_autoAdvanceInterval, (_) {
-      if (!mounted) return;
-      final nextPage = (_currentPage + 1) % gallery.length;
+      if (!mounted || !_autoAdvanceAllowed) return;
+      final length = gallery.length;
+      if (length <= 1) return;
+      if (_currentPage < 0 || _currentPage >= length) {
+        _currentPage = _currentPage.clamp(0, length - 1).toInt();
+      }
+      final nextPage = (_currentPage + 1) % length;
       _pageController.animateToPage(
         nextPage,
         duration: const Duration(milliseconds: 600),
@@ -262,22 +348,30 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
   static const String _directionsUnavailableMessage =
       "Couldn't open directions on this device.";
 
+  var _openingDirections = false;
+
   Future<void> _openGoogleMaps() async {
-    unawaited(AppAnalytics.instance.logGetDirections(temple.id));
-    final url = googleMapsDirectionsUri(
-      name: temple.name,
-      city: temple.city,
-      state: temple.state,
-      latitude: temple.latitude,
-      longitude: temple.longitude,
-    );
-    if (url == null) {
-      if (mounted) _showDirectionsUnavailable();
-      return;
-    }
-    final opened = await _tryOpenMaps(url);
-    if (!opened && mounted) {
-      _showDirectionsUnavailable();
+    if (_openingDirections) return;
+    _openingDirections = true;
+    try {
+      unawaited(AppAnalytics.instance.logGetDirections(temple.id));
+      final url = googleMapsDirectionsUri(
+        name: temple.name,
+        city: temple.city,
+        state: temple.state,
+        latitude: temple.latitude,
+        longitude: temple.longitude,
+      );
+      if (url == null) {
+        if (mounted) _showDirectionsUnavailable();
+        return;
+      }
+      final opened = await _tryOpenMaps(url);
+      if (!opened && mounted) {
+        _showDirectionsUnavailable();
+      }
+    } finally {
+      _openingDirections = false;
     }
   }
 
@@ -308,6 +402,7 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
 
   @override
   Widget build(BuildContext context) {
+    _clampCurrentPage();
     final hasMultiple = gallery.length > 1;
     final topPadding = MediaQuery.of(context).padding.top;
     final photoCredit = gallery.isEmpty
@@ -325,504 +420,513 @@ class _TempleDetailBodyState extends State<TempleDetailBody> {
 
     return Stack(
       children: [
-        SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const OfflineBanner(savedTempleCount: 1),
-              // ── Image gallery with PageView ──
-              Stack(
-                children: [
-                  Container(
-                    width: double.infinity,
-                    height: _imageHeight + topPadding,
-                    color: Colors.black,
-                    padding: EdgeInsets.only(top: topPadding),
-                    child: gallery.isEmpty
-                        ? const TempleImagePlaceholder(
-                            key: Key('photo-pending'),
-                            expand: true,
-                          )
-                        : PageView.builder(
-                            controller: _pageController,
-                            itemCount: gallery.length,
-                            onPageChanged: (i) =>
-                                setState(() => _currentPage = i),
-                            itemBuilder: (context, index) {
-                              final frame = frames[index];
-                              return _GalleryPhoto(
-                                key: ValueKey('detail-gallery-$index'),
-                                displayUrl: frame.displayUrl,
-                                sourceUrl: frame.sourceUrl,
-                                onWantFullSize: () => _showOriginal(index),
-                              );
-                            },
-                          ),
-                  ),
-
-                  // Gradient overlay at bottom for visual polish
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    height: 80,
-                    child: const DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.transparent, Colors.black45],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // Back + menu buttons
-                  Positioned(
-                    top: topPadding + 8,
-                    left: 8,
-                    child: Row(
-                      children: [
-                        _CircleIconButton(
-                          icon: Icons.arrow_back_rounded,
-                          onTap: () => Navigator.pop(context),
-                        ),
-                        const SizedBox(width: 8),
-                        Builder(
-                          builder: (ctx) => _CircleIconButton(
-                            icon: Icons.menu_rounded,
-                            onTap: () => Scaffold.of(ctx).openDrawer(),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Home button — top right
-                  Positioned(
-                    top: topPadding + 8,
-                    right: hasMultiple ? 100 : 16,
-                    child: _CircleIconButton(
-                      icon: Icons.home_rounded,
-                      onTap: () {
-                        Navigator.popUntil(context, (route) => route.isFirst);
-                        unawaited(HomeScroll.animateToTop());
-                      },
-                    ),
-                  ),
-
-                  // Counter pill — top right
-                  if (hasMultiple)
-                    Positioned(
-                      top: topPadding + 8,
-                      right: 16,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '${_currentPage + 1} / ${gallery.length}',
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
+        NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            _onGalleryScroll(notification);
+            return false;
+          },
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const OfflineBanner(savedTempleCount: 1),
+                // ── Image gallery with PageView ──
+                Stack(
+                  key: _galleryKey,
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      height: _imageHeight + topPadding,
+                      color: Colors.black,
+                      padding: EdgeInsets.only(top: topPadding),
+                      child: gallery.isEmpty
+                          ? const TempleImagePlaceholder(
+                              key: Key('photo-pending'),
+                              expand: true,
+                            )
+                          : PageView.builder(
+                              controller: _pageController,
+                              itemCount: gallery.length,
+                              onPageChanged: (i) =>
+                                  setState(() => _currentPage = i),
+                              itemBuilder: (context, index) {
+                                final frame = frames[index];
+                                return _GalleryPhoto(
+                                  key: ValueKey('detail-gallery-$index'),
+                                  displayUrl: frame.displayUrl,
+                                  sourceUrl: frame.sourceUrl,
+                                  onWantFullSize: () => _showOriginal(index),
+                                );
+                              },
+                            ),
                     ),
 
-                  // Left arrow
-                  if (hasMultiple)
-                    Positioned(
-                      left: 8,
-                      top: topPadding,
-                      bottom: 0,
-                      child: Center(
-                        child: _CircleIconButton(
-                          icon: Icons.chevron_left_rounded,
-                          size: 44,
-                          iconSize: 32,
-                          onTap: () => _goToPage(
-                            (_currentPage - 1 + gallery.length) %
-                                gallery.length,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                  // Right arrow
-                  if (hasMultiple)
-                    Positioned(
-                      right: 8,
-                      top: topPadding,
-                      bottom: 0,
-                      child: Center(
-                        child: _CircleIconButton(
-                          icon: Icons.chevron_right_rounded,
-                          size: 44,
-                          iconSize: 32,
-                          onTap: () =>
-                              _goToPage((_currentPage + 1) % gallery.length),
-                        ),
-                      ),
-                    ),
-
-                  // Dot indicators — bottom of image
-                  if (hasMultiple)
+                    // Gradient overlay at bottom for visual polish
                     Positioned(
                       left: 0,
                       right: 0,
-                      bottom: 14,
+                      bottom: 0,
+                      height: 80,
+                      child: const DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Colors.transparent, Colors.black45],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Back + menu buttons
+                    Positioned(
+                      top: topPadding + 8,
+                      left: 8,
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(gallery.length, (i) {
-                          final isActive = _currentPage == i;
-                          return GestureDetector(
-                            onTap: () => _goToPage(i),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 300),
-                              margin: const EdgeInsets.only(right: 6),
-                              width: isActive ? 24 : 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: isActive ? Colors.white : Colors.white38,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
+                        children: [
+                          _CircleIconButton(
+                            icon: Icons.arrow_back_rounded,
+                            onTap: () => Navigator.pop(context),
+                          ),
+                          const SizedBox(width: 8),
+                          Builder(
+                            builder: (ctx) => _CircleIconButton(
+                              icon: Icons.menu_rounded,
+                              onTap: () => Scaffold.of(ctx).openDrawer(),
                             ),
-                          );
-                        }),
+                          ),
+                        ],
                       ),
                     ),
-                ],
-              ),
 
-              if (photoCredit != null)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-                  child: Text(
-                    photoCredit,
-                    key: const Key('detail-photo-credit'),
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      height: 1.35,
-                      color: Colors.black54,
-                    ),
-                  ),
-                ),
-
-              // ── Temple name header ──
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      width: double.infinity,
-                      child: Text(
-                        temple.name,
-                        key: const Key('detail-temple-name'),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        softWrap: true,
-                        style: GoogleFonts.lora(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w700,
-                          height: 1.2,
-                          color: _saffron,
-                        ),
+                    // Home button — top right
+                    Positioned(
+                      top: topPadding + 8,
+                      right: hasMultiple ? 100 : 16,
+                      child: _CircleIconButton(
+                        icon: Icons.home_rounded,
+                        onTap: () {
+                          Navigator.popUntil(context, (route) => route.isFirst);
+                          unawaited(HomeScroll.animateToTop());
+                        },
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          Icons.place_rounded,
-                          size: 18,
-                          color: Colors.brown.shade500,
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
+
+                    // Counter pill — top right
+                    if (hasMultiple)
+                      Positioned(
+                        top: topPadding + 8,
+                        right: 16,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
                           child: Text(
-                            '${temple.city}, ${temple.state}',
-                            key: const Key('detail-temple-place'),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            softWrap: true,
+                            '${_currentPage + 1} / ${gallery.length}',
                             style: GoogleFonts.poppins(
-                              fontSize: 14,
-                              color: Colors.brown.shade600,
-                              fontWeight: FontWeight.w500,
-                              height: 1.3,
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                    if (honesty.traditionLabel != null ||
-                        honesty.framingLabel != null) ...[
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          if (honesty.traditionLabel != null)
-                            Chip(
-                              key: const Key('detail-tradition-chip'),
-                              label: Text(
-                                honesty.traditionLabel!,
-                                style: GoogleFonts.poppins(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              side: const BorderSide(color: _gold),
-                              backgroundColor: const Color(0xFFFFF9E3),
-                            ),
-                          if (honesty.framingLabel != null)
-                            Chip(
-                              key: const Key('detail-framing-chip'),
-                              label: Text(
-                                honesty.framingLabel!,
-                                style: GoogleFonts.poppins(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              side: const BorderSide(color: _gold),
-                              backgroundColor: const Color(0xFFFFF3D8),
-                            ),
-                        ],
                       ),
-                    ],
-                    const SizedBox(height: 10),
-                    Text(
-                      honesty.framingNote,
-                      key: const Key('detail-framing-note'),
-                      style: GoogleFonts.poppins(
-                        fontSize: 13.5,
-                        height: 1.45,
-                        color: Colors.brown.shade700,
-                      ),
-                    ),
-                    if (temple.deity.trim().isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        'Listed focus: ${temple.deity}',
-                        key: const Key('detail-listed-focus'),
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.brown.shade600,
+
+                    // Left arrow
+                    if (hasMultiple)
+                      Positioned(
+                        left: 8,
+                        top: topPadding,
+                        bottom: 0,
+                        child: Center(
+                          child: _CircleIconButton(
+                            icon: Icons.chevron_left_rounded,
+                            size: 44,
+                            iconSize: 32,
+                            onTap: () => _goToPage(
+                              (_currentPage - 1 + gallery.length) %
+                                  gallery.length,
+                            ),
+                          ),
                         ),
                       ),
-                    ],
+
+                    // Right arrow
+                    if (hasMultiple)
+                      Positioned(
+                        right: 8,
+                        top: topPadding,
+                        bottom: 0,
+                        child: Center(
+                          child: _CircleIconButton(
+                            icon: Icons.chevron_right_rounded,
+                            size: 44,
+                            iconSize: 32,
+                            onTap: () =>
+                                _goToPage((_currentPage + 1) % gallery.length),
+                          ),
+                        ),
+                      ),
+
+                    // Dot indicators — bottom of image
+                    if (hasMultiple)
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 14,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(gallery.length, (i) {
+                            final isActive = _currentPage == i;
+                            return GestureDetector(
+                              onTap: () => _goToPage(i),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 300),
+                                margin: const EdgeInsets.only(right: 6),
+                                width: isActive ? 24 : 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: isActive
+                                      ? Colors.white
+                                      : Colors.white38,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
+                            );
+                          }),
+                        ),
+                      ),
                   ],
                 ),
-              ),
 
-              // ── Content ──
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (widget.fromCache) ...[
-                      Text(
-                        'This page may be out of date.',
-                        key: const Key('detail-cache-hint'),
-                        style: GoogleFonts.poppins(
-                          fontSize: 13.5,
-                          height: 1.4,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.brown.shade800,
+                if (photoCredit != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                    child: Text(
+                      photoCredit,
+                      key: const Key('detail-photo-credit'),
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        height: 1.35,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ),
+
+                // ── Temple name header ──
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                        child: Text(
+                          temple.name,
+                          key: const Key('detail-temple-name'),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          softWrap: true,
+                          style: GoogleFonts.lora(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w700,
+                            height: 1.2,
+                            color: _saffron,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 12),
-                    ],
-                    _InfoCard(
-                      title: 'Location',
-                      icon: Icons.location_on_rounded,
-                      content: temple.location,
-                    ),
-                    const SizedBox(height: 12),
-                    _InfoCard(
-                      title: honesty.timingsHeading,
-                      titleKey: const Key('detail-timings-heading'),
-                      icon: Icons.access_time_filled_rounded,
-                      content: temple.timings.trim().isEmpty
-                          ? 'Not listed in this entry.'
-                          : temple.timings,
-                      contentKey: const Key('detail-timings-body'),
-                      leading: caveat == null
-                          ? null
-                          : _TimingsCaveat(text: caveat),
-                    ),
-                    if (temple.hasCoordinates) ...[
-                      const SizedBox(height: 12),
-                      _InfoCard(
-                        title: 'Coordinates',
-                        icon: Icons.explore_rounded,
-                        content:
-                            '${temple.latitude!.toStringAsFixed(4)}° N, ${temple.longitude!.toStringAsFixed(4)}° E',
-                      ),
-                    ],
-
-                    // ── How to Reach ──
-                    const SizedBox(height: 24),
-                    Text(
-                      'How to Reach',
-                      style: GoogleFonts.lora(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: _saffron,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF3D8),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: _gold),
-                      ),
-                      child: Column(
+                      const SizedBox(height: 4),
+                      Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(
-                                Icons.location_city_rounded,
-                                color: _saffron,
-                                size: 22,
+                          Icon(
+                            Icons.place_rounded,
+                            size: 18,
+                            color: Colors.brown.shade500,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              '${temple.city}, ${temple.state}',
+                              key: const Key('detail-temple-place'),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              softWrap: true,
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                color: Colors.brown.shade600,
+                                fontWeight: FontWeight.w500,
+                                height: 1.3,
                               ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  temple.location,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (honesty.traditionLabel != null ||
+                          honesty.framingLabel != null) ...[
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            if (honesty.traditionLabel != null)
+                              Chip(
+                                key: const Key('detail-tradition-chip'),
+                                label: Text(
+                                  honesty.traditionLabel!,
                                   style: GoogleFonts.poppins(
-                                    fontSize: 14,
-                                    color: Colors.brown.shade800,
-                                    height: 1.5,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                side: const BorderSide(color: _gold),
+                                backgroundColor: const Color(0xFFFFF9E3),
+                              ),
+                            if (honesty.framingLabel != null)
+                              Chip(
+                                key: const Key('detail-framing-chip'),
+                                label: Text(
+                                  honesty.framingLabel!,
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                side: const BorderSide(color: _gold),
+                                backgroundColor: const Color(0xFFFFF3D8),
+                              ),
+                          ],
+                        ),
+                      ],
+                      const SizedBox(height: 10),
+                      Text(
+                        honesty.framingNote,
+                        key: const Key('detail-framing-note'),
+                        style: GoogleFonts.poppins(
+                          fontSize: 13.5,
+                          height: 1.45,
+                          color: Colors.brown.shade700,
+                        ),
+                      ),
+                      if (temple.deity.trim().isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          'Listed focus: ${temple.deity}',
+                          key: const Key('detail-listed-focus'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.brown.shade600,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
+                // ── Content ──
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (widget.fromCache) ...[
+                        Text(
+                          'This page may be out of date.',
+                          key: const Key('detail-cache-hint'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 13.5,
+                            height: 1.4,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.brown.shade800,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      _InfoCard(
+                        title: 'Location',
+                        icon: Icons.location_on_rounded,
+                        content: temple.location,
+                      ),
+                      const SizedBox(height: 12),
+                      _InfoCard(
+                        title: honesty.timingsHeading,
+                        titleKey: const Key('detail-timings-heading'),
+                        icon: Icons.access_time_filled_rounded,
+                        content: temple.timings.trim().isEmpty
+                            ? 'Not listed in this entry.'
+                            : temple.timings,
+                        contentKey: const Key('detail-timings-body'),
+                        leading: caveat == null
+                            ? null
+                            : _TimingsCaveat(text: caveat),
+                      ),
+                      if (temple.hasCoordinates) ...[
+                        const SizedBox(height: 12),
+                        _InfoCard(
+                          title: 'Coordinates',
+                          icon: Icons.explore_rounded,
+                          content:
+                              '${temple.latitude!.toStringAsFixed(4)}° N, ${temple.longitude!.toStringAsFixed(4)}° E',
+                        ),
+                      ],
+
+                      // ── How to Reach ──
+                      const SizedBox(height: 24),
+                      Text(
+                        'How to Reach',
+                        style: GoogleFonts.lora(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: _saffron,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF3D8),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: _gold),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(
+                                  Icons.location_city_rounded,
+                                  color: _saffron,
+                                  size: 22,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    temple.location,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      color: Colors.brown.shade800,
+                                      height: 1.5,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (directionsUrl != null) ...[
+                              const SizedBox(height: 14),
+                              SizedBox(
+                                width: double.infinity,
+                                child: Semantics(
+                                  identifier: 'get-directions-button',
+                                  child: ElevatedButton.icon(
+                                    key: const Key('get-directions-button'),
+                                    onPressed: _openGoogleMaps,
+                                    icon: const Icon(
+                                      Icons.directions_rounded,
+                                      color: Colors.white,
+                                    ),
+                                    label: Text(
+                                      'Get Directions',
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: _deepSaffron,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      elevation: 0,
+                                    ),
                                   ),
                                 ),
                               ),
                             ],
-                          ),
-                          if (directionsUrl != null) ...[
-                            const SizedBox(height: 14),
-                            SizedBox(
-                              width: double.infinity,
-                              child: Semantics(
-                                identifier: 'get-directions-button',
-                                child: ElevatedButton.icon(
-                                  key: const Key('get-directions-button'),
-                                  onPressed: _openGoogleMaps,
-                                  icon: const Icon(
-                                    Icons.directions_rounded,
-                                    color: Colors.white,
-                                  ),
-                                  label: Text(
-                                    'Get Directions',
-                                    style: GoogleFonts.poppins(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: _deepSaffron,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 14,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    elevation: 0,
-                                  ),
-                                ),
-                              ),
-                            ),
+                          ],
+                        ),
+                      ),
+
+                      // ── About ──
+                      const SizedBox(height: 24),
+                      Text(
+                        'About',
+                        style: GoogleFonts.lora(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: _saffron,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        temple.description,
+                        style: GoogleFonts.poppins(
+                          fontSize: 15,
+                          height: 1.5,
+                          color: Colors.brown.shade800,
+                        ),
+                      ),
+
+                      // ── Temple Story ──
+                      const SizedBox(height: 24),
+                      Text(
+                        honesty.storyHeading,
+                        key: const Key('detail-story-heading'),
+                        style: GoogleFonts.lora(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: _saffron,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        temple.story,
+                        style: GoogleFonts.poppins(
+                          fontSize: 15,
+                          height: 1.6,
+                          color: Colors.brown.shade800,
+                        ),
+                      ),
+
+                      // ── Specialities ──
+                      const SizedBox(height: 24),
+                      Text(
+                        'Specialities',
+                        style: GoogleFonts.lora(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: _saffron,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      // Chip locks the label to one line and fades the rest
+                      // (maxLines: 1, softWrap: false, TextOverflow.fade).
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (
+                            var i = 0;
+                            i < temple.specialities.length;
+                            i++
+                          ) ...[
+                            if (i > 0) const SizedBox(height: 8),
+                            _SpecialityPill(label: temple.specialities[i]),
                           ],
                         ],
                       ),
-                    ),
-
-                    // ── About ──
-                    const SizedBox(height: 24),
-                    Text(
-                      'About',
-                      style: GoogleFonts.lora(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: _saffron,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      temple.description,
-                      style: GoogleFonts.poppins(
-                        fontSize: 15,
-                        height: 1.5,
-                        color: Colors.brown.shade800,
-                      ),
-                    ),
-
-                    // ── Temple Story ──
-                    const SizedBox(height: 24),
-                    Text(
-                      honesty.storyHeading,
-                      key: const Key('detail-story-heading'),
-                      style: GoogleFonts.lora(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: _saffron,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      temple.story,
-                      style: GoogleFonts.poppins(
-                        fontSize: 15,
-                        height: 1.6,
-                        color: Colors.brown.shade800,
-                      ),
-                    ),
-
-                    // ── Specialities ──
-                    const SizedBox(height: 24),
-                    Text(
-                      'Specialities',
-                      style: GoogleFonts.lora(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: _saffron,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    // Chip locks the label to one line and fades the rest
-                    // (maxLines: 1, softWrap: false, TextOverflow.fade).
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        for (
-                          var i = 0;
-                          i < temple.specialities.length;
-                          i++
-                        ) ...[
-                          if (i > 0) const SizedBox(height: 8),
-                          _SpecialityPill(label: temple.specialities[i]),
-                        ],
-                      ],
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         if (topPadding > 0)
