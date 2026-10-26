@@ -4,7 +4,8 @@
 # brings the policy gate back, accept it again. A gate with no accept control
 # fails the step. Reopen the list if needed, open the filter sheet, rotate to
 # landscape, and require the Apply button on screen. Fail when logcat contains
-# "RenderFlex overflowed". Reset size, density, and font scale at the end.
+# "RenderFlex overflowed". Screenshots use screencap and wait out a black
+# frame after the resize. Reset size, density, and font scale at the end.
 reach_browse || { fail_step browse "no list"; }
 adb shell wm size 720x1280; adb shell wm density 360; adb shell settings put system font_scale 1.3
 sleep 2

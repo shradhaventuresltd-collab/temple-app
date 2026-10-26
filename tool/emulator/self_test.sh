@@ -108,6 +108,25 @@ if python3 tool/emulator/lib/ui.py find "$card_fixture" --resource-id temple-bro
   echo "app bar All Temples should not match a temple card" >&2
   exit 1
 fi
+all_temples="$(mktemp)"
+cat > "$all_temples" <<'EOF'
+<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<hierarchy rotation="0">
+  <node text="" content-desc="All Temples
+992" resource-id="" class="android.view.View" package="com.example" clickable="true" bounds="[16,180][400,260]" />
+  <node text="Home" content-desc="Home" resource-id="" class="android.view.View" package="com.example" clickable="true" bounds="[16,80][400,160]" />
+</hierarchy>
+EOF
+if python3 tool/emulator/lib/ui.py find "$all_temples" --text-regex '^All Temples$' >/dev/null; then
+  echo "All Temples with a count must not match a trailing anchor" >&2
+  exit 1
+fi
+counted="$(python3 tool/emulator/lib/ui.py find "$all_temples" --text-regex '^All Temples')"
+case "$counted" in
+  "208 220 16 180 400 260 All Temples 992") ;;
+  *) echo "All Temples count match was: ${counted}" >&2; exit 1 ;;
+esac
+rm -f "$all_temples"
 rm -f "$card_fixture"
 
 workflow=".github/workflows/emulator-app-test.yml"
@@ -115,11 +134,11 @@ if grep -Eq '<<:|&[A-Za-z]' "$workflow"; then
   echo "workflow uses a YAML anchor; GitHub Actions will not expand it" >&2
   exit 1
 fi
-if [[ "$(grep -c '^[[:space:]]*timeout-minutes: 20$' "$workflow")" -ne 29 ]]; then
-  echo "each of the 29 flow steps needs timeout-minutes: 20" >&2
+if [[ "$(grep -c '^[[:space:]]*timeout-minutes: 30$' "$workflow")" -ne 30 ]]; then
+  echo "each of the 30 flow steps needs timeout-minutes: 30" >&2
   exit 1
 fi
-if [[ "$(grep -c '!cancelled() && steps.resolve-apk.outcome' "$workflow")" -ne 29 ]]; then
+if [[ "$(grep -c '!cancelled() && steps.resolve-apk.outcome' "$workflow")" -ne 30 ]]; then
   echo "each flow step should use !cancelled() so a real cancellation skips it" >&2
   exit 1
 fi
@@ -140,11 +159,11 @@ if grep -Eq '^[[:space:]]*(push|pull_request|schedule):' "$workflow"; then
   exit 1
 fi
 runner_steps="$(grep -c 'uses: reactivecircus/android-emulator-runner@' "$workflow")"
-if [[ "$runner_steps" -ne 30 ]]; then
-  echo "expected 30 emulator steps (snapshot plus 29 flows), found ${runner_steps}" >&2
+if [[ "$runner_steps" -ne 31 ]]; then
+  echo "expected 31 emulator steps (snapshot plus 30 flows), found ${runner_steps}" >&2
   exit 1
 fi
-if [[ "$(grep -F -c 'emulator-options: ${{ env.EMULATOR_OPTIONS }}' "$workflow")" -ne 29 ]]; then
+if [[ "$(grep -F -c 'emulator-options: ${{ env.EMULATOR_OPTIONS }}' "$workflow")" -ne 30 ]]; then
   echo "each flow step should read EMULATOR_OPTIONS from env" >&2
   exit 1
 fi
@@ -225,6 +244,7 @@ flows=(
   27-offline-cold-start
   28-small-screen-rotation-overflow
   29-filter-matrix
+  30-filter-matrix-rest
 )
 for flow in "${flows[@]}"; do
   if ! grep -q "run_one_flow.sh ${flow} " "$workflow"; then
@@ -312,8 +332,83 @@ if grep -q 'cksum "$DUMP"' tool/emulator/lib/common.sh; then
   echo "picker scroll must not checksum the raw dump" >&2
   exit 1
 fi
-if ! grep -q 'timeout --kill-after=15 1140' tool/emulator/run_one_flow.sh; then
+if ! grep -q 'FLOW_BUDGET=1140' tool/emulator/run_one_flow.sh; then
   echo "each flow should run under timeout 1140" >&2
+  exit 1
+fi
+if ! grep -q 'timeout --kill-after=15 "$FLOW_BUDGET"' tool/emulator/run_one_flow.sh; then
+  echo "the flow budget should be the timeout duration" >&2
+  exit 1
+fi
+if ! awk '
+  /flow_rc. -eq 124/ { block = 1 }
+  block && failed == 0 && $0 ~ /screenrecord_stop/ { stopped = 1 }
+  block && stopped && failed == 0 && $0 ~ /dump_logcat/ { dumped = 1 }
+  block && dumped && failed == 0 && $0 ~ /network_on/ { restored = 1 }
+  block && $0 ~ /record_fail "timeout"/ { failed = 1 }
+  END { exit !(stopped && dumped && restored && failed) }
+' tool/emulator/run_one_flow.sh; then
+  echo "exit 124/137 must stop the recording, dump logcat, and restore the network from the wrapper" >&2
+  exit 1
+fi
+if grep -q '^[[:space:]]*set -e$' tool/emulator/run_one_flow.sh; then
+  echo "run_one_flow should not turn set -e back on around the timeout" >&2
+  exit 1
+fi
+if ! grep -q 'log_installed_version' tool/emulator/run_one_flow.sh; then
+  echo "each run should log the installed versionCode" >&2
+  exit 1
+fi
+if ! grep -q "text-regex '\\^All Temples'" tool/emulator/lib/common.sh; then
+  echo "open_browse should match All Temples without a trailing anchor" >&2
+  exit 1
+fi
+if grep -q "text-regex '\\^All Temples\\$'" tool/emulator/lib/common.sh; then
+  echo "open_browse must not require All Temples to be the whole content-desc" >&2
+  exit 1
+fi
+if ! grep -q 'scroll_drawer_top' tool/emulator/lib/common.sh; then
+  echo "a missed All Temples search should scroll the drawer back to the top" >&2
+  exit 1
+fi
+# Content-desc audit. A trailing $ fails when that node's content-desc is
+# "label\n<extra>" (flattened to "label extra").
+# - All Temples is the only drawer tile with a trailing count.
+# - Home and Licences have no count, so '^Home$' and '^Licences$' stay.
+# - State / Deity / All districts are one Text. Option chips are "Name  N"
+#   and the pickers allow "( +[0-9]+)?$". Show/Browse labels are one line.
+if grep -n -E "text-regex ['\"]\\^All Temples\\$" \
+  tool/emulator/lib/common.sh tool/emulator/flows/*.sh; then
+  echo "a trailing \$ does not match All Temples content-desc" >&2
+  exit 1
+fi
+if ! grep -q "text-regex '\\^Home\\$'" tool/emulator/flows/18_home_reselect.sh; then
+  echo "Home has no trailing count; its anchor should stay" >&2
+  exit 1
+fi
+if ! grep -q "text-regex '\\^Licences\\$'" tool/emulator/flows/13_licences.sh; then
+  echo "Licences has no trailing count; its anchor should stay" >&2
+  exit 1
+fi
+if ! awk '
+  /open_browse\(\)/ { fn = 1 }
+  fn && $0 ~ /scroll_drawer_until --text-regex/ { search = 1 }
+  fn && search && $0 ~ /scroll_drawer_top/ { reset = 1 }
+  fn && reset && $0 ~ /ui_find --text-regex '\''\^All Temples'\''/ { retry = 1 }
+  fn && retry && $0 ~ /ui_back/ { closed = 1 }
+  fn && $0 ~ /^}/ { exit }
+  END { exit !(search && reset && retry && closed) }
+' tool/emulator/lib/common.sh; then
+  echo "open_browse must reset the drawer, retry All Temples, and close it" >&2
+  exit 1
+fi
+if ! awk '
+  /double tap/ { block = 1 }
+  block && $0 ~ /scroll_drawer_top/ { top = 1 }
+  block && top && $0 ~ /text-regex '\''\^Home\$'\''/ { wait = 1 }
+  END { exit !(top && wait) }
+' tool/emulator/flows/18_home_reselect.sh; then
+  echo "flow 18 should bring the drawer back to Home before the double-tap" >&2
   exit 1
 fi
 if ! grep -q -- '-eq 124' tool/emulator/run_one_flow.sh; then
@@ -338,6 +433,26 @@ if grep -q 'ui_back; ui_back' tool/emulator/flows/20_empty_and_back.sh; then
 fi
 if ! grep -qF "select_labeled '^Kerala( +[0-9]+)?$' STATE" tool/emulator/flows/19_rotation_state.sh; then
   echo "flow 19 should select Kerala in the STATE section and check the result" >&2
+  exit 1
+fi
+if grep -q 'adb shell input tap' tool/emulator/flows/18_home_reselect.sh; then
+  echo "flow 18 double-tap should use adb_shell_capped" >&2
+  exit 1
+fi
+if ! grep -q 'adb_shell_capped 8 input tap' tool/emulator/flows/18_home_reselect.sh; then
+  echo "flow 18 should cap the Home double-tap" >&2
+  exit 1
+fi
+if ! grep -q 'adb_shell_capped 8 input tap' tool/emulator/flows/17_entry_matrix.sh; then
+  echo "flow 17 double-tap should use adb_shell_capped" >&2
+  exit 1
+fi
+if ! grep -q 'kerala_applied' tool/emulator/flows/17_entry_matrix.sh; then
+  echo "flow 17 should check the State reset only after Kerala applies" >&2
+  exit 1
+fi
+if ! grep -q 'adb_shell_capped 8 settings put secure show_ime_with_hard_keyboard' tool/emulator/run_one_flow.sh; then
+  echo "IME settings should use the step cap" >&2
   exit 1
 fi
 if ! grep -q 'scroll_drawer_until --resource-id temple-list-search-field' tool/emulator/flows/17_entry_matrix.sh; then
@@ -399,8 +514,8 @@ if EMULATOR_ARTIFACTS="$summary_dir" GITHUB_STEP_SUMMARY="${summary_dir}/summary
   exit 1
 fi
 missing="$(grep -c ': missing:' "${summary_dir}/results.txt")"
-if [[ "$missing" -ne 29 ]]; then
-  echo "expected 29 missing-flow lines, found ${missing}" >&2
+if [[ "$missing" -ne 30 ]]; then
+  echo "expected 30 missing-flow lines, found ${missing}" >&2
   exit 1
 fi
 : > "${summary_dir}/results.txt"
@@ -442,8 +557,8 @@ if ! EMULATOR_ARTIFACTS="$not_run_dir" EMULATOR_RESOLVE_OUTCOME=failure \
   exit 1
 fi
 not_run="$(grep -c '^NOT RUN ' "${not_run_dir}/results.txt")"
-if [[ "$not_run" -ne 29 ]]; then
-  echo "expected 29 NOT RUN lines, found ${not_run}" >&2
+if [[ "$not_run" -ne 30 ]]; then
+  echo "expected 30 NOT RUN lines, found ${not_run}" >&2
   exit 1
 fi
 if grep -q '^FAIL ' "${not_run_dir}/results.txt"; then
@@ -592,5 +707,130 @@ skip_dir="$(mktemp -d)"
   grep -q '^NOT RUN 06-filters: combined-state: state-select did not apply a state$' "$RESULTS"
 )
 rm -rf "$skip_dir"
+
+# open_browse fallback, without a device. The home-button loop is skipped.
+# A hit taps All Temples and leaves the drawer alone. A miss scrolls back
+# to the top, looks once more, then closes so the next Home wait can run.
+browse_dir="$(mktemp -d)"
+(
+  set -euo pipefail
+  export EMULATOR_FLOW=18-home-reselect
+  export EMULATOR_ARTIFACTS="$browse_dir"
+  export EMULATOR_PACKAGE=com.example
+  export OPEN_BROWSE_HOME_WAIT=0
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  ui_dump() { return 0; }
+  ui_tap() { echo TAP >> "$browse_dir/log"; return 0; }
+  ui_fling() { echo FLING >> "$browse_dir/log"; return 0; }
+  ui_back() { echo BACK >> "$browse_dir/log"; return 0; }
+  scroll_drawer_top() { echo TOP >> "$browse_dir/log"; return 0; }
+  ui_find() {
+    case "$*" in
+      *home-browse-temples*) return 1 ;;
+      *Browse*) return 1 ;;
+      *"Open navigation menu"*) return 0 ;;
+      *"All Temples"*)
+        if [[ "${ALL_TEMPLES_VISIBLE:-}" == 1 ]]; then
+          return 0
+        fi
+        return 1
+        ;;
+    esac
+    return 1
+  }
+  scroll_drawer_until() {
+    echo "UNTIL $*" >> "$browse_dir/log"
+    case "$*" in
+      *"All Temples$"*)
+        echo "anchored All Temples pattern must not be used" >&2
+        return 2
+        ;;
+      *"All Temples"*) ;;
+      *)
+        echo "unexpected drawer search: $*" >&2
+        return 2
+        ;;
+    esac
+    if [[ "${DRAWER_SEARCH_HITS:-}" == 1 ]]; then
+      return 0
+    fi
+    return 1
+  }
+
+  : > "$browse_dir/log"
+  DRAWER_SEARCH_HITS=1
+  open_browse
+  grep -qx 'UNTIL --text-regex ^All Temples' "$browse_dir/log"
+  grep -qx 'TAP' "$browse_dir/log"
+  if grep -qx 'TOP' "$browse_dir/log" || grep -qx 'BACK' "$browse_dir/log"; then
+    echo "a found All Temples tile should not reset or close the drawer" >&2
+    exit 1
+  fi
+
+  : > "$browse_dir/log"
+  DRAWER_SEARCH_HITS=0
+  ALL_TEMPLES_VISIBLE=1
+  open_browse
+  # Search miss, scroll to top, the retry finds the tile, tap. No close.
+  grep -qx 'TOP' "$browse_dir/log"
+  grep -qx 'TAP' "$browse_dir/log"
+  if grep -qx 'BACK' "$browse_dir/log"; then
+    echo "the retry should tap All Temples instead of closing the drawer" >&2
+    exit 1
+  fi
+
+  : > "$browse_dir/log"
+  DRAWER_SEARCH_HITS=0
+  ALL_TEMPLES_VISIBLE=0
+  if open_browse 2>"$browse_dir/err"; then
+    echo "a drawer with no All Temples tile should fail" >&2
+    exit 1
+  fi
+  awk '
+    $0 == "UNTIL --text-regex ^All Temples" { until = 1 }
+    until && $0 == "TOP" { top = 1 }
+    top && $0 == "BACK" { back = 1 }
+    END { exit !(until && top && back) }
+  ' "$browse_dir/log"
+)
+rm -rf "$browse_dir"
+
+# No emulator on this VM. A stub adb still exercises the versionCode log and
+# the per-step shell cap (adb_shell_capped).
+cap_dir="$(mktemp -d)"
+stub_bin="$(mktemp -d)"
+cat > "$stub_bin/adb" << 'EOF'
+#!/bin/bash
+printf '%s\n' "$*" >> "${STUB_ADB_LOG:?}"
+if [[ "$1" == "shell" && "$2" == "sleep" ]]; then
+  sleep "$3"
+  exit 0
+fi
+if [[ "$1" == "shell" && "$2" == "dumpsys" ]]; then
+  printf '    versionCode=6 targetSdk=34\n    versionName=1.0.0\n'
+  exit 0
+fi
+exit 0
+EOF
+chmod +x "$stub_bin/adb"
+(
+  set -euo pipefail
+  export STUB_ADB_LOG="$cap_dir/adb.log"
+  export PATH="$stub_bin:$PATH"
+  export EMULATOR_FLOW=18-home-reselect
+  export EMULATOR_ARTIFACTS="$cap_dir"
+  export EMULATOR_PACKAGE=com.example.temple
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  : > "$RESULTS"
+  log_installed_version
+  grep -qx 'VERSION 18-home-reselect versionCode=6 versionName=1.0.0' "$RESULTS"
+  if adb_shell_capped 1 sleep 3; then
+    echo "a 3s shell must hit the 1s step cap" >&2
+    exit 1
+  fi
+)
+rm -rf "$cap_dir" "$stub_bin"
 
 echo "emulator self-test ok"

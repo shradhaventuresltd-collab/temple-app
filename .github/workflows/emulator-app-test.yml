@@ -219,14 +219,15 @@ jobs:
             ~/.android/adb*
           key: ${{ env.EMULATOR_AVD_CACHE_KEY }}
 
-      # 20 minutes covers the 10-minute emulator boot plus the test. The
-      # script stops itself at 1140s and records FAIL, so this step cap is
-      # the backstop. !cancelled() skips later flows only when the job is
-      # actually cancelled. 29 full caps do not fit in the 180-minute job;
-      # that job limit is the backstop for a streak of hangs.
+      # Boot is allowed 600s and then the script stops itself at 1140s.
+      # 30 minutes is 600 + 1140 + the kill-after and the FAIL write, so a
+      # slow boot does not eat the flow budget and a timeout still records
+      # FAIL before GitHub cancels the step. !cancelled() skips later flows
+      # only when the job is actually cancelled. 30 full caps do not fit in
+      # the 180-minute job; that job limit is the backstop for a streak of hangs.
       - name: Flow 01 first launch
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -245,7 +246,7 @@ jobs:
 
       - name: Flow 02 policy gate
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -264,7 +265,7 @@ jobs:
 
       - name: Flow 03 force update
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -283,7 +284,7 @@ jobs:
 
       - name: Flow 04 home
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -302,7 +303,7 @@ jobs:
 
       - name: Flow 05 search
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -321,7 +322,7 @@ jobs:
 
       - name: Flow 06 filters
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -340,7 +341,7 @@ jobs:
 
       - name: Flow 07 district filter
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -359,7 +360,7 @@ jobs:
 
       - name: Flow 08 temple list and detail
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -378,7 +379,7 @@ jobs:
 
       - name: Flow 09 photos
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -397,7 +398,7 @@ jobs:
 
       - name: Flow 10 directions
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -416,7 +417,7 @@ jobs:
 
       - name: Flow 11 temples near me
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -435,7 +436,7 @@ jobs:
 
       - name: Flow 12 ads
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -454,7 +455,7 @@ jobs:
 
       - name: Flow 13 licences
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -473,7 +474,7 @@ jobs:
 
       - name: Flow 14 back button and relaunch
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -492,7 +493,7 @@ jobs:
 
       - name: Flow 15 offline
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -511,7 +512,7 @@ jobs:
 
       - name: Flow 16 home browse
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -530,7 +531,7 @@ jobs:
 
       - name: Flow 17 entry matrix
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -549,7 +550,7 @@ jobs:
 
       - name: Flow 18 home reselect
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -568,7 +569,7 @@ jobs:
 
       - name: Flow 19 rotation state
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -587,7 +588,7 @@ jobs:
 
       - name: Flow 20 empty and back
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -606,7 +607,7 @@ jobs:
 
       - name: Flow 21 district close then other chip
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -625,7 +626,7 @@ jobs:
 
       - name: Flow 22 filter combos reset
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -644,7 +645,7 @@ jobs:
 
       - name: Flow 23 near me settings roundtrip
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -663,7 +664,7 @@ jobs:
 
       - name: Flow 24 gallery autoadvance viewer
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -682,7 +683,7 @@ jobs:
 
       - name: Flow 25 directions edge
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -701,7 +702,7 @@ jobs:
 
       - name: Flow 26 drawer nav stack
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -720,7 +721,7 @@ jobs:
 
       - name: Flow 27 offline cold start
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -739,7 +740,7 @@ jobs:
 
       - name: Flow 28 small screen rotation overflow
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -758,7 +759,7 @@ jobs:
 
       - name: Flow 29 filter matrix
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -773,7 +774,26 @@ jobs:
           emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
           emulator-options: ${{ env.EMULATOR_OPTIONS }}
           pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
-          script: bash tool/emulator/run_one_flow.sh 29-filter-matrix tool/emulator/flows/29_filter_matrix.sh
+          script: FILTER_MATRIX_PART=a bash tool/emulator/run_one_flow.sh 29-filter-matrix tool/emulator/flows/29_filter_matrix.sh
+
+      - name: Flow 30 filter matrix rest
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        timeout-minutes: 30
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: FILTER_MATRIX_PART=b bash tool/emulator/run_one_flow.sh 30-filter-matrix-rest tool/emulator/flows/29_filter_matrix.sh
 
       - name: Write results summary
         if: always()

@@ -38,6 +38,11 @@ Future<DirectoryFilterSelection?> showDirectoryFilterSheet({
   return showModalBottomSheet<DirectoryFilterSelection>(
     context: context,
     isScrollControlled: true,
+    // The framework drag calls setState on pointer-down, which rebuilds this
+    // builder. The header swipe is handled by the sheet's own Listener, so
+    // the route must not also drag. A rebuild here used to rescan the
+    // directory once per option on the UI thread (the district-sheet ANR).
+    enableDrag: false,
     backgroundColor: const Color(0xFFFFFBF2),
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -55,6 +60,46 @@ Future<DirectoryFilterSelection?> showDirectoryFilterSheet({
       );
     },
   );
+}
+
+/// The filter sheet, pumped directly by tests.
+///
+/// The modal route captures its arguments once. Tests that change the draft
+/// query or the temple list update this widget in place, and the sheet state
+/// keeps its census cache.
+@visibleForTesting
+class DirectoryFilterSheetProbe extends StatelessWidget {
+  const DirectoryFilterSheetProbe({
+    super.key,
+    required this.temples,
+    required this.query,
+    this.selectedState,
+    this.selectedDeity,
+    this.selectedDistrict,
+    this.districtOf,
+  });
+
+  final List<Temple> temples;
+  final String query;
+  final String? selectedState;
+  final String? selectedDeity;
+  final String? selectedDistrict;
+  final TempleDistrictName? districtOf;
+
+  @override
+  Widget build(BuildContext context) {
+    return _DirectoryFilterSheet(
+      key: const ValueKey('directory-filter-sheet-probe'),
+      temples: temples,
+      initialState: selectedState,
+      initialDeity: selectedDeity,
+      initialDistrict: selectedDistrict,
+      query: query,
+      districtOf: districtOf,
+      districtLookup: null,
+      initialSection: DirectoryFilterSection.state,
+    );
+  }
 }
 
 /// Trigger chips for state, district, and deity. Each chip opens that list.
@@ -277,80 +322,11 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
     final selectedState = widget.selectedState;
     final selectedDeity = widget.selectedDeity;
     final selectedDistrict = widget.selectedDistrict;
-    return SingleChildScrollView(
-      controller: _chipScroll,
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          KeyedSubtree(
-            key: _stateChip,
-            child: _TriggerChip(
-              chipKey: const Key('filter-chip-state'),
-              semanticsId: 'filter-chip-state',
-              clearKey: const Key('filter-chip-state-clear'),
-              icon: Icons.place_rounded,
-              label: selectedState ?? 'State',
-              selected: selectedState != null,
-              openTooltip: 'Choose a state',
-              clearTooltip: 'Clear state filter',
-              onOpen: () => _openSheet(
-                loadDistricts: false,
-                section: DirectoryFilterSection.state,
-              ),
-              onClear: () =>
-                  widget.onChanged(null, selectedDeity, selectedDistrict),
-            ),
-          ),
-          if (_showDistrict) ...[
-            const SizedBox(width: 8),
-            KeyedSubtree(
-              key: _districtChip,
-              child: _TriggerChip(
-                chipKey: const Key('filter-chip-district'),
-                semanticsId: 'filter-chip-district',
-                clearKey: const Key('filter-chip-district-clear'),
-                icon: Icons.map_outlined,
-                label: selectedDistrict == null || selectedDistrict.isEmpty
-                    ? 'All districts'
-                    : selectedDistrict,
-                selected:
-                    selectedDistrict != null && selectedDistrict.isNotEmpty,
-                openTooltip: 'Choose a district',
-                clearTooltip: 'Clear district filter',
-                onOpen: () => _openSheet(
-                  loadDistricts: true,
-                  section: DirectoryFilterSection.district,
-                ),
-                onClear: () =>
-                    widget.onChanged(selectedState, selectedDeity, null),
-              ),
-            ),
-          ],
-          const SizedBox(width: 8),
-          KeyedSubtree(
-            key: _deityChip,
-            child: _TriggerChip(
-              chipKey: const Key('filter-chip-deity'),
-              semanticsId: 'filter-chip-deity',
-              clearKey: const Key('filter-chip-deity-clear'),
-              icon: Icons.auto_awesome_rounded,
-              label: selectedDeity == null
-                  ? 'Deity'
-                  : directoryDeityChipLabel(selectedDeity),
-              selected: selectedDeity != null,
-              openTooltip: 'Choose a deity',
-              clearTooltip: 'Clear deity filter',
-              onOpen: () => _openSheet(
-                loadDistricts: false,
-                section: DirectoryFilterSection.deity,
-              ),
-              onClear: () =>
-                  widget.onChanged(selectedState, null, selectedDistrict),
-            ),
-          ),
-          if (_active) ...[
-            const SizedBox(width: 4),
-            TextButton(
+    final clear = _active
+        ? Semantics(
+            identifier: 'filter-clear',
+            button: true,
+            child: TextButton(
               key: const Key('filter-clear'),
               onPressed:
                   widget.onClearAll ?? () => widget.onChanged(null, null, null),
@@ -363,15 +339,97 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
                 ),
               ),
             ),
-          ],
-        ],
-      ),
+          )
+        : null;
+    return Row(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            controller: _chipScroll,
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                KeyedSubtree(
+                  key: _stateChip,
+                  child: _TriggerChip(
+                    chipKey: const Key('filter-chip-state'),
+                    semanticsId: 'filter-chip-state',
+                    clearKey: const Key('filter-chip-state-clear'),
+                    icon: Icons.place_rounded,
+                    label: selectedState ?? 'State',
+                    selected: selectedState != null,
+                    openTooltip: 'Choose a state',
+                    clearTooltip: 'Clear state filter',
+                    onOpen: () => _openSheet(
+                      loadDistricts: false,
+                      section: DirectoryFilterSection.state,
+                    ),
+                    onClear: () =>
+                        widget.onChanged(null, selectedDeity, selectedDistrict),
+                  ),
+                ),
+                if (_showDistrict) ...[
+                  const SizedBox(width: 8),
+                  KeyedSubtree(
+                    key: _districtChip,
+                    child: _TriggerChip(
+                      chipKey: const Key('filter-chip-district'),
+                      semanticsId: 'filter-chip-district',
+                      clearKey: const Key('filter-chip-district-clear'),
+                      icon: Icons.map_outlined,
+                      label:
+                          selectedDistrict == null || selectedDistrict.isEmpty
+                          ? 'All districts'
+                          : selectedDistrict,
+                      selected:
+                          selectedDistrict != null &&
+                          selectedDistrict.isNotEmpty,
+                      openTooltip: 'Choose a district',
+                      clearTooltip: 'Clear district filter',
+                      onOpen: () => _openSheet(
+                        loadDistricts: true,
+                        section: DirectoryFilterSection.district,
+                      ),
+                      onClear: () =>
+                          widget.onChanged(selectedState, selectedDeity, null),
+                    ),
+                  ),
+                ],
+                const SizedBox(width: 8),
+                KeyedSubtree(
+                  key: _deityChip,
+                  child: _TriggerChip(
+                    chipKey: const Key('filter-chip-deity'),
+                    semanticsId: 'filter-chip-deity',
+                    clearKey: const Key('filter-chip-deity-clear'),
+                    icon: Icons.auto_awesome_rounded,
+                    label: selectedDeity == null
+                        ? 'Deity'
+                        : directoryDeityChipLabel(selectedDeity),
+                    selected: selectedDeity != null,
+                    openTooltip: 'Choose a deity',
+                    clearTooltip: 'Clear deity filter',
+                    onOpen: () => _openSheet(
+                      loadDistricts: false,
+                      section: DirectoryFilterSection.deity,
+                    ),
+                    onClear: () =>
+                        widget.onChanged(selectedState, null, selectedDistrict),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        ?clear,
+      ],
     );
   }
 }
 
 class _DirectoryFilterSheet extends StatefulWidget {
   const _DirectoryFilterSheet({
+    super.key,
     required this.temples,
     required this.initialState,
     required this.initialDeity,
@@ -419,6 +477,11 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
   double _overscrollPull = 0;
   double _pointerY = 0;
 
+  /// Option counts for the current draft. A drag rebuilds the sheet without
+  /// changing the draft, so the walk must not run again.
+  DirectoryOptionCensus? _census;
+  String? _censusKey;
+
   @override
   void initState() {
     super.initState();
@@ -459,34 +522,25 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
 
   bool get _listAtTop => !_options.hasClients || _options.offset <= 0;
 
-  int _count({String? state, String? deity, String? district}) {
-    return directoryMatchingTemples(
+  DirectoryOptionCensus _readCensus() {
+    final key =
+        '${_state ?? ''}\u0000${_deity ?? ''}\u0000${_district ?? ''}\u0000${identityHashCode(_resolvedDistrictOf)}\u0000${widget.query}\u0000${identityHashCode(widget.temples)}';
+    final cached = _census;
+    if (cached != null && _censusKey == key) return cached;
+    final next = directoryOptionCensus(
       widget.temples,
-      state: state,
-      deity: deity,
-      district: district,
+      state: _state,
+      deity: _deity,
+      district: _district,
       query: widget.query,
       districtOf: _resolvedDistrictOf,
-    ).length;
+    );
+    _census = next;
+    _censusKey = key;
+    return next;
   }
 
   bool _showChoice(int count, bool selected) => selected || count > 0;
-
-  /// Count for a state chip. A district from another state is dropped when
-  /// that state is chosen, so it must not paint the chip as "0" or hide it.
-  int _stateOptionCount(String state) {
-    final district = _district;
-    String? kept;
-    if (district != null && district.isNotEmpty) {
-      final names = directoryDistrictsFrom(
-        widget.temples,
-        state: state,
-        districtOf: _resolvedDistrictOf,
-      );
-      if (names.contains(district)) kept = district;
-    }
-    return _count(state: state, deity: _deity, district: kept);
-  }
 
   /// Pops this sheet with null. A second notification in the same gesture
   /// must not pop the page underneath.
@@ -511,14 +565,27 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
     return false;
   }
 
+  /// The title, handle, and blurb sit above the option list. A downward
+  /// pull there dismisses even when that list is scrolled. A pull on the
+  /// list itself dismisses only from the top, so a scroll back up is kept.
+  bool _eventOnHeader(Offset global) {
+    if (!_options.hasClients) return false;
+    final object = _options.position.context.storageContext.findRenderObject();
+    if (object is! RenderBox || !object.hasSize || !object.attached) {
+      return false;
+    }
+    return global.dy < object.localToGlobal(Offset.zero).dy;
+  }
+
   void _onPointerDown(PointerDownEvent event) {
     _pointerY = event.position.dy;
-    _pullArmed = _listAtTop;
+    _pullArmed = _listAtTop || _eventOnHeader(event.position);
     if (_pullArmed) _pullDown = 0;
   }
 
-  /// Downward travel while the option list is already at the top. An upward
-  /// move is a scroll into the list, so that gesture must not dismiss.
+  /// Downward travel from the header, or from the list when it is already
+  /// at the top. An upward move is a scroll into the list, so that gesture
+  /// must not dismiss.
   void _onPointerMove(PointerMoveEvent event) {
     final dy = event.position.dy - _pointerY;
     _pointerY = event.position.dy;
@@ -599,6 +666,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
     required List<String> districts,
     required bool showDistricts,
     required String? note,
+    required DirectoryOptionCensus census,
   }) {
     final stateSection = <Widget>[
       const _SheetSectionLabel('STATE', key: Key('filter-section-state')),
@@ -607,11 +675,11 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
         children: _labeledOptions(
           prefix: 'filter-option-state',
           anyLabel: 'Any state',
-          anyCount: _count(deity: _deity, district: _district),
+          anyCount: census.anyState,
           anySelected: _state == null,
           onAny: () => _chooseState(null),
           names: states,
-          countOf: _stateOptionCount,
+          countOf: census.stateCount,
           isSelected: (state) => _state == state,
           labelOf: (state) => state,
           onSelect: _chooseState,
@@ -633,12 +701,11 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
           children: _labeledOptions(
             prefix: 'filter-option-district',
             anyLabel: 'All districts',
-            anyCount: _count(state: _state, deity: _deity),
+            anyCount: census.anyDistrict,
             anySelected: _district == null || _district!.isEmpty,
             onAny: () => setState(() => _district = null),
             names: districts,
-            countOf: (district) =>
-                _count(state: _state, deity: _deity, district: district),
+            countOf: census.districtCount,
             isSelected: (district) => _district == district,
             labelOf: (district) => district,
             onSelect: (district) => setState(() => _district = district),
@@ -665,12 +732,11 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
         children: _labeledOptions(
           prefix: 'filter-option-deity',
           anyLabel: 'Any deity',
-          anyCount: _count(state: _state, district: _district),
+          anyCount: census.anyDeity,
           anySelected: _deity == null,
           onAny: () => setState(() => _deity = null),
           names: deities,
-          countOf: (deity) =>
-              _count(state: _state, deity: deity, district: _district),
+          countOf: census.deityCount,
           isSelected: (deity) => _deity == deity,
           labelOf: directoryDeityChipLabel,
           onSelect: (deity) => setState(() => _deity = deity),
@@ -720,7 +786,8 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
             (districts.isNotEmpty ||
                 (_district != null && _district!.isNotEmpty)));
     final note = directoryDeityFilterNote(deities);
-    final matched = _count(state: _state, deity: _deity, district: _district);
+    final census = _readCensus();
+    final matched = census.matched;
     final draftActive =
         _state != null ||
         _deity != null ||
@@ -802,6 +869,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
                       districts: districts,
                       showDistricts: showDistricts,
                       note: note,
+                      census: census,
                     ),
                   ),
                 ),
@@ -994,47 +1062,53 @@ class _OptionChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final foreground = selected ? Colors.white : const Color(0xFF6D4C41);
     final empty = count == 0 && !selected;
-    return Material(
-      color: selected
-          ? TempleBrowseCard.saffron
-          : empty
-          ? const Color(0xFFFFF8EE)
-          : Colors.white,
-      shape: StadiumBorder(
-        side: BorderSide(
-          color: selected ? TempleBrowseCard.saffron : TempleBrowseCard.gold,
+    final chipKey = optionKey;
+    final semanticsId = chipKey is ValueKey<String> ? chipKey.value : null;
+    return Semantics(
+      identifier: semanticsId,
+      button: true,
+      child: Material(
+        color: selected
+            ? TempleBrowseCard.saffron
+            : empty
+            ? const Color(0xFFFFF8EE)
+            : Colors.white,
+        shape: StadiumBorder(
+          side: BorderSide(
+            color: selected ? TempleBrowseCard.saffron : TempleBrowseCard.gold,
+          ),
         ),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        key: optionKey,
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Text.rich(
-            TextSpan(
-              children: [
-                TextSpan(text: label),
-                TextSpan(
-                  text: '  $count',
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: selected
-                        ? Colors.white.withAlpha(230)
-                        : empty
-                        ? Colors.brown.shade300
-                        : Colors.brown.shade400,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          key: optionKey,
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(text: label),
+                  TextSpan(
+                    text: '  $count',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: selected
+                          ? Colors.white.withAlpha(230)
+                          : empty
+                          ? Colors.brown.shade300
+                          : Colors.brown.shade400,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            softWrap: true,
-            style: GoogleFonts.poppins(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              height: 1.25,
-              color: empty ? Colors.brown.shade300 : foreground,
+                ],
+              ),
+              softWrap: true,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                height: 1.25,
+                color: empty ? Colors.brown.shade300 : foreground,
+              ),
             ),
           ),
         ),

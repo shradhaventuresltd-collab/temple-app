@@ -20,7 +20,10 @@ if open_browse && wait_browse_ready; then
   ui_dump && ui_find --content-desc "Home" && ui_tap && sleep 1
   collage_top_visible && pass_step list-home-icon-top || fail_step list-home-icon-top "returned Home mid-page"
 fi
-# C: double tap the Home tile must not pop past Home / exit
+# C: double tap the Home tile must not pop past Home / exit.
+# The All Temples search flings this list. Put Home back on screen before
+# the wait, or the && skips both taps.
 ui_dump && ui_find --content-desc "Open navigation menu" && ui_tap && sleep 1
-ui_wait 10 --text-regex '^Home$' && { adb shell input tap "$UI_CX" "$UI_CY"; adb shell input tap "$UI_CX" "$UI_CY"; sleep 1; }
+scroll_drawer_top || true
+ui_wait 10 --text-regex '^Home$' && { adb_shell_capped 8 input tap "$UI_CX" "$UI_CY"; adb_shell_capped 8 input tap "$UI_CX" "$UI_CY"; sleep 1; }
 wait_for_home && pass_step home-double-tap || fail_step home-double-tap "app left Home"
