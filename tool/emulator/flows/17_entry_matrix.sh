@@ -52,7 +52,10 @@ swipe_from_list() {
   local width height
   read -r width height < <(ui_screen_size) || return 1
   # Pull the option list down from its top (list at min extent): _pullToDismiss path.
-  adb shell input swipe $((width / 2)) $((height * 45 / 100)) $((width / 2)) $((height * 95 / 100)) 120
+  adb_shell_capped 8 input swipe $((width / 2)) $((height * 45 / 100)) $((width / 2)) $((height * 95 / 100)) 120 || {
+    echo "swipe_from_list: swipe timed out" >&2
+    return 1
+  }
   sleep 1
   ! sheet_open
 }

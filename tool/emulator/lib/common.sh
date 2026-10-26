@@ -79,8 +79,22 @@ skip_step() {
   step_shot "$1"
 }
 
+# adb shell with a hard timeout. A frozen emulator otherwise blocks a
+# scroll or wait loop on one swipe or dump forever.
+adb_shell_capped() {
+  local seconds="$1"
+  shift
+  local rc=0
+  timeout "$seconds" adb shell "$@" || rc=$?
+  if [[ "$rc" -eq 124 ]]; then
+    echo "adb shell timed out after ${seconds}s: $*" >&2
+    return 1
+  fi
+  return "$rc"
+}
+
 ui_screen_size() {
-  adb shell wm size | tr -d '\r' | awk '
+  timeout 8 adb shell wm size | tr -d '\r' | awk '
     /Override size:/ { w=$3; next }
     /Physical size:/ { if (w == "") w=$3 }
     END {
@@ -91,18 +105,26 @@ ui_screen_size() {
 }
 
 ui_dump() {
-  local attempt err noisy
+  local attempt err noisy rc
   local saved=""
   for attempt in 1 2 3 4 5; do
     # Drop the previous file so a failed dump cannot be reread as success.
-    adb shell rm -f /sdcard/uidump.xml >/dev/null 2>&1 || true
-    err="$(adb shell uiautomator dump /sdcard/uidump.xml 2>&1 || true)"
+    adb_shell_capped 8 rm -f /sdcard/uidump.xml >/dev/null 2>&1 || true
+    err=""
+    rc=0
+    # uiautomator waits until the UI is idle. A spinner never idles, and
+    # without this timeout one dump blocks the flow for the whole job.
+    err="$(timeout 8 adb shell uiautomator dump /sdcard/uidump.xml 2>&1)" || rc=$?
+    if [[ "$rc" -eq 124 ]]; then
+      echo "ui_dump: uiautomator dump timed out after 8s; UI did not go idle" >&2
+      return 1
+    fi
     noisy=0
     if printf '%s' "$err" | grep -Eq 'Bad file descriptor|ERROR:|could not get idle|null root node'; then
       noisy=1
     fi
     rm -f "$DUMP"
-    if adb pull /sdcard/uidump.xml "$DUMP" >/dev/null 2>&1 && [[ -s "$DUMP" ]] && grep -q '<node ' "$DUMP"; then
+    if timeout 8 adb pull /sdcard/uidump.xml "$DUMP" >/dev/null 2>&1 && [[ -s "$DUMP" ]] && grep -q '<node ' "$DUMP"; then
       if [[ "$noisy" -eq 0 ]]; then
         rm -f "${DUMP}.partial"
         return 0
@@ -118,6 +140,7 @@ ui_dump() {
     return 0
   fi
   rm -f "${DUMP}.partial"
+  echo "ui_dump: no hierarchy after 5 attempts" >&2
   return 1
 }
 
@@ -148,19 +171,20 @@ ui_wait() {
     fi
     sleep 1
   done
+  echo "ui_wait: timed out after ${timeout}s" >&2
   return 1
 }
 
 ui_tap() {
-  adb shell input tap "$UI_CX" "$UI_CY"
+  adb_shell_capped 8 input tap "$UI_CX" "$UI_CY"
 }
 
 ui_back() {
-  adb shell input keyevent 4
+  adb_shell_capped 8 input keyevent 4
 }
 
 ui_home_key() {
-  adb shell input keyevent 3
+  adb_shell_capped 8 input keyevent 3
 }
 
 ui_fling() {
@@ -172,9 +196,9 @@ ui_fling() {
   fi
   local x=$((width / 2))
   if [[ "$direction" == "up" ]]; then
-    adb shell input swipe "$x" $((height * 3 / 4)) "$x" $((height / 3)) 280
+    adb_shell_capped 8 input swipe "$x" $((height * 3 / 4)) "$x" $((height / 3)) 280
   else
-    adb shell input swipe "$x" $((height / 3)) "$x" $((height * 3 / 4)) 280
+    adb_shell_capped 8 input swipe "$x" $((height / 3)) "$x" $((height * 3 / 4)) 280
   fi
 }
 
@@ -194,6 +218,7 @@ ui_wait_scrolled() {
     fi
     sleep 1
   done
+  echo "ui_wait_scrolled: timed out after ${timeout}s" >&2
   return 1
 }
 
@@ -201,7 +226,7 @@ ui_type() {
   local text="$1"
   local encoded
   encoded="$(python3 -c 'import sys; print(sys.argv[1].replace(" ", "%s"))' "$text")"
-  adb shell input text "$encoded"
+  adb_shell_capped 8 input text "$encoded"
 }
 
 # Visible field text with the search hint and clear tooltip removed.
@@ -224,9 +249,9 @@ ui_clear_field() {
   if [[ "$n" -eq 0 ]]; then
     return 0
   fi
-  adb shell input keyevent 123 >/dev/null 2>&1 || true
+  adb_shell_capped 8 input keyevent 123 >/dev/null 2>&1 || true
   for ((i = 0; i < n; i++)); do
-    adb shell input keyevent 67 >/dev/null 2>&1 || true
+    adb_shell_capped 8 input keyevent 67 >/dev/null 2>&1 || true
   done
 }
 
@@ -269,6 +294,7 @@ ui_replace_field_text() {
       UI_FIELD_ACTUAL="${UI_FIELD_ACTUAL:-unreadable}"
     fi
   done
+  echo "ui_replace_field_text: '${query}' was not in the field after 2 tries (got '${UI_FIELD_ACTUAL}')" >&2
   return 1
 }
 
@@ -306,7 +332,7 @@ ui_sheet_swipe() {
   if (( start_y > height * 88 / 100 )); then
     start_y=$((height * 88 / 100))
   fi
-  adb shell input swipe "$x" "$start_y" "$x" "$end_y" 900
+  adb_shell_capped 8 input swipe "$x" "$start_y" "$x" "$end_y" 900
 }
 
 # The drawer is narrower than the screen. A center fling misses its list.
@@ -323,9 +349,13 @@ scroll_drawer_until() {
         return 0
       fi
     fi
-    adb shell input swipe "$x" $((height * 72 / 100)) "$x" $((height * 40 / 100)) 320
+    adb_shell_capped 8 input swipe "$x" $((height * 72 / 100)) "$x" $((height * 40 / 100)) 320 || {
+      echo "scroll_drawer_until: swipe timed out" >&2
+      return 1
+    }
     sleep 0.35
   done
+  echo "scroll_drawer_until: gave up after 8 swipes" >&2
   return 1
 }
 
@@ -514,7 +544,7 @@ dismiss_sheet_from_handle() {
     start_x=$((width / 2))
     start_y=$((height * 24 / 100))
   fi
-  adb shell input swipe "$start_x" "$start_y" "$start_x" $((height * 96 / 100)) 80
+  adb_shell_capped 8 input swipe "$start_x" "$start_y" "$start_x" $((height * 96 / 100)) 80
 }
 
 dismiss_sheet_swipe() {
@@ -556,7 +586,10 @@ dismiss_sheet_outside() {
   if (( target_y < 12 )); then
     target_y=12
   fi
-  adb shell input tap "$UI_CX" "$target_y"
+  adb_shell_capped 8 input tap "$UI_CX" "$target_y" || {
+    echo "dismiss_sheet_outside: tap timed out" >&2
+    return 1
+  }
   sleep 1
   if sheet_open; then
     echo "sheet still open after tapping above it at y=${target_y}"
@@ -587,6 +620,7 @@ accept_policy_if_shown() {
     fi
     sleep 1
   done
+  echo "accept_policy_if_shown: timed out after 25s" >&2
   return 1
 }
 
@@ -617,6 +651,7 @@ open_browse() {
       return 0
     fi
   fi
+  echo "open_browse: timed out after 40s" >&2
   return 1
 }
 
@@ -737,11 +772,15 @@ screenrecord_start() {
     n=0
     while [[ ! -f "$stop" && "$n" -lt 8 ]]; do
       seg="$(printf 'seg%02d.mp4' "$n")"
-      if ! adb shell screenrecord --bit-rate 2000000 --time-limit 180 "/sdcard/${FLOW}_${seg}"; then
+      if ! timeout 190 adb shell screenrecord --bit-rate 2000000 --time-limit 180 "/sdcard/${FLOW}_${seg}"; then
+        echo "screenrecord: segment ${n} failed or hit the 190s cap" >&2
         sleep 1
       fi
       n=$((n + 1))
     done
+    if [[ ! -f "$stop" ]]; then
+      echo "screenrecord: stopped after 8 segments" >&2
+    fi
   ) &
   echo $! > "$pidfile"
 }
@@ -785,11 +824,11 @@ scroll_chip_bar_at() {
   local width
   read -r width _ < <(ui_screen_size) || return 1
   if [[ "$direction" == "right" ]]; then
-    adb shell input swipe \
+    adb_shell_capped 8 input swipe \
       $((width * 25 / 100)) "$y" \
       $((width * 80 / 100)) "$y" 250
   else
-    adb shell input swipe \
+    adb_shell_capped 8 input swipe \
       $((width * 80 / 100)) "$y" \
       $((width * 25 / 100)) "$y" 250
   fi
@@ -838,6 +877,7 @@ find_filter_chip() {
     fi
     sleep 0.4
   done
+  echo "find_filter_chip: not in view after 8 scrolls" >&2
   return 1
 }
 
@@ -858,6 +898,7 @@ scroll_chips_until() {
     scroll_chip_bar_at "$y" left || true
     sleep 0.4
   done
+  echo "scroll_chips_until: not in view after 6 scrolls" >&2
   return 1
 }
 
@@ -865,38 +906,112 @@ re_escape() {
   python3 -c 'import re,sys; print(re.escape(sys.argv[1]))' "$1"
 }
 
+# Option-list fingerprint. cksum "$DUMP" changes when a spinner or the
+# status-bar clock changes, which never looks like the end of the list.
+# The visible texts do stay put when a swipe was a no-op.
+dump_scroll_sig() {
+  cksum "$DUMP" | awk 'NR==1 { print $1 }' >/dev/null
+  python3 - "$DUMP" <<'PY'
+import hashlib, re, sys
+raw = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+texts = re.findall(r'\btext="([^"]*)"', raw)
+keep = [
+    t for t in texts
+    if t and "Loading" not in t and not re.fullmatch(r"\d{1,2}:\d{2}", t)
+]
+print(hashlib.sha256("\n".join(keep).encode()).hexdigest()[:16])
+PY
+}
+
+# The district sheet opens on a spinner. Scrolling while that spinner is up
+# makes every dump look new, so the picker never decides the list has ended.
+wait_out_district_loader() {
+  local start="$SECONDS"
+  if ! ui_dump; then
+    echo "select_labeled: hierarchy dump failed before looking for a label" >&2
+    return 1
+  fi
+  if ! ui_find --resource-id filter-district-loading \
+    && ! ui_find --text-contains "Loading districts"; then
+    return 0
+  fi
+  while (( SECONDS - start < 15 )); do
+    sleep 1
+    if ! ui_dump; then
+      echo "select_labeled: hierarchy dump failed while districts were loading" >&2
+      return 1
+    fi
+    if ! ui_find --resource-id filter-district-loading \
+      && ! ui_find --text-contains "Loading districts"; then
+      return 0
+    fi
+  done
+  echo "select_labeled: district list still loading after 15s" >&2
+  return 1
+}
+
 # Walk the option list until regex is inside the tap band, then tap it.
 # Callers pass the section name (STATE, DISTRICT, DEITY). The list ends when
-# a swipe leaves the dump unchanged, not when the next header first peeks in.
+# a swipe leaves the option texts unchanged, not when the next header peeks in.
 # One missed drag is not the end of the list: the finger may have landed on
-# the apply button. A second pass starts again from the top in case a step
-# still moved the chip out of the band.
+# the apply button. Retry other finger heights, then stop. A second pass
+# starts again from the top. The whole walk gives up after 120s.
 select_labeled() {
   local regex="$1"
-  # Callers still pass the section name. The stop is an unchanged dump.
   local _section="${2:-}"
   : "${_section}"
-  local pass i height min_top max_top prev="" current moved stuck
+  local pass i height min_top max_top prev="" current stuck
+  local deadline=0
+  if ! wait_out_district_loader; then
+    return 1
+  fi
+  deadline=$((SECONDS + 120))
   for pass in 1 2; do
+    if (( SECONDS >= deadline )); then
+      echo "select_labeled: gave up looking for '${regex}' after 120s" >&2
+      return 1
+    fi
     if [[ "$pass" -eq 2 ]]; then
       prev=""
       for i in $(seq 1 40); do
-        ui_dump || return 1
-        current="$(cksum "$DUMP" | awk 'NR==1 { print $1 }')"
+        if (( SECONDS >= deadline )); then
+          echo "select_labeled: gave up looking for '${regex}' after 120s" >&2
+          return 1
+        fi
+        ui_dump || {
+          echo "select_labeled: hierarchy dump failed while looking for '${regex}'" >&2
+          return 1
+        }
+        current="$(dump_scroll_sig)" || {
+          echo "select_labeled: could not read the picker dump" >&2
+          return 1
+        }
         if [[ -n "$prev" && "$current" == "$prev" ]]; then
           break
         fi
         prev="$current"
-        ui_sheet_swipe down || return 1
+        ui_sheet_swipe down || {
+          echo "select_labeled: swipe failed while looking for '${regex}'" >&2
+          return 1
+        }
         sleep 0.25
       done
     fi
     prev=""
-    moved=0
     stuck=0
     for i in $(seq 1 80); do
-      ui_dump || return 1
-      read -r _ height < <(ui_screen_size) || return 1
+      if (( SECONDS >= deadline )); then
+        echo "select_labeled: gave up looking for '${regex}' after 120s" >&2
+        return 1
+      fi
+      ui_dump || {
+        echo "select_labeled: hierarchy dump failed while looking for '${regex}'" >&2
+        return 1
+      }
+      read -r _ height < <(ui_screen_size) || {
+        echo "select_labeled: screen size unreadable while looking for '${regex}'" >&2
+        return 1
+      }
       min_top=$((height * 24 / 100))
       max_top=$((height * 84 / 100))
       if ui_find --text-regex "$regex" --min-top "$min_top" --max-top "$max_top" --prefer upper \
@@ -908,39 +1023,53 @@ select_labeled() {
       fi
       if ui_find --text-regex "$regex" --min-top "$max_top" --prefer upper \
         && [[ ! "$UI_TEXT" =~ ^Show[[:space:]]+[0-9]+[[:space:]]+temples?$ ]]; then
-        ui_sheet_swipe up || return 1
+        ui_sheet_swipe up || {
+          echo "select_labeled: swipe failed while looking for '${regex}'" >&2
+          return 1
+        }
         sleep 0.3
         continue
       fi
       if ui_find --text-regex "$regex" --max-top "$min_top" --prefer lower; then
-        ui_sheet_swipe down || return 1
+        ui_sheet_swipe down || {
+          echo "select_labeled: swipe failed while looking for '${regex}'" >&2
+          return 1
+        }
         sleep 0.3
         continue
       fi
-      current="$(cksum "$DUMP" | awk 'NR==1 { print $1 }')"
+      current="$(dump_scroll_sig)" || {
+        echo "select_labeled: could not read the picker dump" >&2
+        return 1
+      }
       if [[ -n "$prev" && "$current" == "$prev" ]]; then
         stuck=$((stuck + 1))
-        # A drag that misses the list leaves the dump unchanged before
+        # A drag that misses the list leaves the texts unchanged before
         # anything has scrolled. After the list has moved, one unchanged
         # dump is also not the end: the finger can land on a chip and the
         # next swipe is a no-op, which used to stop at Ganesha and the
-        # A-districts. Try other finger heights before giving up.
+        # A-districts. Try other finger heights, then stop. Do not keep
+        # going just because a spinner changed the raw dump.
         if [[ "$stuck" -le 4 ]]; then
-          ui_sheet_swipe up $((46 + stuck * 8)) || return 1
+          ui_sheet_swipe up $((46 + stuck * 8)) || {
+            echo "select_labeled: swipe failed while looking for '${regex}'" >&2
+            return 1
+          }
           sleep 0.3
           continue
         fi
         break
       fi
-      if [[ -n "$prev" ]]; then
-        moved=1
-      fi
       stuck=0
       prev="$current"
-      ui_sheet_swipe up || return 1
+      ui_sheet_swipe up || {
+        echo "select_labeled: swipe failed while looking for '${regex}'" >&2
+        return 1
+      }
       sleep 0.3
     done
   done
+  echo "select_labeled: gave up looking for '${regex}' after $((SECONDS - deadline + 120))s" >&2
   return 1
 }
 
@@ -951,9 +1080,11 @@ apply_sheet() {
     # The result button is pinned to the bottom of the sheet. Prefer that
     # node so a higher label is not tapped and the sheet left open.
     if ! ui_wait 8 --text-regex '^Show [0-9]+ temples?$' --prefer lower; then
+      echo "apply_sheet: Show N temples was not found" >&2
       return 1
     fi
     if (( UI_CY < height * 68 / 100 )); then
+      echo "apply_sheet: Show N temples was not in the bottom band" >&2
       return 1
     fi
     ui_tap
@@ -962,6 +1093,7 @@ apply_sheet() {
       return 0
     fi
   done
+  echo "apply_sheet: sheet stayed open after 2 taps" >&2
   return 1
 }
 

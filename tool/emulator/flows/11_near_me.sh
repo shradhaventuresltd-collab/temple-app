@@ -29,9 +29,12 @@ open_near_me() {
   # Home may already have been flung past the entry. Return to the top,
   # then move down in small steps until the control is on screen.
   for i in $(seq 1 6); do
-    adb shell input swipe \
+    adb_shell_capped 8 input swipe \
       $((width / 2)) $((height * 32 / 100)) \
-      $((width / 2)) $((height * 78 / 100)) 180
+      $((width / 2)) $((height * 78 / 100)) 180 || {
+      echo "open_near_me: swipe timed out" >&2
+      return 1
+    }
     sleep 0.2
   done
   for i in $(seq 1 12); do
@@ -42,11 +45,15 @@ open_near_me() {
         return 0
       fi
     fi
-    adb shell input swipe \
+    adb_shell_capped 8 input swipe \
       $((width / 2)) $((height * 68 / 100)) \
-      $((width / 2)) $((height * 50 / 100)) 220
+      $((width / 2)) $((height * 50 / 100)) 220 || {
+      echo "open_near_me: swipe timed out" >&2
+      return 1
+    }
     sleep 0.4
   done
+  echo "open_near_me: gave up after 12 scrolls" >&2
   return 1
 }
 

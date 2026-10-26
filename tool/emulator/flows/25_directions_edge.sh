@@ -4,7 +4,18 @@
 # lands back on detail not Home, and no maps app (pm disable Maps).
 reach_browse || { fail_step browse "no list"; return 0; }
 ui_dump && ui_find --text-regex 'Get Directions|Temple' ; ui_find --resource-id-regex 'temple-card' && ui_tap; sleep 3
-for i in 1 2 3; do ui_dump; ui_find --text-regex 'Get Directions' && break; ui_fling up; done
+directions_found=0
+for i in 1 2 3; do
+  ui_dump || true
+  if ui_find --text-regex 'Get Directions'; then
+    directions_found=1
+    break
+  fi
+  ui_fling up || { echo "directions: fling timed out" >&2; break; }
+done
+if [[ "$directions_found" -ne 1 ]]; then
+  echo "directions: Get Directions not in view after 3 flings" >&2
+fi
 adb shell input tap "$UI_CX" "$UI_CY"; adb shell input tap "$UI_CX" "$UI_CY"; sleep 3
 adb shell dumpsys activity activities | grep -c "maps\|chrome\|Chooser" > /tmp/n; step_shot dir-double
 ui_back; sleep 1; ui_back; sleep 1; ui_dump

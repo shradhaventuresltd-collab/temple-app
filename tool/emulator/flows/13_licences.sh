@@ -14,7 +14,7 @@ if ui_dump && ui_find --content-desc "Open navigation menu"; then
 fi
 if [[ "$opened" -eq 0 ]]; then
   read -r width height < <(ui_screen_size)
-  adb shell input swipe 8 $((height / 2)) $((width / 2)) $((height / 2)) 250
+  adb_shell_capped 8 input swipe 8 $((height / 2)) $((width / 2)) $((height / 2)) 250 || echo "licences: drawer swipe timed out" >&2
   sleep 1
 fi
 

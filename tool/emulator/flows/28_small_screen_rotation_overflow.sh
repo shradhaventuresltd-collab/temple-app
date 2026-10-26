@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Flow 28 (bughunter). 320dp-ish screen + font scale 1.3 + landscape on Home,
-# list with 3 chips selected, open filter sheet, detail, force-update and policy
-# gate. Look for Flutter "RenderFlex overflowed" in logcat and yellow/black stripes.
-# Accept the policy at the default size first. Resizing before that leaves the
-# gate on screen and nothing else in the flow runs.
+# Flow 28 (bughunter). Accept the policy at the default size via reach_browse,
+# then shrink to 720x1280 (about 320dp) with font scale 1.3. If that resize
+# brings the policy gate back, accept it again. A gate with no accept control
+# fails the step. Reopen the list if needed, open the filter sheet, rotate to
+# landscape, and require the Apply button on screen. Fail when logcat contains
+# "RenderFlex overflowed". Reset size, density, and font scale at the end.
 reach_browse || { fail_step browse "no list"; }
 adb shell wm size 720x1280; adb shell wm density 360; adb shell settings put system font_scale 1.3
 sleep 2

@@ -24,7 +24,7 @@ elif ui_replace_field_text "Kaleshwara" && open_named "Kaleshwara Mukteswara Tem
   pass_step open-kaleshwara
   # The first frame is CC0 with no caption. Swipe to the credited frame.
   read -r width height < <(ui_screen_size)
-  adb shell input swipe $((width * 80 / 100)) $((height * 28 / 100)) $((width * 20 / 100)) $((height * 28 / 100)) 250
+  adb_shell_capped 8 input swipe $((width * 80 / 100)) $((height * 28 / 100)) $((width * 20 / 100)) $((height * 28 / 100)) 250 || echo "photos: gallery swipe timed out" >&2
   sleep 1
   if ui_wait_scrolled 12 --text-contains "Kavurisgs" || ui_wait_scrolled 8 --text-contains "CC BY"; then
     pass_step photo-credit

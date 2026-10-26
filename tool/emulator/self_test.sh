@@ -115,6 +115,22 @@ if grep -Eq '<<:|&[A-Za-z]' "$workflow"; then
   echo "workflow uses a YAML anchor; GitHub Actions will not expand it" >&2
   exit 1
 fi
+if [[ "$(grep -c '^[[:space:]]*timeout-minutes: 20$' "$workflow")" -ne 29 ]]; then
+  echo "each of the 29 flow steps needs timeout-minutes: 20" >&2
+  exit 1
+fi
+if grep -Eq 'if:.*!cancelled\(\)' "$workflow"; then
+  echo "a flow-step timeout cancels the job; later flows must use always()" >&2
+  exit 1
+fi
+if ! grep -q 'select_labeled: gave up' tool/emulator/lib/common.sh; then
+  echo "select_labeled must say when it hits its cap" >&2
+  exit 1
+fi
+if ! grep -q 'picker scroll gave up' tool/emulator/flows/22_filter_combos_reset.sh; then
+  echo "flow 22 should fail when the picker scroll hits its cap" >&2
+  exit 1
+fi
 if grep -Eq '^[[:space:]]*(push|pull_request|schedule):' "$workflow"; then
   echo "workflow must trigger only on workflow_dispatch" >&2
   exit 1
