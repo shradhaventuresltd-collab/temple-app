@@ -435,6 +435,26 @@ if ! grep -qF "select_labeled '^Kerala( +[0-9]+)?$' STATE" tool/emulator/flows/1
   echo "flow 19 should select Kerala in the STATE section and check the result" >&2
   exit 1
 fi
+if grep -q 'adb shell input tap' tool/emulator/flows/18_home_reselect.sh; then
+  echo "flow 18 double-tap should use adb_shell_capped" >&2
+  exit 1
+fi
+if ! grep -q 'adb_shell_capped 8 input tap' tool/emulator/flows/18_home_reselect.sh; then
+  echo "flow 18 should cap the Home double-tap" >&2
+  exit 1
+fi
+if ! grep -q 'adb_shell_capped 8 input tap' tool/emulator/flows/17_entry_matrix.sh; then
+  echo "flow 17 double-tap should use adb_shell_capped" >&2
+  exit 1
+fi
+if ! grep -q 'kerala_applied' tool/emulator/flows/17_entry_matrix.sh; then
+  echo "flow 17 should check the State reset only after Kerala applies" >&2
+  exit 1
+fi
+if ! grep -q 'adb_shell_capped 8 settings put secure show_ime_with_hard_keyboard' tool/emulator/run_one_flow.sh; then
+  echo "IME settings should use the step cap" >&2
+  exit 1
+fi
 if ! grep -q 'scroll_drawer_until --resource-id temple-list-search-field' tool/emulator/flows/17_entry_matrix.sh; then
   echo "flow 17 should scroll the drawer to the search field" >&2
   exit 1

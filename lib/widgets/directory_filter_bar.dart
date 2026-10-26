@@ -62,6 +62,46 @@ Future<DirectoryFilterSelection?> showDirectoryFilterSheet({
   );
 }
 
+/// The filter sheet, pumped directly by tests.
+///
+/// The modal route captures its arguments once. Tests that change the draft
+/// query or the temple list update this widget in place, and the sheet state
+/// keeps its census cache.
+@visibleForTesting
+class DirectoryFilterSheetProbe extends StatelessWidget {
+  const DirectoryFilterSheetProbe({
+    super.key,
+    required this.temples,
+    required this.query,
+    this.selectedState,
+    this.selectedDeity,
+    this.selectedDistrict,
+    this.districtOf,
+  });
+
+  final List<Temple> temples;
+  final String query;
+  final String? selectedState;
+  final String? selectedDeity;
+  final String? selectedDistrict;
+  final TempleDistrictName? districtOf;
+
+  @override
+  Widget build(BuildContext context) {
+    return _DirectoryFilterSheet(
+      key: const ValueKey('directory-filter-sheet-probe'),
+      temples: temples,
+      initialState: selectedState,
+      initialDeity: selectedDeity,
+      initialDistrict: selectedDistrict,
+      query: query,
+      districtOf: districtOf,
+      districtLookup: null,
+      initialSection: DirectoryFilterSection.state,
+    );
+  }
+}
+
 /// Trigger chips for state, district, and deity. Each chip opens that list.
 ///
 /// The district asset loads only when the district chip is opened.
@@ -389,6 +429,7 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
 
 class _DirectoryFilterSheet extends StatefulWidget {
   const _DirectoryFilterSheet({
+    super.key,
     required this.temples,
     required this.initialState,
     required this.initialDeity,
@@ -483,7 +524,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
 
   DirectoryOptionCensus _readCensus() {
     final key =
-        '${_state ?? ''}\u0000${_deity ?? ''}\u0000${_district ?? ''}\u0000${identityHashCode(_resolvedDistrictOf)}\u0000${widget.query}';
+        '${_state ?? ''}\u0000${_deity ?? ''}\u0000${_district ?? ''}\u0000${identityHashCode(_resolvedDistrictOf)}\u0000${widget.query}\u0000${identityHashCode(widget.temples)}';
     final cached = _census;
     if (cached != null && _censusKey == key) return cached;
     final next = directoryOptionCensus(

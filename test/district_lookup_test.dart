@@ -48,6 +48,19 @@ void main() {
   );
   tearDown(DistrictDirectory.instance.resetForTest);
 
+  test('district warm-up follows a flag, not the binding type name', () {
+    final source = File('lib/district/district_lookup.dart').readAsStringSync();
+    expect(source.contains('TestWidgetsFlutterBinding'), isFalse);
+    expect(source.contains('runtimeType'), isFalse);
+
+    final previous = debugWarmDirectoryDistricts;
+    addTearDown(() => debugWarmDirectoryDistricts = previous);
+    debugWarmDirectoryDistricts = false;
+    expect(shouldWarmDirectoryDistricts, isFalse);
+    debugWarmDirectoryDistricts = true;
+    expect(shouldWarmDirectoryDistricts, districtBoundariesAreBundled);
+  });
+
   test('assignments stay in memory and skip a second asset load', () async {
     final directory = DistrictDirectory.instance;
     final temple = _temple(id: 'meenakshi');

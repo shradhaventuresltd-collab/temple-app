@@ -65,8 +65,8 @@ fi
 log_installed_version
 
 # Keep the soft keyboard closed so `input text` is not rewritten by the IME.
-adb shell settings put secure show_ime_with_hard_keyboard 0 >/dev/null 2>&1 || true
-adb shell settings put secure spell_checker_enabled 0 >/dev/null 2>&1 || true
+adb_shell_capped 8 settings put secure show_ime_with_hard_keyboard 0 >/dev/null 2>&1 || true
+adb_shell_capped 8 settings put secure spell_checker_enabled 0 >/dev/null 2>&1 || true
 
 set +e
 # shellcheck disable=SC1090

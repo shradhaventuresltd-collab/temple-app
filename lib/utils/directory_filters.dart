@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
 import 'package:temple_app/utils/temple_search.dart';
@@ -221,6 +222,12 @@ class DirectoryOptionCensus {
   int districtCount(String district) => districtCounts[district] ?? 0;
 }
 
+/// How many times [directoryOptionCensus] has run.
+///
+/// Widget tests reset this. A header drag must not run it once per chip.
+@visibleForTesting
+int directoryOptionCensusCalls = 0;
+
 /// One pass over [temples] for the sheet's option counts.
 ///
 /// A district that belongs to another state is ignored for that state's
@@ -235,7 +242,10 @@ DirectoryOptionCensus directoryOptionCensus(
   String query = '',
   TempleDistrictName? districtOf,
 }) {
+  directoryOptionCensusCalls++;
   final wanted = district?.trim() ?? '';
+  final wantedState = state?.trim() ?? '';
+  final wantedDeity = deity?.trim() ?? '';
   final useDistrict = wanted.isNotEmpty;
   final districtsInState = <String, Set<String>>{};
   if (useDistrict && districtOf != null) {
@@ -263,8 +273,8 @@ DirectoryOptionCensus directoryOptionCensus(
     final templeDistrict = districtOf == null
         ? ''
         : (districtOf(temple)?.trim() ?? '');
-    final stateOk = state == null || state.isEmpty || temple.state == state;
-    final deityOk = deity == null || deity.isEmpty || temple.deity == deity;
+    final stateOk = wantedState.isEmpty || templeState == wantedState;
+    final deityOk = wantedDeity.isEmpty || templeDeity == wantedDeity;
     final districtOk =
         !useDistrict || (districtOf != null && templeDistrict == wanted);
 

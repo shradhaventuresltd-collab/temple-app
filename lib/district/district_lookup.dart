@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:temple_app/district/district_boundary.dart';
@@ -305,15 +304,21 @@ TempleDistrictName? bundledDistrictLookup() {
 
 String? _noBundledDistrict(Temple temple) => null;
 
+/// Widget tests set this false. Production and the emulator leave it on,
+/// so the first District tap reads the in-memory assignments.
+///
+/// This is not derived from the binding's runtime type. The test binding
+/// and a debug emulator build would look the same that way.
+@visibleForTesting
+bool debugWarmDirectoryDistricts = true;
+
 /// True when the directory should start the boundary load before a chip tap.
 ///
 /// Widget tests pump the drawer and the list often. Warming there decodes
-/// the boundary asset on every pump. Production and the emulator do warm,
-/// so the first District tap reads the in-memory assignments.
+/// the boundary asset on every pump. Production and the emulator do warm.
 bool get shouldWarmDirectoryDistricts {
   if (!districtBoundariesAreBundled) return false;
-  final binding = WidgetsBinding.instance.runtimeType.toString();
-  return !binding.contains('TestWidgetsFlutterBinding');
+  return debugWarmDirectoryDistricts;
 }
 
 /// Starts [prepareDirectoryDistricts] once the directory is in memory.

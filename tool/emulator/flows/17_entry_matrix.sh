@@ -86,16 +86,21 @@ for entry in home_button drawer_all drawer_search list_drawer_all; do
     if open_chip "$f"; then pass_step "$id-reopen-selected"; ui_back; sleep 1; else fail_step "$id-reopen-selected" "selected chip did not reopen"; fi
     if clear_named "$f"; then pass_step "$id-clear"; else fail_step "$id-clear" "chip x did not clear"; fi
     # Double tap: must open exactly one sheet, one back closes it.
-    open_chip "$f" >/dev/null 2>&1 && { adb shell input tap "$UI_CX" "$UI_CY"; sleep 1; ui_back; sleep 1;
+    open_chip "$f" >/dev/null 2>&1 && { adb_shell_capped 8 input tap "$UI_CX" "$UI_CY"; sleep 1; ui_back; sleep 1;
       if sheet_open; then fail_step "$id-double-tap" "two sheets stacked"; recover_sheet; else pass_step "$id-double-tap"; fi; }
   done
   # Empty-state Clear filters, from this entry. The chip-row Clear is a
-  # different control. Both the state chip and the search text must go.
+  # different control. The search text must go. The State chip is checked
+  # only when Kerala actually applied; a missed pick is not a failed clear.
+  kerala_applied=0
   if ui_dump && ui_find --resource-id filter-chip-state --text-regex '^State$'; then
     ui_tap
     if ui_wait 12 --text-regex '^Filters$'; then
-      select_labeled '^Kerala( +[0-9]+)?$' STATE || true
-      apply_sheet || recover_sheet
+      if select_labeled '^Kerala( +[0-9]+)?$' STATE && apply_sheet; then
+        kerala_applied=1
+      else
+        recover_sheet || true
+      fi
     fi
   fi
   if ui_dump && ui_find --resource-id temple-list-search-field; then
@@ -109,10 +114,10 @@ for entry in home_button drawer_all drawer_search list_drawer_all; do
       ui_dump
       if ui_find --text-contains "zzzqqq"; then
         fail_step "$entry-empty-clear" "search text kept"
-      elif ui_find --resource-id filter-chip-state --text-regex '^State$'; then
-        pass_step "$entry-empty-clear"
-      else
+      elif [[ "$kerala_applied" == 1 ]] && ! ui_find --resource-id filter-chip-state --text-regex '^State$'; then
         fail_step "$entry-empty-clear" "state chip kept"
+      else
+        pass_step "$entry-empty-clear"
       fi
     else
       fail_step "$entry-empty-clear" "Clear filters was not shown"

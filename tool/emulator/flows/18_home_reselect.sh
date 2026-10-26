@@ -25,5 +25,5 @@ fi
 # the wait, or the && skips both taps.
 ui_dump && ui_find --content-desc "Open navigation menu" && ui_tap && sleep 1
 scroll_drawer_top || true
-ui_wait 10 --text-regex '^Home$' && { adb shell input tap "$UI_CX" "$UI_CY"; adb shell input tap "$UI_CX" "$UI_CY"; sleep 1; }
+ui_wait 10 --text-regex '^Home$' && { adb_shell_capped 8 input tap "$UI_CX" "$UI_CY"; adb_shell_capped 8 input tap "$UI_CX" "$UI_CY"; sleep 1; }
 wait_for_home && pass_step home-double-tap || fail_step home-double-tap "app left Home"
