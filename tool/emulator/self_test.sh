@@ -115,6 +115,26 @@ if grep -Eq '<<:|&[A-Za-z]' "$workflow"; then
   echo "workflow uses a YAML anchor; GitHub Actions will not expand it" >&2
   exit 1
 fi
+if [[ "$(grep -c '^[[:space:]]*timeout-minutes: 20$' "$workflow")" -ne 29 ]]; then
+  echo "each of the 29 flow steps needs timeout-minutes: 20" >&2
+  exit 1
+fi
+if [[ "$(grep -c '!cancelled() && steps.resolve-apk.outcome' "$workflow")" -ne 29 ]]; then
+  echo "each flow step should use !cancelled() so a real cancellation skips it" >&2
+  exit 1
+fi
+if grep -Eq 'if:.*always\(\).*resolve-apk' "$workflow"; then
+  echo "flow steps must not use always(); a contained hang exits the step" >&2
+  exit 1
+fi
+if ! grep -q 'select_labeled: gave up' tool/emulator/lib/common.sh; then
+  echo "select_labeled must say when it hits its cap" >&2
+  exit 1
+fi
+if ! grep -q 'picker scroll gave up' tool/emulator/flows/22_filter_combos_reset.sh; then
+  echo "flow 22 should fail when the picker scroll hits its cap" >&2
+  exit 1
+fi
 if grep -Eq '^[[:space:]]*(push|pull_request|schedule):' "$workflow"; then
   echo "workflow must trigger only on workflow_dispatch" >&2
   exit 1
@@ -284,8 +304,28 @@ if ! awk '
   echo "geo fix should be sent again after permission is granted" >&2
   exit 1
 fi
-if ! grep -q 'cksum "$DUMP"' tool/emulator/lib/common.sh; then
-  echo "filter option scroll should stop when the dump stops changing" >&2
+if ! grep -q 'dump_scroll_sig' tool/emulator/lib/common.sh; then
+  echo "filter option scroll should stop when the option text stops changing" >&2
+  exit 1
+fi
+if grep -q 'cksum "$DUMP"' tool/emulator/lib/common.sh; then
+  echo "picker scroll must not checksum the raw dump" >&2
+  exit 1
+fi
+if ! grep -q 'timeout --kill-after=15 1140' tool/emulator/run_one_flow.sh; then
+  echo "each flow should run under timeout 1140" >&2
+  exit 1
+fi
+if ! grep -q -- '-eq 124' tool/emulator/run_one_flow.sh; then
+  echo "a timed-out flow should record FAIL on exit 124" >&2
+  exit 1
+fi
+if ! grep -q "printf 'START %s" tool/emulator/run_one_flow.sh; then
+  echo "run_one_flow should write a START marker" >&2
+  exit 1
+fi
+if ! grep -q "printf 'DONE %s" tool/emulator/run_one_flow.sh; then
+  echo "run_one_flow should write a DONE marker only after the flow exits" >&2
   exit 1
 fi
 if ! grep -q 'geo fix 78.1193 9.9195 0 8' tool/emulator/lib/common.sh; then
@@ -479,6 +519,45 @@ if grep -q 'did not pass any step' "${fail_only_dir}/results.txt"; then
   exit 1
 fi
 rm -rf "$fail_only_dir"
+
+started_dir="$(mktemp -d)"
+: > "${started_dir}/results.txt"
+for flow in "${flows[@]}"; do
+  printf 'START %s\n' "$flow" >> "${started_dir}/results.txt"
+  printf 'PASS %s: ok\n' "$flow" >> "${started_dir}/results.txt"
+  if [[ "$flow" != "06-filters" ]]; then
+    printf 'DONE %s\n' "$flow" >> "${started_dir}/results.txt"
+  fi
+done
+if EMULATOR_ARTIFACTS="$started_dir" GITHUB_STEP_SUMMARY="${started_dir}/summary.md" \
+  bash tool/emulator/summarize.sh >"${started_dir}/out" 2>&1; then
+  echo "summarize.sh should fail a flow that has START and no DONE" >&2
+  cat "${started_dir}/out" >&2
+  exit 1
+fi
+if ! grep -qx 'FAIL 06-filters: timeout: started but did not finish' "${started_dir}/results.txt"; then
+  echo "a flow with START and no DONE should be marked failed" >&2
+  cat "${started_dir}/results.txt" >&2
+  exit 1
+fi
+if grep -q '^FAIL 05-search:' "${started_dir}/results.txt"; then
+  echo "a flow with START and DONE should stay green" >&2
+  exit 1
+fi
+rm -rf "$started_dir"
+
+finished_dir="$(mktemp -d)"
+: > "${finished_dir}/results.txt"
+for flow in "${flows[@]}"; do
+  printf 'START %s\nPASS %s: ok\nDONE %s\n' "$flow" "$flow" "$flow" >> "${finished_dir}/results.txt"
+done
+if ! EMULATOR_ARTIFACTS="$finished_dir" GITHUB_STEP_SUMMARY="${finished_dir}/summary.md" \
+  bash tool/emulator/summarize.sh >"${finished_dir}/out"; then
+  echo "summarize.sh should pass when every flow has START and DONE" >&2
+  cat "${finished_dir}/out" >&2
+  exit 1
+fi
+rm -rf "$finished_dir"
 
 skip_dir="$(mktemp -d)"
 (

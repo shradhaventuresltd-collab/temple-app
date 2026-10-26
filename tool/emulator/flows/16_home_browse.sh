@@ -18,9 +18,12 @@ open_home_browse() {
   # Home may already have been flung past the button. Return to the top,
   # then move down until "Browse N temples" is on screen.
   for i in $(seq 1 6); do
-    adb shell input swipe \
+    adb_shell_capped 8 input swipe \
       $((width / 2)) $((height * 32 / 100)) \
-      $((width / 2)) $((height * 78 / 100)) 180
+      $((width / 2)) $((height * 78 / 100)) 180 || {
+      echo "open_home_browse: swipe timed out" >&2
+      return 1
+    }
     sleep 0.2
   done
   for i in $(seq 1 12); do
@@ -31,11 +34,15 @@ open_home_browse() {
         return 0
       fi
     fi
-    adb shell input swipe \
+    adb_shell_capped 8 input swipe \
       $((width / 2)) $((height * 68 / 100)) \
-      $((width / 2)) $((height * 50 / 100)) 220
+      $((width / 2)) $((height * 50 / 100)) 220 || {
+      echo "open_home_browse: swipe timed out" >&2
+      return 1
+    }
     sleep 0.4
   done
+  echo "open_home_browse: gave up after 12 scrolls" >&2
   return 1
 }
 
@@ -46,9 +53,12 @@ scroll_chip_bar() {
   if ui_dump && ui_find --resource-id filter-chip-state; then
     y=$UI_CY
   fi
-  adb shell input swipe \
+  adb_shell_capped 8 input swipe \
     $((width * 80 / 100)) "$y" \
-    $((width * 25 / 100)) "$y" 250
+    $((width * 25 / 100)) "$y" 250 || {
+    echo "scroll_chip_bar: swipe timed out" >&2
+    return 1
+  }
 }
 
 if ! open_home_browse; then

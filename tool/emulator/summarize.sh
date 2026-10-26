@@ -74,6 +74,21 @@ if [[ "$resolve_outcome" != "failure" ]]; then
   done
 fi
 
+# START is written before the timed run. DONE is written only when that
+# run exits 0. A kill after an early PASS still has to fail the flow.
+for flow in "${flows[@]}"; do
+  if ! grep -qx "START ${flow}" "$results"; then
+    continue
+  fi
+  if grep -qx "DONE ${flow}" "$results"; then
+    continue
+  fi
+  if grep -Eq "^FAIL ${flow}:" "$results"; then
+    continue
+  fi
+  printf 'FAIL %s: timeout: started but did not finish\n' "$flow" | tee -a "$results"
+done
+
 passes="$(grep -c '^PASS ' "$results" || true)"
 fails="$(grep -c '^FAIL ' "$results" || true)"
 xfails="$(grep -c '^XFAIL ' "$results" || true)"
