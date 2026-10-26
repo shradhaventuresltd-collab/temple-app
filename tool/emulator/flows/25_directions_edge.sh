@@ -14,9 +14,12 @@ for i in 1 2 3; do
   ui_fling up || { echo "directions: fling timed out" >&2; break; }
 done
 if [[ "$directions_found" -ne 1 ]]; then
-  echo "directions: Get Directions not in view after 3 flings" >&2
+  fail_step directions "Get Directions not in view after 3 flings"
+  return 0
 fi
-adb shell input tap "$UI_CX" "$UI_CY"; adb shell input tap "$UI_CX" "$UI_CY"; sleep 3
+adb_shell_capped 8 input tap "$UI_CX" "$UI_CY"
+adb_shell_capped 8 input tap "$UI_CX" "$UI_CY"
+sleep 3
 adb shell dumpsys activity activities | grep -c "maps\|chrome\|Chooser" > /tmp/n; step_shot dir-double
 ui_back; sleep 1; ui_back; sleep 1; ui_dump
 ui_find --text-regex 'Get Directions' && pass_step return-to-detail || fail_step return-to-detail "after 2 backs not on detail (double launch stacked 2 maps?)"

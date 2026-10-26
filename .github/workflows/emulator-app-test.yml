@@ -219,11 +219,13 @@ jobs:
             ~/.android/adb*
           key: ${{ env.EMULATOR_AVD_CACHE_KEY }}
 
-      # Each flow is capped at 20 minutes. A step timeout cancels the job, and
-      # !cancelled() would then skip every later flow. always() keeps the
-      # remaining flows and the artifact upload running after one hang.
+      # 20 minutes covers the 10-minute emulator boot plus the test. The
+      # script stops itself at 1140s and records FAIL, so this step cap is
+      # the backstop. !cancelled() skips later flows only when the job is
+      # actually cancelled. 29 full caps do not fit in the 180-minute job;
+      # that job limit is the backstop for a streak of hangs.
       - name: Flow 01 first launch
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
@@ -242,7 +244,7 @@ jobs:
           script: bash tool/emulator/run_one_flow.sh 01-first-launch tool/emulator/flows/01_first_launch.sh
 
       - name: Flow 02 policy gate
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
@@ -261,7 +263,7 @@ jobs:
           script: bash tool/emulator/run_one_flow.sh 02-policy-gate tool/emulator/flows/02_policy_gate.sh
 
       - name: Flow 03 force update
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
@@ -280,7 +282,7 @@ jobs:
           script: bash tool/emulator/run_one_flow.sh 03-force-update tool/emulator/flows/03_force_update.sh
 
       - name: Flow 04 home
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
@@ -299,7 +301,7 @@ jobs:
           script: bash tool/emulator/run_one_flow.sh 04-home tool/emulator/flows/04_home.sh
 
       - name: Flow 05 search
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
@@ -318,7 +320,7 @@ jobs:
           script: bash tool/emulator/run_one_flow.sh 05-search tool/emulator/flows/05_search.sh
 
       - name: Flow 06 filters
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
@@ -337,7 +339,7 @@ jobs:
           script: bash tool/emulator/run_one_flow.sh 06-filters tool/emulator/flows/06_filters.sh
 
       - name: Flow 07 district filter
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
@@ -356,7 +358,7 @@ jobs:
           script: bash tool/emulator/run_one_flow.sh 07-district tool/emulator/flows/07_district.sh
 
       - name: Flow 08 temple list and detail
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
@@ -375,7 +377,7 @@ jobs:
           script: bash tool/emulator/run_one_flow.sh 08-list-detail tool/emulator/flows/08_list_detail.sh
 
       - name: Flow 09 photos
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
@@ -394,7 +396,7 @@ jobs:
           script: bash tool/emulator/run_one_flow.sh 09-photos tool/emulator/flows/09_photos.sh
 
       - name: Flow 10 directions
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
@@ -413,7 +415,7 @@ jobs:
           script: bash tool/emulator/run_one_flow.sh 10-directions tool/emulator/flows/10_directions.sh
 
       - name: Flow 11 temples near me
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
@@ -432,7 +434,7 @@ jobs:
           script: bash tool/emulator/run_one_flow.sh 11-near-me tool/emulator/flows/11_near_me.sh
 
       - name: Flow 12 ads
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
@@ -451,7 +453,7 @@ jobs:
           script: bash tool/emulator/run_one_flow.sh 12-ads tool/emulator/flows/12_ads.sh
 
       - name: Flow 13 licences
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
@@ -470,7 +472,7 @@ jobs:
           script: bash tool/emulator/run_one_flow.sh 13-licences tool/emulator/flows/13_licences.sh
 
       - name: Flow 14 back button and relaunch
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
@@ -489,7 +491,7 @@ jobs:
           script: bash tool/emulator/run_one_flow.sh 14-back-relaunch tool/emulator/flows/14_back_relaunch.sh
 
       - name: Flow 15 offline
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
@@ -508,7 +510,7 @@ jobs:
           script: bash tool/emulator/run_one_flow.sh 15-offline tool/emulator/flows/15_offline.sh
 
       - name: Flow 16 home browse
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
@@ -527,7 +529,7 @@ jobs:
           script: bash tool/emulator/run_one_flow.sh 16-home-browse tool/emulator/flows/16_home_browse.sh
 
       - name: Flow 17 entry matrix
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
@@ -546,7 +548,7 @@ jobs:
           script: bash tool/emulator/run_one_flow.sh 17-entry-matrix tool/emulator/flows/17_entry_matrix.sh
 
       - name: Flow 18 home reselect
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
@@ -565,7 +567,7 @@ jobs:
           script: bash tool/emulator/run_one_flow.sh 18-home-reselect tool/emulator/flows/18_home_reselect.sh
 
       - name: Flow 19 rotation state
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
@@ -584,7 +586,7 @@ jobs:
           script: bash tool/emulator/run_one_flow.sh 19-rotation-state tool/emulator/flows/19_rotation_state.sh
 
       - name: Flow 20 empty and back
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
@@ -603,7 +605,7 @@ jobs:
           script: bash tool/emulator/run_one_flow.sh 20-empty-and-back tool/emulator/flows/20_empty_and_back.sh
 
       - name: Flow 21 district close then other chip
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
@@ -622,7 +624,7 @@ jobs:
           script: bash tool/emulator/run_one_flow.sh 21-district-close-then-other-chip tool/emulator/flows/21_district_close_then_other_chip.sh
 
       - name: Flow 22 filter combos reset
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
@@ -641,7 +643,7 @@ jobs:
           script: bash tool/emulator/run_one_flow.sh 22-filter-combos-reset tool/emulator/flows/22_filter_combos_reset.sh
 
       - name: Flow 23 near me settings roundtrip
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
@@ -660,7 +662,7 @@ jobs:
           script: bash tool/emulator/run_one_flow.sh 23-near-me-settings-roundtrip tool/emulator/flows/23_near_me_settings_roundtrip.sh
 
       - name: Flow 24 gallery autoadvance viewer
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
@@ -679,7 +681,7 @@ jobs:
           script: bash tool/emulator/run_one_flow.sh 24-gallery-autoadvance-viewer tool/emulator/flows/24_gallery_autoadvance_viewer.sh
 
       - name: Flow 25 directions edge
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
@@ -698,7 +700,7 @@ jobs:
           script: bash tool/emulator/run_one_flow.sh 25-directions-edge tool/emulator/flows/25_directions_edge.sh
 
       - name: Flow 26 drawer nav stack
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
@@ -717,7 +719,7 @@ jobs:
           script: bash tool/emulator/run_one_flow.sh 26-drawer-nav-stack tool/emulator/flows/26_drawer_nav_stack.sh
 
       - name: Flow 27 offline cold start
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
@@ -736,7 +738,7 @@ jobs:
           script: bash tool/emulator/run_one_flow.sh 27-offline-cold-start tool/emulator/flows/27_offline_cold_start.sh
 
       - name: Flow 28 small screen rotation overflow
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
@@ -755,7 +757,7 @@ jobs:
           script: bash tool/emulator/run_one_flow.sh 28-small-screen-rotation-overflow tool/emulator/flows/28_small_screen_rotation_overflow.sh
 
       - name: Flow 29 filter matrix
-        if: ${{ always() && steps.resolve-apk.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2

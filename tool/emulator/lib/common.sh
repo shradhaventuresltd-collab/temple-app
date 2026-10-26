@@ -94,6 +94,7 @@ adb_shell_capped() {
 }
 
 ui_screen_size() {
+  local size_rc
   timeout 8 adb shell wm size | tr -d '\r' | awk '
     /Override size:/ { w=$3; next }
     /Physical size:/ { if (w == "") w=$3 }
@@ -102,11 +103,18 @@ ui_screen_size() {
       if (a[1] != "" && a[2] != "") print a[1], a[2]
     }
   '
+  # awk's status would hide a timed-out wm size. Keep timeout's code.
+  size_rc=${PIPESTATUS[0]}
+  if [[ "$size_rc" -eq 124 ]]; then
+    echo "ui_screen_size: wm size timed out after 8s" >&2
+  fi
+  return "$size_rc"
 }
 
 ui_dump() {
   local attempt err noisy rc
   local saved=""
+  local timed_out=0
   for attempt in 1 2 3 4 5; do
     # Drop the previous file so a failed dump cannot be reread as success.
     adb_shell_capped 8 rm -f /sdcard/uidump.xml >/dev/null 2>&1 || true
@@ -116,6 +124,12 @@ ui_dump() {
     # without this timeout one dump blocks the flow for the whole job.
     err="$(timeout 8 adb shell uiautomator dump /sdcard/uidump.xml 2>&1)" || rc=$?
     if [[ "$rc" -eq 124 ]]; then
+      timed_out=$((timed_out + 1))
+      if [[ "$timed_out" -le 1 ]]; then
+        echo "ui_dump: uiautomator dump timed out after 8s; retrying once" >&2
+        sleep 1
+        continue
+      fi
       echo "ui_dump: uiautomator dump timed out after 8s; UI did not go idle" >&2
       return 1
     fi
@@ -906,11 +920,10 @@ re_escape() {
   python3 -c 'import re,sys; print(re.escape(sys.argv[1]))' "$1"
 }
 
-# Option-list fingerprint. cksum "$DUMP" changes when a spinner or the
-# status-bar clock changes, which never looks like the end of the list.
-# The visible texts do stay put when a swipe was a no-op.
+# Option-list fingerprint. A raw dump checksum changes when a spinner or
+# the status-bar clock changes, which never looks like the end of the list.
+# The visible texts stay put when a swipe was a no-op.
 dump_scroll_sig() {
-  cksum "$DUMP" | awk 'NR==1 { print $1 }' >/dev/null
   python3 - "$DUMP" <<'PY'
 import hashlib, re, sys
 raw = open(sys.argv[1], encoding="utf-8", errors="replace").read()
@@ -961,21 +974,23 @@ select_labeled() {
   local _section="${2:-}"
   : "${_section}"
   local pass i height min_top max_top prev="" current stuck
+  local started=0
   local deadline=0
   if ! wait_out_district_loader; then
     return 1
   fi
-  deadline=$((SECONDS + 120))
+  started=$SECONDS
+  deadline=$((started + 120))
   for pass in 1 2; do
     if (( SECONDS >= deadline )); then
-      echo "select_labeled: gave up looking for '${regex}' after 120s" >&2
+      echo "select_labeled: gave up looking for '${regex}' after $((SECONDS - started))s" >&2
       return 1
     fi
     if [[ "$pass" -eq 2 ]]; then
       prev=""
       for i in $(seq 1 40); do
         if (( SECONDS >= deadline )); then
-          echo "select_labeled: gave up looking for '${regex}' after 120s" >&2
+          echo "select_labeled: gave up looking for '${regex}' after $((SECONDS - started))s" >&2
           return 1
         fi
         ui_dump || {
@@ -1001,7 +1016,7 @@ select_labeled() {
     stuck=0
     for i in $(seq 1 80); do
       if (( SECONDS >= deadline )); then
-        echo "select_labeled: gave up looking for '${regex}' after 120s" >&2
+        echo "select_labeled: gave up looking for '${regex}' after $((SECONDS - started))s" >&2
         return 1
       fi
       ui_dump || {
@@ -1069,7 +1084,7 @@ select_labeled() {
       sleep 0.3
     done
   done
-  echo "select_labeled: gave up looking for '${regex}' after $((SECONDS - deadline + 120))s" >&2
+  echo "select_labeled: gave up looking for '${regex}' after $((SECONDS - started))s" >&2
   return 1
 }
 

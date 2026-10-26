@@ -45,11 +45,16 @@ pick_labeled() {
 pick_labeled filter-chip-deity '^Shiva' DEITY deity-first && pass_step deity-first
 pick_labeled filter-chip-state '^Kerala' STATE state-second && pass_step state-second
 c1=$(count)
-pick_labeled filter-chip-district '^(Thrissur|Ernakulam|Thiruvananthapuram)' DISTRICT district-pick || true
+district_ok=0
+state_ok=0
+pick_labeled filter-chip-district '^(Thrissur|Ernakulam|Thiruvananthapuram)' DISTRICT district-pick && district_ok=1
 # change state: district must drop, not leave a 0-result hidden filter
-pick_labeled filter-chip-state '^Tamil Nadu' STATE state-change || true
-ui_dump; ui_find --text-regex '^(Thrissur|Ernakulam|Thiruvananthapuram)$' && fail_step stale-district "Kerala district chip survives state=Tamil Nadu" || pass_step stale-district
-ui_find --text-contains "No temples" && fail_step tn-shiva-empty "0 results for TN+Shiva (stale district?)" || pass_step tn-shiva-empty
+pick_labeled filter-chip-state '^Tamil Nadu' STATE state-change && state_ok=1
+if [[ "$district_ok" -eq 1 && "$state_ok" -eq 1 ]]; then
+  ui_dump
+  ui_find --text-regex '^(Thrissur|Ernakulam|Thiruvananthapuram)$' && fail_step stale-district "Kerala district chip survives state=Tamil Nadu" || pass_step stale-district
+  ui_find --text-contains "No temples" && fail_step tn-shiva-empty "0 results for TN+Shiva (stale district?)" || pass_step tn-shiva-empty
+fi
 # search + filters
 ui_find --resource-id temple-list-search-field && ui_tap && ui_type "zzzqqq" && adb_shell_capped 8 input keyevent 66; sleep 2
 ui_dump; ui_find --text-contains "No temples" && pass_step empty-state-shown || fail_step empty-state-shown "no empty state for nonsense query+filters"
