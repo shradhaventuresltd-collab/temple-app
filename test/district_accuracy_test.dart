@@ -1,9 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:temple_app/data/sample_data.dart';
 import 'package:temple_app/district/district_attribution.dart';
 import 'package:temple_app/district/district_boundary.dart';
+import 'package:temple_app/district/district_lookup.dart';
 
 void main() {
   test('the Bharatlas district file is bundled under CC-BY-4.0', () {
@@ -114,5 +117,28 @@ void main() {
       offenders.add(rel);
     }
     expect(offenders, isEmpty);
+  });
+
+  test('the first bundled district load is cached for the next call', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    final directory = DistrictDirectory.instance;
+    directory.resetForTest();
+    addTearDown(directory.resetForTest);
+
+    final first = Stopwatch()..start();
+    await directory.ensureFor(sampleTemples);
+    first.stop();
+    expect(directory.assetLoadCount, 1);
+    expect(directory.isReady, isTrue);
+
+    final repeat = Stopwatch()..start();
+    await directory.ensureFor(sampleTemples);
+    repeat.stop();
+    expect(directory.assetLoadCount, 1);
+    expect(repeat.elapsedMilliseconds, lessThan(first.elapsedMilliseconds));
+    debugPrint(
+      'district load first=${first.elapsedMilliseconds}ms '
+      'repeat=${repeat.elapsedMilliseconds}ms temples=${sampleTemples.length}',
+    );
   });
 }

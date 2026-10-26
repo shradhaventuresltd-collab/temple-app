@@ -876,4 +876,241 @@ void main() {
     expect(find.text('Sirohi'), findsOneWidget);
     expect(find.text('All districts'), findsNothing);
   });
+
+  test('option census matches one directoryMatchingTemples call per chip', () {
+    String? districtOf(Temple temple) {
+      return switch (temple.city) {
+        'Madurai' => 'Madurai',
+        'Kottayam' => 'Kottayam',
+        _ => null,
+      };
+    }
+
+    final census = directoryOptionCensus(
+      temples,
+      deity: 'Shiva',
+      district: 'Kottayam',
+      districtOf: districtOf,
+    );
+    expect(
+      census.matched,
+      directoryMatchingTemples(
+        temples,
+        deity: 'Shiva',
+        district: 'Kottayam',
+        districtOf: districtOf,
+      ).length,
+    );
+    expect(census.stateCount('Kerala'), 1);
+    // Madurai is not Kottayam, so Tamil Nadu drops that district. The only
+    // Tamil Nadu row is Devi, and the draft deity is Shiva.
+    expect(census.stateCount('Tamil Nadu'), 0);
+    expect(census.anyState, 1);
+    expect(census.deityCount('Shiva'), 1);
+    expect(census.deityCount('Devi'), 0);
+    expect(
+      census.anyDistrict,
+      directoryMatchingTemples(
+        temples,
+        deity: 'Shiva',
+        districtOf: districtOf,
+      ).length,
+    );
+
+    final many = [
+      for (var i = 0; i < 1000; i++)
+        temple(
+          name: 'Temple $i temple',
+          state: 'State ${i % 28}',
+          city: 'City ${i % 40}',
+          deity: 'Deity ${i % 36}',
+        ),
+    ];
+    String? manyDistrict(Temple temple) => 'District ${temple.city}';
+    final watch = Stopwatch()..start();
+    final wide = directoryOptionCensus(
+      many,
+      state: 'State 3',
+      deity: 'Deity 4',
+      district: 'District City 3',
+      query: 'temple',
+      districtOf: manyDistrict,
+    );
+    watch.stop();
+    expect(wide.matched, greaterThanOrEqualTo(0));
+    expect(
+      watch.elapsed,
+      lessThan(const Duration(milliseconds: 250)),
+      reason: 'one census walk of 1000 temples took ${watch.elapsed}',
+    );
+  });
+
+  testWidgets(
+    'search entry district header swipe dismisses without a recount stall',
+    (tester) async {
+      final many = [
+        for (var i = 0; i < 240; i++)
+          Temple(
+            name: 'Temple $i temple',
+            state: 'State ${i % 18}',
+            city: 'City ${i % 30}',
+            deity: 'Deity ${i % 24}',
+            imageUrl: '',
+            description: '',
+            story: '',
+            location: 'City ${i % 30}',
+            timings: '',
+            specialities: const [],
+            latitude: 10 + (i % 20) * 0.1,
+            longitude: 76 + (i % 15) * 0.1,
+          ),
+      ];
+      String? districtOf(Temple temple) => 'District ${temple.city}';
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DirectoryFilterBar(
+              temples: many,
+              query: 'temple',
+              selectedState: null,
+              selectedDeity: null,
+              districtOf: districtOf,
+              onChanged: (_, _, _) {},
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.byKey(const Key('filter-chip-district')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
+      expect(find.text('Filters'), findsOneWidget);
+
+      final started = Stopwatch()..start();
+      await tester.drag(find.text('Filters'), const Offset(0, 420));
+      await tester.pumpAndSettle();
+      started.stop();
+      expect(find.byKey(const Key('filter-sheet')), findsNothing);
+      expect(
+        started.elapsed,
+        lessThan(const Duration(milliseconds: 800)),
+        reason: 'header swipe took ${started.elapsed}',
+      );
+    },
+  );
+
+  testWidgets('a pending district load does not block the header swipe', (
+    tester,
+  ) async {
+    final gate = Completer<String? Function(Temple)?>();
+    addTearDown(() {
+      if (!gate.isCompleted) gate.complete(null);
+    });
+    final located = Temple(
+      name: 'Meenakshi Amman Temple',
+      state: 'Tamil Nadu',
+      city: 'Madurai',
+      deity: 'Devi',
+      imageUrl: '',
+      description: '',
+      story: '',
+      location: 'Madurai',
+      timings: '',
+      specialities: const [],
+      latitude: 9.9195,
+      longitude: 78.1193,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: DirectoryFilterBar(
+            temples: [located],
+            query: 'temple',
+            selectedState: null,
+            selectedDeity: null,
+            prepareDistricts: () => gate.future,
+            onChanged: (_, _, _) {},
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(const Key('filter-chip-district')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byKey(const Key('filter-district-loading')), findsOneWidget);
+
+    final started = Stopwatch()..start();
+    await tester.drag(find.text('Filters'), const Offset(0, 420));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    started.stop();
+    expect(find.byKey(const Key('filter-sheet')), findsNothing);
+    expect(started.elapsed, lessThan(const Duration(milliseconds: 800)));
+  });
+
+  testWidgets('empty-state Clear filters resets every list entry', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    Future<void> openEntry({
+      required String title,
+      required String initialQuery,
+      String? stateFilter,
+    }) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TempleListScreen(
+            key: ValueKey('$title|$initialQuery|$stateFilter'),
+            temples: temples,
+            title: title,
+            initialQuery: initialQuery,
+            stateFilter: stateFilter,
+          ),
+        ),
+      );
+      await tester.pump();
+    }
+
+    Future<void> expectCleared() async {
+      expect(find.byKey(const Key('filter-empty-clear')), findsOneWidget);
+      expect(find.text('Clear filters'), findsOneWidget);
+      expect(find.textContaining('zzzqqq'), findsWidgets);
+      await tester.tap(find.byKey(const Key('filter-empty-clear')));
+      await tester.pump();
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('filter-chip-state')),
+          matching: find.text('State'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('zzzqqq'), findsNothing);
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller?.text,
+        isEmpty,
+      );
+      expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
+      expect(find.byKey(const Key('filter-clear')), findsNothing);
+    }
+
+    // Home browse and drawer All Temples both open this screen, then the
+    // user applies Tamil Nadu and a query that matches nothing.
+    await openEntry(
+      title: 'All Temples',
+      initialQuery: 'zzzqqq',
+      stateFilter: 'Tamil Nadu',
+    );
+    await expectCleared();
+
+    // Drawer Search opens the same list with the query and the state already set.
+    await openEntry(
+      title: 'Tamil Nadu',
+      initialQuery: 'zzzqqq',
+      stateFilter: 'Tamil Nadu',
+    );
+    await expectCleared();
+  });
 }

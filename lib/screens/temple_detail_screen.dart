@@ -451,11 +451,14 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
                                   setState(() => _currentPage = i),
                               itemBuilder: (context, index) {
                                 final frame = frames[index];
-                                return _GalleryPhoto(
-                                  key: ValueKey('detail-gallery-$index'),
-                                  displayUrl: frame.displayUrl,
-                                  sourceUrl: frame.sourceUrl,
-                                  onWantFullSize: () => _showOriginal(index),
+                                return Semantics(
+                                  identifier: 'detail-gallery-$index',
+                                  child: _GalleryPhoto(
+                                    key: ValueKey('detail-gallery-$index'),
+                                    displayUrl: frame.displayUrl,
+                                    sourceUrl: frame.sourceUrl,
+                                    onWantFullSize: () => _showOriginal(index),
+                                  ),
                                 );
                               },
                             ),

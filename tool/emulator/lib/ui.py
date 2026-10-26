@@ -88,6 +88,12 @@ def _node_matches(node: ET.Element, args: argparse.Namespace, text: str) -> bool
 
     if args.resource_id and not _id_matches(resource_id, args.resource_id):
         return False
+    if args.resource_id_regex:
+        short = resource_id.split("/")[-1] if resource_id else ""
+        if re.search(args.resource_id_regex, short) is None and re.search(
+            args.resource_id_regex, resource_id or ""
+        ) is None:
+            return False
     if args.package_contains and args.package_contains not in package:
         return False
     if args.class_contains and args.class_contains not in clazz:
@@ -119,7 +125,7 @@ def _node_matches(node: ET.Element, args: argparse.Namespace, text: str) -> bool
         required.append(_contains_ok(args.content_desc_contains, content))
     if args.content_desc_regex:
         required.append(_regex_ok(args.content_desc_regex, content))
-    if args.resource_id and not (
+    if (args.resource_id or args.resource_id_regex) and not (
         args.text
         or args.text_contains
         or args.text_regex
@@ -190,6 +196,60 @@ def cmd_find(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_bright(args: argparse.Namespace) -> int:
+    """Exit 0 when a screencap is not a black frame.
+
+    A resize leaves the framebuffer black for a moment. Callers wait and
+    capture again instead of storing that frame.
+    """
+    import struct
+    import zlib
+
+    data = open(args.path, "rb").read()
+    if not data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return 1
+    pos = 8
+    width = height = color = 0
+    idat = bytearray()
+    while pos + 8 <= len(data):
+        length = struct.unpack(">I", data[pos : pos + 4])[0]
+        kind = data[pos + 4 : pos + 8]
+        chunk = data[pos + 8 : pos + 8 + length]
+        pos += 12 + length
+        if kind == b"IHDR":
+            width, height, _bit, color = struct.unpack(">IIBB", chunk[:10])
+        elif kind == b"IDAT":
+            idat.extend(chunk)
+        elif kind == b"IEND":
+            break
+    if width <= 0 or height <= 0:
+        return 1
+    channels = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}.get(color)
+    if channels is None or channels < 3:
+        return 1
+    raw = zlib.decompress(bytes(idat))
+    stride = width * channels
+    total = 0
+    count = 0
+    index = 0
+    for y in range(height):
+        index += 1
+        row = raw[index : index + stride]
+        index += stride
+        if y % 40:
+            continue
+        for x in range(0, width, 40):
+            pixel = x * channels
+            if pixel + 2 >= len(row):
+                break
+            total += row[pixel] + row[pixel + 1] + row[pixel + 2]
+            count += 3
+    if count == 0:
+        return 1
+    mean = total / count
+    return 0 if mean >= 12 else 1
+
+
 def cmd_resource_ids(args: argparse.Namespace) -> int:
     try:
         root = _load(args.dump)
@@ -219,6 +279,7 @@ def _parser() -> argparse.ArgumentParser:
     find = sub.add_parser("find")
     find.add_argument("dump")
     find.add_argument("--resource-id", default="")
+    find.add_argument("--resource-id-regex", default="")
     find.add_argument("--text", default="")
     find.add_argument("--text-contains", default="")
     find.add_argument("--text-regex", default="")
@@ -237,6 +298,10 @@ def _parser() -> argparse.ArgumentParser:
     ids.add_argument("dump")
     ids.add_argument("--prefix", default="")
     ids.set_defaults(func=cmd_resource_ids)
+
+    bright = sub.add_parser("bright")
+    bright.add_argument("path")
+    bright.set_defaults(func=cmd_bright)
     return parser
 
 

@@ -41,6 +41,7 @@ flows=(
   27-offline-cold-start
   28-small-screen-rotation-overflow
   29-filter-matrix
+  30-filter-matrix-rest
 )
 
 resolve_outcome="${EMULATOR_RESOLVE_OUTCOME:-success}"

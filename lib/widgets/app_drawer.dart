@@ -72,6 +72,7 @@ class _AppDrawerState extends State<AppDrawer> {
   void initState() {
     super.initState();
     _templesFuture = TempleService().getTemples();
+    warmDirectoryDistricts(_templesFuture);
   }
 
   @override
@@ -299,6 +300,7 @@ class _AppDrawerState extends State<AppDrawer> {
                   onDistrictsLoaded: () {
                     if (mounted) setState(() {});
                   },
+                  onClearAll: _clearFiltersAndSearch,
                   onChanged: (state, deity, district) {
                     final previousState = _selectedState;
                     final previousDeity = _selectedDeity;
@@ -948,6 +950,9 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
     _selectedDeity = widget.initialDeity;
     _selectedDistrict = widget.initialDistrict;
     _searchController = TextEditingController(text: widget.initialQuery);
+    if (widget.temples.isNotEmpty) {
+      warmDirectoryDistricts(Future<List<Temple>>.value(widget.temples));
+    }
   }
 
   @override
@@ -1331,10 +1336,14 @@ class _SearchEmptyState extends StatelessWidget {
                 spacing: 8,
                 children: [
                   if (onClearFilters != null)
-                    TextButton(
-                      key: const Key('filter-empty-clear'),
-                      onPressed: onClearFilters,
-                      child: const Text('Clear filters'),
+                    Semantics(
+                      identifier: 'filter-empty-clear',
+                      button: true,
+                      child: TextButton(
+                        key: const Key('filter-empty-clear'),
+                        onPressed: onClearFilters,
+                        child: const Text('Clear filters'),
+                      ),
                     ),
                   if (onClearSearch != null)
                     TextButton(

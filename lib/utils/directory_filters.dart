@@ -181,3 +181,122 @@ String directoryFilterResultLabel(int count) {
   final noun = count == 1 ? 'temple' : 'temples';
   return 'Show $count $noun';
 }
+
+/// Counts for every option in the filter sheet, from one walk of [temples].
+///
+/// The sheet used to call [directoryMatchingTemples] once per chip. That
+/// ranks the whole directory again for every state, deity, and district.
+/// A header drag rebuilds the sheet, so the walk ran on the UI thread for
+/// each pointer-down. This census is that walk, once.
+class DirectoryOptionCensus {
+  const DirectoryOptionCensus({
+    required this.matched,
+    required this.anyState,
+    required this.stateCounts,
+    required this.anyDeity,
+    required this.deityCounts,
+    required this.anyDistrict,
+    required this.districtCounts,
+  });
+
+  /// Temples matching the draft state, deity, district, and query together.
+  final int matched;
+
+  /// Temples matching the draft deity, district, and query, any state.
+  final int anyState;
+  final Map<String, int> stateCounts;
+
+  /// Temples matching the draft state, district, and query, any deity.
+  final int anyDeity;
+  final Map<String, int> deityCounts;
+
+  /// Temples matching the draft state, deity, and query, any district.
+  final int anyDistrict;
+  final Map<String, int> districtCounts;
+
+  int stateCount(String state) => stateCounts[state] ?? 0;
+
+  int deityCount(String deity) => deityCounts[deity] ?? 0;
+
+  int districtCount(String district) => districtCounts[district] ?? 0;
+}
+
+/// One pass over [temples] for the sheet's option counts.
+///
+/// A district that belongs to another state is ignored for that state's
+/// chip, matching the sheet's state picker. It still constrains the other
+/// counts. A selected district with no lookup yet matches no temple, and
+/// it does not paint state chips as zero.
+DirectoryOptionCensus directoryOptionCensus(
+  List<Temple> temples, {
+  String? state,
+  String? deity,
+  String? district,
+  String query = '',
+  TempleDistrictName? districtOf,
+}) {
+  final wanted = district?.trim() ?? '';
+  final useDistrict = wanted.isNotEmpty;
+  final districtsInState = <String, Set<String>>{};
+  if (useDistrict && districtOf != null) {
+    for (final temple in temples) {
+      final name = districtOf(temple)?.trim() ?? '';
+      if (name.isEmpty) continue;
+      final templeState = temple.state.trim();
+      if (templeState.isEmpty) continue;
+      (districtsInState[templeState] ??= <String>{}).add(name);
+    }
+  }
+
+  final stateCounts = <String, int>{};
+  final deityCounts = <String, int>{};
+  final districtCounts = <String, int>{};
+  var matched = 0;
+  var anyState = 0;
+  var anyDeity = 0;
+  var anyDistrict = 0;
+
+  for (final temple in temples) {
+    if (!templeMatchesQuery(temple, query)) continue;
+    final templeState = temple.state.trim();
+    final templeDeity = temple.deity.trim();
+    final templeDistrict = districtOf == null
+        ? ''
+        : (districtOf(temple)?.trim() ?? '');
+    final stateOk = state == null || state.isEmpty || temple.state == state;
+    final deityOk = deity == null || deity.isEmpty || temple.deity == deity;
+    final districtOk =
+        !useDistrict || (districtOf != null && templeDistrict == wanted);
+
+    if (deityOk && districtOk) anyState++;
+    if (stateOk && districtOk) anyDeity++;
+    if (stateOk && deityOk) anyDistrict++;
+    if (stateOk && deityOk && districtOk) matched++;
+
+    if (deityOk && templeState.isNotEmpty) {
+      final keepsDistrict =
+          useDistrict &&
+          (districtsInState[templeState]?.contains(wanted) ?? false);
+      if (!keepsDistrict || templeDistrict == wanted) {
+        stateCounts[templeState] = (stateCounts[templeState] ?? 0) + 1;
+      }
+    }
+    if (stateOk && districtOk && templeDeity.isNotEmpty) {
+      deityCounts[templeDeity] = (deityCounts[templeDeity] ?? 0) + 1;
+    }
+    if (stateOk && deityOk && templeDistrict.isNotEmpty) {
+      districtCounts[templeDistrict] =
+          (districtCounts[templeDistrict] ?? 0) + 1;
+    }
+  }
+
+  return DirectoryOptionCensus(
+    matched: matched,
+    anyState: anyState,
+    stateCounts: stateCounts,
+    anyDeity: anyDeity,
+    deityCounts: deityCounts,
+    anyDistrict: anyDistrict,
+    districtCounts: districtCounts,
+  );
+}

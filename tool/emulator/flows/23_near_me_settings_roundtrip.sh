@@ -8,13 +8,29 @@ adb_shell_capped 8 pm revoke "$PKG" android.permission.ACCESS_COARSE_LOCATION >/
 adb_shell_capped 8 pm revoke "$PKG" android.permission.ACCESS_FINE_LOCATION >/dev/null 2>&1 || true
 adb_shell_capped 8 settings put secure location_mode 0
 open_nm() {
-  local i
-  for i in 1 2 3 4 5 6; do
-    ui_dump || true
-    ui_find --text-regex 'near me' && { ui_tap; sleep 2; return 0; }
-    ui_fling up || { echo "open_nm: fling timed out" >&2; return 1; }
+  local i width height
+  read -r width height < <(ui_screen_size) || return 1
+  # The control sits under Browse. A fling from the middle of Home skips it.
+  for i in $(seq 1 6); do
+    adb_shell_capped 8 input swipe \
+      $((width / 2)) $((height * 32 / 100)) \
+      $((width / 2)) $((height * 78 / 100)) 180 || return 1
+    sleep 0.2
   done
-  echo "open_nm: gave up after 6 flings" >&2
+  for i in $(seq 1 12); do
+    if ui_dump && ui_find --text-contains "Temples near me"; then
+      if (( UI_CY > 48 && UI_CY < height - 48 )); then
+        ui_tap
+        sleep 2
+        return 0
+      fi
+    fi
+    adb_shell_capped 8 input swipe \
+      $((width / 2)) $((height * 68 / 100)) \
+      $((width / 2)) $((height * 50 / 100)) 220 || return 1
+    sleep 0.4
+  done
+  echo "open_nm: gave up after 12 scrolls" >&2
   return 1
 }
 open_nm || { fail_step open "no near-me entry"; return 0; }

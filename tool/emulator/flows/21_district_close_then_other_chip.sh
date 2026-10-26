@@ -29,7 +29,10 @@ for how in x back swipe outside apply; do
   for other in state deity; do
     tag="district-select-${how}-then-${other}"
     open_district || { fail_step "$tag" "district sheet did not open"; recover_sheet; continue; }
-    select_labeled '^(?!All districts).+ · ?[0-9]+' DISTRICT || select_labeled '^[A-Z][a-z]+' DISTRICT
+    # Option text is "Madurai  4", flattened to "Madurai 4". A middle dot
+    # never appears, so the old pattern scrolled until the flow timed out
+    # and Back left the list. Skip the All districts row, which also has a count.
+    select_labeled '^(?!All districts).+ [0-9]+$' DISTRICT
     close_how "$how"
     if sheet_open; then fail_step "$tag" "sheet still open after $how"; recover_sheet; continue; fi
     other_chip_opens "$other" && pass_step "$tag" || fail_step "$tag" "$other chip dead after district+$how"

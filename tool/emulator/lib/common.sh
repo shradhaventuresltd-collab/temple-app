@@ -40,10 +40,20 @@ record_not_run() {
 }
 
 step_shot() {
-  local safe
+  local safe dest attempt
   SHOT_N=$((SHOT_N + 1))
   safe=$(printf '%s' "$1" | tr -c 'A-Za-z0-9_-' '_')
-  adb exec-out screencap -p > "${SHOT_DIR}/$(printf '%02d_%s.png' "$SHOT_N" "$safe")" || true
+  dest="${SHOT_DIR}/$(printf '%02d_%s.png' "$SHOT_N" "$safe")"
+  # screencap, not the screenrecord buffer. After a resize the first frame
+  # can be black; wait until a capture has pixels, then keep that file.
+  for attempt in 1 2 3 4 5; do
+    if adb exec-out screencap -p > "$dest" && [[ -s "$dest" ]] \
+      && python3 "$UI_PY" bright "$dest" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 0.6
+  done
+  adb exec-out screencap -p > "$dest" || true
 }
 
 pass_step() {
@@ -321,12 +331,15 @@ ui_sheet_swipe() {
   local width height travel start_y end_y
   read -r width height < <(ui_screen_size) || return 1
   local x=$((width / 2))
-  travel=$((height * 7 / 100))
-  if (( travel < 72 )); then
-    travel=72
+  # A 72px step never reached Shiva, Madurai, or Vishnu before the
+  # 120s cap. A quarter of the sheet crosses several rows per dump and
+  # still stops inside the tap band on the next look.
+  travel=$((height * 24 / 100))
+  if (( travel < 160 )); then
+    travel=160
   fi
-  if (( travel > 140 )); then
-    travel=140
+  if (( travel > 320 )); then
+    travel=320
   fi
   start_y=$((height * start_pct / 100))
   if [[ "$direction" == "down" ]]; then
@@ -373,6 +386,26 @@ scroll_drawer_until() {
   return 1
 }
 
+# Pull the drawer list back to its top. A failed All Temples search flings
+# this list until Home is off screen; the next Home tap then times out.
+scroll_drawer_top() {
+  local i width height x
+  read -r width height < <(ui_screen_size) || return 1
+  x=$((width * 28 / 100))
+  if (( x < 48 )); then
+    x=48
+  fi
+  for i in 1 2 3 4 5 6; do
+    adb_shell_capped 8 input swipe \
+      "$x" $((height * 28 / 100)) \
+      "$x" $((height * 78 / 100)) 200 || {
+      echo "scroll_drawer_top: swipe timed out" >&2
+      return 1
+    }
+    sleep 0.15
+  done
+}
+
 launch_app() {
   adb shell am start -n "${PKG}/.MainActivity" >/dev/null 2>&1 || \
     adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
@@ -399,6 +432,22 @@ uninstall_app() {
 
 install_once() {
   adb install -r -d "$EMULATOR_APK" 2>&1
+}
+
+# Printed once per flow, after the APK is on the emulator. Lessons row 4
+# asks for the installed versionCode, not the pubspec text.
+log_installed_version() {
+  local dump code name
+  if [[ -z "${PKG:-}" ]]; then
+    echo "installed versionCode=unknown (package unset)"
+    printf 'VERSION %s versionCode=unknown versionName=unknown\n' "$FLOW" >> "$RESULTS"
+    return 0
+  fi
+  dump="$(adb shell dumpsys package "$PKG" 2>/dev/null | tr -d '\r' || true)"
+  code="$(printf '%s\n' "$dump" | sed -n 's/.*versionCode=\([0-9][0-9]*\).*/\1/p' | head -1)"
+  name="$(printf '%s\n' "$dump" | sed -n 's/.*versionName=\([^ ]*\).*/\1/p' | head -1)"
+  echo "installed ${PKG} versionName=${name:-unknown} versionCode=${code:-unknown}"
+  printf 'VERSION %s versionCode=%s versionName=%s\n' "$FLOW" "${code:-unknown}" "${name:-unknown}" >> "$RESULTS"
 }
 
 install_apk() {
@@ -644,7 +693,9 @@ wait_for_home() {
 
 open_browse() {
   local start="$SECONDS"
-  while (( SECONDS - start < 40 )); do
+  # OPEN_BROWSE_HOME_WAIT lets the self-test skip the home-button loop.
+  local limit="${OPEN_BROWSE_HOME_WAIT:-40}"
+  while (( SECONDS - start < limit )); do
     if ui_dump && ui_find --resource-id home-browse-temples; then
       ui_tap
       return 0
@@ -656,16 +707,31 @@ open_browse() {
     ui_fling up || true
     sleep 1
   done
-  # Fall back to the drawer entry.
+  # Fall back to the drawer entry. The All Temples tile's content-desc is
+  # "All Temples\n<count>", which flattens to "All Temples 992". A trailing
+  # $ never matches that node. Home and Licences have no trailing count, so
+  # their $ anchors stay. Option chips are one text ("Shiva  12"); pickers
+  # allow that suffix. Trigger chips (State, All districts, Deity) and
+  # "Show N temples" / "Browse N Temples" are a single line, so their $ stays.
+  # A miss used to fling until Home left the tree. The next '^Home$' wait
+  # then timed out and the && skipped both taps (flow 18's double-tap).
   if ui_dump && ui_find --content-desc "Open navigation menu"; then
     ui_tap
     sleep 1
-    if ui_wait_scrolled 15 --text-regex '^All Temples$'; then
+    if scroll_drawer_until --text-regex '^All Temples'; then
       ui_tap
       return 0
     fi
+    scroll_drawer_top || true
+    if ui_dump && ui_find --text-regex '^All Temples'; then
+      ui_tap
+      return 0
+    fi
+    # Close at the top. The drawer's scroll offset survives a close, and a
+    # later menu tap must open onto Home rather than close a scrolled drawer.
+    ui_back || true
   fi
-  echo "open_browse: timed out after 40s" >&2
+  echo "open_browse: timed out after ${limit}s" >&2
   return 1
 }
 
@@ -856,7 +922,9 @@ find_filter_chip() {
   local desc="${3:-}"
   local i width height max_top y found
   read -r width height < <(ui_screen_size) || return 1
-  max_top=$((height * 38 / 100))
+  # Landscape puts the chip row below 38% of the height, so a portrait band
+  # misses Kerala after rotation and the shot still shows the old chip.
+  max_top=$((height * 70 / 100))
   y=$((height * 22 / 100))
   for i in $(seq 1 8); do
     ui_dump || true
@@ -898,7 +966,7 @@ find_filter_chip() {
 scroll_chips_until() {
   local i y width height max_top
   read -r width height < <(ui_screen_size) || return 1
-  max_top=$((height * 40 / 100))
+  max_top=$((height * 70 / 100))
   y=$((height * 22 / 100))
   for i in $(seq 1 6); do
     if ui_dump && ui_find "$@" --max-top "$max_top"; then
@@ -963,6 +1031,22 @@ wait_out_district_loader() {
   return 1
 }
 
+# "^Shiva( +[0-9]+)?$" -> "Shiva". Empty when the pattern is not a label.
+option_name_from_regex() {
+  python3 -c '
+import re, sys
+raw = sys.argv[1]
+match = re.match(r"\^\(?([A-Za-z][^($\\]*)", raw)
+if not match:
+    print("")
+    raise SystemExit(0)
+name = match.group(1)
+name = re.sub(r"\([^)]*$", "", name).strip()
+name = name.split("|")[0].strip()
+print(name if name else "")
+' "$1"
+}
+
 # Walk the option list until regex is inside the tap band, then tap it.
 # Callers pass the section name (STATE, DISTRICT, DEITY). The list ends when
 # a swipe leaves the option texts unchanged, not when the next header peeks in.
@@ -974,6 +1058,11 @@ select_labeled() {
   local _section="${2:-}"
   : "${_section}"
   local pass i height min_top max_top prev="" current stuck
+  local name_hint id_rx=""
+  name_hint="$(option_name_from_regex "$regex")"
+  if [[ -n "$name_hint" ]]; then
+    id_rx="filter-option-.*-$(re_escape "$name_hint")$"
+  fi
   local started=0
   local deadline=0
   if ! wait_out_district_loader; then
@@ -1029,8 +1118,9 @@ select_labeled() {
       }
       min_top=$((height * 24 / 100))
       max_top=$((height * 84 / 100))
-      if ui_find --text-regex "$regex" --min-top "$min_top" --max-top "$max_top" --prefer upper \
-        && [[ ! "$UI_TEXT" =~ ^Show[[:space:]]+[0-9]+[[:space:]]+temples?$ ]]; then
+      if { [[ -n "$id_rx" ]] && ui_find --resource-id-regex "$id_rx" --min-top "$min_top" --max-top "$max_top" --prefer upper; } \
+        || { ui_find --text-regex "$regex" --min-top "$min_top" --max-top "$max_top" --prefer upper \
+        && [[ ! "$UI_TEXT" =~ ^Show[[:space:]]+[0-9]+[[:space:]]+temples?$ ]]; }; then
         SELECTED_LABEL="$(chip_label "$UI_TEXT")"
         ui_tap
         sleep 1

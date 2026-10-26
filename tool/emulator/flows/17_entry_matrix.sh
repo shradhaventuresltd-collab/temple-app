@@ -89,5 +89,36 @@ for entry in home_button drawer_all drawer_search list_drawer_all; do
     open_chip "$f" >/dev/null 2>&1 && { adb shell input tap "$UI_CX" "$UI_CY"; sleep 1; ui_back; sleep 1;
       if sheet_open; then fail_step "$id-double-tap" "two sheets stacked"; recover_sheet; else pass_step "$id-double-tap"; fi; }
   done
+  # Empty-state Clear filters, from this entry. The chip-row Clear is a
+  # different control. Both the state chip and the search text must go.
+  if ui_dump && ui_find --resource-id filter-chip-state --text-regex '^State$'; then
+    ui_tap
+    if ui_wait 12 --text-regex '^Filters$'; then
+      select_labeled '^Kerala( +[0-9]+)?$' STATE || true
+      apply_sheet || recover_sheet
+    fi
+  fi
+  if ui_dump && ui_find --resource-id temple-list-search-field; then
+    ui_tap
+    ui_type "zzzqqq"
+    adb_shell_capped 8 input keyevent 66 || true
+    sleep 2
+    if ui_dump && ui_find --resource-id filter-empty-clear; then
+      ui_tap
+      sleep 1
+      ui_dump
+      if ui_find --text-contains "zzzqqq"; then
+        fail_step "$entry-empty-clear" "search text kept"
+      elif ui_find --resource-id filter-chip-state --text-regex '^State$'; then
+        pass_step "$entry-empty-clear"
+      else
+        fail_step "$entry-empty-clear" "state chip kept"
+      fi
+    else
+      fail_step "$entry-empty-clear" "Clear filters was not shown"
+    fi
+  else
+    fail_step "$entry-empty-clear" "search field missing"
+  fi
   force_stop_app
 done

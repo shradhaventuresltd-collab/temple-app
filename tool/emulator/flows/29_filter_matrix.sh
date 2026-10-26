@@ -160,7 +160,23 @@ probe_others() {
   done
 }
 
-ENTRIES=(home_browse drawer_all drawer_bar search near_me)
+# One 1140s budget died at cell 47, still inside the first half of this
+# matrix, so the 3+ step sequences never started. Part a is home + drawer
+# All Temples. Part b is the drawer bar, Search, near me, and the sequences.
+case "${FILTER_MATRIX_PART:-all}" in
+  a)
+    ENTRIES=(home_browse drawer_all)
+    RUN_SEQS=0
+    ;;
+  b)
+    ENTRIES=(drawer_bar search near_me)
+    RUN_SEQS=1
+    ;;
+  *)
+    ENTRIES=(home_browse drawer_all drawer_bar search near_me)
+    RUN_SEQS=1
+    ;;
+esac
 ACTIONS=(select pick-close dismiss-empty back-empty outside-empty clear)
 
 for entry in "${ENTRIES[@]}"; do
@@ -185,6 +201,7 @@ for entry in "${ENTRIES[@]}"; do
 done
 
 # Sequences of 3+ on Home Browse, each followed by a full probe.
+if [[ "$RUN_SEQS" -eq 1 ]]; then
 SEQS=(
   "district:pick-close state:select deity:select"
   "district:select deity:pick-close state:clear"
@@ -204,7 +221,14 @@ for seq in "${SEQS[@]}"; do
   # then detail -> back -> probe
   if ui_wait_scrolled 20 --resource-id temple-browse-card; then
     ui_tap; ui_wait_scrolled 20 --text-contains "How to Reach" && ui_back; sleep 2
+    ui_dump || true
+    if ui_find --resource-id filter-chip-state; then
+      pass_step "seq$n-filter-kept"
+    else
+      fail_step "seq$n-filter-kept" "filter bar missing after detail"
+    fi
     probe_others "seq$n-after-detail" state
   fi
 done
+fi
 force_stop_app
