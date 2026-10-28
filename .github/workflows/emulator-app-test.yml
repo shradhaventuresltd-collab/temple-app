@@ -68,8 +68,21 @@ jobs:
       EMULATOR_AVD_CACHE_KEY: avd-30-x86_64-google_apis-emulator-app-test-clean
       EMULATOR_PRE_LAUNCH: bash tool/emulator/prepare_avd.sh
     steps:
+      # Flows and helpers must come from the ref under test, not from the
+      # branch the workflow was dispatched on. Note: the step list itself
+      # always comes from the dispatched ref's copy of this file, so dispatch
+      # with --ref <branch under test> as well.
       - name: Checkout workflow scripts
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+
+      - name: Verify scripts ref and flow files
+        env:
+          INPUT_REF: ${{ inputs.ref }}
+          DISPATCH_SHA: ${{ github.sha }}
+          DISPATCH_REF: ${{ github.ref }}
+        run: bash tool/emulator/verify_flows.sh
 
       - name: Check emulator scripts
         run: bash tool/emulator/self_test.sh
