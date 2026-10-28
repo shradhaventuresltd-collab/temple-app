@@ -134,11 +134,12 @@ if grep -Eq '<<:|&[A-Za-z]' "$workflow"; then
   echo "workflow uses a YAML anchor; GitHub Actions will not expand it" >&2
   exit 1
 fi
-if [[ "$(grep -c '^[[:space:]]*timeout-minutes: 30$' "$workflow")" -ne 30 ]]; then
-  echo "each of the 30 flow steps needs timeout-minutes: 30" >&2
+# Full flows get 30 minutes; the flow-29 slices (<= 8 min each) get 20.
+if [[ "$(grep -cE '^[[:space:]]*timeout-minutes: (20|30)$' "$workflow")" -ne "$(grep -c "run_one_flow.sh " "$workflow")" ]]; then
+  echo "each flow step needs timeout-minutes: 20 or 30" >&2
   exit 1
 fi
-if [[ "$(grep -c '!cancelled() && steps.resolve-apk.outcome' "$workflow")" -ne 30 ]]; then
+if [[ "$(grep -c '!cancelled() && steps.resolve-apk.outcome' "$workflow")" -ne "$(grep -c 'run_one_flow.sh ' "$workflow")" ]]; then
   echo "each flow step should use !cancelled() so a real cancellation skips it" >&2
   exit 1
 fi
@@ -159,11 +160,11 @@ if grep -Eq '^[[:space:]]*(push|pull_request|schedule):' "$workflow"; then
   exit 1
 fi
 runner_steps="$(grep -c 'uses: reactivecircus/android-emulator-runner@' "$workflow")"
-if [[ "$runner_steps" -ne 31 ]]; then
-  echo "expected 31 emulator steps (snapshot plus 30 flows), found ${runner_steps}" >&2
+if [[ "$runner_steps" -ne $(( $(grep -c "run_one_flow.sh " "$workflow") + 1 )) ]]; then
+  echo "expected $(( $(grep -c 'run_one_flow.sh ' "$workflow") + 1 )) emulator steps (snapshot plus one per flow), found ${runner_steps}" >&2
   exit 1
 fi
-if [[ "$(grep -F -c 'emulator-options: ${{ env.EMULATOR_OPTIONS }}' "$workflow")" -ne 30 ]]; then
+if [[ "$(grep -F -c 'emulator-options: ${{ env.EMULATOR_OPTIONS }}' "$workflow")" -ne "$(grep -c 'run_one_flow.sh ' "$workflow")" ]]; then
   echo "each flow step should read EMULATOR_OPTIONS from env" >&2
   exit 1
 fi
@@ -243,7 +244,16 @@ flows=(
   26-drawer-nav-stack
   27-offline-cold-start
   28-small-screen-rotation-overflow
-  29-filter-matrix
+  29a-home-browse-state
+  29b-home-browse-district
+  29c-home-browse-deity
+  29d-drawer-all-state
+  29e-drawer-all-district
+  29f-drawer-all-deity
+  29g-search-state
+  29h-search-district
+  29i-search-deity
+  29j-sequences
   30-filter-matrix-rest
 )
 for flow in "${flows[@]}"; do
@@ -514,8 +524,8 @@ if EMULATOR_ARTIFACTS="$summary_dir" GITHUB_STEP_SUMMARY="${summary_dir}/summary
   exit 1
 fi
 missing="$(grep -c ': missing:' "${summary_dir}/results.txt")"
-if [[ "$missing" -ne 30 ]]; then
-  echo "expected 30 missing-flow lines, found ${missing}" >&2
+if [[ "$missing" -ne "${#flows[@]}" ]]; then
+  echo "expected ${#flows[@]} missing-flow lines, found ${missing}" >&2
   exit 1
 fi
 : > "${summary_dir}/results.txt"
@@ -557,8 +567,8 @@ if ! EMULATOR_ARTIFACTS="$not_run_dir" EMULATOR_RESOLVE_OUTCOME=failure \
   exit 1
 fi
 not_run="$(grep -c '^NOT RUN ' "${not_run_dir}/results.txt")"
-if [[ "$not_run" -ne 30 ]]; then
-  echo "expected 30 NOT RUN lines, found ${not_run}" >&2
+if [[ "$not_run" -ne "${#flows[@]}" ]]; then
+  echo "expected ${#flows[@]} NOT RUN lines, found ${not_run}" >&2
   exit 1
 fi
 if grep -q '^FAIL ' "${not_run_dir}/results.txt"; then

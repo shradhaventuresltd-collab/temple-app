@@ -46,7 +46,8 @@ concurrency:
 jobs:
   emulator-app-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    # Flow 29 is ten slices of at most 8 minutes each, plus boot.
+    timeout-minutes: 300
     # Shared emulator-runner inputs. GitHub Actions does not expand YAML
     # anchors, so each flow step reads these env values.
     env:
@@ -757,9 +758,9 @@ jobs:
           pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
           script: bash tool/emulator/run_one_flow.sh 28-small-screen-rotation-overflow tool/emulator/flows/28_small_screen_rotation_overflow.sh
 
-      - name: Flow 29 filter matrix
+      - name: Flow 29a home-browse-state
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 30
+        timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -774,7 +775,178 @@ jobs:
           emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
           emulator-options: ${{ env.EMULATOR_OPTIONS }}
           pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
-          script: FILTER_MATRIX_PART=a bash tool/emulator/run_one_flow.sh 29-filter-matrix tool/emulator/flows/29_filter_matrix.sh
+          script: bash tool/emulator/run_one_flow.sh 29a-home-browse-state tool/emulator/flows/29a_home_browse_state.sh
+
+      - name: Flow 29b home-browse-district
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        timeout-minutes: 20
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 29b-home-browse-district tool/emulator/flows/29b_home_browse_district.sh
+
+      - name: Flow 29c home-browse-deity
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        timeout-minutes: 20
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 29c-home-browse-deity tool/emulator/flows/29c_home_browse_deity.sh
+
+      - name: Flow 29d drawer-all-state
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        timeout-minutes: 20
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 29d-drawer-all-state tool/emulator/flows/29d_drawer_all_state.sh
+
+      - name: Flow 29e drawer-all-district
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        timeout-minutes: 20
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 29e-drawer-all-district tool/emulator/flows/29e_drawer_all_district.sh
+
+      - name: Flow 29f drawer-all-deity
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        timeout-minutes: 20
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 29f-drawer-all-deity tool/emulator/flows/29f_drawer_all_deity.sh
+
+      - name: Flow 29g search-state
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        timeout-minutes: 20
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 29g-search-state tool/emulator/flows/29g_search_state.sh
+
+      - name: Flow 29h search-district
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        timeout-minutes: 20
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 29h-search-district tool/emulator/flows/29h_search_district.sh
+
+      - name: Flow 29i search-deity
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        timeout-minutes: 20
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 29i-search-deity tool/emulator/flows/29i_search_deity.sh
+
+      - name: Flow 29j sequences
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        timeout-minutes: 20
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 29j-sequences tool/emulator/flows/29j_sequences.sh
 
       - name: Flow 30 filter matrix rest
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}

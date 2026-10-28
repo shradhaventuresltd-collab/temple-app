@@ -40,7 +40,16 @@ flows=(
   26-drawer-nav-stack
   27-offline-cold-start
   28-small-screen-rotation-overflow
-  29-filter-matrix
+  29a-home-browse-state
+  29b-home-browse-district
+  29c-home-browse-deity
+  29d-drawer-all-state
+  29e-drawer-all-district
+  29f-drawer-all-deity
+  29g-search-state
+  29h-search-district
+  29i-search-deity
+  29j-sequences
   30-filter-matrix-rest
 )
 
