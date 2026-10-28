@@ -254,7 +254,10 @@ flows=(
   29h-search-district
   29i-search-deity
   29j-sequences
-  30-filter-matrix-rest
+  30a-drawer-bar-state
+  30b-drawer-bar-district
+  30c-drawer-bar-deity
+  30d-near-me
 )
 for flow in "${flows[@]}"; do
   if ! grep -q "run_one_flow.sh ${flow} " "$workflow"; then
@@ -469,28 +472,23 @@ if ! grep -q 'scroll_drawer_until --resource-id temple-list-search-field' tool/e
   echo "flow 17 should scroll the drawer to the search field" >&2
   exit 1
 fi
-if grep -q 'district chip hidden"' tool/emulator/flows/29_filter_matrix.sh; then
-  echo "flow 29 must not xfail a missing district chip unconditionally" >&2
+# Flow 29/30 slices: District is generated only after a State (by design),
+# every case relaunches, and the district loader is waited out.
+for lib in tool/emulator/flows/lib/filter_matrix.sh tool/emulator/flows/lib/filter_matrix_b.sh; do
+  if ! grep -A3 '^fresh_home()' "$lib" | grep -q 'force_stop_app'; then
+    echo "${lib} should relaunch the app for every case" >&2
+    exit 1
+  fi
+  if grep -q 'xfail_step' "$lib"; then
+    echo "${lib} must not xfail; hidden-by-design cases are not generated" >&2
+    exit 1
+  fi
+done
+if ! grep -q 'state:select "district:\$action"' tool/emulator/flows/lib/filter_matrix.sh; then
+  echo "flow 29 district cases must start with state:select" >&2
   exit 1
 fi
-eval "$(sed -n '/^district_miss_outcome()/,/^}/p' tool/emulator/flows/29_filter_matrix.sh)"
-if [[ "$(district_miss_outcome 0 0)" != xfail ]]; then
-  echo "a missing district chip with no state selected should be xfail" >&2
-  exit 1
-fi
-if [[ "$(district_miss_outcome 0 1)" != fail ]]; then
-  echo "a missing district chip after a state was selected should fail" >&2
-  exit 1
-fi
-if [[ "$(district_miss_outcome 1 0)" != fail || "$(district_miss_outcome 1 1)" != fail ]]; then
-  echo "a district chip that is in the dump should not be xfail" >&2
-  exit 1
-fi
-if ! grep -A3 '^enter_home_browse()' tool/emulator/flows/29_filter_matrix.sh | grep -q 'fresh_home'; then
-  echo "flow 29 should return home between cases" >&2
-  exit 1
-fi
-if ! grep -q 'filter-district-loading' tool/emulator/flows/29_filter_matrix.sh; then
+if ! grep -q 'wait_out_district_loader' tool/emulator/flows/lib/filter_matrix.sh; then
   echo "flow 29 should wait out the district loader" >&2
   exit 1
 fi

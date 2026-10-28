@@ -948,9 +948,9 @@ jobs:
           pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
           script: bash tool/emulator/run_one_flow.sh 29j-sequences tool/emulator/flows/29j_sequences.sh
 
-      - name: Flow 30 filter matrix rest
+      - name: Flow 30a drawer-bar-state
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
-        timeout-minutes: 30
+        timeout-minutes: 20
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -965,7 +965,64 @@ jobs:
           emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
           emulator-options: ${{ env.EMULATOR_OPTIONS }}
           pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
-          script: FILTER_MATRIX_PART=b bash tool/emulator/run_one_flow.sh 30-filter-matrix-rest tool/emulator/flows/29_filter_matrix.sh
+          script: bash tool/emulator/run_one_flow.sh 30a-drawer-bar-state tool/emulator/flows/30a_drawer_bar_state.sh
+
+      - name: Flow 30b drawer-bar-district
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        timeout-minutes: 20
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 30b-drawer-bar-district tool/emulator/flows/30b_drawer_bar_district.sh
+
+      - name: Flow 30c drawer-bar-deity
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        timeout-minutes: 20
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 30c-drawer-bar-deity tool/emulator/flows/30c_drawer_bar_deity.sh
+
+      - name: Flow 30d near-me
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        timeout-minutes: 20
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 30d-near-me tool/emulator/flows/30d_near_me.sh
 
       - name: Write results summary
         if: always()

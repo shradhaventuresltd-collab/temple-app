@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Filter-chip matrix, one slice per flow. Replaces 29_filter_matrix.sh
 # parts a and its sequences (flow 30 / part b is owned separately and still
-# sources 29_filter_matrix.sh).
+# sourced 29_filter_matrix.sh, now removed).
 #
 # Caller sets MATRIX_ENTRY (home_browse | drawer_all | search | seq) and,
 # except for seq, MATRIX_CHIP (state | district | deity).

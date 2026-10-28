@@ -50,7 +50,10 @@ flows=(
   29h-search-district
   29i-search-deity
   29j-sequences
-  30-filter-matrix-rest
+  30a-drawer-bar-state
+  30b-drawer-bar-district
+  30c-drawer-bar-deity
+  30d-near-me
 )
 
 resolve_outcome="${EMULATOR_RESOLVE_OUTCOME:-success}"

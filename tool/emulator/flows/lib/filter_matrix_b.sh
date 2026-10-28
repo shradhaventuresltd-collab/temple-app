@@ -76,8 +76,15 @@ enter_near_me() {
   fresh_home || return 1
   ui_wait_scrolled 15 --text-contains "Temples near me" || err "Temples near me tile missing" || return 1
   ui_tap
-  ui_wait 10 --text-regex '.' >/dev/null || true
-  dismiss_location_consent "Not now" >/dev/null 2>&1 || true
+  # Near me reached: one of the screen's own keys. near-me-rationale-sheet
+  # (location consent), near-me-status ("Finding temples..."), near-me-list
+  # (results) or near-me-fallback (declined/no fix). None exists elsewhere.
+  ui_wait 15 --resource-id-regex '^near-me-(rationale-sheet|status|list|fallback)$' \
+    || err "near me screen did not render" || return 1
+  dismiss_location_consent "Not now" || true
+  ui_wait 15 --resource-id-regex '^near-me-(status|list|fallback|empty)$' \
+    || err "near me stuck after consent" || return 1
+  [[ "${NEAR_ME_MARKED:-0}" -eq 1 ]] || { pass_step "near_me-reached"; NEAR_ME_MARKED=1; }
   if ui_wait 5 --resource-id filter-chip-state; then
     return 0
   fi
