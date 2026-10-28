@@ -272,6 +272,54 @@ def cmd_resource_ids(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_chip_bar(args: argparse.Namespace) -> int:
+    """Print the chip scroller's usable span: left right cy signature.
+
+    The scroller is the row of filter-chip-* nodes. filter-clear is pinned
+    outside it (#123), so the span stops at its left edge. A swipe that
+    starts on that button, or past the drawer's edge, never scrolls the
+    row, and in the drawer it closes the drawer instead.
+    The signature lists each visible chip id with its x1, so a caller can
+    tell whether a swipe actually moved the row.
+    """
+    try:
+        root = _load(args.dump)
+    except (ET.ParseError, OSError, ValueError) as exc:
+        print(f"dump unreadable: {exc}", file=sys.stderr)
+        return 1
+    chips = []
+    pinned = None
+    for node in _iter_nodes(root):
+        short = _resource_id(node).split("/")[-1]
+        box = _bounds(node.attrib.get("bounds", ""))
+        if box is None:
+            continue
+        if args.max_top is not None and box[1] > args.max_top:
+            continue
+        if short == "filter-clear":
+            pinned = box
+        elif short.startswith("filter-chip-"):
+            chips.append((short, box))
+    if not chips:
+        return 1
+    # The row is the band of the first chip. Ignore chips on other rows.
+    _, first = chips[0]
+    cy = (first[1] + first[3]) // 2
+    row = [(n, b) for n, b in chips if b[1] <= cy <= b[3]]
+    left = min(b[0] for _, b in row)
+    right = max(b[2] for _, b in row)
+    if pinned is not None and pinned[1] <= cy <= pinned[3] and pinned[0] > left:
+        right = min(right, pinned[0])
+    # Stay off both edges so the finger lands on the scroller itself.
+    left += 6
+    right -= 6
+    if right - left < 24:
+        return 1
+    sig = ",".join(f"{n}@{b[0]}" for n, b in row)
+    print(f"{left} {right} {cy} {sig}")
+    return 0
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -298,6 +346,11 @@ def _parser() -> argparse.ArgumentParser:
     ids.add_argument("dump")
     ids.add_argument("--prefix", default="")
     ids.set_defaults(func=cmd_resource_ids)
+
+    bar = sub.add_parser("chip-bar")
+    bar.add_argument("dump")
+    bar.add_argument("--max-top", type=int)
+    bar.set_defaults(func=cmd_chip_bar)
 
     bright = sub.add_parser("bright")
     bright.add_argument("path")

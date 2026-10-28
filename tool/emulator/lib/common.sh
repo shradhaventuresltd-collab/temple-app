@@ -185,11 +185,21 @@ ui_find() {
   [[ -n "$UI_CX" && -n "$UI_CY" ]]
 }
 
+# Per-step and per-case budget. STEP_DEADLINE is absolute SECONDS, 0 = none.
+# Every polling loop below stops when it passes, so one missing element
+# costs at most the case budget, never the flow budget.
+STEP_DEADLINE=0
+CASE_MAX="${CASE_MAX:-60}"
+case_start() { CASE_T0=$SECONDS; STEP_DEADLINE=$((SECONDS + CASE_MAX)); }
+case_end() { STEP_DEADLINE=0; }
+case_over() { (( SECONDS - ${CASE_T0:-$SECONDS} > CASE_MAX )); }
+step_expired() { (( STEP_DEADLINE > 0 && SECONDS >= STEP_DEADLINE )); }
+
 ui_wait() {
   local timeout="$1"
   shift
   local start="$SECONDS"
-  while (( SECONDS - start < timeout )); do
+  while (( SECONDS - start < timeout )) && ! step_expired; do
     if ui_dump && ui_find "$@"; then
       return 0
     fi
@@ -232,7 +242,7 @@ ui_wait_scrolled() {
   shift
   local start="$SECONDS"
   local flings=0
-  while (( SECONDS - start < timeout )); do
+  while (( SECONDS - start < timeout )) && ! step_expired; do
     if ui_dump && ui_find "$@"; then
       return 0
     fi
@@ -607,7 +617,7 @@ dismiss_sheet_from_handle() {
     start_x=$((width / 2))
     start_y=$((height * 24 / 100))
   fi
-  adb_shell_capped 8 input swipe "$start_x" "$start_y" "$start_x" $((height * 96 / 100)) 80
+  adb_shell_capped 8 input swipe "$start_x" "$start_y" "$start_x" $((height * 96 / 100)) 300
 }
 
 dismiss_sheet_swipe() {
@@ -622,17 +632,17 @@ dismiss_sheet_swipe() {
     return 1
   fi
   read -r width height < <(ui_screen_size)
-  dismiss_sheet_from_handle "$width" "$height"
-  sleep 1
-  if sheet_open; then
-    dismiss_sheet_from_handle "$width" "$height"
-    sleep 1
-  fi
-  if sheet_open; then
-    echo "sheet still open after swipe down"
-    return 1
-  fi
-  return 0
+  local attempt _
+  for attempt in 1 2; do
+    dismiss_sheet_from_handle "$width" "$height" || true
+    # Poll for closure instead of one fixed sleep.
+    for _ in 1 2 3; do
+      sleep 0.7
+      sheet_open || return 0
+    done
+  done
+  echo "sheet still open after swipe down from the handle"
+  return 1
 }
 
 dismiss_sheet_outside() {
@@ -901,17 +911,29 @@ app_pid() {
 scroll_chip_bar_at() {
   local y="$1"
   local direction="$2"
-  local width
+  local width left right cy sig
   read -r width _ < <(ui_screen_size) || return 1
-  if [[ "$direction" == "right" ]]; then
-    adb_shell_capped 8 input swipe \
-      $((width * 25 / 100)) "$y" \
-      $((width * 80 / 100)) "$y" 250
-  else
-    adb_shell_capped 8 input swipe \
-      $((width * 80 / 100)) "$y" \
-      $((width * 25 / 100)) "$y" 250
+  left=$((width * 25 / 100))
+  right=$((width * 80 / 100))
+  # Swipe inside the scroller only. filter-clear is pinned at its right
+  # end (#123) and the drawer is narrower than the screen. A swipe that
+  # starts on either never scrolls the row, and in the drawer it closes
+  # the drawer (run 40463875634).
+  if [[ -s "$DUMP" ]] && read -r left right cy sig < <(python3 "$UI_PY" chip-bar "$DUMP"); then
+    y="$cy"
   fi
+  if [[ "$direction" == "right" ]]; then
+    adb_shell_capped 8 input swipe "$left" "$y" "$right" "$y" 250
+  else
+    adb_shell_capped 8 input swipe "$right" "$y" "$left" "$y" 250
+  fi
+}
+
+# Visible chip ids and positions, or empty when no chip row is on screen.
+chip_bar_sig() {
+  local _l _r _y sig=""
+  read -r _l _r _y sig < <(python3 "$UI_PY" chip-bar "$DUMP") || true
+  printf '%s\n' "$sig"
 }
 
 # The selected chip's text is the value ("Shiva"), and it may sit past the
@@ -927,6 +949,7 @@ find_filter_chip() {
   max_top=$((height * 70 / 100))
   y=$((height * 22 / 100))
   for i in $(seq 1 8); do
+    step_expired && break
     ui_dump || true
     found=0
     if [[ -n "$rid" ]] && ui_find --resource-id "$rid" --max-top "$max_top"; then
@@ -964,23 +987,40 @@ find_filter_chip() {
 }
 
 scroll_chips_until() {
-  local i y width height max_top
+  local i width height max_top before after
   read -r width height < <(ui_screen_size) || return 1
   max_top=$((height * 70 / 100))
-  y=$((height * 22 / 100))
-  for i in $(seq 1 6); do
-    if ui_dump && ui_find "$@" --max-top "$max_top"; then
-      y=$UI_CY
-      if (( UI_CX > 24 && UI_CX < width - 24 )); then
-        return 0
-      fi
-    elif ui_dump && ui_find --resource-id filter-chip-state --max-top "$max_top"; then
-      y=$UI_CY
+  for i in 1 2 3 4; do
+    step_expired && { echo "scroll_chips_until: step budget spent" >&2; return 1; }
+    ui_dump || return 1
+    if ui_find "$@" --max-top "$max_top" && (( UI_CX > 24 && UI_CX < width - 24 )); then
+      return 0
     fi
-    scroll_chip_bar_at "$y" left || true
+    before="$(chip_bar_sig)"
+    if [[ -z "$before" ]]; then
+      echo "scroll_chips_until: no chip bar on screen" >&2
+      return 1
+    fi
+    scroll_chip_bar_at 0 left || return 1
     sleep 0.4
+    ui_dump || return 1
+    after="$(chip_bar_sig)"
+    # Assert the swipe did something: the row must still be there, and
+    # it must have moved. An unmoved row is at its end; stop now instead
+    # of paying for more swipes.
+    if [[ -z "$after" ]]; then
+      echo "scroll_chips_until: chip bar vanished after the swipe" >&2
+      return 1
+    fi
+    if ui_find "$@" --max-top "$max_top" && (( UI_CX > 24 && UI_CX < width - 24 )); then
+      return 0
+    fi
+    if [[ "$after" == "$before" ]]; then
+      echo "scroll_chips_until: chip bar did not move; target not in it" >&2
+      return 1
+    fi
   done
-  echo "scroll_chips_until: not in view after 6 scrolls" >&2
+  echo "scroll_chips_until: not in view after 4 scrolls" >&2
   return 1
 }
 
@@ -995,7 +1035,10 @@ dump_scroll_sig() {
   python3 - "$DUMP" <<'PY'
 import hashlib, re, sys
 raw = open(sys.argv[1], encoding="utf-8", errors="replace").read()
-texts = re.findall(r'\btext="([^"]*)"', raw)
+# Flutter puts option labels in content-desc, not text. Hashing text alone
+# gave the same signature after every swipe (run 40463875634), so the
+# picker decided the list had ended at the C districts.
+texts = re.findall(r'\b(?:text|content-desc)="([^"]*)"', raw)
 keep = [
     t for t in texts
     if t and "Loading" not in t and not re.fullmatch(r"\d{1,2}:\d{2}", t)
@@ -1016,7 +1059,7 @@ wait_out_district_loader() {
     && ! ui_find --text-contains "Loading districts"; then
     return 0
   fi
-  while (( SECONDS - start < 15 )); do
+  while (( SECONDS - start < 15 )) && ! step_expired; do
     sleep 1
     if ! ui_dump; then
       echo "select_labeled: hierarchy dump failed while districts were loading" >&2
@@ -1069,7 +1112,10 @@ select_labeled() {
     return 1
   fi
   started=$SECONDS
-  deadline=$((started + 120))
+  deadline=$((started + ${SELECT_MAX:-45}))
+  if (( STEP_DEADLINE > 0 && STEP_DEADLINE < deadline )); then
+    deadline=$STEP_DEADLINE
+  fi
   for pass in 1 2; do
     if (( SECONDS >= deadline )); then
       echo "select_labeled: gave up looking for '${regex}' after $((SECONDS - started))s" >&2
@@ -1218,13 +1264,19 @@ clear_named() {
   local which="$1"
   if ui_dump && ui_find --content-desc "Clear ${which} filter"; then
     ui_tap
-    sleep 1
-    return 0
-  fi
-  if ui_dump && ui_find --text-regex '^Clear$' --prefer upper; then
+  elif ui_dump && ui_find --resource-id filter-clear; then
     ui_tap
-    sleep 1
-    return 0
+  else
+    echo "clear_named: no clear control for ${which}" >&2
+    return 1
   fi
+  # Assert the clear ran: the per-chip clear control must be gone.
+  local _
+  for _ in 1 2 3 4 5; do
+    sleep 0.6
+    ui_dump || continue
+    ui_find --content-desc "Clear ${which} filter" || return 0
+  done
+  echo "clear_named: ${which} filter still applied after tapping clear" >&2
   return 1
 }

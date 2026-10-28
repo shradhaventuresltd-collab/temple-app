@@ -28,7 +28,10 @@ import 'package:temple_app/widgets/unavailable_states_notice.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 class AppDrawer extends StatefulWidget {
-  const AppDrawer({super.key});
+  const AppDrawer({super.key, this.templesLoader});
+
+  /// Injected in tests. Defaults to [TempleService.getTemples].
+  final Future<List<Temple>> Function()? templesLoader;
 
   @override
   State<AppDrawer> createState() => _AppDrawerState();
@@ -71,7 +74,8 @@ class _AppDrawerState extends State<AppDrawer> {
   @override
   void initState() {
     super.initState();
-    _templesFuture = TempleService().getTemples();
+    _templesFuture =
+        widget.templesLoader?.call() ?? TempleService().getTemples();
     warmDirectoryDistricts(_templesFuture);
   }
 
@@ -287,42 +291,56 @@ class _AppDrawerState extends State<AppDrawer> {
 
               // ── State + deity chips (sheet). Same control as the browse list. ──
               _SectionHeader(label: 'FILTERS'),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 0, 8, 4),
-                child: DirectoryFilterBar(
-                  temples: all,
-                  query: _appliedQuery,
-                  selectedState: _selectedState,
-                  selectedDeity: _selectedDeity,
-                  selectedDistrict: _selectedDistrict,
-                  districtOf: districtOf,
-                  prepareDistricts: () => prepareDirectoryDistricts(all),
-                  onDistrictsLoaded: () {
-                    if (mounted) setState(() {});
-                  },
-                  onClearAll: _clearFiltersAndSearch,
-                  onChanged: (state, deity, district) {
-                    final previousState = _selectedState;
-                    final previousDeity = _selectedDeity;
-                    final previousDistrict = _selectedDistrict;
-                    setState(() {
-                      _selectedState = state;
-                      _selectedDeity = deity;
-                      _selectedDistrict = district;
-                    });
-                    unawaited(
-                      AppAnalytics.instance.logFilterTransition(
-                        previousState: previousState,
-                        nextState: state,
-                        previousDeity: previousDeity,
-                        nextDeity: deity,
-                        previousDistrict: previousDistrict,
-                        nextDistrict: district,
-                      ),
-                    );
-                  },
+              // The sheet captures the temple list when it opens. Opening it
+              // before the directory arrives showed "Any state 0" and
+              // "Show 0 temples" for the life of that sheet (run 40463875634).
+              if (!snapshot.hasData)
+                Semantics(
+                  identifier: 'drawer-filters-loading',
+                  label: 'Loading filters',
+                  child: const Padding(
+                    key: Key('drawer-filters-loading'),
+                    padding: EdgeInsets.fromLTRB(18, 8, 18, 12),
+                    child: LinearProgressIndicator(minHeight: 2),
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 0, 8, 4),
+                  child: DirectoryFilterBar(
+                    temples: all,
+                    query: _appliedQuery,
+                    selectedState: _selectedState,
+                    selectedDeity: _selectedDeity,
+                    selectedDistrict: _selectedDistrict,
+                    districtOf: districtOf,
+                    prepareDistricts: () => prepareDirectoryDistricts(all),
+                    onDistrictsLoaded: () {
+                      if (mounted) setState(() {});
+                    },
+                    onClearAll: _clearFiltersAndSearch,
+                    onChanged: (state, deity, district) {
+                      final previousState = _selectedState;
+                      final previousDeity = _selectedDeity;
+                      final previousDistrict = _selectedDistrict;
+                      setState(() {
+                        _selectedState = state;
+                        _selectedDeity = deity;
+                        _selectedDistrict = district;
+                      });
+                      unawaited(
+                        AppAnalytics.instance.logFilterTransition(
+                          previousState: previousState,
+                          nextState: state,
+                          previousDeity: previousDeity,
+                          nextDeity: deity,
+                          previousDistrict: previousDistrict,
+                          nextDistrict: district,
+                        ),
+                      );
+                    },
+                  ),
                 ),
-              ),
 
               const SizedBox(height: 8),
 

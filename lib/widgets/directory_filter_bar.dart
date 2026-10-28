@@ -590,7 +590,12 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
     final dy = event.position.dy - _pointerY;
     _pointerY = event.position.dy;
     if (_dismissed || !_pullArmed) return;
-    if (dy <= 0) {
+    // A move with no vertical travel (horizontal jitter, or the first
+    // sample of `adb shell input swipe`, which repeats the down point) is
+    // not an upward scroll. Disarming on it made a header pull never
+    // dismiss the sheet.
+    if (dy == 0) return;
+    if (dy < 0) {
       _pullArmed = false;
       _pullDown = 0;
       return;
