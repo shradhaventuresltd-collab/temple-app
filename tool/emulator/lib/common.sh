@@ -229,11 +229,23 @@ ui_fling() {
     return 1
   fi
   local x=$((width / 2))
-  if [[ "$direction" == "up" ]]; then
-    adb_shell_capped 8 input swipe "$x" $((height * 3 / 4)) "$x" $((height / 3)) 280
-  else
-    adb_shell_capped 8 input swipe "$x" $((height / 3)) "$x" $((height * 3 / 4)) 280
-  fi
+  # Horizontal flings run at a third of the height (inside the detail
+  # gallery) and stay 20% away from both edges so the system back gesture
+  # cannot fire. "left" moves content to the next page.
+  local y=$((height / 3))
+  case "$direction" in
+    up)
+      adb_shell_capped 8 input swipe "$x" $((height * 3 / 4)) "$x" $((height / 3)) 280 ;;
+    down)
+      adb_shell_capped 8 input swipe "$x" $((height / 3)) "$x" $((height * 3 / 4)) 280 ;;
+    left)
+      adb_shell_capped 8 input swipe $((width * 4 / 5)) "$y" $((width / 5)) "$y" 200 ;;
+    right)
+      adb_shell_capped 8 input swipe $((width / 5)) "$y" $((width * 4 / 5)) "$y" 200 ;;
+    *)
+      echo "ui_fling: unknown direction '${direction}'" >&2
+      return 2 ;;
+  esac
 }
 
 # Dump and search, flinging up between tries. Coordinates stay derived from wm size.

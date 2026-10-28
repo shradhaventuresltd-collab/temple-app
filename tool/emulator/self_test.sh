@@ -841,4 +841,35 @@ chmod +x "$stub_bin/adb"
 )
 rm -rf "$cap_dir" "$stub_bin"
 
+# ui_fling directions, without a device. Run 40658283240 sent "left" and
+# "right" as vertical swipes, so flow 24 never paged the gallery.
+fling_log="$(mktemp)"
+(
+  set -euo pipefail
+  export EMULATOR_FLOW=24-gallery-autoadvance-viewer
+  EMULATOR_ARTIFACTS="$(mktemp -d)"
+  export EMULATOR_ARTIFACTS
+  export EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  ui_screen_size() { echo "320 640"; }
+  adb_shell_capped() { shift; echo "$*" >> "$fling_log"; }
+  ui_fling left; ui_fling right; ui_fling up; ui_fling down
+  if ui_fling sideways 2>/dev/null; then
+    echo "ui_fling must reject unknown directions" >&2
+    exit 1
+  fi
+  rm -rf "$EMULATOR_ARTIFACTS"
+)
+expected_flings="input swipe 256 213 64 213 200
+input swipe 64 213 256 213 200
+input swipe 160 480 160 213 280
+input swipe 160 213 160 480 280"
+if [[ "$(cat "$fling_log")" != "$expected_flings" ]]; then
+  echo "ui_fling coordinates were:" >&2
+  cat "$fling_log" >&2
+  exit 1
+fi
+rm -f "$fling_log"
+
 echo "emulator self-test ok"
