@@ -217,6 +217,64 @@ ui_back() {
   adb_shell_capped 8 input keyevent 4
 }
 
+# Package owning the focused window, or empty. mCurrentFocus first, then
+# the resumed activity from dumpsys activity.
+foreground_pkg() {
+  local out pkg
+  out="$(adb_shell_capped 6 dumpsys window 2>/dev/null | tr -d '\r' | grep -m1 'mCurrentFocus=' || true)"
+  pkg="$(sed -n 's/.* \([A-Za-z0-9_.]*\)\/.*/\1/p' <<<"$out")"
+  if [[ -z "$pkg" ]]; then
+    out="$(adb_shell_capped 6 dumpsys activity activities 2>/dev/null | tr -d '\r' \
+      | grep -m1 -E 'mResumedActivity|topResumedActivity|ResumedActivity:' || true)"
+    pkg="$(sed -n 's/.* \([A-Za-z0-9_.]*\)\/.*/\1/p' <<<"$out")"
+  fi
+  printf '%s' "$pkg"
+}
+
+# Press BACK until $PKG owns the focused window. Bounded by press count and a
+# total wall-clock cap, since Maps first-run pages (terms_killswitch_page,
+# GrantPermissionsActivity) can absorb any fixed number of backs.
+# Usage: back_until_app [max_presses=6] [total_cap_s=30]
+back_until_app() {
+  local max="${1:-6}" cap="${2:-30}" t0=$SECONDS n=0 fg
+  BACK_PRESSES=0
+  fg="$(foreground_pkg)"
+  while [[ "$fg" != "$PKG" ]]; do
+    if (( n >= max )); then
+      echo "back_until_app: ${PKG} not in front after ${n} backs (front: ${fg:-unknown})" >&2
+      return 1
+    fi
+    if (( SECONDS - t0 >= cap )); then
+      echo "back_until_app: ${cap}s cap hit after ${n} backs (front: ${fg:-unknown})" >&2
+      return 1
+    fi
+    ui_back || echo "back_until_app: back press ${n} timed out" >&2
+    n=$((n + 1))
+    BACK_PRESSES=$n
+    sleep 1
+    fg="$(foreground_pkg)"
+    echo "back_until_app: press ${n} front=${fg:-unknown}" >&2
+  done
+  return 0
+}
+
+# Device-side logcat timestamp to pass to maps_start_count.
+logcat_mark() {
+  adb_shell_capped 6 date '+%m-%d %H:%M:%S.000' 2>/dev/null | tr -d '\r' || true
+}
+
+# Count ActivityTaskManager START lines for Google Maps since a logcat_mark.
+maps_start_count() {
+  local since="$1" n
+  if [[ -z "$since" ]]; then
+    echo 0
+    return 1
+  fi
+  n="$(timeout 10 adb logcat -d -T "$since" -s ActivityTaskManager:I 2>/dev/null | tr -d '\r' \
+    | grep -E 'START .*com\.google\.android\.apps\.maps' -c || true)"
+  echo "${n:-0}"
+}
+
 ui_home_key() {
   adb_shell_capped 8 input keyevent 3
 }
