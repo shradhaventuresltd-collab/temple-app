@@ -368,7 +368,10 @@ def cmd_option_seek(args: argparse.Namespace) -> int:
     if not names:
         print("none")
         return 0
-    # Dart sorts by UTF-16 code unit; match it for non-BMP names too.
+    # directoryStatesFrom, directoryDeitiesFrom, and directoryDistrictsFrom
+    # (lib/utils/directory_filters.dart) sort with Dart's List.sort, and
+    # String.compareTo orders UTF-16 code units. Python's code-point order
+    # disagrees for non-BMP names, so compare UTF-16 code units here too.
     def key(value: str) -> bytes:
         return value.encode("utf-16-be")
     if key(args.name) > max(key(n) for n in names):

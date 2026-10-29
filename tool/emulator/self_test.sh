@@ -2,6 +2,11 @@
 # Host-side checks for the emulator checklist. No device required.
 set -euo pipefail
 
+# One count for every check that can fail this script, including checks
+# that run inside a subshell. Append so a subshell's passes are kept.
+PASS_FILE="$(mktemp)"
+pass() { printf '.\n' >> "$PASS_FILE"; }
+
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$root"
 
@@ -20,10 +25,12 @@ expect_mode() {
     echo "expected mode ${want} but classify failed: $(cat /tmp/classify.err)" >&2
     exit 1
   fi
+  pass
   if [[ "$got" != "$want" ]]; then
     echo "expected ${want} got ${got}" >&2
     exit 1
   fi
+  pass
 }
 
 expect_fail() {
@@ -31,6 +38,7 @@ expect_fail() {
     echo "expected failure for: $*" >&2
     exit 1
   fi
+  pass
 }
 
 expect_mode url "https://example.com/app.apk" "" "" ""
@@ -62,12 +70,14 @@ case "$lower" in
   "220 940 40 900 400 980 Kerala 12") ;;
   *) echo "lower Kerala match was: ${lower}" >&2; exit 1 ;;
 esac
+pass
 
 chip="$(python3 tool/emulator/lib/ui.py find "$fixture" --resource-id filter-chip-state --text-contains State)"
 case "$chip" in
   "115 340 10 300 220 380 "*) ;;
   *) echo "chip match was: ${chip}" >&2; exit 1 ;;
 esac
+pass
 
 ids="$(python3 tool/emulator/lib/ui.py resource-ids "$fixture" --prefix filter-chip-)"
 [[ "$ids" == "filter-chip-state" ]]
@@ -76,6 +86,7 @@ if python3 tool/emulator/lib/ui.py find "$fixture" --text-regex '^Not there$' >/
   echo "missing text should fail" >&2
   exit 1
 fi
+pass
 
 rm -f "$fixture"
 
@@ -95,19 +106,23 @@ case "$card" in
   "158 480 16 400 300 560 Meenakshi Amman Temple Madurai") ;;
   *) echo "card match was: ${card}" >&2; exit 1 ;;
 esac
+pass
 temple_bit="$(python3 tool/emulator/lib/ui.py find "$card_fixture" --resource-id temple-browse-card --text-contains "Temple")"
 case "$temple_bit" in
   "158 480 16 400 300 560 Meenakshi Amman Temple Madurai") ;;
   *) echo "partial Temple match was: ${temple_bit}" >&2; exit 1 ;;
 esac
+pass
 if python3 tool/emulator/lib/ui.py find "$card_fixture" --resource-id temple-browse-card --text-regex '.+Temple$' >/dev/null; then
   echo "a multi-line card label should not have to end with Temple" >&2
   exit 1
 fi
+pass
 if python3 tool/emulator/lib/ui.py find "$card_fixture" --resource-id temple-browse-card --text-contains "All Temples" >/dev/null; then
   echo "app bar All Temples should not match a temple card" >&2
   exit 1
 fi
+pass
 all_temples="$(mktemp)"
 cat > "$all_temples" <<'EOF'
 <?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
@@ -121,11 +136,13 @@ if python3 tool/emulator/lib/ui.py find "$all_temples" --text-regex '^All Temple
   echo "All Temples with a count must not match a trailing anchor" >&2
   exit 1
 fi
+pass
 counted="$(python3 tool/emulator/lib/ui.py find "$all_temples" --text-regex '^All Temples')"
 case "$counted" in
   "208 220 16 180 400 260 All Temples 992") ;;
   *) echo "All Temples count match was: ${counted}" >&2; exit 1 ;;
 esac
+pass
 rm -f "$all_temples"
 rm -f "$card_fixture"
 
@@ -134,86 +151,106 @@ if grep -Eq '<<:|&[A-Za-z]' "$workflow"; then
   echo "workflow uses a YAML anchor; GitHub Actions will not expand it" >&2
   exit 1
 fi
+pass
 # Full flows get 30 minutes; the flow-29 slices (<= 8 min each) get 20.
 if [[ "$(grep -cE '^[[:space:]]*timeout-minutes: (20|30)$' "$workflow")" -ne "$(grep -c "run_one_flow.sh " "$workflow")" ]]; then
   echo "each flow step needs timeout-minutes: 20 or 30" >&2
   exit 1
 fi
+pass
 if [[ "$(grep -c '!cancelled() && steps.resolve-apk.outcome' "$workflow")" -ne "$(grep -c 'run_one_flow.sh ' "$workflow")" ]]; then
   echo "each flow step should use !cancelled() so a real cancellation skips it" >&2
   exit 1
 fi
+pass
 if grep -Eq 'if:.*always\(\).*resolve-apk' "$workflow"; then
   echo "flow steps must not use always(); a contained hang exits the step" >&2
   exit 1
 fi
+pass
 if ! grep -q 'select_labeled: gave up' tool/emulator/lib/common.sh; then
   echo "select_labeled must say when it hits its cap" >&2
   exit 1
 fi
+pass
 if ! grep -q 'picker scroll gave up' tool/emulator/flows/22_filter_combos_reset.sh; then
   echo "flow 22 should fail when the picker scroll hits its cap" >&2
   exit 1
 fi
+pass
 if grep -Eq '^[[:space:]]*(push|pull_request|schedule):' "$workflow"; then
   echo "workflow must trigger only on workflow_dispatch" >&2
   exit 1
 fi
+pass
 runner_steps="$(grep -c 'uses: reactivecircus/android-emulator-runner@' "$workflow")"
 if [[ "$runner_steps" -ne $(( $(grep -c "run_one_flow.sh " "$workflow") + 1 )) ]]; then
   echo "expected $(( $(grep -c 'run_one_flow.sh ' "$workflow") + 1 )) emulator steps (snapshot plus one per flow), found ${runner_steps}" >&2
   exit 1
 fi
+pass
 if [[ "$(grep -F -c 'emulator-options: ${{ env.EMULATOR_OPTIONS }}' "$workflow")" -ne "$(grep -c 'run_one_flow.sh ' "$workflow")" ]]; then
   echo "each flow step should read EMULATOR_OPTIONS from env" >&2
   exit 1
 fi
+pass
 if [[ "$(grep -F -c 'emulator-options: ${{ env.EMULATOR_SNAPSHOT_OPTIONS }}' "$workflow")" -ne 1 ]]; then
   echo "snapshot generation should be the only step with EMULATOR_SNAPSHOT_OPTIONS" >&2
   exit 1
 fi
+pass
 options_line="$(grep -F 'EMULATOR_OPTIONS:' "$workflow")"
 if [[ "$options_line" != *"-no-snapshot-save"* || "$options_line" != *"-wipe-data"* ]]; then
   echo "flow boots should pass -no-snapshot-save and -wipe-data" >&2
   exit 1
 fi
+pass
 if [[ "$options_line" == *" -no-snapshot "* || "$options_line" == *" -no-snapshot-load"* ]]; then
   echo "flow boots should still be allowed to load a clean snapshot" >&2
   exit 1
 fi
+pass
 snapshot_line="$(grep -F 'EMULATOR_SNAPSHOT_OPTIONS:' "$workflow")"
 if [[ "$snapshot_line" == *"-no-snapshot"* || "$snapshot_line" == *"-wipe-data"* ]]; then
   echo "snapshot generation must be allowed to save a clean image" >&2
   exit 1
 fi
+pass
 if ! grep -Fq 'script: echo "Generated AVD snapshot for caching."' "$workflow"; then
   echo "snapshot step should boot without installing an app" >&2
   exit 1
 fi
+pass
 if ! grep -Fq "if: steps.create-avd.outcome == 'success'" "$workflow"; then
   echo "AVD cache should be saved only after the clean snapshot boot" >&2
   exit 1
 fi
+pass
 if grep -Eq '^[[:space:]]*EMULATOR_AVD_CACHE_KEY: avd-30-x86_64-google_apis-emulator-app-test$' "$workflow"; then
   echo "AVD cache key should not be the snapshot that already contains an app" >&2
   exit 1
 fi
+pass
 if ! grep -Fq 'EMULATOR_AVD_CACHE_KEY: avd-30-x86_64-google_apis-emulator-app-test-clean' "$workflow"; then
   echo "AVD cache key should name the clean snapshot" >&2
   exit 1
 fi
+pass
 if [[ "$(grep -F -c 'EMULATOR_AVD_CACHE_KEY' "$workflow")" -lt 3 ]]; then
   echo "restore and save should share EMULATOR_AVD_CACHE_KEY" >&2
   exit 1
 fi
+pass
 if ! grep -q 'actions: read' "$workflow"; then
   echo "workflow token should be actions: read" >&2
   exit 1
 fi
+pass
 if ! grep -Fq 'EMULATOR_RESOLVE_OUTCOME: ${{ steps.plan.outcome }}' "$workflow"; then
   echo "summary step should receive steps.plan.outcome" >&2
   exit 1
 fi
+pass
 
 flows=(
   01-first-launch
@@ -264,10 +301,12 @@ for flow in "${flows[@]}"; do
     echo "workflow is missing ${flow}" >&2
     exit 1
   fi
+  pass
   if ! grep -q "$flow" tool/emulator/summarize.sh; then
     echo "summarize.sh is missing ${flow}" >&2
     exit 1
   fi
+  pass
 done
 for script in tool/emulator/flows/*.sh; do
   base="$(basename "$script")"
@@ -275,6 +314,7 @@ for script in tool/emulator/flows/*.sh; do
     echo "workflow is missing ${base}" >&2
     exit 1
   fi
+  pass
 done
 
 locate_dir="$(mktemp -d)"
@@ -291,11 +331,13 @@ if ! GITHUB_WORKSPACE="$locate_dir" GITHUB_OUTPUT="$locate_out" \
   echo "locate_apk.sh failed" >&2
   exit 1
 fi
+pass
 if ! grep -q "apk=${locate_dir}/build/app/outputs/flutter-apk/app-debug.apk" "$locate_out"; then
   echo "locate_apk.sh did not prefer app-debug.apk" >&2
   cat "$locate_out" >&2
   exit 1
 fi
+pass
 rm -rf "$locate_dir"
 rm -f "$locate_out"
 
@@ -303,10 +345,12 @@ if ! grep -Fq 'run-as "$PKG" mkdir -p "$prefs"' tool/emulator/lib/common.sh; the
   echo "prefs seed should mkdir /data/data/<pkg>/shared_prefs via run-as" >&2
   exit 1
 fi
+pass
 if ! grep -Fq '/data/data/${PKG}/shared_prefs' tool/emulator/lib/common.sh; then
   echo "prefs path should be absolute" >&2
   exit 1
 fi
+pass
 
 # Granted near-me records open-granted once. Location is off and Pick a
 # state are already destinations, so that path must not wait again for
@@ -320,14 +364,17 @@ if grep -q 'ui_wait 12 --text-contains "Sort by distance"' <<<"$granted_near"; t
   echo "granted near-me path must not wait again for Sort by distance" >&2
   exit 1
 fi
+pass
 if ! grep -q 'if near_me_destination; then' <<<"$granted_near"; then
   echo "granted near-me path should decide open-granted from near_me_destination" >&2
   exit 1
 fi
+pass
 if ! grep -q 'SECONDS - granted_start < 60' tool/emulator/flows/11_near_me.sh; then
   echo "granted near-me should keep waiting after the geo fix" >&2
   exit 1
 fi
+pass
 if ! awk '
   /pm grant/ { grant = 1 }
   grant && /push_emulator_geo/ { found = 1 }
@@ -337,22 +384,27 @@ if ! awk '
   echo "geo fix should be sent again after permission is granted" >&2
   exit 1
 fi
+pass
 if ! grep -q 'dump_scroll_sig' tool/emulator/lib/common.sh; then
   echo "filter option scroll should stop when the option text stops changing" >&2
   exit 1
 fi
+pass
 if grep -q 'cksum "$DUMP"' tool/emulator/lib/common.sh; then
   echo "picker scroll must not checksum the raw dump" >&2
   exit 1
 fi
+pass
 if ! grep -q 'FLOW_BUDGET=1140' tool/emulator/run_one_flow.sh; then
   echo "each flow should run under timeout 1140" >&2
   exit 1
 fi
+pass
 if ! grep -q 'timeout --kill-after=15 "$FLOW_BUDGET"' tool/emulator/run_one_flow.sh; then
   echo "the flow budget should be the timeout duration" >&2
   exit 1
 fi
+pass
 if ! awk '
   /flow_rc. -eq 124/ { block = 1 }
   block && failed == 0 && $0 ~ /screenrecord_stop/ { stopped = 1 }
@@ -364,26 +416,32 @@ if ! awk '
   echo "exit 124/137 must stop the recording, dump logcat, and restore the network from the wrapper" >&2
   exit 1
 fi
+pass
 if grep -q '^[[:space:]]*set -e$' tool/emulator/run_one_flow.sh; then
   echo "run_one_flow should not turn set -e back on around the timeout" >&2
   exit 1
 fi
+pass
 if ! grep -q 'log_installed_version' tool/emulator/run_one_flow.sh; then
   echo "each run should log the installed versionCode" >&2
   exit 1
 fi
+pass
 if ! grep -q "text-regex '\\^All Temples'" tool/emulator/lib/common.sh; then
   echo "open_browse should match All Temples without a trailing anchor" >&2
   exit 1
 fi
+pass
 if grep -q "text-regex '\\^All Temples\\$'" tool/emulator/lib/common.sh; then
   echo "open_browse must not require All Temples to be the whole content-desc" >&2
   exit 1
 fi
+pass
 if ! grep -q 'scroll_drawer_top' tool/emulator/lib/common.sh; then
   echo "a missed All Temples search should scroll the drawer back to the top" >&2
   exit 1
 fi
+pass
 # Content-desc audit. A trailing $ fails when that node's content-desc is
 # "label\n<extra>" (flattened to "label extra").
 # - All Temples is the only drawer tile with a trailing count.
@@ -395,14 +453,17 @@ if grep -n -E "text-regex ['\"]\\^All Temples\\$" \
   echo "a trailing \$ does not match All Temples content-desc" >&2
   exit 1
 fi
+pass
 if ! grep -q "text-regex '\\^Home\\$'" tool/emulator/flows/18_home_reselect.sh; then
   echo "Home has no trailing count; its anchor should stay" >&2
   exit 1
 fi
+pass
 if ! grep -q "text-regex '\\^Licences\\$'" tool/emulator/flows/13_licences.sh; then
   echo "Licences has no trailing count; its anchor should stay" >&2
   exit 1
 fi
+pass
 if ! awk '
   /open_browse\(\)/ { fn = 1 }
   fn && $0 ~ /scroll_drawer_until --text-regex/ { search = 1 }
@@ -415,6 +476,7 @@ if ! awk '
   echo "open_browse must reset the drawer, retry All Temples, and close it" >&2
   exit 1
 fi
+pass
 if ! awk '
   /double tap/ { block = 1 }
   block && $0 ~ /scroll_drawer_top/ { top = 1 }
@@ -424,54 +486,67 @@ if ! awk '
   echo "flow 18 should bring the drawer back to Home before the double-tap" >&2
   exit 1
 fi
+pass
 if ! grep -q -- '-eq 124' tool/emulator/run_one_flow.sh; then
   echo "a timed-out flow should record FAIL on exit 124" >&2
   exit 1
 fi
+pass
 if ! grep -q "printf 'START %s" tool/emulator/run_one_flow.sh; then
   echo "run_one_flow should write a START marker" >&2
   exit 1
 fi
+pass
 if ! grep -q "printf 'DONE %s" tool/emulator/run_one_flow.sh; then
   echo "run_one_flow should write a DONE marker only after the flow exits" >&2
   exit 1
 fi
+pass
 if ! grep -q 'geo fix 78.1193 9.9195 0 8' tool/emulator/lib/common.sh; then
   echo "geo fix should include altitude and satellites" >&2
   exit 1
 fi
+pass
 if grep -q 'ui_back; ui_back' tool/emulator/flows/20_empty_and_back.sh; then
   echo "flow 20 must not send two backs after search" >&2
   exit 1
 fi
+pass
 if ! grep -qF "select_labeled '^Kerala( +[0-9]+)?$' STATE" tool/emulator/flows/19_rotation_state.sh; then
   echo "flow 19 should select Kerala in the STATE section and check the result" >&2
   exit 1
 fi
+pass
 if grep -q 'adb shell input tap' tool/emulator/flows/18_home_reselect.sh; then
   echo "flow 18 double-tap should use adb_shell_capped" >&2
   exit 1
 fi
+pass
 if ! grep -q 'adb_shell_capped 8 input tap' tool/emulator/flows/18_home_reselect.sh; then
   echo "flow 18 should cap the Home double-tap" >&2
   exit 1
 fi
+pass
 if ! grep -q 'adb_shell_capped 8 input tap' tool/emulator/flows/17_entry_matrix.sh; then
   echo "flow 17 double-tap should use adb_shell_capped" >&2
   exit 1
 fi
+pass
 if ! grep -q 'kerala_applied' tool/emulator/flows/17_entry_matrix.sh; then
   echo "flow 17 should check the State reset only after Kerala applies" >&2
   exit 1
 fi
+pass
 if ! grep -q 'adb_shell_capped 8 settings put secure show_ime_with_hard_keyboard' tool/emulator/run_one_flow.sh; then
   echo "IME settings should use the step cap" >&2
   exit 1
 fi
+pass
 if ! grep -q 'scroll_drawer_until --resource-id temple-list-search-field' tool/emulator/flows/17_entry_matrix.sh; then
   echo "flow 17 should scroll the drawer to the search field" >&2
   exit 1
 fi
+pass
 # Flow 29/30 slices: District is generated only after a State (by design),
 # every case relaunches, and the district loader is waited out.
 for lib in tool/emulator/flows/lib/filter_matrix.sh tool/emulator/flows/lib/filter_matrix_b.sh; do
@@ -479,19 +554,23 @@ for lib in tool/emulator/flows/lib/filter_matrix.sh tool/emulator/flows/lib/filt
     echo "${lib} should relaunch the app for every case" >&2
     exit 1
   fi
+  pass
   if grep -q 'xfail_step' "$lib"; then
     echo "${lib} must not xfail; hidden-by-design cases are not generated" >&2
     exit 1
   fi
+  pass
 done
 if ! grep -q 'state:select "district:\$action"' tool/emulator/flows/lib/filter_matrix.sh; then
   echo "flow 29 district cases must start with state:select" >&2
   exit 1
 fi
+pass
 if ! grep -q 'wait_out_district_loader' tool/emulator/flows/lib/filter_matrix.sh; then
   echo "flow 29 should wait out the district loader" >&2
   exit 1
 fi
+pass
 if ! python3 - <<'PY'
 from pathlib import Path
 text = Path("tool/emulator/flows/28_small_screen_rotation_overflow.sh").read_text()
@@ -509,10 +588,12 @@ PY
 then
   exit 1
 fi
+pass
 if ! grep -q 'ui_wait 12 --text-contains "Sort by distance"' tool/emulator/flows/11_near_me.sh; then
   echo "denied near-me path should still wait for the location consent sheet" >&2
   exit 1
 fi
+pass
 
 summary_dir="$(mktemp -d)"
 if EMULATOR_ARTIFACTS="$summary_dir" GITHUB_STEP_SUMMARY="${summary_dir}/summary.md" \
@@ -521,11 +602,13 @@ if EMULATOR_ARTIFACTS="$summary_dir" GITHUB_STEP_SUMMARY="${summary_dir}/summary
   cat "${summary_dir}/fail.out" >&2
   exit 1
 fi
+pass
 missing="$(grep -c ': missing:' "${summary_dir}/results.txt")"
 if [[ "$missing" -ne "${#flows[@]}" ]]; then
   echo "expected ${#flows[@]} missing-flow lines, found ${missing}" >&2
   exit 1
 fi
+pass
 : > "${summary_dir}/results.txt"
 for flow in "${flows[@]}"; do
   printf 'PASS %s: ok\n' "$flow" >> "${summary_dir}/results.txt"
@@ -535,6 +618,7 @@ if ! EMULATOR_ARTIFACTS="$summary_dir" GITHUB_STEP_SUMMARY="${summary_dir}/summa
   echo "summarize.sh should pass once every flow has a PASS" >&2
   exit 1
 fi
+pass
 
 printf 'XFAIL 06-filters: force-stop-keeps-filter: filters live in memory and reset after force-stop\n' >> "${summary_dir}/results.txt"
 if ! EMULATOR_ARTIFACTS="$summary_dir" GITHUB_STEP_SUMMARY="${summary_dir}/summary.md" \
@@ -543,10 +627,12 @@ if ! EMULATOR_ARTIFACTS="$summary_dir" GITHUB_STEP_SUMMARY="${summary_dir}/summa
   cat "${summary_dir}/xfail.out" >&2
   exit 1
 fi
+pass
 if ! grep -q 'expected failures' "${summary_dir}/xfail.out"; then
   echo "summary should mention expected failures" >&2
   exit 1
 fi
+pass
 
 printf 'FAIL 05-search: krishna: typed text did not match\n' >> "${summary_dir}/results.txt"
 if EMULATOR_ARTIFACTS="$summary_dir" GITHUB_STEP_SUMMARY="${summary_dir}/summary.md" \
@@ -554,6 +640,7 @@ if EMULATOR_ARTIFACTS="$summary_dir" GITHUB_STEP_SUMMARY="${summary_dir}/summary
   echo "summarize.sh should fail when a FAIL line is present" >&2
   exit 1
 fi
+pass
 rm -rf "$summary_dir"
 
 not_run_dir="$(mktemp -d)"
@@ -564,19 +651,23 @@ if ! EMULATOR_ARTIFACTS="$not_run_dir" EMULATOR_RESOLVE_OUTCOME=failure \
   cat "${not_run_dir}/out" >&2
   exit 1
 fi
+pass
 not_run="$(grep -c '^NOT RUN ' "${not_run_dir}/results.txt")"
 if [[ "$not_run" -ne "${#flows[@]}" ]]; then
   echo "expected ${#flows[@]} NOT RUN lines, found ${not_run}" >&2
   exit 1
 fi
+pass
 if grep -q '^FAIL ' "${not_run_dir}/results.txt"; then
   echo "NOT RUN flows should stay out of the FAIL count" >&2
   exit 1
 fi
+pass
 if ! grep -qx 'NOT RUN 05-search' "${not_run_dir}/results.txt"; then
   echo "NOT RUN line should be 'NOT RUN <flow>'" >&2
   exit 1
 fi
+pass
 rm -rf "$not_run_dir"
 
 step_dir="$(mktemp -d)"
@@ -591,10 +682,12 @@ if ! EMULATOR_ARTIFACTS="$step_dir" GITHUB_STEP_SUMMARY="${step_dir}/summary.md"
   cat "${step_dir}/out" >&2
   exit 1
 fi
+pass
 if grep -q 'FAIL 06-filters: missing' "${step_dir}/results.txt"; then
   echo "a skipped step should count as the flow reporting" >&2
   exit 1
 fi
+pass
 rm -rf "$step_dir"
 
 only_skip_dir="$(mktemp -d)"
@@ -612,15 +705,18 @@ if EMULATOR_ARTIFACTS="$only_skip_dir" GITHUB_STEP_SUMMARY="${only_skip_dir}/sum
   cat "${only_skip_dir}/out" >&2
   exit 1
 fi
+pass
 if ! grep -qx 'FAIL 06-filters: missing: flow did not pass any step' "${only_skip_dir}/results.txt"; then
   echo "a flow with only NOT RUN steps should be marked failed" >&2
   cat "${only_skip_dir}/results.txt" >&2
   exit 1
 fi
+pass
 if grep -q '^FAIL 05-search:' "${only_skip_dir}/results.txt"; then
   echo "flows that passed should stay green" >&2
   exit 1
 fi
+pass
 rm -rf "$only_skip_dir"
 
 fail_only_dir="$(mktemp -d)"
@@ -637,10 +733,12 @@ if EMULATOR_ARTIFACTS="$fail_only_dir" GITHUB_STEP_SUMMARY="${fail_only_dir}/sum
   echo "summarize.sh should fail when a flow has FAIL and no PASS" >&2
   exit 1
 fi
+pass
 if grep -q 'did not pass any step' "${fail_only_dir}/results.txt"; then
   echo "a flow that already failed should not gain a second missing line" >&2
   exit 1
 fi
+pass
 rm -rf "$fail_only_dir"
 
 started_dir="$(mktemp -d)"
@@ -658,15 +756,18 @@ if EMULATOR_ARTIFACTS="$started_dir" GITHUB_STEP_SUMMARY="${started_dir}/summary
   cat "${started_dir}/out" >&2
   exit 1
 fi
+pass
 if ! grep -qx 'FAIL 06-filters: timeout: started but did not finish' "${started_dir}/results.txt"; then
   echo "a flow with START and no DONE should be marked failed" >&2
   cat "${started_dir}/results.txt" >&2
   exit 1
 fi
+pass
 if grep -q '^FAIL 05-search:' "${started_dir}/results.txt"; then
   echo "a flow with START and DONE should stay green" >&2
   exit 1
 fi
+pass
 rm -rf "$started_dir"
 
 finished_dir="$(mktemp -d)"
@@ -680,6 +781,7 @@ if ! EMULATOR_ARTIFACTS="$finished_dir" GITHUB_STEP_SUMMARY="${finished_dir}/sum
   cat "${finished_dir}/out" >&2
   exit 1
 fi
+pass
 rm -rf "$finished_dir"
 
 skip_dir="$(mktemp -d)"
@@ -701,6 +803,7 @@ skip_dir="$(mktemp -d)"
     echo "skip_step without a failed prerequisite must not record NOT RUN" >&2
     exit 1
   fi
+  pass
 
   : > "$RESULTS"
   skip_if_failed combined-chips "no combined filter was applied" state-select
@@ -709,6 +812,7 @@ skip_dir="$(mktemp -d)"
     echo "skip_if_failed without a prerequisite FAIL must not record NOT RUN" >&2
     exit 1
   fi
+  pass
 
   printf 'FAIL 06-filters: state-select: could not find Kerala\n' >> "$RESULTS"
   skip_if_failed combined-state "state-select did not apply a state" state-open state-reopen state-select
@@ -775,6 +879,7 @@ browse_dir="$(mktemp -d)"
     echo "a found All Temples tile should not reset or close the drawer" >&2
     exit 1
   fi
+  pass
 
   : > "$browse_dir/log"
   DRAWER_SEARCH_HITS=0
@@ -787,6 +892,7 @@ browse_dir="$(mktemp -d)"
     echo "the retry should tap All Temples instead of closing the drawer" >&2
     exit 1
   fi
+  pass
 
   : > "$browse_dir/log"
   DRAWER_SEARCH_HITS=0
@@ -795,6 +901,7 @@ browse_dir="$(mktemp -d)"
     echo "a drawer with no All Temples tile should fail" >&2
     exit 1
   fi
+  pass
   awk '
     $0 == "UNTIL --text-regex ^All Temples" { until = 1 }
     until && $0 == "TOP" { top = 1 }
@@ -838,6 +945,7 @@ chmod +x "$stub_bin/adb"
     echo "a 3s shell must hit the 1s step cap" >&2
     exit 1
   fi
+  pass
 )
 rm -rf "$cap_dir" "$stub_bin"
 
@@ -859,6 +967,7 @@ fling_log="$(mktemp)"
     echo "ui_fling must reject unknown directions" >&2
     exit 1
   fi
+  pass
   rm -rf "$EMULATOR_ARTIFACTS"
 )
 expected_flings="input swipe 256 213 64 213 200
@@ -870,6 +979,7 @@ if [[ "$(cat "$fling_log")" != "$expected_flings" ]]; then
   cat "$fling_log" >&2
   exit 1
 fi
+pass
 rm -f "$fling_log"
 
 # Run 40698852836: once a case passed its budget, ui_wait returned at once,
@@ -890,10 +1000,12 @@ budget_dir="$(mktemp -d)"
     echo "ui_wait must still look once after the case budget is spent" >&2
     exit 1
   fi
+  pass
   if ! ui_wait_scrolled 5 --text-contains "Temples near me" 2>/dev/null; then
     echo "ui_wait_scrolled must still look once after the case budget is spent" >&2
     exit 1
   fi
+  pass
 )
 rm -rf "$budget_dir"
 for lib in tool/emulator/flows/lib/filter_matrix.sh tool/emulator/flows/lib/filter_matrix_b.sh; do
@@ -908,6 +1020,17 @@ for lib in tool/emulator/flows/lib/filter_matrix.sh tool/emulator/flows/lib/filt
     echo "${lib}: run_case must start the case budget after the entry screen" >&2
     exit 1
   fi
+  pass
+  if ! grep -q 'run_case_or_stop' "$lib"; then
+    echo "${lib}: matrix_main must stop remaining cases before the flow budget" >&2
+    exit 1
+  fi
+  pass
+  if grep -q '~15 min' "$lib"; then
+    echo "${lib}: the 15 minute comment claimed the slice fit under 1140s" >&2
+    exit 1
+  fi
+  pass
 done
 
 # option-seek: hundreds of sorted deity chips (run 40698852836 ended at
@@ -925,12 +1048,36 @@ cat > "$seek_fixture" <<'EOF'
 EOF
 seek() { python3 tool/emulator/lib/ui.py option-seek "$seek_fixture" --min-top 153 --max-top 537 "$@"; }
 [[ "$(seek --kind deity --name Shiva)" == up ]] || { echo "option-seek: Shiva is below" >&2; exit 1; }
+pass
 [[ "$(seek --kind deity --name Agni)" == down ]] || { echo "option-seek: Agni is above" >&2; exit 1; }
+pass
 [[ "$(seek --kind deity --name Chamunda)" == "tap 78 340 Chamunda 2" ]] || { echo "option-seek: Chamunda tap was $(seek --kind deity --name Chamunda)" >&2; exit 1; }
+pass
 [[ "$(seek --kind deity --name Durga)" == up ]] || { echo "option-seek: Durga is under the tap band" >&2; exit 1; }
+pass
 [[ "$(seek --kind deity --name Chandi)" == absent ]] || { echo "option-seek: Chandi is not listed" >&2; exit 1; }
+pass
 [[ "$(seek --kind district --name Madurai)" == none ]] || { echo "option-seek: no district chips" >&2; exit 1; }
-rm -f "$seek_fixture"
+pass
+# directoryDeitiesFrom uses Dart List.sort (UTF-16). U+1F600 is before
+# U+F000 in UTF-16 and after it in Python's code-point order.
+dart_order="$(mktemp)"
+python3 - "$dart_order" <<'PY'
+import sys
+emoji = "\U0001F600"
+path = sys.argv[1]
+open(path, "w", encoding="utf-8").write(
+    "<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>\n"
+    "<hierarchy rotation=\"0\">\n"
+    f'  <node text="" content-desc="{emoji}  1" resource-id="filter-option-deity-{emoji}" '
+    'class="android.view.View" package="com.example" clickable="true" bounds="[16,260][300,300]" />\n'
+    "</hierarchy>\n"
+)
+PY
+[[ "$(python3 tool/emulator/lib/ui.py option-seek "$dart_order" --kind deity --name $'\uf000' --min-top 153 --max-top 537)" == up ]] \
+  || { echo "option-seek must follow Dart UTF-16 order, not Python code points" >&2; exit 1; }
+  pass
+rm -f "$seek_fixture" "$dart_order"
 
 # seek_option against a fake ~400-chip list: fast flings, then exact
 # steps, must reach "Shiva" in a bounded number of swipes.
@@ -981,14 +1128,55 @@ PY
     echo "seek_option did not reach Shiva in a ~400-chip list" >&2
     exit 1
   fi
+  pass
   [[ "$UI_TEXT" == "Shiva 1" ]] || { echo "seek_option stopped at '${UI_TEXT}'" >&2; exit 1; }
+  pass
   swipes="$(grep -c 'input swipe' "$seek_dir/log")"
   if (( swipes > 30 )); then
     echo "seek_option needed ${swipes} swipes" >&2
     exit 1
   fi
+  pass
 )
 rm -rf "$seek_dir"
+
+# Two changes of direction means the list is swinging. Stop before the third swipe.
+flip_dir="$(mktemp -d)"
+flip_seq="$(mktemp)"
+printf '%s\n' up down up > "$flip_seq"
+cat > "$flip_dir/seek.py" <<'PY'
+import os, sys
+path = os.environ["SEEK_SEQ"]
+lines = open(path, encoding="utf-8").read().splitlines()
+print(lines.pop(0) if lines else "none")
+open(path, "w", encoding="utf-8").write("\n".join(lines) + ("\n" if lines else ""))
+PY
+(
+  set -euo pipefail
+  export EMULATOR_FLOW=06-filters
+  export EMULATOR_ARTIFACTS="$flip_dir/art"
+  export EMULATOR_PACKAGE=com.example
+  export SEEK_SEQ="$flip_seq"
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  UI_PY="$flip_dir/seek.py"
+  ui_screen_size() { echo "320 640"; }
+  ui_dump() { printf '<hierarchy/>' > "$DUMP"; }
+  dump_scroll_sig() { echo "$RANDOM"; }
+  adb_shell_capped() { shift; echo "$*" >> "$flip_dir/log"; }
+  ui_sheet_swipe() { echo "sheet $1" >> "$flip_dir/log"; }
+  sleep() { :; }
+  if seek_option deity Shiva $((SECONDS + 30)); then
+    echo "seek_option should stop after two direction changes" >&2
+    exit 1
+  fi
+  pass
+)
+swipes="$(wc -l < "$flip_dir/log" | tr -d ' ')"
+[[ "$swipes" -eq 2 ]] || { echo "seek_option swiped ${swipes} times after two direction changes" >&2; cat "$flip_dir/log" >&2; exit 1; }
+pass
+rm -rf "$flip_dir"
+rm -f "$flip_seq"
 
 # logcat_mark must hand the date format to the device as one word.
 mark_dir="$(mktemp -d)"
@@ -1001,11 +1189,13 @@ mark_dir="$(mktemp -d)"
   source tool/emulator/lib/common.sh
   adb_shell_capped() { shift; [[ "$#" -eq 1 && "$1" == "date '+%m-%d %H:%M:%S.000'" ]] && echo "10-28 15:15:20.000"; }
   [[ "$(logcat_mark)" == "10-28 15:15:20.000" ]] || { echo "logcat_mark must pass the date format as one quoted word" >&2; exit 1; }
+  pass
 )
 rm -rf "$mark_dir"
 
-# no-maps-fallback passes only for a browser. Launchers and the permission
-# controllers fail even when they are the resolved https VIEW handler.
+# no-maps-fallback: browsers are an allowlist plus the https VIEW handler.
+# A chooser is other. The launcher is the HOME handler, not a name match.
+# In-app passes only for the Couldn't open directions message, not the button.
 fallback_dir="$(mktemp -d)"
 (
   set -euo pipefail
@@ -1015,40 +1205,108 @@ fallback_dir="$(mktemp -d)"
   # shellcheck disable=SC1091
   source tool/emulator/lib/common.sh
   expect_kind() {
-    local want="$1" pkg="$2" handler="${3:-}" got
-    got="$(classify_fallback_pkg "$pkg" "$handler")"
-    [[ "$got" == "$want" ]] || {
-      echo "classify_fallback_pkg ${pkg:-<empty>} handler=${handler:-<none>} was ${got}, want ${want}" >&2
-      exit 1
-    }
+    local want="$1" pkg="$2" handler="${3:-}" home="${4:-}" got
+    got="$(classify_fallback_pkg "$pkg" "$handler" "$home")"
+    [[ "$got" == "$want" ]] || { echo "classify_fallback_pkg ${pkg:-<empty>} handler=${handler:-<none>} home=${home:-<none>} was ${got}, want ${want}" >&2; exit 1; }
+    pass
   }
   expect_kind browser com.android.chrome
   expect_kind browser com.android.chrome org.mozilla.firefox
-  expect_kind browser org.mozilla.firefox org.mozilla.firefox
+  expect_kind browser org.mozilla.firefox
+  expect_kind browser org.mozilla.fenix
+  expect_kind browser com.sec.android.app.sbrowser
+  expect_kind browser com.microsoft.emmx
+  expect_kind browser com.brave.browser
   expect_kind browser com.android.browser com.android.browser
+  expect_kind other com.android.browser
+  expect_kind other android android
+  expect_kind other com.android.intentresolver com.android.intentresolver
+  expect_kind other android com.android.chrome
   expect_kind other com.example.temple com.example.temple
   expect_kind other com.example.temple
   expect_kind other com.google.android.apps.maps org.mozilla.firefox
   expect_kind other "" org.mozilla.firefox
-  expect_kind launcher com.android.launcher3
-  expect_kind launcher com.google.android.apps.nexuslauncher org.mozilla.firefox
-  expect_kind launcher com.android.launcher3 com.android.launcher3
-  expect_kind permission com.google.android.permissioncontroller
-  expect_kind permission com.android.permissioncontroller com.android.permissioncontroller
+  expect_kind other com.android.launcher3
+  expect_kind other com.google.android.apps.nexuslauncher org.mozilla.firefox
+  expect_kind launcher com.android.launcher3 "" com.android.launcher3
+  expect_kind launcher com.google.android.apps.nexuslauncher "" com.google.android.apps.nexuslauncher
+  expect_kind launcher com.android.launcher3 com.android.launcher3 com.android.launcher3
+  expect_kind permission com.google.android.permissioncontroller "" com.google.android.permissioncontroller
+  expect_kind permission com.android.permissioncontroller com.android.permissioncontroller com.android.permissioncontroller
+  # The button text is not an argument: still in the app without the snackbar fails.
+  [[ "$(no_maps_in_app_result com.example.temple 0)" == fail ]] || { echo "in-app without Couldn't open directions must fail" >&2; exit 1; }
+  pass
+  [[ "$(no_maps_in_app_result com.example.temple 1)" == pass ]] || { echo "in-app Couldn't open directions must pass" >&2; exit 1; }
+  pass
+  [[ "$(no_maps_in_app_result com.android.chrome 1)" == fail ]] || { echo "a browser is not the in-app snackbar pass" >&2; exit 1; }
+  pass
   adb_shell_capped() {
     shift
-    [[ "$*" == "cmd package resolve-activity --brief -a android.intent.action.VIEW -d https://example.com" ]] || {
-      echo "https_view_handler command was: $*" >&2
-      exit 1
-    }
-    printf '%s\n' "priority=0 preferredOrder=0 match=0x208000 specificIndex=-1 isDefault=true" \
-      "com.android.chrome/com.google.android.apps.chrome.IntentDispatcher"
+    case "$*" in
+      "cmd package resolve-activity --brief -a android.intent.action.VIEW -d https://example.com")
+        printf '%s\n' "priority=0 preferredOrder=0 match=0x208000 specificIndex=-1 isDefault=true" \
+          "com.android.chrome/com.google.android.apps.chrome.IntentDispatcher" ;;
+      "cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME")
+        printf '%s\n' "com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity" ;;
+      *)
+        echo "unexpected resolve-activity: $*" >&2
+        exit 1 ;;
+    esac
+    pass
   }
-  [[ "$(https_view_handler)" == "com.android.chrome" ]] || {
-    echo "https_view_handler did not parse the brief component" >&2
-    exit 1
-  }
+  [[ "$(https_view_handler)" == "com.android.chrome" ]] || { echo "https_view_handler did not parse the brief component" >&2; exit 1; }
+  pass
+  [[ "$(home_handler)" == "com.google.android.apps.nexuslauncher" ]] || { echo "home_handler did not parse the HOME component" >&2; exit 1; }
+  pass
 )
 rm -rf "$fallback_dir"
 
+if ! awk '
+  /directions_tapped=1/ { tapped = 1 }
+  tapped && /classify_fallback_pkg/ { classified = 1 }
+  /Get Directions was not on screen to tap/ { missed = 1 }
+  END { exit !(tapped && classified && missed) }
+' tool/emulator/flows/25_directions_edge.sh; then
+  echo "flow 25 must tap Get Directions before classifying, and fail when it was not found" >&2
+  exit 1
+fi
+pass
+
+# A spent flow budget marks the remaining cases and probes NOT RUN and does not run them.
+budget_case_dir="$(mktemp -d)"
+(
+  set -euo pipefail
+  export EMULATOR_FLOW=29a-home-browse-state
+  export EMULATOR_ARTIFACTS="$budget_case_dir"
+  export EMULATOR_PACKAGE=com.example.temple
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  # shellcheck disable=SC1091
+  source tool/emulator/flows/lib/filter_matrix.sh
+  force_stop_app() { :; }
+  run_case() { echo "ran:$1" >> "$budget_case_dir/ran"; }
+  FLOW_T0=$SECONDS
+  if flow_over; then echo "a fresh flow should not be over the 1140s budget" >&2; exit 1; fi
+  FLOW_T0=$((SECONDS - 2000))
+  if ! flow_over; then echo "elapsed time past the flow budget should stop the next case" >&2; exit 1; fi
+  flow_over() { return 0; }
+  MATRIX_ENTRY=home_browse
+  MATRIX_CHIP=state
+  ACTIONS=(select)
+  matrix_main
+  [[ ! -s "$budget_case_dir/ran" ]] || { echo "flow_over still ran a case" >&2; exit 1; }
+  pass
+  grep -qx 'NOT RUN 29a-home-browse-state: home_browse-state-select: stopped before the 1140s flow budget' "$RESULTS"
+  grep -qx 'NOT RUN 29a-home-browse-state: home_browse-state-select-then-district: stopped before the 1140s flow budget' "$RESULTS"
+  flow_over() { return 1; }
+  : > "$budget_case_dir/ran"
+  : > "$RESULTS"
+  matrix_main
+  grep -qx 'ran:home_browse-state-select' "$budget_case_dir/ran"
+)
+rm -rf "$budget_case_dir"
+
+PASS="$(wc -l < "$PASS_FILE" | tr -d ' ')"
+rm -f "$PASS_FILE"
+echo "${PASS} self-test checks passed"
 echo "emulator self-test ok"

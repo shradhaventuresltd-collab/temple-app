@@ -44,31 +44,47 @@ else
   ui_dump || true
 fi
 adb_shell_capped 8 pm disable-user com.google.android.apps.maps >/dev/null 2>&1
-ui_find --resource-id get-directions-button || ui_find --text-regex 'Get Directions' && ui_tap; sleep 3; ui_dump
-# With Maps disabled the app opens the same URL in a browser (run
-# 40698852836: Chrome first-run page). That is the fallback working.
-# Any other non-app package is not: a launcher means we left the app
-# without opening the link, and a permission controller is Maps/browser
-# first-run, not the page itself.
-fallback_fg="$(foreground_pkg)"
-echo "fallback_fg=${fallback_fg}" >&2
-case "$(classify_fallback_pkg "$fallback_fg" "$(https_view_handler)")" in
-  browser)
-    pass_step no-maps-fallback
-    back_until_app 6 30 || resume_app
-    ;;
-  launcher)
-    fail_step no-maps-fallback "fallback_fg=${fallback_fg} is a launcher, not a browser"
-    ;;
-  permission)
-    fail_step no-maps-fallback "fallback_fg=${fallback_fg} is a permission controller, not a browser"
-    ;;
-  *)
-    if ui_find --text-contains "irections"; then
+# The button has to be found and tapped before the foreground package
+# means anything. `a || b && c` would still classify when the find missed.
+directions_tapped=0
+if ui_find --resource-id get-directions-button || ui_find --text-regex 'Get Directions'; then
+  ui_tap
+  directions_tapped=1
+fi
+if [[ "$directions_tapped" -ne 1 ]]; then
+  fail_step no-maps-fallback "Get Directions was not on screen to tap"
+else
+  sleep 3
+  ui_dump || true
+  # With Maps disabled the app opens the same URL in a browser (run
+  # 40698852836: Chrome first-run page). That is the fallback working.
+  # The Get Directions button is still on screen when the tap did nothing,
+  # so "irections" is not a pass. In-app passes only for the snackbar
+  # "Couldn't open directions on this device."
+  fallback_fg="$(foreground_pkg)"
+  echo "fallback_fg=${fallback_fg}" >&2
+  case "$(classify_fallback_pkg "$fallback_fg" "$(https_view_handler)" "$(home_handler)")" in
+    browser)
       pass_step no-maps-fallback
-    else
-      fail_step no-maps-fallback "nothing happened with Maps disabled (fallback_fg=${fallback_fg})"
-    fi
-    ;;
-esac
+      back_until_app 6 30 || resume_app
+      ;;
+    launcher)
+      fail_step no-maps-fallback "fallback_fg=${fallback_fg} is a launcher, not a browser"
+      ;;
+    permission)
+      fail_step no-maps-fallback "fallback_fg=${fallback_fg} is a permission controller, not a browser"
+      ;;
+    *)
+      message_visible=0
+      if [[ "$fallback_fg" == "$PKG" ]] && ui_find --text-contains "Couldn't open directions"; then
+        message_visible=1
+      fi
+      if [[ "$(no_maps_in_app_result "$fallback_fg" "$message_visible")" == pass ]]; then
+        pass_step no-maps-fallback
+      else
+        fail_step no-maps-fallback "fallback_fg=${fallback_fg} is not a browser (in-app pass needs Couldn't open directions)"
+      fi
+      ;;
+  esac
+fi
 adb_shell_capped 8 pm enable com.google.android.apps.maps >/dev/null 2>&1

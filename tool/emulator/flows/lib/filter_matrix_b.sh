@@ -22,7 +22,10 @@
 # - "district chip hidden with no state selected" was recorded while the
 #   drawer was closed, not because the drawer hides it.
 #
-# Typical per flow: 6 cases x (~55 s entry + CASE_MAX 90 s + ~10 s shot) = ~15 min.
+# Six cases at ~55s entry + 90s actions + ~10s of shots is about 15 minutes
+# on the happy path. A failing case runs longer, and six of those can pass
+# the 1140s flow budget. matrix_main therefore stops once another case
+# would not finish in time and marks the rest NOT RUN.
 
 CASE_MAX="${CASE_MAX:-90}"
 ACTIONS=(select pick-close dismiss-empty back-empty outside-empty clear)
@@ -241,6 +244,15 @@ run_case() {
   pass_step "$id"
   mapfile -t probes < <(probe_list "${steps[-1]%%:*}")
   for p in "${probes[@]}"; do
+    if flow_over; then
+      record_not_run "$id-then-$p" "stopped before the ${FLOW_BUDGET_S}s flow budget"
+      rest=0
+      for q in "${probes[@]}"; do
+        [[ "$rest" -eq 1 ]] && record_not_run "$id-then-$q" "stopped before the ${FLOW_BUDGET_S}s flow budget"
+        [[ "$q" == "$p" ]] && rest=1
+      done
+      break
+    fi
     if case_over; then
       fail_step "$id-then-$p" "case exceeded ${CASE_MAX}s"
       continue
@@ -266,11 +278,12 @@ run_case() {
 
 matrix_main() {
   local t0=$SECONDS action
+  FLOW_T0=$t0
   if [[ "$MATRIX_ENTRY" == near_me ]]; then
-    run_case near_me-state-select state:select
+    run_case_or_stop near_me-state-select state:select
   else
     for action in "${ACTIONS[@]}"; do
-      run_case "$MATRIX_ENTRY-$MATRIX_CHIP-$action" "$MATRIX_CHIP:$action"
+      run_case_or_stop "$MATRIX_ENTRY-$MATRIX_CHIP-$action" "$MATRIX_CHIP:$action"
     done
   fi
   force_stop_app

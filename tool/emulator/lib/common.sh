@@ -199,6 +199,42 @@ case_end() { STEP_DEADLINE=0; }
 case_over() { (( SECONDS - ${CASE_T0:-$SECONDS} > CASE_MAX )); }
 step_expired() { (( STEP_DEADLINE > 0 && SECONDS >= STEP_DEADLINE )); }
 
+# Flow wall clock. matrix_main sets FLOW_T0. run_one_flow.sh kills the
+# process at 1140s, and a string of slow failures (entry plus CASE_MAX,
+# then dismiss_blockers) can reach that kill before the results are written.
+# flow_over is true when another full case would not finish before then.
+FLOW_BUDGET_S="${FLOW_BUDGET_S:-1140}"
+flow_over() {
+  local elapsed=$((SECONDS - ${FLOW_T0:-$SECONDS}))
+  local need=$(( ${CASE_MAX:-90} + 55 ))
+  (( elapsed + need >= FLOW_BUDGET_S ))
+}
+
+# Mark a case and the probes probe_list would generate NOT RUN.
+# Usage: skip_case_for_budget ID STEP [STEP...]
+skip_case_for_budget() {
+  local id="$1"; shift
+  local steps=("$@") st p chip
+  record_not_run "$id" "stopped before the ${FLOW_BUDGET_S}s flow budget"
+  STATE_APPLIED=0
+  for st in "${steps[@]}"; do
+    [[ "$st" == state:select ]] && STATE_APPLIED=1
+  done
+  chip="${steps[-1]%%:*}"
+  while IFS= read -r p; do
+    [[ -n "$p" ]] || continue
+    record_not_run "$id-then-$p" "stopped before the ${FLOW_BUDGET_S}s flow budget"
+  done < <(probe_list "$chip")
+}
+
+run_case_or_stop() {
+  if flow_over; then
+    skip_case_for_budget "$@"
+  else
+    run_case "$@"
+  fi
+}
+
 ui_wait() {
   local timeout="$1"
   shift
@@ -235,41 +271,77 @@ foreground_pkg() {
   printf '%s' "$pkg"
 }
 
-# Package that owns the default activity for an https VIEW, or empty.
-# `cmd package resolve-activity --brief` prints package/class (and may
-# print a priority line first if --brief is ignored).
-https_view_handler() {
+# Package/class line from `cmd package resolve-activity --brief`, or empty.
+# A priority line is ignored when --brief is not honored.
+_resolve_activity_pkg() {
   local line
-  line="$(adb_shell_capped 6 cmd package resolve-activity --brief \
-    -a android.intent.action.VIEW -d https://example.com 2>/dev/null \
-    | tr -d '\r' | grep -m1 '/' || true)"
+  line="$(adb_shell_capped 6 "$@" 2>/dev/null | tr -d '\r' | grep -m1 '/' || true)"
   printf '%s' "${line%%/*}"
+}
+
+# Package that owns the default activity for an https VIEW, or empty.
+https_view_handler() {
+  _resolve_activity_pkg cmd package resolve-activity --brief \
+    -a android.intent.action.VIEW -d https://example.com
+}
+
+# Package that owns the HOME activity (the launcher), or empty.
+home_handler() {
+  _resolve_activity_pkg cmd package resolve-activity --brief \
+    -a android.intent.action.MAIN -c android.intent.category.HOME
 }
 
 # Classify a foreground package for the Maps-disabled Directions fallback.
 # Prints browser, launcher, permission, or other.
-# A browser is com.android.chrome, or the https VIEW handler. The app
-# under test is never a browser. Any *launcher* package, and either
-# permission controller, fails even when it is the resolved handler.
-# Usage: classify_fallback_pkg PKG [HTTPS_HANDLER]
+# A browser is an allowlisted package (Chrome, Samsung Internet,
+# org.mozilla.*, Edge, Brave) or the resolved https VIEW handler.
+# The app under test is never a browser. A chooser (package "android" or
+# com.android.intentresolver) is other, even when it resolved the VIEW.
+# The launcher is the HOME handler, not a name containing "launcher".
+# Either permission controller fails even when it is the handler.
+# Usage: classify_fallback_pkg PKG [HTTPS_HANDLER] [HOME_HANDLER]
 classify_fallback_pkg() {
-  local pkg="$1" handler="${2:-}"
+  local pkg="$1" handler="${2:-}" home="${3:-}"
   case "$pkg" in
     com.google.android.permissioncontroller|com.android.permissioncontroller)
       echo permission
       return 0 ;;
-    *launcher*)
-      echo launcher
+    android|com.android.intentresolver)
+      echo other
       return 0 ;;
-    com.android.chrome)
+  esac
+  if [[ -n "$home" && -n "$pkg" && "$pkg" == "$home" ]]; then
+    echo launcher
+    return 0
+  fi
+  case "$pkg" in
+    com.android.chrome|com.sec.android.app.sbrowser|com.microsoft.emmx|com.brave.browser|org.mozilla.*)
       echo browser
       return 0 ;;
+  esac
+  # A chooser that resolved the VIEW is not a browser.
+  case "$handler" in
+    android|com.android.intentresolver) handler="" ;;
   esac
   if [[ -n "$pkg" && -n "$handler" && "$pkg" == "$handler" && "$pkg" != "$PKG" ]]; then
     echo browser
     return 0
   fi
   echo other
+}
+
+# In-app no-maps result. The Get Directions button stays on screen when the
+# tap did nothing, so that label is not a pass. Pass only when this package
+# is the app and the "Couldn't open directions" message is showing (1/0).
+# Prints pass or fail.
+# Usage: no_maps_in_app_result FOREGROUND MESSAGE_VISIBLE
+no_maps_in_app_result() {
+  local fg="$1" message_visible="$2"
+  if [[ "$fg" == "$PKG" && "$message_visible" == 1 ]]; then
+    echo pass
+  else
+    echo fail
+  fi
 }
 
 # Press BACK until $PKG owns the focused window. Bounded by press count and a
@@ -1212,6 +1284,7 @@ print(name if name else "")
 seek_option() {
   local kind="$1" name="$2" deadline="$3"
   local i height verdict fast=1 prev="" current same=0
+  local direction="" flips=0
   for i in $(seq 1 40); do
     (( SECONDS < deadline )) || return 1
     ui_dump || return 1
@@ -1222,7 +1295,18 @@ seek_option() {
       tap\ *)
         read -r _ UI_CX UI_CY UI_TEXT <<<"$verdict"
         return 0 ;;
-      up|down) ;;
+      up|down)
+        # One correction after an overshoot is normal. A second change of
+        # direction is the list swinging; stop instead of paging back and forth.
+        if [[ -n "$direction" && "$verdict" != "$direction" ]]; then
+          flips=$((flips + 1))
+          if (( flips >= 2 )); then
+            echo "seek_option: ${kind} '${name}' changed direction twice" >&2
+            return 1
+          fi
+        fi
+        direction="$verdict"
+        ;;
       *)
         echo "seek_option: ${kind} '${name}': ${verdict}" >&2
         return 1 ;;

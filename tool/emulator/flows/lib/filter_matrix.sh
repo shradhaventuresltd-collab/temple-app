@@ -15,7 +15,10 @@
 #   is generated only while a state is applied;
 # - the first failure in a case is the only FAIL; its probes are NOT RUN.
 #
-# Typical per flow: 6 cases x (~55 s entry + CASE_MAX 90 s) = ~15 min, under the 1140 s flow budget.
+# Six cases at ~55s entry + 90s actions is about 15 minutes on the happy
+# path. A failing case runs longer (retries, dismiss_blockers), and six of
+# those can pass the 1140s flow budget. matrix_main therefore stops once
+# another case would not finish in time and marks the rest NOT RUN.
 
 CASE_MAX="${CASE_MAX:-90}"
 ACTIONS=(select pick-close dismiss-empty back-empty outside-empty clear)
@@ -193,6 +196,15 @@ run_case() {
   pass_step "$id"
   mapfile -t probes < <(probe_list "${steps[-1]%%:*}")
   for p in "${probes[@]}"; do
+    if flow_over; then
+      record_not_run "$id-then-$p" "stopped before the ${FLOW_BUDGET_S}s flow budget"
+      local rest=0 q
+      for q in "${probes[@]}"; do
+        [[ "$rest" -eq 1 ]] && record_not_run "$id-then-$q" "stopped before the ${FLOW_BUDGET_S}s flow budget"
+        [[ "$q" == "$p" ]] && rest=1
+      done
+      break
+    fi
     if case_over; then
       fail_step "$id-then-$p" "case exceeded ${CASE_MAX}s"
       continue
@@ -215,19 +227,20 @@ run_case() {
 
 matrix_main() {
   local t0=$SECONDS action
+  FLOW_T0=$t0
   if [[ "$MATRIX_ENTRY" == seq ]]; then
     MATRIX_ENTRY=home_browse
-    run_case seq1 state:select district:pick-close deity:select
-    run_case seq2 state:select district:select deity:pick-close
-    run_case seq3 deity:select state:select district:clear
-    run_case seq4 state:pick-close deity:dismiss-empty state:select
-    run_case seq5 state:select district:outside-empty state:clear
+    run_case_or_stop seq1 state:select district:pick-close deity:select
+    run_case_or_stop seq2 state:select district:select deity:pick-close
+    run_case_or_stop seq3 deity:select state:select district:clear
+    run_case_or_stop seq4 state:pick-close deity:dismiss-empty state:select
+    run_case_or_stop seq5 state:select district:outside-empty state:clear
   else
     for action in "${ACTIONS[@]}"; do
       if [[ "$MATRIX_CHIP" == district ]]; then
-        run_case "$MATRIX_ENTRY-district-$action" state:select "district:$action"
+        run_case_or_stop "$MATRIX_ENTRY-district-$action" state:select "district:$action"
       else
-        run_case "$MATRIX_ENTRY-$MATRIX_CHIP-$action" "$MATRIX_CHIP:$action"
+        run_case_or_stop "$MATRIX_ENTRY-$MATRIX_CHIP-$action" "$MATRIX_CHIP:$action"
       fi
     done
   fi
