@@ -34,7 +34,12 @@ open_nm() {
   return 1
 }
 open_nm || { fail_step open "no near-me entry"; return 0; }
-ui_dump; ui_find --text-contains "location" && pass_step service-off-copy || fail_step service-off-copy "no location-off state"
+# The app asks first ("Sort by distance ... Continue / Not now"). Run
+# 40698852836 stopped on that sheet (service-off-copy dump), and every
+# later dump shows the declined body "Pick a state or city to sort the list."
+dismiss_location_consent Continue || true
+sleep 1
+ui_dump; ui_find --text-regex 'turned off on this phone|Enable location|Open location settings' && pass_step service-off-copy || fail_step service-off-copy "no location-off state"
 adb_shell_capped 8 settings put secure location_mode 3; push_emulator_geo; sleep 1
 resume_app; ui_home_key; sleep 1; resume_app; sleep 3
 ui_dump; ui_find --text-contains "Allow" || ui_find --text-regex 'km' && pass_step resume-recheck || fail_step resume-recheck "stuck on location-off after enabling (no resume recheck)"

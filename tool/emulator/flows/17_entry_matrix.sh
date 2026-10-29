@@ -105,6 +105,14 @@ for entry in home_button drawer_all drawer_search list_drawer_all; do
   fi
   if ui_dump && ui_find --resource-id temple-list-search-field; then
     ui_tap
+    # drawer_search opens with "temple" in the field. Typing after it gave
+    # "templezzzqqq", which search still matches as a prefix of "temple"
+    # (50 Kerala temples in run 40698852836), so no empty state appeared.
+    if ui_dump && ui_find --content-desc "Clear search"; then
+      ui_tap
+      sleep 0.5
+      ui_dump && ui_find --resource-id temple-list-search-field && ui_tap
+    fi
     ui_type "zzzqqq"
     adb_shell_capped 8 input keyevent 66 || true
     sleep 2

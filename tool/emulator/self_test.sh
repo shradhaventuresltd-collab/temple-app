@@ -1306,6 +1306,79 @@ budget_case_dir="$(mktemp -d)"
 )
 rm -rf "$budget_case_dir"
 
+# wait_browse_ready taps "Try again" once and waits out that load
+# (runs 40698852836 flows 09 and 27).
+wbr_dir="$(mktemp -d)"
+(
+  set -euo pipefail
+  export EMULATOR_FLOW=09-photos
+  export EMULATOR_ARTIFACTS="$wbr_dir"
+  export EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  sleep() { SECONDS=$((SECONDS + ${1%.*})); }
+  ui_dump() { return 0; }
+  ui_tap() { TAPS=$((TAPS + 1)); }
+  TAPS=0
+  # Fails until 10s after the tap, then the bar appears.
+  ui_find() {
+    local ok=0
+    if (( TAPS > 0 && SECONDS - TAP_AT >= 10 )); then ok=1; fi
+    case "$*" in
+      *"Could not load temples"*) (( ok == 0 )) ;;
+      *browse-load-failed-retry*) (( ok == 0 )) ;;
+      *filter-chip-state*) (( ok == 1 )) ;;
+      *) return 1 ;;
+    esac
+  }
+  ui_tap() { TAPS=$((TAPS + 1)); TAP_AT=$SECONDS; }
+  wait_browse_ready >/dev/null 2>&1 || { echo "wait_browse_ready must survive one failed load" >&2; exit 1; }
+  pass
+  [[ "$TAPS" -eq 1 ]] || { echo "wait_browse_ready tapped Try again ${TAPS} times" >&2; exit 1; }
+  pass
+  # Still failing after the grace: report failure, one tap only.
+  TAPS=0
+  ui_find() { case "$*" in *"Could not load temples"*|*browse-load-failed-retry*) return 0 ;; *) return 1 ;; esac; }
+  if wait_browse_ready >/dev/null 2>&1; then echo "a persistent failure must fail" >&2; exit 1; fi
+  pass
+  [[ "$TAPS" -eq 1 ]] || { echo "persistent failure tapped ${TAPS} times" >&2; exit 1; }
+  pass
+)
+rm -rf "$wbr_dir"
+
+# find_filter_chip in landscape: wm size says 320x640, the dump is
+# 640x320, and the app bar title repeats "Kerala" (run 40698852836 flow 19).
+ffc_dir="$(mktemp -d)"
+(
+  set -euo pipefail
+  export EMULATOR_FLOW=19-rotation-state
+  export EMULATOR_ARTIFACTS="$ffc_dir"
+  export EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  ui_screen_size() { echo "320 640"; }
+  ui_dump() {
+    cat > "$DUMP" <<'EOF'
+<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<hierarchy rotation="1">
+  <node text="" content-desc="" resource-id="" class="android.widget.FrameLayout" package="com.example" bounds="[0,0][640,320]">
+    <node text="" content-desc="Kerala" resource-id="" class="android.view.View" package="com.example" bounds="[289,52][351,76]" />
+    <node text="" content-desc="Kerala" resource-id="filter-chip-state" class="android.view.View" package="com.example" clickable="true" bounds="[54,181][137,216]" />
+  </node>
+</hierarchy>
+EOF
+  }
+  scroll_chip_bar_at() { echo "scrolled" >&2; return 0; }
+  sleep() { :; }
+  chip_exact Kerala 2>"$ffc_dir/err" || { echo "chip_exact must find the Kerala chip in landscape" >&2; exit 1; }
+  pass
+  [[ "$UI_CX" == 95 && "$UI_CY" == 198 ]] || { echo "chip_exact matched ${UI_CX},${UI_CY}, not the chip" >&2; exit 1; }
+  pass
+  ! grep -q scrolled "$ffc_dir/err" || { echo "chip_exact scrolled a chip that was in view" >&2; exit 1; }
+  pass
+)
+rm -rf "$ffc_dir"
+
 PASS="$(wc -l < "$PASS_FILE" | tr -d ' ')"
 rm -f "$PASS_FILE"
 echo "${PASS} self-test checks passed"

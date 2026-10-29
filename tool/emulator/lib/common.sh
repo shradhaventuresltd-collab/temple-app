@@ -933,13 +933,31 @@ open_browse() {
   return 1
 }
 
+# A cold boot can miss Firestore once (run 40698852836 flow 09: "failed to
+# connect to firestore.googleapis.com/2607:..." then "Could not load
+# temples"). The list offers "Try again" (e30d95d). Tap it once and give
+# that load its 12s fetch timeout plus margin before calling it failed;
+# the retry shows no spinner, so the old message stays up meanwhile.
+# Flow 27 recover used to fail here 9s after its own retry tap.
+BROWSE_RETRY_GRACE="${BROWSE_RETRY_GRACE:-25}"
 wait_browse_ready() {
-  local start="$SECONDS"
+  local start="$SECONDS" retried_at=0
   while (( SECONDS - start < 120 )); do
     ui_dump || true
     if ui_find --text-contains "Could not load temples"; then
-      echo "directory failed to load"
-      return 1
+      if (( retried_at == 0 )) && ui_find --resource-id browse-load-failed-retry; then
+        echo "wait_browse_ready: load failed; tapping Try again once" >&2
+        ui_tap || true
+        retried_at=$SECONDS
+        sleep 2
+        continue
+      fi
+      if (( retried_at == 0 || SECONDS - retried_at >= BROWSE_RETRY_GRACE )); then
+        echo "directory failed to load"
+        return 1
+      fi
+      sleep 2
+      continue
     fi
     if ui_find --resource-id filter-chip-state || ui_find --text-regex '^State$'; then
       if ! ui_find --text-contains "Loading temples"; then
@@ -1124,6 +1142,18 @@ chip_bar_sig() {
   printf '%s\n' "$sig"
 }
 
+# Width and height of the last dump's root node (rotation-aware).
+dump_screen_size() {
+  [[ -s "$DUMP" ]] || return 1
+  python3 - "$DUMP" <<'PY'
+import re, sys
+m = re.search(r'bounds="\[0,0\]\[(\d+),(\d+)\]"', open(sys.argv[1], encoding="utf-8", errors="replace").read())
+if not m:
+    sys.exit(1)
+print(m.group(1), m.group(2))
+PY
+}
+
 # The selected chip's text is the value ("Shiva"), and it may sit past the
 # right edge. Match the idle label or the applied value, and scroll the bar.
 find_filter_chip() {
@@ -1138,8 +1168,16 @@ find_filter_chip() {
   y=$((height * 22 / 100))
   for i in $(seq 1 8); do
     ui_dump || true
+    # wm size stays portrait after rotation; the dump root is the real
+    # screen. Run 40698852836 flow 19: in landscape (640x320) the title
+    # "Kerala" at x=320 read as past a 320px-wide screen's edge.
+    read -r width height < <(dump_screen_size) || read -r width height < <(ui_screen_size) || return 1
+    max_top=$((height * 70 / 100))
     found=0
     if [[ -n "$rid" ]] && ui_find --resource-id "$rid" --max-top "$max_top"; then
+      found=1
+    elif [[ -n "$regex" ]] && ui_find --resource-id-regex '^filter-chip-' --text-regex "$regex" --max-top "$max_top"; then
+      # The chip itself, not the app-bar title that repeats the filter.
       found=1
     elif [[ -n "$regex" ]] && ui_find --text-regex "$regex" --max-top "$max_top" --prefer upper; then
       found=1

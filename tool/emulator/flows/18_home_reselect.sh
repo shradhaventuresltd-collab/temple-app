@@ -8,8 +8,15 @@ collage_top_visible() {
 launch_app; accept_policy_if_shown || { fail_step home "home did not appear"; return 0; }
 wait_for_home || { fail_step home "home did not appear"; return 0; }
 pass_step home
-for i in 1 2 3 4; do ui_fling up; sleep 0.5; done
-collage_top_visible && fail_step scrolled "could not scroll Home down" || pass_step scrolled
+# Run 40698852836: four flings right after Home appeared left Discover at
+# y=357; the collage photos were still arriving. Fling until it moves.
+scrolled=0
+for i in 1 2 3 4 5 6 7 8; do
+  ui_fling up; sleep 0.5
+  if ! collage_top_visible; then scrolled=1; break; fi
+  sleep 1
+done
+[[ "$scrolled" -eq 1 ]] && pass_step scrolled || fail_step scrolled "could not scroll Home down after 8 flings"
 # A: drawer Home tile while on Home
 ui_dump && ui_find --content-desc "Open navigation menu" && ui_tap && sleep 1
 ui_wait 10 --text-regex '^Home$' && ui_tap && sleep 1
