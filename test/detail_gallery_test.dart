@@ -389,6 +389,37 @@ void main() {
     expect(find.text('2 / 2'), findsOneWidget);
   });
 
+  testWidgets('a user swipe restarts the auto-advance interval', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: TempleDetailBody(temple: twoPhotos())),
+      ),
+    );
+    await tester.pump();
+    expect(find.text('1 / 2'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 4));
+    await tester.fling(find.byType(PageView), const Offset(-300, 0), 1000);
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('2 / 2'), findsOneWidget);
+
+    // The old 5s tick would land here and wrap back to the first photo.
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(find.text('2 / 2'), findsOneWidget);
+
+    // Auto-advance still resumes, one interval after the swipe settled.
+    var resumed = false;
+    for (var i = 0; i < 8 && !resumed; i++) {
+      await tester.pump(const Duration(seconds: 1));
+      resumed = find.text('1 / 2').evaluate().isNotEmpty;
+    }
+    expect(resumed, isTrue);
+  });
+
   testWidgets('auto-advance pauses while another route covers the gallery', (
     tester,
   ) async {
