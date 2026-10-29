@@ -235,6 +235,43 @@ foreground_pkg() {
   printf '%s' "$pkg"
 }
 
+# Package that owns the default activity for an https VIEW, or empty.
+# `cmd package resolve-activity --brief` prints package/class (and may
+# print a priority line first if --brief is ignored).
+https_view_handler() {
+  local line
+  line="$(adb_shell_capped 6 cmd package resolve-activity --brief \
+    -a android.intent.action.VIEW -d https://example.com 2>/dev/null \
+    | tr -d '\r' | grep -m1 '/' || true)"
+  printf '%s' "${line%%/*}"
+}
+
+# Classify a foreground package for the Maps-disabled Directions fallback.
+# Prints browser, launcher, permission, or other.
+# A browser is com.android.chrome, or the https VIEW handler. The app
+# under test is never a browser. Any *launcher* package, and either
+# permission controller, fails even when it is the resolved handler.
+# Usage: classify_fallback_pkg PKG [HTTPS_HANDLER]
+classify_fallback_pkg() {
+  local pkg="$1" handler="${2:-}"
+  case "$pkg" in
+    com.google.android.permissioncontroller|com.android.permissioncontroller)
+      echo permission
+      return 0 ;;
+    *launcher*)
+      echo launcher
+      return 0 ;;
+    com.android.chrome)
+      echo browser
+      return 0 ;;
+  esac
+  if [[ -n "$pkg" && -n "$handler" && "$pkg" == "$handler" && "$pkg" != "$PKG" ]]; then
+    echo browser
+    return 0
+  fi
+  echo other
+}
+
 # Press BACK until $PKG owns the focused window. Bounded by press count and a
 # total wall-clock cap, since Maps first-run pages (terms_killswitch_page,
 # GrantPermissionsActivity) can absorb any fixed number of backs.

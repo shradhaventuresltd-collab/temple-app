@@ -1004,4 +1004,51 @@ mark_dir="$(mktemp -d)"
 )
 rm -rf "$mark_dir"
 
+# no-maps-fallback passes only for a browser. Launchers and the permission
+# controllers fail even when they are the resolved https VIEW handler.
+fallback_dir="$(mktemp -d)"
+(
+  set -euo pipefail
+  export EMULATOR_FLOW=25-directions-edge
+  export EMULATOR_ARTIFACTS="$fallback_dir"
+  export EMULATOR_PACKAGE=com.example.temple
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  expect_kind() {
+    local want="$1" pkg="$2" handler="${3:-}" got
+    got="$(classify_fallback_pkg "$pkg" "$handler")"
+    [[ "$got" == "$want" ]] || {
+      echo "classify_fallback_pkg ${pkg:-<empty>} handler=${handler:-<none>} was ${got}, want ${want}" >&2
+      exit 1
+    }
+  }
+  expect_kind browser com.android.chrome
+  expect_kind browser com.android.chrome org.mozilla.firefox
+  expect_kind browser org.mozilla.firefox org.mozilla.firefox
+  expect_kind browser com.android.browser com.android.browser
+  expect_kind other com.example.temple com.example.temple
+  expect_kind other com.example.temple
+  expect_kind other com.google.android.apps.maps org.mozilla.firefox
+  expect_kind other "" org.mozilla.firefox
+  expect_kind launcher com.android.launcher3
+  expect_kind launcher com.google.android.apps.nexuslauncher org.mozilla.firefox
+  expect_kind launcher com.android.launcher3 com.android.launcher3
+  expect_kind permission com.google.android.permissioncontroller
+  expect_kind permission com.android.permissioncontroller com.android.permissioncontroller
+  adb_shell_capped() {
+    shift
+    [[ "$*" == "cmd package resolve-activity --brief -a android.intent.action.VIEW -d https://example.com" ]] || {
+      echo "https_view_handler command was: $*" >&2
+      exit 1
+    }
+    printf '%s\n' "priority=0 preferredOrder=0 match=0x208000 specificIndex=-1 isDefault=true" \
+      "com.android.chrome/com.google.android.apps.chrome.IntentDispatcher"
+  }
+  [[ "$(https_view_handler)" == "com.android.chrome" ]] || {
+    echo "https_view_handler did not parse the brief component" >&2
+    exit 1
+  }
+)
+rm -rf "$fallback_dir"
+
 echo "emulator self-test ok"
