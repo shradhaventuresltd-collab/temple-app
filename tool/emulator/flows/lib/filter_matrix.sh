@@ -9,15 +9,15 @@
 # Rules from the emulator test-script guide (Confluence PRODUCT 11632642):
 # - every case relaunches the app (force-stop, start) and asserts its entry;
 # - every wait is bounded, every action is asserted with a dump;
-# - one case (entry + action + probes) is capped at CASE_MAX seconds;
+# - one case (action + probes, after the entry screen) is capped at CASE_MAX seconds;
 # - District is hidden by design until a State is chosen, so district
 #   cases run as state:select -> district:<action>, and a district probe
 #   is generated only while a state is applied;
 # - the first failure in a case is the only FAIL; its probes are NOT RUN.
 #
-# Worst case per flow: 6 cases x CASE_MAX (60 s) = 360 s, plus install.
+# Typical per flow: 6 cases x (~55 s entry + CASE_MAX 90 s) = ~15 min, under the 1140 s flow budget.
 
-CASE_MAX="${CASE_MAX:-60}"
+CASE_MAX="${CASE_MAX:-90}"
 ACTIONS=(select pick-close dismiss-empty back-empty outside-empty clear)
 declare -A PICK=( [state]='^Tamil Nadu( +[0-9]+)?$' [deity]='^Shiva( +[0-9]+)?$' [district]='^Madurai( +[0-9]+)?$' )
 declare -A SECTION=( [state]=STATE [deity]=DEITY [district]=DISTRICT )
@@ -47,7 +47,7 @@ browse_ready() {
 
 enter_home_browse() {
   fresh_home || return 1
-  ui_wait 15 --resource-id home-browse-temples || err "Browse button missing on Home" || return 1
+  ui_wait 40 --resource-id home-browse-temples || err "Browse button missing on Home" || return 1
   ui_tap
   browse_ready
 }
@@ -174,13 +174,15 @@ probe() {
 run_case() {
   local id="$1"; shift
   local steps=("$@") st p probes=() rc
-  case_start
   STATE_APPLIED=0
   LAST_ERR=""
   if ! "enter_${MATRIX_ENTRY}"; then
     fail_step "$id" "could not reach ${MATRIX_ENTRY}: ${LAST_ERR}"
     case_end; return
   fi
+  # The budget covers actions and probes, not relaunch + directory load
+  # (~55s on the 320x640 AVD in run 40698852836).
+  case_start
   for st in "${steps[@]}"; do
     if ! do_action "${st%%:*}" "${st##*:}"; then
       fail_step "$id" "${st}: ${LAST_ERR}"

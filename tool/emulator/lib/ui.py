@@ -320,6 +320,66 @@ def cmd_chip_bar(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_option_seek(args: argparse.Namespace) -> int:
+    """Say where option NAME of a sorted picker section is.
+
+    The sheet lists options in Dart's default String order and every chip
+    carries resource-id filter-option-<kind>-<name>. With ~990 temples the
+    deity section holds hundreds of chips; a fixed-step scan from the top
+    never reached Shiva or Madurai in the time it had (runs 40658283240,
+    40698852836). Comparing NAME with the visible names says which way to
+    scroll, so a caller can fling instead of stepping.
+
+    Prints one of:
+      tap CX CY TEXT   the option is inside [min-top, max-top]
+      up               it is below the screen (scroll the list up)
+      down             it is above the screen (scroll the list down)
+      absent           visible names bracket NAME but it is not listed
+      none             no option of this kind is on screen
+    """
+    try:
+        root = _load(args.dump)
+    except (ET.ParseError, OSError, ValueError) as exc:
+        print(f"dump unreadable: {exc}", file=sys.stderr)
+        return 1
+    prefix = f"filter-option-{args.kind}-"
+    names = []
+    for node in _iter_nodes(root):
+        short = _resource_id(node).split("/")[-1]
+        if not short.startswith(prefix):
+            continue
+        name = short[len(prefix):]
+        box = _bounds(node.attrib.get("bounds", ""))
+        if box is None or name == "any":
+            continue
+        if name == args.name:
+            x1, y1, x2, y2 = box
+            if args.min_top is not None and y1 < args.min_top:
+                print("down")
+                return 0
+            if args.max_top is not None and y1 > args.max_top:
+                print("up")
+                return 0
+            text = " ".join(_flat(node.attrib.get("content-desc")).split()) \
+                or " ".join(_flat(node.attrib.get("text")).split()) or name
+            print(f"tap {(x1 + x2) // 2} {(y1 + y2) // 2} {text}")
+            return 0
+        names.append(name)
+    if not names:
+        print("none")
+        return 0
+    # Dart sorts by UTF-16 code unit; match it for non-BMP names too.
+    def key(value: str) -> bytes:
+        return value.encode("utf-16-be")
+    if key(args.name) > max(key(n) for n in names):
+        print("up")
+    elif key(args.name) < min(key(n) for n in names):
+        print("down")
+    else:
+        print("absent")
+    return 0
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -351,6 +411,14 @@ def _parser() -> argparse.ArgumentParser:
     bar.add_argument("dump")
     bar.add_argument("--max-top", type=int)
     bar.set_defaults(func=cmd_chip_bar)
+
+    seek = sub.add_parser("option-seek")
+    seek.add_argument("dump")
+    seek.add_argument("--kind", required=True)
+    seek.add_argument("--name", required=True)
+    seek.add_argument("--min-top", type=int)
+    seek.add_argument("--max-top", type=int)
+    seek.set_defaults(func=cmd_option_seek)
 
     bright = sub.add_parser("bright")
     bright.add_argument("path")

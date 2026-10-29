@@ -872,4 +872,122 @@ if [[ "$(cat "$fling_log")" != "$expected_flings" ]]; then
 fi
 rm -f "$fling_log"
 
+# Run 40698852836: once a case passed its budget, ui_wait returned at once,
+# so a filter bar that was on screen read as missing. A spent case budget
+# must not turn a plain wait into a false negative.
+budget_dir="$(mktemp -d)"
+(
+  set -euo pipefail
+  export EMULATOR_FLOW=29g-search-state
+  export EMULATOR_ARTIFACTS="$budget_dir"
+  export EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  ui_dump() { return 0; }
+  ui_find() { return 0; }
+  STEP_DEADLINE=1
+  if ! ui_wait 5 --resource-id filter-chip-state 2>/dev/null; then
+    echo "ui_wait must still look once after the case budget is spent" >&2
+    exit 1
+  fi
+  if ! ui_wait_scrolled 5 --text-contains "Temples near me" 2>/dev/null; then
+    echo "ui_wait_scrolled must still look once after the case budget is spent" >&2
+    exit 1
+  fi
+)
+rm -rf "$budget_dir"
+for lib in tool/emulator/flows/lib/filter_matrix.sh tool/emulator/flows/lib/filter_matrix_b.sh; do
+  # case_start must come after the entry call inside run_case.
+  if ! awk '
+    /^run_case\(\)/ { inside = 1 }
+    inside && /enter_\$\{MATRIX_ENTRY\}/ { entered = 1 }
+    inside && /^  case_start$/ { if (!entered) bad = 1; started = 1 }
+    inside && /^}/ { inside = 0 }
+    END { exit (bad || !started) }
+  ' "$lib"; then
+    echo "${lib}: run_case must start the case budget after the entry screen" >&2
+    exit 1
+  fi
+done
+
+# option-seek: hundreds of sorted deity chips (run 40698852836 ended at
+# "Buddhist ..." looking for Shiva). The seek says which way to scroll.
+seek_fixture="$(mktemp)"
+cat > "$seek_fixture" <<'EOF'
+<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<hierarchy rotation="0">
+  <node text="" content-desc="Any deity  992" resource-id="filter-option-deity-any" class="android.view.View" package="com.example" clickable="true" bounds="[16,200][120,240]" />
+  <node text="" content-desc="Buddhist (Kagyu) · Buddhist  1" resource-id="filter-option-deity-Buddhist (Kagyu)" class="android.view.View" package="com.example" clickable="true" bounds="[16,260][300,300]" />
+  <node text="" content-desc="Chamunda  2" resource-id="filter-option-deity-Chamunda" class="android.view.View" package="com.example" clickable="true" bounds="[16,320][140,360]" />
+  <node text="" content-desc="Durga  4" resource-id="filter-option-deity-Durga" class="android.view.View" package="com.example" clickable="true" bounds="[16,600][140,630]" />
+  <node text="" content-desc="Kerala  12" resource-id="filter-option-state-Kerala" class="android.view.View" package="com.example" clickable="true" bounds="[16,380][140,420]" />
+</hierarchy>
+EOF
+seek() { python3 tool/emulator/lib/ui.py option-seek "$seek_fixture" --min-top 153 --max-top 537 "$@"; }
+[[ "$(seek --kind deity --name Shiva)" == up ]] || { echo "option-seek: Shiva is below" >&2; exit 1; }
+[[ "$(seek --kind deity --name Agni)" == down ]] || { echo "option-seek: Agni is above" >&2; exit 1; }
+[[ "$(seek --kind deity --name Chamunda)" == "tap 78 340 Chamunda 2" ]] || { echo "option-seek: Chamunda tap was $(seek --kind deity --name Chamunda)" >&2; exit 1; }
+[[ "$(seek --kind deity --name Durga)" == up ]] || { echo "option-seek: Durga is under the tap band" >&2; exit 1; }
+[[ "$(seek --kind deity --name Chandi)" == absent ]] || { echo "option-seek: Chandi is not listed" >&2; exit 1; }
+[[ "$(seek --kind district --name Madurai)" == none ]] || { echo "option-seek: no district chips" >&2; exit 1; }
+rm -f "$seek_fixture"
+
+# seek_option against a fake ~400-chip list: fast flings, then exact
+# steps, must reach "Shiva" in a bounded number of swipes.
+seek_dir="$(mktemp -d)"
+(
+  set -euo pipefail
+  export EMULATOR_FLOW=06-filters
+  export EMULATOR_ARTIFACTS="$seek_dir"
+  export EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  python3 - "$seek_dir/names" <<'PY'
+import string, sys
+names = sorted({f"{a}{b} deity" for a in string.ascii_uppercase for b in string.ascii_lowercase[:16]} | {"Shiva"})
+open(sys.argv[1], "w").write("\n".join(names))
+PY
+  echo 0 > "$seek_dir/top"
+  ui_screen_size() { echo "320 640"; }
+  ui_dump() {
+    python3 - "$seek_dir" "$DUMP" <<'PY'
+import sys
+d, out = sys.argv[1], sys.argv[2]
+names = open(f"{d}/names").read().split("\n")
+top = max(0, min(int(open(f"{d}/top").read()), len(names) - 8))
+rows = []
+for i, n in enumerate(names[top:top + 8]):
+    y = 160 + i * 50
+    rows.append(f'<node text="" content-desc="{n}  1" resource-id="filter-option-deity-{n}" bounds="[16,{y}][200,{y + 40}]" />')
+open(out, "w").write("<hierarchy>" + "".join(rows) + "</hierarchy>")
+PY
+  }
+  adb_shell_capped() {
+    shift
+    local t y1 y2 dur
+    t="$(cat "$seek_dir/top")"
+    if [[ "$1 $2" == "input swipe" ]]; then
+      y1="$4"; y2="$6"; dur="$7"
+      if (( dur <= 150 )); then t=$((t + 25))
+      elif (( y2 < y1 )); then t=$((t + 3))
+      else t=$((t - 3)); fi
+    fi
+    (( t < 0 )) && t=0
+    echo "$t" > "$seek_dir/top"
+    echo "$*" >> "$seek_dir/log"
+  }
+  sleep() { :; }
+  if ! seek_option deity Shiva $((SECONDS + 45)); then
+    echo "seek_option did not reach Shiva in a ~400-chip list" >&2
+    exit 1
+  fi
+  [[ "$UI_TEXT" == "Shiva 1" ]] || { echo "seek_option stopped at '${UI_TEXT}'" >&2; exit 1; }
+  swipes="$(grep -c 'input swipe' "$seek_dir/log")"
+  if (( swipes > 30 )); then
+    echo "seek_option needed ${swipes} swipes" >&2
+    exit 1
+  fi
+)
+rm -rf "$seek_dir"
+
 echo "emulator self-test ok"

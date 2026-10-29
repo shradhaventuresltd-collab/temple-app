@@ -22,9 +22,9 @@
 # - "district chip hidden with no state selected" was recorded while the
 #   drawer was closed, not because the drawer hides it.
 #
-# Worst case per flow: 6 cases x (CASE_MAX 60 s + ~10 s relaunch/shot) = 7 min.
+# Typical per flow: 6 cases x (~55 s entry + CASE_MAX 90 s + ~10 s shot) = ~15 min.
 
-CASE_MAX="${CASE_MAX:-60}"
+CASE_MAX="${CASE_MAX:-90}"
 ACTIONS=(select pick-close dismiss-empty back-empty outside-empty clear)
 # Option chips are "Name  N" in one node. Allow the count, no hard $ on the name.
 declare -A PICK=( [state]='^Tamil Nadu( +[0-9]+)?$' [deity]='^Shiva( +[0-9]+)?$' [district]='^Madurai( +[0-9]+)?$' )
@@ -74,7 +74,7 @@ enter_drawer_bar() {
 # Near me has no DirectoryFilterBar; return 2 so the caller records NOT RUN.
 enter_near_me() {
   fresh_home || return 1
-  ui_wait_scrolled 15 --text-contains "Temples near me" || err "Temples near me tile missing" || return 1
+  ui_wait_scrolled 40 --text-contains "Temples near me" || err "Temples near me tile missing" || return 1
   ui_tap
   # Near me reached: one of the screen's own keys. near-me-rationale-sheet
   # (location consent), near-me-status ("Finding temples..."), near-me-list
@@ -214,7 +214,6 @@ probe() {
 run_case() {
   local id="$1"; shift
   local steps=("$@") st p probes=() rc q rest
-  case_start
   STATE_APPLIED=0
   LAST_ERR=""
   REOPENED=0
@@ -229,6 +228,9 @@ run_case() {
     fail_step "$id" "could not reach ${MATRIX_ENTRY}: ${LAST_ERR}"
     case_end; return
   fi
+  # The budget covers actions and probes, not relaunch + directory load
+  # (~55s on the 320x640 AVD in run 40698852836).
+  case_start
   for st in "${steps[@]}"; do
     if ! do_action "${st%%:*}" "${st##*:}"; then
       fail_step "$id" "${st}: ${LAST_ERR}"

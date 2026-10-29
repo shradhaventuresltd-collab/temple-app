@@ -185,11 +185,15 @@ ui_find() {
   [[ -n "$UI_CX" && -n "$UI_CY" ]]
 }
 
-# Per-step and per-case budget. STEP_DEADLINE is absolute SECONDS, 0 = none.
-# Every polling loop below stops when it passes, so one missing element
-# costs at most the case budget, never the flow budget.
+# Per-case budget. STEP_DEADLINE is absolute SECONDS, 0 = none.
+# Only the long option scan (select_labeled) shortens itself to it. Plain
+# waits (ui_wait, ui_wait_scrolled, chip lookups) keep their own small
+# timeouts: run 40698852836 made them return at once after the budget,
+# so a bar that was on screen read as "filter bar not on screen" and 31
+# probes failed as "case exceeded". Start the budget after the entry
+# screen is reached; relaunch + directory load alone took ~55s there.
 STEP_DEADLINE=0
-CASE_MAX="${CASE_MAX:-60}"
+CASE_MAX="${CASE_MAX:-90}"
 case_start() { CASE_T0=$SECONDS; STEP_DEADLINE=$((SECONDS + CASE_MAX)); }
 case_end() { STEP_DEADLINE=0; }
 case_over() { (( SECONDS - ${CASE_T0:-$SECONDS} > CASE_MAX )); }
@@ -199,7 +203,7 @@ ui_wait() {
   local timeout="$1"
   shift
   local start="$SECONDS"
-  while (( SECONDS - start < timeout )) && ! step_expired; do
+  while (( SECONDS - start < timeout )); do
     if ui_dump && ui_find "$@"; then
       return 0
     fi
@@ -312,7 +316,7 @@ ui_wait_scrolled() {
   shift
   local start="$SECONDS"
   local flings=0
-  while (( SECONDS - start < timeout )) && ! step_expired; do
+  while (( SECONDS - start < timeout )); do
     if ui_dump && ui_find "$@"; then
       return 0
     fi
@@ -1019,7 +1023,6 @@ find_filter_chip() {
   max_top=$((height * 70 / 100))
   y=$((height * 22 / 100))
   for i in $(seq 1 8); do
-    step_expired && break
     ui_dump || true
     found=0
     if [[ -n "$rid" ]] && ui_find --resource-id "$rid" --max-top "$max_top"; then
@@ -1061,7 +1064,6 @@ scroll_chips_until() {
   read -r width height < <(ui_screen_size) || return 1
   max_top=$((height * 70 / 100))
   for i in 1 2 3 4; do
-    step_expired && { echo "scroll_chips_until: step budget spent" >&2; return 1; }
     ui_dump || return 1
     if ui_find "$@" --max-top "$max_top" && (( UI_CX > 24 && UI_CX < width - 24 )); then
       return 0
@@ -1129,7 +1131,7 @@ wait_out_district_loader() {
     && ! ui_find --text-contains "Loading districts"; then
     return 0
   fi
-  while (( SECONDS - start < 15 )) && ! step_expired; do
+  while (( SECONDS - start < 15 )); do
     sleep 1
     if ! ui_dump; then
       echo "select_labeled: hierarchy dump failed while districts were loading" >&2
@@ -1160,6 +1162,57 @@ print(name if name else "")
 ' "$1"
 }
 
+# Fling toward option NAME of section KIND (state, district, deity) by
+# comparing it with the visible option ids, which are in sorted order.
+# Returns 0 with UI_CX/UI_CY/UI_TEXT set when the option is in the tap
+# band, 1 when the caller should fall back to the step scan.
+# Usage: seek_option KIND NAME DEADLINE
+seek_option() {
+  local kind="$1" name="$2" deadline="$3"
+  local i height verdict fast=1 prev="" current same=0
+  for i in $(seq 1 40); do
+    (( SECONDS < deadline )) || return 1
+    ui_dump || return 1
+    read -r _ height < <(ui_screen_size) || return 1
+    verdict="$(python3 "$UI_PY" option-seek "$DUMP" --kind "$kind" --name "$name" \
+      --min-top $((height * 24 / 100)) --max-top $((height * 84 / 100)))" || return 1
+    case "$verdict" in
+      tap\ *)
+        read -r _ UI_CX UI_CY UI_TEXT <<<"$verdict"
+        return 0 ;;
+      up|down) ;;
+      *)
+        echo "seek_option: ${kind} '${name}': ${verdict}" >&2
+        return 1 ;;
+    esac
+    current="$(dump_scroll_sig)" || return 1
+    if [[ "$current" == "$prev" ]]; then
+      same=$((same + 1))
+      (( same < 3 )) || { echo "seek_option: list stopped moving before '${name}'" >&2; return 1; }
+    else
+      same=0
+    fi
+    prev="$current"
+    if [[ "$verdict" == down ]]; then
+      # Overshot (or started below it): finish with slow, exact steps.
+      fast=0
+      ui_sheet_swipe down || return 1
+    elif (( fast )); then
+      local width
+      read -r width _ < <(ui_screen_size) || return 1
+      # A short, fast drag leaves momentum: many rows per dump.
+      adb_shell_capped 8 input swipe $((width / 2)) $((height * 80 / 100)) \
+        $((width / 2)) $((height * 32 / 100)) 120 || return 1
+      sleep 0.8
+      continue
+    else
+      ui_sheet_swipe up || return 1
+    fi
+    sleep 0.3
+  done
+  return 1
+}
+
 # Walk the option list until regex is inside the tap band, then tap it.
 # Callers pass the section name (STATE, DISTRICT, DEITY). The list ends when
 # a swipe leaves the option texts unchanged, not when the next header peeks in.
@@ -1185,6 +1238,15 @@ select_labeled() {
   deadline=$((started + ${SELECT_MAX:-45}))
   if (( STEP_DEADLINE > 0 && STEP_DEADLINE < deadline )); then
     deadline=$STEP_DEADLINE
+  fi
+  local kind
+  kind="$(printf '%s' "$_section" | tr '[:upper:]' '[:lower:]')"
+  if [[ -n "$name_hint" && "$kind" =~ ^(state|district|deity)$ ]] \
+    && seek_option "$kind" "$name_hint" "$deadline"; then
+    SELECTED_LABEL="$(chip_label "$UI_TEXT")"
+    ui_tap
+    sleep 1
+    return 0
   fi
   for pass in 1 2; do
     if (( SECONDS >= deadline )); then
