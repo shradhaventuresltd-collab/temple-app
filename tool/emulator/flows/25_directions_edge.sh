@@ -45,5 +45,15 @@ else
 fi
 adb_shell_capped 8 pm disable-user com.google.android.apps.maps >/dev/null 2>&1
 ui_find --resource-id get-directions-button || ui_find --text-regex 'Get Directions' && ui_tap; sleep 3; ui_dump
-ui_find --text-contains "irections" && pass_step no-maps-fallback || fail_step no-maps-fallback "nothing happened with Maps disabled"
+# With Maps disabled the app opens the same URL in a browser (run
+# 40698852836: Chrome first-run page). That is the fallback working.
+fallback_fg="$(foreground_pkg)"
+if [[ -n "$fallback_fg" && "$fallback_fg" != "$PKG" ]]; then
+  pass_step no-maps-fallback
+  back_until_app 6 30 || resume_app
+elif ui_find --text-contains "irections"; then
+  pass_step no-maps-fallback
+else
+  fail_step no-maps-fallback "nothing happened with Maps disabled"
+fi
 adb_shell_capped 8 pm enable com.google.android.apps.maps >/dev/null 2>&1

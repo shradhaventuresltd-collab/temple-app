@@ -990,4 +990,18 @@ PY
 )
 rm -rf "$seek_dir"
 
+# logcat_mark must hand the date format to the device as one word.
+mark_dir="$(mktemp -d)"
+(
+  set -euo pipefail
+  export EMULATOR_FLOW=25-directions-edge
+  export EMULATOR_ARTIFACTS="$mark_dir"
+  export EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  adb_shell_capped() { shift; [[ "$#" -eq 1 && "$1" == "date '+%m-%d %H:%M:%S.000'" ]] && echo "10-28 15:15:20.000"; }
+  [[ "$(logcat_mark)" == "10-28 15:15:20.000" ]] || { echo "logcat_mark must pass the date format as one quoted word" >&2; exit 1; }
+)
+rm -rf "$mark_dir"
+
 echo "emulator self-test ok"

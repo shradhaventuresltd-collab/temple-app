@@ -263,8 +263,13 @@ back_until_app() {
 }
 
 # Device-side logcat timestamp to pass to maps_start_count.
+# adb shell joins its arguments with spaces and the device shell splits
+# them again, so the format must reach the device as one quoted word.
+# Unquoted, toybox date got "%H:%M:%S.000" as a date to set, printed
+# nothing, and maps_start_count saw no mark (run 40698852836: count=0
+# with a Maps START in logcat).
 logcat_mark() {
-  adb_shell_capped 6 date '+%m-%d %H:%M:%S.000' 2>/dev/null | tr -d '\r' || true
+  adb_shell_capped 6 "date '+%m-%d %H:%M:%S.000'" 2>/dev/null | tr -d '\r' || true
 }
 
 # Count ActivityTaskManager START lines for Google Maps since a logcat_mark.
