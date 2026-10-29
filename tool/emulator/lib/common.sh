@@ -199,14 +199,27 @@ case_end() { STEP_DEADLINE=0; }
 case_over() { (( SECONDS - ${CASE_T0:-$SECONDS} > CASE_MAX )); }
 step_expired() { (( STEP_DEADLINE > 0 && SECONDS >= STEP_DEADLINE )); }
 
-# Flow wall clock. matrix_main sets FLOW_T0. run_one_flow.sh kills the
-# process at 1140s, and a string of slow failures (entry plus CASE_MAX,
-# then dismiss_blockers) can reach that kill before the results are written.
+# Flow wall clock. run_one_flow.sh exports FLOW_START_EPOCH when the 1140s
+# timeout starts, which is before install and before matrix_main. A string
+# of slow failures can reach that kill before the results are written.
 # flow_over is true when another full case would not finish before then.
+# Without the wrapper clock, the start is now minus FLOW_START_MARGIN so a
+# late caller does not see a fresh 1140s.
 FLOW_BUDGET_S="${FLOW_BUDGET_S:-1140}"
+FLOW_START_MARGIN="${FLOW_START_MARGIN:-120}"
 flow_over() {
-  local elapsed=$((SECONDS - ${FLOW_T0:-$SECONDS}))
-  local need=$(( ${CASE_MAX:-90} + 55 ))
+  local now start elapsed need
+  now="$(date +%s)"
+  if [[ -n "${FLOW_START_EPOCH:-}" ]]; then
+    start=$FLOW_START_EPOCH
+  else
+    if [[ -z "${FLOW_FALLBACK_EPOCH:-}" ]]; then
+      FLOW_FALLBACK_EPOCH=$(( now - FLOW_START_MARGIN ))
+    fi
+    start=$FLOW_FALLBACK_EPOCH
+  fi
+  elapsed=$(( now - start ))
+  need=$(( ${CASE_MAX:-90} + 55 ))
   (( elapsed + need >= FLOW_BUDGET_S ))
 }
 
@@ -947,8 +960,11 @@ wait_browse_ready() {
     if ui_find --text-contains "Could not load temples"; then
       if (( retried_at == 0 )) && ui_find --resource-id browse-load-failed-retry; then
         echo "wait_browse_ready: load failed; tapping Try again once" >&2
-        ui_tap || true
-        retried_at=$SECONDS
+        if ui_tap; then
+          retried_at=$SECONDS
+        else
+          echo "wait_browse_ready: Try again tap failed" >&2
+        fi
         sleep 2
         continue
       fi

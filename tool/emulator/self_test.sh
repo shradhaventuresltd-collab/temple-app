@@ -405,6 +405,11 @@ if ! grep -q 'timeout --kill-after=15 "$FLOW_BUDGET"' tool/emulator/run_one_flow
   exit 1
 fi
 pass
+if ! grep -q 'export FLOW_START_EPOCH=' tool/emulator/run_one_flow.sh; then
+  echo "the 1140s timer must export FLOW_START_EPOCH for flow_over" >&2
+  exit 1
+fi
+pass
 if ! awk '
   /flow_rc. -eq 124/ { block = 1 }
   block && failed == 0 && $0 ~ /screenrecord_stop/ { stopped = 1 }
@@ -1285,9 +1290,10 @@ budget_case_dir="$(mktemp -d)"
   source tool/emulator/flows/lib/filter_matrix.sh
   force_stop_app() { :; }
   run_case() { echo "ran:$1" >> "$budget_case_dir/ran"; }
-  FLOW_T0=$SECONDS
+  unset FLOW_FALLBACK_EPOCH
+  FLOW_START_EPOCH="$(date +%s)"
   if flow_over; then echo "a fresh flow should not be over the 1140s budget" >&2; exit 1; fi
-  FLOW_T0=$((SECONDS - 2000))
+  FLOW_START_EPOCH="$(( $(date +%s) - 2000 ))"
   if ! flow_over; then echo "elapsed time past the flow budget should stop the next case" >&2; exit 1; fi
   flow_over() { return 0; }
   MATRIX_ENTRY=home_browse

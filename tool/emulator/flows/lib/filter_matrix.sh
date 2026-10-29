@@ -227,7 +227,6 @@ run_case() {
 
 matrix_main() {
   local t0=$SECONDS action
-  FLOW_T0=$t0
   if [[ "$MATRIX_ENTRY" == seq ]]; then
     MATRIX_ENTRY=home_browse
     run_case_or_stop seq1 state:select district:pick-close deity:select

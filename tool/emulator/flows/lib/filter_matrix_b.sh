@@ -278,7 +278,6 @@ run_case() {
 
 matrix_main() {
   local t0=$SECONDS action
-  FLOW_T0=$t0
   if [[ "$MATRIX_ENTRY" == near_me ]]; then
     run_case_or_stop near_me-state-select state:select
   else

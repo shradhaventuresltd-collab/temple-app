@@ -420,6 +420,37 @@ void main() {
     expect(resumed, isTrue);
   });
 
+  testWidgets('programmatic auto-advance keeps running after a swipe', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: TempleDetailBody(temple: twoPhotos())),
+      ),
+    );
+    await tester.pump();
+    expect(find.text('1 / 2'), findsOneWidget);
+
+    // A non-drag page change (the timer's own animateToPage) must not
+    // cancel the interval. Four seconds in, jump the page; the original
+    // tick is still due about a second later.
+    await tester.pump(const Duration(seconds: 4));
+    final controller = tester.widget<PageView>(find.byType(PageView)).controller!;
+    final swipe = controller.animateToPage(
+      1,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    await swipe;
+    expect(find.text('2 / 2'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(find.text('1 / 2'), findsOneWidget);
+  });
+
   testWidgets('auto-advance pauses while another route covers the gallery', (
     tester,
   ) async {

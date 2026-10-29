@@ -45,6 +45,11 @@ if [[ "${EMULATOR_FLOW_TIMED:-}" != 1 ]]; then
   exit 0
 fi
 
+# timeout just started this process. matrix_main runs later, after the APK
+# install, so the 1140s budget is counted from here rather than from SECONDS
+# at the first case.
+export FLOW_START_EPOCH="$(date +%s)"
+
 cleanup() {
   screenrecord_stop || true
   dump_logcat || true

@@ -113,6 +113,18 @@ for entry in home_button drawer_all drawer_search list_drawer_all; do
       sleep 0.5
       ui_dump && ui_find --resource-id temple-list-search-field && ui_tap
     fi
+    # Do not type onto a leftover query. Clear search is shown only while
+    # the field has text; the field node itself must not still say "temple".
+    ui_dump || true
+    if ui_find --content-desc "Clear search"; then
+      fail_step "$entry-empty-clear" "search field was not empty before typing"
+      continue
+    fi
+    if ui_find --resource-id temple-list-search-field && [[ "$UI_TEXT" == *temple* ]]; then
+      fail_step "$entry-empty-clear" "search field still held '${UI_TEXT}' before typing"
+      continue
+    fi
+    ui_find --resource-id temple-list-search-field && ui_tap
     ui_type "zzzqqq"
     adb_shell_capped 8 input keyevent 66 || true
     sleep 2

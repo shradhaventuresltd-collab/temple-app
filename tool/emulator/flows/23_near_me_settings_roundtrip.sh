@@ -37,7 +37,11 @@ open_nm || { fail_step open "no near-me entry"; return 0; }
 # The app asks first ("Sort by distance ... Continue / Not now"). Run
 # 40698852836 stopped on that sheet (service-off-copy dump), and every
 # later dump shows the declined body "Pick a state or city to sort the list."
-dismiss_location_consent Continue || true
+if dismiss_location_consent Continue; then
+  echo "flow 23: location consent dismissed" >&2
+else
+  echo "flow 23: location consent was not dismissed" >&2
+fi
 sleep 1
 ui_dump; ui_find --text-regex 'turned off on this phone|Enable location|Open location settings' && pass_step service-off-copy || fail_step service-off-copy "no location-off state"
 adb_shell_capped 8 settings put secure location_mode 3; push_emulator_geo; sleep 1
