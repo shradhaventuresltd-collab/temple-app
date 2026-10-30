@@ -30,7 +30,11 @@
 CASE_MAX="${CASE_MAX:-90}"
 ACTIONS=(select pick-close dismiss-empty back-empty outside-empty clear)
 # Option chips are "Name  N" in one node. Allow the count, no hard $ on the name.
-declare -A PICK=( [state]='^Tamil Nadu( +[0-9]+)?$' [deity]='^Shiva( +[0-9]+)?$' [district]='^Madurai( +[0-9]+)?$' )
+# Run 40916686359: the directory has no plain "Shiva" chip, only "Shiva (...)"
+# variants (Shikari Devi is followed by Shiva (Amritaghateswarar)...), so
+# ^Shiva( +N)?$ can never match. Chamunda is an exact chip ("Chamunda  2")
+# near the top of the deity section, which leads the sheet for the deity chip.
+declare -A PICK=( [state]='^Tamil Nadu( +[0-9]+)?$' [deity]='^Chamunda( +[0-9]+)?$' [district]='^Madurai( +[0-9]+)?$' )
 declare -A SECTION=( [state]=STATE [deity]=DEITY [district]=DISTRICT )
 LAST_ERR=""
 STATE_APPLIED=0
@@ -57,15 +61,18 @@ open_drawer() {
 
 # The bar sits below SEARCH in the drawer's own list. scroll_drawer_until
 # swipes inside the drawer; ui_wait_scrolled flings the whole screen.
+# Any chip marks the bar: with a district applied the bar shows the district
+# chip and no state chip (run 40916686359, 30b select-then-district).
+DRAWER_CHIP_RX='^filter-chip-(state|district|deity)$'
 show_drawer_bar() {
-  scroll_drawer_until --resource-id filter-chip-state || err "drawer filter bar not reachable" || return 1
+  scroll_drawer_until --resource-id-regex "$DRAWER_CHIP_RX" || err "drawer filter bar not reachable" || return 1
   # b85fee1 shows drawer-filters-loading until the directory arrives.
   local start=$SECONDS
   while ui_find --resource-id drawer-filters-loading; do
     (( SECONDS - start > 20 )) && { err "drawer filters still loading after 20s"; return 1; }
     sleep 1; ui_dump || true
   done
-  ui_wait 5 --resource-id filter-chip-state || err "filter-chip-state missing in drawer" || return 1
+  ui_wait 5 --resource-id-regex "$DRAWER_CHIP_RX" || err "filter chips missing in drawer" || return 1
 }
 
 enter_drawer_bar() {
@@ -115,11 +122,19 @@ district_in_bar() {
   python3 "$UI_PY" resource-ids "$DUMP" --prefix filter-chip- | grep -qx filter-chip-district
 }
 
+# The drawer bar sits low in the drawer (y=461 of 640 in run 40916686359),
+# below scroll_chips_until's 70% max-top, so that helper never saw the
+# district or deity chip even though both were on screen. Take the chip from
+# the dump when it is on screen; only scroll the row when it is not.
 find_chip() {
-  case "$1" in
-    state) ui_dump && ui_find --resource-id filter-chip-state ;;
-    *) scroll_chips_until --resource-id "filter-chip-$1" ;;
-  esac
+  local width
+  ui_dump || return 1
+  if ui_find --resource-id "filter-chip-$1"; then
+    read -r width _ < <(ui_screen_size) || return 1
+    (( UI_CX > 12 && UI_CX < width - 12 )) && return 0
+  fi
+  [[ "$1" == state ]] && return 1
+  scroll_chips_until --resource-id "filter-chip-$1"
 }
 
 open_chip() {
@@ -153,7 +168,12 @@ back_close() {
   wait_sheet_closed || err "sheet still open after Back"
 }
 
-pick() { select_labeled "${PICK[$1]}" "${SECTION[$1]}" || err "could not pick ${PICK[$1]} in the $1 list"; }
+# No section kind: select_labeled then skips seek_option and step-scans from
+# the top of the sheet, where the tapped chip's section leads. In run
+# 40916686359 seek_option's fling carried the list past every state, the
+# next dump had no state ids ("none"), and the step scan only went further
+# down (dumps end in the district/deity sections). SECTION stays for logs.
+pick() { select_labeled "${PICK[$1]}" "" || err "could not pick ${PICK[$1]} in the $1 list (${SECTION[$1]})"; }
 apply() { apply_sheet || err "Show N temples did not apply and close"; }
 
 # After apply the chip carries "Clear <chip> filter" and the drawer shows
@@ -279,7 +299,9 @@ run_case() {
 matrix_main() {
   local t0=$SECONDS action
   if [[ "$MATRIX_ENTRY" == near_me ]]; then
-    run_case_or_stop near_me-state-select state:select
+    # Near me has no DirectoryFilterBar and is out of scope for this matrix.
+    printf 'SKIPPED %s: %s: %s\n' "$FLOW" near_me-state-select \
+      "near me has no directory filter bar (out of scope)" | tee -a "$RESULTS"
   else
     for action in "${ACTIONS[@]}"; do
       run_case_or_stop "$MATRIX_ENTRY-$MATRIX_CHIP-$action" "$MATRIX_CHIP:$action"
