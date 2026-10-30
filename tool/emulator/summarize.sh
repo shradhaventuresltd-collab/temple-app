@@ -28,7 +28,8 @@ flows=(
   14-back-relaunch
   15-offline
   16-home-browse
-  17-entry-matrix
+  17a-entry-matrix-home
+  17b-entry-matrix-drawer
   18-home-reselect
   19-rotation-state
   20-empty-and-back
@@ -40,14 +41,28 @@ flows=(
   26-drawer-nav-stack
   27-offline-cold-start
   28-small-screen-rotation-overflow
-  29-filter-matrix
-  30-filter-matrix-rest
+  29a-home-browse-state
+  29b-home-browse-district
+  29c-home-browse-deity
+  29d-drawer-all-state
+  29e-drawer-all-district
+  29f-drawer-all-deity
+  29g-search-state
+  29h-search-district
+  29i-search-deity
+  29j-sequences
+  29k-sequences
+  29l-sequences
+  30a-drawer-bar-state
+  30b-drawer-bar-district
+  30c-drawer-bar-deity
+  30d-near-me
 )
 
 resolve_outcome="${EMULATOR_RESOLVE_OUTCOME:-success}"
 
 for flow in "${flows[@]}"; do
-  if grep -Eq "^(PASS|FAIL|XFAIL) ${flow}:" "$results"; then
+  if grep -Eq "^(PASS|FAIL|XFAIL|SKIPPED) ${flow}:" "$results"; then
     continue
   fi
   # Whole-flow "NOT RUN <flow>" or a skipped step "NOT RUN <flow>: <step>".
@@ -66,6 +81,10 @@ done
 if [[ "$resolve_outcome" != "failure" ]]; then
   for flow in "${flows[@]}"; do
     if grep -Eq "^PASS ${flow}:" "$results"; then
+      continue
+    fi
+    # A skipped flow reports SKIPPED and nothing else; it needs no PASS.
+    if grep -Eq "^SKIPPED ${flow}:" "$results" && ! grep -Eq "^(PASS|FAIL|XFAIL|NOT RUN) ${flow}:" "$results"; then
       continue
     fi
     if grep -Eq "^FAIL ${flow}:" "$results"; then
@@ -94,19 +113,38 @@ passes="$(grep -c '^PASS ' "$results" || true)"
 fails="$(grep -c '^FAIL ' "$results" || true)"
 xfails="$(grep -c '^XFAIL ' "$results" || true)"
 not_run="$(grep -c '^NOT RUN ' "$results" || true)"
+skipped="$(grep -c '^SKIPPED ' "$results" || true)"
+infos="$(grep -c '^INFO ' "$results" || true)"
 
+skipped_list="$(grep '^SKIPPED ' "$results" | sed 's/^SKIPPED /  - /' || true)"
 {
   echo "### Emulator app test"
   echo
-  echo "${passes} passed, ${fails} failed, ${xfails} expected failures, ${not_run} not run."
+  echo "${passes} passed, ${fails} failed, ${xfails} expected failures, ${not_run} not run, ${skipped} skipped, ${infos} notes."
+  if [[ -n "$skipped_list" ]]; then
+    echo
+    echo "Skipped flows (not passed, not expected failures):"
+    echo
+    printf '%s\n' "$skipped_list"
+  fi
   echo
   echo '```'
   cat "$results"
   echo '```'
 } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
 
-echo "${passes} passed, ${fails} failed, ${xfails} expected failures, ${not_run} not run."
+echo "${passes} passed, ${fails} failed, ${xfails} expected failures, ${not_run} not run, ${skipped} skipped, ${infos} notes."
+if [[ -n "$skipped_list" ]]; then
+  echo "Skipped flows:"
+  printf '%s\n' "$skipped_list"
+fi
 if [[ "$fails" -ne 0 ]]; then
+  exit 1
+fi
+# NOT RUN only follows a FAIL, so with no FAIL it means a step was never
+# reached; that is not green either (unless APK resolution failed).
+if [[ "$not_run" -ne 0 && "$resolve_outcome" != "failure" ]]; then
+  echo "NOT RUN steps without a failure: treat as a failure" >&2
   exit 1
 fi
 exit 0

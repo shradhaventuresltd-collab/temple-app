@@ -35,6 +35,21 @@ record_xfail() {
   printf 'XFAIL %s: %s: %s\n' "$FLOW" "$1" "$2" | tee -a "$RESULTS"
 }
 
+# A by-design note: not a pass, not a failure, not a skipped step.
+record_info() {
+  printf 'INFO %s: %s: %s\n' "$FLOW" "$1" "$2" | tee -a "$RESULTS"
+}
+
+# The flow budget ran out before STEP. That is lost coverage, so the first
+# such step records one FAIL (budget) for the flow; it and every later
+# step are NOT RUN behind that FAIL. A green run never has these.
+budget_stop() {
+  if ! grep -Eq "^FAIL ${FLOW}: budget:" "$RESULTS" 2>/dev/null; then
+    record_fail "budget" "$1 and later steps not reached before the ${FLOW_BUDGET_S}s flow budget"
+  fi
+  record_not_run "$1" "prerequisite budget failed"
+}
+
 record_not_run() {
   printf 'NOT RUN %s: %s: %s\n' "$FLOW" "$1" "$2" | tee -a "$RESULTS"
 }
@@ -185,6 +200,71 @@ ui_find() {
   [[ -n "$UI_CX" && -n "$UI_CY" ]]
 }
 
+# Per-case budget. STEP_DEADLINE is absolute SECONDS, 0 = none.
+# Only the long option scan (select_labeled) shortens itself to it. Plain
+# waits (ui_wait, ui_wait_scrolled, chip lookups) keep their own small
+# timeouts: run 40698852836 made them return at once after the budget,
+# so a bar that was on screen read as "filter bar not on screen" and 31
+# probes failed as "case exceeded". Start the budget after the entry
+# screen is reached; relaunch + directory load alone took ~55s there.
+STEP_DEADLINE=0
+CASE_MAX="${CASE_MAX:-90}"
+case_start() { CASE_T0=$SECONDS; STEP_DEADLINE=$((SECONDS + CASE_MAX)); }
+case_end() { STEP_DEADLINE=0; }
+case_over() { (( SECONDS - ${CASE_T0:-$SECONDS} > CASE_MAX )); }
+step_expired() { (( STEP_DEADLINE > 0 && SECONDS >= STEP_DEADLINE )); }
+
+# Flow wall clock. run_one_flow.sh exports FLOW_START_EPOCH when the 1140s
+# timeout starts, which is before install and before matrix_main. A string
+# of slow failures can reach that kill before the results are written.
+# flow_over is true when another full case would not finish before then.
+# Without the wrapper clock, the start is now minus FLOW_START_MARGIN so a
+# late caller does not see a fresh 1140s.
+FLOW_BUDGET_S="${FLOW_BUDGET_S:-1140}"
+FLOW_START_MARGIN="${FLOW_START_MARGIN:-120}"
+flow_over() {
+  local now start elapsed need
+  now="$(date +%s)"
+  if [[ -n "${FLOW_START_EPOCH:-}" ]]; then
+    start=$FLOW_START_EPOCH
+  else
+    if [[ -z "${FLOW_FALLBACK_EPOCH:-}" ]]; then
+      FLOW_FALLBACK_EPOCH=$(( now - FLOW_START_MARGIN ))
+    fi
+    start=$FLOW_FALLBACK_EPOCH
+  fi
+  elapsed=$(( now - start ))
+  # CASE_NEED_S: the caller's estimate of one whole case (entry + actions +
+  # probes). The matrix libs set it per flow; the default is the old one.
+  need=$(( ${CASE_NEED_S:-$(( ${CASE_MAX:-90} + 55 ))} ))
+  (( elapsed + need >= FLOW_BUDGET_S ))
+}
+
+# Mark a case and the probes probe_list would generate NOT RUN.
+# Usage: skip_case_for_budget ID STEP [STEP...]
+skip_case_for_budget() {
+  local id="$1"; shift
+  local steps=("$@") st p chip
+  budget_stop "$id"
+  STATE_APPLIED=0
+  for st in "${steps[@]}"; do
+    [[ "$st" == state:select ]] && STATE_APPLIED=1
+  done
+  chip="${steps[-1]%%:*}"
+  while IFS= read -r p; do
+    [[ -n "$p" ]] || continue
+    budget_stop "$id-then-$p"
+  done < <(probe_list "$chip")
+}
+
+run_case_or_stop() {
+  if flow_over; then
+    skip_case_for_budget "$@"
+  else
+    run_case "$@"
+  fi
+}
+
 ui_wait() {
   local timeout="$1"
   shift
@@ -207,6 +287,142 @@ ui_back() {
   adb_shell_capped 8 input keyevent 4
 }
 
+# Package owning the focused window, or empty. mCurrentFocus first, then
+# the resumed activity from dumpsys activity.
+foreground_pkg() {
+  local out pkg
+  out="$(adb_shell_capped 6 dumpsys window 2>/dev/null | tr -d '\r' | grep -m1 'mCurrentFocus=' || true)"
+  pkg="$(sed -n 's/.* \([A-Za-z0-9_.]*\)\/.*/\1/p' <<<"$out")"
+  if [[ -z "$pkg" ]]; then
+    out="$(adb_shell_capped 6 dumpsys activity activities 2>/dev/null | tr -d '\r' \
+      | grep -m1 -E 'mResumedActivity|topResumedActivity|ResumedActivity:' || true)"
+    pkg="$(sed -n 's/.* \([A-Za-z0-9_.]*\)\/.*/\1/p' <<<"$out")"
+  fi
+  printf '%s' "$pkg"
+}
+
+# Package/class line from `cmd package resolve-activity --brief`, or empty.
+# A priority line is ignored when --brief is not honored.
+_resolve_activity_pkg() {
+  local line
+  line="$(adb_shell_capped 6 "$@" 2>/dev/null | tr -d '\r' | grep -m1 '/' || true)"
+  printf '%s' "${line%%/*}"
+}
+
+# Package that owns the default activity for an https VIEW, or empty.
+https_view_handler() {
+  _resolve_activity_pkg cmd package resolve-activity --brief \
+    -a android.intent.action.VIEW -d https://example.com
+}
+
+# Package that owns the HOME activity (the launcher), or empty.
+home_handler() {
+  _resolve_activity_pkg cmd package resolve-activity --brief \
+    -a android.intent.action.MAIN -c android.intent.category.HOME
+}
+
+# Classify a foreground package for the Maps-disabled Directions fallback.
+# Prints browser, launcher, permission, or other.
+# A browser is an allowlisted package (Chrome, Samsung Internet,
+# org.mozilla.*, Edge, Brave) or the resolved https VIEW handler.
+# The app under test is never a browser. A chooser (package "android" or
+# com.android.intentresolver) is other, even when it resolved the VIEW.
+# The launcher is the HOME handler, not a name containing "launcher".
+# Either permission controller fails even when it is the handler.
+# Usage: classify_fallback_pkg PKG [HTTPS_HANDLER] [HOME_HANDLER]
+classify_fallback_pkg() {
+  local pkg="$1" handler="${2:-}" home="${3:-}"
+  case "$pkg" in
+    com.google.android.permissioncontroller|com.android.permissioncontroller)
+      echo permission
+      return 0 ;;
+    android|com.android.intentresolver)
+      echo other
+      return 0 ;;
+  esac
+  if [[ -n "$home" && -n "$pkg" && "$pkg" == "$home" ]]; then
+    echo launcher
+    return 0
+  fi
+  case "$pkg" in
+    com.android.chrome|com.sec.android.app.sbrowser|com.microsoft.emmx|com.brave.browser|org.mozilla.*)
+      echo browser
+      return 0 ;;
+  esac
+  # A chooser that resolved the VIEW is not a browser.
+  case "$handler" in
+    android|com.android.intentresolver) handler="" ;;
+  esac
+  if [[ -n "$pkg" && -n "$handler" && "$pkg" == "$handler" && "$pkg" != "$PKG" ]]; then
+    echo browser
+    return 0
+  fi
+  echo other
+}
+
+# In-app no-maps result. The Get Directions button stays on screen when the
+# tap did nothing, so that label is not a pass. Pass only when this package
+# is the app and the "Couldn't open directions" message is showing (1/0).
+# Prints pass or fail.
+# Usage: no_maps_in_app_result FOREGROUND MESSAGE_VISIBLE
+no_maps_in_app_result() {
+  local fg="$1" message_visible="$2"
+  if [[ "$fg" == "$PKG" && "$message_visible" == 1 ]]; then
+    echo pass
+  else
+    echo fail
+  fi
+}
+
+# Press BACK until $PKG owns the focused window. Bounded by press count and a
+# total wall-clock cap, since Maps first-run pages (terms_killswitch_page,
+# GrantPermissionsActivity) can absorb any fixed number of backs.
+# Usage: back_until_app [max_presses=6] [total_cap_s=30]
+back_until_app() {
+  local max="${1:-6}" cap="${2:-30}" t0=$SECONDS n=0 fg
+  BACK_PRESSES=0
+  fg="$(foreground_pkg)"
+  while [[ "$fg" != "$PKG" ]]; do
+    if (( n >= max )); then
+      echo "back_until_app: ${PKG} not in front after ${n} backs (front: ${fg:-unknown})" >&2
+      return 1
+    fi
+    if (( SECONDS - t0 >= cap )); then
+      echo "back_until_app: ${cap}s cap hit after ${n} backs (front: ${fg:-unknown})" >&2
+      return 1
+    fi
+    ui_back || echo "back_until_app: back press ${n} timed out" >&2
+    n=$((n + 1))
+    BACK_PRESSES=$n
+    sleep 1
+    fg="$(foreground_pkg)"
+    echo "back_until_app: press ${n} front=${fg:-unknown}" >&2
+  done
+  return 0
+}
+
+# Device-side logcat timestamp to pass to maps_start_count.
+# adb shell joins its arguments with spaces and the device shell splits
+# them again, so the format must reach the device as one quoted word.
+# Unquoted, toybox date got "%H:%M:%S.000" as a date to set, printed
+# nothing, and maps_start_count saw no mark (run 40698852836: count=0
+# with a Maps START in logcat).
+logcat_mark() {
+  adb_shell_capped 6 "date '+%m-%d %H:%M:%S.000'" 2>/dev/null | tr -d '\r' || true
+}
+
+# Count ActivityTaskManager START lines for Google Maps since a logcat_mark.
+maps_start_count() {
+  local since="$1" n
+  if [[ -z "$since" ]]; then
+    echo 0
+    return 1
+  fi
+  n="$(timeout 10 adb logcat -d -T "$since" -s ActivityTaskManager:I 2>/dev/null | tr -d '\r' \
+    | grep -E 'START .*com\.google\.android\.apps\.maps' -c || true)"
+  echo "${n:-0}"
+}
+
 ui_home_key() {
   adb_shell_capped 8 input keyevent 3
 }
@@ -219,11 +435,23 @@ ui_fling() {
     return 1
   fi
   local x=$((width / 2))
-  if [[ "$direction" == "up" ]]; then
-    adb_shell_capped 8 input swipe "$x" $((height * 3 / 4)) "$x" $((height / 3)) 280
-  else
-    adb_shell_capped 8 input swipe "$x" $((height / 3)) "$x" $((height * 3 / 4)) 280
-  fi
+  # Horizontal flings run at a third of the height (inside the detail
+  # gallery) and stay 20% away from both edges so the system back gesture
+  # cannot fire. "left" moves content to the next page.
+  local y=$((height / 3))
+  case "$direction" in
+    up)
+      adb_shell_capped 8 input swipe "$x" $((height * 3 / 4)) "$x" $((height / 3)) 280 ;;
+    down)
+      adb_shell_capped 8 input swipe "$x" $((height / 3)) "$x" $((height * 3 / 4)) 280 ;;
+    left)
+      adb_shell_capped 8 input swipe $((width * 4 / 5)) "$y" $((width / 5)) "$y" 200 ;;
+    right)
+      adb_shell_capped 8 input swipe $((width / 5)) "$y" $((width * 4 / 5)) "$y" 200 ;;
+    *)
+      echo "ui_fling: unknown direction '${direction}'" >&2
+      return 2 ;;
+  esac
 }
 
 # Dump and search, flinging up between tries. Coordinates stay derived from wm size.
@@ -607,7 +835,7 @@ dismiss_sheet_from_handle() {
     start_x=$((width / 2))
     start_y=$((height * 24 / 100))
   fi
-  adb_shell_capped 8 input swipe "$start_x" "$start_y" "$start_x" $((height * 96 / 100)) 80
+  adb_shell_capped 8 input swipe "$start_x" "$start_y" "$start_x" $((height * 96 / 100)) 300
 }
 
 dismiss_sheet_swipe() {
@@ -622,17 +850,17 @@ dismiss_sheet_swipe() {
     return 1
   fi
   read -r width height < <(ui_screen_size)
-  dismiss_sheet_from_handle "$width" "$height"
-  sleep 1
-  if sheet_open; then
-    dismiss_sheet_from_handle "$width" "$height"
-    sleep 1
-  fi
-  if sheet_open; then
-    echo "sheet still open after swipe down"
-    return 1
-  fi
-  return 0
+  local attempt _
+  for attempt in 1 2; do
+    dismiss_sheet_from_handle "$width" "$height" || true
+    # Poll for closure instead of one fixed sleep.
+    for _ in 1 2 3; do
+      sleep 0.7
+      sheet_open || return 0
+    done
+  done
+  echo "sheet still open after swipe down from the handle"
+  return 1
 }
 
 dismiss_sheet_outside() {
@@ -735,13 +963,38 @@ open_browse() {
   return 1
 }
 
+# A cold boot can miss Firestore once (run 40698852836 flow 09: "failed to
+# connect to firestore.googleapis.com/2607:..." then "Could not load
+# temples"). The list offers "Try again" (e30d95d). Tap it once and give
+# that load its 12s fetch timeout plus margin before calling it failed;
+# the retry shows no spinner, so the old message stays up meanwhile.
+# Flow 27 recover used to fail here 9s after its own retry tap.
+BROWSE_RETRY_GRACE="${BROWSE_RETRY_GRACE:-25}"
 wait_browse_ready() {
-  local start="$SECONDS"
+  local start="$SECONDS" retried_at=0
   while (( SECONDS - start < 120 )); do
     ui_dump || true
     if ui_find --text-contains "Could not load temples"; then
-      echo "directory failed to load"
-      return 1
+      # The retry button has Key('browse-load-failed-retry') but no
+      # Semantics identifier, so uiautomator shows no resource-id; its
+      # label is content-desc "Try again" (run 40916686359, flow 27).
+      if (( retried_at == 0 )) && { ui_find --resource-id browse-load-failed-retry \
+        || ui_find --content-desc "Try again" --clickable; }; then
+        echo "wait_browse_ready: load failed; tapping Try again once" >&2
+        if ui_tap; then
+          retried_at=$SECONDS
+        else
+          echo "wait_browse_ready: Try again tap failed" >&2
+        fi
+        sleep 2
+        continue
+      fi
+      if (( retried_at == 0 || SECONDS - retried_at >= BROWSE_RETRY_GRACE )); then
+        echo "directory failed to load"
+        return 1
+      fi
+      sleep 2
+      continue
     fi
     if ui_find --resource-id filter-chip-state || ui_find --text-regex '^State$'; then
       if ! ui_find --text-contains "Loading temples"; then
@@ -844,6 +1097,25 @@ network_on() {
   adb shell svc data enable >/dev/null 2>&1 || true
 }
 
+# Wait (bounded) until the guest has a default route and Android has
+# validated the network. VALIDATED is set by the OS's own HTTP
+# connectivity probe (generate_204), so this is an HTTP check without a
+# hard-coded server. svc/ip return before the link is usable; a retry
+# tapped in that gap fails again (run 40916686359, flow 27 recover).
+# Usage: wait_network_up SECONDS
+wait_network_up() {
+  local limit="${1:-30}" start=$SECONDS
+  while (( SECONDS - start < limit )); do
+    if timeout 6 adb shell ip route show table all 2>/dev/null | grep -q '^default ' \
+      && timeout 8 adb shell dumpsys connectivity 2>/dev/null | grep -q 'VALIDATED'; then
+      return 0
+    fi
+    sleep 1
+  done
+  echo "wait_network_up: no default route or validated network after ${limit}s" >&2
+  return 1
+}
+
 screenrecord_start() {
   local stop="${ARTIFACTS}/recordings/${FLOW}.stop"
   local pidfile="${ARTIFACTS}/recordings/${FLOW}.pid"
@@ -901,17 +1173,41 @@ app_pid() {
 scroll_chip_bar_at() {
   local y="$1"
   local direction="$2"
-  local width
+  local width left right cy sig
   read -r width _ < <(ui_screen_size) || return 1
-  if [[ "$direction" == "right" ]]; then
-    adb_shell_capped 8 input swipe \
-      $((width * 25 / 100)) "$y" \
-      $((width * 80 / 100)) "$y" 250
-  else
-    adb_shell_capped 8 input swipe \
-      $((width * 80 / 100)) "$y" \
-      $((width * 25 / 100)) "$y" 250
+  left=$((width * 25 / 100))
+  right=$((width * 80 / 100))
+  # Swipe inside the scroller only. filter-clear is pinned at its right
+  # end (#123) and the drawer is narrower than the screen. A swipe that
+  # starts on either never scrolls the row, and in the drawer it closes
+  # the drawer (run 40463875634).
+  if [[ -s "$DUMP" ]] && read -r left right cy sig < <(python3 "$UI_PY" chip-bar "$DUMP"); then
+    y="$cy"
   fi
+  if [[ "$direction" == "right" ]]; then
+    adb_shell_capped 8 input swipe "$left" "$y" "$right" "$y" 250
+  else
+    adb_shell_capped 8 input swipe "$right" "$y" "$left" "$y" 250
+  fi
+}
+
+# Visible chip ids and positions, or empty when no chip row is on screen.
+chip_bar_sig() {
+  local _l _r _y sig=""
+  read -r _l _r _y sig < <(python3 "$UI_PY" chip-bar "$DUMP") || true
+  printf '%s\n' "$sig"
+}
+
+# Width and height of the last dump's root node (rotation-aware).
+dump_screen_size() {
+  [[ -s "$DUMP" ]] || return 1
+  python3 - "$DUMP" <<'PY'
+import re, sys
+m = re.search(r'bounds="\[0,0\]\[(\d+),(\d+)\]"', open(sys.argv[1], encoding="utf-8", errors="replace").read())
+if not m:
+    sys.exit(1)
+print(m.group(1), m.group(2))
+PY
 }
 
 # The selected chip's text is the value ("Shiva"), and it may sit past the
@@ -928,8 +1224,16 @@ find_filter_chip() {
   y=$((height * 22 / 100))
   for i in $(seq 1 8); do
     ui_dump || true
+    # wm size stays portrait after rotation; the dump root is the real
+    # screen. Run 40698852836 flow 19: in landscape (640x320) the title
+    # "Kerala" at x=320 read as past a 320px-wide screen's edge.
+    read -r width height < <(dump_screen_size) || read -r width height < <(ui_screen_size) || return 1
+    max_top=$((height * 70 / 100))
     found=0
     if [[ -n "$rid" ]] && ui_find --resource-id "$rid" --max-top "$max_top"; then
+      found=1
+    elif [[ -n "$regex" ]] && ui_find --resource-id-regex '^filter-chip-' --text-regex "$regex" --max-top "$max_top"; then
+      # The chip itself, not the app-bar title that repeats the filter.
       found=1
     elif [[ -n "$regex" ]] && ui_find --text-regex "$regex" --max-top "$max_top" --prefer upper; then
       found=1
@@ -964,23 +1268,46 @@ find_filter_chip() {
 }
 
 scroll_chips_until() {
-  local i y width height max_top
+  local i width height max_top before after direction=left turned=0
   read -r width height < <(ui_screen_size) || return 1
-  max_top=$((height * 70 / 100))
-  y=$((height * 22 / 100))
-  for i in $(seq 1 6); do
-    if ui_dump && ui_find "$@" --max-top "$max_top"; then
-      y=$UI_CY
-      if (( UI_CX > 24 && UI_CX < width - 24 )); then
-        return 0
-      fi
-    elif ui_dump && ui_find --resource-id filter-chip-state --max-top "$max_top"; then
-      y=$UI_CY
+  # 70% keeps Home's lower content out; the drawer's bar sits at 72%
+  # (y=461 of 640 in run 40916686359), so drawer callers pass 92.
+  max_top=$((height * ${CHIP_MAX_TOP_PCT:-70} / 100))
+  for i in 1 2 3 4 5 6 7 8; do
+    ui_dump || return 1
+    if ui_find "$@" --max-top "$max_top" && (( UI_CX > 24 && UI_CX < width - 24 )); then
+      return 0
     fi
-    scroll_chip_bar_at "$y" left || true
+    before="$(chip_bar_sig)"
+    if [[ -z "$before" ]]; then
+      echo "scroll_chips_until: no chip bar on screen" >&2
+      return 1
+    fi
+    scroll_chip_bar_at 0 "$direction" || return 1
     sleep 0.4
+    ui_dump || return 1
+    after="$(chip_bar_sig)"
+    # Assert the swipe did something: the row must still be there, and
+    # it must have moved. An unmoved row is at that end: try the other
+    # end once (a chip scrolled off to the left, e.g. State after a
+    # district was applied), then stop.
+    if [[ -z "$after" ]]; then
+      echo "scroll_chips_until: chip bar vanished after the swipe" >&2
+      return 1
+    fi
+    if ui_find "$@" --max-top "$max_top" && (( UI_CX > 24 && UI_CX < width - 24 )); then
+      return 0
+    fi
+    if [[ "$after" == "$before" ]]; then
+      if (( turned )); then
+        echo "scroll_chips_until: chip bar did not move either way; target not in it" >&2
+        return 1
+      fi
+      turned=1
+      direction=right
+    fi
   done
-  echo "scroll_chips_until: not in view after 6 scrolls" >&2
+  echo "scroll_chips_until: not in view after 8 scrolls" >&2
   return 1
 }
 
@@ -995,7 +1322,10 @@ dump_scroll_sig() {
   python3 - "$DUMP" <<'PY'
 import hashlib, re, sys
 raw = open(sys.argv[1], encoding="utf-8", errors="replace").read()
-texts = re.findall(r'\btext="([^"]*)"', raw)
+# Flutter puts option labels in content-desc, not text. Hashing text alone
+# gave the same signature after every swipe (run 40463875634), so the
+# picker decided the list had ended at the C districts.
+texts = re.findall(r'\b(?:text|content-desc)="([^"]*)"', raw)
 keep = [
     t for t in texts
     if t and "Loading" not in t and not re.fullmatch(r"\d{1,2}:\d{2}", t)
@@ -1047,6 +1377,168 @@ print(name if name else "")
 ' "$1"
 }
 
+# Wait for a fling to stop: dump until two dumps in a row show the same
+# option texts. Bounded at SEEK_SETTLE_DUMPS dumps (default 6). Returns 1
+# when the list is still moving after that, so the caller never decides
+# (or taps) on a moving list. Leaves the last dump in $DUMP.
+seek_settle() {
+  local n prev="" cur
+  for n in $(seq 1 "${SEEK_SETTLE_DUMPS:-6}"); do
+    ui_dump || return 1
+    cur="$(dump_scroll_sig)" || return 1
+    [[ -n "$prev" && "$cur" == "$prev" ]] && return 0
+    prev="$cur"
+    sleep 0.4
+  done
+  echo "seek_option: list still moving after ${SEEK_SETTLE_DUMPS:-6} dumps" >&2
+  return 1
+}
+
+# Scroll toward option NAME of section KIND (state, district, deity) by
+# comparing it with the visible option ids, which are in sorted order, and
+# with the visible sections (the sheet's order is: tapped section, then
+# state, district, deity). Returns 0 with UI_CX/UI_CY/UI_TEXT set when the
+# option is in the tap band; 2 when the dump proves it is not listed;
+# 1 otherwise. Every decision is made on a settled dump: a dump taken while
+# a fling still runs sent run 40916686359 past Shiva and out of STATE.
+# Usage: seek_option KIND NAME DEADLINE [--prefix]
+# Environment overrides are clamped: SEEK_FAR_FLINGS 1-4 (more flings per
+# look only overshoot further), SEEK_MAX_MOVES 1-60 (the deadline bounds
+# the walk anyway; a huge value would only hide a stuck loop).
+seek_clamp() {
+  local v="$1" lo="$2" hi="$3"
+  [[ "$v" =~ ^[0-9]+$ ]] || v="$lo"
+  (( v < lo )) && v="$lo"
+  (( v > hi )) && v="$hi"
+  echo "$v"
+}
+
+seek_option() {
+  local kind="$1" name="$2" deadline="$3"
+  local max_moves far_flings
+  max_moves="$(seek_clamp "${SEEK_MAX_MOVES:-40}" 1 60)"
+  far_flings="$(seek_clamp "${SEEK_FAR_FLINGS:-2}" 1 4)"
+  local extra=()
+  [[ "${4:-}" == --prefix ]] && extra=(--prefix)
+  local i height width verdict dir reach prev="" current same=0
+  local direction="" flips=0 order="" fling_pct=48 kinds settled=1
+  read -r width height < <(ui_screen_size) || return 1
+  ui_dump || return 1
+  # The first dump is the sheet as it opened: scrolled to the top, so the
+  # first visible section is the head of the order.
+  if kinds="$(python3 "$UI_PY" sheet-kinds "$DUMP")"; then
+    order="$(printf '%s state district deity' "$kinds" | tr ' ' '\n' | awk 'NF && !seen[$0]++' | paste -sd, -)"
+  else
+    echo "seek_option: no picker section on screen (is the sheet open?)" >&2
+    return 1
+  fi
+  for i in $(seq 1 "$max_moves"); do
+    if (( SECONDS >= deadline )); then
+      echo "seek_option: ${kind} '${name}' not reached before the deadline (${i} looks, order ${order})" >&2
+      return 1
+    fi
+    verdict="$(python3 "$UI_PY" option-seek "$DUMP" --kind "$kind" --name "$name" --order "$order" "${extra[@]}" \
+      --min-top $((height * 24 / 100)) --max-top $((height * 84 / 100)))" || return 1
+    read -r dir reach _ <<<"$verdict"
+    [[ -n "${SEEK_TRACE:-}" ]] && echo "seek_option: t=$SECONDS look ${i}: ${verdict} settled=${settled} pct=${fling_pct} first=$(grep -o "filter-option-[a-z]*-[^\"]*" "$DUMP" | head -1)" >&2
+    # A far run is flung without waiting for the list to stop (run
+    # 40992967143: settling after every fling spent 45s to cross A-P).
+    # Only "still far, same way" may act on a moving list; any other
+    # verdict, above all a tap, is taken again on a settled dump.
+    if (( ! settled )) && ! [[ "$dir" == "$direction" && "$reach" =~ ^(far|mid)$ && "$flips" -eq 0 ]]; then
+      seek_settle || return 1
+      settled=1
+      continue
+    fi
+    case "$dir" in
+      tap)
+        read -r _ UI_CX UI_CY UI_TEXT <<<"$verdict"
+        return 0 ;;
+      up|down) ;;
+      absent)
+        echo "seek_option: ${kind} '${name}' is not in the list (neighbours bracket it)" >&2
+        return 2 ;;
+      *)
+        echo "seek_option: ${kind} '${name}': ${verdict}" >&2
+        return 1 ;;
+    esac
+    # Every change of direction is an overshoot. Fling weaker after each;
+    # the list swinging forever is stopped by SEEK_MAX_FLIPS.
+    if [[ -n "$direction" && "$dir" != "$direction" ]]; then
+      flips=$((flips + 1))
+      fling_pct=$((fling_pct / 2))
+      if (( flips >= ${SEEK_MAX_FLIPS:-6} )); then
+        echo "seek_option: ${kind} '${name}' changed direction ${flips} times" >&2
+        return 1
+      fi
+    fi
+    direction="$dir"
+    current="$(dump_scroll_sig)" || return 1
+    if [[ "$current" == "$prev" ]]; then
+      same=$((same + 1))
+      if (( same >= 3 )); then
+        # Three swipes that moved nothing: the end of the list, or swipes
+        # that missed the scroller. The caller's bounded step scan decides.
+        echo "seek_option: list stopped moving before ${kind} '${name}'" >&2
+        return 1
+      fi
+    else
+      same=0
+    fi
+    prev="$current"
+    local pct=0
+    case "$reach" in
+      far) pct=$fling_pct ;;
+      mid) pct=$((fling_pct / 3)) ;;
+    esac
+    if (( pct >= 8 )); then
+      # A short, fast drag leaves momentum: many rows per dump.
+      local y_lo=$((height * 32 / 100)) y_hi n flings=1
+      y_hi=$((y_lo + height * pct / 100))
+      (( y_hi > height * 82 / 100 )) && y_hi=$((height * 82 / 100))
+      # Run 40992967143: one 120ms fling per look moved the 600-option
+      # DEITY section by about a letter, and each look costs ~5s (swipe +
+      # settle dumps), so every Shiva/Vishnu pick ran out of its 45s at
+      # P-R. Settling, not swiping, is the cost: until the first overshoot
+      # (far: another section or 2+ initials away; mid: the next initial or
+      # a far letter inside the name), send SEEK_FAR_FLINGS flings back to
+      # back and do not wait for the list to stop (see settled above).
+      if [[ "$reach" =~ ^(far|mid)$ ]] && (( flips == 0 )); then
+        flings="$far_flings"
+      fi
+      for n in $(seq 1 "$flings"); do
+        if [[ "$dir" == up ]]; then
+          adb_shell_capped 8 input swipe $((width / 2)) "$y_hi" $((width / 2)) "$y_lo" "${SEEK_FLING_MS:-120}" || return 1
+        else
+          adb_shell_capped 8 input swipe $((width / 2)) "$y_lo" $((width / 2)) "$y_hi" "${SEEK_FLING_MS:-120}" || return 1
+        fi
+      done
+      : "$n"
+    else
+      # Slow drag: no momentum, the list moves by the finger's travel.
+      # Run 40992967143's endgame crept through the "Shiva (...)" rows at
+      # ui_sheet_swipe's 24% a look. 84% -> 42% of the screen (y 537 -> 269
+      # on 640) is 42%, still less than the 318px option scroller, so no
+      # row can pass between two looks unseen.
+      local s_lo=$((height * 42 / 100)) s_hi=$((height * 84 / 100))
+      if [[ "$dir" == up ]]; then
+        adb_shell_capped 8 input swipe $((width / 2)) "$s_hi" $((width / 2)) "$s_lo" 900 || return 1
+      else
+        adb_shell_capped 8 input swipe $((width / 2)) "$s_lo" $((width / 2)) "$s_hi" 900 || return 1
+      fi
+    fi
+    if [[ "$reach" =~ ^(far|mid)$ ]] && (( flips == 0 )); then
+      ui_dump || return 1
+      settled=0
+    else
+      seek_settle || return 1
+      settled=1
+    fi
+  done
+  echo "seek_option: ${kind} '${name}' not reached in ${max_moves} moves" >&2
+  return 1
+}
+
 # Walk the option list until regex is inside the tap band, then tap it.
 # Callers pass the section name (STATE, DISTRICT, DEITY). The list ends when
 # a swipe leaves the option texts unchanged, not when the next header peeks in.
@@ -1068,8 +1560,46 @@ select_labeled() {
   if ! wait_out_district_loader; then
     return 1
   fi
+  local kind
+  kind="$(printf '%s' "$_section" | tr '[:upper:]' '[:lower:]')"
+  # The deity list is ~600 names; Shiva sits at ~75% of it. 60s (45s of
+  # seek) was 9 looks on the CI AVD (run 40992967143). Give the deity
+  # list SELECT_MAX_DEITY (default 100s); the case budget still caps it.
+  # Others 75s (was 60): a state pick from a sheet opened on DEITY crosses
+  # that whole section first (06/22 state-change, sheet model 45-62s).
+  local select_max="${SELECT_MAX:-75}"
+  if [[ "$kind" == deity && -z "${SELECT_MAX:-}" ]]; then
+    select_max="${SELECT_MAX_DEITY:-100}"
+  fi
   started=$SECONDS
-  deadline=$((started + 120))
+  deadline=$((started + select_max))
+  if (( STEP_DEADLINE > 0 && STEP_DEADLINE < deadline )); then
+    deadline=$STEP_DEADLINE
+  fi
+  if [[ -n "$name_hint" && "$kind" =~ ^(state|district|deity)$ ]]; then
+    local seek_rc=0
+    # '^Vishnu' (no $) takes the first Vishnu... option; '^Shiva( +N)?$' only Shiva.
+    local prefix_flag=""
+    [[ "$regex" == *'$' ]] || prefix_flag=--prefix
+    # Keep the last 15s for the bounded step scan below when the seek stalls.
+    local seek_deadline=$((deadline - 15))
+    (( seek_deadline > started + 15 )) || seek_deadline=$deadline
+    seek_option "$kind" "$name_hint" "$seek_deadline" ${prefix_flag:+"$prefix_flag"} || seek_rc=$?
+    if (( seek_rc == 0 )); then
+      if [[ ! "$UI_TEXT" =~ $regex ]]; then
+        echo "select_labeled: option '${UI_TEXT}' does not match '${regex}'" >&2
+        return 1
+      fi
+      SELECTED_LABEL="$(chip_label "$UI_TEXT")"
+      ui_tap || { echo "select_labeled: tap on '${UI_TEXT}' failed" >&2; return 1; }
+      sleep 1
+      return 0
+    fi
+    if (( seek_rc == 2 )); then
+      echo "select_labeled: '${regex}' is not offered in the ${kind} list" >&2
+      return 1
+    fi
+  fi
   for pass in 1 2; do
     if (( SECONDS >= deadline )); then
       echo "select_labeled: gave up looking for '${regex}' after $((SECONDS - started))s" >&2
@@ -1218,13 +1748,19 @@ clear_named() {
   local which="$1"
   if ui_dump && ui_find --content-desc "Clear ${which} filter"; then
     ui_tap
-    sleep 1
-    return 0
-  fi
-  if ui_dump && ui_find --text-regex '^Clear$' --prefer upper; then
+  elif ui_dump && ui_find --resource-id filter-clear; then
     ui_tap
-    sleep 1
-    return 0
+  else
+    echo "clear_named: no clear control for ${which}" >&2
+    return 1
   fi
+  # Assert the clear ran: the per-chip clear control must be gone.
+  local _
+  for _ in 1 2 3 4 5; do
+    sleep 0.6
+    ui_dump || continue
+    ui_find --content-desc "Clear ${which} filter" || return 0
+  done
+  echo "clear_named: ${which} filter still applied after tapping clear" >&2
   return 1
 }

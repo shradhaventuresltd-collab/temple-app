@@ -28,7 +28,10 @@ import 'package:temple_app/widgets/unavailable_states_notice.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 class AppDrawer extends StatefulWidget {
-  const AppDrawer({super.key});
+  const AppDrawer({super.key, this.templesLoader});
+
+  /// Injected in tests. Defaults to [TempleService.getTemples].
+  final Future<List<Temple>> Function()? templesLoader;
 
   @override
   State<AppDrawer> createState() => _AppDrawerState();
@@ -71,7 +74,8 @@ class _AppDrawerState extends State<AppDrawer> {
   @override
   void initState() {
     super.initState();
-    _templesFuture = TempleService().getTemples();
+    _templesFuture =
+        widget.templesLoader?.call() ?? TempleService().getTemples();
     warmDirectoryDistricts(_templesFuture);
   }
 
@@ -287,42 +291,56 @@ class _AppDrawerState extends State<AppDrawer> {
 
               // ── State + deity chips (sheet). Same control as the browse list. ──
               _SectionHeader(label: 'FILTERS'),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 0, 8, 4),
-                child: DirectoryFilterBar(
-                  temples: all,
-                  query: _appliedQuery,
-                  selectedState: _selectedState,
-                  selectedDeity: _selectedDeity,
-                  selectedDistrict: _selectedDistrict,
-                  districtOf: districtOf,
-                  prepareDistricts: () => prepareDirectoryDistricts(all),
-                  onDistrictsLoaded: () {
-                    if (mounted) setState(() {});
-                  },
-                  onClearAll: _clearFiltersAndSearch,
-                  onChanged: (state, deity, district) {
-                    final previousState = _selectedState;
-                    final previousDeity = _selectedDeity;
-                    final previousDistrict = _selectedDistrict;
-                    setState(() {
-                      _selectedState = state;
-                      _selectedDeity = deity;
-                      _selectedDistrict = district;
-                    });
-                    unawaited(
-                      AppAnalytics.instance.logFilterTransition(
-                        previousState: previousState,
-                        nextState: state,
-                        previousDeity: previousDeity,
-                        nextDeity: deity,
-                        previousDistrict: previousDistrict,
-                        nextDistrict: district,
-                      ),
-                    );
-                  },
+              // The sheet captures the temple list when it opens. Opening it
+              // before the directory arrives showed "Any state 0" and
+              // "Show 0 temples" for the life of that sheet (run 40463875634).
+              if (!snapshot.hasData)
+                Semantics(
+                  identifier: 'drawer-filters-loading',
+                  label: 'Loading filters',
+                  child: const Padding(
+                    key: Key('drawer-filters-loading'),
+                    padding: EdgeInsets.fromLTRB(18, 8, 18, 12),
+                    child: LinearProgressIndicator(minHeight: 2),
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 0, 8, 4),
+                  child: DirectoryFilterBar(
+                    temples: all,
+                    query: _appliedQuery,
+                    selectedState: _selectedState,
+                    selectedDeity: _selectedDeity,
+                    selectedDistrict: _selectedDistrict,
+                    districtOf: districtOf,
+                    prepareDistricts: () => prepareDirectoryDistricts(all),
+                    onDistrictsLoaded: () {
+                      if (mounted) setState(() {});
+                    },
+                    onClearAll: _clearFiltersAndSearch,
+                    onChanged: (state, deity, district) {
+                      final previousState = _selectedState;
+                      final previousDeity = _selectedDeity;
+                      final previousDistrict = _selectedDistrict;
+                      setState(() {
+                        _selectedState = state;
+                        _selectedDeity = deity;
+                        _selectedDistrict = district;
+                      });
+                      unawaited(
+                        AppAnalytics.instance.logFilterTransition(
+                          previousState: previousState,
+                          nextState: state,
+                          previousDeity: previousDeity,
+                          nextDeity: deity,
+                          previousDistrict: previousDistrict,
+                          nextDistrict: district,
+                        ),
+                      );
+                    },
+                  ),
                 ),
-              ),
 
               const SizedBox(height: 8),
 
@@ -830,17 +848,23 @@ class _TempleListScreenState extends State<TempleListScreen> {
   }
 
   Widget _buildBody() {
-    if (widget.loadFailed) {
+    // Rows published after this list opened (Retry here, or Home's reconnect
+    // reload) replace a failed or pending open. Without this the list kept
+    // "Could not load temples" after the network came back (run 40658283240,
+    // flow 27 recover / chips-after-flap).
+    final recovered = _shown != null;
+    if (widget.loadFailed && !recovered) {
       return TempleBrowseList(
         temples: const [],
         initialQuery: widget.initialQuery,
         loadFailed: true,
+        onRetry: _retrySavedList,
         onTempleTap: _onTempleTap,
       );
     }
 
     final pending = widget.templesFuture;
-    if (pending == null) {
+    if (pending == null || recovered) {
       return TempleBrowseList(
         temples: _directory,
         initialQuery: widget.initialQuery,
@@ -872,6 +896,7 @@ class _TempleListScreenState extends State<TempleListScreen> {
             temples: const [],
             initialQuery: widget.initialQuery,
             loadFailed: true,
+            onRetry: _retrySavedList,
             onTempleTap: _onTempleTap,
           );
         }
@@ -907,6 +932,7 @@ class TempleBrowseList extends StatefulWidget {
     this.footer,
     this.isLoading = false,
     this.loadFailed = false,
+    this.onRetry,
   });
 
   /// Directory already loaded for this screen. State and deity chips filter
@@ -927,6 +953,9 @@ class TempleBrowseList extends StatefulWidget {
 
   final bool isLoading;
   final bool loadFailed;
+
+  /// Shown as "Try again" under the load-failed message.
+  final VoidCallback? onRetry;
 
   @override
   State<TempleBrowseList> createState() => _TempleBrowseListState();
@@ -1169,10 +1198,13 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
       );
     }
     if (widget.loadFailed) {
-      return const _BrowseMessage(
+      return _BrowseMessage(
         icon: Icons.cloud_off_rounded,
         title: 'Could not load temples',
-        message: 'The directory did not load. Go back and try again.',
+        message: widget.onRetry == null
+            ? 'The directory did not load. Go back and try again.'
+            : 'The directory did not load. Check your connection and try again.',
+        onRetry: widget.onRetry,
       );
     }
     if (visible.isEmpty) {
@@ -1366,12 +1398,14 @@ class _BrowseMessage extends StatelessWidget {
     required this.message,
     this.icon = Icons.temple_hindu_rounded,
     this.progress = false,
+    this.onRetry,
   });
 
   final String title;
   final String message;
   final IconData icon;
   final bool progress;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -1403,6 +1437,14 @@ class _BrowseMessage extends StatelessWidget {
                 color: Colors.brown.shade400,
               ),
             ),
+            if (onRetry != null) ...[
+              const SizedBox(height: 12),
+              TextButton(
+                key: const Key('browse-load-failed-retry'),
+                onPressed: onRetry,
+                child: const Text('Try again'),
+              ),
+            ],
           ],
         ),
       ),

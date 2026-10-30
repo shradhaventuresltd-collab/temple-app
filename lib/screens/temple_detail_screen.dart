@@ -301,6 +301,20 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
   }
 
   void _onGalleryScroll(ScrollNotification notification) {
+    if (notification.metrics.axis == Axis.horizontal) {
+      // A finger on the gallery owns it: no auto-advance mid-swipe, and the
+      // next one is a full interval after the user lets go. Without this a
+      // swipe burst ended one page off (emulator run 40698852836, flow 24:
+      // "2 / 5" after six swipes each way).
+      if (notification is ScrollStartNotification &&
+          notification.dragDetails != null) {
+        _autoTimer?.cancel();
+        _autoTimer = null;
+      } else if (notification is ScrollEndNotification && _autoTimer == null) {
+        _startAutoAdvance();
+      }
+      return;
+    }
     if (notification.metrics.axis != Axis.vertical) return;
     final shown = _galleryShown();
     if (shown == _galleryInView) return;
