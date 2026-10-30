@@ -4,7 +4,7 @@
 Geometry is the 320x640 AVD from run 40916686359: the option scroller is
 [0,251][320,569], chips are 32px tall with 8px gaps, one section after
 another in the app's order (tapped section, then state, district, deity).
-Labels come from run40916686359/catalog.json (real dump labels).
+Labels come from run40992967143/catalog.json (real dump labels).
 
 A fast drag (<=150ms) is a fling: it moves MOMENTUM times the finger's
 travel, spread over the next dumps, so a dump taken right after a fling
@@ -32,7 +32,10 @@ ANY = {"state": "Any state  992", "district": "All districts  992", "deity": "An
 
 
 def build(focus: str, pad: int, drop: list[str]) -> list[dict]:
-    cat = json.load(open(os.path.join(HERE, "run40916686359", "catalog.json"), encoding="utf-8"))
+    # run40992967143/catalog.json adds the P-R deities and the Vishnu
+    # (...) chips that run's dumps caught; SHEET_SIM_CATALOG picks another.
+    path = os.environ.get("SHEET_SIM_CATALOG") or os.path.join(HERE, "run40992967143", "catalog.json")
+    cat = json.load(open(path, encoding="utf-8"))
     rows = []
     y = 4
     for kind in [focus] + [k for k in ORDER if k != focus]:

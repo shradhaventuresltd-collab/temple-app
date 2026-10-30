@@ -1214,9 +1214,13 @@ sim_pick() {
     STEP_DEADLINE=0
     SIM="$d/sim.json"
     ui_screen_size() { echo "320 640"; }
-    ui_dump() { python3 tool/emulator/testdata/sheet_sim.py dump "$SIM" "$DUMP"; }
+    # Device time (run 40992967143): ~1s per uiautomator dump and per
+    # adb input swipe; 9 seek looks then filled the 45s seek window, as
+    # in that run's "not reached before the deadline (9 looks ...)".
+    ui_dump() { SECONDS=$((SECONDS + ${SIM_DUMP_S:-1})); python3 tool/emulator/testdata/sheet_sim.py dump "$SIM" "$DUMP"; }
     adb_shell_capped() {
       shift
+      SECONDS=$((SECONDS + ${SIM_SWIPE_S:-1}))
       echo "$*" >> "$d/log"
       if [[ "$1 $2" == "input swipe" ]]; then
         python3 tool/emulator/testdata/sheet_sim.py swipe "$SIM" "$3" "$4" "$5" "$6" "$7"
@@ -1228,9 +1232,9 @@ sim_pick() {
     }
     wait_out_district_loader() { return 0; }
     sleep() { :; }
-    local rc=0
+    local rc=0 t0=$SECONDS
     select_labeled "$regex" "$(printf '%s' "$kind" | tr '[:lower:]' '[:upper:]')" 2> "$d/err" || rc=$?
-    printf '%s|%s|%s|%s\n' "$rc" "$(cat "$d/tapped" 2>/dev/null)" "$(grep -c 'input swipe' "$d/log" 2>/dev/null || echo 0)" "$(tr '\n' ' ' < "$d/err")"
+    printf '%s|%s|%s|%s|%s\n' "$rc" "$(cat "$d/tapped" 2>/dev/null)" "$(grep -c 'input swipe' "$d/log" 2>/dev/null || echo 0)" "$(tr '\n' ' ' < "$d/err")" "$((SECONDS - t0))"
   )
   if [[ -n "${SIM_PROOF_DIR:-}" ]]; then
     mkdir -p "$SIM_PROOF_DIR"
@@ -1242,16 +1246,29 @@ sim_pick() {
 
 sim_ok() {
   # sim_ok KIND REGEX FOCUS WANT_LABEL
-  local kind="$1" regex="$2" focus="$3" want="$4" seed out rc tapped swipes
-  for seed in 1 2 3 4 5 6 7 8; do
-    out="$(sim_pick "$kind" "$regex" "$focus" "$seed")"
-    IFS='|' read -r rc tapped swipes _ <<<"$out"
-    [[ "$rc" == 0 && "$tapped" == "$want" ]] \
-      || { echo "sim: ${kind} pick (${focus} sheet, seed ${seed}) tapped '${tapped}' rc=${rc}: ${out}" >&2; exit 1; }
-    # ~2s per move on the AVD (swipe + settle dumps): 20 moves fit 45s.
-    (( swipes <= 20 )) || { echo "sim: ${kind} pick needed ${swipes} swipes (seed ${seed})" >&2; exit 1; }
-    [[ -n "${SIM_PROOF_DIR:-}" ]] && printf '%s %s focus=%s seed=%s -> rc=%s tapped="%s" swipes=%s\n' \
-      "$kind" "$regex" "$focus" "$seed" "$rc" "$tapped" "$swipes" >> "$SIM_PROOF_DIR/summary.txt"
+  # sim_ok KIND REGEX FOCUS WANT_LABEL [MOMENTUM...]; with no MOMENTUM,
+  # seeds 1-8 draw fling momentum 4-14x. WANT_LABEL may be a regex (~RX).
+  local kind="$1" regex="$2" focus="$3" want="$4" seed out rc tapped swipes elapsed m
+  shift 4
+  local runs=()
+  if (( $# )); then for m in "$@"; do runs+=("3:$m"); done
+  else for seed in 1 2 3 4 5 6 7 8; do runs+=("$seed:"); done; fi
+  local run
+  for run in "${runs[@]}"; do
+    seed="${run%%:*}" m="${run#*:}"
+    if [[ -n "$m" ]]; then out="$(sim_pick "$kind" "$regex" "$focus" "$seed" --momentum "$m")"
+    else out="$(sim_pick "$kind" "$regex" "$focus" "$seed")"; fi
+    IFS='|' read -r rc tapped swipes _ elapsed <<<"$out"
+    local ok=0
+    if [[ "$want" == '~'* ]]; then [[ "$tapped" =~ ${want#\~} ]] && ok=1
+    else [[ "$tapped" == "$want" ]] && ok=1; fi
+    [[ "$rc" == 0 && "$ok" == 1 ]] \
+      || { echo "sim: ${kind} pick (${focus} sheet, seed ${seed}, momentum ${m:-random}) tapped '${tapped}' rc=${rc}: ${out}" >&2; exit 1; }
+    # Device time, not swipe count, is the limit: the pick must finish
+    # inside select_labeled's window (SELECT_MAX, default 75s).
+    (( elapsed <= ${SELECT_MAX:-75} )) || { echo "sim: ${kind} pick took ${elapsed}s of device time (seed ${seed})" >&2; exit 1; }
+    [[ -n "${SIM_PROOF_DIR:-}" ]] && printf '%s %s focus=%s seed=%s momentum=%s -> rc=%s tapped="%s" swipes=%s device_s=%s\n' \
+      "$kind" "$regex" "$focus" "$seed" "${m:-random}" "$rc" "$tapped" "$swipes" "$elapsed" >> "$SIM_PROOF_DIR/summary.txt"
     pass
   done
 }
@@ -1261,6 +1278,14 @@ sim_ok district '^Madurai( +[0-9]+)?$' district 'Madurai  4'
 sim_ok deity '^Shiva( +[0-9]+)?$' deity 'Shiva  159'
 # Picking a state from a sheet opened on another section (flows 17, 22).
 sim_ok state '^Tamil Nadu( +[0-9]+)?$' deity 'Tamil Nadu  50'
+# Run 40992967143: every Shiva/Vishnu pick on the ~600-option DEITY
+# section ran out of its 45s seek at P-R (06, 17a/17b, 22, 29c/29f/29i/29j,
+# 30c). Fixed momenta from that run's pace (one 120ms fling per ~5s look
+# reached P in 9 looks) up to the fastest seen; 4dd6f14 fails all of these.
+sim_ok deity '^Shiva( +[0-9]+)?$' deity 'Shiva  159' 5 6 9 14
+sim_ok deity '^Vishnu' deity '~^Vishnu ' 5 6 9 14
+sim_ok state '^Tamil Nadu( +[0-9]+)?$' deity 'Tamil Nadu  50' 5 6 9 14
+sim_ok district '^Madurai( +[0-9]+)?$' district 'Madurai  4' 5 6 9 14
 
 # Negative: a missing option fails fast and says so, no tap.
 for spec in "state|Atlantis|state" "deity|Shiva|deity|drop" "deity|Zzyzx|deity"; do
@@ -1268,15 +1293,82 @@ for spec in "state|Atlantis|state" "deity|Shiva|deity|drop" "deity|Zzyzx|deity";
   extra=()
   [[ -n "$neg_drop" ]] && extra=(--drop "$neg_name")
   out="$(sim_pick "$neg_kind" "^${neg_name}( +[0-9]+)?$" "$neg_focus" 3 "${extra[@]}")"
-  IFS='|' read -r rc tapped swipes err <<<"$out"
+  IFS='|' read -r rc tapped swipes err elapsed <<<"$out"
   [[ "$rc" != 0 && -z "$tapped" ]] || { echo "sim: missing ${neg_kind} '${neg_name}' should fail without a tap: ${out}" >&2; exit 1; }
   [[ "$err" == *"not offered in the ${neg_kind} list"* || "$err" == *"not in the list"* || "$err" == *"not listed"* ]] \
     || { echo "sim: missing ${neg_kind} '${neg_name}' error was unclear: ${err}" >&2; exit 1; }
-  (( swipes <= 25 )) || { echo "sim: missing ${neg_kind} '${neg_name}' took ${swipes} swipes" >&2; exit 1; }
+  (( elapsed <= ${SELECT_MAX:-75} )) || { echo "sim: missing ${neg_kind} '${neg_name}' took ${elapsed}s (${swipes} swipes)" >&2; exit 1; }
   [[ -n "${SIM_PROOF_DIR:-}" ]] && printf 'NEGATIVE %s %s -> rc=%s tapped="%s" swipes=%s err=%s\n' \
     "$neg_kind" "$neg_name" "$rc" "$tapped" "$swipes" "$err" >> "$SIM_PROOF_DIR/summary.txt"
   pass
 done
+
+# Run 40992967143 real dumps and recording frames (testdata/run40992967143).
+r7=tool/emulator/testdata/run40992967143
+r7_seek() { python3 tool/emulator/lib/ui.py option-seek "$r7/$1" --min-top 153 --max-top 537 "${@:2}"; }
+# Where the 45s ran out: P (06/17/29c) and R (22). Both still point at S.
+got="$(r7_seek deity_seek_P_region.xml --kind deity --name Shiva --order deity,state,district)"
+[[ "$got" == "up far" ]] || { echo "run 40992967143 P-region dump: Shiva should be 'up far', got '$got'" >&2; exit 1; }
+pass
+got="$(r7_seek deity_seek_R_region.xml --kind deity --name Shiva --order deity,state,district)"
+[[ "$got" == "up mid" ]] || { echo "run 40992967143 R-region dump: Shiva should be 'up mid', got '$got'" >&2; exit 1; }
+pass
+got="$(r7_seek vishnu_seek_P_region.xml --kind deity --name Vishnu --order deity,state,district --prefix)"
+[[ "$got" == "up far" ]] || { echo "run 40992967143 flow 22 dump: Vishnu should be 'up far', got '$got'" >&2; exit 1; }
+pass
+# "Shiva" is a prefix of every "Shiva (...)" row: a far one is a mid
+# fling away, "Shiva (Adi...)"/"(Baneswar)" only a few rows.
+prefix_fixture="$(mktemp)"
+cat > "$prefix_fixture" <<'XML'
+<hierarchy><node resource-id="filter-option-deity-Shiva (Somnath)" content-desc="Shiva (Somnath)  1" bounds="[16,300][252,332]"/><node resource-id="filter-option-deity-Shiva (Tryambakeshwar)" content-desc="Shiva (Tryambakeshwar)  1" bounds="[16,340][252,372]"/></hierarchy>
+XML
+got="$(python3 tool/emulator/lib/ui.py option-seek "$prefix_fixture" --kind deity --name Shiva --order deity,state,district --min-top 153 --max-top 537)"
+[[ "$got" == "down mid" ]] || { echo "option-seek: Shiva is far above 'Shiva (Somnath)', got '$got'" >&2; exit 1; }
+pass
+rm -f "$prefix_fixture"
+# The pick itself on the real lists: Tamil Nadu (run 40992967143 29a frame
+# t87 transcribed onto that run's sheet dump), Shiva 159 (run 40916686359
+# 29c frame t101.4, the one frame that shows it), Madurai (real dump,
+# run 40698852836; run 40992967143's 29b frame t108 shows the same rows).
+# Negative: the same list without the option must fail with no tap.
+for spec in "state_sheet_tamil_nadu_frame_29a_t87.xml|state|^Tamil Nadu( +[0-9]+)?$|Tamil Nadu|Tamil Nadu  50" \
+            "deity_sheet_shiva_frame_run40916686359_29c_t101.xml|deity|^Shiva( +[0-9]+)?$|Shiva|Shiva  159" \
+            "district_sheet_madurai_visible_run40698852836.xml|district|^Madurai( +[0-9]+)?$|Madurai|Madurai  4"; do
+  IFS='|' read -r r7_file r7_kind r7_rx r7_name r7_want <<<"$spec"
+  out="$(SELECT_MAX=20 bash tool/emulator/testdata/replay_dump.sh "$r7/$r7_file" "$r7_kind" "$r7_rx")"
+  [[ "$out" == "rc=0 tapped=${r7_want} "* ]] || { echo "replay ${r7_file}: want a tap on '${r7_want}': ${out}" >&2; exit 1; }
+  pass
+  out="$(SELECT_MAX=20 bash tool/emulator/testdata/replay_dump.sh "$r7/$r7_file" "$r7_kind" "$r7_rx" --drop "$r7_name")"
+  [[ "$out" == "rc=1 tapped= "* ]] || { echo "replay ${r7_file} without ${r7_name}: must fail with no tap: ${out}" >&2; exit 1; }
+  pass
+done
+# A plain "Shiva" regex must not take "Shiva (Adi Kumbeswarar)..." when
+# Shiva itself is gone: the matcher stays strict.
+out="$(SELECT_MAX=20 bash tool/emulator/testdata/replay_dump.sh "$r7/deity_sheet_shiva_frame_run40916686359_29c_t101.xml" deity '^Shiva( +[0-9]+)?$' --drop Shiva)"
+[[ "$out" == *"not offered in the deity list"* ]] || { echo "replay: missing Shiva must say 'not offered': ${out}" >&2; exit 1; }
+pass
+# 29a/29d/29g *-select-then-state: the bar was there with State scrolled
+# off to the left; filter_matrix.sh must accept any chip as the bar and
+# scroll to State.
+python3 tool/emulator/lib/ui.py find "$r7/home_bar_state_scrolled_off.xml" --resource-id filter-chip-state >/dev/null 2>&1 \
+  && { echo "fixture: filter-chip-state should be absent (scrolled off)" >&2; exit 1; }
+python3 tool/emulator/lib/ui.py find "$r7/home_bar_state_scrolled_off.xml" --resource-id-regex '^filter-chip-(state|district|deity)$' >/dev/null \
+  || { echo "home_bar_state_scrolled_off: the bar must be found by any chip" >&2; exit 1; }
+pass
+grep -q "resource-id-regex '^filter-chip-(state|district|deity)\$'" tool/emulator/flows/lib/filter_matrix.sh \
+  || { echo "filter_matrix.sh assert_entry_screen must accept any chip as the bar" >&2; exit 1; }
+pass
+fc="$(awk '/^find_chip\(\)/{f=1} f&&/^}/{exit} f' tool/emulator/flows/lib/filter_matrix.sh)"
+if [[ "$fc" != *'scroll_chips_until --resource-id "filter-chip-$1"'* || "$fc" == *'state)'* ]]; then
+  echo "filter_matrix.sh find_chip must scroll to State too" >&2; exit 1
+fi
+pass
+# The far run must not settle between flings (each settle is 2+ dumps);
+# a tap is only taken on a settled list.
+if ! grep -q 'settled=0' tool/emulator/lib/common.sh || ! grep -q 'SEEK_FAR_FLINGS' tool/emulator/lib/common.sh; then
+  echo "seek_option: far runs must fling back to back without settling" >&2; exit 1
+fi
+pass
 
 # A list that keeps swinging stops after SEEK_MAX_FLIPS changes of direction.
 flip_dir="$(mktemp -d)"
@@ -1607,6 +1699,17 @@ IFS='|' read -r rc tapped err <<<"$out"
   || { echo "Murugan removed from the real dump; the pick must fail without a tap: $out" >&2; exit 1; }
 pass
 rm -f "$nodump"
+# 29j: Murugan only where Madurai is applied or must stay offered (seq2,
+# seq3); seq1 keeps Shiva (Sanu: no target change to dodge the matcher).
+seq_block="$(awk '/MATRIX_ENTRY" == seq/{f=1} f&&/^  else/{exit} f' tool/emulator/flows/lib/filter_matrix.sh)"
+seq1_line="$(grep -n 'matrix_case seq1' <<<"$seq_block" | cut -d: -f1)"
+mur_line="$(grep -n 'PICK\[deity\]="\$SEQ_DEITY_PICK"' <<<"$seq_block" | cut -d: -f1)"
+seq3_line="$(grep -n 'matrix_case seq3' <<<"$seq_block" | cut -d: -f1)"
+back_line="$(grep -n "PICK\[deity\]='\^Shiva" <<<"$seq_block" | cut -d: -f1)"
+if [[ -z "$seq1_line" || -z "$mur_line" || -z "$back_line" ]] || (( mur_line < seq1_line || back_line < seq3_line )); then
+  echo "29j: seq1 must pick Shiva; Murugan only for seq2/seq3, then back to Shiva" >&2; exit 1
+fi
+pass
 grep -qF "SEQ_DEITY_PICK='^Murugan( +[0-9]+)?\$'" tool/emulator/flows/lib/filter_matrix.sh \
   || { echo "29j must pick a deity present under Tamil Nadu / Madurai" >&2; exit 1; }
 pass

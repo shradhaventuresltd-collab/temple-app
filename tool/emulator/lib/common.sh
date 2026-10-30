@@ -1407,7 +1407,7 @@ seek_option() {
   local extra=()
   [[ "${4:-}" == --prefix ]] && extra=(--prefix)
   local i height width verdict dir reach prev="" current same=0
-  local direction="" flips=0 order="" fling_pct=48 kinds
+  local direction="" flips=0 order="" fling_pct=48 kinds settled=1
   read -r width height < <(ui_screen_size) || return 1
   ui_dump || return 1
   # The first dump is the sheet as it opened: scrolled to the top, so the
@@ -1426,6 +1426,16 @@ seek_option() {
     verdict="$(python3 "$UI_PY" option-seek "$DUMP" --kind "$kind" --name "$name" --order "$order" "${extra[@]}" \
       --min-top $((height * 24 / 100)) --max-top $((height * 84 / 100)))" || return 1
     read -r dir reach _ <<<"$verdict"
+    [[ -n "${SEEK_TRACE:-}" ]] && echo "seek_option: t=$SECONDS look ${i}: ${verdict} settled=${settled} pct=${fling_pct} first=$(grep -o "filter-option-[a-z]*-[^\"]*" "$DUMP" | head -1)" >&2
+    # A far run is flung without waiting for the list to stop (run
+    # 40992967143: settling after every fling spent 45s to cross A-P).
+    # Only "still far, same way" may act on a moving list; any other
+    # verdict, above all a tap, is taken again on a settled dump.
+    if (( ! settled )) && ! [[ "$dir" == "$direction" && "$reach" =~ ^(far|mid)$ && "$flips" -eq 0 ]]; then
+      seek_settle || return 1
+      settled=1
+      continue
+    fi
     case "$dir" in
       tap)
         read -r _ UI_CX UI_CY UI_TEXT <<<"$verdict"
@@ -1469,33 +1479,47 @@ seek_option() {
     esac
     if (( pct >= 8 )); then
       # A short, fast drag leaves momentum: many rows per dump.
-      local y_lo=$((height * 32 / 100)) y_hi n_fling=1 f
+      local y_lo=$((height * 32 / 100)) y_hi n flings=1
       y_hi=$((y_lo + height * pct / 100))
       (( y_hi > height * 82 / 100 )) && y_hi=$((height * 82 / 100))
-      # Run 40992967143: one fling per look moved ~1 initial letter, and a
-      # look (swipe + settle dumps) costs ~5s on the CI AVD, so 9 looks in
-      # 45s stopped at M/R of the ~600-name deity list (29f/29i/29j/30c).
-      # While a deity target is "far" and nothing has overshot yet, send
-      # SEEK_FAR_FLINGS flings back to back (each adds to the travel) and
-      # settle once. After the first change of direction, one fling. Only
-      # the deity list is long enough: a state target (36 names) behind a
-      # deity section overshot into DISTRICT in the sheet model.
-      if [[ "$kind" == deity && "$reach" == far && "$flips" -eq 0 ]]; then
-        n_fling="${SEEK_FAR_FLINGS:-3}"
+      # Run 40992967143: one 120ms fling per look moved the 600-option
+      # DEITY section by about a letter, and each look costs ~5s (swipe +
+      # settle dumps), so every Shiva/Vishnu pick ran out of its 45s at
+      # P-R. Settling, not swiping, is the cost: until the first overshoot
+      # (far: another section or 2+ initials away; mid: the next initial or
+      # a far letter inside the name), send SEEK_FAR_FLINGS flings back to
+      # back and do not wait for the list to stop (see settled above).
+      if [[ "$reach" =~ ^(far|mid)$ ]] && (( flips == 0 )); then
+        flings="${SEEK_FAR_FLINGS:-2}"
       fi
-      for f in $(seq 1 "$n_fling"); do
+      for n in $(seq 1 "$flings"); do
         if [[ "$dir" == up ]]; then
-          adb_shell_capped 8 input swipe $((width / 2)) "$y_hi" $((width / 2)) "$y_lo" 120 || return 1
+          adb_shell_capped 8 input swipe $((width / 2)) "$y_hi" $((width / 2)) "$y_lo" "${SEEK_FLING_MS:-120}" || return 1
         else
-          adb_shell_capped 8 input swipe $((width / 2)) "$y_lo" $((width / 2)) "$y_hi" 120 || return 1
+          adb_shell_capped 8 input swipe $((width / 2)) "$y_lo" $((width / 2)) "$y_hi" "${SEEK_FLING_MS:-120}" || return 1
         fi
-        : "$f"
       done
+      : "$n"
     else
       # Slow drag: no momentum, the list moves by the finger's travel.
-      ui_sheet_swipe "$dir" || return 1
+      # Run 40992967143's endgame crept through the "Shiva (...)" rows at
+      # ui_sheet_swipe's 24% a look. 84% -> 42% of the screen (y 537 -> 269
+      # on 640) is 42%, still less than the 318px option scroller, so no
+      # row can pass between two looks unseen.
+      local s_lo=$((height * 42 / 100)) s_hi=$((height * 84 / 100))
+      if [[ "$dir" == up ]]; then
+        adb_shell_capped 8 input swipe $((width / 2)) "$s_hi" $((width / 2)) "$s_lo" 900 || return 1
+      else
+        adb_shell_capped 8 input swipe $((width / 2)) "$s_lo" $((width / 2)) "$s_hi" 900 || return 1
+      fi
     fi
-    seek_settle || return 1
+    if [[ "$reach" =~ ^(far|mid)$ ]] && (( flips == 0 )); then
+      ui_dump || return 1
+      settled=0
+    else
+      seek_settle || return 1
+      settled=1
+    fi
   done
   echo "seek_option: ${kind} '${name}' not reached in ${SEEK_MAX_MOVES:-40} moves" >&2
   return 1
@@ -1527,7 +1551,9 @@ select_labeled() {
   # The deity list is ~600 names; Shiva sits at ~75% of it. 60s (45s of
   # seek) was 9 looks on the CI AVD (run 40992967143). Give the deity
   # list SELECT_MAX_DEITY (default 100s); the case budget still caps it.
-  local select_max="${SELECT_MAX:-60}"
+  # Others 75s (was 60): a state pick from a sheet opened on DEITY crosses
+  # that whole section first (06/22 state-change, sheet model 45-62s).
+  local select_max="${SELECT_MAX:-75}"
   if [[ "$kind" == deity && -z "${SELECT_MAX:-}" ]]; then
     select_max="${SELECT_MAX_DEITY:-100}"
   fi

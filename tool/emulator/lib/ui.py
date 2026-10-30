@@ -468,6 +468,17 @@ def cmd_option_seek(args: argparse.Namespace) -> int:
                 i += 1
             if i < min(len(a), len(b)) and abs(ord(a[i]) - ord(b[i])) >= 3:
                 return "mid"
+            # NAME is a strict prefix of the edge ("Shiva" vs "Shiva
+            # (Baneswar)"): every "Shiva (...)" row lies between them, and
+            # the live list has dozens (run 40992967143 crept through them
+            # one slow drag at a time until the 45s ran out).
+            # Rows sort by what follows the prefix, so measure from "A":
+            # "Shiva (Baneswar)" is a few rows past Shiva, "Shiva (Somnath)"
+            # dozens.
+            if i == len(a) < len(b):
+                rest = [c for c in b[i:] if c.isalpha()]
+                if rest and ord(rest[0]) - ord("A") >= 3:
+                    return "mid"
             return "near"
         mine = order.index(args.kind)
         mine_ys = [b[1] for n, b in names if n]

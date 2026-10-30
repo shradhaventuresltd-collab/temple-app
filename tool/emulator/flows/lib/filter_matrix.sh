@@ -303,10 +303,18 @@ matrix_main() {
   local t0=$SECONDS action
   if [[ "$MATRIX_ENTRY" == seq ]]; then
     MATRIX_ENTRY=home_browse
-    PICK[deity]="$SEQ_DEITY_PICK"
+    # Shiva stays the target wherever the app offers it. seq1 picks the
+    # deity under Tamil Nadu alone (pick-close leaves Madurai unapplied:
+    # its seq1 dump shows "Any deity  50"), and run 4's seq1 failure was the
+    # old shared 90s budget ("gave up ... after 2s"), not a missing Shiva.
+    # Only seq2 (Madurai applied: Devi, Murugan, two Vishnu; seq2 dump)
+    # and seq3 (Shiva first would hide Madurai, which has no Shiva temple)
+    # need a deity that Madurai has.
     matrix_case seq1 state:select district:pick-close deity:select
+    PICK[deity]="$SEQ_DEITY_PICK"
     matrix_case seq2 state:select district:select deity:pick-close
     matrix_case seq3 deity:select state:select district:clear
+    PICK[deity]='^Shiva( +[0-9]+)?$'
     matrix_case seq4 state:pick-close deity:dismiss-empty state:select
     matrix_case seq5 state:select district:outside-empty state:clear
   else
