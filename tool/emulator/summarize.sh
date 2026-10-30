@@ -51,6 +51,8 @@ flows=(
   29h-search-district
   29i-search-deity
   29j-sequences
+  29k-sequences
+  29l-sequences
   30a-drawer-bar-state
   30b-drawer-bar-district
   30c-drawer-bar-deity

@@ -983,6 +983,44 @@ jobs:
           pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
           script: bash tool/emulator/run_one_flow.sh 29j-sequences tool/emulator/flows/29j_sequences.sh
 
+      - name: Flow 29k sequences
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        timeout-minutes: 20
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 29k-sequences tool/emulator/flows/29k_sequences.sh
+
+      - name: Flow 29l sequences
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        timeout-minutes: 20
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 29l-sequences tool/emulator/flows/29l_sequences.sh
+
       - name: Flow 30a drawer-bar-state
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 20

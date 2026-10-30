@@ -310,13 +310,28 @@ matrix_main() {
     # Only seq2 (Madurai applied: Devi, Murugan, two Vishnu; seq2 dump)
     # and seq3 (Shiva first would hide Madurai, which has no Shiva temple)
     # need a deity that Madurai has.
-    matrix_case seq1 state:select district:pick-close deity:select
-    PICK[deity]="$SEQ_DEITY_PICK"
-    matrix_case seq2 state:select district:select deity:pick-close
-    matrix_case seq3 deity:select state:select district:clear
+    # 29j runs seq1-seq2, 29k seq3, 29l seq4-seq5 (SEQ_CASES), so even with
+    # every action and probe at its cap (55s entry + 90s/130s per action +
+    # 4x40s probes: 525s/485s a sequence) each flow stays under the 1140s
+    # flow budget (five sequences in one flow were ~1085s at run
+    # 40992967143's pace). The deity target is set per
+    # sequence, not by position, so a subset keeps the same targets.
+    local sq
+    for sq in ${SEQ_CASES:-seq1 seq2 seq3 seq4 seq5}; do
+      case "$sq" in
+        seq2|seq3) PICK[deity]="$SEQ_DEITY_PICK" ;;
+        *) PICK[deity]='^Shiva( +[0-9]+)?$' ;;
+      esac
+      case "$sq" in
+        seq1) matrix_case seq1 state:select district:pick-close deity:select ;;
+        seq2) matrix_case seq2 state:select district:select deity:pick-close ;;
+        seq3) matrix_case seq3 deity:select state:select district:clear ;;
+        seq4) matrix_case seq4 state:pick-close deity:dismiss-empty state:select ;;
+        seq5) matrix_case seq5 state:select district:outside-empty state:clear ;;
+        *) echo "matrix: unknown sequence ${sq}" >&2; return 1 ;;
+      esac
+    done
     PICK[deity]='^Shiva( +[0-9]+)?$'
-    matrix_case seq4 state:pick-close deity:dismiss-empty state:select
-    matrix_case seq5 state:select district:outside-empty state:clear
   else
     for action in "${ACTIONS[@]}"; do
       if [[ "$MATRIX_CHIP" == district ]]; then

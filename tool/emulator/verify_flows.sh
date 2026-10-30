@@ -21,7 +21,7 @@ fi
 
 workflow=.github/workflows/emulator-app-test.yml
 missing=0
-for slice in 29a 29b 29c 29d 29e 29f 29g 29h 29i 29j 30a 30b 30c 30d; do
+for slice in 29a 29b 29c 29d 29e 29f 29g 29h 29i 29j 29k 29l 30a 30b 30c 30d; do
   matches=(tool/emulator/flows/${slice}_*.sh)
   if [[ ! -f "${matches[0]}" ]]; then
     echo "::error::missing flow file tool/emulator/flows/${slice}_*.sh" >&2

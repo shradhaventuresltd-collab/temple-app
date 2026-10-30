@@ -292,6 +292,8 @@ flows=(
   29h-search-district
   29i-search-deity
   29j-sequences
+  29k-sequences
+  29l-sequences
   30a-drawer-bar-state
   30b-drawer-bar-district
   30c-drawer-bar-deity
@@ -1701,15 +1703,36 @@ pass
 rm -f "$nodump"
 # 29j: Murugan only where Madurai is applied or must stay offered (seq2,
 # seq3); seq1 keeps Shiva (Sanu: no target change to dodge the matcher).
+# Targets are per sequence (filter_matrix.sh case on $sq), so the 29j/29k/29l
+# split keeps them: Shiva for seq1/seq4/seq5, Murugan for seq2/seq3.
 seq_block="$(awk '/MATRIX_ENTRY" == seq/{f=1} f&&/^  else/{exit} f' tool/emulator/flows/lib/filter_matrix.sh)"
-seq1_line="$(grep -n 'matrix_case seq1' <<<"$seq_block" | cut -d: -f1)"
-mur_line="$(grep -n 'PICK\[deity\]="\$SEQ_DEITY_PICK"' <<<"$seq_block" | cut -d: -f1)"
-seq3_line="$(grep -n 'matrix_case seq3' <<<"$seq_block" | cut -d: -f1)"
-back_line="$(grep -n "PICK\[deity\]='\^Shiva" <<<"$seq_block" | cut -d: -f1)"
-if [[ -z "$seq1_line" || -z "$mur_line" || -z "$back_line" ]] || (( mur_line < seq1_line || back_line < seq3_line )); then
-  echo "29j: seq1 must pick Shiva; Murugan only for seq2/seq3, then back to Shiva" >&2; exit 1
-fi
+grep -qF 'seq2|seq3) PICK[deity]="$SEQ_DEITY_PICK" ;;' <<<"$seq_block" \
+  && grep -qF "*) PICK[deity]='^Shiva( +[0-9]+)?\$' ;;" <<<"$seq_block" \
+  || { echo "29j/29k/29l: seq1/seq4/seq5 must pick Shiva; Murugan only for seq2/seq3" >&2; exit 1; }
 pass
+# Each sequence runs in exactly one of 29j/29k/29l, in order seq1..seq5.
+all_seqs="$(for f in 29j 29k 29l; do sed -n 's/^SEQ_CASES="\(.*\)"$/\1/p' tool/emulator/flows/${f}_sequences.sh; done | paste -sd' ' -)"
+[[ "$all_seqs" == "seq1 seq2 seq3 seq4 seq5" ]] || { echo "29j/29k/29l must cover seq1..seq5 once each, got '$all_seqs'" >&2; exit 1; }
+pass
+# Run the seq dispatcher with stubs: each flow runs only its sequences, in
+# order, with the right deity target.
+for spec in "29j_sequences.sh|seq1:Shiva seq2:Murugan" "29k_sequences.sh|seq3:Murugan" "29l_sequences.sh|seq4:Shiva seq5:Shiva"; do
+  IFS='|' read -r seq_flow seq_want <<<"$spec"
+  seq_dir="$(mktemp -d)"
+  seq_got="$(
+    export EMULATOR_FLOW=29-seq EMULATOR_ARTIFACTS="$seq_dir" EMULATOR_PACKAGE=com.example
+    # shellcheck disable=SC1091
+    source tool/emulator/lib/common.sh
+    run_case_or_stop() { local t="${PICK[deity]#^}"; printf '%s:%s\n' "$1" "${t%%(*}" >> "$seq_dir/ran"; }
+    force_stop_app() { :; }
+    # shellcheck disable=SC1090
+    source "tool/emulator/flows/$seq_flow" >/dev/null 2>&1
+    paste -sd' ' "$seq_dir/ran"
+  )"
+  [[ "$seq_got" == "$seq_want" ]] || { echo "$seq_flow ran '$seq_got', want '$seq_want'" >&2; exit 1; }
+  pass
+  rm -rf "$seq_dir"
+done
 grep -qF "SEQ_DEITY_PICK='^Murugan( +[0-9]+)?\$'" tool/emulator/flows/lib/filter_matrix.sh \
   || { echo "29j must pick a deity present under Tamil Nadu / Madurai" >&2; exit 1; }
 pass
