@@ -25,6 +25,26 @@ source "${ROOT}/tool/emulator/lib/common.sh"
 # minute to record FAIL. 30 flows cannot all spend 30 minutes inside the
 # 180-minute job; that job limit stays the backstop for a streak of hangs.
 FLOW_BUDGET=1140
+
+# Location-dependent flows (11, 23, 30d) are skipped in emulator runs
+# (Sanu, 2026-10-30): they need a location fix and Settings round-trips.
+# They report SKIPPED, a separate count that is neither a pass nor an
+# expected failure. Override with EMULATOR_SKIP_FLOWS="" to run them.
+EMULATOR_SKIP_FLOWS="${EMULATOR_SKIP_FLOWS-11-near-me 23-near-me-settings-roundtrip 30d-near-me}"
+skip_flows=" ${EMULATOR_SKIP_FLOWS//,/ } "
+if [[ "$skip_flows" == *" ${FLOW} "* ]]; then
+  if [[ "${EMULATOR_FLOW_TIMED:-}" != 1 ]]; then
+    case "$FLOW" in
+      11-near-me) skip_reason="location-dependent: needs a GPS fix and the permission dialog" ;;
+      23-near-me-settings-roundtrip) skip_reason="location-dependent: location service and permission round-trips through Settings" ;;
+      30d-near-me) skip_reason="location-dependent: near me screen has no directory filter bar and needs a location fix" ;;
+      *) skip_reason="listed in EMULATOR_SKIP_FLOWS" ;;
+    esac
+    printf 'SKIPPED %s: %s\n' "$FLOW" "$skip_reason" | tee -a "$RESULTS"
+  fi
+  exit 0
+fi
+
 if [[ "${EMULATOR_FLOW_TIMED:-}" != 1 ]]; then
   printf 'START %s\n' "$FLOW" >> "$RESULTS"
   set +e

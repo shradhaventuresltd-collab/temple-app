@@ -67,6 +67,9 @@ jobs:
       EMULATOR_SNAPSHOT_OPTIONS: -no-window -gpu swiftshader_indirect -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
       EMULATOR_AVD_CACHE_KEY: avd-30-x86_64-google_apis-emulator-app-test-clean
       EMULATOR_PRE_LAUNCH: bash tool/emulator/prepare_avd.sh
+      # Location-dependent flows report SKIPPED (run_one_flow.sh). Space or
+      # comma separated flow ids; set to "" to run them.
+      EMULATOR_SKIP_FLOWS: "11-near-me,23-near-me-settings-roundtrip,30d-near-me"
     steps:
       # Flows and helpers must come from the ref under test, not from the
       # branch the workflow was dispatched on. Note: the step list itself
@@ -543,7 +546,7 @@ jobs:
           pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
           script: bash tool/emulator/run_one_flow.sh 16-home-browse tool/emulator/flows/16_home_browse.sh
 
-      - name: Flow 17 entry matrix
+      - name: Flow 17a entry matrix home
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: 30
         continue-on-error: true
@@ -560,7 +563,26 @@ jobs:
           emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
           emulator-options: ${{ env.EMULATOR_OPTIONS }}
           pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
-          script: bash tool/emulator/run_one_flow.sh 17-entry-matrix tool/emulator/flows/17_entry_matrix.sh
+          script: bash tool/emulator/run_one_flow.sh 17a-entry-matrix-home tool/emulator/flows/17a_entry_matrix_home.sh
+
+      - name: Flow 17b entry matrix drawer
+        if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
+        timeout-minutes: 30
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          script: bash tool/emulator/run_one_flow.sh 17b-entry-matrix-drawer tool/emulator/flows/17b_entry_matrix_drawer.sh
 
       - name: Flow 18 home reselect
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}

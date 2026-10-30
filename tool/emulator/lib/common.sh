@@ -35,6 +35,21 @@ record_xfail() {
   printf 'XFAIL %s: %s: %s\n' "$FLOW" "$1" "$2" | tee -a "$RESULTS"
 }
 
+# A by-design note: not a pass, not a failure, not a skipped step.
+record_info() {
+  printf 'INFO %s: %s: %s\n' "$FLOW" "$1" "$2" | tee -a "$RESULTS"
+}
+
+# The flow budget ran out before STEP. That is lost coverage, so the first
+# such step records one FAIL (budget) for the flow; it and every later
+# step are NOT RUN behind that FAIL. A green run never has these.
+budget_stop() {
+  if ! grep -Eq "^FAIL ${FLOW}: budget:" "$RESULTS" 2>/dev/null; then
+    record_fail "budget" "$1 and later steps not reached before the ${FLOW_BUDGET_S}s flow budget"
+  fi
+  record_not_run "$1" "prerequisite budget failed"
+}
+
 record_not_run() {
   printf 'NOT RUN %s: %s: %s\n' "$FLOW" "$1" "$2" | tee -a "$RESULTS"
 }
@@ -228,7 +243,7 @@ flow_over() {
 skip_case_for_budget() {
   local id="$1"; shift
   local steps=("$@") st p chip
-  record_not_run "$id" "stopped before the ${FLOW_BUDGET_S}s flow budget"
+  budget_stop "$id"
   STATE_APPLIED=0
   for st in "${steps[@]}"; do
     [[ "$st" == state:select ]] && STATE_APPLIED=1
@@ -236,7 +251,7 @@ skip_case_for_budget() {
   chip="${steps[-1]%%:*}"
   while IFS= read -r p; do
     [[ -n "$p" ]] || continue
-    record_not_run "$id-then-$p" "stopped before the ${FLOW_BUDGET_S}s flow budget"
+    budget_stop "$id-then-$p"
   done < <(probe_list "$chip")
 }
 
@@ -958,7 +973,11 @@ wait_browse_ready() {
   while (( SECONDS - start < 120 )); do
     ui_dump || true
     if ui_find --text-contains "Could not load temples"; then
-      if (( retried_at == 0 )) && ui_find --resource-id browse-load-failed-retry; then
+      # The retry button has Key('browse-load-failed-retry') but no
+      # Semantics identifier, so uiautomator shows no resource-id; its
+      # label is content-desc "Try again" (run 40916686359, flow 27).
+      if (( retried_at == 0 )) && { ui_find --resource-id browse-load-failed-retry \
+        || ui_find --content-desc "Try again" --clickable; }; then
         echo "wait_browse_ready: load failed; tapping Try again once" >&2
         if ui_tap; then
           retried_at=$SECONDS
@@ -1074,6 +1093,25 @@ network_on() {
   adb shell svc ethernet enable >/dev/null 2>&1 || true
   adb shell svc wifi enable >/dev/null 2>&1 || true
   adb shell svc data enable >/dev/null 2>&1 || true
+}
+
+# Wait (bounded) until the guest has a default route and Android has
+# validated the network. VALIDATED is set by the OS's own HTTP
+# connectivity probe (generate_204), so this is an HTTP check without a
+# hard-coded server. svc/ip return before the link is usable; a retry
+# tapped in that gap fails again (run 40916686359, flow 27 recover).
+# Usage: wait_network_up SECONDS
+wait_network_up() {
+  local limit="${1:-30}" start=$SECONDS
+  while (( SECONDS - start < limit )); do
+    if timeout 6 adb shell ip route show table all 2>/dev/null | grep -q '^default ' \
+      && timeout 8 adb shell dumpsys connectivity 2>/dev/null | grep -q 'VALIDATED'; then
+      return 0
+    fi
+    sleep 1
+  done
+  echo "wait_network_up: no default route or validated network after ${limit}s" >&2
+  return 1
 }
 
 screenrecord_start() {
@@ -1228,10 +1266,12 @@ find_filter_chip() {
 }
 
 scroll_chips_until() {
-  local i width height max_top before after
+  local i width height max_top before after direction=left turned=0
   read -r width height < <(ui_screen_size) || return 1
-  max_top=$((height * 70 / 100))
-  for i in 1 2 3 4; do
+  # 70% keeps Home's lower content out; the drawer's bar sits at 72%
+  # (y=461 of 640 in run 40916686359), so drawer callers pass 92.
+  max_top=$((height * ${CHIP_MAX_TOP_PCT:-70} / 100))
+  for i in 1 2 3 4 5 6 7 8; do
     ui_dump || return 1
     if ui_find "$@" --max-top "$max_top" && (( UI_CX > 24 && UI_CX < width - 24 )); then
       return 0
@@ -1241,13 +1281,14 @@ scroll_chips_until() {
       echo "scroll_chips_until: no chip bar on screen" >&2
       return 1
     fi
-    scroll_chip_bar_at 0 left || return 1
+    scroll_chip_bar_at 0 "$direction" || return 1
     sleep 0.4
     ui_dump || return 1
     after="$(chip_bar_sig)"
     # Assert the swipe did something: the row must still be there, and
-    # it must have moved. An unmoved row is at its end; stop now instead
-    # of paying for more swipes.
+    # it must have moved. An unmoved row is at that end: try the other
+    # end once (a chip scrolled off to the left, e.g. State after a
+    # district was applied), then stop.
     if [[ -z "$after" ]]; then
       echo "scroll_chips_until: chip bar vanished after the swipe" >&2
       return 1
@@ -1256,11 +1297,15 @@ scroll_chips_until() {
       return 0
     fi
     if [[ "$after" == "$before" ]]; then
-      echo "scroll_chips_until: chip bar did not move; target not in it" >&2
-      return 1
+      if (( turned )); then
+        echo "scroll_chips_until: chip bar did not move either way; target not in it" >&2
+        return 1
+      fi
+      turned=1
+      direction=right
     fi
   done
-  echo "scroll_chips_until: not in view after 4 scrolls" >&2
+  echo "scroll_chips_until: not in view after 8 scrolls" >&2
   return 1
 }
 
@@ -1330,66 +1375,113 @@ print(name if name else "")
 ' "$1"
 }
 
-# Fling toward option NAME of section KIND (state, district, deity) by
-# comparing it with the visible option ids, which are in sorted order.
-# Returns 0 with UI_CX/UI_CY/UI_TEXT set when the option is in the tap
-# band, 1 when the caller should fall back to the step scan.
-# Usage: seek_option KIND NAME DEADLINE
+# Wait for a fling to stop: dump until two dumps in a row show the same
+# option texts. Bounded at SEEK_SETTLE_DUMPS dumps (default 6). Returns 1
+# when the list is still moving after that, so the caller never decides
+# (or taps) on a moving list. Leaves the last dump in $DUMP.
+seek_settle() {
+  local n prev="" cur
+  for n in $(seq 1 "${SEEK_SETTLE_DUMPS:-6}"); do
+    ui_dump || return 1
+    cur="$(dump_scroll_sig)" || return 1
+    [[ -n "$prev" && "$cur" == "$prev" ]] && return 0
+    prev="$cur"
+    sleep 0.4
+  done
+  echo "seek_option: list still moving after ${SEEK_SETTLE_DUMPS:-6} dumps" >&2
+  return 1
+}
+
+# Scroll toward option NAME of section KIND (state, district, deity) by
+# comparing it with the visible option ids, which are in sorted order, and
+# with the visible sections (the sheet's order is: tapped section, then
+# state, district, deity). Returns 0 with UI_CX/UI_CY/UI_TEXT set when the
+# option is in the tap band; 2 when the dump proves it is not listed;
+# 1 otherwise. Every decision is made on a settled dump: a dump taken while
+# a fling still runs sent run 40916686359 past Shiva and out of STATE.
+# Usage: seek_option KIND NAME DEADLINE [--prefix]
 seek_option() {
   local kind="$1" name="$2" deadline="$3"
-  local i height verdict fast=1 prev="" current same=0
-  local direction="" flips=0
-  for i in $(seq 1 40); do
-    (( SECONDS < deadline )) || return 1
-    ui_dump || return 1
-    read -r _ height < <(ui_screen_size) || return 1
-    verdict="$(python3 "$UI_PY" option-seek "$DUMP" --kind "$kind" --name "$name" \
+  local extra=()
+  [[ "${4:-}" == --prefix ]] && extra=(--prefix)
+  local i height width verdict dir reach prev="" current same=0
+  local direction="" flips=0 order="" fling_pct=48 kinds
+  read -r width height < <(ui_screen_size) || return 1
+  ui_dump || return 1
+  # The first dump is the sheet as it opened: scrolled to the top, so the
+  # first visible section is the head of the order.
+  if kinds="$(python3 "$UI_PY" sheet-kinds "$DUMP")"; then
+    order="$(printf '%s state district deity' "$kinds" | tr ' ' '\n' | awk 'NF && !seen[$0]++' | paste -sd, -)"
+  else
+    echo "seek_option: no picker section on screen (is the sheet open?)" >&2
+    return 1
+  fi
+  for i in $(seq 1 "${SEEK_MAX_MOVES:-40}"); do
+    if (( SECONDS >= deadline )); then
+      echo "seek_option: ${kind} '${name}' not reached before the deadline (${i} looks, order ${order})" >&2
+      return 1
+    fi
+    verdict="$(python3 "$UI_PY" option-seek "$DUMP" --kind "$kind" --name "$name" --order "$order" "${extra[@]}" \
       --min-top $((height * 24 / 100)) --max-top $((height * 84 / 100)))" || return 1
-    case "$verdict" in
-      tap\ *)
+    read -r dir reach _ <<<"$verdict"
+    case "$dir" in
+      tap)
         read -r _ UI_CX UI_CY UI_TEXT <<<"$verdict"
         return 0 ;;
-      up|down)
-        # One correction after an overshoot is normal. A second change of
-        # direction is the list swinging; stop instead of paging back and forth.
-        if [[ -n "$direction" && "$verdict" != "$direction" ]]; then
-          flips=$((flips + 1))
-          if (( flips >= 2 )); then
-            echo "seek_option: ${kind} '${name}' changed direction twice" >&2
-            return 1
-          fi
-        fi
-        direction="$verdict"
-        ;;
+      up|down) ;;
+      absent)
+        echo "seek_option: ${kind} '${name}' is not in the list (neighbours bracket it)" >&2
+        return 2 ;;
       *)
         echo "seek_option: ${kind} '${name}': ${verdict}" >&2
         return 1 ;;
     esac
+    # Every change of direction is an overshoot. Fling weaker after each;
+    # the list swinging forever is stopped by SEEK_MAX_FLIPS.
+    if [[ -n "$direction" && "$dir" != "$direction" ]]; then
+      flips=$((flips + 1))
+      fling_pct=$((fling_pct / 2))
+      if (( flips >= ${SEEK_MAX_FLIPS:-6} )); then
+        echo "seek_option: ${kind} '${name}' changed direction ${flips} times" >&2
+        return 1
+      fi
+    fi
+    direction="$dir"
     current="$(dump_scroll_sig)" || return 1
     if [[ "$current" == "$prev" ]]; then
       same=$((same + 1))
-      (( same < 3 )) || { echo "seek_option: list stopped moving before '${name}'" >&2; return 1; }
+      if (( same >= 3 )); then
+        # Three swipes that moved nothing: the end of the list, or swipes
+        # that missed the scroller. The caller's bounded step scan decides.
+        echo "seek_option: list stopped moving before ${kind} '${name}'" >&2
+        return 1
+      fi
     else
       same=0
     fi
     prev="$current"
-    if [[ "$verdict" == down ]]; then
-      # Overshot (or started below it): finish with slow, exact steps.
-      fast=0
-      ui_sheet_swipe down || return 1
-    elif (( fast )); then
-      local width
-      read -r width _ < <(ui_screen_size) || return 1
+    local pct=0
+    case "$reach" in
+      far) pct=$fling_pct ;;
+      mid) pct=$((fling_pct / 3)) ;;
+    esac
+    if (( pct >= 8 )); then
       # A short, fast drag leaves momentum: many rows per dump.
-      adb_shell_capped 8 input swipe $((width / 2)) $((height * 80 / 100)) \
-        $((width / 2)) $((height * 32 / 100)) 120 || return 1
-      sleep 0.8
-      continue
+      local y_lo=$((height * 32 / 100)) y_hi
+      y_hi=$((y_lo + height * pct / 100))
+      (( y_hi > height * 82 / 100 )) && y_hi=$((height * 82 / 100))
+      if [[ "$dir" == up ]]; then
+        adb_shell_capped 8 input swipe $((width / 2)) "$y_hi" $((width / 2)) "$y_lo" 120 || return 1
+      else
+        adb_shell_capped 8 input swipe $((width / 2)) "$y_lo" $((width / 2)) "$y_hi" 120 || return 1
+      fi
     else
-      ui_sheet_swipe up || return 1
+      # Slow drag: no momentum, the list moves by the finger's travel.
+      ui_sheet_swipe "$dir" || return 1
     fi
-    sleep 0.3
+    seek_settle || return 1
   done
+  echo "seek_option: ${kind} '${name}' not reached in ${SEEK_MAX_MOVES:-40} moves" >&2
   return 1
 }
 
@@ -1415,18 +1507,35 @@ select_labeled() {
     return 1
   fi
   started=$SECONDS
-  deadline=$((started + ${SELECT_MAX:-45}))
+  deadline=$((started + ${SELECT_MAX:-60}))
   if (( STEP_DEADLINE > 0 && STEP_DEADLINE < deadline )); then
     deadline=$STEP_DEADLINE
   fi
   local kind
   kind="$(printf '%s' "$_section" | tr '[:upper:]' '[:lower:]')"
-  if [[ -n "$name_hint" && "$kind" =~ ^(state|district|deity)$ ]] \
-    && seek_option "$kind" "$name_hint" "$deadline"; then
-    SELECTED_LABEL="$(chip_label "$UI_TEXT")"
-    ui_tap
-    sleep 1
-    return 0
+  if [[ -n "$name_hint" && "$kind" =~ ^(state|district|deity)$ ]]; then
+    local seek_rc=0
+    # '^Vishnu' (no $) takes the first Vishnu... option; '^Shiva( +N)?$' only Shiva.
+    local prefix_flag=""
+    [[ "$regex" == *'$' ]] || prefix_flag=--prefix
+    # Keep the last 15s for the bounded step scan below when the seek stalls.
+    local seek_deadline=$((deadline - 15))
+    (( seek_deadline > started + 15 )) || seek_deadline=$deadline
+    seek_option "$kind" "$name_hint" "$seek_deadline" ${prefix_flag:+"$prefix_flag"} || seek_rc=$?
+    if (( seek_rc == 0 )); then
+      if [[ ! "$UI_TEXT" =~ $regex ]]; then
+        echo "select_labeled: option '${UI_TEXT}' does not match '${regex}'" >&2
+        return 1
+      fi
+      SELECTED_LABEL="$(chip_label "$UI_TEXT")"
+      ui_tap || { echo "select_labeled: tap on '${UI_TEXT}' failed" >&2; return 1; }
+      sleep 1
+      return 0
+    fi
+    if (( seek_rc == 2 )); then
+      echo "select_labeled: '${regex}' is not offered in the ${kind} list" >&2
+      return 1
+    fi
   fi
   for pass in 1 2; do
     if (( SECONDS >= deadline )); then

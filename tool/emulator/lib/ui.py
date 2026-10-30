@@ -320,66 +320,196 @@ def cmd_chip_bar(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_option_seek(args: argparse.Namespace) -> int:
-    """Say where option NAME of a sorted picker section is.
+_KINDS = ("state", "district", "deity")
+_HEADERS = {"STATE": "state", "DISTRICT": "district", "DEITY": "deity"}
 
-    The sheet lists options in Dart's default String order and every chip
-    carries resource-id filter-option-<kind>-<name>. With ~990 temples the
-    deity section holds hundreds of chips; a fixed-step scan from the top
-    never reached Shiva or Madurai in the time it had (runs 40658283240,
-    40698852836). Comparing NAME with the visible names says which way to
-    scroll, so a caller can fling instead of stepping.
 
-    Prints one of:
-      tap CX CY TEXT   the option is inside [min-top, max-top]
-      up               it is below the screen (scroll the list up)
-      down             it is above the screen (scroll the list down)
-      absent           visible names bracket NAME but it is not listed
-      none             no option of this kind is on screen
+def _dart_key(value: str) -> bytes:
+    # directoryStatesFrom, directoryDeitiesFrom, and directoryDistrictsFrom
+    # (lib/utils/directory_filters.dart) sort with Dart's List.sort, and
+    # String.compareTo orders UTF-16 code units. Python's code-point order
+    # disagrees for non-BMP names, so compare UTF-16 code units here too.
+    return value.encode("utf-16-be")
+
+
+def _sheet_rows(root: ET.Element) -> list[tuple[str, str, tuple[int, int, int, int], ET.Element]]:
+    """Visible option chips and section headers, top to bottom.
+
+    Each row is (kind, name, bounds, node). A section header has name "".
+    The sheet's chips carry resource-id filter-option-<kind>-<name>; the
+    headers are plain Views whose content-desc is STATE, DISTRICT or DEITY.
+    """
+    rows = []
+    for node in _iter_nodes(root):
+        box = _bounds(node.attrib.get("bounds", ""))
+        if box is None:
+            continue
+        short = _resource_id(node).split("/")[-1]
+        kind = name = None
+        for k in _KINDS:
+            prefix = f"filter-option-{k}-"
+            if short.startswith(prefix):
+                kind, name = k, short[len(prefix):]
+                break
+        if kind is None:
+            label = _flat(node.attrib.get("content-desc")) or _flat(node.attrib.get("text"))
+            if label in _HEADERS and not short:
+                kind, name = _HEADERS[label], ""
+        if kind is not None:
+            rows.append((kind, name, box, node))
+    rows.sort(key=lambda row: (row[2][1], row[2][0]))
+    return rows
+
+
+def cmd_sheet_kinds(args: argparse.Namespace) -> int:
+    """Print the picker sections visible in a dump, top to bottom, one line.
+
+    The sheet opens scrolled to the top with the tapped section first
+    (_sections in lib/widgets/directory_filter_bar.dart), so the first kind
+    of the first dump is the section order's head.
     """
     try:
         root = _load(args.dump)
     except (ET.ParseError, OSError, ValueError) as exc:
         print(f"dump unreadable: {exc}", file=sys.stderr)
         return 1
-    prefix = f"filter-option-{args.kind}-"
+    seen: list[str] = []
+    for kind, _name, _box, _node in _sheet_rows(root):
+        if kind not in seen:
+            seen.append(kind)
+    if not seen:
+        return 1
+    print(" ".join(seen))
+    return 0
+
+
+def _letter_gap(a: str, b: str) -> int:
+    first_a = (a[:1] or " ").upper()
+    first_b = (b[:1] or " ").upper()
+    return abs(ord(first_a) - ord(first_b))
+
+
+def cmd_option_seek(args: argparse.Namespace) -> int:
+    """Say where option NAME of a sorted picker section is.
+
+    The sheet lists every section in one scroller: the tapped section first,
+    then state, district, deity (DirectoryFilterSheet._sections). Each
+    section is in Dart's default String order and every chip carries
+    resource-id filter-option-<kind>-<name>. Run 40916686359 failed 60+
+    picks because a fling from the top of STATE landed in DISTRICT or DEITY,
+    where no state chip is visible; the old answer was "none" and the
+    caller gave up. With --order the answer is the section's direction.
+
+    Prints one of:
+      tap CX CY TEXT   the option is inside [min-top, max-top]
+      up far|near      it is below the screen (scroll the list up)
+      down far|near    it is above the screen (scroll the list down)
+      absent           visible names bracket NAME but it is not listed
+      none             no picker option or section header is on screen
+    "far" means a full fling is safe (another section, or two or more
+    initial letters away in a long section); "mid" a short fling (next
+    initial, or the first differing letter 3+ away); "near" means
+    step without momentum. STATE (36 options) is always "near".
+    """
+    try:
+        root = _load(args.dump)
+    except (ET.ParseError, OSError, ValueError) as exc:
+        print(f"dump unreadable: {exc}", file=sys.stderr)
+        return 1
+    order = [k for k in (args.order or "").split(",") if k]
+    for k in _KINDS:
+        if k not in order:
+            order.append(k)
+    rows = _sheet_rows(root)
     names = []
-    for node in _iter_nodes(root):
-        short = _resource_id(node).split("/")[-1]
-        if not short.startswith(prefix):
+    header_here = False
+    other_kinds = []
+    for kind, name, box, node in rows:
+        if kind != args.kind:
+            other_kinds.append(kind)
             continue
-        name = short[len(prefix):]
-        box = _bounds(node.attrib.get("bounds", ""))
-        if box is None or name == "any":
+        if not name:
+            header_here = True
             continue
-        if name == args.name:
+        if name == "any":
+            names.append(("", box))
+            continue
+        if name == args.name or (args.prefix and name.startswith(args.name)):
             x1, y1, x2, y2 = box
             if args.min_top is not None and y1 < args.min_top:
-                print("down")
+                print("down near")
                 return 0
             if args.max_top is not None and y1 > args.max_top:
-                print("up")
+                print("up near")
                 return 0
             text = " ".join(_flat(node.attrib.get("content-desc")).split()) \
                 or " ".join(_flat(node.attrib.get("text")).split()) or name
             print(f"tap {(x1 + x2) // 2} {(y1 + y2) // 2} {text}")
             return 0
-        names.append(name)
-    if not names:
-        print("none")
+        names.append((name, box))
+    real = [n for n, _ in names if n]
+    if real:
+        target = _dart_key(args.name)
+        hi = max(real, key=_dart_key)
+        lo = min(real, key=_dart_key)
+        # A short section (state) never needs a fling; a fling there lands
+        # in the next section (run 40916686359, flows 29a/29d/29g/30a).
+        def reach(edge: str) -> str:
+            if args.kind == "state":
+                return "near"
+            if _letter_gap(args.name, edge) >= 2:
+                return "far"
+            if _letter_gap(args.name, edge) == 1:
+                return "mid"
+            # Same initial: look at the first letter that differs.
+            a, b = args.name.upper(), edge.upper()
+            i = 0
+            while i < min(len(a), len(b)) and a[i] == b[i]:
+                i += 1
+            if i < min(len(a), len(b)) and abs(ord(a[i]) - ord(b[i])) >= 3:
+                return "mid"
+            return "near"
+        mine = order.index(args.kind)
+        mine_ys = [b[1] for n, b in names if n]
+        # Another section's rows right after ours (or before) on screen
+        # close the section: the name would sit between them.
+        later_below = any(
+            k != args.kind and order.index(k) > mine and b[1] > max(mine_ys)
+            for k, _n, b, _node in rows
+        )
+        earlier_above = any(
+            k != args.kind and order.index(k) < mine and b[1] < min(mine_ys)
+            for k, _n, b, _node in rows
+        )
+        if target > _dart_key(hi):
+            print("absent" if later_below else f"up {reach(hi)}")
+        elif target < _dart_key(lo):
+            print("absent" if earlier_above else f"down {reach(lo)}")
+        else:
+            print("absent")
         return 0
-    # directoryStatesFrom, directoryDeitiesFrom, and directoryDistrictsFrom
-    # (lib/utils/directory_filters.dart) sort with Dart's List.sort, and
-    # String.compareTo orders UTF-16 code units. Python's code-point order
-    # disagrees for non-BMP names, so compare UTF-16 code units here too.
-    def key(value: str) -> bytes:
-        return value.encode("utf-16-be")
-    if key(args.name) > max(key(n) for n in names):
-        print("up")
-    elif key(args.name) < min(key(n) for n in names):
-        print("down")
-    else:
+    if names:
+        # Only the any/all chip: the section head. Every name is below it.
+        print("up near")
+        return 0
+    if other_kinds:
+        mine = order.index(args.kind)
+        before = any(order.index(k) < mine for k in other_kinds)
+        after = any(order.index(k) > mine for k in other_kinds)
+        reach = "near" if header_here else "far"
+        if before and not after:
+            print(f"up {reach}")
+            return 0
+        if after and not before:
+            print(f"down {reach}")
+            return 0
+        # Sections on both sides with none of ours between: it is empty.
         print("absent")
+        return 0
+    if header_here:
+        print("up near")
+        return 0
+    print("none")
     return 0
 
 
@@ -421,7 +551,13 @@ def _parser() -> argparse.ArgumentParser:
     seek.add_argument("--name", required=True)
     seek.add_argument("--min-top", type=int)
     seek.add_argument("--max-top", type=int)
+    seek.add_argument("--prefix", action="store_true", help="any option whose name starts with NAME")
+    seek.add_argument("--order", default="", help="section kinds top to bottom, e.g. state,district,deity")
     seek.set_defaults(func=cmd_option_seek)
+
+    kinds = sub.add_parser("sheet-kinds")
+    kinds.add_argument("dump")
+    kinds.set_defaults(func=cmd_sheet_kinds)
 
     bright = sub.add_parser("bright")
     bright.add_argument("path")

@@ -197,10 +197,10 @@ run_case() {
   mapfile -t probes < <(probe_list "${steps[-1]%%:*}")
   for p in "${probes[@]}"; do
     if flow_over; then
-      record_not_run "$id-then-$p" "stopped before the ${FLOW_BUDGET_S}s flow budget"
+      budget_stop "$id-then-$p"
       local rest=0 q
       for q in "${probes[@]}"; do
-        [[ "$rest" -eq 1 ]] && record_not_run "$id-then-$q" "stopped before the ${FLOW_BUDGET_S}s flow budget"
+        [[ "$rest" -eq 1 ]] && budget_stop "$id-then-$q"
         [[ "$q" == "$p" ]] && rest=1
       done
       break

@@ -3,7 +3,10 @@
 # Entry points: home-button, drawer-all, drawer-search, list-drawer-all (stacked list).
 # Controls per entry: state/deity/district open, select+apply, chip shows value,
 # clear via chip x, swipe-dismiss from header AND from the option list, double tap.
-# Sourced by run_one_flow.sh like flows 01-15 (needs lib/common.sh).
+# Sourced by flows 17a/17b, which set ENTRY_MATRIX_ENTRIES. Four entries
+# did not fit the 1140s flow budget (run 40916686359: ~55s per pick, ~355s
+# per entry on the happy path, timeout in the fourth entry), so each flow
+# runs two entries.
 
 open_drawer() {
   ui_dump && ui_find --content-desc "Open navigation menu" || return 1
@@ -63,8 +66,9 @@ swipe_from_list() {
 declare -A PICK=( [state]='^Kerala( +[0-9]+)?$' [deity]='^Shiva( +[0-9]+)?$' [district]='^Agra( +[0-9]+)?$' )
 declare -A SECTION=( [state]=STATE [deity]=DEITY [district]=DISTRICT )
 
-for entry in home_button drawer_all drawer_search list_drawer_all; do
-  if ! err="$(enter_$entry)"; then
+read -ra entry_list <<<"${ENTRY_MATRIX_ENTRIES:?flow must set ENTRY_MATRIX_ENTRIES}"
+for entry in "${entry_list[@]}"; do
+  if ! err="$("enter_${entry}")"; then
     fail_step "$entry-enter" "${err:-could not reach the list}"; continue
   fi
   pass_step "$entry-enter"
@@ -139,8 +143,14 @@ for entry in home_button drawer_all drawer_search list_drawer_all; do
       else
         pass_step "$entry-empty-clear"
       fi
+    elif [[ "$kerala_applied" != 1 ]]; then
+      # The app offers "Clear filters" only while a filter is active
+      # (app_drawer.dart: onClearFilters is null otherwise); with no filter
+      # it shows "Clear search". Run 40916686359: the Kerala pick had
+      # failed, so this was reported as a missing button.
+      fail_step "$entry-empty-clear" "prerequisite: Kerala did not apply, so no filter was active for Clear filters"
     else
-      fail_step "$entry-empty-clear" "Clear filters was not shown"
+      fail_step "$entry-empty-clear" "Clear filters was not shown with Kerala applied"
     fi
   else
     fail_step "$entry-empty-clear" "search field missing"

@@ -269,7 +269,8 @@ flows=(
   14-back-relaunch
   15-offline
   16-home-browse
-  17-entry-matrix
+  17a-entry-matrix-home
+  17b-entry-matrix-drawer
   18-home-reselect
   19-rotation-state
   20-empty-and-back
@@ -532,12 +533,12 @@ if ! grep -q 'adb_shell_capped 8 input tap' tool/emulator/flows/18_home_reselect
   exit 1
 fi
 pass
-if ! grep -q 'adb_shell_capped 8 input tap' tool/emulator/flows/17_entry_matrix.sh; then
+if ! grep -q 'adb_shell_capped 8 input tap' tool/emulator/flows/lib/entry_matrix.sh; then
   echo "flow 17 double-tap should use adb_shell_capped" >&2
   exit 1
 fi
 pass
-if ! grep -q 'kerala_applied' tool/emulator/flows/17_entry_matrix.sh; then
+if ! grep -q 'kerala_applied' tool/emulator/flows/lib/entry_matrix.sh; then
   echo "flow 17 should check the State reset only after Kerala applies" >&2
   exit 1
 fi
@@ -547,7 +548,7 @@ if ! grep -q 'adb_shell_capped 8 settings put secure show_ime_with_hard_keyboard
   exit 1
 fi
 pass
-if ! grep -q 'scroll_drawer_until --resource-id temple-list-search-field' tool/emulator/flows/17_entry_matrix.sh; then
+if ! grep -q 'scroll_drawer_until --resource-id temple-list-search-field' tool/emulator/flows/lib/entry_matrix.sh; then
   echo "flow 17 should scroll the drawer to the search field" >&2
   exit 1
 fi
@@ -681,9 +682,9 @@ for flow in "${flows[@]}"; do
   printf 'PASS %s: ok\n' "$flow" >> "${step_dir}/results.txt"
 done
 printf 'NOT RUN 06-filters: combined-state: state-select did not apply a state\n' >> "${step_dir}/results.txt"
-if ! EMULATOR_ARTIFACTS="$step_dir" GITHUB_STEP_SUMMARY="${step_dir}/summary.md" \
-  bash tool/emulator/summarize.sh >"${step_dir}/out"; then
-  echo "a skipped step should not fail the summary" >&2
+if EMULATOR_ARTIFACTS="$step_dir" GITHUB_STEP_SUMMARY="${step_dir}/summary.md" \
+  bash tool/emulator/summarize.sh >"${step_dir}/out" 2>&1; then
+  echo "a NOT RUN step with no FAIL must fail the summary (zero NOT RUN rule)" >&2
   cat "${step_dir}/out" >&2
   exit 1
 fi
@@ -694,6 +695,82 @@ if grep -q 'FAIL 06-filters: missing' "${step_dir}/results.txt"; then
 fi
 pass
 rm -rf "$step_dir"
+
+# A green run with a by-design note (30a: no district chip without a
+# state) passes; a flow-budget stop is a FAIL with its NOT RUN behind it.
+info_dir="$(mktemp -d)"
+: > "${info_dir}/results.txt"
+for flow in "${flows[@]}"; do
+  printf 'PASS %s: ok\n' "$flow" >> "${info_dir}/results.txt"
+done
+printf 'INFO 30a-drawer-bar-state: drawer_bar-state-dismiss-empty-then-district: district chip not offered with no state applied (by design)\n' >> "${info_dir}/results.txt"
+if ! EMULATOR_ARTIFACTS="$info_dir" GITHUB_STEP_SUMMARY="${info_dir}/summary.md" \
+  bash tool/emulator/summarize.sh >"${info_dir}/out" 2>&1; then
+  echo "all PASS plus a by-design INFO line must be green" >&2
+  cat "${info_dir}/out" >&2
+  exit 1
+fi
+pass
+grep -q ', 0 not run, 0 skipped, 1 notes\.' "${info_dir}/out" || { echo "INFO should be counted as a note: $(cat "${info_dir}/out")" >&2; exit 1; }
+pass
+# shellcheck disable=SC2030,SC2031
+(
+  set -euo pipefail
+  export EMULATOR_FLOW=30a-drawer-bar-state
+  export EMULATOR_ARTIFACTS="$info_dir/budget"
+  export EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  budget_stop drawer_bar-state-clear
+  budget_stop drawer_bar-state-clear-then-state
+  [[ "$(grep -c '^FAIL 30a-drawer-bar-state: budget:' "$RESULTS")" -eq 1 ]] || { echo "budget_stop must record one FAIL" >&2; exit 1; }
+  [[ "$(grep -c '^NOT RUN 30a-drawer-bar-state: .*prerequisite budget failed' "$RESULTS")" -eq 2 ]] || { echo "budget_stop steps must be NOT RUN behind the FAIL" >&2; exit 1; }
+)
+pass
+grep -rqF "stopped before the \${FLOW_BUDGET_S}s flow budget" tool/emulator/lib tool/emulator/flows \
+  && { echo "a budget stop must go through budget_stop, not a bare NOT RUN" >&2; exit 1; }
+pass
+rm -rf "$info_dir"
+
+# Near me flows report SKIPPED: not missing, no PASS needed, own count.
+skip_dir="$(mktemp -d)"
+: > "${skip_dir}/results.txt"
+for flow in "${flows[@]}"; do
+  case "$flow" in
+    11-near-me|23-near-me-settings-roundtrip|30d-near-me)
+      printf 'SKIPPED %s: location-dependent\n' "$flow" >> "${skip_dir}/results.txt" ;;
+    *) printf 'PASS %s: ok\n' "$flow" >> "${skip_dir}/results.txt" ;;
+  esac
+done
+if ! EMULATOR_ARTIFACTS="$skip_dir" GITHUB_STEP_SUMMARY="${skip_dir}/summary.md" \
+  bash tool/emulator/summarize.sh >"${skip_dir}/out" 2>&1; then
+  echo "SKIPPED flows must not fail the summary" >&2
+  cat "${skip_dir}/out" >&2
+  exit 1
+fi
+pass
+grep -q 'missing' "${skip_dir}/results.txt" && { echo "SKIPPED flow reported as missing" >&2; exit 1; }
+pass
+grep -q ', 0 not run, 3 skipped, 0 notes\.' "${skip_dir}/out" || { echo "summary must count SKIPPED separately: $(cat "${skip_dir}/out")" >&2; exit 1; }
+pass
+for f in 11-near-me 23-near-me-settings-roundtrip 30d-near-me; do
+  grep -qx "  - ${f}: location-dependent" "${skip_dir}/out" || { echo "summary must list SKIPPED ${f} with its reason" >&2; cat "${skip_dir}/out" >&2; exit 1; }
+  grep -qx "  - ${f}: location-dependent" "${skip_dir}/summary.md" || { echo "job summary must list SKIPPED ${f}" >&2; exit 1; }
+  pass
+done
+# run_one_flow.sh skips near me flows before any device work.
+out="$(EMULATOR_ARTIFACTS="$skip_dir/run" bash tool/emulator/run_one_flow.sh 11-near-me tool/emulator/flows/11_near_me.sh 2>&1)" \
+  || { echo "run_one_flow.sh should exit 0 for a skipped flow: $out" >&2; exit 1; }
+for f in 11-near-me:11_near_me 23-near-me-settings-roundtrip:23_near_me_settings_roundtrip 30d-near-me:30d_near_me; do
+  EMULATOR_ARTIFACTS="$skip_dir/run" bash tool/emulator/run_one_flow.sh "${f%%:*}" "tool/emulator/flows/${f##*:}.sh" >/dev/null 2>&1 \
+    || { echo "run_one_flow.sh should exit 0 for skipped ${f%%:*}" >&2; exit 1; }
+  grep -Eq "^SKIPPED ${f%%:*}: location-dependent: .+" "$skip_dir/run/results.txt" \
+    || { echo "run_one_flow.sh did not record SKIPPED with a reason for ${f%%:*}" >&2; exit 1; }
+  pass
+done
+grep -q '^START' "$skip_dir/run/results.txt" && { echo "a skipped flow must not START" >&2; exit 1; }
+pass
+rm -rf "$skip_dir"
 
 only_skip_dir="$(mktemp -d)"
 : > "${only_skip_dir}/results.txt"
@@ -1052,17 +1129,17 @@ cat > "$seek_fixture" <<'EOF'
 </hierarchy>
 EOF
 seek() { python3 tool/emulator/lib/ui.py option-seek "$seek_fixture" --min-top 153 --max-top 537 "$@"; }
-[[ "$(seek --kind deity --name Shiva)" == up ]] || { echo "option-seek: Shiva is below" >&2; exit 1; }
+[[ "$(seek --kind deity --name Shiva)" == "up far" ]] || { echo "option-seek: Shiva is far below" >&2; exit 1; }
 pass
-[[ "$(seek --kind deity --name Agni)" == down ]] || { echo "option-seek: Agni is above" >&2; exit 1; }
+[[ "$(seek --kind deity --name Agni)" == "down mid" ]] || { echo "option-seek: Agni is one initial above" >&2; exit 1; }
 pass
 [[ "$(seek --kind deity --name Chamunda)" == "tap 78 340 Chamunda 2" ]] || { echo "option-seek: Chamunda tap was $(seek --kind deity --name Chamunda)" >&2; exit 1; }
 pass
-[[ "$(seek --kind deity --name Durga)" == up ]] || { echo "option-seek: Durga is under the tap band" >&2; exit 1; }
+[[ "$(seek --kind deity --name Durga)" == "up near" ]] || { echo "option-seek: Durga is under the tap band" >&2; exit 1; }
 pass
 [[ "$(seek --kind deity --name Chandi)" == absent ]] || { echo "option-seek: Chandi is not listed" >&2; exit 1; }
 pass
-[[ "$(seek --kind district --name Madurai)" == none ]] || { echo "option-seek: no district chips" >&2; exit 1; }
+[[ "$(seek --kind district --name Madurai)" == absent ]] || { echo "option-seek: state and deity chips with no district between: none offered" >&2; exit 1; }
 pass
 # directoryDeitiesFrom uses Dart List.sort (UTF-16). U+1F600 is before
 # U+F000 in UTF-16 and after it in Python's code-point order.
@@ -1079,78 +1156,133 @@ open(path, "w", encoding="utf-8").write(
     "</hierarchy>\n"
 )
 PY
-[[ "$(python3 tool/emulator/lib/ui.py option-seek "$dart_order" --kind deity --name $'\uf000' --min-top 153 --max-top 537)" == up ]] \
+[[ "$(python3 tool/emulator/lib/ui.py option-seek "$dart_order" --kind deity --name $'\uf000' --min-top 153 --max-top 537)" == "up far" ]] \
   || { echo "option-seek must follow Dart UTF-16 order, not Python code points" >&2; exit 1; }
   pass
 rm -f "$seek_fixture" "$dart_order"
 
-# seek_option against a fake ~400-chip list: fast flings, then exact
-# steps, must reach "Shiva" in a bounded number of swipes.
-seek_dir="$(mktemp -d)"
-(
-  set -euo pipefail
-  export EMULATOR_FLOW=06-filters
-  export EMULATOR_ARTIFACTS="$seek_dir"
-  export EMULATOR_PACKAGE=com.example
-  # shellcheck disable=SC1091
-  source tool/emulator/lib/common.sh
-  python3 - "$seek_dir/names" <<'PY'
-import string, sys
-names = sorted({f"{a}{b} deity" for a in string.ascii_uppercase for b in string.ascii_lowercase[:16]} | {"Shiva"})
-open(sys.argv[1], "w").write("\n".join(names))
-PY
-  echo 0 > "$seek_dir/top"
-  ui_screen_size() { echo "320 640"; }
-  ui_dump() {
-    python3 - "$seek_dir" "$DUMP" <<'PY'
-import sys
-d, out = sys.argv[1], sys.argv[2]
-names = open(f"{d}/names").read().split("\n")
-top = max(0, min(int(open(f"{d}/top").read()), len(names) - 8))
-rows = []
-for i, n in enumerate(names[top:top + 8]):
-    y = 160 + i * 50
-    rows.append(f'<node text="" content-desc="{n}  1" resource-id="filter-option-deity-{n}" bounds="[16,{y}][200,{y + 40}]" />')
-open(out, "w").write("<hierarchy>" + "".join(rows) + "</hierarchy>")
-PY
-  }
-  adb_shell_capped() {
-    shift
-    local t y1 y2 dur
-    t="$(cat "$seek_dir/top")"
-    if [[ "$1 $2" == "input swipe" ]]; then
-      y1="$4"; y2="$6"; dur="$7"
-      if (( dur <= 150 )); then t=$((t + 25))
-      elif (( y2 < y1 )); then t=$((t + 3))
-      else t=$((t - 3)); fi
-    fi
-    (( t < 0 )) && t=0
-    echo "$t" > "$seek_dir/top"
-    echo "$*" >> "$seek_dir/log"
-  }
-  sleep() { :; }
-  if ! seek_option deity Shiva $((SECONDS + 45)); then
-    echo "seek_option did not reach Shiva in a ~400-chip list" >&2
-    exit 1
-  fi
+# Real option-list dumps from emulator run 40916686359, at the failure
+# points. The old option-seek said "none" for every state pick (a fling
+# had left STATE) and the picker gave up. With the section order it must
+# say which way STATE is, and Shiva's neighbourhood must point at Shiva.
+run_dumps=tool/emulator/testdata/run40916686359
+real_seek() { python3 tool/emulator/lib/ui.py option-seek "$run_dumps/$1" --min-top 153 --max-top 537 "${@:2}"; }
+for f in state_seek_deity_region.xml state_seek_deity_region_flow22.xml state_seek_district_region.xml; do
+  got="$(real_seek "$f" --kind state --name 'Tamil Nadu' --order state,district,deity)"
+  [[ "$got" == "down far" ]] || { echo "option-seek on real dump $f: want 'down far', got '$got'" >&2; exit 1; }
   pass
-  [[ "$UI_TEXT" == "Shiva 1" ]] || { echo "seek_option stopped at '${UI_TEXT}'" >&2; exit 1; }
-  pass
-  swipes="$(grep -c 'input swipe' "$seek_dir/log")"
-  if (( swipes > 30 )); then
-    echo "seek_option needed ${swipes} swipes" >&2
-    exit 1
-  fi
-  pass
-)
-rm -rf "$seek_dir"
+done
+got="$(real_seek deity_seek_shiva_region.xml --kind deity --name Shiva --order deity,state,district)"
+[[ "$got" == "down near" ]] || { echo "option-seek: Shiva is just above 'Shiva (Baneswar)', got '$got'" >&2; exit 1; }
+pass
+got="$(real_seek deity_seek_past_shiva.xml --kind deity --name Shiva --order deity,state,district)"
+[[ "$got" == "up mid" ]] || { echo "option-seek: Shiva is a few rows below 'Shikari Devi', got '$got'" >&2; exit 1; }
+pass
+[[ "$(python3 tool/emulator/lib/ui.py sheet-kinds "$run_dumps/sheet_top_state.xml")" == state ]] || { echo "sheet-kinds: STATE leads the state sheet" >&2; exit 1; }
+pass
+[[ "$(python3 tool/emulator/lib/ui.py sheet-kinds "$run_dumps/district_sheet.xml")" == district ]] || { echo "sheet-kinds: DISTRICT leads the district sheet" >&2; exit 1; }
+pass
+# Madurai sits between real neighbours on the district sheet; Paraganas are first.
+got="$(real_seek district_sheet.xml --kind district --name Madurai --order district,state,deity)"
+[[ "$got" == "up far" ]] || { echo "option-seek: Madurai is far below the 24 Paraganas, got '$got'" >&2; exit 1; }
+pass
 
-# Two changes of direction means the list is swinging. Stop before the third swipe.
+# seek_option + select_labeled against a model of the real sheet
+# (testdata/sheet_sim.py: run 40916686359 geometry and labels, flings that
+# keep moving after the first dump). Each pick must tap the right chip,
+# for many fling strengths, inside the 45s picker budget.
+sim_pick() {
+  # sim_pick KIND REGEX FOCUS SEED [init args...]; prints the tapped label.
+  local kind="$1" regex="$2" focus="$3" seed="$4"
+  shift 4
+  local d
+  d="$(mktemp -d)"
+  python3 tool/emulator/testdata/sheet_sim.py init "$d/sim.json" --focus "$focus" --seed "$seed" --pad-deity 600 "$@"
+  # The stubs below replace common.sh's device helpers; seek_option calls them.
+  # shellcheck disable=SC2329,SC2030,SC2031
+  (
+    set -uo pipefail
+    export EMULATOR_FLOW=29-sim
+    export EMULATOR_ARTIFACTS="$d/art"
+    export EMULATOR_PACKAGE=com.shradhaventures.temple
+    # shellcheck disable=SC1091
+    source tool/emulator/lib/common.sh
+    STEP_DEADLINE=0
+    SIM="$d/sim.json"
+    ui_screen_size() { echo "320 640"; }
+    ui_dump() { python3 tool/emulator/testdata/sheet_sim.py dump "$SIM" "$DUMP"; }
+    adb_shell_capped() {
+      shift
+      echo "$*" >> "$d/log"
+      if [[ "$1 $2" == "input swipe" ]]; then
+        python3 tool/emulator/testdata/sheet_sim.py swipe "$SIM" "$3" "$4" "$5" "$6" "$7"
+      fi
+    }
+    ui_tap() {
+      echo "tap $UI_CX $UI_CY" >> "$d/log"
+      python3 tool/emulator/testdata/sheet_sim.py at "$SIM" "$UI_CX" "$UI_CY" > "$d/tapped"
+    }
+    wait_out_district_loader() { return 0; }
+    sleep() { :; }
+    local rc=0
+    select_labeled "$regex" "$(printf '%s' "$kind" | tr '[:lower:]' '[:upper:]')" 2> "$d/err" || rc=$?
+    printf '%s|%s|%s|%s\n' "$rc" "$(cat "$d/tapped" 2>/dev/null)" "$(grep -c 'input swipe' "$d/log" 2>/dev/null || echo 0)" "$(tr '\n' ' ' < "$d/err")"
+  )
+  if [[ -n "${SIM_PROOF_DIR:-}" ]]; then
+    mkdir -p "$SIM_PROOF_DIR"
+    cp "$d/log" "$SIM_PROOF_DIR/${kind}-${focus}-seed${seed}.actions.log" 2>/dev/null || true
+    cp "$d/art/dumps/"*.xml "$SIM_PROOF_DIR/" 2>/dev/null || true
+  fi
+  rm -rf "$d"
+}
+
+sim_ok() {
+  # sim_ok KIND REGEX FOCUS WANT_LABEL
+  local kind="$1" regex="$2" focus="$3" want="$4" seed out rc tapped swipes
+  for seed in 1 2 3 4 5 6 7 8; do
+    out="$(sim_pick "$kind" "$regex" "$focus" "$seed")"
+    IFS='|' read -r rc tapped swipes _ <<<"$out"
+    [[ "$rc" == 0 && "$tapped" == "$want" ]] \
+      || { echo "sim: ${kind} pick (${focus} sheet, seed ${seed}) tapped '${tapped}' rc=${rc}: ${out}" >&2; exit 1; }
+    # ~2s per move on the AVD (swipe + settle dumps): 20 moves fit 45s.
+    (( swipes <= 20 )) || { echo "sim: ${kind} pick needed ${swipes} swipes (seed ${seed})" >&2; exit 1; }
+    [[ -n "${SIM_PROOF_DIR:-}" ]] && printf '%s %s focus=%s seed=%s -> rc=%s tapped="%s" swipes=%s\n' \
+      "$kind" "$regex" "$focus" "$seed" "$rc" "$tapped" "$swipes" >> "$SIM_PROOF_DIR/summary.txt"
+    pass
+  done
+}
+sim_ok state '^Tamil Nadu( +[0-9]+)?$' state 'Tamil Nadu  50'
+sim_ok state '^Kerala( +[0-9]+)?$' state 'Kerala  50'
+sim_ok district '^Madurai( +[0-9]+)?$' district 'Madurai  4'
+sim_ok deity '^Shiva( +[0-9]+)?$' deity 'Shiva  159'
+# Picking a state from a sheet opened on another section (flows 17, 22).
+sim_ok state '^Tamil Nadu( +[0-9]+)?$' deity 'Tamil Nadu  50'
+
+# Negative: a missing option fails fast and says so, no tap.
+for spec in "state|Atlantis|state" "deity|Shiva|deity|drop" "deity|Zzyzx|deity"; do
+  IFS='|' read -r neg_kind neg_name neg_focus neg_drop <<<"$spec"
+  extra=()
+  [[ -n "$neg_drop" ]] && extra=(--drop "$neg_name")
+  out="$(sim_pick "$neg_kind" "^${neg_name}( +[0-9]+)?$" "$neg_focus" 3 "${extra[@]}")"
+  IFS='|' read -r rc tapped swipes err <<<"$out"
+  [[ "$rc" != 0 && -z "$tapped" ]] || { echo "sim: missing ${neg_kind} '${neg_name}' should fail without a tap: ${out}" >&2; exit 1; }
+  [[ "$err" == *"not offered in the ${neg_kind} list"* || "$err" == *"not in the list"* || "$err" == *"not listed"* ]] \
+    || { echo "sim: missing ${neg_kind} '${neg_name}' error was unclear: ${err}" >&2; exit 1; }
+  (( swipes <= 25 )) || { echo "sim: missing ${neg_kind} '${neg_name}' took ${swipes} swipes" >&2; exit 1; }
+  [[ -n "${SIM_PROOF_DIR:-}" ]] && printf 'NEGATIVE %s %s -> rc=%s tapped="%s" swipes=%s err=%s\n' \
+    "$neg_kind" "$neg_name" "$rc" "$tapped" "$swipes" "$err" >> "$SIM_PROOF_DIR/summary.txt"
+  pass
+done
+
+# A list that keeps swinging stops after SEEK_MAX_FLIPS changes of direction.
 flip_dir="$(mktemp -d)"
 flip_seq="$(mktemp)"
-printf '%s\n' up down up > "$flip_seq"
+printf '%s\n' up down up down up down up down > "$flip_seq"
 cat > "$flip_dir/seek.py" <<'PY'
 import os, sys
+if sys.argv[1] == "sheet-kinds":
+    print("deity")
+    raise SystemExit(0)
 path = os.environ["SEEK_SEQ"]
 lines = open(path, encoding="utf-8").read().splitlines()
 print(lines.pop(0) if lines else "none")
@@ -1171,14 +1303,35 @@ PY
   adb_shell_capped() { shift; echo "$*" >> "$flip_dir/log"; }
   ui_sheet_swipe() { echo "sheet $1" >> "$flip_dir/log"; }
   sleep() { :; }
+  seek_settle() { ui_dump; }
   if seek_option deity Shiva $((SECONDS + 30)); then
-    echo "seek_option should stop after two direction changes" >&2
+    echo "seek_option should stop when the list keeps swinging" >&2
     exit 1
   fi
   pass
 )
+# seek_settle fails (no decision, no tap) while the list never stops moving.
+# shellcheck disable=SC2030,SC2031,SC2329
+(
+  set -euo pipefail
+  export EMULATOR_FLOW=06-filters
+  export EMULATOR_ARTIFACTS="$flip_dir/art2"
+  export EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  ui_dump() { printf '<hierarchy/>' > "$DUMP"; }
+  dump_scroll_sig() { echo "$RANDOM$RANDOM"; }
+  sleep() { :; }
+  if seek_settle 2>/dev/null; then
+    echo "seek_settle must fail while the list is still moving" >&2
+    exit 1
+  fi
+  dump_scroll_sig() { echo same; }
+  seek_settle || { echo "seek_settle must succeed once two dumps match" >&2; exit 1; }
+)
+pass
 swipes="$(wc -l < "$flip_dir/log" | tr -d ' ')"
-[[ "$swipes" -eq 2 ]] || { echo "seek_option swiped ${swipes} times after two direction changes" >&2; cat "$flip_dir/log" >&2; exit 1; }
+[[ "$swipes" -eq 6 ]] || { echo "seek_option swiped ${swipes} times; want 6 before the sixth change of direction" >&2; cat "$flip_dir/log" >&2; exit 1; }
 pass
 rm -rf "$flip_dir"
 rm -f "$flip_seq"
@@ -1277,7 +1430,8 @@ if ! awk '
 fi
 pass
 
-# A spent flow budget marks the remaining cases and probes NOT RUN and does not run them.
+# A spent flow budget records one FAIL (budget), marks the remaining cases
+# and probes NOT RUN behind it, and does not run them.
 budget_case_dir="$(mktemp -d)"
 (
   set -euo pipefail
@@ -1302,8 +1456,9 @@ budget_case_dir="$(mktemp -d)"
   matrix_main
   [[ ! -s "$budget_case_dir/ran" ]] || { echo "flow_over still ran a case" >&2; exit 1; }
   pass
-  grep -qx 'NOT RUN 29a-home-browse-state: home_browse-state-select: stopped before the 1140s flow budget' "$RESULTS"
-  grep -qx 'NOT RUN 29a-home-browse-state: home_browse-state-select-then-district: stopped before the 1140s flow budget' "$RESULTS"
+  grep -qx 'FAIL 29a-home-browse-state: budget: home_browse-state-select and later steps not reached before the 1140s flow budget' "$RESULTS"
+  grep -qx 'NOT RUN 29a-home-browse-state: home_browse-state-select: prerequisite budget failed' "$RESULTS"
+  grep -qx 'NOT RUN 29a-home-browse-state: home_browse-state-select-then-district: prerequisite budget failed' "$RESULTS"
   flow_over() { return 1; }
   : > "$budget_case_dir/ran"
   : > "$RESULTS"

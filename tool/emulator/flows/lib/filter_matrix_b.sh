@@ -3,7 +3,8 @@
 # one small slice per flow: 30a-30d. Sourced by those flows, which run under
 # run_one_flow.sh (lib/common.sh is already loaded).
 #
-# Caller sets MATRIX_ENTRY (drawer_bar | near_me) and, for drawer_bar,
+# Caller sets MATRIX_ENTRY (drawer_bar | near_me; near_me only records
+# SKIPPED) and, for drawer_bar,
 # MATRIX_CHIP (state | district | deity).
 #
 # Follows the emulator test-script guide (Confluence PRODUCT 11632642):
@@ -30,11 +31,11 @@
 CASE_MAX="${CASE_MAX:-90}"
 ACTIONS=(select pick-close dismiss-empty back-empty outside-empty clear)
 # Option chips are "Name  N" in one node. Allow the count, no hard $ on the name.
-# Run 40916686359: the directory has no plain "Shiva" chip, only "Shiva (...)"
-# variants (Shikari Devi is followed by Shiva (Amritaghateswarar)...), so
-# ^Shiva( +N)?$ can never match. Chamunda is an exact chip ("Chamunda  2")
-# near the top of the deity section, which leads the sheet for the deity chip.
-declare -A PICK=( [state]='^Tamil Nadu( +[0-9]+)?$' [deity]='^Chamunda( +[0-9]+)?$' [district]='^Madurai( +[0-9]+)?$' )
+# Run 40916686359's 29c screen recording shows a plain "Shiva  159" chip
+# (after "Shitala Mata (...)", before "Shiva (Adi Kumbeswarar)..."); no dump
+# caught it because every dump was taken mid-fling or after the fling had
+# passed it. The matrix keeps Shiva, the same target as 29a-29j.
+declare -A PICK=( [state]='^Tamil Nadu( +[0-9]+)?$' [deity]='^Shiva( +[0-9]+)?$' [district]='^Madurai( +[0-9]+)?$' )
 declare -A SECTION=( [state]=STATE [deity]=DEITY [district]=DISTRICT )
 LAST_ERR=""
 STATE_APPLIED=0
@@ -61,8 +62,9 @@ open_drawer() {
 
 # The bar sits below SEARCH in the drawer's own list. scroll_drawer_until
 # swipes inside the drawer; ui_wait_scrolled flings the whole screen.
-# Any chip marks the bar: with a district applied the bar shows the district
-# chip and no state chip (run 40916686359, 30b select-then-district).
+# Any chip marks the bar: with a district applied the bar scrolls to the
+# district chip and the state chip is off-screen to the left, so
+# uiautomator does not list it (run 40916686359, 30b select-then-district).
 DRAWER_CHIP_RX='^filter-chip-(state|district|deity)$'
 show_drawer_bar() {
   scroll_drawer_until --resource-id-regex "$DRAWER_CHIP_RX" || err "drawer filter bar not reachable" || return 1
@@ -81,25 +83,6 @@ enter_drawer_bar() {
   show_drawer_bar
 }
 
-# Near me has no DirectoryFilterBar; return 2 so the caller records NOT RUN.
-enter_near_me() {
-  fresh_home || return 1
-  ui_wait_scrolled 40 --text-contains "Temples near me" || err "Temples near me tile missing" || return 1
-  ui_tap
-  # Near me reached: one of the screen's own keys. near-me-rationale-sheet
-  # (location consent), near-me-status ("Finding temples..."), near-me-list
-  # (results) or near-me-fallback (declined/no fix). None exists elsewhere.
-  ui_wait 15 --resource-id-regex '^near-me-(rationale-sheet|status|list|fallback)$' \
-    || err "near me screen did not render" || return 1
-  dismiss_location_consent "Not now" || true
-  ui_wait 15 --resource-id-regex '^near-me-(status|list|fallback|empty)$' \
-    || err "near me stuck after consent" || return 1
-  [[ "${NEAR_ME_MARKED:-0}" -eq 1 ]] || { pass_step "near_me-reached"; NEAR_ME_MARKED=1; }
-  if ui_wait 5 --resource-id filter-chip-state; then
-    return 0
-  fi
-  return 2
-}
 
 # Entry screen on top before every action or probe: no sheet, drawer bar
 # visible. A closed drawer is re-opened (the guide's reopen_entry).
@@ -133,8 +116,8 @@ find_chip() {
     read -r width _ < <(ui_screen_size) || return 1
     (( UI_CX > 12 && UI_CX < width - 12 )) && return 0
   fi
-  [[ "$1" == state ]] && return 1
-  scroll_chips_until --resource-id "filter-chip-$1"
+  # Off-screen (e.g. state after a district was applied): scroll the row.
+  CHIP_MAX_TOP_PCT=92 scroll_chips_until --resource-id "filter-chip-$1"
 }
 
 open_chip() {
@@ -168,12 +151,7 @@ back_close() {
   wait_sheet_closed || err "sheet still open after Back"
 }
 
-# No section kind: select_labeled then skips seek_option and step-scans from
-# the top of the sheet, where the tapped chip's section leads. In run
-# 40916686359 seek_option's fling carried the list past every state, the
-# next dump had no state ids ("none"), and the step scan only went further
-# down (dumps end in the district/deity sections). SECTION stays for logs.
-pick() { select_labeled "${PICK[$1]}" "" || err "could not pick ${PICK[$1]} in the $1 list (${SECTION[$1]})"; }
+pick() { select_labeled "${PICK[$1]}" "${SECTION[$1]}" || err "could not pick ${PICK[$1]} in the $1 list"; }
 apply() { apply_sheet || err "Show N temples did not apply and close"; }
 
 # After apply the chip carries "Clear <chip> filter" and the drawer shows
@@ -212,7 +190,7 @@ do_action() {
 }
 
 # Probes: every chip, then the acted chip again. District is probed when the
-# bar shows it; with no district chip and no state the case is NOT RUN.
+# bar shows it; with no district chip and no state it is an INFO line.
 probe_list() {
   local done_chip="$1" c
   for c in state district deity "$done_chip"; do printf '%s\n' "$c"; done
@@ -242,11 +220,6 @@ run_case() {
   REOPENED=0
   "enter_${MATRIX_ENTRY}"
   rc=$?
-  if [[ "$rc" -eq 2 ]]; then
-    record_not_run "$id" "near me has no directory filter bar"
-    step_shot "$id"
-    case_end; return
-  fi
   if [[ "$rc" -ne 0 ]]; then
     fail_step "$id" "could not reach ${MATRIX_ENTRY}: ${LAST_ERR}"
     case_end; return
@@ -265,10 +238,10 @@ run_case() {
   mapfile -t probes < <(probe_list "${steps[-1]%%:*}")
   for p in "${probes[@]}"; do
     if flow_over; then
-      record_not_run "$id-then-$p" "stopped before the ${FLOW_BUDGET_S}s flow budget"
+      budget_stop "$id-then-$p"
       rest=0
       for q in "${probes[@]}"; do
-        [[ "$rest" -eq 1 ]] && record_not_run "$id-then-$q" "stopped before the ${FLOW_BUDGET_S}s flow budget"
+        [[ "$rest" -eq 1 ]] && budget_stop "$id-then-$q"
         [[ "$q" == "$p" ]] && rest=1
       done
       break
@@ -282,7 +255,7 @@ run_case() {
     if [[ "$rc" -eq 0 ]]; then
       pass_step "$id-then-$p"
     elif [[ "$rc" -eq 3 ]]; then
-      record_not_run "$id-then-$p" "district chip not offered with no state applied"
+      record_info "$id-then-$p" "district chip not offered with no state applied (by design)"
     else
       fail_step "$id-then-$p" "$LAST_ERR"
       rest=0
