@@ -17,7 +17,8 @@
    "Madurai"
   ],
   "deity": [
-   "Shiva"
+   "Shiva",
+   "Murugan"
   ]
  },
  "state": {
@@ -278,6 +279,8 @@
   "Shiva (Markandeshwar)": "Shiva (Markandeshwar)  1",
   "Shiva (Marundeeswarar); Parvati as Tripurasundari": "Shiva (Marundeeswarar); Parvati as Tripurasundari  1",
   "Shiva (Mukteshwar)": "Shiva (Mukteshwar)  1",
-  "Shiva (Mukteshwarnath)": "Shiva (Mukteshwarnath)  1"
- }
+  "Shiva (Mukteshwarnath)": "Shiva (Mukteshwarnath)  1",
+  "Murugan": "Murugan  10"
+ },
+ "_about_added_run40992967143": "Murugan  10: label from run 40992967143 dump 29f-drawer-all-deity_drawer_all-deity-select.xml"
 }

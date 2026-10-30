@@ -234,7 +234,9 @@ flow_over() {
     start=$FLOW_FALLBACK_EPOCH
   fi
   elapsed=$(( now - start ))
-  need=$(( ${CASE_MAX:-90} + 55 ))
+  # CASE_NEED_S: the caller's estimate of one whole case (entry + actions +
+  # probes). The matrix libs set it per flow; the default is the old one.
+  need=$(( ${CASE_NEED_S:-$(( ${CASE_MAX:-90} + 55 ))} ))
   (( elapsed + need >= FLOW_BUDGET_S ))
 }
 
@@ -1467,14 +1469,28 @@ seek_option() {
     esac
     if (( pct >= 8 )); then
       # A short, fast drag leaves momentum: many rows per dump.
-      local y_lo=$((height * 32 / 100)) y_hi
+      local y_lo=$((height * 32 / 100)) y_hi n_fling=1 f
       y_hi=$((y_lo + height * pct / 100))
       (( y_hi > height * 82 / 100 )) && y_hi=$((height * 82 / 100))
-      if [[ "$dir" == up ]]; then
-        adb_shell_capped 8 input swipe $((width / 2)) "$y_hi" $((width / 2)) "$y_lo" 120 || return 1
-      else
-        adb_shell_capped 8 input swipe $((width / 2)) "$y_lo" $((width / 2)) "$y_hi" 120 || return 1
+      # Run 40992967143: one fling per look moved ~1 initial letter, and a
+      # look (swipe + settle dumps) costs ~5s on the CI AVD, so 9 looks in
+      # 45s stopped at M/R of the ~600-name deity list (29f/29i/29j/30c).
+      # While a deity target is "far" and nothing has overshot yet, send
+      # SEEK_FAR_FLINGS flings back to back (each adds to the travel) and
+      # settle once. After the first change of direction, one fling. Only
+      # the deity list is long enough: a state target (36 names) behind a
+      # deity section overshot into DISTRICT in the sheet model.
+      if [[ "$kind" == deity && "$reach" == far && "$flips" -eq 0 ]]; then
+        n_fling="${SEEK_FAR_FLINGS:-3}"
       fi
+      for f in $(seq 1 "$n_fling"); do
+        if [[ "$dir" == up ]]; then
+          adb_shell_capped 8 input swipe $((width / 2)) "$y_hi" $((width / 2)) "$y_lo" 120 || return 1
+        else
+          adb_shell_capped 8 input swipe $((width / 2)) "$y_lo" $((width / 2)) "$y_hi" 120 || return 1
+        fi
+        : "$f"
+      done
     else
       # Slow drag: no momentum, the list moves by the finger's travel.
       ui_sheet_swipe "$dir" || return 1
@@ -1506,13 +1522,20 @@ select_labeled() {
   if ! wait_out_district_loader; then
     return 1
   fi
+  local kind
+  kind="$(printf '%s' "$_section" | tr '[:upper:]' '[:lower:]')"
+  # The deity list is ~600 names; Shiva sits at ~75% of it. 60s (45s of
+  # seek) was 9 looks on the CI AVD (run 40992967143). Give the deity
+  # list SELECT_MAX_DEITY (default 100s); the case budget still caps it.
+  local select_max="${SELECT_MAX:-60}"
+  if [[ "$kind" == deity && -z "${SELECT_MAX:-}" ]]; then
+    select_max="${SELECT_MAX_DEITY:-100}"
+  fi
   started=$SECONDS
-  deadline=$((started + ${SELECT_MAX:-60}))
+  deadline=$((started + select_max))
   if (( STEP_DEADLINE > 0 && STEP_DEADLINE < deadline )); then
     deadline=$STEP_DEADLINE
   fi
-  local kind
-  kind="$(printf '%s' "$_section" | tr '[:upper:]' '[:lower:]')"
   if [[ -n "$name_hint" && "$kind" =~ ^(state|district|deity)$ ]]; then
     local seek_rc=0
     # '^Vishnu' (no $) takes the first Vishnu... option; '^Shiva( +N)?$' only Shiva.

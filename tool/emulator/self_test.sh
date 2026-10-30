@@ -721,8 +721,12 @@ pass
   export EMULATOR_PACKAGE=com.example
   # shellcheck disable=SC1091
   source tool/emulator/lib/common.sh
-  budget_stop drawer_bar-state-clear
-  budget_stop drawer_bar-state-clear-then-state
+  # Fixture lines only: keep them out of the CI log. Run 40992967143's
+  # log showed this fixture's "FAIL 30a-drawer-bar-state: budget: ..." at
+  # 02:39:52 (self_test step) and it was read as a real 30a budget failure;
+  # the real 30a ran 630s and wrote no budget line (results.txt).
+  budget_stop drawer_bar-state-clear >/dev/null
+  budget_stop drawer_bar-state-clear-then-state >/dev/null
   [[ "$(grep -c '^FAIL 30a-drawer-bar-state: budget:' "$RESULTS")" -eq 1 ]] || { echo "budget_stop must record one FAIL" >&2; exit 1; }
   [[ "$(grep -c '^NOT RUN 30a-drawer-bar-state: .*prerequisite budget failed' "$RESULTS")" -eq 2 ]] || { echo "budget_stop steps must be NOT RUN behind the FAIL" >&2; exit 1; }
 )
@@ -1539,6 +1543,129 @@ EOF
   pass
 )
 rm -rf "$ffc_dir"
+
+# ---- Run 40992967143 (dry run 4) regressions, real dumps ----
+r4="tool/emulator/testdata/run40992967143"
+# 29d/29g: with a state applied the State chip is scrolled off to the left.
+# The bar is still there; assert_entry_screen must accept any chip.
+r4_bar="$r4/29d-drawer-all-state_drawer_all-state-select-then-state.xml"
+if python3 tool/emulator/lib/ui.py find "$r4_bar" --resource-id filter-chip-state >/dev/null; then
+  echo "fixture: State chip should be off-screen in $r4_bar" >&2; exit 1
+fi
+pass
+python3 tool/emulator/lib/ui.py find "$r4_bar" --resource-id-regex '^filter-chip-(state|district|deity)$' >/dev/null \
+  || { echo "the chip-row regex must find the bar with State scrolled off" >&2; exit 1; }
+pass
+grep -qF "ui_wait 8 --resource-id-regex '^filter-chip-(state|district|deity)\$'" tool/emulator/flows/lib/filter_matrix.sh \
+  || { echo "filter_matrix.sh assert_entry_screen must accept any filter chip" >&2; exit 1; }
+pass
+
+# Pick step against real dumps: present -> tap the real label; missing -> FAIL, no tap.
+r4_pick() {
+  # r4_pick DUMP KIND REGEX; prints rc|tapped|err
+  local dump="$1" kind="$2" regex="$3" d
+  d="$(mktemp -d)"
+  # shellcheck disable=SC2030,SC2031
+  (
+    set -uo pipefail
+    export EMULATOR_FLOW=29-r4 EMULATOR_ARTIFACTS="$d/art" EMULATOR_PACKAGE=com.shradhaventures.temple
+    # shellcheck disable=SC1091
+    source tool/emulator/lib/common.sh
+    STEP_DEADLINE=0
+    ui_screen_size() { echo "320 640"; }
+    ui_dump() { mkdir -p "$(dirname "$DUMP")"; cp "$dump" "$DUMP"; }
+    adb_shell_capped() { shift; echo "$*" >> "$d/log"; }
+    ui_tap() { echo "$UI_TEXT" > "$d/tapped"; }
+    wait_out_district_loader() { return 0; }
+    sleep() { :; }
+    SELECT_MAX=20
+    local rc=0
+    select_labeled "$regex" "$(printf '%s' "$kind" | tr '[:lower:]' '[:upper:]')" 2> "$d/err" || rc=$?
+    printf '%s|%s|%s\n' "$rc" "$(cat "$d/tapped" 2>/dev/null)" "$(tr '\n' ' ' < "$d/err")"
+  )
+  rm -rf "$d"
+}
+seq2="$r4/29j-sequences_seq2.xml"
+out="$(r4_pick "$seq2" deity '^Murugan( +[0-9]+)?$')"
+[[ "$out" == "0|Murugan 1|"* ]] || { echo "Murugan must be picked from the real Madurai deity list: $out" >&2; exit 1; }
+pass
+# Shiva is not under Madurai (the run 4 seq2 failure): FAIL, no tap.
+out="$(r4_pick "$seq2" deity '^Shiva( +[0-9]+)?$')"
+IFS='|' read -r rc tapped err <<<"$out"
+[[ "$rc" != 0 && -z "$tapped" && "$err" == *"not offered in the deity list"* ]] \
+  || { echo "Shiva is not under Madurai; the pick must fail without a tap: $out" >&2; exit 1; }
+pass
+# Negative on the same real dump with the target removed: the pick FAILS.
+nodump="$(mktemp)"
+# uiautomator writes the dump on one line: drop the node, not the line.
+sed -E 's#<node [^>]*resource-id="filter-option-deity-Murugan"[^>]*/>##' "$seq2" > "$nodump"
+grep -q 'filter-option-deity-Devi"' "$nodump" || { echo "fixture: node removal broke the dump" >&2; exit 1; }
+! grep -q 'filter-option-deity-Murugan"' "$nodump" || { echo "fixture: Murugan not removed" >&2; exit 1; }
+out="$(r4_pick "$nodump" deity '^Murugan( +[0-9]+)?$')"
+IFS='|' read -r rc tapped err <<<"$out"
+[[ "$rc" != 0 && -z "$tapped" && "$err" == *"not offered in the deity list"* ]] \
+  || { echo "Murugan removed from the real dump; the pick must fail without a tap: $out" >&2; exit 1; }
+pass
+rm -f "$nodump"
+grep -qF "SEQ_DEITY_PICK='^Murugan( +[0-9]+)?\$'" tool/emulator/flows/lib/filter_matrix.sh \
+  || { echo "29j must pick a deity present under Tamil Nadu / Madurai" >&2; exit 1; }
+pass
+# 29f real dump (all-India deity list at M): Shiva is below, a far fling.
+got="$(python3 tool/emulator/lib/ui.py option-seek "$r4/29f-drawer-all-deity_drawer_all-deity-select.xml" \
+  --kind deity --name Shiva --order deity,state,district --min-top 153 --max-top 537)"
+[[ "$got" == "up far" ]] || { echo "29f real dump: Shiva should be 'up far', got '$got'" >&2; exit 1; }
+pass
+# Sheet model: Murugan is reachable in the deity list too.
+sim_ok deity '^Murugan( +[0-9]+)?$' deity 'Murugan  10'
+
+# Budgets: each probe has its own clock, actions their own (run 4: the
+# third probe of every district case failed "case exceeded 90s").
+for lib in filter_matrix filter_matrix_b; do
+  bud_dir="$(mktemp -d)"
+  # shellcheck disable=SC2030,SC2031
+  (
+    set -uo pipefail
+    export EMULATOR_FLOW=29e-budget EMULATOR_ARTIFACTS="$bud_dir" EMULATOR_PACKAGE=com.example
+    # shellcheck disable=SC1091
+    source tool/emulator/lib/common.sh
+    # shellcheck disable=SC1090
+    source "tool/emulator/flows/lib/${lib}.sh"
+    step_shot() { :; }
+    : > "$RESULTS"
+    [[ "$(actions_budget state:select district:select)" == 180 ]] || { echo "$lib: actions_budget state+district" >&2; exit 1; }
+    [[ "$(actions_budget deity:select)" == 130 ]] || { echo "$lib: actions_budget deity" >&2; exit 1; }
+    set_case_need state:select district:select
+    [[ "$CASE_NEED_S" == 205 ]] || { echo "$lib: CASE_NEED_S=$CASE_NEED_S" >&2; exit 1; }
+    MATRIX_ENTRY=fake
+    enter_fake() { return 0; }
+    # Actions take 70s (old single 90s budget left 20s for four probes).
+    do_action() { SECONDS=$((SECONDS + 35)); STATE_APPLIED=1; return 0; }
+    # Each probe takes 25s: passes on its own 40s clock.
+    probe() { SECONDS=$((SECONDS + 25)); return 0; }
+    district_in_bar() { return 0; }
+    flow_over() { return 1; }
+    run_case case1 state:select district:select
+    [[ "$(grep -c '^PASS 29e-budget: case1' "$RESULTS")" -eq 5 ]] || { echo "$lib: 25s probes must all pass:"; cat "$RESULTS"; } >&2
+    [[ "$(grep -c '^PASS 29e-budget: case1' "$RESULTS")" -eq 5 ]] || exit 1
+    ! grep -q '^FAIL' "$RESULTS" || { echo "$lib: no FAIL expected" >&2; cat "$RESULTS" >&2; exit 1; }
+    [[ "$CASE_MAX" == 90 ]] || { echo "$lib: CASE_MAX not restored ($CASE_MAX)" >&2; exit 1; }
+    # A 50s probe is over its own 40s budget: FAIL, rest NOT RUN.
+    : > "$RESULTS"
+    probe() { SECONDS=$((SECONDS + 50)); return 0; }
+    run_case case2 state:select district:select
+    grep -q '^FAIL 29e-budget: case2-then-state: probe took 5[0-9]s, over its 40s budget' "$RESULTS" \
+      || { echo "$lib: slow probe must FAIL:"; cat "$RESULTS"; exit 1; } >&2
+    # Actions over their budget: the case FAILs, probes NOT RUN.
+    : > "$RESULTS"
+    do_action() { SECONDS=$((SECONDS + 100)); return 0; }
+    run_case case3 state:select district:select
+    grep -q '^FAIL 29e-budget: case3: actions took' "$RESULTS" \
+      || { echo "$lib: slow actions must FAIL:"; cat "$RESULTS"; exit 1; } >&2
+    ! grep -q '^PASS' "$RESULTS" || { echo "$lib: no PASS after slow actions" >&2; exit 1; }
+  ) > "$bud_dir/out" 2>&1 || { cat "$bud_dir/out" >&2; exit 1; }
+  pass
+  rm -rf "$bud_dir"
+done
 
 PASS="$(wc -l < "$PASS_FILE" | tr -d ' ')"
 rm -f "$PASS_FILE"

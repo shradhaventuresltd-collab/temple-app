@@ -24,8 +24,58 @@ CASE_MAX="${CASE_MAX:-90}"
 ACTIONS=(select pick-close dismiss-empty back-empty outside-empty clear)
 declare -A PICK=( [state]='^Tamil Nadu( +[0-9]+)?$' [deity]='^Shiva( +[0-9]+)?$' [district]='^Madurai( +[0-9]+)?$' )
 declare -A SECTION=( [state]=STATE [deity]=DEITY [district]=DISTRICT )
+# 29j picks its deity with a state (and district) applied, and the sheet
+# only lists deities present under them. Run 40992967143 seq2 dump
+# (29j-sequences_seq2.xml): Madurai lists "Any deity  4", "Devi  1",
+# "Murugan  1", "Vishnu (Kallalagar)  1", "Vishnu (Koodal Azhagar /
+# Viyooga Sundararajan)  1": no Shiva, so seq2 failed "not offered" (a
+# script bug, the app was right). Murugan is under Madurai, so also under
+# Tamil Nadu and all-India (29f dump: filter-option-deity-Murugan). In seq3
+# a Shiva deity first would also hide Madurai from the district list.
+SEQ_DEITY_PICK='^Murugan( +[0-9]+)?$'
 LAST_ERR=""
 STATE_APPLIED=0
+
+# Budgets (run 40992967143). One CASE_MAX of 90s for the whole case failed
+# every district case: state:select + district:<action> took ~65s, so the
+# third probe always hit "case exceeded 90s" although each probe passed in
+# ~12s (29b/29e/29h 8x each, 30a/30b once, 29j seq4/seq5). Now each action
+# step gets ACTION_MAX (a deity pick DEITY_ACTION_MAX: the list is ~600
+# names), and each probe gets its own PROBE_MAX. All waits inside stay
+# bounded by their own timeouts; select_labeled is also capped by
+# STEP_DEADLINE (common.sh case_start).
+ACTION_MAX="${ACTION_MAX:-90}"
+DEITY_ACTION_MAX="${DEITY_ACTION_MAX:-130}"
+PROBE_MAX="${PROBE_MAX:-40}"
+CASE_MAX_DEFAULT="$CASE_MAX"
+
+# Seconds for the action steps of one case. Usage: actions_budget STEP...
+actions_budget() {
+  local st total=0
+  for st in "$@"; do
+    case "$st" in
+      deity:select|deity:pick-close|deity:clear) total=$((total + DEITY_ACTION_MAX)) ;;
+      *) total=$((total + ACTION_MAX)) ;;
+    esac
+  done
+  echo "$total"
+}
+
+# flow_over (common.sh) needs one whole case at its typical length: entry
+# (~55s), ~45s per action (~75s for a deity pick), four probes at ~15s
+# (run 40992967143 timings). Budgets above are the caps, not the estimate.
+# Usage: set_case_need STEP...
+set_case_need() {
+  local st need=$(( 55 + 4 * 15 ))
+  for st in "$@"; do
+    case "$st" in
+      deity:select|deity:pick-close|deity:clear) need=$((need + 75)) ;;
+      *) need=$((need + 45)) ;;
+    esac
+  done
+  # shellcheck disable=SC2034  # read by flow_over in lib/common.sh
+  CASE_NEED_S=$need
+}
 
 err() { LAST_ERR="$*"; return 1; }
 
@@ -80,14 +130,20 @@ assert_entry_screen() {
     recover_sheet
     sheet_open && { err "sheet stuck open"; return 1; }
   fi
-  ui_wait 8 --resource-id filter-chip-state || err "filter bar not on screen" || return 1
+  # Any chip marks the bar. With a state applied the row scrolls so the
+  # State chip is off-screen to the left and uiautomator does not list it:
+  # run 40992967143 29d/29g select-then-state ("filter bar not on screen"),
+  # dump 29d-drawer-all-state_drawer_all-state-select-then-state.xml shows
+  # filter-chip-district at x=14 and no filter-chip-state. Same fix as
+  # filter_matrix_b.sh's DRAWER_CHIP_RX.
+  ui_wait 8 --resource-id-regex '^filter-chip-(state|district|deity)$' \
+    || err "filter bar not on screen" || return 1
 }
 
+# scroll_chips_until returns at once when the chip is on screen and
+# otherwise swipes the row both ways (bounded at 8 swipes).
 find_chip() {
-  case "$1" in
-    state) ui_dump && ui_find --resource-id filter-chip-state ;;
-    *) scroll_chips_until --resource-id "filter-chip-$1" ;;
-  esac
+  scroll_chips_until --resource-id "filter-chip-$1"
 }
 
 open_chip() {
@@ -185,14 +241,20 @@ run_case() {
   fi
   # The budget covers actions and probes, not relaunch + directory load
   # (~55s on the 320x640 AVD in run 40698852836).
+  CASE_MAX="$(actions_budget "${steps[@]}")"
   case_start
   for st in "${steps[@]}"; do
     if ! do_action "${st%%:*}" "${st##*:}"; then
       fail_step "$id" "${st}: ${LAST_ERR}"
       for p in $(probe_list "${steps[-1]%%:*}"); do skip_step "$id-then-$p" "prerequisite $id failed"; done
-      case_end; return
+      CASE_MAX="$CASE_MAX_DEFAULT"; case_end; return
     fi
   done
+  if case_over; then
+    fail_step "$id" "actions took $((SECONDS - CASE_T0))s, over their ${CASE_MAX}s budget"
+    for p in $(probe_list "${steps[-1]%%:*}"); do skip_step "$id-then-$p" "prerequisite $id failed"; done
+    CASE_MAX="$CASE_MAX_DEFAULT"; case_end; return
+  fi
   pass_step "$id"
   mapfile -t probes < <(probe_list "${steps[-1]%%:*}")
   for p in "${probes[@]}"; do
@@ -205,11 +267,16 @@ run_case() {
       done
       break
     fi
-    if case_over; then
-      fail_step "$id-then-$p" "case exceeded ${CASE_MAX}s"
-      continue
+    # Each probe has its own clock (see Budgets above).
+    CASE_MAX="$PROBE_MAX"
+    case_start
+    rc=0
+    probe "$id" "$p" || rc=1
+    if [[ "$rc" -eq 0 ]] && case_over; then
+      LAST_ERR="probe took $((SECONDS - CASE_T0))s, over its ${PROBE_MAX}s budget"
+      rc=1
     fi
-    if probe "$id" "$p"; then
+    if [[ "$rc" -eq 0 ]]; then
       pass_step "$id-then-$p"
     else
       fail_step "$id-then-$p" "$LAST_ERR"
@@ -222,24 +289,32 @@ run_case() {
       break
     fi
   done
+  CASE_MAX="$CASE_MAX_DEFAULT"
   case_end
+}
+
+# set_case_need before run_case_or_stop so flow_over sees this case's size.
+matrix_case() {
+  set_case_need "${@:2}"
+  run_case_or_stop "$@"
 }
 
 matrix_main() {
   local t0=$SECONDS action
   if [[ "$MATRIX_ENTRY" == seq ]]; then
     MATRIX_ENTRY=home_browse
-    run_case_or_stop seq1 state:select district:pick-close deity:select
-    run_case_or_stop seq2 state:select district:select deity:pick-close
-    run_case_or_stop seq3 deity:select state:select district:clear
-    run_case_or_stop seq4 state:pick-close deity:dismiss-empty state:select
-    run_case_or_stop seq5 state:select district:outside-empty state:clear
+    PICK[deity]="$SEQ_DEITY_PICK"
+    matrix_case seq1 state:select district:pick-close deity:select
+    matrix_case seq2 state:select district:select deity:pick-close
+    matrix_case seq3 deity:select state:select district:clear
+    matrix_case seq4 state:pick-close deity:dismiss-empty state:select
+    matrix_case seq5 state:select district:outside-empty state:clear
   else
     for action in "${ACTIONS[@]}"; do
       if [[ "$MATRIX_CHIP" == district ]]; then
-        run_case_or_stop "$MATRIX_ENTRY-district-$action" state:select "district:$action"
+        matrix_case "$MATRIX_ENTRY-district-$action" state:select "district:$action"
       else
-        run_case_or_stop "$MATRIX_ENTRY-$MATRIX_CHIP-$action" "$MATRIX_CHIP:$action"
+        matrix_case "$MATRIX_ENTRY-$MATRIX_CHIP-$action" "$MATRIX_CHIP:$action"
       fi
     done
   fi

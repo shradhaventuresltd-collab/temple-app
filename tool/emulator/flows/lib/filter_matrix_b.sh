@@ -40,6 +40,47 @@ declare -A SECTION=( [state]=STATE [deity]=DEITY [district]=DISTRICT )
 LAST_ERR=""
 STATE_APPLIED=0
 
+# Budgets (run 40992967143). One CASE_MAX of 90s for the whole case failed
+# every district case: state:select + district:<action> took ~65s, so the
+# third probe always hit "case exceeded 90s" although each probe passed in
+# ~12s (29b/29e/29h 8x each, 30a/30b once, 29j seq4/seq5). Now each action
+# step gets ACTION_MAX (a deity pick DEITY_ACTION_MAX: the list is ~600
+# names), and each probe gets its own PROBE_MAX. All waits inside stay
+# bounded by their own timeouts; select_labeled is also capped by
+# STEP_DEADLINE (common.sh case_start).
+ACTION_MAX="${ACTION_MAX:-90}"
+DEITY_ACTION_MAX="${DEITY_ACTION_MAX:-130}"
+PROBE_MAX="${PROBE_MAX:-40}"
+CASE_MAX_DEFAULT="$CASE_MAX"
+
+# Seconds for the action steps of one case. Usage: actions_budget STEP...
+actions_budget() {
+  local st total=0
+  for st in "$@"; do
+    case "$st" in
+      deity:select|deity:pick-close|deity:clear) total=$((total + DEITY_ACTION_MAX)) ;;
+      *) total=$((total + ACTION_MAX)) ;;
+    esac
+  done
+  echo "$total"
+}
+
+# flow_over (common.sh) needs one whole case at its typical length: entry
+# (~55s), ~45s per action (~75s for a deity pick), four probes at ~15s
+# (run 40992967143 timings). Budgets above are the caps, not the estimate.
+# Usage: set_case_need STEP...
+set_case_need() {
+  local st need=$(( 55 + 4 * 15 ))
+  for st in "$@"; do
+    case "$st" in
+      deity:select|deity:pick-close|deity:clear) need=$((need + 75)) ;;
+      *) need=$((need + 45)) ;;
+    esac
+  done
+  # shellcheck disable=SC2034  # read by flow_over in lib/common.sh
+  CASE_NEED_S=$need
+}
+
 err() { LAST_ERR="$*"; echo "matrix: $*" >&2; return 1; }
 
 fresh_home() {
@@ -226,14 +267,20 @@ run_case() {
   fi
   # The budget covers actions and probes, not relaunch + directory load
   # (~55s on the 320x640 AVD in run 40698852836).
+  CASE_MAX="$(actions_budget "${steps[@]}")"
   case_start
   for st in "${steps[@]}"; do
     if ! do_action "${st%%:*}" "${st##*:}"; then
       fail_step "$id" "${st}: ${LAST_ERR}"
       for p in $(probe_list "${steps[-1]%%:*}"); do skip_step "$id-then-$p" "prerequisite $id failed"; done
-      case_end; return
+      CASE_MAX="$CASE_MAX_DEFAULT"; case_end; return
     fi
   done
+  if case_over; then
+    fail_step "$id" "actions took $((SECONDS - CASE_T0))s, over their ${CASE_MAX}s budget"
+    for p in $(probe_list "${steps[-1]%%:*}"); do skip_step "$id-then-$p" "prerequisite $id failed"; done
+    CASE_MAX="$CASE_MAX_DEFAULT"; case_end; return
+  fi
   pass_step "$id"
   mapfile -t probes < <(probe_list "${steps[-1]%%:*}")
   for p in "${probes[@]}"; do
@@ -246,12 +293,15 @@ run_case() {
       done
       break
     fi
-    if case_over; then
-      fail_step "$id-then-$p" "case exceeded ${CASE_MAX}s"
-      continue
-    fi
+    # Each probe has its own clock (see Budgets above).
+    CASE_MAX="$PROBE_MAX"
+    case_start
     probe "$id" "$p"
     rc=$?
+    if [[ "$rc" -eq 0 ]] && case_over; then
+      LAST_ERR="probe took $((SECONDS - CASE_T0))s, over its ${PROBE_MAX}s budget"
+      rc=1
+    fi
     if [[ "$rc" -eq 0 ]]; then
       pass_step "$id-then-$p"
     elif [[ "$rc" -eq 3 ]]; then
@@ -266,7 +316,14 @@ run_case() {
       break
     fi
   done
+  CASE_MAX="$CASE_MAX_DEFAULT"
   case_end
+}
+
+# set_case_need before run_case_or_stop so flow_over sees this case's size.
+matrix_case() {
+  set_case_need "${@:2}"
+  run_case_or_stop "$@"
 }
 
 matrix_main() {
@@ -277,7 +334,7 @@ matrix_main() {
       "near me has no directory filter bar (out of scope)" | tee -a "$RESULTS"
   else
     for action in "${ACTIONS[@]}"; do
-      run_case_or_stop "$MATRIX_ENTRY-$MATRIX_CHIP-$action" "$MATRIX_CHIP:$action"
+      matrix_case "$MATRIX_ENTRY-$MATRIX_CHIP-$action" "$MATRIX_CHIP:$action"
     done
   fi
   force_stop_app
