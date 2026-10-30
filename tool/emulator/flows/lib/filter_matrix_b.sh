@@ -66,14 +66,15 @@ actions_budget() {
 }
 
 # flow_over (common.sh) needs one whole case at its typical length: entry
-# (~55s), ~45s per action (~75s for a deity pick), four probes at ~15s
+# (~55s), ~45s per action (a deity pick: its full 100s SELECT_MAX_DEITY
+# window), four probes at ~15s
 # (run 40992967143 timings). Budgets above are the caps, not the estimate.
 # Usage: set_case_need STEP...
 set_case_need() {
   local st need=$(( 55 + 4 * 15 ))
   for st in "$@"; do
     case "$st" in
-      deity:select|deity:pick-close|deity:clear) need=$((need + 75)) ;;
+      deity:select|deity:pick-close|deity:clear) need=$((need + 100)) ;;
       *) need=$((need + 45)) ;;
     esac
   done
@@ -126,8 +127,8 @@ enter_drawer_bar() {
 
 
 # Entry screen on top before every action or probe: no sheet, drawer bar
-# visible. A closed drawer is re-opened (the guide's reopen_entry).
-REOPENED=0
+# visible. A closed drawer is re-opened (the guide's reopen_entry) and
+# the reopen is logged on stderr. (REOPENED was set but never read: SC2034.)
 assert_entry_screen() {
   if sheet_open; then
     recover_sheet
@@ -135,7 +136,6 @@ assert_entry_screen() {
   fi
   ui_dump || { err "no hierarchy"; return 1; }
   if ! drawer_is_open; then
-    REOPENED=1
     echo "matrix: drawer was closed; reopening it" >&2
     open_drawer || return 1
   fi
@@ -258,7 +258,6 @@ run_case() {
   local steps=("$@") st p probes=() rc q rest
   STATE_APPLIED=0
   LAST_ERR=""
-  REOPENED=0
   "enter_${MATRIX_ENTRY}"
   rc=$?
   if [[ "$rc" -ne 0 ]]; then

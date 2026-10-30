@@ -1402,8 +1402,22 @@ seek_settle() {
 # 1 otherwise. Every decision is made on a settled dump: a dump taken while
 # a fling still runs sent run 40916686359 past Shiva and out of STATE.
 # Usage: seek_option KIND NAME DEADLINE [--prefix]
+# Environment overrides are clamped: SEEK_FAR_FLINGS 1-4 (more flings per
+# look only overshoot further), SEEK_MAX_MOVES 1-60 (the deadline bounds
+# the walk anyway; a huge value would only hide a stuck loop).
+seek_clamp() {
+  local v="$1" lo="$2" hi="$3"
+  [[ "$v" =~ ^[0-9]+$ ]] || v="$lo"
+  (( v < lo )) && v="$lo"
+  (( v > hi )) && v="$hi"
+  echo "$v"
+}
+
 seek_option() {
   local kind="$1" name="$2" deadline="$3"
+  local max_moves far_flings
+  max_moves="$(seek_clamp "${SEEK_MAX_MOVES:-40}" 1 60)"
+  far_flings="$(seek_clamp "${SEEK_FAR_FLINGS:-2}" 1 4)"
   local extra=()
   [[ "${4:-}" == --prefix ]] && extra=(--prefix)
   local i height width verdict dir reach prev="" current same=0
@@ -1418,7 +1432,7 @@ seek_option() {
     echo "seek_option: no picker section on screen (is the sheet open?)" >&2
     return 1
   fi
-  for i in $(seq 1 "${SEEK_MAX_MOVES:-40}"); do
+  for i in $(seq 1 "$max_moves"); do
     if (( SECONDS >= deadline )); then
       echo "seek_option: ${kind} '${name}' not reached before the deadline (${i} looks, order ${order})" >&2
       return 1
@@ -1490,7 +1504,7 @@ seek_option() {
       # a far letter inside the name), send SEEK_FAR_FLINGS flings back to
       # back and do not wait for the list to stop (see settled above).
       if [[ "$reach" =~ ^(far|mid)$ ]] && (( flips == 0 )); then
-        flings="${SEEK_FAR_FLINGS:-2}"
+        flings="$far_flings"
       fi
       for n in $(seq 1 "$flings"); do
         if [[ "$dir" == up ]]; then
@@ -1521,7 +1535,7 @@ seek_option() {
       settled=1
     fi
   done
-  echo "seek_option: ${kind} '${name}' not reached in ${SEEK_MAX_MOVES:-40} moves" >&2
+  echo "seek_option: ${kind} '${name}' not reached in ${max_moves} moves" >&2
   return 1
 }
 

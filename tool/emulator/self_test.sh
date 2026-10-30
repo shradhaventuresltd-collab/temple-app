@@ -1372,6 +1372,29 @@ if ! grep -q 'settled=0' tool/emulator/lib/common.sh || ! grep -q 'SEEK_FAR_FLIN
 fi
 pass
 
+# Environment overrides of the seek are clamped (reviewer, PR #124).
+(
+  set -euo pipefail
+  EMULATOR_ARTIFACTS="$(mktemp -d)"
+  export EMULATOR_FLOW=06-filters EMULATOR_ARTIFACTS EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  [[ "$(seek_clamp 99 1 4)" == 4 && "$(seek_clamp 0 1 4)" == 1 && "$(seek_clamp x 1 4)" == 1 && "$(seek_clamp 3 1 4)" == 3 ]] \
+    || { echo "seek_clamp bounds" >&2; exit 1; }
+  [[ "$(seek_clamp 500 1 60)" == 60 ]] || { echo "SEEK_MAX_MOVES clamp" >&2; exit 1; }
+)
+pass
+if ! grep -q 'seek_clamp "${SEEK_FAR_FLINGS:-2}" 1 4' tool/emulator/lib/common.sh \
+  || ! grep -q 'seek_clamp "${SEEK_MAX_MOVES:-40}" 1 60' tool/emulator/lib/common.sh; then
+  echo "seek_option must clamp SEEK_FAR_FLINGS<=4 and SEEK_MAX_MOVES<=60" >&2; exit 1
+fi
+pass
+# Test data must carry no ad-click data (AdMob Test Ad WebViews in dumps).
+if grep -rlEi 'gclid|gbraid|wbraid|aclk|doubleclick|adurl' tool/emulator/testdata; then
+  echo "testdata contains ad-click data (strip the ad WebView nodes)" >&2; exit 1
+fi
+pass
+
 # A list that keeps swinging stops after SEEK_MAX_FLIPS changes of direction.
 flip_dir="$(mktemp -d)"
 flip_seq="$(mktemp)"
@@ -1762,6 +1785,13 @@ for lib in filter_matrix filter_matrix_b; do
     [[ "$(actions_budget deity:select)" == 130 ]] || { echo "$lib: actions_budget deity" >&2; exit 1; }
     set_case_need state:select district:select
     [[ "$CASE_NEED_S" == 205 ]] || { echo "$lib: CASE_NEED_S=$CASE_NEED_S" >&2; exit 1; }
+    # A deity case needs its full 100s pick window (SELECT_MAX_DEITY).
+    set_case_need deity:select
+    [[ "$CASE_NEED_S" == 215 ]] || { echo "$lib: deity CASE_NEED_S=$CASE_NEED_S, want 215" >&2; exit 1; }
+    # Six deity cases at run 4's typical ~170s (entry 55 + pick 45 +
+    # apply 10 + 4 probes) plus ~40s install before the matrix: the
+    # sixth still starts (40 + 5*170 + 215 = 1105 < 1140).
+    (( 40 + 5 * 170 + CASE_NEED_S < 1140 )) || { echo "$lib: 6 deity cases no longer fit 1140s" >&2; exit 1; }
     MATRIX_ENTRY=fake
     enter_fake() { return 0; }
     # Actions take 70s (old single 90s budget left 20s for four probes).

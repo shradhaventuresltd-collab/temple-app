@@ -62,14 +62,15 @@ actions_budget() {
 }
 
 # flow_over (common.sh) needs one whole case at its typical length: entry
-# (~55s), ~45s per action (~75s for a deity pick), four probes at ~15s
+# (~55s), ~45s per action (a deity pick: its full 100s SELECT_MAX_DEITY
+# window), four probes at ~15s
 # (run 40992967143 timings). Budgets above are the caps, not the estimate.
 # Usage: set_case_need STEP...
 set_case_need() {
   local st need=$(( 55 + 4 * 15 ))
   for st in "$@"; do
     case "$st" in
-      deity:select|deity:pick-close|deity:clear) need=$((need + 75)) ;;
+      deity:select|deity:pick-close|deity:clear) need=$((need + 100)) ;;
       *) need=$((need + 45)) ;;
     esac
   done
