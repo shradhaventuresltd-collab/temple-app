@@ -167,7 +167,7 @@ case "$cmd" in
     echo $(((need + 59) / 60))
     ;;
   *)
-    sed -n '2,15p' "$0" >&2
-    exit 1
+    echo "usage: plan.sh {flows|ids|matrix|need-minutes} <smoke|full|all> [shard]" >&2
+    exit 2
     ;;
 esac

@@ -51,13 +51,14 @@ on:
         description: "Git ref to build when no APK is given (default: the dispatched commit)"
         required: false
         type: string
+  # Smoke only for non-draft PRs that touch the app, its tests, or this CI.
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - 'lib/**'
+      - 'test/**'
+      - 'integration_test/**'
       - 'android/**'
-      - 'assets/**'
-      - 'pubspec.*'
       - 'tool/emulator/**'
       - '.github/workflows/emulator-app-test.yml'
   push:
@@ -71,7 +72,8 @@ on:
       - 'tool/emulator/**'
       - '.github/workflows/emulator-app-test.yml'
   schedule:
-    # Nightly 02:00 IST (UTC+5:30).
+    # Nightly 02:00 IST (UTC+5:30). The gate job skips it when main's
+    # HEAD already had a green full run (tool/emulator/nightly_gate.sh).
     - cron: '30 20 * * *'
   release:
     types: [prereleased]
@@ -80,15 +82,36 @@ permissions:
   contents: read
   actions: read
 
-# A new push to a pull request cancels its older smoke run. Main, nightly,
-# release, and each dispatch keep running.
+# One run per ref (PR number for pull requests): a newer run on the same
+# ref cancels the older one.
 concurrency:
-  group: emulator-app-test-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name != 'pull_request' && github.run_id || 'pr' }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: emulator-app-test-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  gate:
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
+    steps:
+      - name: Checkout workflow scripts
+        timeout-minutes: 5
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      # schedule only: skip when main is unchanged since the last green full
+      # run. 30s lookup cap; any error runs the tests (fail-open).
+      - name: Nightly skip check
+        id: gate
+        timeout-minutes: 2
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash tool/emulator/nightly_gate.sh
+
+  build:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     outputs:
@@ -219,7 +242,7 @@ jobs:
         with:
           name: emulator-apk
           path: emulator-apk/app-debug.apk
-          retention-days: 3
+          retention-days: 1
           if-no-files-found: error
 
   emulator:

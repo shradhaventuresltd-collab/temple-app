@@ -526,18 +526,37 @@ clear_app_data() {
   return 0
 }
 
-# Undo device-wide settings an earlier flow on this emulator may have left:
-# network (15, 24, 27), screen size/density/font (28), rotation (19, 23,
-# 28), location mode (23). Each call is capped.
+# Undo device-wide state an earlier flow on this emulator may have left.
+# Audit of tool/emulator/flows (PR #126 review):
+#   network: wifi/data/ethernet + ip link (15, 24, 27)  -> network_on
+#   airplane mode (no flow sets it; reset defensively)  -> cmd connectivity
+#   wm size/density, font scale (28)                    -> reset
+#   rotation (19, 23, 28)                               -> portrait, auto off
+#   location mode (23), location grants (11, 23)        -> mode 3, revoke
+#   Google Maps disabled (25, killed before re-enable)  -> pm enable
+#   animations (runner disables them at boot)           -> scales back to 0
+#   notification shade / dialogs                        -> collapse, HOME
+# pm clear (clear_app_data) then wipes the app's prefs, databases, caches.
+# Not reset: clipboard and locale. No flow sets them, and API 30 has no
+# shell command to clear the clipboard. Each call is capped.
 reset_device_state() {
   network_on || true
+  adb_shell_capped 8 cmd connectivity airplane-mode disable >/dev/null 2>&1 || true
+  adb_shell_capped 8 settings put global airplane_mode_on 0 >/dev/null 2>&1 || true
   adb_shell_capped 8 wm size reset >/dev/null 2>&1 || true
   adb_shell_capped 8 wm density reset >/dev/null 2>&1 || true
   adb_shell_capped 8 settings put system font_scale 1.0 >/dev/null 2>&1 || true
   adb_shell_capped 8 settings put system accelerometer_rotation 0 >/dev/null 2>&1 || true
   adb_shell_capped 8 settings put system user_rotation 0 >/dev/null 2>&1 || true
   adb_shell_capped 8 settings put secure location_mode 3 >/dev/null 2>&1 || true
+  adb_shell_capped 8 pm enable com.google.android.apps.maps >/dev/null 2>&1 || true
+  adb_shell_capped 8 settings put global window_animation_scale 0 >/dev/null 2>&1 || true
+  adb_shell_capped 8 settings put global transition_animation_scale 0 >/dev/null 2>&1 || true
+  adb_shell_capped 8 settings put global animator_duration_scale 0 >/dev/null 2>&1 || true
   adb_shell_capped 8 am force-stop "$PKG" >/dev/null 2>&1 || true
+  adb_shell_capped 8 pm revoke "$PKG" android.permission.ACCESS_FINE_LOCATION >/dev/null 2>&1 || true
+  adb_shell_capped 8 pm revoke "$PKG" android.permission.ACCESS_COARSE_LOCATION >/dev/null 2>&1 || true
+  adb_shell_capped 8 cmd statusbar collapse >/dev/null 2>&1 || true
   adb_shell_capped 8 input keyevent KEYCODE_HOME >/dev/null 2>&1 || true
 }
 
