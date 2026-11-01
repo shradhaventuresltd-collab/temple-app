@@ -400,6 +400,21 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
       );
   }
 
+  Widget? _timingsLeading(String? caveat) {
+    final unverified =
+        temple.timingsUnverified && temple.timings.trim().isNotEmpty;
+    if (caveat == null && !unverified) return null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (unverified)
+          TimingsUnverifiedChip(sourceUri: temple.timingsSourceUri),
+        if (unverified && caveat != null) const SizedBox(height: 8),
+        if (caveat != null) _TimingsCaveat(text: caveat),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     _clampCurrentPage();
@@ -763,9 +778,7 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
                             ? 'Not listed in this entry.'
                             : temple.timings,
                         contentKey: const Key('detail-timings-body'),
-                        leading: caveat == null
-                            ? null
-                            : _TimingsCaveat(text: caveat),
+                        leading: _timingsLeading(caveat),
                       ),
                       if (temple.hasCoordinates) ...[
                         const SizedBox(height: 12),
@@ -1233,5 +1246,137 @@ class _RequestFullSizeState extends State<_RequestFullSize> {
   @override
   Widget build(BuildContext context) {
     return const TempleImagePlaceholder(expand: true);
+  }
+}
+
+/// Amber "unverified timings" chip (KAN-42 honesty chip style). Shown only
+/// when `timingsVerified == false`; restyle here once Ux tokens land.
+class TimingsUnverifiedChip extends StatefulWidget {
+  const TimingsUnverifiedChip({super.key, this.sourceUri});
+
+  final Uri? sourceUri;
+
+  @override
+  State<TimingsUnverifiedChip> createState() => _TimingsUnverifiedChipState();
+}
+
+class _TimingsUnverifiedChipState extends State<TimingsUnverifiedChip> {
+  bool _opening = false;
+
+  Future<void> _openSource() async {
+    final uri = widget.sourceUri;
+    if (uri == null || _opening) return;
+    _opening = true;
+    var opened = false;
+    try {
+      opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } on Exception {
+      opened = false;
+    } finally {
+      _opening = false;
+    }
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text("Couldn't open the source link.")),
+        );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
+    final amber = dark ? Colors.amber.shade300 : const Color(0xFFFFB300);
+    final iconColor = dark ? Colors.amber.shade300 : const Color(0xFFB26A00);
+    final onSurface = theme.colorScheme.onSurface;
+    final linkColor = theme.colorScheme.primary;
+    final body =
+        theme.textTheme.bodySmall?.copyWith(color: onSurface) ??
+        TextStyle(fontSize: 12, color: onSurface);
+    final hasLink = widget.sourceUri != null;
+    final label = hasLink
+        ? 'Timings unverified. Check before visiting. View source, opens browser.'
+        : 'Timings unverified. Check before visiting. Confirm with the temple.';
+
+    return Semantics(
+      key: const Key('timings-unverified-chip'),
+      container: true,
+      label: label,
+      button: hasLink,
+      onTap: hasLink ? _openSource : null,
+      excludeSemantics: true,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: amber.withValues(alpha: dark ? 0.16 : 0.12),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: amber),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.info_outline, size: 16, color: iconColor),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Unverified, check before visiting',
+                    style: body.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  if (!hasLink)
+                    Text(
+                      'Timings may have changed. Confirm with the temple.',
+                      style: body,
+                    )
+                  else
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text('Timings may have changed. ', style: body),
+                        InkWell(
+                          key: const Key('timings-source-link'),
+                          onTap: _openSource,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(
+                              minHeight: 48,
+                              minWidth: 48,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    'View source',
+                                    style: body.copyWith(
+                                      color: linkColor,
+                                      decoration: TextDecoration.underline,
+                                      decorationColor: linkColor,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 2),
+                                Icon(
+                                  Icons.open_in_new,
+                                  size: 12,
+                                  color: linkColor,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
