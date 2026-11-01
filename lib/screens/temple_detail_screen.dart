@@ -1302,11 +1302,9 @@ class _TimingsUnverifiedChipState extends State<TimingsUnverifiedChip> {
 
     return Semantics(
       key: const Key('timings-unverified-chip'),
+      identifier: 'timings-unverified-chip',
       container: true,
       label: label,
-      button: hasLink,
-      onTap: hasLink ? _openSource : null,
-      excludeSemantics: true,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -1324,48 +1322,65 @@ class _TimingsUnverifiedChipState extends State<TimingsUnverifiedChip> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Unverified, check before visiting',
-                    style: body.copyWith(fontWeight: FontWeight.w600),
+                  ExcludeSemantics(
+                    child: Text(
+                      'Unverified, check before visiting',
+                      style: body.copyWith(fontWeight: FontWeight.w600),
+                    ),
                   ),
                   if (!hasLink)
-                    Text(
-                      'Timings may have changed. Confirm with the temple.',
-                      style: body,
+                    ExcludeSemantics(
+                      child: Text(
+                        'Timings may have changed. Confirm with the temple.',
+                        style: body,
+                      ),
                     )
                   else
                     Wrap(
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Text('Timings may have changed. ', style: body),
-                        InkWell(
-                          key: const Key('timings-source-link'),
+                        ExcludeSemantics(
+                          child: Text(
+                            'Timings may have changed. ',
+                            style: body,
+                          ),
+                        ),
+                        Semantics(
+                          identifier: 'timings-source-link',
+                          button: true,
+                          link: true,
+                          label: 'View source, opens browser',
                           onTap: _openSource,
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(
-                              minHeight: 48,
-                              minWidth: 48,
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    'View source',
-                                    style: body.copyWith(
-                                      color: linkColor,
-                                      decoration: TextDecoration.underline,
-                                      decorationColor: linkColor,
+                          excludeSemantics: true,
+                          child: InkWell(
+                            key: const Key('timings-source-link'),
+                            onTap: _openSource,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(
+                                minHeight: 48,
+                                minWidth: 48,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      'View source',
+                                      style: body.copyWith(
+                                        color: linkColor,
+                                        decoration: TextDecoration.underline,
+                                        decorationColor: linkColor,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 2),
-                                Icon(
-                                  Icons.open_in_new,
-                                  size: 12,
-                                  color: linkColor,
-                                ),
-                              ],
+                                  const SizedBox(width: 2),
+                                  Icon(
+                                    Icons.open_in_new,
+                                    size: 12,
+                                    color: linkColor,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),

@@ -163,6 +163,21 @@ void main() {
       ),
       findsOneWidget,
     );
+    expect(
+      find.bySemanticsIdentifier('timings-unverified-chip'),
+      findsOneWidget,
+    );
+    expect(find.bySemanticsIdentifier('timings-source-link'), findsOneWidget);
+    expect(
+      t.getSemantics(find.bySemanticsIdentifier('timings-source-link')),
+      isSemantics(
+        identifier: 'timings-source-link',
+        label: 'View source, opens browser',
+        isButton: true,
+        isLink: true,
+        hasTapAction: true,
+      ),
+    );
     h.dispose();
   });
 
@@ -219,23 +234,6 @@ void main() {
   });
 
   testWidgets('dark theme golden', (t) async {
-    await t.pumpWidget(
-      MaterialApp(
-        theme: ThemeData(brightness: Brightness.dark, useMaterial3: true),
-        home: const Scaffold(
-          body: Padding(
-            padding: EdgeInsets.all(16),
-            child: Column(
-              children: [
-                TimingsUnverifiedChip(),
-                SizedBox(height: 8),
-                TimingsUnverifiedChip(),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
     await t.pumpWidget(
       MaterialApp(
         theme: ThemeData(brightness: Brightness.dark, useMaterial3: true),
