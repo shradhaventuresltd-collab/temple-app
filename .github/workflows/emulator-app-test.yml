@@ -109,6 +109,7 @@ jobs:
       tier: ${{ steps.tier.outputs.tier }}
       matrix: ${{ steps.tier.outputs.matrix }}
       tested_sha: ${{ steps.tested-sha.outputs.sha }}
+      apk_source: ${{ steps.tested-sha.outputs.source }}
     steps:
       - name: Checkout workflow scripts
         timeout-minutes: 5
@@ -463,12 +464,10 @@ jobs:
         env:
           TESTED_SHA: ${{ needs.build.outputs.tested_sha }}
           TIER: ${{ needs.build.outputs.tier }}
-        run: |
-          set -euo pipefail
-          [[ "$TESTED_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "build did not report a full SHA: '${TESTED_SHA}'" >&2; exit 1; }
-          echo "Emulator ${TIER} suite ran on ${TESTED_SHA}"
-          tick='`'
-          printf '### Release gate\n\nEmulator **%s** suite ran on commit %s%s%s.\n\n' "$TIER" "$tick" "$TESTED_SHA" "$tick" >> "$GITHUB_STEP_SUMMARY"
+          APK_SOURCE: ${{ needs.build.outputs.apk_source }}
+        # apk_url / artifact runs print "SHA UNVERIFIED, not valid as
+        # release gate": the SHA is the run's commit, not the APK's.
+        run: bash tool/emulator/release_gate.sh "$TIER" "$TESTED_SHA" "$APK_SOURCE"
 
       - name: Write combined summary
         timeout-minutes: 5

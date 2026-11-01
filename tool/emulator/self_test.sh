@@ -202,19 +202,40 @@ if [[ -e tool/emulator/nightly_gate.sh ]]; then
   echo "nightly_gate.sh should be gone with the nightly schedule" >&2
   exit 1
 fi
-# Release gate: summary prints the tested 40-char SHA.
+# Release gate: the summary prints the tested 40-char SHA, and only a
+# build-mode run may present it as tested.
 # shellcheck disable=SC2016 # literal workflow text
 if ! grep -Fq 'tested_sha: ${{ steps.tested-sha.outputs.sha }}' "$workflow" ||
+   ! grep -Fq 'apk_source: ${{ steps.tested-sha.outputs.source }}' "$workflow" ||
    ! grep -Fq 'TESTED_SHA: ${{ needs.build.outputs.tested_sha }}' "$workflow" ||
+   ! grep -Fq 'APK_SOURCE: ${{ needs.build.outputs.apk_source }}' "$workflow" ||
    ! grep -Fq 'sha="$(git -C build-src rev-parse HEAD)"' "$workflow" ||
-   ! grep -q 'GITHUB_STEP_SUMMARY' <<<"$(awk '/name: Record tested SHA \(release gate\)/ { n = 1 } n { print } n && /^      - name: Write/ { exit }' "$workflow")"; then
-  echo "summary should print the tested full SHA from the build job" >&2
+   ! grep -Fq 'run: bash tool/emulator/release_gate.sh "$TIER" "$TESTED_SHA" "$APK_SOURCE"' "$workflow"; then
+  echo "summary should print the release gate via release_gate.sh with the APK source" >&2
   exit 1
 fi
-if [[ "$(grep -c '\^\[0-9a-f\]{40}\$' "$workflow")" -lt 2 ]]; then
+if ! grep -q '\^\[0-9a-f\]{40}\$' "$workflow" || ! grep -q '\^\[0-9a-f\]{40}\$' tool/emulator/release_gate.sh; then
   echo "tested SHA must be validated as 40 hex characters in build and summary" >&2
   exit 1
 fi
+gate_sha=0123456789abcdef0123456789abcdef01234567
+gate_sum="$(mktemp)"
+GITHUB_STEP_SUMMARY="$gate_sum" bash tool/emulator/release_gate.sh full "$gate_sha" build >/dev/null
+if ! grep -Fq "### Release gate" "$gate_sum" || ! grep -Fq "suite ran on commit \`${gate_sha}\`." "$gate_sum" || grep -q UNVERIFIED "$gate_sum"; then
+  echo "release gate: build mode must present the SHA as tested" >&2; cat "$gate_sum" >&2; exit 1
+fi
+for gate_mode in url artifact; do
+  : > "$gate_sum"
+  GITHUB_STEP_SUMMARY="$gate_sum" bash tool/emulator/release_gate.sh full "$gate_sha" "$gate_mode" >/dev/null
+  if ! grep -Fq "SHA UNVERIFIED, not valid as release gate" "$gate_sum" || grep -Fq "suite ran on commit" "$gate_sum"; then
+    echo "release gate: ${gate_mode} mode must print 'SHA UNVERIFIED, not valid as release gate'" >&2; cat "$gate_sum" >&2; exit 1
+  fi
+done
+if bash tool/emulator/release_gate.sh full abc build >/dev/null 2>&1 ||
+   bash tool/emulator/release_gate.sh full "$gate_sha" other >/dev/null 2>&1; then
+  echo "release gate: a short SHA or an unknown source must fail" >&2; exit 1
+fi
+rm -f "$gate_sum"
 if [[ "$(grep -c 'uses: reactivecircus/android-emulator-runner@' "$workflow")" -ne 2 ]]; then
   echo "expected 2 emulator steps (snapshot plus one flow run per job)" >&2
   exit 1
