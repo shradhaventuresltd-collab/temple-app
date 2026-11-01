@@ -25,6 +25,7 @@ if [[ ${#flows[@]} -eq 0 ]]; then
 fi
 
 resolve_outcome="${EMULATOR_RESOLVE_OUTCOME:-success}"
+unstarted=()
 
 for flow in "${flows[@]}"; do
   if grep -Eq "^(PASS|FAIL|XFAIL|SKIPPED) ${flow}:" "$results"; then
@@ -34,10 +35,16 @@ for flow in "${flows[@]}"; do
   if grep -Eq "^NOT RUN ${flow}(:|$)" "$results"; then
     continue
   fi
-  if [[ "$resolve_outcome" == "failure" ]]; then
+  # A planned flow with no line at all never started: NOT RUN, not FAIL
+  # (run 41306793034 listed every unstarted flow as FAIL missing). A
+  # skipped flow is SKIPPED even if run_shard.sh did not record it.
+  if plan_is_skipped "$flow"; then
+    printf 'SKIPPED %s: location-dependent, skipped on the emulator (EMULATOR_SKIP_FLOWS)\n' "$flow" | tee -a "$results"
+  elif [[ "$resolve_outcome" == "failure" ]]; then
     printf 'NOT RUN %s\n' "$flow" | tee -a "$results"
   else
-    printf 'FAIL %s: missing: flow did not report a result\n' "$flow" | tee -a "$results"
+    printf 'NOT RUN %s: did not start\n' "$flow" | tee -a "$results"
+    unstarted+=("$flow")
   fi
 done
 
@@ -53,6 +60,10 @@ if [[ "$resolve_outcome" != "failure" ]]; then
     fi
     # A skipped location-dependent flow reports SKIPPED and needs no PASS.
     if grep -Eq "^SKIPPED ${flow}:" "$results"; then
+      continue
+    fi
+    # Counted once, as NOT RUN, above.
+    if grep -Eq "^NOT RUN ${flow}: did not start$" "$results"; then
       continue
     fi
     printf 'FAIL %s: missing: flow did not pass any step\n' "$flow" | tee -a "$results"
@@ -92,6 +103,12 @@ skipped="$(grep -c '^SKIPPED ' "$results" || true)"
 
 echo "${passes} passed, ${fails} failed, ${xfails} expected failures, ${not_run} not run, ${skipped} skipped."
 if [[ "$fails" -ne 0 ]]; then
+  exit 1
+fi
+# Planned flows that never started are not failures of the app, but the
+# job is not green either: the runner lost them.
+if [[ ${#unstarted[@]} -gt 0 ]]; then
+  echo "summarize.sh: ${#unstarted[@]} planned flow(s) did not start: ${unstarted[*]}" >&2
   exit 1
 fi
 exit 0

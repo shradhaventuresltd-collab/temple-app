@@ -75,8 +75,10 @@ permissions:
 
 # One group per event and ref (PR number for pull requests). Only a newer
 # pull request run cancels an older one; release and dispatch runs finish.
+# The tier is in the key: a smoke dispatch on a ref must not queue behind
+# a full dispatch on the same ref (runs 41306793034 / 41306882301).
 concurrency:
-  group: emulator-app-test-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  group: emulator-app-test-${{ github.event_name }}-${{ inputs.tier || (github.event_name == 'pull_request' && 'smoke') || 'full' }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -87,12 +89,9 @@ jobs:
     outputs:
       run: ${{ steps.gate.outputs.run }}
     steps:
-      - name: Checkout workflow scripts
-        timeout-minutes: 5
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-
       # Draft PRs never reach this job (the if above). Everything else runs.
-      # Downstream jobs fail open: a failed gate still runs the tests.
+      # Downstream jobs fail open: a failed gate still runs the tests. The
+      # gate reads nothing from the repo, so it does not check it out.
       - name: Gate
         id: gate
         timeout-minutes: 1

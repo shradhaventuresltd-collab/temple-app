@@ -29,7 +29,12 @@ fi
 export EMULATOR_REUSE_INSTALL=1
 artifacts="${EMULATOR_ARTIFACTS:-${ROOT}/emulator-app-test-artifacts}"
 mkdir -p "$artifacts"
-echo "Emulator ${tier}${shard:+ shard ${shard}}: $(printf '%s\n' "$rows" | wc -l) flows, cap ${FLOW_CAP_S}s each, worst case $(plan_need_s "$tier" "$shard")s"
+total="$(printf '%s\n' "$rows" | grep -c .)"
+skipped=0
+while read -r id _; do
+  if [[ -n "$id" ]] && plan_is_skipped "$id"; then skipped=$((skipped + 1)); fi
+done <<<"$rows"
+echo "Emulator ${tier}${shard:+ shard ${shard}}: ${total} flows (${skipped} skipped, $((total - skipped)) to run), cap ${FLOW_CAP_S}s each, worst case $(plan_need_s "$tier" "$shard")s"
 
 # Outer guard: run_one_flow.sh enforces FLOW_BUDGET itself. This only stops
 # a wrapper that wedges outside the flow (pm clear, logcat pull).
@@ -46,6 +51,13 @@ while read -r id script part <&3; do
   if [[ "$part" == - ]]; then part=""; fi
   if [[ "${EMULATOR_SHARD_DRY_RUN:-}" == 1 ]]; then
     printf 'PLAN %s %s %s\n' "$id" "$script" "${part:--}"
+    continue
+  fi
+  # A skipped flow is recorded here, at plan time, so the summary never
+  # sees it as missing even if the runner is not reached.
+  if plan_is_skipped "$id"; then
+    printf 'SKIPPED %s: location-dependent, skipped on the emulator (EMULATOR_SKIP_FLOWS)\n' "$id" >> "${artifacts}/results.txt"
+    echo "SKIPPED ${id}"
     continue
   fi
   echo "::group::Flow ${id}"

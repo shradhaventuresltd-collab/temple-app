@@ -331,9 +331,11 @@ fi
 # Guardrails (architect, PR #126 review).
 # (1) concurrency per event and ref; only pull request runs cancel.
 # shellcheck disable=SC2016 # literal workflow text
-if ! grep -Fxq '  group: emulator-app-test-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}' "$workflow" ||
+# The tier is in the key so a smoke dispatch does not queue behind a full
+# one on the same ref (runs 41306793034 / 41306882301).
+if ! grep -Fxq "  group: emulator-app-test-\${{ github.event_name }}-\${{ inputs.tier || (github.event_name == 'pull_request' && 'smoke') || 'full' }}-\${{ github.event.pull_request.number || github.ref }}" "$workflow" ||
    ! grep -Fxq "  cancel-in-progress: \${{ github.event_name == 'pull_request' }}" "$workflow"; then
-  echo "concurrency group needs event_name and ref; cancel-in-progress only for pull_request" >&2
+  echo "concurrency group needs event_name, tier and ref; cancel-in-progress only for pull_request" >&2
   exit 1
 fi
 # (2) PR smoke: non-draft and only for app/test/CI paths.
@@ -747,9 +749,19 @@ if EMULATOR_ARTIFACTS="$summary_dir" GITHUB_STEP_SUMMARY="${summary_dir}/summary
   cat "${summary_dir}/fail.out" >&2
   exit 1
 fi
-missing="$(grep -c ': missing:' "${summary_dir}/results.txt")"
-if [[ "$missing" -ne 30 ]]; then
-  echo "expected 30 missing-flow lines, found ${missing}" >&2
+# Flows that never started are NOT RUN (the job still fails), skipped
+# flows are SKIPPED, and neither is a FAIL (run 41306793034 listed both
+# as "FAIL missing").
+unstarted_n="$(grep -c '^NOT RUN [^:]*: did not start$' "${summary_dir}/results.txt")"
+skipped_n="$(grep -c '^SKIPPED ' "${summary_dir}/results.txt")"
+if [[ "$unstarted_n" -ne 28 || "$skipped_n" -ne 2 ]] ||
+   grep -q '^FAIL ' "${summary_dir}/results.txt" ||
+   ! grep -q '^SKIPPED 11-near-me: ' "${summary_dir}/results.txt" ||
+   ! grep -q '^SKIPPED 23-near-me-settings-roundtrip: ' "${summary_dir}/results.txt" ||
+   ! grep -q '0 failed, 0 expected failures, 28 not run, 2 skipped' "${summary_dir}/fail.out" ||
+   ! grep -q 'did not start' "${summary_dir}/fail.out"; then
+  echo "unstarted flows: 28 NOT RUN, 2 SKIPPED, no FAIL, job not green" >&2
+  cat "${summary_dir}/fail.out" >&2
   exit 1
 fi
 : > "${summary_dir}/results.txt"
@@ -791,8 +803,8 @@ if ! EMULATOR_ARTIFACTS="$not_run_dir" EMULATOR_RESOLVE_OUTCOME=failure \
   exit 1
 fi
 not_run="$(grep -c '^NOT RUN ' "${not_run_dir}/results.txt")"
-if [[ "$not_run" -ne 30 ]]; then
-  echo "expected 30 NOT RUN lines, found ${not_run}" >&2
+if [[ "$not_run" -ne 28 ]] || [[ "$(grep -c '^SKIPPED ' "${not_run_dir}/results.txt")" -ne 2 ]]; then
+  echo "expected 28 NOT RUN and 2 SKIPPED lines, found ${not_run} NOT RUN" >&2
   exit 1
 fi
 if grep -q '^FAIL ' "${not_run_dir}/results.txt"; then
@@ -1256,7 +1268,7 @@ for tier_shard in smoke "full 1" "full 2" "full 3" "full 4" "full 5" "full 6"; d
   STUB_LOG="${stub_dir}/ran" EMULATOR_FLOW_RUNNER="${stub_dir}/flow.sh" \
     EMULATOR_ARTIFACTS="${stub_dir}/art" bash tool/emulator/run_shard.sh $tier_shard >/dev/null 2>&1
   # shellcheck disable=SC2086
-  want="$(plan_ids $tier_shard)"
+  want="$(plan_ids $tier_shard | while read -r f; do plan_is_skipped "$f" || echo "$f"; done)"
   got="$(cut -d' ' -f1 "${stub_dir}/ran")"
   if [[ "$got" != "$want" ]] || grep -qv ' 0$' "${stub_dir}/ran"; then
     echo "run_shard.sh ${tier_shard}: every planned flow must run with empty stdin" >&2
@@ -1268,6 +1280,13 @@ for tier_shard in smoke "full 1" "full 2" "full 3" "full 4" "full 5" "full 6"; d
     echo "run_shard.sh ${tier_shard}: a TIME line per flow" >&2
     exit 1
   fi
+  # shellcheck disable=SC2086
+  for f in $(plan_ids $tier_shard); do
+    if plan_is_skipped "$f" && ! grep -q "^SKIPPED ${f}: " "${stub_dir}/art/results.txt"; then
+      echo "run_shard.sh ${tier_shard}: skipped ${f} must be recorded SKIPPED at plan time" >&2
+      exit 1
+    fi
+  done
   rm -rf "${stub_dir}/art"
 done
 rm -rf "$stub_dir"
