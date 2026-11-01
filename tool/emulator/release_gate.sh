@@ -6,13 +6,15 @@
 # printed as unverified and must not be used as a release gate.
 # Writes to GITHUB_STEP_SUMMARY when set, and to stdout.
 # It also reads the merged results ($EMULATOR_ARTIFACTS/results.txt) and
-# prints "NOT a release gate: <reasons>" on any FAIL, XFAIL or XPASS, or
+# prints "NOT a release gate: <reasons>" on any FAIL, XFAIL, XPASS or
+# NOT RUN, on any SKIPPED flow outside plan.sh's planned skips
+# (DEFAULT_SKIP_FLOWS; an EMULATOR_SKIP_FLOWS override does not count), or
 # when the results are missing: a known bug is still a bug in the release.
 # Only the release path exits 1 on that: EMULATOR_GATE_MODE=strict (set by
 # the workflow for a published release or a dispatch with release_gate=true),
 # or event "release" (EMULATOR_GATE_EVENT / GITHUB_EVENT_NAME). The strict
-# path also refuses an APK that was not built from SHA. Dispatch and
-# pull_request runs print the refusal and exit 0.
+# path also refuses a non-full tier and an APK that was not built from SHA.
+# Dispatch and pull_request runs list the same reasons and exit 0.
 set -euo pipefail
 tier="${1:?tier}" sha="${2:?sha}" source="${3:?source}"
 if [[ ! "$sha" =~ ^[0-9a-f]{40}$ ]]; then
@@ -41,8 +43,17 @@ else
   n_fail="$(grep -c '^FAIL ' "$results" || true)"
   n_xfail="$(grep -c '^XFAIL ' "$results" || true)"
   n_xpass="$(grep -c '^XPASS ' "$results" || true)"
-  if (( n_fail + n_xfail + n_xpass > 0 )); then
-    refuse="${n_fail} FAIL, ${n_xfail} XFAIL, ${n_xpass} XPASS"
+  n_notrun="$(grep -c '^NOT RUN ' "$results" || true)"
+  # Planned skips come from plan.sh (DEFAULT_SKIP_FLOWS), never hard-coded.
+  planned="$(bash -c 'source "$1"; printf "%s" "$DEFAULT_SKIP_FLOWS"' _ "${root}/tool/emulator/plan.sh")"
+  unplanned="$(sed -n 's/^SKIPPED \([^: ]*\).*/\1/p' "$results" | sort -u | while read -r id; do
+    [[ " ${planned} " == *" ${id} "* ]] || printf '%s ' "$id"
+  done)"
+  unplanned="${unplanned% }"
+  n_unplanned=0
+  [[ -n "$unplanned" ]] && n_unplanned="$(wc -w <<< "$unplanned")"
+  if (( n_fail + n_xfail + n_xpass + n_notrun + n_unplanned > 0 )); then
+    refuse="${n_fail} FAIL, ${n_xfail} XFAIL, ${n_xpass} XPASS, ${n_notrun} NOT RUN, ${n_unplanned} unplanned SKIPPED${unplanned:+ (${unplanned})}"
   fi
 fi
 if [[ -n "$refuse" ]]; then
@@ -52,7 +63,8 @@ echo "$line"
 if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
   printf '### Release gate\n\n%s\n\n' "$line" >> "$GITHUB_STEP_SUMMARY"
   if [[ -n "$refuse" && -s "$results" ]]; then
-    grep -E '^(FAIL|XFAIL|XPASS) ' "$results" | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
+    { grep -E '^(FAIL|XFAIL|XPASS|NOT RUN) ' "$results" || true; } | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
+    for id in $unplanned; do grep -m1 "^SKIPPED ${id}[: ]" "$results" | sed 's/^/- unplanned: /' >> "$GITHUB_STEP_SUMMARY"; done
   fi
 fi
 event="${EMULATOR_GATE_EVENT:-${GITHUB_EVENT_NAME:-}}"

@@ -1776,7 +1776,8 @@ f25=tool/emulator/flows/25_directions_edge.sh
 if [[ "$(maps_count maps_start_once.logcat.txt)" != 1 ]] || [[ "$(maps_count maps_start_twice.logcat.txt)" != 2 ]] ||
    ! grep -q 'fail_step single-maps-launch' "$f25" ||
    ! grep -Fq '"${maps_starts:-0}" -eq 1' "$f25" ||
-   ! grep -q 'logcat_window_start directions-double-tap' "$f25" || ! grep -q 'logcat_window_read | count_maps_starts' "$f25" ||
+   ! grep -q 'logcat_window_start directions-double-tap' "$f25" || ! grep -q 'window="$(logcat_window_read)"' "$f25" ||
+   grep -q 'device_time\|logcat -c' "$f25" ||
    ! grep -q "echo \"directions: logcat window starts at device time" "$f25"; then
   echo "flow 25: single-maps-launch counts Maps START lines after the taps (1 passes, 2 fails)" >&2; exit 1
 fi
@@ -1822,14 +1823,17 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
 fi
 # adb shell re-splits on the device. A stub adb that does the same (shlex
 # on the joined words, like the device sh) exercises the REAL command
-# construction: device_time must survive it; the old cc3e912 form did not.
+# construction of the logcat marker; the old cc3e912 split form must not
+# survive it. The stub logcat buffer is never cleared: logcat -c fails the
+# test, since later checks need the earlier lines.
 rs_dir="$(mktemp -d)"; mkdir -p "${rs_dir}/bin"
 cat > "${rs_dir}/bin/adb" <<'STUB'
 #!/usr/bin/env bash
-state="${RS_DIR}/cleared"
+buf="${RS_DIR}/buffer"
+[[ -f "$buf" ]] || echo "11-01 14:16:40.000  100  100 I Old     : line from before the window" > "$buf"
 if [[ "$1" == shell ]]; then
   shift
-  python3 - "$*" <<'PY2'
+  python3 - "$*" "$buf" "${RS_FIXTURE:-/dev/null}" <<'PY2'
 import shlex, sys
 argv = shlex.split(sys.argv[1])
 if argv[:1] == ["date"]:
@@ -1837,13 +1841,19 @@ if argv[:1] == ["date"]:
         print("11-01 14:16:53\r")
     else:
         print("date: extra operand", file=sys.stderr); sys.exit(1)
+elif argv[:3] == ["log", "-t", "TempleEmuMark"]:
+    if len(argv) != 4:
+        print("log: bad args", file=sys.stderr); sys.exit(1)
+    with open(sys.argv[2], "a") as f:
+        f.write("11-01 14:16:53.123  200  200 I TempleEmuMark: %s\n" % argv[3])
+        f.write(open(sys.argv[3]).read())
 PY2
   exit $?
 fi
 if [[ "$1" == logcat ]]; then
   case " $* " in
-    *" -c "*) : > "$state"; exit 0 ;;
-    *" -d "*) if [[ -f "$state" ]]; then cat "${RS_FIXTURE}"; else echo "old line from before the window"; fi; exit 0 ;;
+    *" -c "*) echo "cleared" > "${RS_DIR}/cleared"; exit 0 ;;
+    *" -d "*) cat "$buf"; exit 0 ;;
   esac
 fi
 exit 0
@@ -1857,20 +1867,41 @@ rs() {
     "$@"
   )
 }
-if [[ "$(rs device_time)" != "11-01 14:16:53" ]]; then
-  echo "device_time must survive the device re-split" >&2; exit 1
-fi
 # shellcheck disable=SC2016 # literal command for eval
 if [[ -n "$(rs eval 'adb_shell_capped 8 date +"%m-%d %H:%M:%S.000" 2>/dev/null')" ]]; then
   echo "stub adb must reject the old split date form (else this test proves nothing)" >&2; exit 1
 fi
+# shellcheck disable=SC2016 # literal command for eval
+if rs eval 'adb_shell_capped 8 log -t TempleEmuMark "two words" 2>/dev/null'; then
+  echo "stub adb must reject an unquoted multi-word log message" >&2; exit 1
+fi
+count_maps_starts_st() { EMULATOR_FLOW=x EMULATOR_ARTIFACTS="$(mktemp -d)" bash -c 'source tool/emulator/lib/common.sh >/dev/null 2>&1; count_maps_starts'; }
 for want in once:1 twice:2; do
-  rm -f "${rs_dir}/cleared"
-  got="$(RS_FIXTURE="${fx126}/maps_start_${want%%:*}.logcat.txt" rs eval 'logcat_window_start t; logcat_window_read | count_maps_starts')"
-  if [[ "$got" != "${want##*:}" ]] || [[ ! -s "${rs_dir}/art/logcat/25-directions-edge_before-t.txt" ]]; then
-    echo "logcat window: ${want%%:*} launch fixture -> ${want##*:} (got '${got}'), pre-window log kept" >&2; exit 1
+  rm -f "${rs_dir}/buffer" "${rs_dir}/cleared"
+  win="$(RS_FIXTURE="${fx126}/maps_start_${want%%:*}.logcat.txt" rs eval 'logcat_window_start t; logcat_window_read')"
+  got="$(count_maps_starts_st <<< "$win")"
+  if [[ "$got" != "${want##*:}" ]] || [[ -e "${rs_dir}/cleared" ]] ||
+     [[ "$(head -n1 <<< "$win" | cut -c1-18)" != "11-01 14:16:53.123" ]] ||
+     grep -q 'line from before the window' <<< "$win" ||
+     ! grep -q 'line from before the window' "${rs_dir}/buffer"; then
+    echo "logcat window: ${want%%:*} launch fixture -> ${want##*:} (got '${got}'), marker first, no logcat -c, earlier lines kept" >&2; exit 1
   fi
 done
+# 26: a crash on back must not pass back-exits.
+crash_in() { rs eval "app_crashed_in_log com.example.temple" <<< "$1"; }
+if ! crash_in "11-01 14:17:00.000 300 300 E AndroidRuntime: Process: com.example.temple, PID: 300" ||
+   ! crash_in "11-01 14:17:00.000 1 1 E ActivityManager: ANR in com.example.temple (com.example.temple/.MainActivity)" ||
+   ! crash_in "11-01 14:17:00.000 1 1 W ActivityTaskManager: Force finishing activity com.example.temple/.MainActivity" ||
+   crash_in "11-01 14:17:00.000 1 1 E AndroidRuntime: Process: com.google.android.apps.maps, PID: 9" ||
+   crash_in "11-01 14:17:00.000 1 1 I ActivityTaskManager: Displayed com.example.temple/.MainActivity"; then
+  echo "app_crashed_in_log: our FATAL/ANR/force-finish only" >&2; exit 1
+fi
+f26=tool/emulator/flows/26_drawer_nav_stack.sh
+# shellcheck disable=SC2016 # literal flow text
+if ! grep -q 'logcat_window_start back-exits' "$f26" || ! grep -q 'logcat_window_read | app_crashed_in_log "$PKG"' "$f26" ||
+   ! grep -q 'fail_step back-exits "app crashed on back from Home' "$f26"; then
+  echo "flow 26 back-exits must fail on a crash (logcat or dialog)" >&2; exit 1
+fi
 rm -rf "$rs_dir"
 # 06 / 26: by-design behaviour is a PASS assertion, not an XFAIL.
 if grep -q 'xfail' tool/emulator/flows/06_filters.sh tool/emulator/flows/26_drawer_nav_stack.sh ||
@@ -1959,4 +1990,39 @@ if ! grep -q '^  release:$' "$workflow" || ! grep -q '^    types: \[published\]$
    ! grep -Fq "INPUT_RELEASE_GATE: \${{ inputs.release_gate && 'true' || 'false' }}" "$workflow"; then
   echo "workflow: release published trigger, release_gate input, strict gate mode on those paths" >&2; exit 1
 fi
+# Strict gate also refuses NOT RUN and SKIPPED outside plan.sh's planned
+# skips (DEFAULT_SKIP_FLOWS, read from plan.sh here too); report mode lists
+# them and exits 0.
+planned_skips="$(bash -c 'source tool/emulator/plan.sh; printf "%s" "$DEFAULT_SKIP_FLOWS"')"
+gate_case() { # want results-lines...
+  local want="$1" d rc; shift; d="$(mktemp -d)"
+  printf 'PASS 01-first-launch: launch\n' > "${d}/results.txt"
+  printf '%s\n' "$@" >> "${d}/results.txt"
+  rc=0; EMULATOR_GATE_MODE=strict EMULATOR_ARTIFACTS="$d" GITHUB_STEP_SUMMARY=/dev/null bash tool/emulator/release_gate.sh full "$gate_sha" build >/dev/null 2>&1 || rc=$?
+  if [[ "$rc" != "$want" ]]; then echo "strict gate: '$*' should exit ${want}, got ${rc}" >&2; exit 1; fi
+  out="$(EMULATOR_GATE_MODE=report EMULATOR_GATE_EVENT=pull_request EMULATOR_ARTIFACTS="$d" GITHUB_STEP_SUMMARY="${d}/sum" bash tool/emulator/release_gate.sh full "$gate_sha" build 2>&1)" ||
+    { echo "report gate must exit 0 for '$*'" >&2; exit 1; }
+  if [[ "$want" == 1 && "$out" != *"NOT a release gate"* ]]; then echo "report gate must list '$*'" >&2; exit 1; fi
+  if [[ "$want" == 0 && "$out" == *"NOT a release gate"* ]]; then echo "report gate: planned skips are not a refusal" >&2; exit 1; fi
+  GATE_OUT="$out"; GATE_SUM="$(cat "${d}/sum" 2>/dev/null)"; rm -rf "$d"
+}
+planned_lines=(); for id in $planned_skips; do planned_lines+=("SKIPPED ${id}: location-dependent, skipped on the emulator (EMULATOR_SKIP_FLOWS)"); done
+gate_case 1 "NOT RUN 05-search"
+[[ "$GATE_OUT" == *"1 NOT RUN"* && "$GATE_SUM" == *"- NOT RUN 05-search"* ]] || { echo "report gate lists NOT RUN" >&2; exit 1; }
+gate_case 1 "SKIPPED 05-search: skipped"
+[[ "$GATE_OUT" == *"1 unplanned SKIPPED (05-search)"* && "$GATE_SUM" == *"- unplanned: SKIPPED 05-search"* ]] || { echo "report gate lists unplanned SKIPPED" >&2; exit 1; }
+gate_case 0 "${planned_lines[@]}"
+[[ "${#planned_lines[@]}" -ge 3 ]] || { echo "plan.sh DEFAULT_SKIP_FLOWS should hold 11, 23, 30d" >&2; exit 1; }
+if grep -Eq '11-near-me|23-near-me|30d-near-me' tool/emulator/release_gate.sh; then
+  echo "release_gate.sh must read planned skips from plan.sh, not hard-code them" >&2; exit 1
+fi
+# release_gate dispatch with apk_url / artifact_run_id fails fast.
+for extra in INPUT_APK_URL=https://x/a.apk INPUT_ARTIFACT_RUN_ID=123; do
+  if env -u GITHUB_OUTPUT GITHUB_EVENT_NAME=workflow_dispatch INPUT_RELEASE_GATE=true "$extra" bash tool/emulator/choose_tier.sh >/dev/null 2>&1; then
+    echo "choose_tier.sh: release_gate with ${extra%%=*} must fail" >&2; exit 1
+  fi
+  if ! env -u GITHUB_OUTPUT GITHUB_EVENT_NAME=workflow_dispatch INPUT_RELEASE_GATE=false "$extra" bash tool/emulator/choose_tier.sh >/dev/null 2>&1; then
+    echo "choose_tier.sh: ${extra%%=*} without release_gate is fine" >&2; exit 1
+  fi
+done
 echo "emulator self-test ok"

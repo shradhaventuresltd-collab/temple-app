@@ -129,6 +129,8 @@ jobs:
         env:
           INPUT_TIER: ${{ inputs.tier }}
           INPUT_RELEASE_GATE: ${{ inputs.release_gate && 'true' || 'false' }}
+          INPUT_APK_URL: ${{ inputs.apk_url }}
+          INPUT_ARTIFACT_RUN_ID: ${{ inputs.artifact_run_id }}
         run: bash tool/emulator/choose_tier.sh
 
       - name: Resolve APK source
@@ -492,10 +494,12 @@ jobs:
       # Shard flow steps use continue-on-error, but each shard's summary
       # step fails its job on any FAIL. This job fails too: on any FAIL in
       # the merged results (summarize.sh exits 1), on any XPASS, and on any
-      # shard job that did not succeed. SKIPPED does not fail it. XFAIL
-      # keeps the shard green but release_gate.sh refuses the run as a
-      # release gate (exit 1), so the summary job is red while any known
-      # bug is marked XFAIL.
+      # shard job that did not succeed. SKIPPED does not fail it. On the
+      # release path (release published, or dispatch release_gate=true)
+      # release_gate.sh is strict and exits 1 on any FAIL, XFAIL, XPASS,
+      # NOT RUN, SKIPPED outside plan.sh's DEFAULT_SKIP_FLOWS, missing
+      # results, non-full tier or non-build APK. Other runs list those
+      # reasons as "NOT a release gate" and exit 0.
       - name: Record tested SHA (release gate)
         timeout-minutes: 1
         env:

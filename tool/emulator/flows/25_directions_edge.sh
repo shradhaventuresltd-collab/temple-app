@@ -22,8 +22,6 @@ if [[ "$directions_found" -ne 1 ]]; then
   return 0
 fi
 # Count Maps STARTs in a logcat window opened just before the taps.
-tap_since="$(device_time)"
-echo "directions: logcat window starts at device time '${tap_since:-unknown}'"
 logcat_window_start directions-double-tap
 adb_shell_capped 8 input tap "$UI_CX" "$UI_CY"
 adb_shell_capped 8 input tap "$UI_CX" "$UI_CY"
@@ -31,7 +29,9 @@ sleep 3
 step_shot dir-double
 # The back-out loop below could hide a stacked second Maps, so the double
 # tap must have started Maps exactly once.
-maps_starts="$(logcat_window_read | count_maps_starts)"
+window="$(logcat_window_read)"
+echo "directions: logcat window starts at device time '$(head -n1 <<< "$window" | cut -c1-18)'"
+maps_starts="$(count_maps_starts <<< "$window")"
 echo "directions: Maps START lines after the double tap: ${maps_starts:-0}"
 if [[ "${maps_starts:-0}" -eq 1 ]]; then
   pass_step single-maps-launch

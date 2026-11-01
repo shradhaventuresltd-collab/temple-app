@@ -25,10 +25,17 @@ fi
 (( n <= 2 )) && pass_step back-depth || fail_step back-depth "needed $n backs to reach Home (duplicate list routes)"
 ui_dump && ui_find --content-desc "Open navigation menu" && ui_tap; sleep 1; ui_back; sleep 1
 wait_for_home && pass_step back-closes-drawer || fail_step back-closes-drawer "back with drawer open left Home"
+logcat_window_start back-exits
 ui_back; sleep 2
 # Back on Home leaves the app (main.dart _exitApp -> SystemNavigator.pop);
-# there is no exit confirm by design.
-if adb_shell_capped 8 dumpsys window | grep -q "mCurrentFocus.*$PKG"; then
+# there is no exit confirm by design. A crash also leaves the app, so it
+# must not pass: no FATAL EXCEPTION / ANR / "has stopped" for PKG in the
+# log since the back, and no crash dialog on screen.
+crash_dialog=0
+ui_dump && ui_find --text-regex "(has stopped|keeps stopping|isn.t responding)" && crash_dialog=1
+if logcat_window_read | app_crashed_in_log "$PKG" || (( crash_dialog )); then
+  fail_step back-exits "app crashed on back from Home (logcat or crash dialog)"
+elif adb_shell_capped 8 dumpsys window | grep -q "mCurrentFocus.*$PKG"; then
   fail_step back-exits "app still focused after back on Home"
 else
   pass_step back-exits

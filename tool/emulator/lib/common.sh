@@ -259,28 +259,28 @@ back_until_detail() {
   return 1
 }
 
-# Gallery counter matches the page on screen: detail-gallery-N shows
-# "N+1 / M". Run 41314245431 failed on '^1 / ' after a burst whose
-# left/right flings were vertical (ui_fling) and auto-advance had moved
-# on; the dump itself was consistent (detail-gallery-4, '5 / 5').
-# Device clock, "MM-DD hh:mm:ss". adb shell joins its arguments and the
-# device shell re-splits them, so the whole command goes as ONE string with
-# the format quoted inside it (run of cc3e912: date +'%m-%d %H:%M:%S.000'
-# was split into two date operands and tap_since came back empty).
-device_time() {
-  adb_shell_capped 8 "date '+%m-%d %H:%M:%S'" 2>/dev/null | tr -d '\r'
-}
-
-# Logcat window for one step: keep what is there (written to LOG_DIR), clear
-# the buffer, and later read only what came after. No device timestamps.
+# Logcat window for one step, without clearing the buffer (later checks
+# still see earlier lines): write a unique marker line with log -t, then
+# read only the lines after it. adb shell joins its arguments and the device
+# shell re-splits them (run of cc3e912: date +'%m-%d %H:%M:%S.000' became two
+# operands), so the device command goes as ONE string with the tag quoted.
+# The marker line itself is printed first: its threadtime prefix is the
+# device-local start time of the window.
 logcat_window_start() {
-  local name="$1"
-  mkdir -p "${LOG_DIR:-/tmp}" 2>/dev/null || true
-  timeout 8 adb logcat -d -v threadtime > "${LOG_DIR:-/tmp}/${FLOW}_before-${name}.txt" 2>/dev/null </dev/null || true
-  timeout 8 adb logcat -c </dev/null >/dev/null 2>&1 || true
+  LOGCAT_MARK="temple-emu-window-${1:-step}-$$-${RANDOM}"
+  adb_shell_capped 8 "log -t TempleEmuMark '${LOGCAT_MARK}'" >/dev/null 2>&1 || true
 }
 logcat_window_read() {
-  timeout 8 adb logcat -d -v threadtime -s ActivityTaskManager:I </dev/null 2>/dev/null || true
+  timeout 8 adb logcat -d -v threadtime </dev/null 2>/dev/null | tr -d '\r' |
+    awk -v m="${LOGCAT_MARK:-}" 'm != "" && !f && index($0, m) { f = 1 } f'
+}
+
+# Crash evidence for our package in logcat text on stdin: an AndroidRuntime
+# FATAL EXCEPTION for PKG, an ANR in PKG, or "PKG has stopped".
+app_crashed_in_log() {
+  local pkg="${1:-$PKG}" p
+  p="${pkg//./\\.}"
+  grep -Eq "Process: ${p}, PID|ANR in ${p}( |\$)|${p}.* has stopped|Force finishing activity ${p}/"
 }
 
 # Chip bar on screen (state chip there, deity chip reachable) and ONLY the
@@ -322,6 +322,10 @@ print(pages[0])
 PY2
 }
 
+# Gallery counter matches the page on screen: detail-gallery-N shows
+# "N+1 / M". Run 41314245431 failed on '^1 / ' after a burst whose
+# left/right flings were vertical (ui_fling) and auto-advance had moved
+# on; the dump itself was consistent (detail-gallery-4, '5 / 5').
 gallery_index_consistent() {
   python3 - "$DUMP" <<'PY2'
 import re, sys
