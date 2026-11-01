@@ -11,43 +11,23 @@ results="${EMULATOR_ARTIFACTS:-${root}/emulator-app-test-artifacts}/results.txt"
 mkdir -p "$(dirname "$results")"
 touch "$results"
 
-flows=(
-  01-first-launch
-  02-policy-gate
-  03-force-update
-  04-home
-  05-search
-  06-filters
-  07-district
-  08-list-detail
-  09-photos
-  10-directions
-  11-near-me
-  12-ads
-  13-licences
-  14-back-relaunch
-  15-offline
-  16-home-browse
-  17-entry-matrix
-  18-home-reselect
-  19-rotation-state
-  20-empty-and-back
-  21-district-close-then-other-chip
-  22-filter-combos-reset
-  23-near-me-settings-roundtrip
-  24-gallery-autoadvance-viewer
-  25-directions-edge
-  26-drawer-nav-stack
-  27-offline-cold-start
-  28-small-screen-rotation-overflow
-  29-filter-matrix
-  30-filter-matrix-rest
-)
+# The expected flows come from plan.sh: EMULATOR_TIER (smoke, full, all;
+# default all) and, for full, EMULATOR_SHARD.
+# shellcheck source=SCRIPTDIR/plan.sh
+source "${root}/tool/emulator/plan.sh"
+tier="${EMULATOR_TIER:-all}"
+if ! mapfile -t flows < <(plan_ids "$tier" "${EMULATOR_SHARD:-}"); then
+  exit 1
+fi
+if [[ ${#flows[@]} -eq 0 ]]; then
+  echo "summarize.sh: no flows planned for tier ${tier}" >&2
+  exit 1
+fi
 
 resolve_outcome="${EMULATOR_RESOLVE_OUTCOME:-success}"
 
 for flow in "${flows[@]}"; do
-  if grep -Eq "^(PASS|FAIL|XFAIL) ${flow}:" "$results"; then
+  if grep -Eq "^(PASS|FAIL|XFAIL|SKIPPED) ${flow}:" "$results"; then
     continue
   fi
   # Whole-flow "NOT RUN <flow>" or a skipped step "NOT RUN <flow>: <step>".
@@ -69,6 +49,10 @@ if [[ "$resolve_outcome" != "failure" ]]; then
       continue
     fi
     if grep -Eq "^FAIL ${flow}:" "$results"; then
+      continue
+    fi
+    # A skipped location-dependent flow reports SKIPPED and needs no PASS.
+    if grep -Eq "^SKIPPED ${flow}:" "$results"; then
       continue
     fi
     printf 'FAIL %s: missing: flow did not pass any step\n' "$flow" | tee -a "$results"
@@ -94,18 +78,19 @@ passes="$(grep -c '^PASS ' "$results" || true)"
 fails="$(grep -c '^FAIL ' "$results" || true)"
 xfails="$(grep -c '^XFAIL ' "$results" || true)"
 not_run="$(grep -c '^NOT RUN ' "$results" || true)"
+skipped="$(grep -c '^SKIPPED ' "$results" || true)"
 
 {
-  echo "### Emulator app test"
+  echo "### Emulator app test (${tier}${EMULATOR_SHARD:+ shard ${EMULATOR_SHARD}})"
   echo
-  echo "${passes} passed, ${fails} failed, ${xfails} expected failures, ${not_run} not run."
+  echo "${passes} passed, ${fails} failed, ${xfails} expected failures, ${not_run} not run, ${skipped} skipped."
   echo
   echo '```'
   cat "$results"
   echo '```'
 } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
 
-echo "${passes} passed, ${fails} failed, ${xfails} expected failures, ${not_run} not run."
+echo "${passes} passed, ${fails} failed, ${xfails} expected failures, ${not_run} not run, ${skipped} skipped."
 if [[ "$fails" -ne 0 ]]; then
   exit 1
 fi

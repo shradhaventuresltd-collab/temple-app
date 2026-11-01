@@ -509,6 +509,38 @@ resolve_package() {
   return 0
 }
 
+app_installed() {
+  [[ -n "${PKG:-}" ]] || return 1
+  adb_shell_capped 15 pm path "$PKG" 2>/dev/null | grep -q '^package:'
+}
+
+# Wipe this app's data between flows on a reused emulator. Same starting
+# state as a fresh install (prefs, databases, caches, runtime grants).
+clear_app_data() {
+  local out
+  out="$(adb_shell_capped 30 pm clear "$PKG" 2>&1 | tr -d '\r')" || true
+  if [[ "$out" != *Success* ]]; then
+    record_fail "pm-clear" "pm clear ${PKG} failed: ${out}"
+    return 1
+  fi
+  return 0
+}
+
+# Undo device-wide settings an earlier flow on this emulator may have left:
+# network (15, 24, 27), screen size/density/font (28), rotation (19, 23,
+# 28), location mode (23). Each call is capped.
+reset_device_state() {
+  network_on || true
+  adb_shell_capped 8 wm size reset >/dev/null 2>&1 || true
+  adb_shell_capped 8 wm density reset >/dev/null 2>&1 || true
+  adb_shell_capped 8 settings put system font_scale 1.0 >/dev/null 2>&1 || true
+  adb_shell_capped 8 settings put system accelerometer_rotation 0 >/dev/null 2>&1 || true
+  adb_shell_capped 8 settings put system user_rotation 0 >/dev/null 2>&1 || true
+  adb_shell_capped 8 settings put secure location_mode 3 >/dev/null 2>&1 || true
+  adb_shell_capped 8 am force-stop "$PKG" >/dev/null 2>&1 || true
+  adb_shell_capped 8 input keyevent KEYCODE_HOME >/dev/null 2>&1 || true
+}
+
 clean_install() {
   adb uninstall "$PKG" >/dev/null 2>&1 || true
   install_apk

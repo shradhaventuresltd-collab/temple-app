@@ -270,8 +270,8 @@ for flow in "${flows[@]}"; do
     echo "workflow is missing ${flow}" >&2
     exit 1
   fi
-  if ! grep -q "$flow" tool/emulator/summarize.sh; then
-    echo "summarize.sh is missing ${flow}" >&2
+  if ! grep -q "\"${flow}|" tool/emulator/plan.sh; then
+    echo "plan.sh is missing ${flow}" >&2
     exit 1
   fi
 done
@@ -833,6 +833,7 @@ fi
 exit 0
 EOF
 chmod +x "$stub_bin/adb"
+# shellcheck disable=SC2030,SC2031 # exports stay inside this subshell on purpose
 (
   set -euo pipefail
   export STUB_ADB_LOG="$cap_dir/adb.log"
@@ -851,5 +852,188 @@ chmod +x "$stub_bin/adb"
   fi
 )
 rm -rf "$cap_dir" "$stub_bin"
+
+# ---- Tiers, shards, skips (Confluence 12353537 C/D/E) ----
+# shellcheck source=SCRIPTDIR/plan.sh
+source tool/emulator/plan.sh
+if [[ "$FLOW_CAP_S" -ne 600 ]] || ! grep -qx "FLOW_BUDGET=${FLOW_CAP_S}" tool/emulator/run_one_flow.sh; then
+  echo "plan.sh FLOW_CAP_S and run_one_flow.sh FLOW_BUDGET must both be 600" >&2
+  exit 1
+fi
+smoke_got="$(plan_ids smoke | tr '\n' ' ')"
+if [[ "$smoke_got" != "01-first-launch 04-home 05-search 08-list-detail 14-back-relaunch 15-offline " ]]; then
+  echo "smoke tier must be flows 01 04 05 08 14 15, got: ${smoke_got}" >&2
+  exit 1
+fi
+for id in $(plan_ids smoke); do
+  if plan_is_skipped "$id"; then
+    echo "smoke flow ${id} must not be skipped" >&2
+    exit 1
+  fi
+done
+if [[ "$(plan_matrix full)" != '["1","2","3","4","5","6"]' || "$(plan_matrix smoke)" != '["smoke"]' ]]; then
+  echo "full must be 6 shards and smoke one job" >&2
+  exit 1
+fi
+all_ids="$(plan_ids all | sort)"
+shard_ids="$(for n in 1 2 3 4 5 6; do plan_ids full "$n"; done | sort)"
+if [[ "$all_ids" != "$shard_ids" ]]; then
+  echo "the 6 shards must cover every flow exactly once" >&2
+  diff <(echo "$all_ids") <(echo "$shard_ids") >&2 || true
+  exit 1
+fi
+if [[ -n "$(printf '%s\n' "$shard_ids" | uniq -d)" ]]; then
+  echo "a flow is in two shards" >&2
+  exit 1
+fi
+if [[ "$(printf '%s\n' "$all_ids" | wc -l)" -ne "${#flows[@]}" ]]; then
+  echo "plan.sh should hold the ${#flows[@]} known flows" >&2
+  exit 1
+fi
+while read -r _id script _part; do
+  if [[ ! -f "$script" ]]; then
+    echo "plan.sh points at a missing script ${script}" >&2
+    exit 1
+  fi
+done < <(plan_flows all)
+for script in tool/emulator/flows/*.sh; do
+  if ! grep -q "|${script}|" tool/emulator/plan.sh; then
+    echo "plan.sh does not run ${script}" >&2
+    exit 1
+  fi
+done
+if [[ "$(plan_flows all | awk '$1 == "29-filter-matrix" { print $3 }')" != a ||
+      "$(plan_flows all | awk '$1 == "30-filter-matrix-rest" { print $3 }')" != b ]]; then
+  echo "flows 29/30 must keep FILTER_MATRIX_PART a/b" >&2
+  exit 1
+fi
+for n in 1 2 3 4 5 6; do
+  active=0
+  for id in $(plan_ids full "$n"); do
+    plan_is_skipped "$id" || active=$((active + 1))
+  done
+  if (( active == 0 || active > 5 )); then
+    echo "shard ${n} should run 1-5 flows that are not skipped, has ${active}" >&2
+    exit 1
+  fi
+done
+for id in 11-near-me 23-near-me-settings-roundtrip 30d-near-me; do
+  if ! (unset EMULATOR_SKIP_FLOWS; plan_is_skipped "$id"); then
+    echo "${id} must stay skipped as location-dependent" >&2
+    exit 1
+  fi
+done
+if EMULATOR_SKIP_FLOWS="" plan_is_skipped 11-near-me; then
+  echo "EMULATOR_SKIP_FLOWS=\"\" should run the location flows" >&2
+  exit 1
+fi
+for bad in "full 0" "full 7" "full x" "nightly"; do
+  # shellcheck disable=SC2086 # split tier and shard on purpose
+  if plan_flows $bad >/dev/null 2>&1; then
+    echo "plan_flows should reject '${bad}'" >&2
+    exit 1
+  fi
+done
+if bash tool/emulator/run_shard.sh full >/dev/null 2>&1; then
+  echo "run_shard.sh full needs a shard number" >&2
+  exit 1
+fi
+dry="$(EMULATOR_SHARD_DRY_RUN=1 EMULATOR_ARTIFACTS="$(mktemp -d)" bash tool/emulator/run_shard.sh full 2)"
+if ! grep -qx 'PLAN 29-filter-matrix tool/emulator/flows/29_filter_matrix.sh a' <<<"$dry" ||
+   [[ "$(grep -c '^PLAN ' <<<"$dry")" -ne "$(plan_ids full 2 | wc -l)" ]]; then
+  echo "run_shard.sh dry run should list shard 2 with its matrix part" >&2
+  echo "$dry" >&2
+  exit 1
+fi
+if ! grep -q 'EMULATOR_REUSE_INSTALL=1' tool/emulator/run_shard.sh ||
+   ! grep -q 'clear_app_data' tool/emulator/run_one_flow.sh ||
+   ! grep -q 'reset_device_state' tool/emulator/run_one_flow.sh; then
+  echo "a reused emulator must reset the device and pm clear between flows" >&2
+  exit 1
+fi
+
+# Skipped flow: SKIPPED line, no START, and the summary stays green.
+skipf_dir="$(mktemp -d)"
+EMULATOR_ARTIFACTS="$skipf_dir" EMULATOR_PACKAGE=com.example \
+  bash tool/emulator/run_one_flow.sh 11-near-me tool/emulator/flows/11_near_me.sh >/dev/null
+if ! grep -q '^SKIPPED 11-near-me: location-dependent' "$skipf_dir/results.txt" ||
+   grep -q '^START 11-near-me' "$skipf_dir/results.txt"; then
+  echo "a skipped flow should write SKIPPED and not start" >&2
+  cat "$skipf_dir/results.txt" >&2
+  exit 1
+fi
+: > "$skipf_dir/results.txt"
+for id in $(plan_ids full 3); do
+  if plan_is_skipped "$id"; then
+    printf 'SKIPPED %s: location-dependent\n' "$id" >> "$skipf_dir/results.txt"
+  else
+    printf 'START %s\nPASS %s: ok\nDONE %s\n' "$id" "$id" "$id" >> "$skipf_dir/results.txt"
+  fi
+done
+if ! EMULATOR_ARTIFACTS="$skipf_dir" EMULATOR_TIER=full EMULATOR_SHARD=3 GITHUB_STEP_SUMMARY=/dev/null \
+  bash tool/emulator/summarize.sh > "$skipf_dir/out" 2>&1; then
+  echo "a SKIPPED flow must not fail the shard summary" >&2
+  cat "$skipf_dir/out" >&2
+  exit 1
+fi
+if ! grep -q '1 skipped' "$skipf_dir/out"; then
+  echo "summary should count skipped flows" >&2
+  exit 1
+fi
+# Shard summary expects only its own flows; flow 01 is in shard 1.
+if grep -q '^FAIL 01-first-launch' "$skipf_dir/results.txt"; then
+  echo "shard 3 summary should not require flows from other shards" >&2
+  exit 1
+fi
+if EMULATOR_ARTIFACTS="$skipf_dir" EMULATOR_TIER=all GITHUB_STEP_SUMMARY=/dev/null \
+  bash tool/emulator/summarize.sh >/dev/null 2>&1; then
+  echo "tier all summary must fail when shard 1 flows are missing" >&2
+  exit 1
+fi
+rm -rf "$skipf_dir"
+
+# pm clear and device reset against a stub adb.
+reuse_dir="$(mktemp -d)"
+reuse_bin="$(mktemp -d)"
+cat > "$reuse_bin/adb" << 'STUB'
+#!/bin/bash
+printf '%s\n' "$*" >> "${STUB_ADB_LOG:?}"
+case "$*" in
+  "shell pm path com.example.temple") echo "package:/data/app/base.apk" ;;
+  "shell pm clear com.example.temple") [[ -n "${STUB_PM_FAIL:-}" ]] && echo "Failed" || echo "Success" ;;
+esac
+exit 0
+STUB
+chmod +x "$reuse_bin/adb"
+# shellcheck disable=SC2030,SC2031 # exports stay inside this subshell on purpose
+(
+  set -euo pipefail
+  export STUB_ADB_LOG="$reuse_dir/adb.log"
+  export PATH="$reuse_bin:$PATH"
+  export EMULATOR_FLOW=04-home
+  export EMULATOR_ARTIFACTS="$reuse_dir"
+  export EMULATOR_PACKAGE=com.example.temple
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  : > "$RESULTS"
+  app_installed
+  reset_device_state
+  clear_app_data
+  for want in "shell wm size reset" "shell settings put system user_rotation 0" \
+    "shell settings put secure location_mode 3" "shell pm clear com.example.temple"; do
+    grep -qx "$want" "$STUB_ADB_LOG" || { echo "reset should run: ${want}" >&2; exit 1; }
+  done
+  if STUB_PM_FAIL=1 clear_app_data; then
+    echo "a failed pm clear must fail the flow" >&2
+    exit 1
+  fi
+  grep -q '^FAIL 04-home: pm-clear:' "$RESULTS"
+  EMULATOR_PACKAGE="" PKG=other.pkg
+  if app_installed; then
+    echo "app_installed should be false for a package pm path does not know" >&2
+    exit 1
+  fi
+)
+rm -rf "$reuse_dir" "$reuse_bin"
 
 echo "emulator self-test ok"
