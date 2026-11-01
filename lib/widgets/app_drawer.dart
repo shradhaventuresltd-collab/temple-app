@@ -680,10 +680,14 @@ class TempleListScreen extends StatefulWidget {
     this.deityFilter,
     this.districtFilter,
     this.loadFailed = false,
+    @visibleForTesting this.retryLoader,
   });
 
   final List<Temple> temples;
   final String title;
+
+  /// Test seam for "Try again". Defaults to [TempleService.loadDirectory].
+  final Future<List<Temple>> Function()? retryLoader;
 
   /// Query already chosen in the drawer. The list applies it on top of [temples].
   final String initialQuery;
@@ -734,13 +738,32 @@ class _TempleListScreenState extends State<TempleListScreen> {
     setState(() => _shown = rows);
   }
 
+  /// True while a retry load is in flight, so a double tap starts one load.
+  bool _retrying = false;
+
   Future<void> _retrySavedList() async {
+    if (_retrying) return;
+    _retrying = true;
     try {
-      final rows = await TempleService().loadDirectory();
+      final load = widget.retryLoader ?? TempleService().loadDirectory;
+      final rows = await load();
       if (!mounted) return;
       setState(() => _shown = rows);
     } catch (e, st) {
       debugPrint('Saved list retry failed: $e\n$st');
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)
+        ?..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            key: Key('temple-list-retry-failed'),
+            content: Text(
+              'Still could not load temples. Check your connection and try again.',
+            ),
+          ),
+        );
+    } finally {
+      _retrying = false;
     }
   }
 
@@ -1421,10 +1444,14 @@ class _BrowseMessage extends StatelessWidget {
             ),
             if (onRetry != null) ...[
               const SizedBox(height: 12),
-              TextButton(
-                key: const Key('browse-load-failed-retry'),
-                onPressed: onRetry,
-                child: const Text('Try again'),
+              Semantics(
+                identifier: 'temple-list-try-again',
+                button: true,
+                child: TextButton(
+                  key: const Key('browse-load-failed-retry'),
+                  onPressed: onRetry,
+                  child: const Text('Try again'),
+                ),
               ),
             ],
           ],
