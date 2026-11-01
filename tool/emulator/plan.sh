@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Which emulator flows run in which tier and shard (Confluence 12353537).
 #
-#   smoke  six flows, one job, on every pull request
-#   full   every flow, six parallel shards, on merge to main, nightly,
-#          and when a pre-release is published
+#   smoke  six flows, one job, on non-draft pull requests (path-filtered)
+#   full   every flow, six parallel shards, on workflow_dispatch and
+#          when a release or pre-release is published
 #   all    every flow in one sequential list (local runs, summary job)
 #
 # Usage:

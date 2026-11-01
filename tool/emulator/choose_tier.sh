@@ -2,9 +2,7 @@
 # Pick the emulator tier for this workflow event and write tier= and
 # matrix= to GITHUB_OUTPUT.
 #   pull_request        smoke (6 flows, one job)
-#   push to main        full (6 shards)
-#   schedule (nightly)  full
-#   release prereleased full
+#   release published   full (6 shards); covers pre-releases
 #   workflow_dispatch   the tier input, default full
 set -euo pipefail
 
@@ -14,7 +12,7 @@ input="${INPUT_TIER:-}"
 
 case "$event" in
   pull_request) tier=smoke ;;
-  push | schedule | release) tier=full ;;
+  release) tier=full ;;
   workflow_dispatch)
     tier="${input:-full}"
     ;;

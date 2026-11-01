@@ -5,12 +5,13 @@ name: emulator-app-test
 #   build     builds (or fetches) the APK once and uploads it as the
 #             emulator-apk artifact. Test jobs download it; they do not
 #             run Flutter or Gradle.
-#   emulator  smoke tier (6 flows, one job) on pull requests; the full
-#             suite as 6 parallel shards on merge to main, nightly, and
-#             when a pre-release is published. Each job boots the emulator
+#   emulator  smoke tier (6 flows, one job) on non-draft pull requests;
+#             the full suite as 6 parallel shards on workflow_dispatch and
+#             when a release or pre-release is published. Each job boots the emulator
 #             once from the cached AVD snapshot, then runs its flows with
 #             pm clear between them (tool/emulator/run_shard.sh).
-#   summary   merges every shard's results into one table.
+#   summary   merges every shard's results, prints the tested 40-char SHA
+#             (release gate), and fails on any FAIL or failed shard.
 #
 # Caps: picker give-up 20s, 600s per flow, every step has timeout-minutes.
 # Flows 11, 23 (and 30d once it exists) are skipped as location-dependent.
@@ -59,34 +60,24 @@ on:
       - 'test/**'
       - 'integration_test/**'
       - 'android/**'
-      - 'tool/emulator/**'
-      - '.github/workflows/emulator-app-test.yml'
-  push:
-    branches:
-      - main
-    paths:
-      - 'lib/**'
-      - 'android/**'
       - 'assets/**'
       - 'pubspec.*'
       - 'tool/emulator/**'
       - '.github/workflows/emulator-app-test.yml'
-  schedule:
-    # Nightly 02:00 IST (UTC+5:30). The gate job skips it when main's
-    # HEAD already had a green full run (tool/emulator/nightly_gate.sh).
-    - cron: '30 20 * * *'
+  # Full suite before a release: publishing a release or pre-release.
+  # (published fires once per release, pre-releases included.)
   release:
-    types: [prereleased]
+    types: [published]
 
 permissions:
   contents: read
   actions: read
 
-# One run per ref (PR number for pull requests): a newer run on the same
-# ref cancels the older one.
+# One group per event and ref (PR number for pull requests). Only a newer
+# pull request run cancels an older one; release and dispatch runs finish.
 concurrency:
-  group: emulator-app-test-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: emulator-app-test-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   gate:
@@ -100,23 +91,24 @@ jobs:
         timeout-minutes: 5
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      # schedule only: skip when main is unchanged since the last green full
-      # run. 30s lookup cap; any error runs the tests (fail-open).
-      - name: Nightly skip check
+      # Draft PRs never reach this job (the if above). Everything else runs.
+      # Downstream jobs fail open: a failed gate still runs the tests.
+      - name: Gate
         id: gate
-        timeout-minutes: 2
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: bash tool/emulator/nightly_gate.sh
+        timeout-minutes: 1
+        run: echo "run=true" >> "$GITHUB_OUTPUT"
 
+  # Fail open: a failed gate still runs the tests. Only a skipped gate
+  # (draft PR) or an explicit run=false skips them.
   build:
     needs: gate
-    if: needs.gate.outputs.run == 'true'
+    if: ${{ !cancelled() && needs.gate.result != 'skipped' && needs.gate.outputs.run != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     outputs:
       tier: ${{ steps.tier.outputs.tier }}
       matrix: ${{ steps.tier.outputs.matrix }}
+      tested_sha: ${{ steps.tested-sha.outputs.sha }}
     steps:
       - name: Checkout workflow scripts
         timeout-minutes: 5
@@ -225,6 +217,25 @@ jobs:
         timeout-minutes: 2
         run: bash tool/emulator/locate_apk.sh
 
+      # The commit the APK came from: the built checkout, or this run's
+      # commit for apk_url / artifact inputs (APK source noted).
+      - name: Record tested SHA
+        id: tested-sha
+        timeout-minutes: 1
+        env:
+          MODE: ${{ steps.plan.outputs.mode }}
+          RUN_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$MODE" == build ]]; then
+            sha="$(git -C build-src rev-parse HEAD)"
+          else
+            sha="$RUN_SHA"
+          fi
+          [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || { echo "not a full SHA: ${sha}" >&2; exit 1; }
+          printf 'sha=%s\nsource=%s\n' "$sha" "$MODE" >> "$GITHUB_OUTPUT"
+          echo "Tested SHA ${sha} (APK source: ${MODE})"
+
       # Only the APK goes into the artifact: no build tree, no keys.
       - name: Stage APK
         timeout-minutes: 2
@@ -247,7 +258,8 @@ jobs:
 
   emulator:
     name: emulator ${{ matrix.shard }}
-    needs: build
+    needs: [gate, build]
+    if: ${{ !cancelled() && needs.gate.result != 'skipped' && needs.gate.outputs.run != 'false' && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
     # Worst case is plan.sh need-minutes plus setup; see self_test.sh.
     timeout-minutes: ${{ matrix.shard == 'smoke' && 100 || 90 }}
@@ -412,8 +424,8 @@ jobs:
           key: system-image-android-30-google_apis-x86_64
 
   summary:
-    needs: [build, emulator]
-    if: always() && needs.build.result == 'success'
+    needs: [gate, build, emulator]
+    if: ${{ !cancelled() && needs.gate.result != 'skipped' && needs.gate.outputs.run != 'false' && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -442,8 +454,33 @@ jobs:
           done
           grep '^TIME ' emulator-app-test-artifacts/results.txt | sort -k3 -rn || true
 
+      # Shard flow steps use continue-on-error, but each shard's summary
+      # step fails its job on any FAIL. This job fails too: on any FAIL in
+      # the merged results (summarize.sh exits 1) and on any shard job that
+      # did not succeed. SKIPPED and XFAIL do not fail it.
+      - name: Record tested SHA (release gate)
+        timeout-minutes: 1
+        env:
+          TESTED_SHA: ${{ needs.build.outputs.tested_sha }}
+          TIER: ${{ needs.build.outputs.tier }}
+        run: |
+          set -euo pipefail
+          [[ "$TESTED_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "build did not report a full SHA: '${TESTED_SHA}'" >&2; exit 1; }
+          echo "Emulator ${TIER} suite ran on ${TESTED_SHA}"
+          tick='`'
+          printf '### Release gate\n\nEmulator **%s** suite ran on commit %s%s%s.\n\n' "$TIER" "$tick" "$TESTED_SHA" "$tick" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Write combined summary
         timeout-minutes: 5
         env:
           EMULATOR_TIER: ${{ needs.build.outputs.tier == 'smoke' && 'smoke' || 'all' }}
         run: bash tool/emulator/summarize.sh
+
+      - name: Fail if any shard failed
+        if: ${{ needs.emulator.result != 'success' }}
+        timeout-minutes: 1
+        env:
+          SHARDS_RESULT: ${{ needs.emulator.result }}
+        run: |
+          echo "emulator shard jobs finished with result: ${SHARDS_RESULT}" >&2
+          exit 1

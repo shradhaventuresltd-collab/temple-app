@@ -11,7 +11,7 @@ Flows 17 and 19 call `select_labeled`, `apply_sheet`, `chip_exact`, `recover_she
 `tool/emulator/plan.sh` is the one list of flows (Confluence page 12353537):
 
 - **smoke**: flows 01, 04, 05, 08, 14, 15 in one job, on every non-draft pull request.
-- **full**: every flow in 6 parallel shards, on merge to main, nightly (02:00 IST), and when a pre-release is published. `workflow_dispatch` picks either tier.
+- **full**: every flow in 6 parallel shards, on `workflow_dispatch` (which can also pick smoke) and when a release or pre-release is published. The summary prints the tested 40-char SHA as the release gate.
 - Flows 11 and 23 (and 30d once the split matrix lands) are skipped as location-dependent and report `SKIPPED`. `EMULATOR_SKIP_FLOWS=""` runs them.
 
 The `build` job builds the debug APK once and uploads it as the `emulator-apk` artifact. Each emulator job boots the emulator once from the cached AVD snapshot and runs `tool/emulator/run_shard.sh <tier> [shard]`. The first flow installs the APK. Every later flow resets device settings and runs `pm clear` instead of a reboot and reinstall.

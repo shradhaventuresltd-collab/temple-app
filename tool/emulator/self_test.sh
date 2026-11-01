@@ -184,18 +184,35 @@ for job in gate build emulator summary; do
     exit 1
   fi
 done
-for trigger in 'workflow_dispatch:' 'pull_request:' 'push:' 'schedule:' 'release:'; do
-  if ! grep -Eq "^  ${trigger}" "$workflow"; then
-    echo "workflow should trigger on ${trigger%:}" >&2
-    exit 1
-  fi
-done
-if ! grep -Fq 'types: [prereleased]' "$workflow"; then
-  echo "pre-release runs should use release types [prereleased]" >&2
+# Triggers (Sanu): smoke on PRs; full only on dispatch and release.
+on_keys="$(awk '/^on:$/ { o = 1; next } o && /^[a-z]/ { exit } o && /^  [a-z_]+:/ { sub(/:.*/, ""); sub(/^  /, ""); print }' "$workflow" | tr '\n' ' ')"
+if [[ "$on_keys" != "workflow_dispatch pull_request release " ]]; then
+  echo "triggers should be exactly workflow_dispatch, pull_request, release; got: ${on_keys}" >&2
   exit 1
 fi
-if ! awk '/^  push:/ { p = 1 } p && /- main$/ { f = 1 } p && /^  [a-z_]+:$/ && !/push/ { exit } END { exit !f }' "$workflow"; then
-  echo "push should run only on main" >&2
+if grep -Eq '^\s+(schedule|push):|cron:' "$workflow"; then
+  echo "no push-to-main or nightly schedule: the full suite runs on dispatch and release only" >&2
+  exit 1
+fi
+if ! grep -Fq 'types: [published]' "$workflow"; then
+  echo "release runs should use types [published] (covers pre-releases)" >&2
+  exit 1
+fi
+if [[ -e tool/emulator/nightly_gate.sh ]]; then
+  echo "nightly_gate.sh should be gone with the nightly schedule" >&2
+  exit 1
+fi
+# Release gate: summary prints the tested 40-char SHA.
+# shellcheck disable=SC2016 # literal workflow text
+if ! grep -Fq 'tested_sha: ${{ steps.tested-sha.outputs.sha }}' "$workflow" ||
+   ! grep -Fq 'TESTED_SHA: ${{ needs.build.outputs.tested_sha }}' "$workflow" ||
+   ! grep -Fq 'sha="$(git -C build-src rev-parse HEAD)"' "$workflow" ||
+   ! grep -q 'GITHUB_STEP_SUMMARY' <<<"$(awk '/name: Record tested SHA \(release gate\)/ { n = 1 } n { print } n && /^      - name: Write/ { exit }' "$workflow")"; then
+  echo "summary should print the tested full SHA from the build job" >&2
+  exit 1
+fi
+if [[ "$(grep -c '\^\[0-9a-f\]{40}\$' "$workflow")" -lt 2 ]]; then
+  echo "tested SHA must be validated as 40 hex characters in build and summary" >&2
   exit 1
 fi
 if [[ "$(grep -c 'uses: reactivecircus/android-emulator-runner@' "$workflow")" -ne 2 ]]; then
@@ -291,69 +308,78 @@ if ! grep -Fq 'shard: ${{ fromJSON(needs.build.outputs.matrix) }}' "$workflow" |
 fi
 # shellcheck disable=SC2016 # literal workflow text
 # Guardrails (architect, PR #126 review).
-# (1) one concurrency group per ref, newer run cancels the older one.
+# (1) concurrency per event and ref; only pull request runs cancel.
 # shellcheck disable=SC2016 # literal workflow text
-if ! grep -Fxq '  group: emulator-app-test-${{ github.event.pull_request.number || github.ref }}' "$workflow" ||
-   ! grep -Fxq '  cancel-in-progress: true' "$workflow"; then
-  echo "concurrency should be per ref with cancel-in-progress: true" >&2
+if ! grep -Fxq '  group: emulator-app-test-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}' "$workflow" ||
+   ! grep -Fxq "  cancel-in-progress: \${{ github.event_name == 'pull_request' }}" "$workflow"; then
+  echo "concurrency group needs event_name and ref; cancel-in-progress only for pull_request" >&2
   exit 1
 fi
 # (2) PR smoke: non-draft and only for app/test/CI paths.
 pr_paths="$(awk '/^  pull_request:/ { p = 1; next } p && /^  [a-z_]+:/ { exit } p && /^      - / { print $2 }' "$workflow" | tr '\n' ' ')"
-if [[ "$pr_paths" != "'lib/**' 'test/**' 'integration_test/**' 'android/**' 'tool/emulator/**' '.github/workflows/emulator-app-test.yml' " ]]; then
-  echo "pull_request paths should be lib, test, integration_test, android, and the emulator CI files; got: ${pr_paths}" >&2
+if [[ "$pr_paths" != "'lib/**' 'test/**' 'integration_test/**' 'android/**' 'assets/**' 'pubspec.*' 'tool/emulator/**' '.github/workflows/emulator-app-test.yml' " ]]; then
+  echo "pull_request paths should be lib, test, integration_test, android, assets, pubspec, and the emulator CI files; got: ${pr_paths}" >&2
   exit 1
 fi
-if ! awk '/^  gate:$/ { g = 1 } g && /if: github.event_name != .pull_request. \|\| !github.event.pull_request.draft/ { f = 1 } END { exit !f }' "$workflow" ||
-   ! grep -Fq "if: needs.gate.outputs.run == 'true'" "$workflow"; then
-  echo "draft PRs must be skipped by the gate, and build must need the gate" >&2
+if ! awk '/^  gate:$/ { g = 1 } g && /if: github.event_name != .pull_request. \|\| !github.event.pull_request.draft/ { f = 1 } END { exit !f }' "$workflow"; then
+  echo "draft PRs must be skipped by the gate" >&2
   exit 1
 fi
+# (3) jobs after the gate fail open: they skip only on a skipped gate or
+# run=false, never because the gate job failed.
+fail_open="!cancelled() && needs.gate.result != 'skipped' && needs.gate.outputs.run != 'false'"
+for job in build emulator summary; do
+  job_if="$(awk -v job="$job" '$0 == "  " job ":" { j = 1; next } j && /^  [a-z][a-z-]*:$/ { exit } j && /^    if: / { sub(/^    if: /, ""); print; exit }' "$workflow")"
+  job_needs="$(awk -v job="$job" '$0 == "  " job ":" { j = 1; next } j && /^  [a-z][a-z-]*:$/ { exit } j && /^    needs: / { print; exit }' "$workflow")"
+  if [[ "$job_if" != "\${{ ${fail_open}"* || "$job_needs" != *gate* ]]; then
+    echo "job ${job} must need gate and use the fail-open condition, got: ${job_if}" >&2
+    exit 1
+  fi
+done
+if grep -Fq "needs.gate.outputs.run == 'true'" "$workflow"; then
+  echo "a failed gate (no output) must not skip the tests" >&2
+  exit 1
+fi
+# Summary must go red on any real failure despite continue-on-error.
+summary_job="$(awk '/^  summary:$/ { j = 1 } j { print }' "$workflow")"
+if grep -q 'continue-on-error' <<<"$(awk '/name: Write combined summary/ { n = 1 } n { print } n && /run: bash tool\/emulator\/summarize.sh/ { exit }' <<<"$summary_job")"; then
+  echo "the combined summary step must not use continue-on-error" >&2
+  exit 1
+fi
+if ! grep -Fq "if: \${{ needs.emulator.result != 'success' }}" <<<"$summary_job" ||
+   ! grep -q 'exit 1' <<<"$summary_job"; then
+  echo "summary job should fail when a shard job did not succeed" >&2
+  exit 1
+fi
+if ! awk '/name: Write results summary/ { n = 1 } n && /continue-on-error/ { bad = 1 } n && /run: bash tool\/emulator\/summarize.sh/ { exit !(!bad) }' "$workflow"; then
+  echo "the shard summary step must not use continue-on-error" >&2
+  exit 1
+fi
+merged_dir="$(mktemp -d)"
+(
+  # shellcheck source=SCRIPTDIR/plan.sh
+  source tool/emulator/plan.sh
+  for id in $(plan_ids all); do
+    if plan_is_skipped "$id"; then
+      printf 'SKIPPED %s: location-dependent\n' "$id"
+    else
+      printf 'START %s\nPASS %s: ok\nDONE %s\n' "$id" "$id" "$id"
+    fi
+  done
+) > "$merged_dir/results.txt"
+if ! EMULATOR_ARTIFACTS="$merged_dir" EMULATOR_TIER=all GITHUB_STEP_SUMMARY=/dev/null bash tool/emulator/summarize.sh >/dev/null 2>&1; then
+  echo "a merged all-green run with SKIPPED flows should pass" >&2
+  exit 1
+fi
+printf 'FAIL 05-search: query: no results\n' >> "$merged_dir/results.txt"
+if EMULATOR_ARTIFACTS="$merged_dir" EMULATOR_TIER=all GITHUB_STEP_SUMMARY=/dev/null bash tool/emulator/summarize.sh >/dev/null 2>&1; then
+  echo "combined summary must exit non-zero when a non-skipped flow fails" >&2
+  exit 1
+fi
+rm -rf "$merged_dir"
 # (4) manual runs stay available.
 if ! grep -Eq '^  workflow_dispatch:' "$workflow"; then
   echo "workflow_dispatch must stay" >&2
-  exit 1
-fi
-# (3) nightly skip when main is unchanged since the last green full run.
-gate_bin="$(mktemp -d)"
-cat > "$gate_bin/gh" << 'STUB'
-#!/bin/bash
-[[ -n "${STUB_GH_FAIL:-}" ]] && exit 1
-[[ -n "${STUB_GH_HANG:-}" ]] && sleep 5
-[[ "$*" == *"status=success"* && "$*" == *'select(.event == "push" or .event == "schedule")'* ]] || exit 3
-echo "${STUB_GH_SHA:-}"
-STUB
-chmod +x "$gate_bin/gh"
-sha_a=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-sha_b=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
-gate() { PATH="$gate_bin:$PATH" GITHUB_REPOSITORY=o/r GITHUB_OUTPUT=/dev/null NIGHTLY_GATE_TIMEOUT_S=1 "$@" bash tool/emulator/nightly_gate.sh; }
-expect_gate() {
-  local want="$1" got
-  shift
-  got="$(gate env "$@" | head -1)"
-  if [[ "$got" != "run=${want} "* ]]; then
-    echo "nightly gate ($*) should give run=${want}, got: ${got}" >&2
-    exit 1
-  fi
-}
-expect_gate false GITHUB_EVENT_NAME=schedule GITHUB_SHA="$sha_a" STUB_GH_SHA="$sha_a"
-expect_gate true GITHUB_EVENT_NAME=schedule GITHUB_SHA="$sha_b" STUB_GH_SHA="$sha_a"
-expect_gate true GITHUB_EVENT_NAME=schedule GITHUB_SHA="$sha_a" STUB_GH_FAIL=1
-expect_gate true GITHUB_EVENT_NAME=schedule GITHUB_SHA="$sha_a" STUB_GH_HANG=1 STUB_GH_SHA="$sha_a"
-expect_gate true GITHUB_EVENT_NAME=schedule GITHUB_SHA="$sha_a" STUB_GH_SHA=""
-for ev in push pull_request workflow_dispatch release; do
-  expect_gate true GITHUB_EVENT_NAME="$ev" GITHUB_SHA="$sha_a" STUB_GH_SHA="$sha_a"
-done
-gate_out="$(mktemp)"
-PATH="$gate_bin:$PATH" GITHUB_REPOSITORY=o/r GITHUB_OUTPUT="$gate_out" GITHUB_EVENT_NAME=schedule \
-  GITHUB_SHA="$sha_a" STUB_GH_SHA="$sha_a" bash tool/emulator/nightly_gate.sh >/dev/null
-if [[ "$(cat "$gate_out")" != "run=false" ]]; then
-  echo "nightly gate should write exactly run=false to GITHUB_OUTPUT" >&2
-  exit 1
-fi
-rm -rf "$gate_bin" "$gate_out"
-if ! awk '/name: Nightly skip check/ { n = 1 } n && /timeout-minutes: 2/ { t = 1 } n && /GH_TOKEN: \$\{\{ github.token \}\}/ { k = 1 } END { exit !(t && k) }' "$workflow"; then
-  echo "nightly gate step needs a timeout and the run token" >&2
   exit 1
 fi
 # shellcheck disable=SC2016 # literal workflow text
@@ -385,7 +411,7 @@ if (( job_smoke < step_smoke + 20 || job_full < step_full + 20 )); then
 fi
 # Tier choice per event.
 tier_out="$(mktemp)"
-for pair in pull_request:smoke push:full schedule:full release:full workflow_dispatch:full; do
+for pair in pull_request:smoke release:full workflow_dispatch:full; do
   : > "$tier_out"
   GITHUB_EVENT_NAME="${pair%%:*}" GITHUB_OUTPUT="$tier_out" INPUT_TIER="" bash tool/emulator/choose_tier.sh >/dev/null
   if ! grep -qx "tier=${pair##*:}" "$tier_out"; then
@@ -397,12 +423,18 @@ done
 GITHUB_EVENT_NAME=workflow_dispatch GITHUB_OUTPUT="$tier_out" INPUT_TIER=smoke bash tool/emulator/choose_tier.sh >/dev/null
 grep -qx 'matrix=\["smoke"\]' "$tier_out"
 : > "$tier_out"
-GITHUB_EVENT_NAME=push GITHUB_OUTPUT="$tier_out" bash tool/emulator/choose_tier.sh >/dev/null
+GITHUB_EVENT_NAME=release GITHUB_OUTPUT="$tier_out" bash tool/emulator/choose_tier.sh >/dev/null
 grep -qx 'matrix=\["1","2","3","4","5","6"\]' "$tier_out"
 if GITHUB_EVENT_NAME=workflow_dispatch INPUT_TIER=everything bash tool/emulator/choose_tier.sh >/dev/null 2>&1; then
   echo "choose_tier.sh should reject an unknown tier" >&2
   exit 1
 fi
+for ev in push schedule; do
+  if GITHUB_EVENT_NAME="$ev" bash tool/emulator/choose_tier.sh >/dev/null 2>&1; then
+    echo "choose_tier.sh should reject ${ev}: it is no longer a trigger" >&2
+    exit 1
+  fi
+done
 rm -f "$tier_out"
 
 
