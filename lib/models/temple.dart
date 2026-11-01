@@ -22,6 +22,8 @@ class Temple {
     this.indexTradition,
     this.indexFraming,
     this.coverCaption,
+    this.timingsVerified,
+    this.timingsSourceUrl,
   }) : _timings = timings;
 
   final String id;
@@ -71,6 +73,29 @@ class Temple {
   /// the card then reads [photos].
   final String? coverCaption;
 
+  /// Optional `temples/{id}.timingsVerified`. Read-only in the app; never
+  /// written by [toFirestoreData]. Null (missing) is treated like verified so
+  /// older docs without the field show no "unverified" label.
+  final bool? timingsVerified;
+
+  /// Optional `temples/{id}.timingsSourceUrl`. Read-only in the app.
+  final String? timingsSourceUrl;
+
+  /// True only when the doc explicitly says the timings are not verified.
+  bool get timingsUnverified => timingsVerified == false;
+
+  /// [timingsSourceUrl] when it is an absolute http(s) URL, else null.
+  Uri? get timingsSourceUri {
+    final raw = timingsSourceUrl?.trim() ?? '';
+    if (raw.isEmpty) return null;
+    final uri = Uri.tryParse(raw);
+    if (uri == null || !(uri.scheme == 'http' || uri.scheme == 'https')) {
+      return null;
+    }
+    if (uri.host.isEmpty) return null;
+    return uri;
+  }
+
   bool get isIndexSummary => indexTradition != null && indexFraming != null;
 
   /// Null when the listing has no coordinates. (0, 0) is that missing pair,
@@ -115,6 +140,12 @@ class Temple {
       images: _stringList(data['images']),
       photos: _photoList(data['photos']),
       tradition: templeTraditionField(data['tradition']),
+      timingsVerified: data['timingsVerified'] is bool
+          ? data['timingsVerified'] as bool
+          : null,
+      timingsSourceUrl: data['timingsSourceUrl'] is String
+          ? data['timingsSourceUrl'] as String
+          : null,
       latitude: _coordinatePair(data).lat,
       longitude: _coordinatePair(data).lng,
     );
@@ -183,6 +214,8 @@ class Temple {
     String? coverCaption,
     double? latitude,
     double? longitude,
+    bool? timingsVerified,
+    String? timingsSourceUrl,
   }) {
     return Temple(
       id: id ?? this.id,
@@ -205,6 +238,8 @@ class Temple {
       coverCaption: coverCaption ?? this.coverCaption,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
+      timingsVerified: timingsVerified ?? this.timingsVerified,
+      timingsSourceUrl: timingsSourceUrl ?? this.timingsSourceUrl,
     );
   }
 
