@@ -65,7 +65,7 @@ else
   echo "::warning::no Pkg.Revision in ${props}; using a one-run AVD cache key"
 fi
 
-key="avd-${EMULATOR_API_LEVEL}-${EMULATOR_TARGET}-${EMULATOR_ARCH}-${image}-cores${cores}-disk${EMULATOR_DISK_SIZE}-emu${EMULATOR_BUILD}-${EMULATOR_AVD_NAME}-clean"
+key="avd-${EMULATOR_API_LEVEL}-${EMULATOR_TARGET}-${EMULATOR_ARCH}-${image}-cores${cores}-disk${EMULATOR_DISK_SIZE}-emu${EMULATOR_BUILD}-${EMULATOR_AVD_NAME}-clean-cfg2"
 {
   echo "EMULATOR_CORES=${cores}"
   echo "EMULATOR_SYSIMG_REVISION=${rev}"

@@ -280,13 +280,12 @@ jobs:
       EMULATOR_FORCE_AVD_CREATION: false
       EMULATOR_DISABLE_ANIMATIONS: true
       EMULATOR_BOOT_TIMEOUT: "300"
-      # One boot per job from the clean cached snapshot. -no-snapshot-save
-      # keeps the cache clean; app data is cleared with pm clear between
-      # flows instead of -wipe-data on every boot.
+      # One boot per job from the clean cached snapshot. Both boots (snapshot
+      # creation and the flow run) use these exact options. -no-snapshot-save
+      # keeps every exit from writing back; snapshot_create.sh saves the
+      # snapshot explicitly (adb emu avd snapshot save default_boot). App
+      # data is cleared with pm clear between flows instead of -wipe-data.
       EMULATOR_OPTIONS: -no-window -gpu swiftshader_indirect -no-snapshot-save -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
-      # Snapshot generation is allowed to save. It does not wipe, and it does
-      # not install an app.
-      EMULATOR_SNAPSHOT_OPTIONS: -no-window -gpu swiftshader_indirect -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
       # Emulator binary pinned. "Install latest emulator" moved from 37.2.12.0
       # (16428233, which saved the cached snapshot on 2026-10-25) to 37.2.13.0
       # (16740729) and every job then logged "cannot load snapshot ...
@@ -365,9 +364,9 @@ jobs:
           disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
           emulator-build: ${{ env.EMULATOR_BUILD }}
           emulator-boot-timeout: 600
-          emulator-options: ${{ env.EMULATOR_SNAPSHOT_OPTIONS }}
-          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
-          script: echo "Generated AVD snapshot for caching."
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }} create
+          script: bash tool/emulator/snapshot_create.sh
 
       # The snapshot must have booted on the image revision in the key.
       - name: Check system image revision
@@ -394,6 +393,7 @@ jobs:
       # the summary step decides pass/fail. !cancelled() skips only on a
       # real cancellation.
       - name: Run emulator flows
+        id: flows
         if: ${{ !cancelled() && steps.resolve-apk.outcome == 'success' }}
         timeout-minutes: ${{ matrix.shard == 'smoke' && 75 || 65 }}
         continue-on-error: true
@@ -410,7 +410,7 @@ jobs:
           emulator-build: ${{ env.EMULATOR_BUILD }}
           emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
           emulator-options: ${{ env.EMULATOR_OPTIONS }}
-          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }} run
           script: bash tool/emulator/run_shard.sh ${{ needs.build.outputs.tier }} ${{ matrix.shard != 'smoke' && matrix.shard || '' }}
 
       - name: Write results summary
@@ -429,6 +429,19 @@ jobs:
           path: emulator-app-test-artifacts
           retention-days: 14
           if-no-files-found: warn
+
+      # AVD config files from both boots (prepare_avd.sh, snapshot_create.sh,
+      # run_shard.sh), for diffing a "different AVD configuration" cold boot.
+      - name: Upload AVD config (cold boot or failure)
+        if: ${{ always() && (env.EMULATOR_BOOT != 'snapshot' || steps.flows.outcome != 'success') }}
+        timeout-minutes: 5
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: emulator-avd-ini-${{ matrix.shard }}
+          path: ${{ runner.temp }}/avd-ini
+          retention-days: 14
+          if-no-files-found: ignore
 
       - name: Save emulator system image
         if: always() && (matrix.shard == '1' || matrix.shard == 'smoke') && steps.system-image-cache.outcome == 'success' && steps.system-image-cache.outputs.cache-hit != 'true'
@@ -483,6 +496,13 @@ jobs:
         # apk_url / artifact runs print "SHA UNVERIFIED, not valid as
         # release gate": the SHA is the run's commit, not the APK's.
         run: bash tool/emulator/release_gate.sh "$TIER" "$TESTED_SHA" "$APK_SOURCE"
+
+      - name: Boot log check
+        timeout-minutes: 3
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash tool/emulator/boot_log_check.sh
 
       - name: Write combined summary
         timeout-minutes: 5

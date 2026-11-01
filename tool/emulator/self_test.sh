@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2030,SC2031 # test fixtures export env inside subshells on purpose
 # Host-side checks for the emulator checklist. No device required.
 set -euo pipefail
 
@@ -240,14 +241,12 @@ if [[ "$(grep -c 'uses: reactivecircus/android-emulator-runner@' "$workflow")" -
   echo "expected 2 emulator steps (snapshot plus one flow run per job)" >&2
   exit 1
 fi
+# Both boots use the same emulator options (run 41314245431: the flow boot
+# could not load the snapshot saved minutes earlier in the same job).
 # shellcheck disable=SC2016 # literal workflow text
-if [[ "$(grep -F -c 'emulator-options: ${{ env.EMULATOR_OPTIONS }}' "$workflow")" -ne 1 ]]; then
-  echo "the flow run should read EMULATOR_OPTIONS from env" >&2
-  exit 1
-fi
-# shellcheck disable=SC2016 # literal workflow text
-if [[ "$(grep -F -c 'emulator-options: ${{ env.EMULATOR_SNAPSHOT_OPTIONS }}' "$workflow")" -ne 1 ]]; then
-  echo "snapshot generation should be the only step with EMULATOR_SNAPSHOT_OPTIONS" >&2
+if [[ "$(grep -F -c 'emulator-options: ${{ env.EMULATOR_OPTIONS }}' "$workflow")" -ne 2 ]] ||
+   grep -q 'EMULATOR_SNAPSHOT_OPTIONS' "$workflow"; then
+  echo "snapshot creation and the flow run must both use EMULATOR_OPTIONS" >&2
   exit 1
 fi
 # shellcheck disable=SC2016 # literal workflow text
@@ -272,13 +271,10 @@ if [[ "$options_line" == *" -no-snapshot "* || "$options_line" == *" -no-snapsho
   echo "flow boots should load the clean snapshot" >&2
   exit 1
 fi
-snapshot_line="$(grep -F 'EMULATOR_SNAPSHOT_OPTIONS:' "$workflow")"
-if [[ "$snapshot_line" == *"-no-snapshot"* || "$snapshot_line" == *"-wipe-data"* ]]; then
-  echo "snapshot generation must be allowed to save a clean image" >&2
-  exit 1
-fi
-if ! grep -Fq 'script: echo "Generated AVD snapshot for caching."' "$workflow"; then
-  echo "snapshot step should boot without installing an app" >&2
+if ! grep -Fq 'script: bash tool/emulator/snapshot_create.sh' "$workflow" ||
+   ! grep -q 'adb emu avd snapshot save default_boot' tool/emulator/snapshot_create.sh ||
+   grep -Eq 'adb (install|shell pm install)' tool/emulator/snapshot_create.sh; then
+  echo "snapshot step saves the snapshot explicitly and installs no app" >&2
   exit 1
 fi
 if ! grep -Fq "if: steps.create-avd.outcome == 'success' && steps.sysimg-check.outputs.same == 'true' && (matrix.shard == '1' || matrix.shard == 'smoke')" "$workflow"; then
@@ -333,10 +329,9 @@ for body in runners:
     cfgs.append({k: kv.get(k) for k in cfg_keys})
 if len(cfgs) != 2 or cfgs[0] != cfgs[1] or None in cfgs[0].values():
     errs.append(f"snapshot and flow steps must boot the same AVD config: {cfgs}")
-opts = re.search(r"^      EMULATOR_OPTIONS: (.*)$", wf, re.M).group(1).split()
-snap = re.search(r"^      EMULATOR_SNAPSHOT_OPTIONS: (.*)$", wf, re.M).group(1).split()
-if [o for o in opts if o != "-no-snapshot-save"] != snap:
-    errs.append("EMULATOR_SNAPSHOT_OPTIONS must equal EMULATOR_OPTIONS without -no-snapshot-save")
+opts = [re.search(r"^          emulator-options: (.*)$", body, re.M).group(1) for body in runners]
+if len(set(opts)) != 1:
+    errs.append(f"both emulator boots must use identical options: {opts}")
 if "avd-30-x86_64-google_apis-emulator-app-test-clean" in wf:
     errs.append("the old fixed AVD key (snapshot saved by emulator 37.2.12.0) must not be restored")
 print("\n".join(errs), file=sys.stderr)
@@ -363,7 +358,7 @@ key_env=(ANDROID_HOME="$key_tmp/sdk" EMULATOR_API_LEVEL=30 EMULATOR_TARGET=googl
   EMULATOR_ARCH=x86_64 EMULATOR_DISK_SIZE=2048M EMULATOR_BUILD=16740729
   EMULATOR_AVD_NAME=emulator-app-test-30 GITHUB_RUN_ID=77 GITHUB_RUN_ATTEMPT=1)
 env "${key_env[@]}" EMULATOR_NPROC=4 GITHUB_ENV="$key_tmp/env" bash tool/emulator/avd_cache_key.sh > /dev/null 2>&1
-if ! grep -qx 'EMULATOR_AVD_CACHE_KEY=avd-30-google_apis-x86_64-img6-cores4-disk2048M-emu16740729-emulator-app-test-30-clean' "$key_tmp/env" ||
+if ! grep -qx 'EMULATOR_AVD_CACHE_KEY=avd-30-google_apis-x86_64-img6-cores4-disk2048M-emu16740729-emulator-app-test-30-clean-cfg2' "$key_tmp/env" ||
   ! grep -qx 'EMULATOR_SYSIMG_REVISION=6' "$key_tmp/env" || ! grep -qx 'EMULATOR_CORES=4' "$key_tmp/env"; then
   echo "AVD cache key must carry the system image revision the emulator steps will boot" >&2
   cat "$key_tmp/env" >&2
@@ -380,7 +375,7 @@ if [[ "$(env "${key_env[@]}" EMULATOR_SYSIMG_REVISION=6 GITHUB_OUTPUT=/dev/stdou
 fi
 rm -f "$key_props" "$key_tmp/sdk/cmdline-tools/latest/bin/sdkmanager"
 env "${key_env[@]}" EMULATOR_NPROC=2 GITHUB_ENV="$key_tmp/env2" bash tool/emulator/avd_cache_key.sh > /dev/null 2>&1
-if ! grep -qx 'EMULATOR_AVD_CACHE_KEY=avd-30-google_apis-x86_64-imgunknown-77-1-cores2-disk2048M-emu16740729-emulator-app-test-30-clean' "$key_tmp/env2"; then
+if ! grep -qx 'EMULATOR_AVD_CACHE_KEY=avd-30-google_apis-x86_64-imgunknown-77-1-cores2-disk2048M-emu16740729-emulator-app-test-30-clean-cfg2' "$key_tmp/env2"; then
   echo "an unknown image revision must give a one-run AVD cache key" >&2
   cat "$key_tmp/env2" >&2
   exit 1
@@ -1437,6 +1432,7 @@ fi
 # 25: Maps "Update Google Maps to continue" swallows backs. Two Maps dumps,
 # then detail: back_until_detail needs 3 backs and passes; Maps forever fails at the cap.
 : > "$replay_dir/log"
+# shellcheck disable=SC2016 # literal text, expanded later
 if ! (SEQ="maps_update_prompt.xml maps_update_prompt.xml detail_with_directions.xml" lib126 eval 'back_until_detail 6 && [[ "$BACKS_USED" -eq 3 ]]'); then
   echo "back_until_detail: 3 backs to leave the Maps update prompt" >&2; cat "$replay_dir/log" >&2; exit 1
 fi
@@ -1647,5 +1643,74 @@ if [[ "$(cat "$fling_log")" != "$expected_flings" ]]; then
   exit 1
 fi
 rm -f "$fling_log"
+
+# Snapshot config (run 41314245431): the runner action appends
+# hw.cpu.ncore/disk.dataPartition.size to config.ini on every launch
+# (testdata config_ini_appends.log: once in Create AVD snapshot, again in
+# Run emulator flows), and the flow boot could not load the snapshot.
+# prepare_avd.sh must leave config.ini byte-identical at both boots.
+snap_dir="$(mktemp -d)"
+avd="${snap_dir}/avd/emulator-app-test-30.avd"
+mkdir -p "$avd"
+printf 'avd.ini.encoding=UTF-8\nhw.cpu.ncore=2\nimage.sysdir.1=system-images/android-30/google_apis/x86_64/\nhw.ramSize=1536\n' > "${avd}/config.ini"
+append() { printf 'hw.cpu.ncore=4\ndisk.dataPartition.size=2048M\n' >> "${avd}/config.ini"; }
+prep() {
+  ANDROID_AVD_HOME="${snap_dir}/avd" EMULATOR_AVD_NAME=emulator-app-test-30 EMULATOR_CORES=4 \
+    EMULATOR_DISK_SIZE=2048M RUNNER_TEMP="${snap_dir}/tmp" PATH="${snap_dir}/bin:$PATH" \
+    bash tool/emulator/prepare_avd.sh "$1" >/dev/null 2>&1
+}
+mkdir -p "${snap_dir}/bin"
+printf '#!/bin/sh\nexit 0\n' > "${snap_dir}/bin/adb"; cp "${snap_dir}/bin/adb" "${snap_dir}/bin/pkill"; chmod +x "${snap_dir}/bin/"*
+append; prep create; cp "${avd}/config.ini" "${snap_dir}/create.ini"
+append; prep run; cp "${avd}/config.ini" "${snap_dir}/run.ini"
+if ! cmp -s "${snap_dir}/create.ini" "${snap_dir}/run.ini" ||
+   [[ "$(grep -c '^hw.cpu.ncore=' "${snap_dir}/run.ini")" -ne 1 ]] ||
+   ! grep -qx 'hw.cpu.ncore=4' "${snap_dir}/run.ini" || ! grep -qx 'hw.ramSize=2048' "${snap_dir}/run.ini" ||
+   ! grep -qx 'disk.dataPartition.size=2048M' "${snap_dir}/run.ini" ||
+   ! grep -qx 'image.sysdir.1=system-images/android-30/google_apis/x86_64/' "${snap_dir}/run.ini" ||
+   [[ ! -f "${snap_dir}/tmp/avd-ini/run-prelaunch/config.ini" ]]; then
+  echo "prepare_avd.sh: config.ini must be identical at the snapshot and flow boots, one value per key" >&2
+  diff "${snap_dir}/create.ini" "${snap_dir}/run.ini" >&2
+  exit 1
+fi
+rm -rf "$snap_dir"
+# Boot log check on real excerpts: the flow boot (cold) and the snapshot
+# creation boot (no snapshot yet, not a failed load).
+fx126=tool/emulator/testdata/run41314245431
+if [[ "$(bash tool/emulator/boot_log_check.sh --file "$fx126/boot_cold_excerpt.log" s6 | head -1)" != "boot: cold (s6)" ]] ||
+   ! bash tool/emulator/boot_log_check.sh --file "$fx126/boot_cold_excerpt.log" s6 | grep -q '^::warning::' ||
+   [[ "$(bash tool/emulator/boot_log_check.sh --file "$fx126/boot_create_excerpt.log" s6)" != "boot: snapshot (s6)" ]]; then
+  echo "boot_log_check.sh: 'cannot load snapshot'/'different AVD configuration' -> boot: cold + ::warning::" >&2
+  exit 1
+fi
+# run_shard.sh boot marker: set by snapshot_create.sh before the save, so it
+# survives only a snapshot restore.
+boot_dir="$(mktemp -d)"
+mkdir -p "${boot_dir}/bin"
+# shellcheck disable=SC2016 # literal text, expanded later
+printf '#!/bin/sh\n[ "$*" = "shell getprop debug.temple.snapshot_marker" ] && echo "${STUB_MARKER:-}"\nexit 0\n' > "${boot_dir}/bin/adb"
+chmod +x "${boot_dir}/bin/adb"
+printf '#!/bin/sh\nexit 0\n' > "${boot_dir}/flow.sh"
+for m in 1 ""; do
+  rm -rf "${boot_dir}/art"; : > "${boot_dir}/summary"
+  out="$(STUB_MARKER="$m" PATH="${boot_dir}/bin:$PATH" EMULATOR_FLOW_RUNNER="${boot_dir}/flow.sh" \
+    EMULATOR_ARTIFACTS="${boot_dir}/art" GITHUB_STEP_SUMMARY="${boot_dir}/summary" GITHUB_ENV="${boot_dir}/env" \
+    bash tool/emulator/run_shard.sh full 6 2>&1)"
+  want=snapshot; [[ -z "$m" ]] && want=cold
+  if ! grep -qx "BOOT full-6 ${want}" "${boot_dir}/art/results.txt" || ! grep -qx "boot: ${want}" "${boot_dir}/summary" ||
+     { [[ "$want" == cold ]] && ! grep -q '^::warning::.*cold-booted' <<<"$out"; } ||
+     { [[ "$want" == snapshot ]] && grep -q '^::warning::' <<<"$out"; }; then
+    echo "run_shard.sh: marker '${m}' must give BOOT ${want}" >&2; echo "$out" >&2; exit 1
+  fi
+done
+rm -rf "$boot_dir"
+if ! grep -q 'setprop debug.temple.snapshot_marker 1' tool/emulator/snapshot_create.sh ||
+   ! grep -q 'run: bash tool/emulator/boot_log_check.sh' "$workflow" ||
+   ! grep -Fq "name: emulator-avd-ini-\${{ matrix.shard }}" "$workflow" ||
+   ! grep -Fq "env.EMULATOR_BOOT != 'snapshot' || steps.flows.outcome != 'success'" "$workflow" ||
+   ! grep -q -- '-clean-cfg2"' tool/emulator/avd_cache_key.sh; then
+  echo "snapshot diagnostics: marker, boot log check, ini artifact on cold boot/failure, bumped key" >&2
+  exit 1
+fi
 
 echo "emulator self-test ok"

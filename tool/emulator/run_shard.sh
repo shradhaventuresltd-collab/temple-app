@@ -36,6 +36,28 @@ while read -r id _; do
 done <<<"$rows"
 echo "Emulator ${tier}${shard:+ shard ${shard}}: ${total} flows (${skipped} skipped, $((total - skipped)) to run), cap ${FLOW_CAP_S}s each, worst case $(plan_need_s "$tier" "$shard")s"
 
+# Boot check, once per job: snapshot_create.sh set a RAM-only property
+# before saving the snapshot, so it is still set only if this boot restored
+# the snapshot. A cold boot ("cannot load snapshot ... different AVD
+# configuration", run 41314245431) is a warning, not a failure.
+if [[ "${EMULATOR_SHARD_DRY_RUN:-}" != 1 ]]; then
+  marker="$(adb shell getprop debug.temple.snapshot_marker 2>/dev/null </dev/null | tr -d '\r' || true)"
+  if [[ "$marker" == 1 ]]; then boot=snapshot; else boot=cold; fi
+  printf 'BOOT %s%s %s\n' "$tier" "${shard:+-${shard}}" "$boot" >> "${artifacts}/results.txt"
+  echo "boot: ${boot}"
+  if [[ "$boot" == cold ]]; then
+    echo "::warning::emulator ${tier}${shard:+ shard ${shard}} cold-booted: the AVD snapshot was not loaded"
+  fi
+  [[ -n "${GITHUB_STEP_SUMMARY:-}" ]] && echo "boot: ${boot}" >> "$GITHUB_STEP_SUMMARY"
+  [[ -n "${GITHUB_ENV:-}" ]] && echo "EMULATOR_BOOT=${boot}" >> "$GITHUB_ENV"
+  if [[ -n "${RUNNER_TEMP:-}" ]]; then
+    avd_dir="${ANDROID_AVD_HOME:-${HOME}/.android/avd}/${EMULATOR_AVD_NAME:-emulator-app-test-30}.avd"
+    mkdir -p "${RUNNER_TEMP}/avd-ini/run-booted"
+    cp -f "$avd_dir"/config.ini "$avd_dir"/hardware-qemu.ini "${RUNNER_TEMP}/avd-ini/run-booted/" 2>/dev/null || true
+    cp -f "$avd_dir"/snapshots/default_boot/hardware.ini "${RUNNER_TEMP}/avd-ini/run-booted/snapshot-hardware.ini" 2>/dev/null || true
+  fi
+fi
+
 # Outer guard: run_one_flow.sh enforces FLOW_BUDGET itself. This only stops
 # a wrapper that wedges outside the flow (pm clear, logcat pull).
 guard=$((FLOW_CAP_S + FLOW_KILL_AFTER_S + FLOW_RESET_S))
