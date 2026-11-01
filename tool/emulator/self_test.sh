@@ -134,18 +134,6 @@ if grep -Eq '<<:|&[A-Za-z]' "$workflow"; then
   echo "workflow uses a YAML anchor; GitHub Actions will not expand it" >&2
   exit 1
 fi
-if [[ "$(grep -c '^[[:space:]]*timeout-minutes: 30$' "$workflow")" -ne 30 ]]; then
-  echo "each of the 30 flow steps needs timeout-minutes: 30" >&2
-  exit 1
-fi
-if [[ "$(grep -c '!cancelled() && steps.resolve-apk.outcome' "$workflow")" -ne 30 ]]; then
-  echo "each flow step should use !cancelled() so a real cancellation skips it" >&2
-  exit 1
-fi
-if grep -Eq 'if:.*always\(\).*resolve-apk' "$workflow"; then
-  echo "flow steps must not use always(); a contained hang exits the step" >&2
-  exit 1
-fi
 if ! grep -q 'select_labeled: gave up' tool/emulator/lib/common.sh; then
   echo "select_labeled must say when it hits its cap" >&2
   exit 1
@@ -173,30 +161,77 @@ if ! grep -q 'picker scroll gave up' tool/emulator/flows/22_filter_combos_reset.
   echo "flow 22 should fail when the picker scroll hits its cap" >&2
   exit 1
 fi
-if grep -Eq '^[[:space:]]*(push|pull_request|schedule):' "$workflow"; then
-  echo "workflow must trigger only on workflow_dispatch" >&2
+# ---- Workflow shape (Confluence 12353537 B/C/D/E) ----
+# Every step in every job has its own timeout-minutes.
+if ! awk '
+  function check() { if (in_step && !has_timeout) { print "step without timeout-minutes: " name > "/dev/stderr"; bad = 1 } }
+  /^      - name: / { check(); in_step = 1; has_timeout = 0; name = $0; next }
+  /^  [a-z][a-z-]*:$/ { check(); in_step = 0 }
+  in_step && /^        timeout-minutes: / { has_timeout = 1 }
+  END { check(); exit bad }
+' "$workflow"; then
+  echo "every workflow step needs timeout-minutes" >&2
   exit 1
 fi
-runner_steps="$(grep -c 'uses: reactivecircus/android-emulator-runner@' "$workflow")"
-if [[ "$runner_steps" -ne 31 ]]; then
-  echo "expected 31 emulator steps (snapshot plus 30 flows), found ${runner_steps}" >&2
+for job in build emulator summary; do
+  if ! awk -v job="$job" '
+    $0 == "  " job ":" { in_job = 1; next }
+    in_job && /^  [a-z][a-z-]*:$/ { exit }
+    in_job && /^    timeout-minutes: / { found = 1 }
+    END { exit !found }
+  ' "$workflow"; then
+    echo "job ${job} needs timeout-minutes" >&2
+    exit 1
+  fi
+done
+for trigger in 'workflow_dispatch:' 'pull_request:' 'push:' 'schedule:' 'release:'; do
+  if ! grep -Eq "^  ${trigger}" "$workflow"; then
+    echo "workflow should trigger on ${trigger%:}" >&2
+    exit 1
+  fi
+done
+if ! grep -Fq 'types: [prereleased]' "$workflow"; then
+  echo "pre-release runs should use release types [prereleased]" >&2
   exit 1
 fi
-if [[ "$(grep -F -c 'emulator-options: ${{ env.EMULATOR_OPTIONS }}' "$workflow")" -ne 30 ]]; then
-  echo "each flow step should read EMULATOR_OPTIONS from env" >&2
+if ! awk '/^  push:/ { p = 1 } p && /- main$/ { f = 1 } p && /^  [a-z_]+:$/ && !/push/ { exit } END { exit !f }' "$workflow"; then
+  echo "push should run only on main" >&2
   exit 1
 fi
+if [[ "$(grep -c 'uses: reactivecircus/android-emulator-runner@' "$workflow")" -ne 2 ]]; then
+  echo "expected 2 emulator steps (snapshot plus one flow run per job)" >&2
+  exit 1
+fi
+# shellcheck disable=SC2016 # literal workflow text
+if [[ "$(grep -F -c 'emulator-options: ${{ env.EMULATOR_OPTIONS }}' "$workflow")" -ne 1 ]]; then
+  echo "the flow run should read EMULATOR_OPTIONS from env" >&2
+  exit 1
+fi
+# shellcheck disable=SC2016 # literal workflow text
 if [[ "$(grep -F -c 'emulator-options: ${{ env.EMULATOR_SNAPSHOT_OPTIONS }}' "$workflow")" -ne 1 ]]; then
   echo "snapshot generation should be the only step with EMULATOR_SNAPSHOT_OPTIONS" >&2
   exit 1
 fi
+# shellcheck disable=SC2016 # literal workflow text
+if ! grep -Fq 'script: bash tool/emulator/run_shard.sh ${{ needs.build.outputs.tier }}' "$workflow"; then
+  echo "the flow step should run run_shard.sh for this job's tier" >&2
+  exit 1
+fi
+if grep -q 'run_one_flow.sh' "$workflow"; then
+  echo "flows run through run_shard.sh, not one emulator boot per flow" >&2
+  exit 1
+fi
 options_line="$(grep -F 'EMULATOR_OPTIONS:' "$workflow")"
-if [[ "$options_line" != *"-no-snapshot-save"* || "$options_line" != *"-wipe-data"* ]]; then
-  echo "flow boots should pass -no-snapshot-save and -wipe-data" >&2
+if [[ "$options_line" == *"-wipe-data"* ]]; then
+  echo "the single boot should load the snapshot; pm clear replaces -wipe-data" >&2
+  exit 1
+fi
+if [[ "$options_line" != *"-no-snapshot-save"* ]]; then
+  echo "flow boots must not write back to the cached snapshot" >&2
   exit 1
 fi
 if [[ "$options_line" == *" -no-snapshot "* || "$options_line" == *" -no-snapshot-load"* ]]; then
-  echo "flow boots should still be allowed to load a clean snapshot" >&2
+  echo "flow boots should load the clean snapshot" >&2
   exit 1
 fi
 snapshot_line="$(grep -F 'EMULATOR_SNAPSHOT_OPTIONS:' "$workflow")"
@@ -208,12 +243,8 @@ if ! grep -Fq 'script: echo "Generated AVD snapshot for caching."' "$workflow"; 
   echo "snapshot step should boot without installing an app" >&2
   exit 1
 fi
-if ! grep -Fq "if: steps.create-avd.outcome == 'success'" "$workflow"; then
-  echo "AVD cache should be saved only after the clean snapshot boot" >&2
-  exit 1
-fi
-if grep -Eq '^[[:space:]]*EMULATOR_AVD_CACHE_KEY: avd-30-x86_64-google_apis-emulator-app-test$' "$workflow"; then
-  echo "AVD cache key should not be the snapshot that already contains an app" >&2
+if ! grep -Fq "if: steps.create-avd.outcome == 'success' && (matrix.shard == '1' || matrix.shard == 'smoke')" "$workflow"; then
+  echo "AVD cache should be saved by one job, only after the clean snapshot boot" >&2
   exit 1
 fi
 if ! grep -Fq 'EMULATOR_AVD_CACHE_KEY: avd-30-x86_64-google_apis-emulator-app-test-clean' "$workflow"; then
@@ -224,14 +255,94 @@ if [[ "$(grep -F -c 'EMULATOR_AVD_CACHE_KEY' "$workflow")" -lt 3 ]]; then
   echo "restore and save should share EMULATOR_AVD_CACHE_KEY" >&2
   exit 1
 fi
-if ! grep -q 'actions: read' "$workflow"; then
-  echo "workflow token should be actions: read" >&2
+if ! grep -q 'actions: read' "$workflow" || grep -Eq '^\s+(contents|actions|pull-requests): write' "$workflow"; then
+  echo "workflow token should be read-only (contents: read, actions: read)" >&2
   exit 1
 fi
-if ! grep -Fq 'EMULATOR_RESOLVE_OUTCOME: ${{ steps.plan.outcome }}' "$workflow"; then
-  echo "summary step should receive steps.plan.outcome" >&2
+if grep -E 'secrets\.|google-services|keystore|\.jks' "$workflow" | grep -v 'No keystore' | grep -q .; then
+  echo "emulator workflow must not use secrets, keystores, or google-services" >&2
   exit 1
 fi
+# shellcheck disable=SC2016 # literal workflow text
+if [[ "$(grep -F -c 'if: ${{ !cancelled() && steps.resolve-apk.outcome' "$workflow")" -ne 1 ]]; then
+  echo "the flow step should use !cancelled() so a real cancellation skips it" >&2
+  exit 1
+fi
+# APK built once, reused as an artifact (B).
+if [[ "$(grep -c 'flutter build apk' "$workflow")" -ne 1 ]]; then
+  echo "the APK should be built once, in the build job" >&2
+  exit 1
+fi
+if ! awk '
+  /^  build:$/ { job = "build" } /^  emulator:$/ { job = "emulator" } /^  summary:$/ { job = "summary" }
+  job == "build" && /name: emulator-apk$/ { up = 1 }
+  job == "emulator" && /name: emulator-apk$/ { down = 1 }
+  job != "build" && /flutter|setup-java|Cache Gradle/ { bad = 1 }
+  END { exit !(up && down && !bad) }
+' "$workflow"; then
+  echo "build uploads emulator-apk; emulator jobs download it and never run Flutter/Gradle" >&2
+  exit 1
+fi
+# shellcheck disable=SC2016 # literal workflow text
+if ! grep -Fq 'shard: ${{ fromJSON(needs.build.outputs.matrix) }}' "$workflow" ||
+   ! grep -Fq 'fail-fast: false' "$workflow"; then
+  echo "emulator job should take its matrix from the build job, fail-fast off" >&2
+  exit 1
+fi
+# shellcheck disable=SC2016 # literal workflow text
+if ! grep -Fq 'cancel-in-progress: ${{ github.event_name == '"'"'pull_request'"'"' }}' "$workflow"; then
+  echo "only pull request runs should cancel older runs" >&2
+  exit 1
+fi
+# shellcheck disable=SC2016 # literal workflow text
+if ! grep -Fq 'EMULATOR_RESOLVE_OUTCOME: ${{ steps.resolve-apk.outcome }}' "$workflow"; then
+  echo "summary step should receive the APK outcome" >&2
+  exit 1
+fi
+# Step and job timeouts cover the worst case from plan.sh.
+smoke_step="$(grep -E '^\s+timeout-minutes: \$\{\{ matrix.shard == .smoke. && [0-9]+ \|\| [0-9]+ \}\}$' "$workflow" | sed -n '2p')"
+smoke_job="$(grep -E '^\s+timeout-minutes: \$\{\{ matrix.shard == .smoke. && [0-9]+ \|\| [0-9]+ \}\}$' "$workflow" | sed -n '1p')"
+read -r step_smoke step_full < <(sed -E 's/.*&& ([0-9]+) \|\| ([0-9]+).*/\1 \2/' <<<"$smoke_step")
+read -r job_smoke job_full < <(sed -E 's/.*&& ([0-9]+) \|\| ([0-9]+).*/\1 \2/' <<<"$smoke_job")
+need_smoke="$(bash tool/emulator/plan.sh need-minutes smoke)"
+if [[ -z "${step_smoke:-}" ]] || (( step_smoke < need_smoke )); then
+  echo "smoke flow step timeout ${step_smoke:-unset} is under the ${need_smoke} min worst case" >&2
+  exit 1
+fi
+for n in 1 2 3 4 5 6; do
+  need="$(bash tool/emulator/plan.sh need-minutes full "$n")"
+  if [[ -z "${step_full:-}" ]] || (( step_full < need )); then
+    echo "shard ${n} step timeout ${step_full:-unset} is under its ${need} min worst case" >&2
+    exit 1
+  fi
+done
+# Job = flow step + setup (checkout, KVM, APK, caches, 15 min snapshot).
+if (( job_smoke < step_smoke + 20 || job_full < step_full + 20 )); then
+  echo "job timeouts should leave 20 min for setup beyond the flow step" >&2
+  exit 1
+fi
+# Tier choice per event.
+tier_out="$(mktemp)"
+for pair in pull_request:smoke push:full schedule:full release:full workflow_dispatch:full; do
+  : > "$tier_out"
+  GITHUB_EVENT_NAME="${pair%%:*}" GITHUB_OUTPUT="$tier_out" INPUT_TIER="" bash tool/emulator/choose_tier.sh >/dev/null
+  if ! grep -qx "tier=${pair##*:}" "$tier_out"; then
+    echo "event ${pair%%:*} should pick tier ${pair##*:}" >&2
+    exit 1
+  fi
+done
+: > "$tier_out"
+GITHUB_EVENT_NAME=workflow_dispatch GITHUB_OUTPUT="$tier_out" INPUT_TIER=smoke bash tool/emulator/choose_tier.sh >/dev/null
+grep -qx 'matrix=\["smoke"\]' "$tier_out"
+: > "$tier_out"
+GITHUB_EVENT_NAME=push GITHUB_OUTPUT="$tier_out" bash tool/emulator/choose_tier.sh >/dev/null
+grep -qx 'matrix=\["1","2","3","4","5","6"\]' "$tier_out"
+if GITHUB_EVENT_NAME=workflow_dispatch INPUT_TIER=everything bash tool/emulator/choose_tier.sh >/dev/null 2>&1; then
+  echo "choose_tier.sh should reject an unknown tier" >&2
+  exit 1
+fi
+rm -f "$tier_out"
+
 
 flows=(
   01-first-launch
@@ -266,19 +377,8 @@ flows=(
   30-filter-matrix-rest
 )
 for flow in "${flows[@]}"; do
-  if ! grep -q "run_one_flow.sh ${flow} " "$workflow"; then
-    echo "workflow is missing ${flow}" >&2
-    exit 1
-  fi
   if ! grep -q "\"${flow}|" tool/emulator/plan.sh; then
     echo "plan.sh is missing ${flow}" >&2
-    exit 1
-  fi
-done
-for script in tool/emulator/flows/*.sh; do
-  base="$(basename "$script")"
-  if ! grep -q "$base" "$workflow"; then
-    echo "workflow is missing ${base}" >&2
     exit 1
   fi
 done
