@@ -272,6 +272,65 @@ def cmd_resource_ids(args: argparse.Namespace) -> int:
     return 0
 
 
+_KINDS = ("state", "district", "deity")
+_HEADERS = {"STATE": "state", "DISTRICT": "district", "DEITY": "deity"}
+
+
+def _sheet_rows(root: ET.Element) -> list:
+    """Visible filter-sheet option chips and section headers, top to bottom."""
+    rows = []
+    for node in _iter_nodes(root):
+        box = _bounds(node.attrib.get("bounds", ""))
+        if box is None:
+            continue
+        short = _resource_id(node).split("/")[-1]
+        kind = None
+        for k in _KINDS:
+            if short.startswith(f"filter-option-{k}-"):
+                kind = k
+                break
+        if kind is None:
+            label = _flat(node.attrib.get("content-desc")) or _flat(node.attrib.get("text"))
+            if label in _HEADERS and not short:
+                kind = _HEADERS[label]
+        if kind is not None:
+            rows.append((kind, box))
+    rows.sort(key=lambda row: (row[1][1], row[1][0]))
+    return rows
+
+
+def cmd_sheet_band(args: argparse.Namespace) -> int:
+    """Print "TOP BOTTOM" of the filter sheet's option scroller.
+
+    Exit 1 when no filter sheet is on screen. Picker drags must start
+    inside the scroller: above it is the sheet header, where a drag never
+    scrolls the list and a downward pull dismisses the sheet. Ported from
+    PR #124 (run 41269171081). On the 320x640 AVD it is y 251-569.
+    """
+    try:
+        root = _load(args.dump)
+    except (ET.ParseError, OSError, ValueError) as exc:
+        print(f"dump unreadable: {exc}", file=sys.stderr)
+        return 1
+    rows = _sheet_rows(root)
+    if not rows:
+        return 1
+    best = None
+    for node in _iter_nodes(root):
+        if node.attrib.get("scrollable") != "true":
+            continue
+        box = _bounds(node.attrib.get("bounds", ""))
+        if box is None:
+            continue
+        holds = any(box[1] <= r[1][1] and r[1][3] <= box[3] for r in rows)
+        if holds and (best is None or (box[3] - box[1]) < (best[3] - best[1])):
+            best = box
+    if best is None:
+        return 1
+    print(f"{best[1]} {best[3]}")
+    return 0
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -302,6 +361,10 @@ def _parser() -> argparse.ArgumentParser:
     bright = sub.add_parser("bright")
     bright.add_argument("path")
     bright.set_defaults(func=cmd_bright)
+
+    band = sub.add_parser("sheet-band")
+    band.add_argument("dump")
+    band.set_defaults(func=cmd_sheet_band)
     return parser
 
 

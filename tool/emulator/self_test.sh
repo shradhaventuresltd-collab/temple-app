@@ -1160,6 +1160,88 @@ if ! grep -qx 'PLAN 29-filter-matrix tool/emulator/flows/29_filter_matrix.sh a' 
   echo "$dry" >&2
   exit 1
 fi
+# Replays on real dumps from PR #126 run 41306793034 (testdata/run41306793034,
+# shard 4 flow 06: each filter sheet as it opened, and the list behind it).
+# No device: ui_dump serves a fixture, adb shell calls are logged.
+replay_dir="$(mktemp -d)"
+# Stubs are called by the sourced library; the exports stay in the subshell.
+# shellcheck disable=SC2030,SC2031,SC2329
+replay() {
+  local fixture="$1"
+  shift
+  (
+    set -uo pipefail
+    export EMULATOR_FLOW=06-filters EMULATOR_ARTIFACTS="$replay_dir/art" EMULATOR_PACKAGE=com.example
+    # shellcheck disable=SC1091
+    source tool/emulator/lib/common.sh
+    ui_dump() { cp "tool/emulator/testdata/run41306793034/${REPLAY_FIXTURE}" "$DUMP"; }
+    ui_screen_size() { echo 320 640; }
+    ui_tap() { echo "TAP ${UI_TEXT:-}" >> "$replay_dir/log"; }
+    adb_shell_capped() { shift; echo "ADB $*" >> "$replay_dir/log"; }
+    sleep() { :; }
+    REPLAY_FIXTURE="$fixture"
+    "$@"
+  )
+}
+: > "$replay_dir/log"
+# Picker: the all-India targets are on the sheet's first screen (tap, no swipe).
+pick_regex="$(grep -h "^ALL_INDIA_" tool/emulator/lib/common.sh)"
+for pick in "deity_sheet_open.xml:ALL_INDIA_DEITY_PICK:DEITY" "district_sheet_open.xml:ALL_INDIA_DISTRICT_PICK:DISTRICT"; do
+  IFS=: read -r fx var section <<<"$pick"
+  rx="$(sed -n "s/^${var}='\\(.*\\)'\$/\\1/p" <<<"$pick_regex")"
+  : > "$replay_dir/log"
+  if [[ -z "$rx" ]] || ! (replay "$fx" select_labeled "$rx" "$section") >/dev/null 2>&1 ||
+     grep -q '^ADB input swipe' "$replay_dir/log" || ! grep -q '^TAP ' "$replay_dir/log"; then
+    echo "${var} should be tapped on the real ${section} sheet's first screen, no swipe" >&2
+    cat "$replay_dir/log" >&2
+    exit 1
+  fi
+done
+# The old targets are not on that screen: Shiva/Madurai need a scroll walk
+# (they gave up at 20-21s in the run). On a frozen dump that walk ends unmatched.
+: > "$replay_dir/log"
+if (replay deity_sheet_open.xml select_labeled '^Shiva( +[0-9]+)?$' DEITY) >/dev/null 2>&1 ||
+   ! grep -q '^ADB input swipe' "$replay_dir/log"; then
+  echo "Shiva is not on the deity sheet's first screen; it needs a scroll" >&2
+  exit 1
+fi
+# Picker swipes start inside the option scroller (ui.py sheet-band 251-569).
+if [[ "$(python3 tool/emulator/lib/ui.py sheet-band tool/emulator/testdata/run41306793034/deity_sheet_open.xml)" != "251 569" ]] ||
+   python3 tool/emulator/lib/ui.py sheet-band tool/emulator/testdata/run41306793034/browse_no_sheet.xml >/dev/null 2>&1; then
+  echo "sheet-band: scroller 251-569 on the real sheet, exit 1 with no sheet" >&2
+  exit 1
+fi
+: > "$replay_dir/log"
+replay deity_sheet_open.xml eval 'ui_dump; ui_sheet_swipe up 95' >/dev/null 2>&1 || true
+if ! grep -qx 'ADB input swipe 160 553 160 [0-9]* 900' "$replay_dir/log"; then
+  echo "a picker swipe below the scroller must start at its bottom edge - 16 (553)" >&2
+  cat "$replay_dir/log" >&2
+  exit 1
+fi
+# Sheet gone under the walk (real list dump, which shows a Shiva card):
+# fail at once, without swiping the list behind it.
+: > "$replay_dir/log"
+out="$( (replay browse_no_sheet.xml select_labeled '^Ahalya( +[0-9]+)?$' DEITY) 2>&1)" && {
+  echo "select_labeled must fail when the sheet is gone" >&2; exit 1; }
+if [[ "$out" != *"filter sheet is not on screen"* ]] || [[ "$(grep -c '^ADB input swipe' "$replay_dir/log")" -gt 1 ]]; then
+  echo "select_labeled: a closed sheet fails fast (at most the one swipe that showed no movement)" >&2
+  echo "$out" >&2
+  cat "$replay_dir/log" >&2
+  exit 1
+fi
+# Swipe-dismiss on each real sheet: a pull from the title centre (156,182)
+# to 96% that is slow enough to deliver moves (300ms, retry 600ms), not 80ms.
+for fx in state_sheet_open.xml deity_sheet_open.xml district_sheet_open.xml; do
+  : > "$replay_dir/log"
+  (replay "$fx" dismiss_sheet_swipe) >/dev/null 2>&1 || true
+  if [[ "$(grep '^ADB input swipe' "$replay_dir/log")" != $'ADB input swipe 156 182 156 614 300\nADB input swipe 156 182 156 614 600' ]]; then
+    echo "${fx}: swipe-dismiss should pull 156,182 -> 156,614 at 300ms then 600ms" >&2
+    cat "$replay_dir/log" >&2
+    exit 1
+  fi
+done
+rm -rf "$replay_dir"
+
 # Every planned flow runs, even when a flow reads stdin (adb shell does).
 # The stub drains stdin, as adb did in run 41306793034, and records its id.
 stub_dir="$(mktemp -d)"

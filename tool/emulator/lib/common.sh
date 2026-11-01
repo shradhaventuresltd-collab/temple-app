@@ -20,6 +20,15 @@ RESULTS="${ARTIFACTS}/results.txt"
 DUMP="${DUMP_DIR}/${FLOW}.xml"
 SHOT_N=0
 PKG="${EMULATOR_PACKAGE:-}"
+# All-India pick targets (flows 06, 22). Each is on the filter sheet's
+# first screen at 320x640, so it fits the 20s picker give-up with no
+# scroll: the first district of the bundled boundary asset in the app's
+# sort, and the first single-word live deity label (same targets and
+# replay evidence as PR #124). Shiva is picked only Tamil Nadu-scoped.
+# shellcheck disable=SC2034
+ALL_INDIA_DISTRICT_PICK='^24 Paraganas North( +[0-9]+)?$'
+# shellcheck disable=SC2034
+ALL_INDIA_DEITY_PICK='^Ahalya( +[0-9]+)?$'
 # Bounded picker walk in select_labeled, in seconds.
 PICKER_GIVEUP_S="${EMULATOR_PICKER_GIVEUP_S:-20}"
 
@@ -361,6 +370,15 @@ ui_sheet_swipe() {
   if (( start_y > height * 88 / 100 )); then
     start_y=$((height * 88 / 100))
   fi
+  # Start inside the option scroller (ui.py sheet-band, 16px in from its
+  # edges). Above it is the sheet header: a drag there never scrolls and a
+  # downward pull dismisses the sheet (ported from PR #124, run 41269171081).
+  local band_top band_bot
+  if [[ -s "${DUMP:-}" ]] && read -r band_top band_bot < <(python3 "$UI_PY" sheet-band "$DUMP" 2>/dev/null) \
+    && [[ "$band_top" =~ ^[0-9]+$ && "$band_bot" =~ ^[0-9]+$ ]]; then
+    (( start_y < band_top + 16 )) && start_y=$((band_top + 16))
+    (( start_y > band_bot - 16 )) && start_y=$((band_bot - 16))
+  fi
   adb_shell_capped 8 input swipe "$x" "$start_y" "$x" "$end_y" 900
 }
 
@@ -643,9 +661,17 @@ push_emulator_geo() {
 
 # Drag from the sheet handle or title. A swipe that starts in the list scrolls
 # the options instead of dismissing the sheet.
+# The sheet closes on PointerMove travel from the header (_onPointerMove,
+# 72px), never on the up event alone (test/sheet_header_pull_test.dart: a
+# down/up with no move leaves it open). An 80ms swipe left the sheet
+# unmoved in every header pull of PR #126's run 41306793034 (06, 17, 21,
+# recordings show zero frames of travel) while 120ms+ swipes on the same
+# devices worked. Pull slowly enough that moves are delivered on a busy
+# emulator: SHEET_PULL_MS (default 300ms), then twice that on the retry.
 dismiss_sheet_from_handle() {
   local width="$1"
   local height="$2"
+  local pull_ms="${3:-${SHEET_PULL_MS:-300}}"
   local start_x=$((width / 2))
   local start_y=$((height * 24 / 100))
   local max_title=$((height * 36 / 100))
@@ -660,7 +686,7 @@ dismiss_sheet_from_handle() {
     start_x=$((width / 2))
     start_y=$((height * 24 / 100))
   fi
-  adb_shell_capped 8 input swipe "$start_x" "$start_y" "$start_x" $((height * 96 / 100)) 80
+  adb_shell_capped 8 input swipe "$start_x" "$start_y" "$start_x" $((height * 96 / 100)) "$pull_ms"
 }
 
 dismiss_sheet_swipe() {
@@ -678,7 +704,7 @@ dismiss_sheet_swipe() {
   dismiss_sheet_from_handle "$width" "$height"
   sleep 1
   if sheet_open; then
-    dismiss_sheet_from_handle "$width" "$height"
+    dismiss_sheet_from_handle "$width" "$height" $(( ${SHEET_PULL_MS:-300} * 2 ))
     sleep 1
   fi
   if sheet_open; then
@@ -1203,6 +1229,12 @@ select_labeled() {
         return 1
       }
       if [[ -n "$prev" && "$current" == "$prev" ]]; then
+        # A sheet that closed under the walk leaves nothing to scan; more
+        # swipes would only drag the list behind it until the give-up.
+        if ! python3 "$UI_PY" sheet-band "$DUMP" >/dev/null 2>&1; then
+          echo "select_labeled: the filter sheet is not on screen while looking for '${regex}'" >&2
+          return 1
+        fi
         stuck=$((stuck + 1))
         # A drag that misses the list leaves the texts unchanged before
         # anything has scrolled. After the list has moved, one unchanged

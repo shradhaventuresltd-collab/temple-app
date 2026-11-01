@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 # Flow 22 (bughunter). Order/combination and reset. Distinct from 06/17:
 # state->district->state change (stale district drop),
-# deity first then state, Clear in-sheet vs bar Clear, filter + search query,
-# 0-result combo.
+# state changed under an applied deity, Clear in-sheet vs bar Clear,
+# filter + search query, 0-result combo, chips surviving detail back.
+# Under the 20s picker (PICKER_GIVEUP_S, option 2): Shiva is picked only
+# after Tamil Nadu is applied (~75% down the ~600 all-India deities it
+# does not fit 20s); the replay test times that pick on the real sheet
+# (deity-tamil-nadu-Shiva, <= 15s). With nothing applied the deity is
+# the all-India first-screen target (ALL_INDIA_DEITY_PICK).
 # Picker scroll does not stop on the first no-op swipe. The finger can land
 # on a chip (that used to stop at Ganesha and the A-districts). select_labeled
 # retries other finger heights, then gives up on its 20s cap (PICKER_GIVEUP_S). This flow fails
@@ -42,7 +47,9 @@ pick_labeled() {
   return 0
 }
 
-pick_labeled filter-chip-deity '^Shiva' DEITY deity-first && pass_step deity-first
+pick_labeled filter-chip-state '^Tamil Nadu' STATE tn-scope && pass_step tn-scope
+pick_labeled filter-chip-deity '^Shiva( +[0-9]+)?$' DEITY deity-scoped && pass_step deity-scoped
+# The state changes with the deity applied (was: deity first, then state).
 pick_labeled filter-chip-state '^Kerala' STATE state-second && pass_step state-second
 c1=$(count)
 district_ok=0
@@ -60,8 +67,10 @@ if [[ "$district_ok" -eq 1 && "$state_ok" -eq 1 ]]; then
     sleep 2
     ui_back
     sleep 1
-    ui_dump
-    if ui_find --resource-id filter-chip-state --text-regex '^Tamil Nadu'; then
+    # The row keeps its scroll offset, so State can sit off the left edge
+    # (run 41269171081: title "Shiva · Tamil Nadu", 11 temples, no state
+    # chip in the dump). Scroll the row to it before judging.
+    if scroll_chips_until --resource-id filter-chip-state --text-regex '^Tamil Nadu'; then
       pass_step filter-survives-detail
     else
       fail_step filter-survives-detail "state chip changed after detail back"
@@ -103,10 +112,13 @@ if pick_labeled filter-chip-state '^Kerala' STATE bar-clear-setup; then
     fail_step bar-clear "state chip survived chip Clear"
   fi
 fi
-# in-sheet Clear then dismiss must NOT apply
-if pick_labeled filter-chip-deity '^Vishnu' DEITY sheet-clear-dismiss-keeps; then
+# in-sheet Clear then dismiss must NOT apply. Nothing is applied here
+# (bar-clear just cleared), so the deity is the all-India first-screen
+# target (option 2; was Vishnu, ~95% down the all-India list).
+if pick_labeled filter-chip-deity "$ALL_INDIA_DEITY_PICK" DEITY sheet-clear-dismiss-keeps; then
+  kept="$SELECTED_LABEL"
   ui_dump && ui_find --resource-id filter-chip-deity && ui_tap && sleep 1
   ui_dump && ui_find --resource-id filter-sheet-clear && ui_tap; ui_back; sleep 1
-  ui_dump; ui_find --text-regex 'Vishnu' && pass_step sheet-clear-dismiss-keeps || fail_step sheet-clear-dismiss-keeps "dismissed draft clear was applied"
+  ui_dump; ui_find --text-regex "^$(re_escape "$kept")" && pass_step sheet-clear-dismiss-keeps || fail_step sheet-clear-dismiss-keeps "dismissed draft clear was applied"
 fi
 : "${c1:-}"

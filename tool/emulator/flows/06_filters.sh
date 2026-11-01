@@ -191,11 +191,14 @@ exercise_filter() {
 }
 
 exercise_filter state '^Kerala( +[0-9]+)?$' State open_state state
-exercise_filter deity '^Shiva( +[0-9]+)?$' Deity open_deity deity
+# State was cleared above, so the deity and district lists are all-India:
+# first-screen targets under the 20s picker give-up (Shiva and Madurai sit
+# far down those lists and gave up at 20-21s in run 41306793034).
+exercise_filter deity "$ALL_INDIA_DEITY_PICK" Deity open_deity deity
 
 if scroll_chips_until --resource-id filter-chip-district || scroll_chips_until --text-regex '^All districts$'; then
   pass_step district-chip-visible
-  exercise_filter district '^Madurai( +[0-9]+)?$' "All districts" open_district district
+  exercise_filter district "$ALL_INDIA_DISTRICT_PICK" "All districts" open_district district
 else
   pass_step district-chip-not-visible
 fi
