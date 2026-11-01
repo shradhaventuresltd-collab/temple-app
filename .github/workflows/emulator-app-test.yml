@@ -52,6 +52,11 @@ on:
         description: "Git ref to build when no APK is given (default: the dispatched commit)"
         required: false
         type: string
+      release_gate:
+        description: "Release gate: full tier on this ref's SHA, strict (red on any FAIL, XFAIL, XPASS)"
+        required: false
+        default: false
+        type: boolean
   # Smoke only for non-draft PRs that touch the app, its tests, or this CI.
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -78,7 +83,7 @@ permissions:
 # The tier is in the key: a smoke dispatch on a ref must not queue behind
 # a full dispatch on the same ref (runs 41306793034 / 41306882301).
 concurrency:
-  group: emulator-app-test-${{ github.event_name }}-${{ inputs.tier || (github.event_name == 'pull_request' && 'smoke') || 'full' }}-${{ github.event.pull_request.number || github.ref }}
+  group: emulator-app-test-${{ github.event_name }}-${{ (inputs.release_gate && 'full') || inputs.tier || (github.event_name == 'pull_request' && 'smoke') || 'full' }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -123,6 +128,7 @@ jobs:
         timeout-minutes: 2
         env:
           INPUT_TIER: ${{ inputs.tier }}
+          INPUT_RELEASE_GATE: ${{ inputs.release_gate && 'true' || 'false' }}
         run: bash tool/emulator/choose_tier.sh
 
       - name: Resolve APK source
@@ -496,6 +502,10 @@ jobs:
           TESTED_SHA: ${{ needs.build.outputs.tested_sha }}
           TIER: ${{ needs.build.outputs.tier }}
           APK_SOURCE: ${{ needs.build.outputs.apk_source }}
+          # Strict only on the release path: a published release, or a
+          # dispatch with release_gate=true. Other runs print the refusal
+          # and exit 0.
+          EMULATOR_GATE_MODE: ${{ (github.event_name == 'release' || inputs.release_gate) && 'strict' || 'report' }}
         # apk_url / artifact runs print "SHA UNVERIFIED, not valid as
         # release gate": the SHA is the run's commit, not the APK's.
         run: bash tool/emulator/release_gate.sh "$TIER" "$TESTED_SHA" "$APK_SOURCE"

@@ -6,8 +6,13 @@
 # printed as unverified and must not be used as a release gate.
 # Writes to GITHUB_STEP_SUMMARY when set, and to stdout.
 # It also reads the merged results ($EMULATOR_ARTIFACTS/results.txt) and
-# refuses (exit 1, "NOT a release gate") on any FAIL, XFAIL or XPASS, or
+# prints "NOT a release gate: <reasons>" on any FAIL, XFAIL or XPASS, or
 # when the results are missing: a known bug is still a bug in the release.
+# Only the release path exits 1 on that: EMULATOR_GATE_MODE=strict (set by
+# the workflow for a published release or a dispatch with release_gate=true),
+# or event "release" (EMULATOR_GATE_EVENT / GITHUB_EVENT_NAME). The strict
+# path also refuses an APK that was not built from SHA. Dispatch and
+# pull_request runs print the refusal and exit 0.
 set -euo pipefail
 tier="${1:?tier}" sha="${2:?sha}" source="${3:?source}"
 if [[ ! "$sha" =~ ^[0-9a-f]{40}$ ]]; then
@@ -50,7 +55,20 @@ if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
     grep -E '^(FAIL|XFAIL|XPASS) ' "$results" | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
   fi
 fi
+event="${EMULATOR_GATE_EVENT:-${GITHUB_EVENT_NAME:-}}"
+strict=0
+if [[ "${EMULATOR_GATE_MODE:-}" == strict || "$event" == release ]]; then strict=1; fi
+if [[ "$strict" -eq 1 && "$tier" != full ]]; then
+  refuse="${refuse:+${refuse}; }tier ${tier}, the release gate needs full"
+fi
+if [[ "$strict" -eq 1 && "$source" != build ]]; then
+  refuse="${refuse:+${refuse}; }APK from ${source} input, not built from ${sha}"
+  echo "Emulator **${tier}** release gate: NOT a release gate: ${refuse}."
+fi
 if [[ -n "$refuse" ]]; then
-  echo "release_gate.sh: refusing: ${refuse}" >&2
-  exit 1
+  if [[ "$strict" -eq 1 ]]; then
+    echo "release_gate.sh: refusing release: ${refuse}" >&2
+    exit 1
+  fi
+  echo "release_gate.sh: ${event:-local} run, not the release path: NOT a release gate (${refuse}); exit 0"
 fi

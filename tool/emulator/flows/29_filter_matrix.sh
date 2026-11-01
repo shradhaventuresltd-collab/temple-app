@@ -135,8 +135,12 @@ probe_others() {
           state_selected=1
         fi
         outcome="$(district_miss_outcome "$in_dump" "$state_selected")"
+        if [[ "$outcome" == xfail ]] && chip_bar_only_district_missing; then
+          xfail_known "$id-then-$other" KAN-190 "district chip hidden with no state selected" district_chip_reappears
+          continue
+        fi
         if [[ "$outcome" == xfail ]]; then
-          xfail_step "$id-then-$other" "district chip hidden with no state selected"
+          fail_step "$id-then-$other" "filter chip bar not on screen"
           continue
         fi
         if [[ "$state_selected" -eq 1 && "$in_dump" -eq 0 ]]; then

@@ -21,15 +21,17 @@ if [[ "$directions_found" -ne 1 ]]; then
   fail_step directions "Get Directions not in view after 3 flings"
   return 0
 fi
-# Device time before the taps; logcat -T reads only what came after.
-tap_since="$(adb_shell_capped 8 date +'%m-%d %H:%M:%S.000' 2>/dev/null | tr -d '\r')"
+# Count Maps STARTs in a logcat window opened just before the taps.
+tap_since="$(device_time)"
+echo "directions: logcat window starts at device time '${tap_since:-unknown}'"
+logcat_window_start directions-double-tap
 adb_shell_capped 8 input tap "$UI_CX" "$UI_CY"
 adb_shell_capped 8 input tap "$UI_CX" "$UI_CY"
 sleep 3
 step_shot dir-double
 # The back-out loop below could hide a stacked second Maps, so the double
 # tap must have started Maps exactly once.
-maps_starts="$(adb_shell_capped 8 logcat -d -v threadtime -T "$tap_since" -s ActivityTaskManager:I 2>/dev/null | count_maps_starts)"
+maps_starts="$(logcat_window_read | count_maps_starts)"
 echo "directions: Maps START lines after the double tap: ${maps_starts:-0}"
 if [[ "${maps_starts:-0}" -eq 1 ]]; then
   pass_step single-maps-launch

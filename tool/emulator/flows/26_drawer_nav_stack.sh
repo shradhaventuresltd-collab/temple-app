@@ -26,4 +26,10 @@ fi
 ui_dump && ui_find --content-desc "Open navigation menu" && ui_tap; sleep 1; ui_back; sleep 1
 wait_for_home && pass_step back-closes-drawer || fail_step back-closes-drawer "back with drawer open left Home"
 ui_back; sleep 2
-adb_shell_capped 8 dumpsys window | grep -q "mCurrentFocus.*$PKG" && xfail_step back-exits "no exit confirm" || pass_step back-exits
+# Back on Home leaves the app (main.dart _exitApp -> SystemNavigator.pop);
+# there is no exit confirm by design.
+if adb_shell_capped 8 dumpsys window | grep -q "mCurrentFocus.*$PKG"; then
+  fail_step back-exits "app still focused after back on Home"
+else
+  pass_step back-exits
+fi

@@ -255,7 +255,7 @@ applied_chips_present() {
 # After the first combined-* failure the rest of the flow builds on a
 # filter that is not there. Run 41314245431 kept going after combined-deity
 # and burned the 600s budget. Record what is left as NOT RUN and stop.
-COMBINED_REST="combined-deity combined-district combined-chips detail-open detail-back-keeps-filter home-resume-keeps-filter force-stop-relaunch force-stop-keeps-filter"
+COMBINED_REST="combined-deity combined-district combined-chips detail-open detail-back-keeps-filter home-resume-keeps-filter force-stop-relaunch force-stop-resets-filter"
 abort_after_combined_fail() {
   local failed="$1" step started=0
   for step in $COMBINED_REST; do
@@ -369,14 +369,15 @@ accept_policy_if_shown || true
 if ! open_browse || ! wait_browse_ready; then
   fail_step force-stop-relaunch "browse list did not return after force-stop"
 elif [[ -z "$COMBINED_STATE" && -z "$COMBINED_DEITY" && -z "$COMBINED_DISTRICT" ]]; then
-  skip_if_failed force-stop-keeps-filter "no combined filter was applied" \
+  skip_if_failed force-stop-resets-filter "no combined filter was applied" \
     state-open state-reopen state-select \
     deity-open deity-reopen deity-select \
     district-open district-select \
     combined-state combined-deity combined-district
 elif applied_chips_present; then
-  pass_step force-stop-keeps-filter
+  # By design filters live in memory (app_drawer.dart _selectedState etc.,
+  # no SharedPreferences), so a force-stop must reset them.
+  fail_step force-stop-resets-filter "filters survived force-stop: ${COMBINED_STATE} ${COMBINED_DEITY} ${COMBINED_DISTRICT}"
 else
-  # Filters are in memory only. Force-stop clears them; that is expected.
-  xfail_step force-stop-keeps-filter "filters live in memory and reset after force-stop"
+  pass_step force-stop-resets-filter
 fi

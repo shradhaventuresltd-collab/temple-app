@@ -71,7 +71,10 @@ for entry in home_button drawer_all drawer_search list_drawer_all; do
   for f in state deity district; do
     id="$entry-$f"
     if ! open_chip "$f"; then
-      [[ $f == district ]] && { xfail_step "$id-open" "district chip hidden (asset not bundled?)"; continue; }
+      if [[ $f == district ]] && chip_bar_only_district_missing; then
+        xfail_known "$id-open" KAN-190 "district chip hidden while the rest of the chip bar is on screen" district_chip_reappears
+        continue
+      fi
       fail_step "$id-open" "chip did not open the sheet"; continue
     fi
     pass_step "$id-open"

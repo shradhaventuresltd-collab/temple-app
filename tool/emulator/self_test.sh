@@ -247,10 +247,17 @@ for bad in "FAIL 25-directions-edge: single-maps-launch: double tap started Maps
   printf 'PASS 01-first-launch: launch\n%s\n' "$bad" > "${gate_art}/results.txt"
   [[ -z "$bad" ]] && : > "${gate_art}/results.txt"
   : > "$gate_sum"
-  if out="$(GITHUB_STEP_SUMMARY="$gate_sum" bash tool/emulator/release_gate.sh full "$gate_sha" build 2>&1)" ||
+  if out="$(EMULATOR_GATE_EVENT=release GITHUB_STEP_SUMMARY="$gate_sum" bash tool/emulator/release_gate.sh full "$gate_sha" build 2>&1)" ||
      [[ "$out" != *"NOT a release gate"* ]] || ! grep -q "NOT a release gate" "$gate_sum"; then
-    echo "release gate must refuse results with: '${bad:-no results}'" >&2; echo "$out" >&2; exit 1
+    echo "release gate must refuse (exit 1) a release with: '${bad:-no results}'" >&2; echo "$out" >&2; exit 1
   fi
+  for ev in workflow_dispatch pull_request; do
+    : > "$gate_sum"
+    if ! out="$(EMULATOR_GATE_EVENT="$ev" GITHUB_STEP_SUMMARY="$gate_sum" bash tool/emulator/release_gate.sh full "$gate_sha" build 2>&1)" ||
+       [[ "$out" != *"NOT a release gate"* ]] || ! grep -q "NOT a release gate" "$gate_sum"; then
+      echo "release gate on ${ev}: print 'NOT a release gate' with '${bad:-no results}' and exit 0" >&2; echo "$out" >&2; exit 1
+    fi
+  done
 done
 unset EMULATOR_ARTIFACTS
 rm -rf "$gate_art"
@@ -462,7 +469,7 @@ fi
 # shellcheck disable=SC2016 # literal workflow text
 # The tier is in the key so a smoke dispatch does not queue behind a full
 # one on the same ref (runs 41306793034 / 41306882301).
-if ! grep -Fxq "  group: emulator-app-test-\${{ github.event_name }}-\${{ inputs.tier || (github.event_name == 'pull_request' && 'smoke') || 'full' }}-\${{ github.event.pull_request.number || github.ref }}" "$workflow" ||
+if ! grep -Fxq "  group: emulator-app-test-\${{ github.event_name }}-\${{ (inputs.release_gate && 'full') || inputs.tier || (github.event_name == 'pull_request' && 'smoke') || 'full' }}-\${{ github.event.pull_request.number || github.ref }}" "$workflow" ||
    ! grep -Fxq "  cancel-in-progress: \${{ github.event_name == 'pull_request' }}" "$workflow"; then
   echo "concurrency group needs event_name, tier and ref; cancel-in-progress only for pull_request" >&2
   exit 1
@@ -1769,7 +1776,8 @@ f25=tool/emulator/flows/25_directions_edge.sh
 if [[ "$(maps_count maps_start_once.logcat.txt)" != 1 ]] || [[ "$(maps_count maps_start_twice.logcat.txt)" != 2 ]] ||
    ! grep -q 'fail_step single-maps-launch' "$f25" ||
    ! grep -Fq '"${maps_starts:-0}" -eq 1' "$f25" ||
-   ! grep -Fq 'logcat -d -v threadtime -T "$tap_since"' "$f25"; then
+   ! grep -q 'logcat_window_start directions-double-tap' "$f25" || ! grep -q 'logcat_window_read | count_maps_starts' "$f25" ||
+   ! grep -q "echo \"directions: logcat window starts at device time" "$f25"; then
   echo "flow 25: single-maps-launch counts Maps START lines after the taps (1 passes, 2 fails)" >&2; exit 1
 fi
 # 27: xfail_known gives XFAIL while the check fails, XPASS once it passes.
@@ -1811,5 +1819,144 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
   for f in tool/emulator/testdata/run41314245431/{boot_cold_excerpt,boot_create_excerpt,config_ini_appends}.log; do
     git ls-files --error-unmatch "$f" >/dev/null 2>&1 || { echo "testdata not tracked: $f" >&2; exit 1; }
   done
+fi
+# adb shell re-splits on the device. A stub adb that does the same (shlex
+# on the joined words, like the device sh) exercises the REAL command
+# construction: device_time must survive it; the old cc3e912 form did not.
+rs_dir="$(mktemp -d)"; mkdir -p "${rs_dir}/bin"
+cat > "${rs_dir}/bin/adb" <<'STUB'
+#!/usr/bin/env bash
+state="${RS_DIR}/cleared"
+if [[ "$1" == shell ]]; then
+  shift
+  python3 - "$*" <<'PY2'
+import shlex, sys
+argv = shlex.split(sys.argv[1])
+if argv[:1] == ["date"]:
+    if len(argv) == 2 and argv[1] == "+%m-%d %H:%M:%S":
+        print("11-01 14:16:53\r")
+    else:
+        print("date: extra operand", file=sys.stderr); sys.exit(1)
+PY2
+  exit $?
+fi
+if [[ "$1" == logcat ]]; then
+  case " $* " in
+    *" -c "*) : > "$state"; exit 0 ;;
+    *" -d "*) if [[ -f "$state" ]]; then cat "${RS_FIXTURE}"; else echo "old line from before the window"; fi; exit 0 ;;
+  esac
+fi
+exit 0
+STUB
+chmod +x "${rs_dir}/bin/adb"
+rs() {
+  (
+    export PATH="${rs_dir}/bin:$PATH" RS_DIR="$rs_dir" EMULATOR_FLOW=25-directions-edge EMULATOR_ARTIFACTS="${rs_dir}/art" EMULATOR_PACKAGE=com.example
+    # shellcheck disable=SC1091
+    source tool/emulator/lib/common.sh >/dev/null 2>&1
+    "$@"
+  )
+}
+if [[ "$(rs device_time)" != "11-01 14:16:53" ]]; then
+  echo "device_time must survive the device re-split" >&2; exit 1
+fi
+# shellcheck disable=SC2016 # literal command for eval
+if [[ -n "$(rs eval 'adb_shell_capped 8 date +"%m-%d %H:%M:%S.000" 2>/dev/null')" ]]; then
+  echo "stub adb must reject the old split date form (else this test proves nothing)" >&2; exit 1
+fi
+for want in once:1 twice:2; do
+  rm -f "${rs_dir}/cleared"
+  got="$(RS_FIXTURE="${fx126}/maps_start_${want%%:*}.logcat.txt" rs eval 'logcat_window_start t; logcat_window_read | count_maps_starts')"
+  if [[ "$got" != "${want##*:}" ]] || [[ ! -s "${rs_dir}/art/logcat/25-directions-edge_before-t.txt" ]]; then
+    echo "logcat window: ${want%%:*} launch fixture -> ${want##*:} (got '${got}'), pre-window log kept" >&2; exit 1
+  fi
+done
+rm -rf "$rs_dir"
+# 06 / 26: by-design behaviour is a PASS assertion, not an XFAIL.
+if grep -q 'xfail' tool/emulator/flows/06_filters.sh tool/emulator/flows/26_drawer_nav_stack.sh ||
+   ! grep -q 'pass_step force-stop-resets-filter' tool/emulator/flows/06_filters.sh ||
+   ! grep -q 'fail_step back-exits "app still focused after back on Home"' tool/emulator/flows/26_drawer_nav_stack.sh; then
+  echo "flow 06 force-stop-resets-filter and flow 26 back-exits are PASS assertions" >&2; exit 1
+fi
+# 17 / 29(30): XFAIL (KAN-190) only when the chip bar is on
+# screen and only the district chip is missing; Home (no bar) is not it.
+mkdir -p "$replay_dir"; : > "$replay_dir/log"
+if ! (REPLAY_DIR=run41314245431 replay chipbar_state_deity_no_district.xml chip_bar_only_district_missing) >/dev/null 2>&1 ||
+   (REPLAY_DIR=run41314245431 replay home_no_chip_bar.xml chip_bar_only_district_missing) >/dev/null 2>&1 ||
+   (REPLAY_DIR=run41314245431 replay chipbar_state_district_clear.xml chip_bar_only_district_missing) >/dev/null 2>&1; then
+  echo "chip_bar_only_district_missing: true only for state+deity with no district" >&2; exit 1
+fi
+dx="$(
+  EMULATOR_ARTIFACTS="$(mktemp -d)"
+  export EMULATOR_FLOW=30-filter-matrix-rest EMULATOR_ARTIFACTS EMULATOR_PACKAGE=com.example
+  source tool/emulator/lib/common.sh >/dev/null 2>&1
+  # shellcheck disable=SC2329 # stub called by the sourced library
+  step_shot() { :; }
+  # shellcheck disable=SC2329 # stub called by the sourced library
+  sleep() { :; }
+  # shellcheck disable=SC2329 # stub called by the sourced library
+  ui_dump() { cp "tool/emulator/testdata/run41314245431/${FX}" "$DUMP"; }
+  FX=chipbar_state_deity_no_district.xml xfail_known a-then-district KAN-190 "hidden" district_chip_reappears >/dev/null
+  FX=chipbar_state_district_clear.xml xfail_known b-then-district KAN-190 "hidden" district_chip_reappears >/dev/null 2>&1
+  cat "$RESULTS"
+)"
+if ! grep -qx 'XFAIL 30-filter-matrix-rest: a-then-district: KAN-190: hidden' <<<"$dx" ||
+   ! grep -qx 'XPASS 30-filter-matrix-rest: b-then-district: KAN-190: hidden' <<<"$dx"; then
+  echo "district XFAIL: stays XFAIL while hidden, XPASS when the chip reappears" >&2; echo "$dx" >&2; exit 1
+fi
+rm -rf "$replay_dir"
+for f in 17_entry_matrix.sh 29_filter_matrix.sh; do
+  # shellcheck disable=SC2016 # literal flow text
+  if ! grep -q 'chip_bar_only_district_missing' "tool/emulator/flows/$f" ||
+     ! grep -q 'xfail_known "$id-.*" KAN-190' "tool/emulator/flows/$f" ||
+     grep -q 'xfail_step' "tool/emulator/flows/$f"; then
+    echo "flow ${f}: district XFAIL only via chip_bar_only_district_missing + xfail_known KAN-190" >&2; exit 1
+  fi
+done
+# shellcheck disable=SC2016 # literal flow text
+if ! grep -q 'fail_step "$id-then-$other" "filter chip bar not on screen"' tool/emulator/flows/29_filter_matrix.sh; then
+  echo "flow 29: no chip bar -> FAIL" >&2; exit 1
+fi
+# Release-gate paths: strict (published release, or dispatch with
+# release_gate=true) exits 1 on any FAIL/XFAIL/XPASS/missing results, a
+# non-full tier, or an APK not built from the SHA; report mode exits 0.
+rg_art="$(mktemp -d)"
+printf 'START 01-first-launch\nPASS 01-first-launch: launch\nDONE 01-first-launch\n' > "${rg_art}/results.txt"
+for mode in "EMULATOR_GATE_MODE=strict" "EMULATOR_GATE_EVENT=release"; do
+  if ! env "$mode" EMULATOR_ARTIFACTS="$rg_art" GITHUB_STEP_SUMMARY=/dev/null bash tool/emulator/release_gate.sh full "$gate_sha" build >/dev/null 2>&1; then
+    echo "release gate (${mode}): a clean full build run passes" >&2; exit 1
+  fi
+  for bad in "smoke $gate_sha build" "full $gate_sha url" "full $gate_sha artifact"; do
+    # shellcheck disable=SC2086 # split on purpose
+    if env "$mode" EMULATOR_ARTIFACTS="$rg_art" GITHUB_STEP_SUMMARY=/dev/null bash tool/emulator/release_gate.sh $bad >/dev/null 2>&1; then
+      echo "release gate (${mode}): must refuse '${bad}'" >&2; exit 1
+    fi
+  done
+done
+printf 'XFAIL 29-filter-matrix: x-then-district: KAN-190: district chip hidden with no state selected\n' >> "${rg_art}/results.txt"
+if env EMULATOR_GATE_MODE=strict EMULATOR_ARTIFACTS="$rg_art" GITHUB_STEP_SUMMARY=/dev/null bash tool/emulator/release_gate.sh full "$gate_sha" build >/dev/null 2>&1; then
+  echo "release gate (strict): the conditional KAN-190 XFAIL must go red" >&2; exit 1
+fi
+if ! out="$(env EMULATOR_GATE_MODE=report EMULATOR_GATE_EVENT=workflow_dispatch EMULATOR_ARTIFACTS="$rg_art" GITHUB_STEP_SUMMARY=/dev/null bash tool/emulator/release_gate.sh full "$gate_sha" build 2>&1)" ||
+   [[ "$out" != *"NOT a release gate"* ]]; then
+  echo "release gate (report): XFAIL prints 'NOT a release gate' and exits 0" >&2; exit 1
+fi
+rm -rf "$rg_art"
+# choose_tier.sh: release -> full; dispatch release_gate=true -> full, and
+# release_gate with tier smoke is an error.
+ct() { env -u GITHUB_OUTPUT "$@" bash tool/emulator/choose_tier.sh 2>/dev/null | sed -n 's/^Emulator tier \([a-z]*\),.*/\1/p'; }
+if [[ "$(ct GITHUB_EVENT_NAME=release)" != full ]] ||
+   [[ "$(ct GITHUB_EVENT_NAME=workflow_dispatch INPUT_RELEASE_GATE=true)" != full ]] ||
+   env -u GITHUB_OUTPUT GITHUB_EVENT_NAME=workflow_dispatch INPUT_TIER=smoke INPUT_RELEASE_GATE=true bash tool/emulator/choose_tier.sh >/dev/null 2>&1 ||
+   [[ "$(ct GITHUB_EVENT_NAME=workflow_dispatch INPUT_TIER=smoke INPUT_RELEASE_GATE=false)" != smoke ]]; then
+  echo "choose_tier.sh: release and release_gate dispatch run full; release_gate+smoke fails" >&2; exit 1
+fi
+# shellcheck disable=SC2016 # literal workflow text
+if ! grep -q '^  release:$' "$workflow" || ! grep -q '^    types: \[published\]$' "$workflow" ||
+   ! grep -A4 '^      release_gate:$' "$workflow" | grep -q 'type: boolean' ||
+   ! grep -A4 '^      release_gate:$' "$workflow" | grep -q 'default: false' ||
+   ! grep -Fq "EMULATOR_GATE_MODE: \${{ (github.event_name == 'release' || inputs.release_gate) && 'strict' || 'report' }}" "$workflow" ||
+   ! grep -Fq "INPUT_RELEASE_GATE: \${{ inputs.release_gate && 'true' || 'false' }}" "$workflow"; then
+  echo "workflow: release published trigger, release_gate input, strict gate mode on those paths" >&2; exit 1
 fi
 echo "emulator self-test ok"

@@ -263,6 +263,47 @@ back_until_detail() {
 # "N+1 / M". Run 41314245431 failed on '^1 / ' after a burst whose
 # left/right flings were vertical (ui_fling) and auto-advance had moved
 # on; the dump itself was consistent (detail-gallery-4, '5 / 5').
+# Device clock, "MM-DD hh:mm:ss". adb shell joins its arguments and the
+# device shell re-splits them, so the whole command goes as ONE string with
+# the format quoted inside it (run of cc3e912: date +'%m-%d %H:%M:%S.000'
+# was split into two date operands and tap_since came back empty).
+device_time() {
+  adb_shell_capped 8 "date '+%m-%d %H:%M:%S'" 2>/dev/null | tr -d '\r'
+}
+
+# Logcat window for one step: keep what is there (written to LOG_DIR), clear
+# the buffer, and later read only what came after. No device timestamps.
+logcat_window_start() {
+  local name="$1"
+  mkdir -p "${LOG_DIR:-/tmp}" 2>/dev/null || true
+  timeout 8 adb logcat -d -v threadtime > "${LOG_DIR:-/tmp}/${FLOW}_before-${name}.txt" 2>/dev/null </dev/null || true
+  timeout 8 adb logcat -c </dev/null >/dev/null 2>&1 || true
+}
+logcat_window_read() {
+  timeout 8 adb logcat -d -v threadtime -s ActivityTaskManager:I </dev/null 2>/dev/null || true
+}
+
+# Chip bar on screen (state chip there, deity chip reachable) and ONLY the
+# district chip missing. Anything else (no bar at all, e.g. the screen is
+# Home, run 41314245431 30 drawer_bar-*-then-district) is not this case.
+chip_bar_only_district_missing() {
+  ui_dump || return 1
+  ui_find --resource-id filter-chip-state || ui_find --content-desc "Choose a state" || return 1
+  if python3 "$UI_PY" resource-ids "$DUMP" --prefix filter-chip- 2>/dev/null | grep -qx 'filter-chip-district' ||
+     ui_find --content-desc "Choose a district"; then
+    return 1
+  fi
+  ui_find --resource-id filter-chip-deity || ui_find --content-desc "Choose a deity" || ui_find --text-regex '^Deity$' ||
+    scroll_chips_until --content-desc "Choose a deity" || return 1
+}
+
+# XPASS probe for the district XFAIL: the chip shows up after a short wait.
+district_chip_reappears() {
+  sleep 2
+  ui_dump || return 1
+  python3 "$UI_PY" resource-ids "$DUMP" --prefix filter-chip- 2>/dev/null | grep -qx 'filter-chip-district'
+}
+
 # Maps activity launches in logcat text on stdin (ActivityTaskManager START
 # lines for com.google.android.apps.maps).
 count_maps_starts() {
