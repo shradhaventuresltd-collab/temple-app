@@ -221,6 +221,9 @@ if ! grep -q '\^\[0-9a-f\]{40}\$' "$workflow" || ! grep -q '\^\[0-9a-f\]{40}\$' 
 fi
 gate_sha=0123456789abcdef0123456789abcdef01234567
 gate_sum="$(mktemp)"
+gate_art="$(mktemp -d)"
+printf 'START 01-first-launch\nPASS 01-first-launch: launch\nDONE 01-first-launch\n' > "${gate_art}/results.txt"
+export EMULATOR_ARTIFACTS="$gate_art"
 GITHUB_STEP_SUMMARY="$gate_sum" bash tool/emulator/release_gate.sh full "$gate_sha" build >/dev/null
 if ! grep -Fq "### Release gate" "$gate_sum" || ! grep -Fq "suite ran on commit \`${gate_sha}\`." "$gate_sum" || grep -q UNVERIFIED "$gate_sum"; then
   echo "release gate: build mode must present the SHA as tested" >&2; cat "$gate_sum" >&2; exit 1
@@ -236,7 +239,41 @@ if bash tool/emulator/release_gate.sh full abc build >/dev/null 2>&1 ||
    bash tool/emulator/release_gate.sh full "$gate_sha" other >/dev/null 2>&1; then
   echo "release gate: a short SHA or an unknown source must fail" >&2; exit 1
 fi
+# The gate reads the results and refuses any FAIL, XFAIL or XPASS (a known
+# bug is still in the release), and missing results.
+for bad in "FAIL 25-directions-edge: single-maps-launch: double tap started Maps 2 times (want 1)" \
+           "XFAIL 27-offline-cold-start: recover: KAN-186: did not recover after network on" \
+           "XPASS 27-offline-cold-start: recover: KAN-186: did not recover after network on" ""; do
+  printf 'PASS 01-first-launch: launch\n%s\n' "$bad" > "${gate_art}/results.txt"
+  [[ -z "$bad" ]] && : > "${gate_art}/results.txt"
+  : > "$gate_sum"
+  if out="$(GITHUB_STEP_SUMMARY="$gate_sum" bash tool/emulator/release_gate.sh full "$gate_sha" build 2>&1)" ||
+     [[ "$out" != *"NOT a release gate"* ]] || ! grep -q "NOT a release gate" "$gate_sum"; then
+    echo "release gate must refuse results with: '${bad:-no results}'" >&2; echo "$out" >&2; exit 1
+  fi
+done
+unset EMULATOR_ARTIFACTS
+rm -rf "$gate_art"
 rm -f "$gate_sum"
+# summarize.sh lists XFAIL prominently and fails on XPASS.
+sum_art="$(mktemp -d)"
+{
+  echo "START 27-offline-cold-start"; echo "PASS 27-offline-cold-start: offline-home"
+  echo "XFAIL 27-offline-cold-start: recover: KAN-186: did not recover after network on"
+  echo "DONE 27-offline-cold-start"
+} > "${sum_art}/results.txt"
+sum_md="$(mktemp)"
+sum_out="$(EMULATOR_TIER=all EMULATOR_ARTIFACTS="$sum_art" GITHUB_STEP_SUMMARY="$sum_md" bash tool/emulator/summarize.sh 2>&1)" || true
+if ! grep -q '^#### Expected failures (XFAIL: 1)' "$sum_md" || ! grep -q '^- XFAIL 27-offline-cold-start: recover: KAN-186' "$sum_md" ||
+   ! grep -q '^XFAIL (1):' <<<"$sum_out" || ! grep -q '1 expected failures, 0 unexpected passes' <<<"$sum_out"; then
+  echo "summarize.sh: XFAIL count and list must be in the summary and on stdout" >&2; echo "$sum_out" >&2; cat "$sum_md" >&2; exit 1
+fi
+sed -i 's/^XFAIL 27-offline-cold-start: recover/XPASS 27-offline-cold-start: recover/' "${sum_art}/results.txt"
+if sum_out="$(EMULATOR_TIER=all EMULATOR_ARTIFACTS="$sum_art" GITHUB_STEP_SUMMARY=/dev/null bash tool/emulator/summarize.sh 2>&1)" ||
+   ! grep -q '^::error::XPASS 27-offline-cold-start: recover' <<<"$sum_out"; then
+  echo "summarize.sh: an XPASS must fail the job with ::error::" >&2; echo "$sum_out" >&2; exit 1
+fi
+rm -rf "$sum_art" "$sum_md"
 if [[ "$(grep -c 'uses: reactivecircus/android-emulator-runner@' "$workflow")" -ne 2 ]]; then
   echo "expected 2 emulator steps (snapshot plus one flow run per job)" >&2
   exit 1
@@ -850,7 +887,7 @@ if [[ "$unstarted_n" -ne 28 || "$skipped_n" -ne 2 ]] ||
    grep -q '^FAIL ' "${summary_dir}/results.txt" ||
    ! grep -q '^SKIPPED 11-near-me: ' "${summary_dir}/results.txt" ||
    ! grep -q '^SKIPPED 23-near-me-settings-roundtrip: ' "${summary_dir}/results.txt" ||
-   ! grep -q '0 failed, 0 expected failures, 28 not run, 2 skipped' "${summary_dir}/fail.out" ||
+   ! grep -q '0 failed, 0 expected failures, 0 unexpected passes, 28 not run, 2 skipped' "${summary_dir}/fail.out" ||
    ! grep -q 'did not start' "${summary_dir}/fail.out"; then
   echo "unstarted flows: 28 NOT RUN, 2 SKIPPED, no FAIL, job not green" >&2
   cat "${summary_dir}/fail.out" >&2
@@ -1445,12 +1482,11 @@ if grep -q 'ui_back; sleep 1; ui_back; sleep 1; ui_dump' tool/emulator/flows/25_
 fi
 # 27: only recover and chips-after-flap are XFAIL, linked to KAN-186.
 f27=tool/emulator/flows/27_offline_cold_start.sh
-if [[ "$(grep -c 'xfail_step [a-z-]* "KAN-186: ' "$f27")" -ne 2 ]] ||
-   ! grep -q 'xfail_step recover "KAN-186' "$f27" || ! grep -q 'xfail_step chips-after-flap "KAN-186' "$f27" ||
-   grep -q 'fail_step offline-list' "$f27" && ! grep -q 'fail_step offline-list "still loading' "$f27"; then
+if [[ "$(grep -c 'xfail_known [a-z-]* KAN-186 ' "$f27")" -ne 2 ]] ||
+   ! grep -q 'xfail_known recover KAN-186' "$f27" || ! grep -q 'xfail_known chips-after-flap KAN-186' "$f27"; then
   echo "flow 27: recover and chips-after-flap XFAIL (KAN-186), nothing else" >&2; exit 1
 fi
-if [[ "$(grep -c 'xfail_step' "$f27")" -ne 2 ]] || [[ "$(grep -rl 'KAN-186' tool/emulator/flows | wc -l)" -ne 1 ]]; then
+if grep -q 'xfail_step' "$f27" || [[ "$(grep -rl 'KAN-186' tool/emulator/flows | wc -l)" -ne 1 ]]; then
   echo "KAN-186 XFAIL belongs to flow 27 only" >&2; exit 1
 fi
 # Swipe-dismiss on each real sheet: a pull from the title centre (156,182)
@@ -1713,4 +1749,67 @@ if ! grep -q 'setprop debug.temple.snapshot_marker 1' tool/emulator/snapshot_cre
   exit 1
 fi
 
+# 24: the left flings must change the page; gallery_page reads it.
+mkdir -p "$replay_dir"; : > "$replay_dir/log"
+# shellcheck disable=SC2016 # literal text passed to eval / grep
+if [[ "$(SEQ=gallery_burst_5of5.xml lib126 eval 'ui_dump; gallery_page')" != 4 ]] ||
+   ! grep -q 'pass_step swipe-pages' tool/emulator/flows/24_gallery_autoadvance_viewer.sh ||
+   ! grep -q '"$page_after" != "$page_before"' tool/emulator/flows/24_gallery_autoadvance_viewer.sh; then
+  echo "flow 24: swipe-pages asserts the page changed (gallery_page = 4 on the burst dump)" >&2; exit 1
+fi
+rm -rf "$replay_dir"
+# 25: exactly one Maps START after the double tap (real logcat line from
+# run 41314245431; the 2-launch fixture repeats it 318 ms later).
+maps_count() {
+  EMULATOR_FLOW=x EMULATOR_ARTIFACTS="$(mktemp -d)" \
+    bash -c 'source tool/emulator/lib/common.sh >/dev/null 2>&1; count_maps_starts' < "tool/emulator/testdata/run41314245431/$1"
+}
+f25=tool/emulator/flows/25_directions_edge.sh
+# shellcheck disable=SC2016 # literal flow text
+if [[ "$(maps_count maps_start_once.logcat.txt)" != 1 ]] || [[ "$(maps_count maps_start_twice.logcat.txt)" != 2 ]] ||
+   ! grep -q 'fail_step single-maps-launch' "$f25" ||
+   ! grep -Fq '"${maps_starts:-0}" -eq 1' "$f25" ||
+   ! grep -Fq 'logcat -d -v threadtime -T "$tap_since"' "$f25"; then
+  echo "flow 25: single-maps-launch counts Maps START lines after the taps (1 passes, 2 fails)" >&2; exit 1
+fi
+# 27: xfail_known gives XFAIL while the check fails, XPASS once it passes.
+xk="$(
+  EMULATOR_ARTIFACTS="$(mktemp -d)"
+  export EMULATOR_FLOW=27-offline-cold-start EMULATOR_ARTIFACTS EMULATOR_PACKAGE=com.example
+  source tool/emulator/lib/common.sh >/dev/null 2>&1
+  step_shot() { :; }
+  xfail_known recover KAN-186 "did not recover" false >/dev/null
+  xfail_known chips-after-flap KAN-186 "chips dead" true 2>&1 | grep '^::error::' || true
+  cat "$RESULTS"
+)"
+if ! grep -qx 'XFAIL 27-offline-cold-start: recover: KAN-186: did not recover' <<<"$xk" ||
+   ! grep -qx 'XPASS 27-offline-cold-start: chips-after-flap: KAN-186: chips dead' <<<"$xk" ||
+   ! grep -q '^::error::XPASS 27-offline-cold-start: chips-after-flap' <<<"$xk" ||
+   [[ "$(grep -c 'xfail_known [a-z-]* KAN-186 ' tool/emulator/flows/27_offline_cold_start.sh)" -ne 2 ]]; then
+  echo "flow 27: xfail_known -> XFAIL on failure, XPASS + ::error:: on pass" >&2; echo "$xk" >&2; exit 1
+fi
+# 24: settle needs two consecutive consistent dumps on the same page.
+# shellcheck disable=SC2016 # literal flow text
+if ! grep -Fq 'cur_page" == "$prev_page"' tool/emulator/flows/24_gallery_autoadvance_viewer.sh; then
+  echo "flow 24: two consecutive agreeing dumps" >&2; exit 1
+fi
+if grep -q '/tmp/n' tool/emulator/flows/25_directions_edge.sh; then
+  echo "flow 25: no dead /tmp/n write" >&2; exit 1
+fi
+# snapshot_create.sh: a save that does not report OK fails the step (no cache save).
+sc_dir="$(mktemp -d)"; mkdir -p "${sc_dir}/bin"
+# shellcheck disable=SC2016 # literal stub script text
+printf '#!/bin/sh\ncase "$*" in "emu avd snapshot save default_boot") echo "${STUB_SAVE:-KO: failed}";; esac\nexit 0\n' > "${sc_dir}/bin/adb"
+chmod +x "${sc_dir}/bin/adb"
+if PATH="${sc_dir}/bin:$PATH" RUNNER_TEMP="$sc_dir" bash tool/emulator/snapshot_create.sh >/dev/null 2>&1 ||
+   ! STUB_SAVE=OK PATH="${sc_dir}/bin:$PATH" RUNNER_TEMP="$sc_dir" bash tool/emulator/snapshot_create.sh >/dev/null 2>&1; then
+  echo "snapshot_create.sh: exit 1 on a failed save, 0 on OK" >&2; exit 1
+fi
+rm -rf "$sc_dir"
+# Every testdata file this script uses is tracked (run 88a7569: *.log fixtures were gitignored).
+if git rev-parse --git-dir >/dev/null 2>&1; then
+  for f in tool/emulator/testdata/run41314245431/{boot_cold_excerpt,boot_create_excerpt,config_ini_appends}.log; do
+    git ls-files --error-unmatch "$f" >/dev/null 2>&1 || { echo "testdata not tracked: $f" >&2; exit 1; }
+  done
+fi
 echo "emulator self-test ok"

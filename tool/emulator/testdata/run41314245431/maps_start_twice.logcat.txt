@@ -1,0 +1,2 @@
+11-01 14:16:53.663   510  1810 I ActivityTaskManager: START u0 {act=android.intent.action.VIEW dat=https://www.google.com/... cmp=com.google.android.apps.maps/com.google.android.maps.MapsActivity (has extras)} from uid 10167
+11-01 14:16:53.981   510  1810 I ActivityTaskManager: START u0 {act=android.intent.action.VIEW dat=https://www.google.com/... cmp=com.google.android.apps.maps/com.google.android.maps.MapsActivity (has extras)} from uid 10167

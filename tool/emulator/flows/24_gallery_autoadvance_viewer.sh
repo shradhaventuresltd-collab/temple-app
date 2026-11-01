@@ -10,15 +10,31 @@ if ! ui_dump || ! ui_find --resource-id temple-browse-card; then
 fi
 ui_tap; sleep 3
 ui_dump; ui_find --text-regex '^1 / [2-9]' && pass_step multi-photo || { skip_step multi-photo "single photo temple"; }
+ui_dump; page_before="$(gallery_page || echo none)"
 for i in 1 2 3 4 5 6; do ui_fling left; sleep 0.3; done
+# The flings must page the gallery (run 41314245431: they were vertical).
+ui_dump; page_after="$(gallery_page || echo none)"
+if [[ "$page_before" != none && "$page_after" != none && "$page_after" != "$page_before" ]]; then
+  pass_step swipe-pages
+else
+  fail_step swipe-pages "flings did not change the page (${page_before} -> ${page_after})"
+fi
 for i in 1 2 3 4 5 6; do ui_fling right; sleep 0.3; done; step_shot swipe-burst
 # The timer keeps auto-advancing, so the page after the burst is not fixed.
 # Let the last fling and any advance settle, then check the counter against
-# the page on screen (two dumps 0.8s apart must agree with themselves).
+# the page on screen: two consecutive dumps 0.8s apart must each be
+# consistent and show the same page.
 sleep 1.5
 burst_ok=0
-for i in 1 2 3 4; do
-  if ui_dump && gallery_index_consistent; then burst_ok=1; break; fi
+prev_page=""
+for i in 1 2 3 4 5; do
+  if ui_dump && gallery_index_consistent; then
+    cur_page="$(gallery_page || true)"
+    if [[ -n "$prev_page" && "$cur_page" == "$prev_page" ]]; then burst_ok=1; break; fi
+    prev_page="$cur_page"
+  else
+    prev_page=""
+  fi
   sleep 0.8
 done
 [[ "$burst_ok" -eq 1 ]] && pass_step swipe-burst-index || fail_step swipe-burst-index "index/counter desync"

@@ -46,6 +46,13 @@ record_xfail() {
   printf 'XFAIL %s: %s: %s\n' "$FLOW" "$1" "$2" | tee -a "$RESULTS"
 }
 
+# An XFAIL step that passed: the known bug is fixed and the XFAIL mark must
+# go. summarize.sh fails the job on any XPASS.
+record_xpass() {
+  printf 'XPASS %s: %s: %s\n' "$FLOW" "$1" "$2" | tee -a "$RESULTS"
+  echo "::error::XPASS ${FLOW}: $1 passed but is marked XFAIL ($2); remove the XFAIL mark"
+}
+
 record_not_run() {
   printf 'NOT RUN %s: %s: %s\n' "$FLOW" "$1" "$2" | tee -a "$RESULTS"
 }
@@ -84,6 +91,20 @@ xfail_step() {
   record_xfail "$1" "$2"
   step_shot "$1"
   cp -f "$DUMP" "${DUMP_DIR}/${FLOW}_${1}.xml" 2>/dev/null || true
+}
+
+# Known-bug step: XFAIL while the bug is there, XPASS (a failure) once the
+# check passes, so the mark is removed when the fix lands.
+#   xfail_known STEP TICKET REASON COMMAND...
+xfail_known() {
+  local step="$1" ticket="$2" reason="$3"
+  shift 3
+  if "$@"; then
+    record_xpass "$step" "${ticket}: ${reason}"
+    step_shot "$step"
+  else
+    xfail_step "$step" "${ticket}: ${reason}"
+  fi
 }
 
 skip_step() {
@@ -242,6 +263,24 @@ back_until_detail() {
 # "N+1 / M". Run 41314245431 failed on '^1 / ' after a burst whose
 # left/right flings were vertical (ui_fling) and auto-advance had moved
 # on; the dump itself was consistent (detail-gallery-4, '5 / 5').
+# Maps activity launches in logcat text on stdin (ActivityTaskManager START
+# lines for com.google.android.apps.maps).
+count_maps_starts() {
+  grep -c 'ActivityTaskManager: START u0 .*cmp=com\.google\.android\.apps\.maps/' || true
+}
+
+# Page index on screen (N of detail-gallery-N) from the last dump.
+gallery_page() {
+  python3 - "$DUMP" <<'PY2'
+import re, sys
+s = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+pages = sorted(set(re.findall(r'resource-id="detail-gallery-(\d+)"', s)))
+if len(pages) != 1:
+    sys.exit(1)
+print(pages[0])
+PY2
+}
+
 gallery_index_consistent() {
   python3 - "$DUMP" <<'PY2'
 import re, sys

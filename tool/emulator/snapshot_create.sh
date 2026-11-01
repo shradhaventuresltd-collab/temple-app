@@ -6,11 +6,22 @@
 # snapshot still has it, a cold boot does not (run_shard.sh boot check).
 set -uo pipefail
 
-adb shell setprop debug.temple.snapshot_marker 1 || true
+# debug.* properties are writable by the adb shell user (uid shell) on
+# google_apis images without root: property_contexts maps debug.* to
+# debug_prop, which the shell domain may set. setprop keeps the value in
+# memory only (no persist. prefix), so it survives a snapshot restore and
+# is gone after a cold boot.
+if ! adb shell setprop debug.temple.snapshot_marker 1; then
+  echo "::error::could not set the boot marker property; not saving a snapshot"
+  exit 1
+fi
 out="$(adb emu avd snapshot save default_boot 2>&1 | tr -d '\r')"
 echo "snapshot save: ${out}"
+# A failed save must fail the step: Save AVD cache runs only when this
+# step succeeded, so a bad snapshot is never cached under the cfg2 key.
 if [[ "$out" != *OK* ]]; then
-  echo "::warning::adb emu avd snapshot save default_boot did not report OK"
+  echo "::error::adb emu avd snapshot save default_boot did not report OK; failing so the AVD is not cached"
+  exit 1
 fi
 avd_dir="${ANDROID_AVD_HOME:-${HOME}/.android/avd}/${EMULATOR_AVD_NAME:-emulator-app-test-30}.avd"
 if [[ -n "${RUNNER_TEMP:-}" ]]; then

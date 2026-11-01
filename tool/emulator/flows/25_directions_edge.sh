@@ -21,12 +21,21 @@ if [[ "$directions_found" -ne 1 ]]; then
   fail_step directions "Get Directions not in view after 3 flings"
   return 0
 fi
+# Device time before the taps; logcat -T reads only what came after.
+tap_since="$(adb_shell_capped 8 date +'%m-%d %H:%M:%S.000' 2>/dev/null | tr -d '\r')"
 adb_shell_capped 8 input tap "$UI_CX" "$UI_CY"
 adb_shell_capped 8 input tap "$UI_CX" "$UI_CY"
 sleep 3
-adb_shell_capped 8 dumpsys activity activities | grep -c "maps\|chrome\|Chooser" > /tmp/n; step_shot dir-double
-maps_tasks="$(adb_shell_capped 8 dumpsys activity activities 2>/dev/null | grep -c 'com.google.android.apps.maps/' || true)"
-echo "directions: Maps activity records after double tap: ${maps_tasks:-0}"
+step_shot dir-double
+# The back-out loop below could hide a stacked second Maps, so the double
+# tap must have started Maps exactly once.
+maps_starts="$(adb_shell_capped 8 logcat -d -v threadtime -T "$tap_since" -s ActivityTaskManager:I 2>/dev/null | count_maps_starts)"
+echo "directions: Maps START lines after the double tap: ${maps_starts:-0}"
+if [[ "${maps_starts:-0}" -eq 1 ]]; then
+  pass_step single-maps-launch
+else
+  fail_step single-maps-launch "double tap started Maps ${maps_starts:-0} times (want 1)"
+fi
 # Maps may show "Update Google Maps to continue" or a location prompt, which
 # take their own backs (run 41314245431). Back out until detail, at most 6.
 if back_until_detail 6; then

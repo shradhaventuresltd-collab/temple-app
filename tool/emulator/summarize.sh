@@ -90,18 +90,40 @@ fails="$(grep -c '^FAIL ' "$results" || true)"
 xfails="$(grep -c '^XFAIL ' "$results" || true)"
 not_run="$(grep -c '^NOT RUN ' "$results" || true)"
 skipped="$(grep -c '^SKIPPED ' "$results" || true)"
+xpasses="$(grep -c '^XPASS ' "$results" || true)"
 
 {
   echo "### Emulator app test (${tier}${EMULATOR_SHARD:+ shard ${EMULATOR_SHARD}})"
   echo
-  echo "${passes} passed, ${fails} failed, ${xfails} expected failures, ${not_run} not run, ${skipped} skipped."
+  echo "${passes} passed, ${fails} failed, ${xfails} expected failures, ${xpasses} unexpected passes, ${not_run} not run, ${skipped} skipped."
   echo
+  if [[ "$xfails" -gt 0 ]]; then
+    echo "#### Expected failures (XFAIL: ${xfails}) - known bugs, not a release gate"
+    echo
+    grep '^XFAIL ' "$results" | sed 's/^/- /'
+    echo
+  fi
+  if [[ "$xpasses" -gt 0 ]]; then
+    echo "#### Unexpected passes (XPASS: ${xpasses}) - remove the XFAIL mark"
+    echo
+    grep '^XPASS ' "$results" | sed 's/^/- /'
+    echo
+  fi
   echo '```'
   cat "$results"
   echo '```'
 } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
 
-echo "${passes} passed, ${fails} failed, ${xfails} expected failures, ${not_run} not run, ${skipped} skipped."
+echo "${passes} passed, ${fails} failed, ${xfails} expected failures, ${xpasses} unexpected passes, ${not_run} not run, ${skipped} skipped."
+if [[ "$xfails" -gt 0 ]]; then
+  echo "XFAIL (${xfails}):"
+  grep '^XFAIL ' "$results" | sed 's/^/  /'
+fi
+if [[ "$xpasses" -gt 0 ]]; then
+  grep '^XPASS ' "$results" | sed 's/^/::error::/'
+  echo "summarize.sh: ${xpasses} XFAIL step(s) passed; remove their XFAIL marks" >&2
+  exit 1
+fi
 if [[ "$fails" -ne 0 ]]; then
   exit 1
 fi
