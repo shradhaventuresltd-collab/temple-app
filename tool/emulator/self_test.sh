@@ -285,8 +285,57 @@ if ! grep -Fq "if: steps.create-avd.outcome == 'success' && (matrix.shard == '1'
   echo "AVD cache should be saved by one job, only after the clean snapshot boot" >&2
   exit 1
 fi
-if ! grep -Fq 'EMULATOR_AVD_CACHE_KEY: avd-30-x86_64-google_apis-emulator-app-test-clean' "$workflow"; then
-  echo "AVD cache key should name the clean snapshot" >&2
+# The cached snapshot loads only on the AVD config it was saved with
+# (run 41306793034: "cannot load snapshot ... different AVD configuration"
+# after the emulator binary moved 37.2.12.0 -> 37.2.13.0). So the key is
+# built from every input that shapes that config, the core count is known
+# before the restore, and both emulator steps boot the same config.
+if ! python3 - "$workflow" <<'PY'
+import re, sys
+wf = open(sys.argv[1]).read()
+errs = []
+key = re.search(r'echo "EMULATOR_AVD_CACHE_KEY=([^"]+)"', wf)
+if not key:
+    errs.append("EMULATOR_AVD_CACHE_KEY is not computed in a step")
+else:
+    for part in ("${EMULATOR_API_LEVEL}", "${EMULATOR_TARGET}", "${EMULATOR_ARCH}",
+                 "${cores}", "${EMULATOR_DISK_SIZE}", "${EMULATOR_BUILD}", "${EMULATOR_AVD_NAME}", "clean"):
+        if part not in key.group(1):
+            errs.append(f"AVD cache key lacks {part}")
+if not re.search(r'EMULATOR_BUILD: "\d+"', wf):
+    errs.append("EMULATOR_BUILD must pin an emulator build number")
+emu = wf[wf.index("\n  emulator:"):]
+steps = [m.group(1) for m in re.finditer(r"^      - name: (.+)$", emu, re.M)]
+def idx(prefix):
+    for i, n in enumerate(steps):
+        if n.startswith(prefix):
+            return i
+    errs.append(f"missing step {prefix!r}")
+    return -1
+order = [idx("Choose emulator core count"), idx("Restore AVD cache"),
+         idx("Create AVD snapshot"), idx("Save AVD cache"), idx("Run emulator flows")]
+if order != sorted(order):
+    errs.append(f"step order must be cores, restore, create, save, run: {order}")
+runners = re.findall(r"uses: reactivecircus/android-emulator-runner@\S+.*?\n        with:\n(.*?)(?=\n\n|\n      - )", emu, re.S)
+cfg_keys = ("api-level", "target", "arch", "cores", "disk-size", "avd-name",
+            "force-avd-creation", "disable-animations", "emulator-build")
+cfgs = []
+for body in runners:
+    kv = dict(re.findall(r"^          ([a-z-]+): (.*)$", body, re.M))
+    cfgs.append({k: kv.get(k) for k in cfg_keys})
+if len(cfgs) != 2 or cfgs[0] != cfgs[1] or None in cfgs[0].values():
+    errs.append(f"snapshot and flow steps must boot the same AVD config: {cfgs}")
+opts = re.search(r"^      EMULATOR_OPTIONS: (.*)$", wf, re.M).group(1).split()
+snap = re.search(r"^      EMULATOR_SNAPSHOT_OPTIONS: (.*)$", wf, re.M).group(1).split()
+if [o for o in opts if o != "-no-snapshot-save"] != snap:
+    errs.append("EMULATOR_SNAPSHOT_OPTIONS must equal EMULATOR_OPTIONS without -no-snapshot-save")
+if "avd-30-x86_64-google_apis-emulator-app-test-clean" in wf:
+    errs.append("the old fixed AVD key (snapshot saved by emulator 37.2.12.0) must not be restored")
+print("\n".join(errs), file=sys.stderr)
+sys.exit(1 if errs else 0)
+PY
+then
+  echo "AVD cache key must carry the AVD config, and cores must be chosen before the restore" >&2
   exit 1
 fi
 if [[ "$(grep -F -c 'EMULATOR_AVD_CACHE_KEY' "$workflow")" -lt 3 ]]; then

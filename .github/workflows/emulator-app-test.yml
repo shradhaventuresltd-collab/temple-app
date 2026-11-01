@@ -287,7 +287,14 @@ jobs:
       # Snapshot generation is allowed to save. It does not wipe, and it does
       # not install an app.
       EMULATOR_SNAPSHOT_OPTIONS: -no-window -gpu swiftshader_indirect -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
-      EMULATOR_AVD_CACHE_KEY: avd-30-x86_64-google_apis-emulator-app-test-clean
+      # Emulator binary pinned. "Install latest emulator" moved from 37.2.12.0
+      # (16428233, which saved the cached snapshot on 2026-10-25) to 37.2.13.0
+      # (16740729) and every job then logged "cannot load snapshot ...
+      # different AVD configuration" and cold-booted (run 41306793034).
+      EMULATOR_BUILD: "16740729"
+      # The AVD cache key (EMULATOR_AVD_CACHE_KEY) is written by "Choose
+      # emulator core count" from everything that shapes the AVD config:
+      # api, target, arch, cores, disk size, emulator build.
       EMULATOR_PRE_LAUNCH: bash tool/emulator/prepare_avd.sh
     steps:
       - name: Checkout workflow scripts
@@ -321,6 +328,15 @@ jobs:
           path: /usr/local/lib/android/sdk/system-images
           key: system-image-android-30-google_apis-x86_64
 
+      # Before the AVD cache restore: the core count is part of the AVD
+      # config (hw.cpu.ncore), so it is part of the cache key.
+      - name: Choose emulator core count and AVD cache key
+        timeout-minutes: 1
+        run: |
+          if [[ "$(nproc)" -ge 4 ]]; then cores=4; else cores=2; fi
+          echo "EMULATOR_CORES=${cores}" >> "$GITHUB_ENV"
+          echo "EMULATOR_AVD_CACHE_KEY=avd-${EMULATOR_API_LEVEL}-${EMULATOR_TARGET}-${EMULATOR_ARCH}-cores${cores}-disk${EMULATOR_DISK_SIZE}-emu${EMULATOR_BUILD}-${EMULATOR_AVD_NAME}-clean" >> "$GITHUB_ENV"
+
       - name: Restore AVD cache
         id: avd-cache
         timeout-minutes: 10
@@ -330,15 +346,6 @@ jobs:
             ~/.android/avd
             ~/.android/adb*
           key: ${{ env.EMULATOR_AVD_CACHE_KEY }}
-
-      - name: Choose emulator core count
-        timeout-minutes: 1
-        run: |
-          if [[ "$(nproc)" -ge 4 ]]; then
-            echo "EMULATOR_CORES=4" >> "$GITHUB_ENV"
-          else
-            echo "EMULATOR_CORES=2" >> "$GITHUB_ENV"
-          fi
 
       # Boot once with no app so the cached snapshot does not contain an APK.
       # A cache hit skips this.
@@ -356,6 +363,7 @@ jobs:
           avd-name: ${{ env.EMULATOR_AVD_NAME }}
           force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
           disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-build: ${{ env.EMULATOR_BUILD }}
           emulator-boot-timeout: 600
           emulator-options: ${{ env.EMULATOR_SNAPSHOT_OPTIONS }}
           pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
@@ -392,6 +400,7 @@ jobs:
           avd-name: ${{ env.EMULATOR_AVD_NAME }}
           force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
           disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-build: ${{ env.EMULATOR_BUILD }}
           emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
           emulator-options: ${{ env.EMULATOR_OPTIONS }}
           pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}

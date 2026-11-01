@@ -1126,6 +1126,214 @@ print(name if name else "")
 ' "$1"
 }
 
+# Seek, ported from PR #124 v4 (e55a51a): sorted-order jumps with a gallop,
+# a walk back after an overshoot, and SEEK_BACK_STALL. #126's step scan
+# alone cannot reach Tamil Nadu Shiva (12th of 32) inside 20s
+# (dryrun-logs/fastemu/round2/shiva_tn_*).
+seek_settle() {
+  local n prev="" cur
+  for n in $(seq 1 "${SEEK_SETTLE_DUMPS:-6}"); do
+    ui_dump || return 1
+    cur="$(dump_scroll_sig)" || return 1
+    [[ -n "$prev" && "$cur" == "$prev" ]] && return 0
+    prev="$cur"
+    sleep 0.4
+  done
+  echo "seek_option: list still moving after ${SEEK_SETTLE_DUMPS:-6} dumps" >&2
+  return 1
+}
+
+# Scroll toward option NAME of section KIND (state, district, deity) by
+# comparing it with the visible option ids, which are in sorted order, and
+# with the visible sections (the sheet's order is: tapped section, then
+# state, district, deity). Returns 0 with UI_CX/UI_CY/UI_TEXT set when the
+# option is in the tap band; 2 when the dump proves it is not listed;
+# 1 otherwise. Every decision is made on a settled dump: a dump taken while
+# a fling still runs sent run 40916686359 past Shiva and out of STATE.
+# Usage: seek_option KIND NAME DEADLINE [--prefix]
+# Environment overrides are clamped: SEEK_FAR_FLINGS 1-4 (more flings per
+# look only overshoot further), SEEK_MAX_MOVES 1-60 (the deadline bounds
+# the walk anyway; a huge value would only hide a stuck loop).
+seek_clamp() {
+  local v="$1" lo="$2" hi="$3"
+  [[ "$v" =~ ^[0-9]+$ ]] || v="$lo"
+  (( v < lo )) && v="$lo"
+  (( v > hi )) && v="$hi"
+  echo "$v"
+}
+
+seek_option() {
+  local kind="$1" name="$2" deadline="$3"
+  local max_moves far_flings
+  max_moves="$(seek_clamp "${SEEK_MAX_MOVES:-40}" 1 60)"
+  far_flings="$(seek_clamp "${SEEK_FAR_FLINGS:-2}" 1 4)"
+  local extra=()
+  [[ "${4:-}" == --prefix ]] && extra=(--prefix)
+  local i height width verdict dir reach prev="" current same=0
+  local direction="" flips=0 order="" fling_pct=48 kinds settled=1 gallop=0
+  read -r width height < <(ui_screen_size) || return 1
+  ui_dump || return 1
+  # Every drag starts inside the option scroller (ui.py sheet-band). Above
+  # it is the sheet header, where a drag never scrolls and a downward pull
+  # dismisses. The fixed 32% fling start (y 204 of 640) was on the header,
+  # so each downward fling after an overshoot did nothing and the walk
+  # ended "list stopped moving" (run 41269171081: Madurai in 06 and 30b,
+  # Shiva in 06 and 29j). 16px keeps the finger off the scroller's edges.
+  local band_top band_bot
+  if ! read -r band_top band_bot < <(python3 "$UI_PY" sheet-band "$DUMP") \
+    || ! [[ "$band_top" =~ ^[0-9]+$ && "$band_bot" =~ ^[0-9]+$ ]]; then
+    band_top=$((height * 39 / 100))
+    band_bot=$((height * 89 / 100))
+  fi
+  band_top=$((band_top + 16))
+  band_bot=$((band_bot - 16))
+  # The first dump is the sheet as it opened: scrolled to the top, so the
+  # first visible section is the head of the order.
+  if kinds="$(python3 "$UI_PY" sheet-kinds "$DUMP")"; then
+    order="$(printf '%s state district deity' "$kinds" | tr ' ' '\n' | awk 'NF && !seen[$0]++' | paste -sd, -)"
+  else
+    echo "seek_option: no picker section on screen (is the sheet open?)" >&2
+    return 1
+  fi
+  for i in $(seq 1 "$max_moves"); do
+    if (( SECONDS >= deadline )); then
+      echo "seek_option: ${kind} '${name}' not reached before the deadline (${i} looks, order ${order})" >&2
+      return 1
+    fi
+    verdict="$(python3 "$UI_PY" option-seek "$DUMP" --kind "$kind" --name "$name" --order "$order" "${extra[@]}" \
+      --min-top $((height * 24 / 100)) --max-top $((height * 84 / 100)))" || return 1
+    read -r dir reach _ <<<"$verdict"
+    [[ -n "${SEEK_TRACE:-}" ]] && echo "seek_option: t=$SECONDS look ${i}: ${verdict} settled=${settled} pct=${fling_pct} first=$(grep -o "filter-option-[a-z]*-[^\"]*" "$DUMP" | head -1)" >&2
+    # A far run is flung without waiting for the list to stop (run
+    # 40992967143: settling after every fling spent 45s to cross A-P).
+    # Only "still far, same way" may act on a moving list; any other
+    # verdict, above all a tap, is taken again on a settled dump.
+    if (( ! settled )) && ! [[ "$dir" == "$direction" && "$reach" =~ ^(far|mid)$ && "$flips" -eq 0 ]]; then
+      seek_settle || return 1
+      settled=1
+      continue
+    fi
+    case "$dir" in
+      tap)
+        read -r _ UI_CX UI_CY UI_TEXT <<<"$verdict"
+        return 0 ;;
+      up|down) ;;
+      absent)
+        echo "seek_option: ${kind} '${name}' is not in the list (neighbours bracket it)" >&2
+        return 2 ;;
+      *)
+        echo "seek_option: ${kind} '${name}': ${verdict}" >&2
+        return 1 ;;
+    esac
+    # Every change of direction is an overshoot. Fling weaker after each;
+    # the list swinging forever is stopped by SEEK_MAX_FLIPS.
+    if [[ -n "$direction" && "$dir" != "$direction" ]]; then
+      flips=$((flips + 1))
+      fling_pct=$((fling_pct / 2))
+      if (( flips >= ${SEEK_MAX_FLIPS:-6} )); then
+        echo "seek_option: ${kind} '${name}' changed direction ${flips} times" >&2
+        return 1
+      fi
+    fi
+    direction="$dir"
+    current="$(dump_scroll_sig)" || return 1
+    if [[ "$current" == "$prev" ]]; then
+      same=$((same + 1))
+      # Only an upward walk can hit the real end of the list. Once the walk
+      # has passed the target (dir down) the top is still ahead, so one or
+      # two unmoved looks there are not the end. But a list that never
+      # moves back (sheet stuck, swipes eaten) is: stop after
+      # SEEK_BACK_STALL (default 4, ~12s) unchanged looks, return 3 so
+      # select_labeled does not spend the rest of its give-up on a step
+      # scan that would only swipe the same dead list.
+      if (( same >= $(seek_clamp "${SEEK_BACK_STALL:-4}" 2 8) )) && [[ "$dir" == down ]]; then
+        echo "seek_option: list stopped moving while walking back to ${kind} '${name}'" >&2
+        return 3
+      fi
+      if (( same >= 3 )) && [[ "$dir" == up ]]; then
+        # Three swipes that moved nothing: the end of the list, or swipes
+        # that missed the scroller. The caller's bounded step scan decides.
+        echo "seek_option: list stopped moving before ${kind} '${name}'" >&2
+        return 1
+      fi
+    else
+      same=0
+    fi
+    prev="$current"
+    local pct=0
+    case "$reach" in
+      far) pct=$fling_pct ;;
+      mid) pct=$((fling_pct / 3)) ;;
+    esac
+    # Gallop: before the first overshoot, start with one short fling and
+    # grow it each look the target is still far the same way. A full
+    # double fling from the head of a short section (Tamil Nadu's ~30
+    # deities) crossed it and the next two sections; the walk back cost
+    # more than the walk (replay test, 18s of a 20s PICKER_GIVEUP_S).
+    local gallop_flings=""
+    if [[ "$reach" =~ ^(far|mid)$ ]] && (( flips == 0 )) && [[ "${SEEK_GALLOP:-1}" == 1 ]]; then
+      local g_pcts=()
+      read -r -a g_pcts <<<"${SEEK_GALLOP_PCTS:-32 48}"
+      if (( gallop < ${#g_pcts[@]} )); then
+        pct=${g_pcts[$gallop]}
+        # "mid" is the next initial or closer: half the step.
+        [[ "$reach" == mid ]] && pct=$((pct / 2))
+        gallop_flings=1
+      fi
+      gallop=$((gallop + 1))
+    fi
+    if (( pct >= 8 )); then
+      # A short, fast drag leaves momentum: many rows per dump.
+      local y_lo=$((height * 32 / 100)) y_hi n flings=1
+      (( y_lo < band_top )) && y_lo=$band_top
+      y_hi=$((y_lo + height * pct / 100))
+      (( y_hi > height * 82 / 100 )) && y_hi=$((height * 82 / 100))
+      (( y_hi > band_bot )) && y_hi=$band_bot
+      # Run 40992967143: one 120ms fling per look moved the 600-option
+      # DEITY section by about a letter, and each look costs ~5s (swipe +
+      # settle dumps), so every Shiva/Vishnu pick ran out of its 45s at
+      # P-R. Settling, not swiping, is the cost: until the first overshoot
+      # (far: another section or 2+ initials away; mid: the next initial or
+      # a far letter inside the name), send SEEK_FAR_FLINGS flings back to
+      # back and do not wait for the list to stop (see settled above).
+      if [[ "$reach" =~ ^(far|mid)$ ]] && (( flips == 0 )); then
+        flings="${gallop_flings:-$far_flings}"
+      fi
+      for n in $(seq 1 "$flings"); do
+        if [[ "$dir" == up ]]; then
+          adb_shell_capped 8 input swipe $((width / 2)) "$y_hi" $((width / 2)) "$y_lo" "${SEEK_FLING_MS:-120}" || return 1
+        else
+          adb_shell_capped 8 input swipe $((width / 2)) "$y_lo" $((width / 2)) "$y_hi" "${SEEK_FLING_MS:-120}" || return 1
+        fi
+      done
+      : "$n"
+    else
+      # Slow drag: no momentum, the list moves by the finger's travel.
+      # Run 40992967143's endgame crept through the "Shiva (...)" rows at
+      # ui_sheet_swipe's 24% a look. 84% -> 42% of the screen (y 537 -> 269
+      # on 640) is 42%, still less than the 318px option scroller, so no
+      # row can pass between two looks unseen.
+      local s_lo=$((height * 42 / 100)) s_hi=$((height * 84 / 100))
+      (( s_lo < band_top )) && s_lo=$band_top
+      (( s_hi > band_bot )) && s_hi=$band_bot
+      if [[ "$dir" == up ]]; then
+        adb_shell_capped 8 input swipe $((width / 2)) "$s_hi" $((width / 2)) "$s_lo" 900 || return 1
+      else
+        adb_shell_capped 8 input swipe $((width / 2)) "$s_lo" $((width / 2)) "$s_hi" 900 || return 1
+      fi
+    fi
+    if [[ "$reach" =~ ^(far|mid)$ ]] && (( flips == 0 )); then
+      ui_dump || return 1
+      settled=0
+    else
+      seek_settle || return 1
+      settled=1
+    fi
+  done
+  echo "seek_option: ${kind} '${name}' not reached in ${max_moves} moves" >&2
+  return 1
+}
+
 # Walk the option list until regex is inside the tap band, then tap it.
 # Callers pass the section name (STATE, DISTRICT, DEITY). The list ends when
 # a swipe leaves the option texts unchanged, not when the next header peeks in.
@@ -1149,8 +1357,42 @@ select_labeled() {
   if ! wait_out_district_loader; then
     return 1
   fi
+  local kind
+  kind="$(printf '%s' "$_section" | tr '[:upper:]' '[:lower:]')"
   started=$SECONDS
   deadline=$((started + PICKER_GIVEUP_S))
+  if [[ -n "$name_hint" && "$kind" =~ ^(state|district|deity)$ ]]; then
+    local seek_rc=0
+    # '^Vishnu' (no $) takes the first Vishnu... option; '^Shiva( +N)?$' only Shiva.
+    local prefix_flag=""
+    [[ "$regex" == *'$' ]] || prefix_flag=--prefix
+    # Keep the last 15s for the bounded step scan below when the seek stalls.
+    local seek_deadline=$((deadline - 15))
+    (( seek_deadline > started + 15 )) || seek_deadline=$deadline
+    seek_option "$kind" "$name_hint" "$seek_deadline" ${prefix_flag:+"$prefix_flag"} || seek_rc=$?
+    if (( seek_rc == 0 )); then
+      if [[ ! "$UI_TEXT" =~ $regex ]]; then
+        echo "select_labeled: option '${UI_TEXT}' does not match '${regex}'" >&2
+        return 1
+      fi
+      SELECTED_LABEL="$(chip_label "$UI_TEXT")"
+      ui_tap || { echo "select_labeled: tap on '${UI_TEXT}' failed" >&2; return 1; }
+      sleep 1
+      return 0
+    fi
+    if (( seek_rc == 2 )); then
+      echo "select_labeled: '${regex}' is not offered in the ${kind} list" >&2
+      return 1
+    fi
+    if (( seek_rc == 3 )); then
+      echo "select_labeled: gave up on '${regex}': the ${kind} list stopped moving" >&2
+      return 1
+    fi
+    if ! python3 "$UI_PY" sheet-band "$DUMP" >/dev/null 2>&1; then
+      echo "select_labeled: the filter sheet is not on screen while looking for '${regex}'" >&2
+      return 1
+    fi
+  fi
   for pass in 1 2; do
     if (( SECONDS >= deadline )); then
       echo "select_labeled: gave up looking for '${regex}' after $((SECONDS - started))s" >&2
