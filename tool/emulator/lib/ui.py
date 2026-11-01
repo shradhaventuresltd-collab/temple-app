@@ -514,6 +514,60 @@ def cmd_sheet_band(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_chip_bar(args: argparse.Namespace) -> int:
+    """Print "LEFT TOP RIGHT BOTTOM" of the filter chip bar's scroll area.
+
+    The bar is the smallest horizontally scrollable node that holds a
+    filter-chip-* node. The pinned Clear button (filter-clear) sits outside
+    the scroller, at its right end; if it overlaps, RIGHT stops at its left
+    edge. On the 320x640 AVD with a state applied the bar is 14-248 and
+    Clear is 248-312 (run 41314245431, 22 deity-scoped). The old fixed 80%
+    swipe start (x 256) landed on Clear, so no swipe scrolled the bar and
+    the Deity chip stayed off-screen right for all 8 tries.
+    """
+    try:
+        root = _load(args.dump)
+    except (ET.ParseError, OSError, ValueError) as exc:
+        print(f"dump unreadable: {exc}", file=sys.stderr)
+        return 1
+    chips = []
+    clears = []
+    for node in _iter_nodes(root):
+        rid = _resource_id(node)
+        box = _bounds(node.attrib.get("bounds", ""))
+        if box is None:
+            continue
+        if args.max_top is not None and box[1] > args.max_top:
+            continue
+        if rid.startswith("filter-chip-"):
+            chips.append(box)
+        elif rid == "filter-clear":
+            clears.append(box)
+    if not chips:
+        return 1
+    best = None
+    for node in _iter_nodes(root):
+        if node.attrib.get("scrollable") != "true":
+            continue
+        box = _bounds(node.attrib.get("bounds", ""))
+        if box is None or (box[2] - box[0]) <= (box[3] - box[1]):
+            continue
+        holds = any(box[0] <= c[0] < box[2] and box[1] <= c[1] and c[3] <= box[3] for c in chips)
+        if holds and (best is None or (box[2] - box[0]) * (box[3] - box[1]) < (best[2] - best[0]) * (best[3] - best[1])):
+            best = box
+    if best is None:
+        return 1
+    left, top, right, bottom = best
+    for c in clears:
+        overlaps_y = c[1] < bottom and top < c[3]
+        if overlaps_y and left < c[0] < right:
+            right = c[0]
+    if right - left < 40:
+        return 1
+    print(f"{left} {top} {right} {bottom}")
+    return 0
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -562,6 +616,11 @@ def _parser() -> argparse.ArgumentParser:
     band = sub.add_parser("sheet-band")
     band.add_argument("dump")
     band.set_defaults(func=cmd_sheet_band)
+
+    bar = sub.add_parser("chip-bar")
+    bar.add_argument("dump")
+    bar.add_argument("--max-top", type=int)
+    bar.set_defaults(func=cmd_chip_bar)
     return parser
 
 

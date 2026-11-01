@@ -989,20 +989,38 @@ app_pid() {
 # scroll_chip_bar_at, find_filter_chip, and re_escape support the ones
 # the flow scripts call directly.
 
+# Swipe the filter chip bar inside its own scroll area (ui.py chip-bar:
+# the HorizontalScrollView bounds, minus the pinned Clear button). "left"
+# moves content left, revealing chips past the right edge. Falls back to
+# 25%-80% of the width only when the last dump has no chip bar.
+# Sets CHIP_BAR_L/R for callers that need the visible band.
 scroll_chip_bar_at() {
   local y="$1"
   local direction="$2"
-  local width
+  local width l t r b x_from x_to
   read -r width _ < <(ui_screen_size) || return 1
-  if [[ "$direction" == "right" ]]; then
-    adb_shell_capped 8 input swipe \
-      $((width * 25 / 100)) "$y" \
-      $((width * 80 / 100)) "$y" 250
+  if [[ -s "${DUMP:-}" ]] && read -r l t r b < <(python3 "$UI_PY" chip-bar "$DUMP" 2>/dev/null); then
+    y=$(((t + b) / 2))
+    x_from=$((r - 12)); x_to=$((l + 12))
   else
-    adb_shell_capped 8 input swipe \
-      $((width * 80 / 100)) "$y" \
-      $((width * 25 / 100)) "$y" 250
+    x_from=$((width * 80 / 100)); x_to=$((width * 25 / 100))
   fi
+  if [[ "$direction" == "right" ]]; then
+    adb_shell_capped 8 input swipe "$x_to" "$y" "$x_from" "$y" 300
+  else
+    adb_shell_capped 8 input swipe "$x_from" "$y" "$x_to" "$y" 300
+  fi
+}
+
+# Visible band of the chip bar from the last dump: "LEFT RIGHT".
+chip_bar_band() {
+  local width l t r b
+  if [[ -s "${DUMP:-}" ]] && read -r l t r b < <(python3 "$UI_PY" chip-bar "$DUMP" 2>/dev/null); then
+    echo "$l $r"
+    return 0
+  fi
+  read -r width _ < <(ui_screen_size) || return 1
+  echo "24 $((width - 24))"
 }
 
 # The selected chip's text is the value ("Shiva"), and it may sit past the
@@ -1029,10 +1047,14 @@ find_filter_chip() {
     fi
     if [[ "$found" -eq 1 ]]; then
       y=$UI_CY
-      if (( UI_CX > 24 && UI_CX < width - 24 )); then
+      local band_l band_r
+      read -r band_l band_r < <(chip_bar_band) || { band_l=24; band_r=$((width - 24)); }
+      # Fully tappable only when the chip centre is inside the bar, not
+      # under the pinned Clear button.
+      if (( UI_CX > band_l && UI_CX < band_r )); then
         return 0
       fi
-      if (( UI_CX >= width - 24 )); then
+      if (( UI_CX >= band_r )); then
         scroll_chip_bar_at "$y" left || true
       else
         scroll_chip_bar_at "$y" right || true

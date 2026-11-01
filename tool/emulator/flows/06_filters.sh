@@ -252,6 +252,23 @@ applied_chips_present() {
   [[ -z "$APPLIED_MISSING" ]]
 }
 
+# After the first combined-* failure the rest of the flow builds on a
+# filter that is not there. Run 41314245431 kept going after combined-deity
+# and burned the 600s budget. Record what is left as NOT RUN and stop.
+COMBINED_REST="combined-deity combined-district combined-chips detail-open detail-back-keeps-filter home-resume-keeps-filter force-stop-relaunch force-stop-keeps-filter"
+abort_after_combined_fail() {
+  local failed="$1" step started=0
+  for step in $COMBINED_REST; do
+    if [[ "$started" -eq 1 ]]; then
+      record_not_run "$step" "stopped after ${failed} failed"
+    fi
+    [[ "$step" == "$failed" ]] && started=1
+  done
+  if [[ "$failed" == combined-state ]]; then
+    for step in $COMBINED_REST; do record_not_run "$step" "stopped after ${failed} failed"; done
+  fi
+}
+
 if [[ "$STATE_SELECT_OK" -ne 1 || -z "$STATE_LABEL" ]]; then
   skip_if_failed combined-state "state-select did not apply a state" \
     state-open state-reopen state-select
@@ -262,6 +279,8 @@ else
   else
     fail_step combined-state "could not apply ${STATE_LABEL}"
     recover_sheet
+    abort_after_combined_fail combined-state
+    return 0
   fi
 fi
 if [[ "$DEITY_SELECT_OK" -ne 1 || -z "$DEITY_LABEL" ]]; then
@@ -274,6 +293,8 @@ else
   else
     fail_step combined-deity "could not apply ${DEITY_LABEL}"
     recover_sheet
+    abort_after_combined_fail combined-deity
+    return 0
   fi
 fi
 if scroll_chips_until --resource-id filter-chip-district || scroll_chips_until --text-regex '^All districts$'; then
@@ -284,6 +305,8 @@ if scroll_chips_until --resource-id filter-chip-district || scroll_chips_until -
   else
     fail_step combined-district "could not apply a district inside the selected state"
     recover_sheet
+    abort_after_combined_fail combined-district
+    return 0
   fi
 else
   pass_step combined-district-not-visible

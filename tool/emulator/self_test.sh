@@ -1283,7 +1283,7 @@ replay() {
     export EMULATOR_FLOW=06-filters EMULATOR_ARTIFACTS="$replay_dir/art" EMULATOR_PACKAGE=com.example
     # shellcheck disable=SC1091
     source tool/emulator/lib/common.sh
-    ui_dump() { cp "tool/emulator/testdata/run41306793034/${REPLAY_FIXTURE}" "$DUMP"; }
+    ui_dump() { cp "tool/emulator/testdata/${REPLAY_DIR:-run41306793034}/${REPLAY_FIXTURE}" "$DUMP"; }
     ui_screen_size() { echo 320 640; }
     ui_tap() { echo "TAP ${UI_TEXT:-}" >> "$replay_dir/log"; }
     adb_shell_capped() { shift; echo "ADB $*" >> "$replay_dir/log"; }
@@ -1336,6 +1336,60 @@ if [[ "$out" != *"filter sheet is not on screen"* ]] || [[ "$(grep -c '^ADB inpu
   echo "select_labeled: a closed sheet fails fast (at most the one swipe that showed no movement)" >&2
   echo "$out" >&2
   cat "$replay_dir/log" >&2
+  exit 1
+fi
+# Chip bar on a real dump from PR #126 run 41314245431 (shard 6, flow 22
+# deity-scoped): state "Tamil Nadu" + district chips in a HorizontalScrollView
+# at x 14-248, pinned Clear at 248-312, Deity chip off-screen right. The old
+# fixed 80%->25% swipe started at x 256, on Clear, and never scrolled.
+chip_fx=tool/emulator/testdata/run41314245431/chipbar_state_district_clear.xml
+if [[ "$(python3 tool/emulator/lib/ui.py chip-bar "$chip_fx")" != "14 178 248 218" ]] ||
+   python3 tool/emulator/lib/ui.py chip-bar tool/emulator/testdata/run41306793034/deity_sheet_open.xml >/dev/null 2>&1; then
+  echo "chip-bar: scroller 14-248 (Clear excluded) on the real bar, exit 1 with no chip bar" >&2
+  exit 1
+fi
+: > "$replay_dir/log"
+if (REPLAY_DIR=run41314245431 replay chipbar_state_district_clear.xml find_filter_chip filter-chip-deity '^(Deity|All deities)$') >/dev/null 2>&1; then
+  echo "find_filter_chip: the frozen dump has no Deity chip; it must fail" >&2; exit 1
+fi
+swipes="$(grep '^ADB input swipe' "$replay_dir/log")"
+first="$(head -1 <<<"$swipes")"
+if [[ "$first" != "ADB input swipe 236 198 26 198 300" ]] ||
+   [[ "$(grep -c . <<<"$swipes")" -ne 8 ]] ||
+   awk '{ for (i = 4; i <= 6; i += 2) if ($i < 14 || $i >= 248) bad = 1 } END { exit !bad }' <<<"$swipes"; then
+  echo "find_filter_chip: 8 swipes inside the bar (14-248), right-to-left first, never on Clear" >&2
+  echo "$swipes" >&2
+  exit 1
+fi
+# A chip whose centre is under Clear (x 250) is not tappable: scroll, do not tap.
+sed 's/bounds="\[179,181\]\[248,216\]"/bounds="[220,181][280,216]"/' "$chip_fx" > "$replay_dir/clipped.xml"
+mkdir -p tool/emulator/testdata/.replay-tmp && cp "$replay_dir/clipped.xml" tool/emulator/testdata/.replay-tmp/clipped.xml
+: > "$replay_dir/log"
+(REPLAY_DIR=.replay-tmp replay clipped.xml find_filter_chip filter-chip-district '') >/dev/null 2>&1 || true
+rm -rf tool/emulator/testdata/.replay-tmp
+if ! grep -qx 'ADB input swipe 236 198 26 198 300' "$replay_dir/log"; then
+  echo "find_filter_chip: a chip under the pinned Clear button must be scrolled into the bar" >&2
+  cat "$replay_dir/log" >&2
+  exit 1
+fi
+# Flow 06 stops after the first combined-* failure (run 41314245431: it ran
+# on after combined-deity and hit the 600s cap).
+if ! grep -q 'abort_after_combined_fail combined-deity' tool/emulator/flows/06_filters.sh ||
+   [[ "$(grep -c -A1 'abort_after_combined_fail combined-' tool/emulator/flows/06_filters.sh | head -1)" == 0 ]]; then
+  echo "flow 06 must stop after a combined step fails" >&2; exit 1
+fi
+abort_out="$(
+  set -uo pipefail
+  export EMULATOR_FLOW=06-filters EMULATOR_ARTIFACTS="$replay_dir/abort" EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  eval "$(sed -n '/^COMBINED_REST=/p; /^abort_after_combined_fail() {/,/^}/p' tool/emulator/flows/06_filters.sh)"
+  abort_after_combined_fail combined-deity >/dev/null
+  cat "$RESULTS"
+)"
+if [[ "$(grep -c '^NOT RUN 06-filters: ' <<<"$abort_out")" -ne 7 ]] || grep -q '^NOT RUN 06-filters: combined-deity:' <<<"$abort_out"; then
+  echo "abort after combined-deity: the 7 later steps are NOT RUN" >&2
+  echo "$abort_out" >&2
   exit 1
 fi
 # Swipe-dismiss on each real sheet: a pull from the title centre (156,182)
