@@ -293,8 +293,9 @@ jobs:
       # different AVD configuration" and cold-booted (run 41306793034).
       EMULATOR_BUILD: "16740729"
       # The AVD cache key (EMULATOR_AVD_CACHE_KEY) is written by "Choose
-      # emulator core count" from everything that shapes the AVD config:
-      # api, target, arch, cores, disk size, emulator build.
+      # emulator core count" (tool/emulator/avd_cache_key.sh) from everything
+      # that shapes the AVD config: api, target, arch, system image revision,
+      # cores, disk size, emulator build.
       EMULATOR_PRE_LAUNCH: bash tool/emulator/prepare_avd.sh
     steps:
       - name: Checkout workflow scripts
@@ -328,14 +329,13 @@ jobs:
           path: /usr/local/lib/android/sdk/system-images
           key: system-image-android-30-google_apis-x86_64
 
-      # Before the AVD cache restore: the core count is part of the AVD
-      # config (hw.cpu.ncore), so it is part of the cache key.
+      # Before the AVD cache restore: the core count (hw.cpu.ncore) and the
+      # system image revision (installed here exactly as the runner action
+      # installs it, then read from its source.properties) are part of the
+      # AVD config, so they are part of the cache key.
       - name: Choose emulator core count and AVD cache key
-        timeout-minutes: 1
-        run: |
-          if [[ "$(nproc)" -ge 4 ]]; then cores=4; else cores=2; fi
-          echo "EMULATOR_CORES=${cores}" >> "$GITHUB_ENV"
-          echo "EMULATOR_AVD_CACHE_KEY=avd-${EMULATOR_API_LEVEL}-${EMULATOR_TARGET}-${EMULATOR_ARCH}-cores${cores}-disk${EMULATOR_DISK_SIZE}-emu${EMULATOR_BUILD}-${EMULATOR_AVD_NAME}-clean" >> "$GITHUB_ENV"
+        timeout-minutes: 10
+        run: bash tool/emulator/avd_cache_key.sh
 
       - name: Restore AVD cache
         id: avd-cache
@@ -369,9 +369,16 @@ jobs:
           pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }}
           script: echo "Generated AVD snapshot for caching."
 
+      # The snapshot must have booted on the image revision in the key.
+      - name: Check system image revision
+        id: sysimg-check
+        if: steps.create-avd.outcome == 'success'
+        timeout-minutes: 1
+        run: bash tool/emulator/avd_cache_key.sh --check
+
       # One job saves the shared cache keys so parallel shards do not race.
       - name: Save AVD cache
-        if: steps.create-avd.outcome == 'success' && (matrix.shard == '1' || matrix.shard == 'smoke')
+        if: steps.create-avd.outcome == 'success' && steps.sysimg-check.outputs.same == 'true' && (matrix.shard == '1' || matrix.shard == 'smoke')
         timeout-minutes: 10
         continue-on-error: true
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0

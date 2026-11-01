@@ -281,7 +281,7 @@ if ! grep -Fq 'script: echo "Generated AVD snapshot for caching."' "$workflow"; 
   echo "snapshot step should boot without installing an app" >&2
   exit 1
 fi
-if ! grep -Fq "if: steps.create-avd.outcome == 'success' && (matrix.shard == '1' || matrix.shard == 'smoke')" "$workflow"; then
+if ! grep -Fq "if: steps.create-avd.outcome == 'success' && steps.sysimg-check.outputs.same == 'true' && (matrix.shard == '1' || matrix.shard == 'smoke')" "$workflow"; then
   echo "AVD cache should be saved by one job, only after the clean snapshot boot" >&2
   exit 1
 fi
@@ -290,15 +290,18 @@ fi
 # after the emulator binary moved 37.2.12.0 -> 37.2.13.0). So the key is
 # built from every input that shapes that config, the core count is known
 # before the restore, and both emulator steps boot the same config.
-if ! python3 - "$workflow" <<'PY'
+if ! python3 - "$workflow" "$root/tool/emulator/avd_cache_key.sh" <<'PY'
 import re, sys
 wf = open(sys.argv[1]).read()
 errs = []
-key = re.search(r'echo "EMULATOR_AVD_CACHE_KEY=([^"]+)"', wf)
+keysh = open(sys.argv[2]).read()
+key = re.search(r'^key="([^"]+)"$', keysh, re.M)
+if "run: bash tool/emulator/avd_cache_key.sh\n" not in wf:
+    errs.append("the AVD cache key step must run tool/emulator/avd_cache_key.sh")
 if not key:
-    errs.append("EMULATOR_AVD_CACHE_KEY is not computed in a step")
+    errs.append("EMULATOR_AVD_CACHE_KEY is not computed in avd_cache_key.sh")
 else:
-    for part in ("${EMULATOR_API_LEVEL}", "${EMULATOR_TARGET}", "${EMULATOR_ARCH}",
+    for part in ("${EMULATOR_API_LEVEL}", "${EMULATOR_TARGET}", "${EMULATOR_ARCH}", "${image}",
                  "${cores}", "${EMULATOR_DISK_SIZE}", "${EMULATOR_BUILD}", "${EMULATOR_AVD_NAME}", "clean"):
         if part not in key.group(1):
             errs.append(f"AVD cache key lacks {part}")
@@ -312,10 +315,15 @@ def idx(prefix):
             return i
     errs.append(f"missing step {prefix!r}")
     return -1
-order = [idx("Choose emulator core count"), idx("Restore AVD cache"),
-         idx("Create AVD snapshot"), idx("Save AVD cache"), idx("Run emulator flows")]
+order = [idx("Restore emulator system image"), idx("Choose emulator core count"),
+         idx("Restore AVD cache"), idx("Create AVD snapshot"),
+         idx("Check system image revision"), idx("Save AVD cache"), idx("Run emulator flows")]
 if order != sorted(order):
-    errs.append(f"step order must be cores, restore, create, save, run: {order}")
+    errs.append(f"step order must be image restore, key, restore, create, check, save, run: {order}")
+if not re.search(r"- name: Save AVD cache\n        if: [^\n]*steps\.sysimg-check\.outputs\.same == 'true'", emu):
+    errs.append("Save AVD cache must require the system image revision check")
+if "run: bash tool/emulator/avd_cache_key.sh --check" not in emu:
+    errs.append("Check system image revision must run avd_cache_key.sh --check")
 runners = re.findall(r"uses: reactivecircus/android-emulator-runner@\S+.*?\n        with:\n(.*?)(?=\n\n|\n      - )", emu, re.S)
 cfg_keys = ("api-level", "target", "arch", "cores", "disk-size", "avd-name",
             "force-avd-creation", "disable-animations", "emulator-build")
@@ -338,6 +346,46 @@ then
   echo "AVD cache key must carry the AVD config, and cores must be chosen before the restore" >&2
   exit 1
 fi
+# avd_cache_key.sh against a stub SDK: the key carries the revision that the
+# stub sdkmanager installs (an update from 5 to 6), a missing revision gives
+# a one-run key, and --check refuses to save after the image moves.
+key_tmp="$(mktemp -d)"
+mkdir -p "$key_tmp/sdk/cmdline-tools/latest/bin" "$key_tmp/sdk/system-images/android-30/google_apis/x86_64"
+key_props="$key_tmp/sdk/system-images/android-30/google_apis/x86_64/source.properties"
+printf 'Pkg.Desc=Google APIs Intel x86_64 Atom System Image\nPkg.Revision=5\n' > "$key_props"
+cat > "$key_tmp/sdk/cmdline-tools/latest/bin/sdkmanager" <<STUB
+#!/usr/bin/env bash
+[[ "\$1" == --install && "\$2" == 'system-images;android-30;google_apis;x86_64' && "\$3" == --channel=0 ]] || exit 0
+printf 'Pkg.Desc=Google APIs Intel x86_64 Atom System Image\nPkg.Revision=6\n' > "$key_props"
+STUB
+chmod +x "$key_tmp/sdk/cmdline-tools/latest/bin/sdkmanager"
+key_env=(ANDROID_HOME="$key_tmp/sdk" EMULATOR_API_LEVEL=30 EMULATOR_TARGET=google_apis
+  EMULATOR_ARCH=x86_64 EMULATOR_DISK_SIZE=2048M EMULATOR_BUILD=16740729
+  EMULATOR_AVD_NAME=emulator-app-test-30 GITHUB_RUN_ID=77 GITHUB_RUN_ATTEMPT=1)
+env "${key_env[@]}" EMULATOR_NPROC=4 GITHUB_ENV="$key_tmp/env" bash tool/emulator/avd_cache_key.sh > /dev/null 2>&1
+if ! grep -qx 'EMULATOR_AVD_CACHE_KEY=avd-30-google_apis-x86_64-img6-cores4-disk2048M-emu16740729-emulator-app-test-30-clean' "$key_tmp/env" ||
+  ! grep -qx 'EMULATOR_SYSIMG_REVISION=6' "$key_tmp/env" || ! grep -qx 'EMULATOR_CORES=4' "$key_tmp/env"; then
+  echo "AVD cache key must carry the system image revision the emulator steps will boot" >&2
+  cat "$key_tmp/env" >&2
+  exit 1
+fi
+if [[ "$(env "${key_env[@]}" EMULATOR_SYSIMG_REVISION=6 GITHUB_OUTPUT=/dev/stdout bash tool/emulator/avd_cache_key.sh --check | tail -n 1)" != same=true ]]; then
+  echo "--check must allow the save when the image revision is unchanged" >&2
+  exit 1
+fi
+printf 'Pkg.Revision=7\n' > "$key_props"
+if [[ "$(env "${key_env[@]}" EMULATOR_SYSIMG_REVISION=6 GITHUB_OUTPUT=/dev/stdout bash tool/emulator/avd_cache_key.sh --check | tail -n 1)" != same=false ]]; then
+  echo "--check must refuse the save when the image revision moved" >&2
+  exit 1
+fi
+rm -f "$key_props" "$key_tmp/sdk/cmdline-tools/latest/bin/sdkmanager"
+env "${key_env[@]}" EMULATOR_NPROC=2 GITHUB_ENV="$key_tmp/env2" bash tool/emulator/avd_cache_key.sh > /dev/null 2>&1
+if ! grep -qx 'EMULATOR_AVD_CACHE_KEY=avd-30-google_apis-x86_64-imgunknown-77-1-cores2-disk2048M-emu16740729-emulator-app-test-30-clean' "$key_tmp/env2"; then
+  echo "an unknown image revision must give a one-run AVD cache key" >&2
+  cat "$key_tmp/env2" >&2
+  exit 1
+fi
+rm -rf "$key_tmp"
 if [[ "$(grep -F -c 'EMULATOR_AVD_CACHE_KEY' "$workflow")" -lt 3 ]]; then
   echo "restore and save should share EMULATOR_AVD_CACHE_KEY" >&2
   exit 1
