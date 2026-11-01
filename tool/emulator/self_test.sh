@@ -1392,6 +1392,71 @@ if [[ "$(grep -c '^NOT RUN 06-filters: ' <<<"$abort_out")" -ne 7 ]] || grep -q '
   echo "$abort_out" >&2
   exit 1
 fi
+# Flow 24/25/27 on real dumps from run 41314245431 shard 6.
+fx126=tool/emulator/testdata/run41314245431
+# shellcheck disable=SC2030,SC2031,SC2329
+lib126() {
+  (
+    set -uo pipefail
+    export EMULATOR_FLOW=25-directions-edge EMULATOR_ARTIFACTS="$replay_dir/f126" EMULATOR_PACKAGE=com.shradhaventures.temple
+    # shellcheck disable=SC1091
+    source tool/emulator/lib/common.sh
+    PKG=com.shradhaventures.temple
+    sleep() { :; }
+    adb_shell_capped() { shift; echo "ADB $*" >> "$replay_dir/log"; }
+    ui_back() { echo BACK >> "$replay_dir/log"; }
+    # ui_dump serves the fixtures in SEQ in order, repeating the last one.
+    ui_dump() {
+      local n; n="$(grep -c '^DUMP' "$replay_dir/log" || true)"
+      local -a seq; read -r -a seq <<<"$SEQ"
+      (( n >= ${#seq[@]} )) && n=$((${#seq[@]} - 1))
+      echo "DUMP ${seq[$n]}" >> "$replay_dir/log"
+      cp "${fx126}/${seq[$n]}" "$DUMP"
+    }
+    "$@"
+  )
+}
+# 24: the burst dump shows detail-gallery-4 with '5 / 5': consistent. The
+# old '^1 / ' check called it a desync. A counter that disagrees fails.
+: > "$replay_dir/log"
+if ! (SEQ=gallery_burst_5of5.xml lib126 eval 'ui_dump; gallery_index_consistent'); then
+  echo "gallery_index_consistent: detail-gallery-4 with '5 / 5' is consistent" >&2; exit 1
+fi
+sed 's/"5 \/ 5"/"1 \/ 5"/' "$fx126/gallery_burst_5of5.xml" > "$replay_dir/desync.xml"
+cp "$replay_dir/desync.xml" "$fx126/.desync.xml"
+desync_rc=0
+(SEQ=.desync.xml lib126 eval 'ui_dump; gallery_index_consistent') || desync_rc=$?
+rm -f "$fx126/.desync.xml"
+if [[ "$desync_rc" -ne 1 ]]; then
+  echo "gallery_index_consistent: detail-gallery-4 with '1 / 5' is a desync" >&2; exit 1
+fi
+if ! grep -q 'gallery_index_consistent' tool/emulator/flows/24_gallery_autoadvance_viewer.sh ||
+   grep -q "text-regex '^1 / ' && pass_step swipe-burst-index" tool/emulator/flows/24_gallery_autoadvance_viewer.sh; then
+  echo "flow 24 must check the counter against the page, after the burst settles" >&2; exit 1
+fi
+# 25: Maps "Update Google Maps to continue" swallows backs. Two Maps dumps,
+# then detail: back_until_detail needs 3 backs and passes; Maps forever fails at the cap.
+: > "$replay_dir/log"
+if ! (SEQ="maps_update_prompt.xml maps_update_prompt.xml detail_with_directions.xml" lib126 eval 'back_until_detail 6 && [[ "$BACKS_USED" -eq 3 ]]'); then
+  echo "back_until_detail: 3 backs to leave the Maps update prompt" >&2; cat "$replay_dir/log" >&2; exit 1
+fi
+: > "$replay_dir/log"
+if (SEQ=maps_update_prompt.xml lib126 back_until_detail 6) || [[ "$(grep -c '^BACK' "$replay_dir/log")" -ne 6 ]]; then
+  echo "back_until_detail: stays in Maps -> fail after exactly 6 backs" >&2; exit 1
+fi
+if grep -q 'ui_back; sleep 1; ui_back; sleep 1; ui_dump' tool/emulator/flows/25_directions_edge.sh; then
+  echo "flow 25 must not rely on exactly two backs" >&2; exit 1
+fi
+# 27: only recover and chips-after-flap are XFAIL, linked to KAN-186.
+f27=tool/emulator/flows/27_offline_cold_start.sh
+if [[ "$(grep -c 'xfail_step [a-z-]* "KAN-186: ' "$f27")" -ne 2 ]] ||
+   ! grep -q 'xfail_step recover "KAN-186' "$f27" || ! grep -q 'xfail_step chips-after-flap "KAN-186' "$f27" ||
+   grep -q 'fail_step offline-list' "$f27" && ! grep -q 'fail_step offline-list "still loading' "$f27"; then
+  echo "flow 27: recover and chips-after-flap XFAIL (KAN-186), nothing else" >&2; exit 1
+fi
+if [[ "$(grep -c 'xfail_step' "$f27")" -ne 2 ]] || [[ "$(grep -rl 'KAN-186' tool/emulator/flows | wc -l)" -ne 1 ]]; then
+  echo "KAN-186 XFAIL belongs to flow 27 only" >&2; exit 1
+fi
 # Swipe-dismiss on each real sheet: a pull from the title centre (156,182)
 # to 96% that is slow enough to deliver moves (300ms, retry 600ms), not 80ms.
 for fx in state_sheet_open.xml deity_sheet_open.xml district_sheet_open.xml; do

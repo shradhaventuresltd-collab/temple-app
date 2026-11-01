@@ -218,6 +218,43 @@ ui_back() {
   adb_shell_capped 8 input keyevent 4
 }
 
+# Back out until the app's detail screen is on top, at most $1 backs.
+# Run 41314245431 (flow 25): Maps opened "Update Google Maps to continue",
+# which takes its own backs, so a fixed two backs left Maps on screen.
+# Sets BACKS_USED. Exit 0 when Get Directions in our package is visible.
+back_until_detail() {
+  local max="${1:-6}" pkg="${PKG:-${EMULATOR_PACKAGE:-}}"
+  BACKS_USED=0
+  while (( BACKS_USED < max )); do
+    ui_back
+    BACKS_USED=$((BACKS_USED + 1))
+    sleep 1
+    ui_dump || continue
+    if ui_find --resource-id get-directions-button --package-contains "$pkg" ||
+       ui_find --text-regex 'Get Directions' --package-contains "$pkg"; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+# Gallery counter matches the page on screen: detail-gallery-N shows
+# "N+1 / M". Run 41314245431 failed on '^1 / ' after a burst whose
+# left/right flings were vertical (ui_fling) and auto-advance had moved
+# on; the dump itself was consistent (detail-gallery-4, '5 / 5').
+gallery_index_consistent() {
+  python3 - "$DUMP" <<'PY2'
+import re, sys
+s = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+pages = [int(m) for m in re.findall(r'resource-id="detail-gallery-(\d+)"', s)]
+counters = re.findall(r'(?:text|content-desc)="(\d+) / (\d+)"', s)
+if len(set(pages)) != 1 or len(set(counters)) != 1:
+    sys.exit(1)
+k, m = (int(x) for x in counters[0])
+sys.exit(0 if k == pages[0] + 1 and 1 <= k <= m else 1)
+PY2
+}
+
 ui_home_key() {
   adb_shell_capped 8 input keyevent 3
 }
