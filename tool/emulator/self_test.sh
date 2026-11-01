@@ -1160,6 +1160,36 @@ if ! grep -qx 'PLAN 29-filter-matrix tool/emulator/flows/29_filter_matrix.sh a' 
   echo "$dry" >&2
   exit 1
 fi
+# Every planned flow runs, even when a flow reads stdin (adb shell does).
+# The stub drains stdin, as adb did in run 41306793034, and records its id.
+stub_dir="$(mktemp -d)"
+cat >"${stub_dir}/flow.sh" <<'STUB'
+#!/usr/bin/env bash
+leaked="$(cat)"
+printf '%s %s\n' "$1" "${#leaked}" >>"${STUB_LOG}"
+STUB
+for tier_shard in smoke "full 1" "full 2" "full 3" "full 4" "full 5" "full 6"; do
+  : >"${stub_dir}/ran"
+  # shellcheck disable=SC2086 # split tier and shard on purpose
+  STUB_LOG="${stub_dir}/ran" EMULATOR_FLOW_RUNNER="${stub_dir}/flow.sh" \
+    EMULATOR_ARTIFACTS="${stub_dir}/art" bash tool/emulator/run_shard.sh $tier_shard >/dev/null 2>&1
+  # shellcheck disable=SC2086
+  want="$(plan_ids $tier_shard)"
+  got="$(cut -d' ' -f1 "${stub_dir}/ran")"
+  if [[ "$got" != "$want" ]] || grep -qv ' 0$' "${stub_dir}/ran"; then
+    echo "run_shard.sh ${tier_shard}: every planned flow must run with empty stdin" >&2
+    echo "want: $(tr '\n' ' ' <<<"$want")" >&2
+    echo "ran:  $(tr '\n' ' ' <"${stub_dir}/ran")" >&2
+    exit 1
+  fi
+  if [[ "$(grep -c '^TIME ' "${stub_dir}/art/results.txt")" -lt "$(wc -l <<<"$want")" ]]; then
+    echo "run_shard.sh ${tier_shard}: a TIME line per flow" >&2
+    exit 1
+  fi
+  rm -rf "${stub_dir}/art"
+done
+rm -rf "$stub_dir"
+
 if ! grep -q 'EMULATOR_REUSE_INSTALL=1' tool/emulator/run_shard.sh ||
    ! grep -q 'clear_app_data' tool/emulator/run_one_flow.sh ||
    ! grep -q 'reset_device_state' tool/emulator/run_one_flow.sh; then
