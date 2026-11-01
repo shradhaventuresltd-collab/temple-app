@@ -5,7 +5,7 @@
 # 0-result combo.
 # Picker scroll does not stop on the first no-op swipe. The finger can land
 # on a chip (that used to stop at Ganesha and the A-districts). select_labeled
-# retries other finger heights, then gives up on a 120s cap. This flow fails
+# retries other finger heights, then gives up on its 20s cap (PICKER_GIVEUP_S). This flow fails
 # the step instead of scrolling again.
 reach_browse || { fail_step browse "no list"; return 0; }
 count() { ui_dump; ui_find --text-regex '^[0-9]+ temples?$' && echo "${UI_TEXT%% *}"; }

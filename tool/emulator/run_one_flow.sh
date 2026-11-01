@@ -19,12 +19,11 @@ source "${ROOT}/tool/emulator/lib/common.sh"
 
 # The GitHub step timeout kills this process, so the failure line below
 # the flow never runs. timeout returns 124 to this parent instead.
-# Boot is allowed EMULATOR_BOOT_TIMEOUT (600s) and happens before this
-# script, inside the same job step. The flow budget stays 1140s. The step
-# cap is 30 minutes: 600s boot + 1140s flow + 15s kill-after + about a
-# minute to record FAIL. 30 flows cannot all spend 30 minutes inside the
-# 180-minute job; that job limit stays the backstop for a streak of hangs.
-FLOW_BUDGET=1140
+# Each flow is capped at 600s (Confluence 12353537, option A). The
+# emulator boots once per job before the first flow (run_shard.sh), so the
+# cap covers the flow alone. The shard step timeout is sized in plan.sh
+# from this cap, the kill-after, and the per-flow reset overhead.
+FLOW_BUDGET=600
 if [[ "${EMULATOR_FLOW_TIMED:-}" != 1 ]]; then
   printf 'START %s\n' "$FLOW" >> "$RESULTS"
   set +e

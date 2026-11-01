@@ -150,6 +150,25 @@ if ! grep -q 'select_labeled: gave up' tool/emulator/lib/common.sh; then
   echo "select_labeled must say when it hits its cap" >&2
   exit 1
 fi
+# The picker gives up after a bounded 20s walk (Confluence 12353537 A).
+# shellcheck disable=SC2016 # literal source text, not an expansion
+if ! grep -Fq 'PICKER_GIVEUP_S="${EMULATOR_PICKER_GIVEUP_S:-20}"' tool/emulator/lib/common.sh; then
+  echo "picker give-up should default to 20s" >&2
+  exit 1
+fi
+# shellcheck disable=SC2016 # literal source text
+if ! grep -Fq 'deadline=$((started + PICKER_GIVEUP_S))' tool/emulator/lib/common.sh; then
+  echo "select_labeled should use PICKER_GIVEUP_S for its deadline" >&2
+  exit 1
+fi
+if grep -Eq 'deadline=\$\(\(started \+ [0-9]+\)\)' tool/emulator/lib/common.sh; then
+  echo "select_labeled must not hard-code its give-up seconds" >&2
+  exit 1
+fi
+if [[ "$(EMULATOR_FLOW=self-test EMULATOR_ARTIFACTS="$(mktemp -d)" bash -c 'unset EMULATOR_PICKER_GIVEUP_S; source tool/emulator/lib/common.sh; echo "$PICKER_GIVEUP_S"')" != 20 ]]; then
+  echo "PICKER_GIVEUP_S should resolve to 20 when unset" >&2
+  exit 1
+fi
 if ! grep -q 'picker scroll gave up' tool/emulator/flows/22_filter_combos_reset.sh; then
   echo "flow 22 should fail when the picker scroll hits its cap" >&2
   exit 1
@@ -332,8 +351,8 @@ if grep -q 'cksum "$DUMP"' tool/emulator/lib/common.sh; then
   echo "picker scroll must not checksum the raw dump" >&2
   exit 1
 fi
-if ! grep -q 'FLOW_BUDGET=1140' tool/emulator/run_one_flow.sh; then
-  echo "each flow should run under timeout 1140" >&2
+if ! grep -qx 'FLOW_BUDGET=600' tool/emulator/run_one_flow.sh; then
+  echo "each flow should run under the 600s per-flow cap" >&2
   exit 1
 fi
 if ! grep -q 'timeout --kill-after=15 "$FLOW_BUDGET"' tool/emulator/run_one_flow.sh; then

@@ -20,6 +20,8 @@ RESULTS="${ARTIFACTS}/results.txt"
 DUMP="${DUMP_DIR}/${FLOW}.xml"
 SHOT_N=0
 PKG="${EMULATOR_PACKAGE:-}"
+# Bounded picker walk in select_labeled, in seconds.
+PICKER_GIVEUP_S="${EMULATOR_PICKER_GIVEUP_S:-20}"
 
 mkdir -p "$SHOT_DIR" "$REC_DIR" "$LOG_DIR" "$DUMP_DIR"
 
@@ -1052,7 +1054,9 @@ print(name if name else "")
 # a swipe leaves the option texts unchanged, not when the next header peeks in.
 # One missed drag is not the end of the list: the finger may have landed on
 # the apply button. Retry other finger heights, then stop. A second pass
-# starts again from the top. The whole walk gives up after 120s.
+# starts again from the top. The whole walk gives up after
+# PICKER_GIVEUP_S (20s): a missing option fails fast instead of costing
+# about 2 minutes per case (Confluence 12353537, option A).
 select_labeled() {
   local regex="$1"
   local _section="${2:-}"
@@ -1069,7 +1073,7 @@ select_labeled() {
     return 1
   fi
   started=$SECONDS
-  deadline=$((started + 120))
+  deadline=$((started + PICKER_GIVEUP_S))
   for pass in 1 2; do
     if (( SECONDS >= deadline )); then
       echo "select_labeled: gave up looking for '${regex}' after $((SECONDS - started))s" >&2
