@@ -6,6 +6,18 @@
 # snapshot still has it, a cold boot does not (run_shard.sh boot check).
 set -uo pipefail
 
+# Round 4.4: save only a settled system. Wait (EMULATOR_SNAPSHOT_READY_S,
+# default 120s) for input/settings/package/activity, pm and boot_completed,
+# then settle EMULATOR_SNAPSHOT_SETTLE_S (10s). Never ready: no save, the
+# step fails, and Save AVD cache does not run (run 41461260068: saved 6.4s
+# after boot, 5/14 shards then lacked the input/settings services).
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if ! bash "${here}/services_ready.sh" "${EMULATOR_SNAPSHOT_READY_S:-120}"; then
+  echo "::error::system services not ready; not saving a snapshot (the AVD is not cached)"
+  exit 1
+fi
+sleep "${EMULATOR_SNAPSHOT_SETTLE_S:-10}"
+
 # debug.* properties are writable by the adb shell user (uid shell) on
 # google_apis images without root: property_contexts maps debug.* to
 # debug_prop, which the shell domain may set. setprop keeps the value in
@@ -18,7 +30,7 @@ fi
 out="$(adb emu avd snapshot save default_boot 2>&1 | tr -d '\r')"
 echo "snapshot save: ${out}"
 # A failed save must fail the step: Save AVD cache runs only when this
-# step succeeded, so a bad snapshot is never cached under the cfg4 key.
+# step succeeded, so a bad snapshot is never cached under the cfg5 key.
 if [[ "$out" != *OK* ]]; then
   echo "::error::adb emu avd snapshot save default_boot did not report OK; failing so the AVD is not cached"
   exit 1

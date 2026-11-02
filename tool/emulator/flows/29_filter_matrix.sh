@@ -259,7 +259,7 @@ for seq in "${SEQS[@]}"; do
   if ui_wait_scrolled 20 --resource-id temple-browse-card; then
     ui_tap; ui_wait_scrolled 20 --text-contains "How to Reach" && ui_back; sleep 2
     ui_dump || true
-    if ui_find --resource-id filter-chip-state; then
+    if filter_bar_present; then
       pass_step "seq$n-filter-kept"
     else
       fail_step "seq$n-filter-kept" "filter bar missing after detail"

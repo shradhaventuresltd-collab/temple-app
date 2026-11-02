@@ -55,7 +55,8 @@ def names(kind, scope):
     weights = {c: 23 for c in string.ascii_uppercase}
     for c in string.ascii_uppercase:
         out += [f"{c}{'abcdefghijklmnopqrstuvwxy'[i % 25]}deity{i:02d}" for i in range(weights[c])]
-    out += ["Ahalya", "Shiva"] + [f"Shiva ({x})" for x in ("Baneswar", "Kedarnath", "Mahakal", "Somnath", "Tarakeswar")]
+    # SIM_NO_AHALYA=1: the live list of run 41461260068 (no "Ahalya").
+    out += ([] if os.environ.get("SIM_NO_AHALYA") == "1" else ["Ahalya"]) + ["Shiva"] + [f"Shiva ({x})" for x in ("Baneswar", "Kedarnath", "Mahakal", "Somnath", "Tarakeswar")]
     return sorted(out, key=lambda s: s.encode("utf-16-be"))
 
 

@@ -88,7 +88,8 @@ for entry in "${ENTRIES[@]}"; do
     if err="$(dismiss_sheet_swipe 2>&1)"; then pass_step "$id-swipe-header"; else fail_step "$id-swipe-header" "$err"; recover_sheet; fi
     open_chip "$f" && { if swipe_from_list; then pass_step "$id-swipe-list"; else fail_step "$id-swipe-list" "sheet stayed open"; recover_sheet; fi; }
     # Deity: Shiva only from a Tamil Nadu-scoped list (scoped_pick); the
-    # state was cleared above, so this is the all-India head pick (Ahalya).
+    # state was cleared above, so this is the all-India head pick: the
+    # sheet's first real option (@first, round 4.4; Ahalya left the list).
     pick="${PICK[$f]}"
     if [[ "$f" == deity ]]; then pick="$(scoped_pick deity)" || pick="$ALL_INDIA_DEITY_PICK"; fi
     if open_chip "$f" && select_labeled "$pick" "${SECTION[$f]}" && apply_sheet && chip_exact "$SELECTED_LABEL"; then
@@ -120,7 +121,7 @@ for entry in "${ENTRIES[@]}"; do
   # Clear the field first (round 4.3): on drawer_search it already holds
   # "temple", and typing appended "templezzzqqq", which still matches every
   # "... Temple" (temple_search.dart:640-641 reverse prefix, a pre-existing
-  # app bug since #103, Jira ticket). ui_replace_field_text clears exactly
+  # app bug since #103, Jira KAN-193). ui_replace_field_text clears exactly
   # the current text, types, and reads the field back.
   if ui_dump && ui_find --resource-id temple-list-search-field; then
     field_ok=1

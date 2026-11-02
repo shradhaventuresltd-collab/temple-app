@@ -150,6 +150,10 @@ rm -f "$all_temples"
 rm -f "$card_fixture"
 
 workflow=".github/workflows/emulator-app-test.yml"
+# Round 4.4: run_shard.sh waits up to 90s for system services; the stub
+# adbs below never report them, so the self-test caps that wait.
+export EMULATOR_SERVICES_WAIT_S="${EMULATOR_SERVICES_WAIT_S:-1}" EMULATOR_SERVICES_POLL_S="${EMULATOR_SERVICES_POLL_S:-0}" \
+  EMULATOR_SNAPSHOT_READY_S="${EMULATOR_SNAPSHOT_READY_S:-2}" EMULATOR_SNAPSHOT_SETTLE_S="${EMULATOR_SNAPSHOT_SETTLE_S:-0}"
 if grep -Eq '<<:|&[A-Za-z]' "$workflow"; then
   echo "workflow uses a YAML anchor; GitHub Actions will not expand it" >&2
   exit 1
@@ -300,14 +304,14 @@ if sum_out="$(EMULATOR_TIER=all EMULATOR_ARTIFACTS="$sum_art" GITHUB_STEP_SUMMAR
   echo "summarize.sh: an XPASS must fail the job with ::error::" >&2; echo "$sum_out" >&2; exit 1
 fi
 rm -rf "$sum_art" "$sum_md"
-if [[ "$(grep -c 'uses: reactivecircus/android-emulator-runner@' "$workflow")" -ne 3 ]]; then
-  echo "expected 3 emulator steps (warm-up snapshot, fallback snapshot plus one flow run per shard job)" >&2
+if [[ "$(grep -c 'uses: reactivecircus/android-emulator-runner@' "$workflow")" -ne 4 ]]; then
+  echo "expected 4 emulator steps (warm-up snapshot, fallback snapshot, one flow run per shard job and its boot retry)" >&2
   exit 1
 fi
 # Both boots use the same emulator options (run 41314245431: the flow boot
 # could not load the snapshot saved minutes earlier in the same job).
 # shellcheck disable=SC2016 # literal workflow text
-if [[ "$(grep -F -c 'emulator-options: ${{ env.EMULATOR_OPTIONS }}' "$workflow")" -ne 3 ]] ||
+if [[ "$(grep -F -c 'emulator-options: ${{ env.EMULATOR_OPTIONS }}' "$workflow")" -ne 4 ]] ||
    grep -q 'EMULATOR_SNAPSHOT_OPTIONS' "$workflow"; then
   echo "snapshot creation and the flow run must both use EMULATOR_OPTIONS" >&2
   exit 1
@@ -407,7 +411,7 @@ cfgs = []
 for body in runners:
     kv = dict(re.findall(r"^          ([a-z-]+): (.*)$", body, re.M))
     cfgs.append({k: kv.get(k) for k in cfg_keys})
-if len(cfgs) != 3 or any(c != cfgs[0] for c in cfgs) or None in cfgs[0].values():
+if len(cfgs) != 4 or any(c != cfgs[0] for c in cfgs) or None in cfgs[0].values():
     errs.append(f"warm-up, snapshot and flow steps must boot the same AVD config: {cfgs}")
 opts = [re.search(r"^          emulator-options: (.*)$", body, re.M).group(1) for body in runners]
 if len(set(opts)) != 1:
@@ -438,7 +442,7 @@ key_env=(ANDROID_HOME="$key_tmp/sdk" EMULATOR_API_LEVEL=30 EMULATOR_TARGET=googl
   EMULATOR_ARCH=x86_64 EMULATOR_DISK_SIZE=2048M EMULATOR_BUILD=16740729
   EMULATOR_AVD_NAME=emulator-app-test-30 GITHUB_RUN_ID=77 GITHUB_RUN_ATTEMPT=1)
 env "${key_env[@]}" EMULATOR_NPROC=4 GITHUB_ENV="$key_tmp/env" bash tool/emulator/avd_cache_key.sh > /dev/null 2>&1
-if ! grep -qx 'EMULATOR_AVD_CACHE_KEY=avd-30-google_apis-x86_64-img6-cores4-disk2048M-emu16740729-emulator-app-test-30-clean-cfg4' "$key_tmp/env" ||
+if ! grep -qx 'EMULATOR_AVD_CACHE_KEY=avd-30-google_apis-x86_64-img6-cores4-disk2048M-emu16740729-emulator-app-test-30-clean-cfg5' "$key_tmp/env" ||
   ! grep -qx 'EMULATOR_SYSIMG_REVISION=6' "$key_tmp/env" || ! grep -qx 'EMULATOR_CORES=4' "$key_tmp/env"; then
   echo "AVD cache key must carry the system image revision the emulator steps will boot" >&2
   cat "$key_tmp/env" >&2
@@ -455,7 +459,7 @@ if [[ "$(env "${key_env[@]}" EMULATOR_SYSIMG_REVISION=6 GITHUB_OUTPUT=/dev/stdou
 fi
 rm -f "$key_props" "$key_tmp/sdk/cmdline-tools/latest/bin/sdkmanager"
 env "${key_env[@]}" EMULATOR_NPROC=2 GITHUB_ENV="$key_tmp/env2" bash tool/emulator/avd_cache_key.sh > /dev/null 2>&1
-if ! grep -qx 'EMULATOR_AVD_CACHE_KEY=avd-30-google_apis-x86_64-imgunknown-77-1-cores2-disk2048M-emu16740729-emulator-app-test-30-clean-cfg4' "$key_tmp/env2"; then
+if ! grep -qx 'EMULATOR_AVD_CACHE_KEY=avd-30-google_apis-x86_64-imgunknown-77-1-cores2-disk2048M-emu16740729-emulator-app-test-30-clean-cfg5' "$key_tmp/env2"; then
   echo "an unknown image revision must give a one-run AVD cache key" >&2
   cat "$key_tmp/env2" >&2
   exit 1
@@ -1256,7 +1260,7 @@ chmod +x "$stub_bin/adb"
   export PATH="$stub_bin:$PATH"
   export EMULATOR_FLOW=18-home-reselect
   export EMULATOR_ARTIFACTS="$cap_dir"
-  export EMULATOR_PACKAGE=com.example.temple
+  export EMULATOR_PACKAGE=com.shradhaventures.temple
   # shellcheck disable=SC1091
   source tool/emulator/lib/common.sh
   : > "$RESULTS"
@@ -1346,7 +1350,7 @@ for n in $(seq 1 "$SHARD_COUNT"); do
   fi
   # Round 4.3.1: worst case from the actual per-row caps, boot, kill-after,
   # reset and run_shard.sh's outer --kill-after, recomputed here.
-  want=$SHARD_BOOT_S
+  want=$((SHARD_BOOT_S + SHARD_READY_S + SHARD_UNLOCK_S))
   for id in $(plan_ids full "$n"); do
     plan_is_skipped "$id" || want=$((want + $(plan_cap_s "$id") + FLOW_KILL_AFTER_S + FLOW_RESET_S + FLOW_OUTER_KILL_S))
   done
@@ -1692,8 +1696,8 @@ cat > "$reuse_bin/adb" << 'STUB'
 #!/bin/bash
 printf '%s\n' "$*" >> "${STUB_ADB_LOG:?}"
 case "$*" in
-  "shell pm path com.example.temple") echo "package:/data/app/base.apk" ;;
-  "shell pm clear com.example.temple") [[ -n "${STUB_PM_FAIL:-}" ]] && echo "Failed" || echo "Success" ;;
+  "shell pm path com.shradhaventures.temple") echo "package:/data/app/base.apk" ;;
+  "shell pm clear com.shradhaventures.temple") [[ -n "${STUB_PM_FAIL:-}" ]] && echo "Failed" || echo "Success" ;;
 esac
 exit 0
 STUB
@@ -1705,7 +1709,7 @@ chmod +x "$reuse_bin/adb"
   export PATH="$reuse_bin:$PATH"
   export EMULATOR_FLOW=04-home
   export EMULATOR_ARTIFACTS="$reuse_dir"
-  export EMULATOR_PACKAGE=com.example.temple
+  export EMULATOR_PACKAGE=com.shradhaventures.temple
   # shellcheck disable=SC1091
   source tool/emulator/lib/common.sh
   : > "$RESULTS"
@@ -1713,10 +1717,10 @@ chmod +x "$reuse_bin/adb"
   reset_device_state
   clear_app_data
   for want in "shell wm size reset" "shell settings put system user_rotation 0" \
-    "shell settings put secure location_mode 3" "shell pm clear com.example.temple" \
+    "shell settings put secure location_mode 3" "shell pm clear com.shradhaventures.temple" \
     "shell cmd connectivity airplane-mode disable" "shell svc wifi enable" "shell svc data enable" \
     "shell pm enable com.google.android.apps.maps" "shell settings put global animator_duration_scale 0" \
-    "shell pm revoke com.example.temple android.permission.ACCESS_FINE_LOCATION" \
+    "shell pm revoke com.shradhaventures.temple android.permission.ACCESS_FINE_LOCATION" \
     "shell settings put system font_scale 1.0" "shell wm density reset"; do
     grep -qx "$want" "$STUB_ADB_LOG" || { echo "reset should run: ${want}" >&2; exit 1; }
   done
@@ -1808,7 +1812,7 @@ fi
 boot_dir="$(mktemp -d)"
 mkdir -p "${boot_dir}/bin"
 # shellcheck disable=SC2016 # literal text, expanded later
-printf '#!/bin/sh\n[ "$*" = "shell getprop debug.temple.snapshot_marker" ] && echo "${STUB_MARKER:-}"\nexit 0\n' > "${boot_dir}/bin/adb"
+printf '#!/bin/sh\n[ "$*" = "shell getprop debug.temple.snapshot_marker" ] && echo "${STUB_MARKER:-}"\ncase "$*" in "shell service check "*) echo "Service $4: found" ;; "shell pm path android") echo package:x ;; "shell getprop sys.boot_completed") echo 1 ;; esac\nexit 0\n' > "${boot_dir}/bin/adb"
 chmod +x "${boot_dir}/bin/adb"
 printf '#!/bin/sh\nexit 0\n' > "${boot_dir}/flow.sh"
 for m in 1 ""; do
@@ -1828,7 +1832,7 @@ if ! grep -q 'setprop debug.temple.snapshot_marker 1' tool/emulator/snapshot_cre
    ! grep -q 'run: bash tool/emulator/boot_log_check.sh' "$workflow" ||
    ! grep -Fq "name: emulator-avd-ini-\${{ matrix.shard }}" "$workflow" ||
    ! grep -Fq "env.EMULATOR_BOOT != 'snapshot' || steps.flows.outcome != 'success'" "$workflow" ||
-   ! grep -q -- '-clean-cfg4"' tool/emulator/avd_cache_key.sh; then
+   ! grep -q -- '-clean-cfg5"' tool/emulator/avd_cache_key.sh; then
   echo "snapshot diagnostics: marker, boot log check, ini artifact on cold boot/failure, bumped key" >&2
   exit 1
 fi
@@ -1884,7 +1888,7 @@ fi
 # snapshot_create.sh: a save that does not report OK fails the step (no cache save).
 sc_dir="$(mktemp -d)"; mkdir -p "${sc_dir}/bin"
 # shellcheck disable=SC2016 # literal stub script text
-printf '#!/bin/sh\ncase "$*" in "emu avd snapshot save default_boot") echo "${STUB_SAVE:-KO: failed}";; esac\nexit 0\n' > "${sc_dir}/bin/adb"
+printf '#!/bin/sh\ncase "$*" in "emu avd snapshot save default_boot") echo "${STUB_SAVE:-KO: failed}";; "shell service check "*) echo "Service $4: found" ;; "shell pm path android") echo package:x ;; "shell getprop sys.boot_completed") echo 1 ;; esac\nexit 0\n' > "${sc_dir}/bin/adb"
 chmod +x "${sc_dir}/bin/adb"
 if PATH="${sc_dir}/bin:$PATH" RUNNER_TEMP="$sc_dir" bash tool/emulator/snapshot_create.sh >/dev/null 2>&1 ||
    ! STUB_SAVE=OK PATH="${sc_dir}/bin:$PATH" RUNNER_TEMP="$sc_dir" bash tool/emulator/snapshot_create.sh >/dev/null 2>&1; then
@@ -1964,12 +1968,12 @@ for want in once:1 twice:2; do
   fi
 done
 # 26: a crash on back must not pass back-exits.
-crash_in() { rs eval "app_crashed_in_log com.example.temple" <<< "$1"; }
-if ! crash_in "11-01 14:17:00.000 300 300 E AndroidRuntime: Process: com.example.temple, PID: 300" ||
-   ! crash_in "11-01 14:17:00.000 1 1 E ActivityManager: ANR in com.example.temple (com.example.temple/.MainActivity)" ||
-   ! crash_in "11-01 14:17:00.000 1 1 W ActivityTaskManager: Force finishing activity com.example.temple/.MainActivity" ||
+crash_in() { rs eval "app_crashed_in_log com.shradhaventures.temple" <<< "$1"; }
+if ! crash_in "11-01 14:17:00.000 300 300 E AndroidRuntime: Process: com.shradhaventures.temple, PID: 300" ||
+   ! crash_in "11-01 14:17:00.000 1 1 E ActivityManager: ANR in com.shradhaventures.temple (com.shradhaventures.temple/.MainActivity)" ||
+   ! crash_in "11-01 14:17:00.000 1 1 W ActivityTaskManager: Force finishing activity com.shradhaventures.temple/.MainActivity" ||
    crash_in "11-01 14:17:00.000 1 1 E AndroidRuntime: Process: com.google.android.apps.maps, PID: 9" ||
-   crash_in "11-01 14:17:00.000 1 1 I ActivityTaskManager: Displayed com.example.temple/.MainActivity"; then
+   crash_in "11-01 14:17:00.000 1 1 I ActivityTaskManager: Displayed com.shradhaventures.temple/.MainActivity"; then
   echo "app_crashed_in_log: our FATAL/ANR/force-finish only" >&2; exit 1
 fi
 f26=tool/emulator/flows/26_drawer_nav_stack.sh
@@ -2556,7 +2560,7 @@ sp() { ( export EMULATOR_FLOW=99-sp EMULATOR_ARTIFACTS="$r43/sp" EMULATOR_PACKAG
   source tool/emulator/lib/common.sh
   ui_dump() { printf '<hierarchy><node text="" resource-id="filter-chip-state" content-desc="%s" bounds="[0,100][120,140]" /></hierarchy>' "$SP_STATE" > "$DUMP"; }
   scoped_pick "$1" ); }
-[[ "$(SP_STATE='Tamil Nadu' sp deity)" == '^Shiva( +[0-9]+)?$' && "$(SP_STATE='State' sp deity)" == '^Ahalya( +[0-9]+)?$' &&
+[[ "$(SP_STATE='Tamil Nadu' sp deity)" == '^Shiva( +[0-9]+)?$' && "$(SP_STATE='State' sp deity)" == '@first' &&
    "$(SP_STATE='Tamil Nadu' sp district)" == '^Madurai( +[0-9]+)?$' && "$(SP_STATE='Kerala' sp district)" == '^24 Paraganas North( +[0-9]+)?$' &&
    "$(SP_STATE='State' sp state)" == '^Tamil Nadu( +[0-9]+)?$' ]] || { echo "scoped_pick: Shiva/Madurai only when Tamil Nadu is the state" >&2; exit 1; }
 if grep -n 'select_labeled "\${PICK\[' tool/emulator/flows/29_filter_matrix.sh tool/emulator/flows/17_entry_matrix.sh; then
@@ -2602,7 +2606,7 @@ f06=tool/emulator/flows/06_filters.sh
 grep -q "select_labeled '^(?!All districts)" "$f06" && { echo "flow 06: no name-less lookahead district pick" >&2; exit 1; }
 grep -q 'COMBINED_DISTRICT_PICK:-^Alappuzha' "$f06" && grep -q 'state_chip_is "$COMBINED_STATE"' "$f06" || { echo "flow 06: real district (Alappuzha) and the state-chip check" >&2; exit 1; }
 grep -q ': "${_section}"' tool/emulator/lib/common.sh && { echo "select_labeled must use its section" >&2; exit 1; }
-[[ "$(bash -c 'source tool/emulator/plan.sh; plan_cap_s 26-drawer-nav-stack; plan_cap_s 06a-filters-single; plan_need_s full 12')" == $'300\n600\n2320' ]] || { echo "plan: row caps 26=300, 06a=600, shard 12 = 2320s" >&2; exit 1; }
+[[ "$(bash -c 'source tool/emulator/plan.sh; plan_cap_s 26-drawer-nav-stack; plan_cap_s 06a-filters-single; plan_need_s full 12')" == $'300\n600\n2335' ]] || { echo "plan: row caps 26=300, 06a=600, shard 12 = 2335s" >&2; exit 1; }
 # 6-8. Replays of run 41391038302 (testdata/run41391038302/replay_*.sh):
 # 27 waits for validation, re-taps Try again, flaps only after recover; 17c
 # clears "temple" before typing; 24 sends one fling and compares.
@@ -2726,11 +2730,186 @@ grep -q '^SNAPCFG full-1 SNAPSHOT_CONFIG mismatch' "$r43/art431c/results.txt" &&
 grep -q '^::warning::emulator full shard 1: snapshot boot, but the AVD config differs from the snapshot: SNAPSHOT_CONFIG mismatch: disk.dataPartition.size' "$r43/art431c.out" ||
   { echo "run_shard: mismatch on a snapshot boot prints ::warning:: (round 4.3.3): $(cat "$r43/art431c.out")" >&2; exit 1; }
 # (a)/(3): worst case counts the outer kill-after; avd-warmup runs beside build.
-[[ "$(plan_need_s full 12)" == 2320 && "$(plan_need_s full 1)" == 2265 ]] || { echo "plan_need_s: shard 12 2320s, others 2265s (incl. outer kill-after 10)" >&2; exit 1; }
+[[ "$(plan_need_s full 12)" == 2335 && "$(plan_need_s full 1)" == 2280 ]] || { echo "plan_need_s: shard 12 2335s, others 2280s (boot 200 + ready 92 + unlock 23, outer kill-after 10)" >&2; exit 1; }
 grep -q 'timeout --kill-after="$FLOW_OUTER_KILL_S"' tool/emulator/run_shard.sh || { echo "run_shard outer kill-after must be FLOW_OUTER_KILL_S" >&2; exit 1; }
 awk '/^  avd-warmup:/ { w = 1 } w && /needs:/ { print; exit }' "$workflow" | grep -qx '    needs: \[gate\]' || { echo "avd-warmup must need only the gate (parallel with build)" >&2; exit 1; }
 #R43_MORE
 rm -rf "$r43"
 echo "round 4.3 checks ok"
+# ---------------------------------------------------------------------------
+# Round 4.4 (run 41461260068, run126/r6/triage.md)
+# ---------------------------------------------------------------------------
+r44="$(mktemp -d)"
+# A. Boot readiness. Stub adb: "service check input" reports not found the
+# first SVC_NOT_FOUND times (always, with -1); every call is logged.
+mk_svc_adb() { # dir
+  mkdir -p "$1"
+  cat > "$1/adb" <<'ADB'
+#!/usr/bin/env bash
+echo "$*" >> "$STUB_DIR/calls"
+case "$*" in
+  "shell service check input")
+    n=$(( $(cat "$STUB_DIR/n" 2>/dev/null || echo 0) + 1 )); echo "$n" > "$STUB_DIR/n"
+    if [[ "$SVC_NOT_FOUND" == -1 || "$n" -le "$SVC_NOT_FOUND" ]]; then echo "Service input: not found"; else echo "Service input: found"; fi ;;
+  "shell service check "*) echo "Service ${4}: found" ;;
+  "shell pm path android") echo "package:/system/framework/framework-res.apk" ;;
+  "shell getprop sys.boot_completed") echo 1 ;;
+  "shell getprop debug.temple.snapshot_marker") echo 1 ;;
+  "emu avd snapshot save default_boot") echo OK ;;
+  *) : ;;
+esac
+ADB
+  chmod +x "$1/adb"
+}
+mk_svc_adb "$r44/bin"
+svc() { # not_found_count cmd... -> runs with the stub on PATH
+  local nf="$1"; shift
+  rm -f "$r44/calls" "$r44/n"
+  PATH="$r44/bin:$PATH" STUB_DIR="$r44" SVC_NOT_FOUND="$nf" EMULATOR_SERVICES_POLL_S=0 "$@"
+}
+o="$(svc 2 bash tool/emulator/services_ready.sh 10)" && [[ "$o" == *"services ready after 3 poll(s)"* ]] ||
+  { echo "services_ready: not found twice then found must pass after 3 polls: $o" >&2; exit 1; }
+o="$(svc -1 bash tool/emulator/services_ready.sh 1)" && { echo "services_ready: never found must fail: $o" >&2; exit 1; }
+[[ "$o" == *"services not ready after 1s"*input* ]] || { echo "services_ready names the missing service: $o" >&2; exit 1; }
+# snapshot_create: never ready -> exit 1 and no save; ready on poll 3 -> saved after the checks.
+rc=0; svc -1 env EMULATOR_SNAPSHOT_READY_S=1 EMULATOR_SNAPSHOT_SETTLE_S=0 bash tool/emulator/snapshot_create.sh >"$r44/snap.out" 2>&1 || rc=$?
+[[ "$rc" == 1 ]] && ! grep -q 'snapshot save' "$r44/calls" && ! grep -q 'setprop' "$r44/calls" ||
+  { echo "snapshot_create: services never ready must exit 1 without saving (rc=$rc): $(cat "$r44/calls" "$r44/snap.out")" >&2; exit 1; }
+rc=0; svc 2 env EMULATOR_SNAPSHOT_READY_S=10 EMULATOR_SNAPSHOT_SETTLE_S=0 bash tool/emulator/snapshot_create.sh >"$r44/snap.out" 2>&1 || rc=$?
+[[ "$rc" == 0 && "$(grep -c 'service check input' "$r44/calls")" == 3 ]] &&
+  awk '/service check input/ { s = NR } /emu avd snapshot save/ { v = NR } END { exit !(s && v > s) }' "$r44/calls" ||
+  { echo "snapshot_create: ready on poll 3 then save (rc=$rc): $(cat "$r44/calls")" >&2; exit 1; }
+grep -q 'EMULATOR_SNAPSHOT_READY_S:-120' tool/emulator/snapshot_create.sh && grep -q 'EMULATOR_SNAPSHOT_SETTLE_S:-10' tool/emulator/snapshot_create.sh ||
+  { echo "snapshot_create waits up to 120s and settles 10s" >&2; exit 1; }
+# run_shard: readiness + unlock before the BOOT line, never fatal.
+grep -q 'wait_services_ready "${EMULATOR_SERVICES_WAIT_S:-90}"' tool/emulator/run_shard.sh &&
+  awk '/wait_services_ready "/ { w = NR } /printf .BOOT / { b = NR } END { exit !(w && b > w) }' tool/emulator/run_shard.sh ||
+  { echo "run_shard waits for services (90s) before the BOOT line" >&2; exit 1; }
+cat > "$r44/runner.sh" <<'RUN'
+#!/bin/sh
+echo "PASS $1: stub" >> "$EMULATOR_ARTIFACTS/results.txt"
+RUN
+chmod +x "$r44/runner.sh"
+rm -rf "$r44/art"; mkdir -p "$r44/art"
+rc=0; svc -1 env EMULATOR_SERVICES_WAIT_S=1 EMULATOR_ARTIFACTS="$r44/art" EMULATOR_FLOW_RUNNER="$r44/runner.sh" \
+  EMULATOR_SNAPSHOT_HW="$av/create-booted/snapshot-hardware.ini" EMULATOR_RUN_HW="$av/create-booted/hardware-qemu.ini" \
+  bash tool/emulator/run_shard.sh full 1 >"$r44/shard.out" 2>&1 || rc=$?
+[[ "$rc" == 0 ]] && grep -q '^BOOT full-1 snapshot$' "$r44/art/results.txt" && grep -q '^TIME ' "$r44/art/results.txt" &&
+  grep -q 'system services not ready after 1s' "$r44/shard.out" && [[ "$(grep -c 'shell input keyevent 82' "$r44/calls")" == 1 ]] ||
+  { echo "run_shard: services not ready is a warning, unlock once, flows run (rc=$rc): $(cat "$r44/shard.out")" >&2; exit 1; }
+# keyevent 82 failing: retried 5 times, never fatal.
+cat > "$r44/bin/adb.fail82" <<'ADB'
+#!/usr/bin/env bash
+echo "$*" >> "$STUB_DIR/calls"
+[[ "$*" == "shell input keyevent 82" ]] && { echo "No service published for: input" >&2; exit 1; }
+exec "$STUB_DIR/bin/adb.ok" "$@"
+ADB
+cp "$r44/bin/adb" "$r44/bin/adb.ok"; sed -i '2d' "$r44/bin/adb.ok"; cp "$r44/bin/adb.fail82" "$r44/bin/adb"; chmod +x "$r44/bin/adb" "$r44/bin/adb.ok"
+rm -rf "$r44/art"; mkdir -p "$r44/art"
+rc=0; svc 0 env EMULATOR_ARTIFACTS="$r44/art" EMULATOR_FLOW_RUNNER="$r44/runner.sh" \
+  EMULATOR_SNAPSHOT_HW="$av/create-booted/snapshot-hardware.ini" EMULATOR_RUN_HW="$av/create-booted/hardware-qemu.ini" \
+  bash tool/emulator/run_shard.sh full 1 >"$r44/shard.out" 2>&1 || rc=$?
+[[ "$rc" == 0 && "$(grep -c 'shell input keyevent 82' "$r44/calls")" == 5 ]] && grep -q 'unlock (keyevent 82) failed 5 times; continuing' "$r44/shard.out" && grep -q '^TIME ' "$r44/art/results.txt" ||
+  { echo "run_shard: unlock retried 5 times, never fatal (rc=$rc): $(grep -c 'keyevent 82' "$r44/calls") $(cat "$r44/shard.out")" >&2; exit 1; }
+mk_svc_adb "$r44/bin"
+# Workflow: boot-retry step only on a failed flows step with no BOOT line.
+python3 - "$workflow" <<'PY' || exit 1
+import re, sys
+wf = open(sys.argv[1]).read()
+job = wf[wf.index("\n  emulator:"):]
+names = re.findall(r"\n      - name: (.+)", job)
+need = ["Run emulator flows", "Check for a boot death", "Run emulator flows (boot retry)", "Write results summary"]
+idx = [names.index(n) for n in need]
+assert idx == sorted(idx) and idx[1] == idx[0] + 1 and idx[2] == idx[1] + 1, f"step order {names}"
+def step(name):
+    i = job.index(f"\n      - name: {name}\n"); j = job.find("\n      - name:", i + 1)
+    return job[i:j]
+chk, rt, fl = step("Check for a boot death"), step("Run emulator flows (boot retry)"), step("Run emulator flows")
+assert "if: ${{ !cancelled() && steps.flows.outcome == 'failure' }}" in chk, chk
+assert "id: boot-check" in chk and "grep -q '^BOOT ' emulator-app-test-artifacts/results.txt" in chk and "adb emu kill" in chk, chk
+assert chk.index("adb emu kill") < chk.index('echo "retry=true"'), chk
+assert "if: ${{ !cancelled() && steps.flows.outcome == 'failure' && steps.boot-check.outputs.retry == 'true' }}" in rt, rt
+strip = lambda t: [l for l in t.splitlines() if l.strip().startswith(("api-level", "target", "arch", "cores", "disk-size", "avd-name", "force-avd", "disable-anim", "emulator-", "pre-emulator", "script:", "uses:", "timeout-minutes"))]
+assert strip(rt) == strip(fl), (strip(rt), strip(fl))
+assert 'EMULATOR_BOOT_TIMEOUT: "200"' in wf
+PY
+# The boot-check script itself: BOOT line -> retry=false; none -> kill + retry=true.
+chk_sh="$(python3 - "$workflow" <<'PY'
+import sys
+wf = open(sys.argv[1]).read()
+i = wf.index("      - name: Check for a boot death"); j = wf.index("      - name: Run emulator flows (boot retry)")
+blk = wf[i:j].split("        run: |\n", 1)[1]
+print("\n".join(l[10:] for l in blk.splitlines()))
+PY
+)"
+for case in "BOOT full-1 snapshot:false" "FAIL x:true" ":true"; do
+  line="${case%:*}" want="${case##*:}"
+  d="$r44/bc"; rm -rf "$d"; mkdir -p "$d/emulator-app-test-artifacts"; [[ -n "$line" ]] && echo "$line" > "$d/emulator-app-test-artifacts/results.txt"
+  rm -f "$r44/calls"
+  ( cd "$d" && PATH="$r44/bin:$PATH" STUB_DIR="$r44" GITHUB_OUTPUT="$d/out" bash -c "sleep() { :; }; $chk_sh" ) >/dev/null 2>&1
+  grep -qx "retry=${want}" "$d/out" || { echo "boot-check with results '${line}': want retry=${want}, got $(cat "$d/out")" >&2; exit 1; }
+  if [[ "$want" == true ]]; then grep -q '^emu kill$' "$r44/calls" || { echo "boot-check kills the emulator before the retry" >&2; exit 1; }
+  else ! grep -q 'emu kill' "$r44/calls" 2>/dev/null || { echo "boot-check: no kill when BOOT is present" >&2; exit 1; }; fi
+done
+# B. Deity: the first real option, by its exact label (r6 17c and 30g dumps).
+replay44() { # fixture fn...
+  ( export EMULATOR_FLOW=99-r44 EMULATOR_ARTIFACTS="$r44/art44" EMULATOR_PACKAGE=com.shradhaventures.temple
+    # shellcheck disable=SC1091
+    source tool/emulator/lib/common.sh
+    ui_dump() { cp "$R44_FX" "$DUMP"; }
+    ui_screen_size() { echo 320 640; }
+    ui_tap() { echo "TAP ${UI_TEXT:-}"; }
+    adb_shell_capped() { shift; echo "ADB $*"; }
+    sleep() { :; }
+    R44_FX="$1"; shift; "$@" ) 2>&1
+}
+T44=tool/emulator/testdata/run41461260068
+fro() { ui_dump && first_real_option "$1"; }
+fbp() { ui_dump && filter_bar_present; }
+fbp_old() { ui_dump && ui_find --resource-id filter-chip-state; }
+deity44="$(sed -n "s/^ALL_INDIA_DEITY_PICK='\(.*\)'\$/\1/p" tool/emulator/lib/common.sh)"
+for fx in 17c_deity_select.xml 30g_deity_select.xml; do
+  o="$(replay44 "$T44/$fx" select_labeled "$deity44" DEITY)" &&
+    grep -qx 'TAP 81 Yoginis; Gauri-Shankar (central shrine) 1' <<<"$o" && ! grep -q '^ADB input swipe' <<<"$o" ||
+    { echo "deity @first on r6 ${fx}: tap '81 Yoginis; Gauri-Shankar (central shrine)' on the first screen: $o" >&2; exit 1; }
+  o="$(replay44 "$T44/$fx" select_labeled '^Ahalya( +[0-9]+)?$' DEITY)" && { echo "r6 ${fx}: Ahalya is not in the live list: $o" >&2; exit 1; }
+done
+[[ "$deity44" == @first ]] || { echo "ALL_INDIA_DEITY_PICK must be @first" >&2; exit 1; }
+# chip_exact takes the label (count stripped) on a chip showing it.
+printf '<hierarchy><node text="" resource-id="filter-chip-deity" content-desc="81 Yoginis; Gauri-Shankar (central shrine)" bounds="[14,181][300,216]" /></hierarchy>' > "$r44/chip81.xml"
+o="$(replay44 "$r44/chip81.xml" chip_exact '81 Yoginis; Gauri-Shankar (central shrine)')" || { echo "chip_exact on the 81 Yoginis chip: $o" >&2; exit 1; }
+# Old fixture with Ahalya removed: still the first real option, no Ahalya needed.
+drop_node() { # in out resource-id-prefix: remove matching nodes (and their subtrees)
+  python3 - "$1" "$2" "$3" <<'PY'
+import sys, xml.etree.ElementTree as ET
+t = ET.parse(sys.argv[1]); root = t.getroot()
+for parent in list(root.iter()):
+    for ch in list(parent):
+        if ch.get("resource-id", "").startswith(sys.argv[3]):
+            parent.remove(ch)
+t.write(sys.argv[2], encoding="unicode")
+PY
+}
+drop_node tool/emulator/testdata/run41306793034/deity_sheet_open.xml "$r44/deity_no_ahalya.xml" filter-option-deity-Ahalya
+grep -q Ahalya tool/emulator/testdata/run41306793034/deity_sheet_open.xml && ! grep -q 'filter-option-deity-Ahalya' "$r44/deity_no_ahalya.xml" || { echo "fixture: Ahalya removed from the old sheet" >&2; exit 1; }
+[[ "$(replay44 "$r44/deity_no_ahalya.xml" fro deity)" == '81 Yoginis; Gauri-Shankar (central shrine)' ]] || { echo "first_real_option without Ahalya" >&2; exit 1; }
+drop_node "$r44/deity_no_ahalya.xml" "$r44/deity_no_81.xml" "filter-option-deity-81 Yoginis"
+[[ "$(replay44 "$r44/deity_no_81.xml" fro deity)" == 'Adinatha — Jain · Jain' ]] || { echo "first_real_option takes the content-desc label: $(replay44 "$r44/deity_no_81.xml" fro deity)" >&2; exit 1; }
+printf '<hierarchy><node resource-id="filter-option-deity-any" content-desc="Any deity 811" /></hierarchy>' > "$r44/only_any.xml"
+replay44 "$r44/only_any.xml" fro deity >/dev/null && { echo "first_real_option: -any is not a real option" >&2; exit 1; }
+# Sim, live list without Ahalya: @first picks the head; the old regex gives up.
+o="$(SIM_NO_AHALYA=1 bash "$sim" DEITY '@first' deity,state,district all "$r44/sim1")"
+grep -q "^RESULT rc=0 .* label='Aadeity00'" <<<"$o" || { echo "sim (no Ahalya): @first picks the head: $o" >&2; exit 1; }
+o="$(SIM_NO_AHALYA=1 bash "$sim" DEITY '^Ahalya( +[0-9]+)?$' deity,state,district all "$r44/sim2")"
+grep -q "^RESULT rc=1 " <<<"$o" || { echo "sim (no Ahalya): the old pick must fail: $o" >&2; exit 1; }
+# C. 30s filter-kept: any filter chip or filter-clear (r6 seq1 dump: state chip scrolled off).
+replay44 "$T44/seq1_filter_kept.xml" fbp >/dev/null || { echo "filter_bar_present on r6 seq1-filter-kept.xml" >&2; exit 1; }
+replay44 "$T44/seq1_filter_kept.xml" fbp_old >/dev/null && { echo "fixture: seq1 has no state chip on screen (the old false positive)" >&2; exit 1; }
+replay44 "$T44/detail_no_filter_bar.xml" fbp >/dev/null && { echo "filter_bar_present: a dump with no filter bar must fail" >&2; exit 1; }
+grep -q 'if filter_bar_present; then' tool/emulator/flows/29_filter_matrix.sh || { echo "flow 29 filter-kept uses filter_bar_present" >&2; exit 1; }
+# E. KAN-193 named at the 17c clear comment.
+grep -q 'Jira KAN-193' tool/emulator/flows/17_entry_matrix.sh || { echo "17_entry_matrix names KAN-193" >&2; exit 1; }
+rm -rf "$r44"
+echo "round 4.4 checks ok"
 rm -rf "$r4"
 echo "emulator self-test ok"

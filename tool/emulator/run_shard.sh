@@ -41,6 +41,18 @@ echo "Emulator ${tier}${shard:+ shard ${shard}}: ${total} flows (${skipped} skip
 # the snapshot. A cold boot ("cannot load snapshot ... different AVD
 # configuration", run 41314245431) is a warning, not a failure.
 if [[ "${EMULATOR_SHARD_DRY_RUN:-}" != 1 ]]; then
+  # Round 4.4: wait for the system services (SHARD_READY_S, plan.sh), then
+  # unlock (keyevent 82) up to SHARD_UNLOCK_TRIES times 2s apart. Neither is
+  # fatal: a shard that is still not ready fails in its flows, visibly.
+  wait_services_ready() { timeout --kill-after=2 "$1" bash tool/emulator/services_ready.sh "$1"; }
+  if ! wait_services_ready "${EMULATOR_SERVICES_WAIT_S:-90}"; then
+    echo "::warning::emulator ${tier}${shard:+ shard ${shard}}: system services not ready after ${EMULATOR_SERVICES_WAIT_S:-90}s"
+  fi
+  for ((u = 1; u <= SHARD_UNLOCK_TRIES; u++)); do
+    timeout 3 adb shell input keyevent 82 </dev/null >/dev/null 2>&1 && break
+    (( u < SHARD_UNLOCK_TRIES )) && sleep 2
+  done
+  (( u <= SHARD_UNLOCK_TRIES )) || echo "::warning::unlock (keyevent 82) failed ${SHARD_UNLOCK_TRIES} times; continuing"
   marker="$(adb shell getprop debug.temple.snapshot_marker 2>/dev/null </dev/null | tr -d '\r' || true)"
   if [[ "$marker" == 1 ]]; then boot=snapshot; else boot=cold; fi
   printf 'BOOT %s%s %s\n' "$tier" "${shard:+-${shard}}" "$boot" >> "${artifacts}/results.txt"

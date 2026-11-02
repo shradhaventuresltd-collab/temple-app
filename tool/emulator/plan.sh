@@ -28,14 +28,23 @@ FLOW_RESET_S=30
 # (round 4.3.1: counted in plan_need_s).
 FLOW_OUTER_KILL_S=10
 # One snapshot boot per job (emulator-boot-timeout).
-SHARD_BOOT_S=300
+SHARD_BOOT_S=200
+# Round 4.4: after boot, run_shard.sh waits for the system services
+# (services_ready.sh, 90s + 2s kill-after) and unlocks with keyevent 82,
+# 5 tries of <= 3s, 2s apart (5 x 3 + 4 x 2 = 23s). The emulator boot
+# timeout is 200s (cold boots in runs 41391038302 / 41461260068: 28-34s,
+# snapshot loads ~6s), so boot + ready + unlock = 315s.
+SHARD_READY_S=92
+SHARD_UNLOCK_TRIES=5
+SHARD_UNLOCK_S=$((SHARD_UNLOCK_TRIES * 3 + (SHARD_UNLOCK_TRIES - 1) * 2))
 # One variable: matrix, need-minutes, run_shard.sh and self_test follow it.
 SHARD_COUNT=14
 # The limit is the worst case, not a flow count (round 4.3.1). Per flow:
 # cap + kill-after 15 + reset 30 + outer kill-after 10. Shard 12 holds 4
-# (06a, 06b at 600s; 26, 08 at a 300s row cap):
-# 300 + 2 x (600 + 55) + 2 x (300 + 55) = 2320s = 38.67 min.
-# Every other shard: 300 + 3 x 655 = 2265s = 37.75 min. Both <= 39 min,
+# (06a, 06b at 600s; 26, 08 at a 300s row cap). Boot + ready + unlock
+# (round 4.4) = 200 + 92 + 23 = 315s:
+# 315 + 2 x (600 + 55) + 2 x (300 + 55) = 2335s = 38.92 min.
+# Every other shard: 315 + 3 x 655 = 2280s = 38.0 min. Both <= 39 min,
 # step timeout 42 (self_test checks every shard against 39 min).
 # shellcheck disable=SC2034 # read by self_test.sh (sources this file)
 SHARD_WORST_MAX_S=$((39 * 60))
@@ -184,7 +193,7 @@ plan_ids() {
 # Worst case for one emulator step: one boot, then every flow that is not
 # skipped hitting its cap plus kill-after plus the reset around it.
 plan_need_s() {
-  local id total=$SHARD_BOOT_S
+  local id total=$((SHARD_BOOT_S + SHARD_READY_S + SHARD_UNLOCK_S))
   while read -r id; do
     if ! plan_is_skipped "$id"; then
       total=$((total + $(plan_cap_s "$id") + FLOW_KILL_AFTER_S + FLOW_RESET_S + FLOW_OUTER_KILL_S))

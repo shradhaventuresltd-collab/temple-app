@@ -27,8 +27,12 @@ PKG="${EMULATOR_PACKAGE:-}"
 # replay evidence as PR #124). Shiva is picked only Tamil Nadu-scoped.
 # shellcheck disable=SC2034
 ALL_INDIA_DISTRICT_PICK='^24 Paraganas North( +[0-9]+)?$'
+# Round 4.4: the deity pick is the sheet's first real option (@first, see
+# first_real_option): the hard-coded '^Ahalya( +[0-9]+)?$' left the live
+# list (run 41461260068: "81 Yoginis; Gauri-Shankar (central shrine)",
+# "Adinatha — Jain", ...; shard 10 "deity 'Ahalya' is not in the list").
 # shellcheck disable=SC2034
-ALL_INDIA_DEITY_PICK='^Ahalya( +[0-9]+)?$'
+ALL_INDIA_DEITY_PICK='@first'
 # Bounded picker walk in select_labeled, in seconds.
 PICKER_GIVEUP_S="${EMULATOR_PICKER_GIVEUP_S:-20}"
 # District and deity lists are 400-600 options; run 41373837994 gave up on
@@ -1802,9 +1806,54 @@ state_chip_is() {
 # only matches filter-option-<kind>-* rows (run 41391038302: the DISTRICT
 # scan tapped "Bihar N" in STATE), and every tap waits for two matching
 # dumps (stable_option_tap).
+# Filter bar on screen: any filter chip or the chip-row Clear. The state
+# chip alone is not enough: the chip row scrolls horizontally
+# (directory_filter_bar.dart _chipScroll) and run 41461260068's
+# seq1-filter-kept dump had it scrolled off to the left, with
+# filter-chip-district, filter-chip-deity "Shiva" and filter-clear on screen.
+filter_bar_present() {
+  ui_find --resource-id-regex '^(filter-chip-(state|district|deity)|filter-clear)$'
+}
+
+# First real option of the open sheet for KIND (state|district|deity): the
+# first filter-option-KIND-* row in document order that is not -any, by its
+# exact label (content-desc without the trailing count). Prints the label.
+first_real_option() {
+  python3 - "$DUMP" "$1" <<'PY'
+import re, sys
+s = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+kind = sys.argv[2]
+for node in re.finditer(r"<node [^>]*>", s):
+    n = node.group(0)
+    rid = re.search(r'resource-id="([^"]*)"', n)
+    if not rid or not rid.group(1).startswith(f"filter-option-{kind}-") or rid.group(1) == f"filter-option-{kind}-any":
+        continue
+    desc = re.search(r'content-desc="([^"]*)"', n)
+    text = re.search(r' text="([^"]*)"', n)
+    label = (desc.group(1) if desc and desc.group(1) else (text.group(1) if text else ""))
+    label = " ".join(label.replace("&#10;", " ").split())
+    label = re.sub(r"\s+[0-9]+$", "", label)
+    if label:
+        print(label)
+        raise SystemExit(0)
+raise SystemExit(1)
+PY
+}
+
 select_labeled() {
   local regex="$1"
   local _section="${2:-}"
+  # Round 4.4: '@first' = the first real option on the opened sheet.
+  if [[ "$regex" == @first ]]; then
+    local _k _first
+    _k="$(printf '%s' "$_section" | tr '[:upper:]' '[:lower:]')"
+    if ! ui_dump || ! _first="$(first_real_option "$_k")"; then
+      echo "select_labeled: no real ${_k} option on the open sheet" >&2
+      return 1
+    fi
+    regex="^$(re_escape "$_first")( +[0-9]+)?\$"
+    echo "select_labeled: first real ${_k} option '${_first}'" >&2
+  fi
   local pass i height min_top max_top prev="" current stuck
   local opt_rx='.'
   case "$_section" in
