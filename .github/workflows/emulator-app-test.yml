@@ -17,10 +17,11 @@ name: emulator-app-test
 # Flows 11, 23 and 30d (near-me filter matrix cells) are planned skips (location-dependent).
 # Picker give-up: PICKER_LONG_GIVEUP_S=45 for state/district/deity pickers (others 20s);
 # per-step budget EMULATOR_STEP_BUDGET_S=150; 15 shards (SHARD_COUNT in plan.sh). The shard limit is
-# time, not a flow count: boot + ready + unlock (185s) + per active flow (cap + 15 + 30 + 10s) <= 39 min
-# (self_test, plan_need_s); today 2150s = 35.83 min max (shard 12: 1495s, shard 15: 895s), step timeout 42.
-# Job 68 >= 20 setup/post + 205s dead first attempt (30 start + 150 boot + 25 pre-BOOT watchdog)
-# + 2 boot check + 42 boot retry; end to end <= 45 min on every path, retry <= 44.0 (round 4.4.3).
+# time, not a flow count: boot + pre/post-BOOT work (200s) + per active flow (cap + 15 + 30 + 10s) <= 39 min
+# (self_test, plan_need_s); today 2165s = 36.08 min max (shard 12: 1510s, shard 15: 910s), step timeout 42.
+# Job 68 >= 20 setup/post + 195s dead first attempt (30 start + 150 boot + 5 keyevent + 10 pre-BOOT
+# watchdog) + 2 boot check + 42 boot retry; end to end <= 45 min on every path (warm, retry, cold,
+# cold + retry, warm-up refused), retry <= 44.0 (rounds 4.4.3-4.4.4).
 #
 # workflow_dispatch APK source, first match wins:
 #   apk_url          https URL of an APK
@@ -102,13 +103,23 @@ env:
   EMULATOR_DISK_SIZE: 2048M
   EMULATOR_AVD_NAME: emulator-app-test-30
   EMULATOR_FORCE_AVD_CREATION: false
-  EMULATOR_DISABLE_ANIMATIONS: true
+  # Round 4.4.4: off in the action (it would run 3 untimed "settings put"
+  # calls); snapshot_create.sh and run_shard.sh turn animations off in one
+  # capped adb call (plan.sh SHARD_ANIM_S).
+  EMULATOR_DISABLE_ANIMATIONS: false
   EMULATOR_BOOT_TIMEOUT: "150"
   # Round 4.4.3 (Satyavrat): the boot retry restores the same snapshot
   # (loads ~6s; slowest cold boot of 81 ~33.7s), so its boot wait is 60s:
   # 10x a snapshot load and ~1.8x the slowest cold boot. plan.sh
   # SHARD_RETRY_BOOT_S follows it (self_test).
   EMULATOR_RETRY_BOOT_TIMEOUT: "60"
+  # Round 4.4.4 (Satyavrat): both "Create AVD snapshot" steps cold-boot
+  # with 120s (was 600): 3.6x the slowest cold boot (33.7s of 81). plan.sh
+  # SHARD_CREATE_BOOT_S follows it.
+  EMULATOR_CREATE_BOOT_TIMEOUT: "120"
+  # Round 4.4.4 (Manu): android-emulator-runner's own adb calls go through
+  # tool/emulator/adb_shim, capped at this many seconds (SHARD_ACTION_ADB_S).
+  EMULATOR_ACTION_ADB_S: "5"
   # One boot per job from the clean cached snapshot. Both boots (snapshot
   # creation and the flow run) use these exact options. -no-snapshot-save
   # keeps every exit from writing back; snapshot_create.sh saves the
@@ -325,6 +336,14 @@ jobs:
         timeout-minutes: 5
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
+      # Round 4.4.4 (Manu): the action's own post-boot adb calls (keyevent
+      # 82) cannot hang a step: tool/emulator/adb_shim caps them.
+      - name: Cap the emulator action's adb calls
+        timeout-minutes: 1
+        run: |
+          chmod +x tool/emulator/adb_shim/adb
+          echo "${GITHUB_WORKSPACE}/tool/emulator/adb_shim" >> "$GITHUB_PATH"
+
       - name: Enable KVM
         timeout-minutes: 2
         run: |
@@ -373,7 +392,7 @@ jobs:
           force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
           disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
           emulator-build: ${{ env.EMULATOR_BUILD }}
-          emulator-boot-timeout: 600
+          emulator-boot-timeout: ${{ env.EMULATOR_CREATE_BOOT_TIMEOUT }}
           emulator-options: ${{ env.EMULATOR_OPTIONS }}
           pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }} create
           script: bash tool/emulator/snapshot_create.sh
@@ -433,6 +452,14 @@ jobs:
         timeout-minutes: 5
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
+      # Round 4.4.4 (Manu): the action's own post-boot adb calls (keyevent
+      # 82) cannot hang a step: tool/emulator/adb_shim caps them.
+      - name: Cap the emulator action's adb calls
+        timeout-minutes: 1
+        run: |
+          chmod +x tool/emulator/adb_shim/adb
+          echo "${GITHUB_WORKSPACE}/tool/emulator/adb_shim" >> "$GITHUB_PATH"
+
       - name: Enable KVM
         timeout-minutes: 2
         run: |
@@ -483,7 +510,13 @@ jobs:
       - name: Create AVD snapshot
         id: create-avd
         if: steps.avd-cache.outcome == 'success' && steps.avd-cache.outputs.cache-hit != 'true'
-        timeout-minutes: 15
+        # Round 4.4.4 (Satyavrat): the warm-up-refused path. Cold boot 120s
+        # + keyevent 5 + animations 5 + readiness 20 + settle 5 + save 5 +
+        # action start 30 = 190s modelled (plan_e2e_s); capped at 4 min.
+        timeout-minutes: 4
+        env:
+          EMULATOR_SNAPSHOT_READY_S: "20"
+          EMULATOR_SNAPSHOT_SETTLE_S: "5"
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
           api-level: ${{ env.EMULATOR_API_LEVEL }}
@@ -495,7 +528,7 @@ jobs:
           force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
           disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
           emulator-build: ${{ env.EMULATOR_BUILD }}
-          emulator-boot-timeout: 600
+          emulator-boot-timeout: ${{ env.EMULATOR_CREATE_BOOT_TIMEOUT }}
           emulator-options: ${{ env.EMULATOR_OPTIONS }}
           pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }} create
           script: bash tool/emulator/snapshot_create.sh
@@ -510,10 +543,12 @@ jobs:
       # The AVD cache is saved only by the avd-warmup job (no shard races
       # it). A shard whose restore missed (warm-up failed) creates its own
       # snapshot above and does not save it.
-      # One snapshot boot (150s) + readiness (32s) + unlock (13s), then each flow capped at 600s + 15s
-      # kill-after + 30s reset (measured <= 12s in run 41373837994).
-      # smoke: 6 flows -> 70 min worst case; full shard (15 of them): at
-      # most 3 active flows -> <= 37 min, step timeout 42. run_shard.sh exits 0;
+      # One snapshot boot (150s; 60s when this job just created the
+      # snapshot) + keyevent 5s + getprop 5s, BOOT, then readiness (22s) +
+      # unlock (13s) + animations (5s) = 200s, then each flow capped at its
+      # cap + 15s kill-after + 30s reset + 10s outer kill. smoke: 6 flows ->
+      # 70 min worst case; full shards (15): max 2165s = 36.08 min (shard
+      # 12: 1510s, 15: 910s), step timeout 42. run_shard.sh exits 0;
       # the summary step decides pass/fail. !cancelled() skips only on a
       # real cancellation.
       - name: Run emulator flows
@@ -532,7 +567,7 @@ jobs:
           force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
           disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
           emulator-build: ${{ env.EMULATOR_BUILD }}
-          emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-boot-timeout: ${{ steps.create-avd.outcome == 'success' && env.EMULATOR_RETRY_BOOT_TIMEOUT || env.EMULATOR_BOOT_TIMEOUT }}
           emulator-options: ${{ env.EMULATOR_OPTIONS }}
           pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }} run
           script: bash tool/emulator/run_shard.sh ${{ needs.build.outputs.tier }} ${{ matrix.shard != 'smoke' && matrix.shard || '' }}

@@ -41,15 +41,22 @@ echo "Emulator ${tier}${shard:+ shard ${shard}}: ${total} flows (${skipped} skip
 # the snapshot. A cold boot ("cannot load snapshot ... different AVD
 # configuration", run 41314245431) is a warning, not a failure.
 if [[ "${EMULATOR_SHARD_DRY_RUN:-}" != 1 ]]; then
-  # Round 4.4.3 (Manu): the BOOT line must be written within
-  # SHARD_PREBOOT_S of run_shard.sh starting. A hang before it (a dead
-  # emulator, an adb call that never returns) would otherwise run the whole
-  # 42-min step and leave no time for the boot retry. The watchdog ends
-  # this attempt with no BOOT line, so the workflow's boot check retries.
+  # Round 4.4.3/4.4.4 (Manu): the BOOT line must be written within
+  # SHARD_PREBOOT_S of run_shard.sh starting. Before BOOT runs only what
+  # proves the emulator is alive: the snapshot-marker getprop (capped at
+  # SHARD_GETPROP_S). A hang there (a dead emulator, an adb call that never
+  # returns) would otherwise run the whole 42-min step; the watchdog ends
+  # the attempt with no BOOT line, so the workflow's boot check retries.
+  # Readiness, unlock and animations run after BOOT (bounded, non-fatal).
+  # The watchdog and BOOT race for one claim (mkdir is atomic): whoever
+  # makes the claim dir first wins, so a watchdog firing while BOOT is being
+  # written can no longer kill a booted shard (round 4.4.4).
   preboot_s="${EMULATOR_PREBOOT_S:-$SHARD_PREBOOT_S}"
   main_pid=$$
+  claim="$(mktemp -u "${TMPDIR:-/tmp}/run_shard.boot.XXXXXX")"
   (
     sleep "$preboot_s" >/dev/null 2>&1
+    mkdir "$claim" 2>/dev/null || exit 0
     echo "::error::no BOOT line ${preboot_s}s after run_shard.sh started; ending this attempt so the boot retry can run" >&2
     # run_shard.sh first (so it cannot go on to write BOOT), then every
     # descendant listed before that (a hung adb inside $(...) would keep
@@ -61,9 +68,23 @@ if [[ "${EMULATOR_SHARD_DRY_RUN:-}" != 1 ]]; then
     for c in $victims; do kill -TERM "$c" 2>/dev/null; done
   ) &
   preboot_watchdog=$!
-  # Round 4.4: wait for the system services (SHARD_READY_S, plan.sh), then
-  # unlock (keyevent 82) up to SHARD_UNLOCK_TRIES times 2s apart. Neither is
-  # fatal: a shard that is still not ready fails in its flows, visibly.
+  marker="$(timeout "${SHARD_GETPROP_S:-5}" adb shell getprop debug.temple.snapshot_marker 2>/dev/null </dev/null | tr -d '\r' || true)"
+  if [[ "$marker" == 1 ]]; then boot=snapshot; else boot=cold; fi
+  if ! mkdir "$claim" 2>/dev/null; then
+    # The watchdog claimed first: it is ending this attempt (no BOOT line).
+    wait "$preboot_watchdog" 2>/dev/null; exit 1
+  fi
+  # Test hook (self_test): widen the race window. The watchdog expires here,
+  # after the claim and before it is disarmed; it must then stand down.
+  [[ -n "${EMULATOR_TEST_BOOT_WRITE_DELAY_S:-}" ]] && sleep "$EMULATOR_TEST_BOOT_WRITE_DELAY_S"
+  kill "$preboot_watchdog" 2>/dev/null; wait "$preboot_watchdog" 2>/dev/null
+  rmdir "$claim" 2>/dev/null
+  printf 'BOOT %s%s %s\n' "$tier" "${shard:+-${shard}}" "$boot" >> "${artifacts}/results.txt"
+  # Round 4.4 (after BOOT since 4.4.4): wait for the system services
+  # (SHARD_READY_S, plan.sh), unlock (keyevent 82) up to SHARD_UNLOCK_TRIES
+  # times 2s apart, and turn animations off in one capped call
+  # (SHARD_ANIM_S; the action's disable-animations is off). None is fatal:
+  # a shard that is still not ready fails in its flows, visibly.
   wait_services_ready() { timeout --kill-after=2 "$1" bash tool/emulator/services_ready.sh "$1"; }
   if ! wait_services_ready "${EMULATOR_SERVICES_WAIT_S:-20}"; then
     echo "::warning::emulator ${tier}${shard:+ shard ${shard}}: system services not ready after ${EMULATOR_SERVICES_WAIT_S:-20}s"
@@ -73,12 +94,7 @@ if [[ "${EMULATOR_SHARD_DRY_RUN:-}" != 1 ]]; then
     (( u < SHARD_UNLOCK_TRIES )) && sleep 2
   done
   (( u <= SHARD_UNLOCK_TRIES )) || echo "::warning::unlock (keyevent 82) failed ${SHARD_UNLOCK_TRIES} times; continuing"
-  # Round 4.4.3: capped (SHARD_GETPROP_S) so a half-dead emulator cannot
-  # hold the BOOT line back; plan.sh counts it in the dead attempt.
-  marker="$(timeout "${SHARD_GETPROP_S:-5}" adb shell getprop debug.temple.snapshot_marker 2>/dev/null </dev/null | tr -d '\r' || true)"
-  if [[ "$marker" == 1 ]]; then boot=snapshot; else boot=cold; fi
-  printf 'BOOT %s%s %s\n' "$tier" "${shard:+-${shard}}" "$boot" >> "${artifacts}/results.txt"
-  kill "$preboot_watchdog" 2>/dev/null; wait "$preboot_watchdog" 2>/dev/null
+  timeout "${SHARD_ANIM_S:-5}" adb shell "$ANIM_OFF_CMD" </dev/null >/dev/null 2>&1 || echo "::warning::could not turn animations off; continuing"
   echo "boot: ${boot}"
   # Which keys differ between this boot's hardware-qemu.ini and the snapshot.
   snaprc=0

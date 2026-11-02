@@ -51,11 +51,28 @@ SHARD_ACTION_START_S=30
 # action died while booting (action start + boot), or run_shard.sh did
 # not reach the BOOT line within SHARD_PREBOOT_S and its watchdog ended
 # the attempt (Manu). The getprop just before BOOT is capped at
-# SHARD_GETPROP_S. Dead attempt = 30 + 150 + 25 = 205s.
+# SHARD_GETPROP_S. Round 4.4.4: only that getprop runs before BOOT, and
+# the action's keyevent is capped (adb_shim). Dead attempt = action start
+# 30 + boot 150 + action adb 5 + pre-BOOT watchdog 10 = 195s.
 # shellcheck disable=SC2034 # read by self_test.sh (job budget)
 SHARD_GETPROP_S=5
 # shellcheck disable=SC2034 # read by run_shard.sh and self_test.sh
-SHARD_PREBOOT_S=25
+SHARD_PREBOOT_S=10
+# Round 4.4.4: the action's own adb calls (keyevent 82; disable-animations
+# is off, so no settings put) go through tool/emulator/adb_shim, capped at
+# SHARD_ACTION_ADB_S each. Animations are turned off in one capped call
+# (SHARD_ANIM_S) by snapshot_create.sh and run_shard.sh.
+# shellcheck disable=SC2034 # read by run_shard.sh, snapshot_create.sh, self_test.sh
+SHARD_ACTION_ADB_S=5 SHARD_ANIM_S=5
+# shellcheck disable=SC2034 # read by run_shard.sh and snapshot_create.sh
+ANIM_OFF_CMD="settings put global window_animation_scale 0.0; settings put global transition_animation_scale 0.0; settings put global animator_duration_scale 0.0"
+# Round 4.4.4 (Satyavrat): both "Create AVD snapshot" steps boot cold with
+# EMULATOR_CREATE_BOOT_TIMEOUT (was 600): 120s is 3.6x the slowest cold boot
+# (33.7s of 81). The warm-up waits at most 60s for services
+# (EMULATOR_SNAPSHOT_READY_S) and settles 10s; a shard's own fallback
+# snapshot waits 20s and settles 5s (SHARD_CREATE_*), save ~5s.
+# shellcheck disable=SC2034 # read by self_test.sh
+SHARD_CREATE_BOOT_S=120 WARMUP_READY_S=60 WARMUP_SETTLE_S=10 SHARD_CREATE_READY_S=20 SHARD_CREATE_SETTLE_S=5 SNAPSHOT_SAVE_S=5
 # Round 4.4.3 (Satyavrat): the retry attempt's boot wait (workflow
 # EMULATOR_RETRY_BOOT_TIMEOUT). It restores the snapshot (~6s); 60s is 10x
 # that and ~1.8x the slowest cold boot (33.7s). The first attempt keeps
@@ -63,8 +80,8 @@ SHARD_PREBOOT_S=25
 SHARD_RETRY_BOOT_S=60
 # Round 4.4.3: end-to-end model (seconds), from run 41391038302 step times:
 # gate 6, build 264, shard setup 42, shard post + summary job 42; the
-# avd-warmup job on a cold cache is 102s + its cold boot (SHARD_BOOT_S)
-# + snapshot_create's readiness (120) and settle (10); the boot-death
+# avd-warmup job on a cold cache is 102s + its cold boot
+# (SHARD_CREATE_BOOT_S) + keyevent/animations + readiness (60) and settle (10); the boot-death
 # check is kill + wait-for-disconnect (<= 5s). Every path <= 2700s
 # (Sanu, 45 min); the boot-retry path <= 2640s (Satyavrat, 44.0 min).
 # shellcheck disable=SC2034 # read by self_test.sh
@@ -76,11 +93,12 @@ SHARD_COUNT=15
 # The limit is the worst case, not a flow count (round 4.3.1). Per flow:
 # cap + kill-after 15 + reset 30 + outer kill-after 10. Shard 12 holds 4
 # Round 4.4.3 (Sanu: 45 min on every path, incl. the boot retry): 26 and
-# 08 (300s row caps) moved off shard 12 onto a 15th shard. Boot + ready +
-# unlock = 150 + 22 + 13 = 185s:
-# shard 12: 185 + 2 x (600 + 55) = 1495s = 24.92 min;
-# shard 15: 185 + 2 x (300 + 55) = 895s = 14.92 min;
-# every other shard: 185 + 3 x 655 = 2150s = 35.83 min. All <= 39 min,
+# 08 (300s row caps) moved off shard 12 onto a 15th shard. Round 4.4.4:
+# boot 150 + action keyevent 5 + getprop 5 + ready 22 + unlock 13 +
+# animations 5 = 200s:
+# shard 12: 200 + 2 x (600 + 55) = 1510s = 25.17 min;
+# shard 15: 200 + 2 x (300 + 55) = 910s = 15.17 min;
+# every other shard: 200 + 3 x 655 = 2165s = 36.08 min. All <= 39 min,
 # step timeout 42 (self_test checks every shard against 39 min).
 # shellcheck disable=SC2034 # read by self_test.sh (sources this file)
 SHARD_WORST_MAX_S=$((39 * 60))
@@ -230,7 +248,7 @@ plan_ids() {
 # Worst case for one emulator step: one boot, then every flow that is not
 # skipped hitting its cap plus kill-after plus the reset around it.
 plan_need_s() {
-  local id total=$((SHARD_BOOT_S + SHARD_READY_S + SHARD_UNLOCK_S))
+  local id total=$((SHARD_BOOT_S + SHARD_ACTION_ADB_S + SHARD_GETPROP_S + SHARD_READY_S + SHARD_UNLOCK_S + SHARD_ANIM_S))
   while read -r id; do
     if ! plan_is_skipped "$id"; then
       total=$((total + $(plan_cap_s "$id") + FLOW_KILL_AFTER_S + FLOW_RESET_S + FLOW_OUTER_KILL_S))
@@ -239,25 +257,32 @@ plan_need_s() {
   echo "$total"
 }
 
-# Round 4.4.3: end-to-end worst case of a full run, in seconds: prints
-# "warm retry cold max_shard". Warm = gate + build + setup + max shard +
-# post. Retry = gate + build + setup + dead attempt (action start + boot +
-# getprop) + boot-death check + the max shard booted with the retry boot
-# wait + post. Cold = warm with the build replaced by the slower of build
-# and a cold avd-warmup job.
+# Round 4.4.3/4.4.4: end-to-end worst case of a full run, in seconds.
+# Prints "warm retry cold cold_retry refused max_shard":
+#   warm       gate + build + setup + max shard + post
+#   retry      ... + dead attempt + boot check + max shard with the retry
+#              boot wait (SHARD_RETRY_BOOT_S)
+#   cold       warm with the build replaced by the slower of build and a
+#              cold avd-warmup job
+#   cold_retry cold + the boot retry
+#   refused    the warm-up saved nothing: each shard creates its own
+#              snapshot, then its flows boot it with the retry boot wait
 plan_e2e_s() {
-  local n need max=0 dead warm retry cold wu
+  local n need max=0 dead wu crit create warm retry cold cold_retry refused
   for n in $(seq 1 "$SHARD_COUNT"); do
     need="$(plan_need_s full "$n")"
     (( need > max )) && max=$need
   done
-  dead=$((SHARD_ACTION_START_S + SHARD_BOOT_S + SHARD_PREBOOT_S))
+  dead=$((SHARD_ACTION_START_S + SHARD_BOOT_S + SHARD_ACTION_ADB_S + SHARD_PREBOOT_S))
+  wu=$((E2E_WARMUP_BASE_S + SHARD_CREATE_BOOT_S + SHARD_ACTION_ADB_S + SHARD_ANIM_S + WARMUP_READY_S + WARMUP_SETTLE_S))
+  crit=$E2E_BUILD_S; (( wu > crit )) && crit=$wu
+  create=$((SHARD_ACTION_START_S + SHARD_CREATE_BOOT_S + SHARD_ACTION_ADB_S + SHARD_ANIM_S + SHARD_CREATE_READY_S + SHARD_CREATE_SETTLE_S + SNAPSHOT_SAVE_S))
   warm=$((E2E_GATE_S + E2E_BUILD_S + E2E_SETUP_S + max + E2E_POST_S))
   retry=$((E2E_GATE_S + E2E_BUILD_S + E2E_SETUP_S + dead + E2E_BOOT_CHECK_S + max - SHARD_BOOT_S + SHARD_RETRY_BOOT_S + E2E_POST_S))
-  wu=$((E2E_WARMUP_BASE_S + SHARD_BOOT_S + 120 + 10))
-  (( wu < E2E_BUILD_S )) && wu=$E2E_BUILD_S
-  cold=$((E2E_GATE_S + wu + E2E_SETUP_S + max + E2E_POST_S))
-  echo "$warm $retry $cold $max"
+  cold=$((E2E_GATE_S + crit + E2E_SETUP_S + max + E2E_POST_S))
+  cold_retry=$((E2E_GATE_S + crit + E2E_SETUP_S + dead + E2E_BOOT_CHECK_S + max - SHARD_BOOT_S + SHARD_RETRY_BOOT_S + E2E_POST_S))
+  refused=$((E2E_GATE_S + crit + E2E_SETUP_S + create + max - SHARD_BOOT_S + SHARD_RETRY_BOOT_S + E2E_POST_S))
+  echo "$warm $retry $cold $cold_retry $refused $max"
 }
 
 plan_matrix() {

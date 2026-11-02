@@ -612,7 +612,7 @@ fi
 # Round 4.4.2 (review item 1): the boot retry fits the job timeout:
 # setup/post allowance + dead first attempt (action start + boot + ready +
 # unlock, no BOOT line) + the boot-death check step + the retry flow step.
-read -r jb_setup jb_dead < <(bash -c 'source tool/emulator/plan.sh; echo "$JOB_SETUP_POST_MIN $((SHARD_ACTION_START_S + SHARD_BOOT_S + SHARD_PREBOOT_S))"')
+read -r jb_setup jb_dead < <(bash -c 'source tool/emulator/plan.sh; echo "$JOB_SETUP_POST_MIN $((SHARD_ACTION_START_S + SHARD_BOOT_S + SHARD_ACTION_ADB_S + SHARD_PREBOOT_S))"')
 bc_min="$(awk '/- name: Check for a boot death/ { f = 1 } f && /timeout-minutes:/ { print $2; exit }' "$workflow")"
 boot_to="$(sed -n 's/^  EMULATOR_BOOT_TIMEOUT: "\([0-9]*\)"$/\1/p' "$workflow")"
 [[ "$boot_to" == "$(bash -c 'source tool/emulator/plan.sh; echo "$SHARD_BOOT_S"')" ]] || { echo "EMULATOR_BOOT_TIMEOUT ${boot_to} != plan.sh SHARD_BOOT_S" >&2; exit 1; }
@@ -627,10 +627,10 @@ for t in smoke full; do
   echo "job budget (${t}): ${jb_setup} + ${jb_dead}s + ${bc_min} + ${st} = ${need_m} min <= ${jt}"
   # Round 4.4.3 (Reviewer): each term of the formula, from its source, and
   # the sum, so a dropped term cannot pass on the 68/101 values alone.
-  [[ "$jb_setup" == 20 && "$jb_dead" == 205 && "$bc_min" == 2 ]] || { echo "job budget terms: setup/post 20 min, dead attempt 205s (30 + 150 + 25), boot check 2 min; got ${jb_setup} ${jb_dead} ${bc_min}" >&2; exit 1; }
-  if [[ "$t" == smoke ]]; then want_st=75 want_need=6025; else want_st=42 want_need=4045; fi
+  [[ "$jb_setup" == 20 && "$jb_dead" == 195 && "$bc_min" == 2 ]] || { echo "job budget terms: setup/post 20 min, dead attempt 195s (30 + 150 + 5 keyevent + 10 pre-BOOT), boot check 2 min; got ${jb_setup} ${jb_dead} ${bc_min}" >&2; exit 1; }
+  if [[ "$t" == smoke ]]; then want_st=75 want_need=6015; else want_st=42 want_need=4035; fi
   [[ "$st" == "$want_st" ]] || { echo "job budget (${t}): retry step cap ${st}, want ${want_st} (same as the flow step)" >&2; exit 1; }
-  (( need_s == want_need )) || { echo "job budget (${t}): need ${need_s}s != 20 min + 205s + 2 min + ${want_st} min = ${want_need}s (a term is missing)" >&2; exit 1; }
+  (( need_s == want_need )) || { echo "job budget (${t}): need ${need_s}s != 20 min + 195s + 2 min + ${want_st} min = ${want_need}s (a term is missing)" >&2; exit 1; }
 done
 [[ "$job_full" == 68 && "$job_smoke" == 101 ]] || { echo "job timeouts: full 68, smoke 101 (round 4.4.2 retry budget)" >&2; exit 1; }
 # Round 4.4.3: end-to-end worst case on every path (Sanu: <= 2700s) and the
@@ -640,15 +640,41 @@ retry_to="$(sed -n 's/^  EMULATOR_RETRY_BOOT_TIMEOUT: "\([0-9]*\)"$/\1/p' "$work
 [[ -n "$retry_to" && "$retry_to" == "$(bash -c 'source tool/emulator/plan.sh; echo "$SHARD_RETRY_BOOT_S"')" ]] || { echo "EMULATOR_RETRY_BOOT_TIMEOUT ${retry_to:-unset} != plan.sh SHARD_RETRY_BOOT_S" >&2; exit 1; }
 (( retry_to >= 34 * 3 / 2 )) || { echo "retry boot wait ${retry_to}s leaves < 1.5x the slowest cold boot (34s)" >&2; exit 1; }
 grep -q 'timeout "${SHARD_GETPROP_S:-5}" adb shell getprop debug.temple.snapshot_marker' tool/emulator/run_shard.sh || { echo "run_shard: the getprop before BOOT is capped (SHARD_GETPROP_S)" >&2; exit 1; }
-[[ "$(bash -c 'source tool/emulator/plan.sh; echo "$((SHARD_ACTION_START_S + SHARD_BOOT_S + SHARD_PREBOOT_S)) $SHARD_GETPROP_S"')" == "205 5" ]] || { echo "dead attempt = 30 start + 150 boot + 25 pre-BOOT watchdog = 205s; getprop cap 5s" >&2; exit 1; }
+[[ "$(bash -c 'source tool/emulator/plan.sh; echo "$((SHARD_ACTION_START_S + SHARD_BOOT_S + SHARD_ACTION_ADB_S + SHARD_PREBOOT_S)) $SHARD_GETPROP_S"')" == "195 5" ]] || { echo "dead attempt = 30 start + 150 boot + 5 keyevent + 10 pre-BOOT watchdog = 195s; getprop cap 5s" >&2; exit 1; }
+# Round 4.4.4 (Manu nit 1): the watchdog covers all pre-BOOT work. Only the
+# capped getprop runs between the watchdog's start and the BOOT write (awk:
+# no other adb call, no readiness, unlock or animations there), and
+# SHARD_PREBOOT_S >= that sum + 5s margin.
+read -r pb_s pb_sum < <(bash -c 'source tool/emulator/plan.sh; echo "$SHARD_PREBOOT_S $SHARD_GETPROP_S"')
+(( pb_s >= pb_sum + 5 )) || { echo "SHARD_PREBOOT_S ${pb_s}s < pre-BOOT work ${pb_sum}s + 5s margin" >&2; exit 1; }
+awk '/preboot_s="\$\{EMULATOR_PREBOOT_S/ { a = 1 } a && /printf .BOOT / { exit }
+     a && /(^|[^_a-z])adb / && !/getprop debug.temple.snapshot_marker/ && !/^ *#/ { bad = bad NR ": " $0 "\n" }
+     a && /wait_services_ready "|SHARD_UNLOCK_TRIES|ANIM_OFF_CMD/ { bad = bad NR ": " $0 "\n" }
+     END { if (bad != "") { printf "%s", bad; exit 1 } }' tool/emulator/run_shard.sh ||
+  { echo "run_shard: pre-BOOT work beyond the capped getprop (watchdog sum)" >&2; exit 1; }
 grep -q 'preboot_s="${EMULATOR_PREBOOT_S:-$SHARD_PREBOOT_S}"' tool/emulator/run_shard.sh || { echo "run_shard: pre-BOOT watchdog uses SHARD_PREBOOT_S" >&2; exit 1; }
-read -r e2e_warm e2e_retry e2e_cold e2e_max < <(bash -c 'source tool/emulator/plan.sh; plan_e2e_s')
-for pth in "warm $e2e_warm" "retry $e2e_retry" "cold $e2e_cold"; do
+read -r e2e_warm e2e_retry e2e_cold e2e_cretry e2e_refused e2e_max < <(bash -c 'source tool/emulator/plan.sh; plan_e2e_s')
+for pth in "warm $e2e_warm" "retry $e2e_retry" "cold $e2e_cold" "cold_retry $e2e_cretry" "refused $e2e_refused"; do
   (( ${pth#* } <= 2700 )) || { echo "end-to-end ${pth% *} worst case ${pth#* }s > 2700s (45 min); max shard ${e2e_max}s" >&2; exit 1; }
 done
 (( e2e_retry <= 2640 )) || { echo "boot-retry end-to-end ${e2e_retry}s > 2640s (44.0 min)" >&2; exit 1; }
-echo "end-to-end worst (s): warm ${e2e_warm}, retry ${e2e_retry}, cold ${e2e_cold}; max shard ${e2e_max}"
-[[ "$e2e_warm $e2e_retry $e2e_cold $e2e_max" == "2504 2624 2622 2150" ]] || { echo "end-to-end table changed: $e2e_warm $e2e_retry $e2e_cold $e2e_max (update PR body)" >&2; exit 1; }
+echo "end-to-end worst (s): warm ${e2e_warm}, retry ${e2e_retry}, cold ${e2e_cold}, cold+retry ${e2e_cretry}, warm-up refused ${e2e_refused}; max shard ${e2e_max}"
+[[ "$e2e_warm $e2e_retry $e2e_cold $e2e_cretry $e2e_refused $e2e_max" == "2519 2629 2557 2667 2657 2165" ]] || { echo "end-to-end table changed: $e2e_warm $e2e_retry $e2e_cold $e2e_cretry $e2e_refused $e2e_max (update PR body)" >&2; exit 1; }
+# Round 4.4.4 (Satyavrat A): the model's create/warm-up terms follow the workflow.
+python3 - "$workflow" "$(bash -c 'source tool/emulator/plan.sh; echo "$SHARD_CREATE_BOOT_S $SHARD_CREATE_READY_S $SHARD_CREATE_SETTLE_S $SHARD_ACTION_ADB_S"')" <<'PY' || exit 1
+import re, sys
+wf = open(sys.argv[1]).read(); cb, cr, cs, aa = sys.argv[2].split()
+assert f'EMULATOR_CREATE_BOOT_TIMEOUT: "{cb}"' in wf and f'EMULATOR_ACTION_ADB_S: "{aa}"' in wf, "create boot / action adb env"
+assert wf.count("emulator-boot-timeout: ${{ env.EMULATOR_CREATE_BOOT_TIMEOUT }}") == 2 and "emulator-boot-timeout: 600" not in wf
+assert "EMULATOR_DISABLE_ANIMATIONS: false" in wf and "disable-animations: true" not in wf
+job = wf[wf.index("\n  emulator:"):]
+i = job.index("\n      - name: Create AVD snapshot\n"); st = job[i:job.find("\n      - name:", i + 1)]
+assert f'EMULATOR_SNAPSHOT_READY_S: "{cr}"' in st and f'EMULATOR_SNAPSHOT_SETTLE_S: "{cs}"' in st and "timeout-minutes: 4" in st, st
+for jn in ("\n  avd-warmup:", "\n  emulator:"):
+    names = re.findall(r"\n      - name: (.+)", wf[wf.index(jn):])
+    assert names.index("Cap the emulator action's adb calls") < names.index("Create AVD snapshot"), (jn, names)
+assert wf.count('echo "${GITHUB_WORKSPACE}/tool/emulator/adb_shim" >> "$GITHUB_PATH"') == 2
+PY
 # Tier choice per event.
 tier_out="$(mktemp)"
 for pair in pull_request:smoke release:full workflow_dispatch:full; do
@@ -1391,7 +1417,7 @@ for n in $(seq 1 "$SHARD_COUNT"); do
   fi
   # Round 4.3.1: worst case from the actual per-row caps, boot, kill-after,
   # reset and run_shard.sh's outer --kill-after, recomputed here.
-  want=$((SHARD_BOOT_S + SHARD_READY_S + SHARD_UNLOCK_S))
+  want=$((SHARD_BOOT_S + SHARD_ACTION_ADB_S + SHARD_GETPROP_S + SHARD_READY_S + SHARD_UNLOCK_S + SHARD_ANIM_S))
   for id in $(plan_ids full "$n"); do
     plan_is_skipped "$id" || want=$((want + $(plan_cap_s "$id") + FLOW_KILL_AFTER_S + FLOW_RESET_S + FLOW_OUTER_KILL_S))
   done
@@ -2652,7 +2678,7 @@ f06=tool/emulator/flows/06_filters.sh
 grep -q "select_labeled '^(?!All districts)" "$f06" && { echo "flow 06: no name-less lookahead district pick" >&2; exit 1; }
 grep -q 'COMBINED_DISTRICT_PICK:-^Alappuzha' "$f06" && grep -q 'state_chip_is "$COMBINED_STATE"' "$f06" || { echo "flow 06: real district (Alappuzha) and the state-chip check" >&2; exit 1; }
 grep -q ': "${_section}"' tool/emulator/lib/common.sh && { echo "select_labeled must use its section" >&2; exit 1; }
-[[ "$(bash -c 'source tool/emulator/plan.sh; plan_cap_s 26-drawer-nav-stack; plan_cap_s 06a-filters-single; plan_need_s full 15')" == $'300\n600\n895' ]] || { echo "plan: row caps 26=300, 06a=600, shard 15 = 895s" >&2; exit 1; }
+[[ "$(bash -c 'source tool/emulator/plan.sh; plan_cap_s 26-drawer-nav-stack; plan_cap_s 06a-filters-single; plan_need_s full 15')" == $'300\n600\n910' ]] || { echo "plan: row caps 26=300, 06a=600, shard 15 = 910s" >&2; exit 1; }
 # 6-8. Replays of run 41391038302 (testdata/run41391038302/replay_*.sh):
 # 27 waits for validation, re-taps Try again, flaps only after recover; 17c
 # clears "temple" before typing; 24 sends one fling and compares.
@@ -2776,7 +2802,7 @@ grep -q '^SNAPCFG full-1 SNAPSHOT_CONFIG mismatch' "$r43/art431c/results.txt" &&
 grep -q '^::warning::emulator full shard 1: snapshot boot, but the AVD config differs from the snapshot: SNAPSHOT_CONFIG mismatch: disk.dataPartition.size' "$r43/art431c.out" ||
   { echo "run_shard: mismatch on a snapshot boot prints ::warning:: (round 4.3.3): $(cat "$r43/art431c.out")" >&2; exit 1; }
 # (a)/(3): worst case counts the outer kill-after; avd-warmup runs beside build.
-[[ "$(plan_need_s full 12)" == 1495 && "$(plan_need_s full 15)" == 895 && "$(plan_need_s full 1)" == 2150 ]] || { echo "plan_need_s: shard 12 1495s, 15 895s, others 2150s (boot 150 + ready 22 + unlock 13, outer kill-after 10)" >&2; exit 1; }
+[[ "$(plan_need_s full 12)" == 1510 && "$(plan_need_s full 15)" == 910 && "$(plan_need_s full 1)" == 2165 ]] || { echo "plan_need_s: shard 12 1510s, 15 910s, others 2165s (boot 150 + keyevent 5 + getprop 5 + ready 22 + unlock 13 + animations 5, outer kill-after 10)" >&2; exit 1; }
 grep -q 'timeout --kill-after="$FLOW_OUTER_KILL_S"' tool/emulator/run_shard.sh || { echo "run_shard outer kill-after must be FLOW_OUTER_KILL_S" >&2; exit 1; }
 awk '/^  avd-warmup:/ { w = 1 } w && /needs:/ { print; exit }' "$workflow" | grep -qx '    needs: \[gate\]' || { echo "avd-warmup must need only the gate (parallel with build)" >&2; exit 1; }
 #R43_MORE
@@ -2825,12 +2851,14 @@ rc=0; svc 2 env EMULATOR_SNAPSHOT_READY_S=10 EMULATOR_SNAPSHOT_SETTLE_S=0 bash t
 [[ "$rc" == 0 && "$(grep -c 'service check input' "$r44/calls")" == 3 ]] &&
   awk '/service check input/ { s = NR } /emu avd snapshot save/ { v = NR } END { exit !(s && v > s) }' "$r44/calls" ||
   { echo "snapshot_create: ready on poll 3 then save (rc=$rc): $(cat "$r44/calls")" >&2; exit 1; }
-grep -q 'EMULATOR_SNAPSHOT_READY_S:-120' tool/emulator/snapshot_create.sh && grep -q 'EMULATOR_SNAPSHOT_SETTLE_S:-10' tool/emulator/snapshot_create.sh ||
-  { echo "snapshot_create waits up to 120s and settles 10s" >&2; exit 1; }
-# run_shard: readiness + unlock before the BOOT line, never fatal.
+grep -q 'EMULATOR_SNAPSHOT_READY_S:-60' tool/emulator/snapshot_create.sh && grep -q 'EMULATOR_SNAPSHOT_SETTLE_S:-10' tool/emulator/snapshot_create.sh &&
+  grep -q 'timeout "${SHARD_ANIM_S:-5}" adb shell "$ANIM_OFF_CMD"' tool/emulator/snapshot_create.sh ||
+  { echo "snapshot_create waits up to 60s, animations off in one capped call, settles 10s" >&2; exit 1; }
+# run_shard (round 4.4.4): readiness + unlock + animations AFTER the BOOT line, never fatal.
 grep -q 'wait_services_ready "${EMULATOR_SERVICES_WAIT_S:-20}"' tool/emulator/run_shard.sh &&
-  awk '/wait_services_ready "/ { w = NR } /printf .BOOT / { b = NR } END { exit !(w && b > w) }' tool/emulator/run_shard.sh ||
-  { echo "run_shard waits for services (90s) before the BOOT line" >&2; exit 1; }
+  grep -q 'timeout "${SHARD_ANIM_S:-5}" adb shell "$ANIM_OFF_CMD"' tool/emulator/run_shard.sh &&
+  awk '/wait_services_ready "/ { w = NR } /printf .BOOT / { b = NR } /adb shell "\$ANIM_OFF_CMD"/ { a = NR } END { exit !(w && b && a && w > b && a > b) }' tool/emulator/run_shard.sh ||
+  { echo "run_shard waits for services, unlocks and turns animations off after the BOOT line" >&2; exit 1; }
 cat > "$r44/runner.sh" <<'RUN'
 #!/bin/sh
 echo "PASS $1: stub" >> "$EMULATOR_ARTIFACTS/results.txt"
@@ -2872,9 +2900,58 @@ rc=0; svc 0 env EMULATOR_PREBOOT_S=2 SHARD_GETPROP_S=30 EMULATOR_ARTIFACTS="$r44
   EMULATOR_SNAPSHOT_HW="$av/create-booted/snapshot-hardware.ini" EMULATOR_RUN_HW="$av/create-booted/hardware-qemu.ini" \
   bash tool/emulator/run_shard.sh full 1 >"$r44/shard.out" 2>&1 || rc=$?
 wd_el=$((SECONDS - wd_t0))
-[[ "$rc" != 0 ]] && (( wd_el <= 8 )) && ! grep -q '^BOOT ' "$r44/art/results.txt" 2>/dev/null && ! grep -q '^PASS ' "$r44/art/results.txt" 2>/dev/null &&
+# <= 4s: the watchdog itself must end it (2s), not the 5s getprop cap
+# (round 4.4.4 mutation: a watchdog that kills nothing must fail here).
+[[ "$rc" != 0 ]] && (( wd_el <= 4 )) && ! grep -q '^BOOT ' "$r44/art/results.txt" 2>/dev/null && ! grep -q '^PASS ' "$r44/art/results.txt" 2>/dev/null &&
   grep -q 'no BOOT line 2s after run_shard.sh started' "$r44/shard.out" && ! pgrep -f 'sleep 37.5' >/dev/null ||
   { echo "run_shard pre-BOOT watchdog: rc=${rc} ${wd_el}s, no BOOT, hung adb killed: $(cat "$r44/shard.out"; pgrep -af 'sleep 37.5')" >&2; pkill -f 'sleep 37.5'; exit 1; }
+# Round 4.4.4: a hung "shell input keyevent 82" after BOOT is capped per
+# try (timeout 3, 3 tries 2s apart = 13s), never fatal, and the flows run.
+cat > "$r44/bin/adb" <<'ADB'
+#!/usr/bin/env bash
+echo "$*" >> "$STUB_DIR/calls"
+[[ "$*" == "shell input keyevent 82" ]] && exec sleep 38.5
+exec "$STUB_DIR/bin/adb.ok" "$@"
+ADB
+chmod +x "$r44/bin/adb"
+rm -rf "$r44/art"; mkdir -p "$r44/art"; ul_t0=$SECONDS
+rc=0; svc 0 env EMULATOR_ARTIFACTS="$r44/art" EMULATOR_FLOW_RUNNER="$r44/runner.sh" \
+  EMULATOR_SNAPSHOT_HW="$av/create-booted/snapshot-hardware.ini" EMULATOR_RUN_HW="$av/create-booted/hardware-qemu.ini" \
+  bash tool/emulator/run_shard.sh full 1 >"$r44/shard.out" 2>&1 || rc=$?
+ul_el=$((SECONDS - ul_t0))
+[[ "$rc" == 0 ]] && (( ul_el <= 25 )) && grep -q '^BOOT full-1 snapshot$' "$r44/art/results.txt" && grep -q '^TIME ' "$r44/art/results.txt" &&
+  grep -q 'unlock (keyevent 82) failed 3 times; continuing' "$r44/shard.out" && ! pgrep -f 'sleep 38.5' >/dev/null ||
+  { echo "run_shard: a hung keyevent 82 is capped per try (rc=${rc} ${ul_el}s): $(cat "$r44/shard.out")" >&2; pkill -f 'sleep 38.5'; exit 1; }
+# Round 4.4.4 (Manu nit 2): the watchdog expiring between the BOOT claim
+# and the BOOT write must not kill the attempt (the claim is an atomic
+# mkdir): watchdog 1s, BOOT write delayed 3s after the claim -> rc 0, BOOT.
+cp "$r44/bin/adb.ok" "$r44/bin/adb"
+rm -rf "$r44/art"; mkdir -p "$r44/art"
+rc=0; svc 0 env EMULATOR_PREBOOT_S=1 EMULATOR_TEST_BOOT_WRITE_DELAY_S=3 EMULATOR_ARTIFACTS="$r44/art" EMULATOR_FLOW_RUNNER="$r44/runner.sh" \
+  EMULATOR_SNAPSHOT_HW="$av/create-booted/snapshot-hardware.ini" EMULATOR_RUN_HW="$av/create-booted/hardware-qemu.ini" \
+  bash tool/emulator/run_shard.sh full 1 >"$r44/shard.out" 2>&1 || rc=$?
+[[ "$rc" == 0 ]] && grep -q '^BOOT full-1 snapshot$' "$r44/art/results.txt" && grep -q '^TIME ' "$r44/art/results.txt" &&
+  ! grep -q 'no BOOT line' "$r44/shard.out" ||
+  { echo "run_shard: watchdog/BOOT race (claim then 3s delay, watchdog 1s): rc=${rc} $(cat "$r44/shard.out")" >&2; exit 1; }
+# Round 4.4.4 (Manu nit 3): the action's own adb calls go through adb_shim:
+# a hung "shell input keyevent 82" / "shell settings put" ends at the cap,
+# anything else passes through with its exit code.
+shim_d="$(mktemp -d)"; mkdir -p "$shim_d/real"
+cat > "$shim_d/real/adb" <<'ADB'
+#!/usr/bin/env bash
+case "$*" in "shell input keyevent 82"|"shell settings put"*) exec sleep 31.5 ;; "devices") echo devices-ok; exit 0 ;; *) exit 7 ;; esac
+ADB
+chmod +x "$shim_d/real/adb"
+shim_path="$PWD/tool/emulator/adb_shim:$shim_d/real:$PATH"
+sh_t0=$SECONDS; rc1=0; rc2=0; rc4=0
+ANDROID_HOME='' ANDROID_SDK_ROOT='' EMULATOR_ACTION_ADB_S=1 PATH="$shim_path" adb shell input keyevent 82 || rc1=$?
+ANDROID_HOME='' ANDROID_SDK_ROOT='' EMULATOR_ACTION_ADB_S=1 PATH="$shim_path" adb shell settings put global x 0 || rc2=$?
+sh_el=$((SECONDS - sh_t0))
+out3="$(ANDROID_HOME='' ANDROID_SDK_ROOT='' PATH="$shim_path" adb devices)"
+ANDROID_HOME='' ANDROID_SDK_ROOT='' PATH="$shim_path" adb shell getprop x || rc4=$?
+[[ "$rc1" == 124 && "$rc2" == 124 && "$out3" == devices-ok && "$rc4" == 7 ]] && (( sh_el <= 5 )) && ! pgrep -f 'sleep 31.5' >/dev/null ||
+  { echo "adb_shim: keyevent/settings capped (rc ${rc1} ${rc2}, ${sh_el}s), others pass (${out3} ${rc4})" >&2; pkill -f 'sleep 31.5'; exit 1; }
+rm -rf "$shim_d"
 cp "$r44/bin/adb.fail82" "$r44/bin/adb"
 mk_svc_adb "$r44/bin"
 # Workflow: boot-retry step only on a failed flows step with no BOOT line.
@@ -2897,7 +2974,9 @@ assert "if: ${{ !cancelled() && steps.flows.outcome == 'failure' && steps.boot-c
 strip = lambda t: [l for l in t.splitlines() if l.strip().startswith(("api-level", "target", "arch", "cores", "disk-size", "avd-name", "force-avd", "disable-anim", "emulator-", "pre-emulator", "script:", "uses:", "timeout-minutes"))]
 # Round 4.4.3: identical except the retry's boot wait (EMULATOR_RETRY_BOOT_TIMEOUT).
 assert [l for l in strip(rt) if "emulator-boot-timeout" not in l] == [l for l in strip(fl) if "emulator-boot-timeout" not in l], (strip(rt), strip(fl))
-assert "emulator-boot-timeout: ${{ env.EMULATOR_RETRY_BOOT_TIMEOUT }}" in rt and "emulator-boot-timeout: ${{ env.EMULATOR_BOOT_TIMEOUT }}" in fl
+assert "emulator-boot-timeout: ${{ env.EMULATOR_RETRY_BOOT_TIMEOUT }}" in rt
+# Round 4.4.4: right after this job's own create the snapshot is local; 60s like the retry.
+assert "emulator-boot-timeout: ${{ steps.create-avd.outcome == 'success' && env.EMULATOR_RETRY_BOOT_TIMEOUT || env.EMULATOR_BOOT_TIMEOUT }}" in fl, fl
 assert "sleep 5" not in chk and "timeout 5 adb wait-for-disconnect || true" in chk, chk
 assert 'EMULATOR_BOOT_TIMEOUT: "150"' in wf
 PY
