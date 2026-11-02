@@ -63,7 +63,14 @@ swipe_from_list() {
 declare -A PICK=( [state]='^Kerala( +[0-9]+)?$' [deity]='^Shiva( +[0-9]+)?$' [district]='^Agra( +[0-9]+)?$' )
 declare -A SECTION=( [state]=STATE [deity]=DEITY [district]=DISTRICT )
 
-for entry in home_button drawer_all drawer_search list_drawer_all; do
+# Run 41373837994: two entries took the whole 600s cap (drawer_search-enter
+# at the timeout). Part a = home_button + drawer_all, part b = the rest.
+case "${FILTER_MATRIX_PART:-all}" in
+  a) ENTRIES=(home_button drawer_all) ;;
+  b) ENTRIES=(drawer_search list_drawer_all) ;;
+  *) ENTRIES=(home_button drawer_all drawer_search list_drawer_all) ;;
+esac
+for entry in "${ENTRIES[@]}"; do
   if ! err="$(enter_$entry)"; then
     fail_step "$entry-enter" "${err:-could not reach the list}"; continue
   fi

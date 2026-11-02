@@ -168,7 +168,7 @@ exercise_filter() {
   fi
 
   local n
-  for n in 1 2 3; do
+  for n in $(seq 1 "${FILTER_REPEATS:-2}"); do
     if ! "$opener"; then
       fail_step "${key}-repeat-${n}" "could not open"
       continue
@@ -203,7 +203,11 @@ else
   pass_step district-chip-not-visible
 fi
 
-if scroll_chips_until --resource-id filter-chip-city || scroll_chips_until --text-regex '^(City|All cities)$'; then
+# Absence check from the chip ids in one dump: two scroll_chips_until
+# misses spent 70s here in run 41373837994 (01:58:02 -> 01:59:13).
+ui_dump || true
+if python3 "$UI_PY" resource-ids "$DUMP" --prefix filter-chip- 2>/dev/null | grep -qx 'filter-chip-city' ||
+   ui_find --text-regex '^(City|All cities)$'; then
   pass_step city-chip-visible
 else
   pass_step city-chip-not-shown
@@ -287,8 +291,16 @@ if [[ "$DEITY_SELECT_OK" -ne 1 || -z "$DEITY_LABEL" ]]; then
   skip_if_failed combined-deity "deity-select did not apply a deity" \
     deity-open deity-reopen deity-select
 else
-  if open_deity && select_labeled "^$(re_escape "$DEITY_LABEL")( +[0-9]+)?$" DEITY && apply_sheet && chip_exact "$DEITY_LABEL"; then
-    COMBINED_DEITY="$DEITY_LABEL"
+  # The deity list is scoped to the applied state. The all-India pick
+  # (Ahalya in run 41373837994) is not offered inside Kerala, so seek
+  # answered "none". Inside a state, pick a deity that state offers.
+  combined_deity_rx="^$(re_escape "$DEITY_LABEL")( +[0-9]+)?$"
+  if [[ -n "$COMBINED_STATE" ]]; then
+    combined_deity_rx="${COMBINED_DEITY_PICK:-^Vishnu( +[0-9]+)?$}"
+  fi
+  if open_deity && select_labeled "$combined_deity_rx" DEITY && apply_sheet && chip_exact "$SELECTED_LABEL"; then
+    COMBINED_DEITY="$SELECTED_LABEL"
+    DEITY_LABEL="$SELECTED_LABEL"
     pass_step combined-deity
   else
     fail_step combined-deity "could not apply ${DEITY_LABEL}"

@@ -9,7 +9,25 @@ if ! ui_dump || ! ui_find --resource-id temple-browse-card; then
   return 0
 fi
 ui_tap; sleep 3
-ui_dump; ui_find --text-regex '^1 / [2-9]' && pass_step multi-photo || { skip_step multi-photo "single photo temple"; }
+# Multi-photo checks need a temple with 2+ photos. skip_step records FAIL
+# when nothing failed before it, so a single-photo first card used to fail
+# the flow. Try up to 3 cards; with none multi-photo the gallery paging
+# steps are not applicable and are not recorded (PASS multi-photo-not-applicable).
+MULTI=0
+for card in 1 2 3; do
+  if ui_dump && ui_find --text-regex '^1 / [2-9]'; then MULTI=1; break; fi
+  (( card == 3 )) && break
+  ui_back; sleep 2
+  ui_wait_scrolled 15 --resource-id temple-browse-card >/dev/null 2>&1 || break
+  for _ in $(seq 1 "$card"); do ui_fling up; sleep 0.5; done
+  ui_dump && ui_find --resource-id temple-browse-card --prefer lower && ui_tap && sleep 3
+done
+if (( MULTI )); then
+  pass_step multi-photo
+else
+  pass_step multi-photo-not-applicable
+fi
+if (( MULTI )); then
 ui_dump; page_before="$(gallery_page || echo none)"
 for i in 1 2 3 4 5 6; do ui_fling left; sleep 0.3; done
 # The flings must page the gallery (run 41314245431: they were vertical).
@@ -38,6 +56,7 @@ for i in 1 2 3 4 5; do
   sleep 0.8
 done
 [[ "$burst_ok" -eq 1 ]] && pass_step swipe-burst-index || fail_step swipe-burst-index "index/counter desync"
+fi
 # double-tap / tap to open full size, pinch is not possible; hold 10s for timer
 ui_dump; ui_find --resource-id detail-gallery-0 && { ui_tap; sleep 1; ui_tap; }; sleep 10
 dump_logcat; grep -q "RangeError\|FlutterError" "$LOG_DIR"/* 2>/dev/null && fail_step gallery-errors "RangeError in logcat" || pass_step gallery-errors

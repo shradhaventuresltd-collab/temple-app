@@ -6,7 +6,7 @@ name: emulator-app-test
 #             emulator-apk artifact. Test jobs download it; they do not
 #             run Flutter or Gradle.
 #   emulator  smoke tier (6 flows, one job) on non-draft pull requests;
-#             the full suite as 6 parallel shards on workflow_dispatch and
+#             the full suite as 8 parallel shards on workflow_dispatch and
 #             when a release or pre-release is published. Each job boots the emulator
 #             once from the cached AVD snapshot, then runs its flows with
 #             pm clear between them (tool/emulator/run_shard.sh).
@@ -29,7 +29,7 @@ on:
   workflow_dispatch:
     inputs:
       tier:
-        description: "smoke (6 flows) or full (6 shards)"
+        description: "smoke (6 flows) or full (8 shards)"
         required: false
         default: full
         type: choice
@@ -397,7 +397,7 @@ jobs:
 
       # One snapshot boot (300s), then each flow capped at 600s + 15s
       # kill-after + 60s reset. smoke: 6 flows -> 73 min worst case;
-      # shard: at most 5 active flows -> 62 min. run_shard.sh exits 0;
+      # shard (8 of them): at most 5 active flows -> 62 min. run_shard.sh exits 0;
       # the summary step decides pass/fail. !cancelled() skips only on a
       # real cancellation.
       - name: Run emulator flows

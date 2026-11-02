@@ -8,6 +8,13 @@ collage_top_visible() {
 launch_app; accept_policy_if_shown || { fail_step home "home did not appear"; return 0; }
 wait_for_home || { fail_step home "home did not appear"; return 0; }
 pass_step home
+# Home first shows "Loading temples..." and only then the collage. Run
+# 41373837994 flung during the loader (screenshot 01_home), the collage was
+# then laid out at the top, and "scrolled" failed. Fling only once the
+# collage is on screen.
+if ! ui_wait 45 --content-desc "Discover"; then
+  fail_step scrolled "Home collage never appeared (still loading?)"
+fi
 for i in 1 2 3 4; do ui_fling up; sleep 0.5; done
 collage_top_visible && fail_step scrolled "could not scroll Home down" || pass_step scrolled
 # A: drawer Home tile while on Home

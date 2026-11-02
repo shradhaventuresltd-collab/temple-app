@@ -28,8 +28,15 @@ enter_drawer_all() {
   ui_tap; wait_browse_ready
 }
 # Filters inside the drawer itself (the "District from drawer" bar).
+# The drawer sheet filters "the temples already loaded": opened before the
+# list loads it offers "Any state 0" and "Show 0 temples" (run 41373837994,
+# 30 drawer_bar-state-select, first cell after boot). Wait for a non-zero
+# "All Temples" count first. The FILTERS row sits at ~75% of the height,
+# below the 70% chip band of the list screens: CHIP_MAX_TOP_PCT=95.
 enter_drawer_bar() {
   fresh_home || return 1; open_drawer || return 1
+  ui_wait 30 --content-desc-regex '^All Temples\s+[1-9][0-9]*$' || return 1
+  CHIP_MAX_TOP_PCT=95
   ui_wait_scrolled 15 --text-regex '^FILTERS$'
 }
 enter_search() {
@@ -49,12 +56,15 @@ enter_near_me() {
   return 2
 }
 
+# Every chip scrolls into view in both directions (find_filter_chip): after
+# district/deity probes the row is scrolled right and the state chip is off
+# the left edge (run 41373837994, 29 home_browse-state-select-then-state).
 chip_present() {
   ui_dump || return 1
   case "$1" in
-    state) ui_find --resource-id filter-chip-state || ui_find --content-desc "Choose a state" ;;
-    district) scroll_chips_until --resource-id filter-chip-district || ui_find --content-desc "Choose a district" ;;
-    deity) scroll_chips_until --resource-id filter-chip-deity || ui_find --content-desc "Choose a deity" ;;
+    state) find_filter_chip filter-chip-state "" "Choose a state" ;;
+    district) find_filter_chip filter-chip-district "" "Choose a district" ;;
+    deity) find_filter_chip filter-chip-deity "" "Choose a deity" ;;
   esac
 }
 open_chip() {
@@ -122,8 +132,10 @@ raise SystemExit(0 if text and text != "State" else 1)
 # District's first load can take longer than a chip tap. State and deity stay at 3 s.
 probe_others() {
   local id="$1" done_chip="$2" other in_dump state_selected outcome
-  for other in "${CHIPS[@]}" "$done_chip"; do
-    # also re-tap the same chip last
+  # CHIPS already holds done_chip; the old extra re-tap of it repeated the
+  # same probe and cost ~25s a cell.
+  : "$done_chip"
+  for other in "${CHIPS[@]}"; do
     if ! chip_present "$other"; then
       if [[ "$other" == district ]] && ui_dump; then
         in_dump=0
@@ -167,7 +179,22 @@ probe_others() {
 # One 1140s budget died at cell 47, still inside the first half of this
 # matrix, so the 3+ step sequences never started. Part a is home + drawer
 # All Temples. Part b is the drawer bar, Search, near me, and the sequences.
+# Run 41373837994: part a reached cell 32 of 90 and part b cell 24 at the
+# 600s cap. plan.sh now runs one entry x one chip per flow:
+# FILTER_MATRIX_PART=<entry>:<chip> (e.g. drawer_bar:state), or "seqs".
+MATRIX_CHIPS=("${CHIPS[@]}")
 case "${FILTER_MATRIX_PART:-all}" in
+  seqs)
+    ENTRIES=()
+    RUN_SEQS=1
+    ;;
+  *:*)
+    ENTRIES=("${FILTER_MATRIX_PART%%:*}")
+    if [[ "${FILTER_MATRIX_PART##*:}" != all ]]; then
+      MATRIX_CHIPS=("${FILTER_MATRIX_PART##*:}")
+    fi
+    RUN_SEQS=0
+    ;;
   a)
     ENTRIES=(home_browse drawer_all)
     RUN_SEQS=0
@@ -184,7 +211,9 @@ esac
 ACTIONS=(select pick-close dismiss-empty back-empty outside-empty clear)
 
 for entry in "${ENTRIES[@]}"; do
-  for chip in "${CHIPS[@]}"; do
+  # shellcheck disable=SC2034 # read by lib/common.sh chip lookups
+  CHIP_MAX_TOP_PCT=70
+  for chip in "${MATRIX_CHIPS[@]}"; do
     for action in "${ACTIONS[@]}"; do
       id="$entry-$chip-$action"
       "enter_$entry" >/dev/null 2>&1

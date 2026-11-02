@@ -18,7 +18,7 @@ fi
 out="$(adb emu avd snapshot save default_boot 2>&1 | tr -d '\r')"
 echo "snapshot save: ${out}"
 # A failed save must fail the step: Save AVD cache runs only when this
-# step succeeded, so a bad snapshot is never cached under the cfg2 key.
+# step succeeded, so a bad snapshot is never cached under the cfg3 key.
 if [[ "$out" != *OK* ]]; then
   echo "::error::adb emu avd snapshot save default_boot did not report OK; failing so the AVD is not cached"
   exit 1

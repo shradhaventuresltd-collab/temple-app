@@ -402,7 +402,7 @@ key_env=(ANDROID_HOME="$key_tmp/sdk" EMULATOR_API_LEVEL=30 EMULATOR_TARGET=googl
   EMULATOR_ARCH=x86_64 EMULATOR_DISK_SIZE=2048M EMULATOR_BUILD=16740729
   EMULATOR_AVD_NAME=emulator-app-test-30 GITHUB_RUN_ID=77 GITHUB_RUN_ATTEMPT=1)
 env "${key_env[@]}" EMULATOR_NPROC=4 GITHUB_ENV="$key_tmp/env" bash tool/emulator/avd_cache_key.sh > /dev/null 2>&1
-if ! grep -qx 'EMULATOR_AVD_CACHE_KEY=avd-30-google_apis-x86_64-img6-cores4-disk2048M-emu16740729-emulator-app-test-30-clean-cfg2' "$key_tmp/env" ||
+if ! grep -qx 'EMULATOR_AVD_CACHE_KEY=avd-30-google_apis-x86_64-img6-cores4-disk2048M-emu16740729-emulator-app-test-30-clean-cfg3' "$key_tmp/env" ||
   ! grep -qx 'EMULATOR_SYSIMG_REVISION=6' "$key_tmp/env" || ! grep -qx 'EMULATOR_CORES=4' "$key_tmp/env"; then
   echo "AVD cache key must carry the system image revision the emulator steps will boot" >&2
   cat "$key_tmp/env" >&2
@@ -419,7 +419,7 @@ if [[ "$(env "${key_env[@]}" EMULATOR_SYSIMG_REVISION=6 GITHUB_OUTPUT=/dev/stdou
 fi
 rm -f "$key_props" "$key_tmp/sdk/cmdline-tools/latest/bin/sdkmanager"
 env "${key_env[@]}" EMULATOR_NPROC=2 GITHUB_ENV="$key_tmp/env2" bash tool/emulator/avd_cache_key.sh > /dev/null 2>&1
-if ! grep -qx 'EMULATOR_AVD_CACHE_KEY=avd-30-google_apis-x86_64-imgunknown-77-1-cores2-disk2048M-emu16740729-emulator-app-test-30-clean-cfg2' "$key_tmp/env2"; then
+if ! grep -qx 'EMULATOR_AVD_CACHE_KEY=avd-30-google_apis-x86_64-imgunknown-77-1-cores2-disk2048M-emu16740729-emulator-app-test-30-clean-cfg3' "$key_tmp/env2"; then
   echo "an unknown image revision must give a one-run AVD cache key" >&2
   cat "$key_tmp/env2" >&2
   exit 1
@@ -556,7 +556,7 @@ if [[ -z "${step_smoke:-}" ]] || (( step_smoke < need_smoke )); then
   echo "smoke flow step timeout ${step_smoke:-unset} is under the ${need_smoke} min worst case" >&2
   exit 1
 fi
-for n in 1 2 3 4 5 6; do
+for n in 1 2 3 4 5 6 7 8; do
   need="$(bash tool/emulator/plan.sh need-minutes full "$n")"
   if [[ -z "${step_full:-}" ]] || (( step_full < need )); then
     echo "shard ${n} step timeout ${step_full:-unset} is under its ${need} min worst case" >&2
@@ -583,7 +583,7 @@ GITHUB_EVENT_NAME=workflow_dispatch GITHUB_OUTPUT="$tier_out" INPUT_TIER=smoke b
 grep -qx 'matrix=\["smoke"\]' "$tier_out"
 : > "$tier_out"
 GITHUB_EVENT_NAME=release GITHUB_OUTPUT="$tier_out" bash tool/emulator/choose_tier.sh >/dev/null
-grep -qx 'matrix=\["1","2","3","4","5","6"\]' "$tier_out"
+grep -qx 'matrix=\["1","2","3","4","5","6","7","8"\]' "$tier_out"
 if GITHUB_EVENT_NAME=workflow_dispatch INPUT_TIER=everything bash tool/emulator/choose_tier.sh >/dev/null 2>&1; then
   echo "choose_tier.sh should reject an unknown tier" >&2
   exit 1
@@ -615,6 +615,7 @@ flows=(
   15-offline
   16-home-browse
   17-entry-matrix
+  17b-entry-matrix-rest
   18-home-reselect
   19-rotation-state
   20-empty-and-back
@@ -626,8 +627,19 @@ flows=(
   26-drawer-nav-stack
   27-offline-cold-start
   28-small-screen-rotation-overflow
-  29-filter-matrix
-  30-filter-matrix-rest
+  29a-filter-matrix-home-state
+  29b-filter-matrix-home-district
+  29c-filter-matrix-home-deity
+  29d-filter-matrix-drawer-all-state
+  29e-filter-matrix-drawer-all-district
+  29f-filter-matrix-drawer-all-deity
+  30a-filter-matrix-drawer-bar-state
+  30b-filter-matrix-drawer-bar-district
+  30c-filter-matrix-drawer-bar-deity
+  30e-filter-matrix-search-state
+  30f-filter-matrix-search-district
+  30g-filter-matrix-search-deity
+  30s-filter-matrix-sequences
 )
 for flow in "${flows[@]}"; do
   if ! grep -q "\"${flow}|" tool/emulator/plan.sh; then
@@ -890,13 +902,13 @@ fi
 # as "FAIL missing").
 unstarted_n="$(grep -c '^NOT RUN [^:]*: did not start$' "${summary_dir}/results.txt")"
 skipped_n="$(grep -c '^SKIPPED ' "${summary_dir}/results.txt")"
-if [[ "$unstarted_n" -ne 28 || "$skipped_n" -ne 2 ]] ||
+if [[ "$unstarted_n" -ne 40 || "$skipped_n" -ne 2 ]] ||
    grep -q '^FAIL ' "${summary_dir}/results.txt" ||
    ! grep -q '^SKIPPED 11-near-me: ' "${summary_dir}/results.txt" ||
    ! grep -q '^SKIPPED 23-near-me-settings-roundtrip: ' "${summary_dir}/results.txt" ||
-   ! grep -q '0 failed, 0 expected failures, 0 unexpected passes, 28 not run, 2 skipped' "${summary_dir}/fail.out" ||
+   ! grep -q '0 failed, 0 expected failures, 0 unexpected passes, 40 not run, 2 skipped' "${summary_dir}/fail.out" ||
    ! grep -q 'did not start' "${summary_dir}/fail.out"; then
-  echo "unstarted flows: 28 NOT RUN, 2 SKIPPED, no FAIL, job not green" >&2
+  echo "unstarted flows: 40 NOT RUN, 2 SKIPPED, no FAIL, job not green" >&2
   cat "${summary_dir}/fail.out" >&2
   exit 1
 fi
@@ -939,8 +951,8 @@ if ! EMULATOR_ARTIFACTS="$not_run_dir" EMULATOR_RESOLVE_OUTCOME=failure \
   exit 1
 fi
 not_run="$(grep -c '^NOT RUN ' "${not_run_dir}/results.txt")"
-if [[ "$not_run" -ne 28 ]] || [[ "$(grep -c '^SKIPPED ' "${not_run_dir}/results.txt")" -ne 2 ]]; then
-  echo "expected 28 NOT RUN and 2 SKIPPED lines, found ${not_run} NOT RUN" >&2
+if [[ "$not_run" -ne 40 ]] || [[ "$(grep -c '^SKIPPED ' "${not_run_dir}/results.txt")" -ne 2 ]]; then
+  echo "expected 40 NOT RUN and 2 SKIPPED lines, found ${not_run} NOT RUN" >&2
   exit 1
 fi
 if grep -q '^FAIL ' "${not_run_dir}/results.txt"; then
@@ -1234,12 +1246,12 @@ for id in $(plan_ids smoke); do
     exit 1
   fi
 done
-if [[ "$(plan_matrix full)" != '["1","2","3","4","5","6"]' || "$(plan_matrix smoke)" != '["smoke"]' ]]; then
+if [[ "$(plan_matrix full)" != '["1","2","3","4","5","6","7","8"]' || "$(plan_matrix smoke)" != '["smoke"]' ]]; then
   echo "full must be 6 shards and smoke one job" >&2
   exit 1
 fi
 all_ids="$(plan_ids all | sort)"
-shard_ids="$(for n in 1 2 3 4 5 6; do plan_ids full "$n"; done | sort)"
+shard_ids="$(for n in 1 2 3 4 5 6 7 8; do plan_ids full "$n"; done | sort)"
 if [[ "$all_ids" != "$shard_ids" ]]; then
   echo "the 6 shards must cover every flow exactly once" >&2
   diff <(echo "$all_ids") <(echo "$shard_ids") >&2 || true
@@ -1265,12 +1277,22 @@ for script in tool/emulator/flows/*.sh; do
     exit 1
   fi
 done
-if [[ "$(plan_flows all | awk '$1 == "29-filter-matrix" { print $3 }')" != a ||
-      "$(plan_flows all | awk '$1 == "30-filter-matrix-rest" { print $3 }')" != b ]]; then
-  echo "flows 29/30 must keep FILTER_MATRIX_PART a/b" >&2
+# Round 4 (run 41373837994: 17/29/30 at the 600s cap): 17 in parts a/b,
+# the filter matrix one entry x chip per flow, every cell covered once.
+if [[ "$(plan_flows all | awk '$1 == "17-entry-matrix" { print $3 }')" != a ||
+      "$(plan_flows all | awk '$1 == "17b-entry-matrix-rest" { print $3 }')" != b ||
+      "$(plan_flows all | awk '$1 == "29a-filter-matrix-home-state" { print $3 }')" != home_browse:state ||
+      "$(plan_flows all | awk '$1 == "30s-filter-matrix-sequences" { print $3 }')" != seqs ]]; then
+  echo "flow 17 must keep parts a/b and the matrix entry:chip parts" >&2
   exit 1
 fi
-for n in 1 2 3 4 5 6; do
+want_cells="$(for e in home_browse drawer_all drawer_bar search; do for c in state district deity; do echo "$e:$c"; done; done | sort)"
+got_cells="$(plan_flows all | awk '$2 ~ /29_filter_matrix.sh$/ && $3 ~ /:/ { print $3 }' | sort)"
+if [[ "$want_cells" != "$got_cells" ]]; then
+  echo "filter matrix parts must cover every entry x chip exactly once: ${got_cells}" >&2
+  exit 1
+fi
+for n in 1 2 3 4 5 6 7 8; do
   active=0
   for id in $(plan_ids full "$n"); do
     plan_is_skipped "$id" || active=$((active + 1))
@@ -1290,7 +1312,7 @@ if EMULATOR_SKIP_FLOWS="" plan_is_skipped 11-near-me; then
   echo "EMULATOR_SKIP_FLOWS=\"\" should run the location flows" >&2
   exit 1
 fi
-for bad in "full 0" "full 7" "full x" "nightly"; do
+for bad in "full 0" "full 9" "full x" "nightly"; do
   # shellcheck disable=SC2086 # split tier and shard on purpose
   if plan_flows $bad >/dev/null 2>&1; then
     echo "plan_flows should reject '${bad}'" >&2
@@ -1302,7 +1324,7 @@ if bash tool/emulator/run_shard.sh full >/dev/null 2>&1; then
   exit 1
 fi
 dry="$(EMULATOR_SHARD_DRY_RUN=1 EMULATOR_ARTIFACTS="$(mktemp -d)" bash tool/emulator/run_shard.sh full 2)"
-if ! grep -qx 'PLAN 29-filter-matrix tool/emulator/flows/29_filter_matrix.sh a' <<<"$dry" ||
+if ! grep -qx 'PLAN 29a-filter-matrix-home-state tool/emulator/flows/29_filter_matrix.sh home_browse:state' <<<"$dry" ||
    [[ "$(grep -c '^PLAN ' <<<"$dry")" -ne "$(plan_ids full 2 | wc -l)" ]]; then
   echo "run_shard.sh dry run should list shard 2 with its matrix part" >&2
   echo "$dry" >&2
@@ -1487,14 +1509,12 @@ fi
 if grep -q 'ui_back; sleep 1; ui_back; sleep 1; ui_dump' tool/emulator/flows/25_directions_edge.sh; then
   echo "flow 25 must not rely on exactly two backs" >&2; exit 1
 fi
-# 27: only recover and chips-after-flap are XFAIL, linked to KAN-186.
+# 27: KAN-186 fixed on main (#127): recover and chips-after-flap are plain
+# PASS/FAIL assertions, no XFAIL left anywhere for KAN-186.
 f27=tool/emulator/flows/27_offline_cold_start.sh
-if [[ "$(grep -c 'xfail_known [a-z-]* KAN-186 ' "$f27")" -ne 2 ]] ||
-   ! grep -q 'xfail_known recover KAN-186' "$f27" || ! grep -q 'xfail_known chips-after-flap KAN-186' "$f27"; then
-  echo "flow 27: recover and chips-after-flap XFAIL (KAN-186), nothing else" >&2; exit 1
-fi
-if grep -q 'xfail_step' "$f27" || [[ "$(grep -rl 'KAN-186' tool/emulator/flows | wc -l)" -ne 1 ]]; then
-  echo "KAN-186 XFAIL belongs to flow 27 only" >&2; exit 1
+if grep -Eq 'xfail_known|xfail_step' "$f27" || grep -rq 'xfail_known [a-z-]* KAN-186' tool/emulator/flows ||
+   ! grep -q 'pass_step recover ||' "$f27" || ! grep -q 'pass_step chips-after-flap ||' "$f27"; then
+  echo "flow 27: recover and chips-after-flap must be normal assertions (KAN-186 fixed)" >&2; exit 1
 fi
 # Swipe-dismiss on each real sheet: a pull from the title centre (156,182)
 # to 96% that is slow enough to deliver moves (300ms, retry 600ms), not 80ms.
@@ -1517,7 +1537,7 @@ cat >"${stub_dir}/flow.sh" <<'STUB'
 leaked="$(cat)"
 printf '%s %s\n' "$1" "${#leaked}" >>"${STUB_LOG}"
 STUB
-for tier_shard in smoke "full 1" "full 2" "full 3" "full 4" "full 5" "full 6"; do
+for tier_shard in smoke "full 1" "full 2" "full 3" "full 4" "full 5" "full 6" "full 7" "full 8"; do
   : >"${stub_dir}/ran"
   # shellcheck disable=SC2086 # split tier and shard on purpose
   STUB_LOG="${stub_dir}/ran" EMULATOR_FLOW_RUNNER="${stub_dir}/flow.sh" \
@@ -1751,7 +1771,7 @@ if ! grep -q 'setprop debug.temple.snapshot_marker 1' tool/emulator/snapshot_cre
    ! grep -q 'run: bash tool/emulator/boot_log_check.sh' "$workflow" ||
    ! grep -Fq "name: emulator-avd-ini-\${{ matrix.shard }}" "$workflow" ||
    ! grep -Fq "env.EMULATOR_BOOT != 'snapshot' || steps.flows.outcome != 'success'" "$workflow" ||
-   ! grep -q -- '-clean-cfg2"' tool/emulator/avd_cache_key.sh; then
+   ! grep -q -- '-clean-cfg3"' tool/emulator/avd_cache_key.sh; then
   echo "snapshot diagnostics: marker, boot log check, ini artifact on cold boot/failure, bumped key" >&2
   exit 1
 fi
@@ -1781,7 +1801,7 @@ if [[ "$(maps_count maps_start_once.logcat.txt)" != 1 ]] || [[ "$(maps_count map
    ! grep -q "echo \"directions: logcat window starts at device time" "$f25"; then
   echo "flow 25: single-maps-launch counts Maps START lines after the taps (1 passes, 2 fails)" >&2; exit 1
 fi
-# 27: xfail_known gives XFAIL while the check fails, XPASS once it passes.
+# xfail_known (library) gives XFAIL while the check fails, XPASS once it passes.
 xk="$(
   EMULATOR_ARTIFACTS="$(mktemp -d)"
   export EMULATOR_FLOW=27-offline-cold-start EMULATOR_ARTIFACTS EMULATOR_PACKAGE=com.example
@@ -1793,9 +1813,8 @@ xk="$(
 )"
 if ! grep -qx 'XFAIL 27-offline-cold-start: recover: KAN-186: did not recover' <<<"$xk" ||
    ! grep -qx 'XPASS 27-offline-cold-start: chips-after-flap: KAN-186: chips dead' <<<"$xk" ||
-   ! grep -q '^::error::XPASS 27-offline-cold-start: chips-after-flap' <<<"$xk" ||
-   [[ "$(grep -c 'xfail_known [a-z-]* KAN-186 ' tool/emulator/flows/27_offline_cold_start.sh)" -ne 2 ]]; then
-  echo "flow 27: xfail_known -> XFAIL on failure, XPASS + ::error:: on pass" >&2; echo "$xk" >&2; exit 1
+   ! grep -q '^::error::XPASS 27-offline-cold-start: chips-after-flap' <<<"$xk"; then
+  echo "xfail_known -> XFAIL on failure, XPASS + ::error:: on pass" >&2; echo "$xk" >&2; exit 1
 fi
 # 24: settle needs two consecutive consistent dumps on the same page.
 # shellcheck disable=SC2016 # literal flow text
@@ -1898,7 +1917,8 @@ if ! crash_in "11-01 14:17:00.000 300 300 E AndroidRuntime: Process: com.example
 fi
 f26=tool/emulator/flows/26_drawer_nav_stack.sh
 # shellcheck disable=SC2016 # literal flow text
-if ! grep -q 'logcat_window_start back-exits' "$f26" || ! grep -q 'logcat_window_read | app_crashed_in_log "$PKG"' "$f26" ||
+if ! grep -q 'logcat_window_start back-exits' "$f26" || ! grep -q 'app_crashed_in_log "$PKG" <<<"$window"' "$f26" ||
+   ! grep -q 'fail_step back-exits "TempleEmuMark logcat marker missing' "$f26" ||
    ! grep -q 'fail_step back-exits "app crashed on back from Home' "$f26"; then
   echo "flow 26 back-exits must fail on a crash (logcat or dialog)" >&2; exit 1
 fi
@@ -2025,4 +2045,232 @@ for extra in INPUT_APK_URL=https://x/a.apk INPUT_ARTIFACT_RUN_ID=123; do
     echo "choose_tier.sh: ${extra%%=*} without release_gate is fine" >&2; exit 1
   fi
 done
+# ---------------------------------------------------------------------------
+# Round 4 regressions: real dumps and ini files from run 41373837994.
+# ---------------------------------------------------------------------------
+fx4=tool/emulator/testdata/run41373837994
+r4="$(mktemp -d)"
+# shellcheck disable=SC2030,SC2031,SC2329
+lib4() {
+  (
+    set -uo pipefail
+    export EMULATOR_FLOW="${R4_FLOW:-30a-filter-matrix-drawer-bar-state}" EMULATOR_ARTIFACTS="$r4/art" EMULATOR_PACKAGE=com.shradhaventures.temple
+    # shellcheck disable=SC1091
+    source tool/emulator/lib/common.sh
+    PKG=com.shradhaventures.temple
+    sleep() { :; }
+    step_shot() { :; }
+    ui_screen_size() { echo "${R4_SIZE:-320 640}"; }
+    ui_tap() { echo "TAP ${UI_TEXT:-}" >> "$r4/log"; }
+    adb_shell_capped() { shift; echo "ADB $*" >> "$r4/log"; }
+    # Serves R4_SEQ fixtures in order, repeating the last one.
+    ui_dump() {
+      step_budget_ok || return 1
+      local n; n="$(grep -c '^DUMP' "$r4/log" || true)"
+      local -a seq; read -r -a seq <<<"$R4_SEQ"
+      (( n >= ${#seq[@]} )) && n=$((${#seq[@]} - 1))
+      echo "DUMP ${seq[$n]}" >> "$r4/log"
+      cp "${fx4}/${seq[$n]}" "$DUMP"
+    }
+    "$@"
+  )
+}
+# 1. Snapshot: the create boot grew disk.dataPartition.size to 6g; the run
+# phase must pin config.ini to the snapshot's hardware.ini, not 2048M.
+avd4="$r4/avd/emulator-app-test-30.avd"
+mkdir -p "$avd4/snapshots/default_boot" "$r4/bin"
+cp "$fx4/config_prelaunch.ini" "$avd4/config.ini"
+printf 'hw.cpu.ncore=4\ndisk.dataPartition.size=2048M\n' >> "$avd4/config.ini"
+cp "$fx4/snapshot_hardware_6g.ini" "$avd4/snapshots/default_boot/hardware.ini"
+printf '#!/bin/sh\nexit 0\n' > "$r4/bin/adb"; cp "$r4/bin/adb" "$r4/bin/pkill"; chmod +x "$r4/bin/adb" "$r4/bin/pkill"
+p4="$(PATH="$r4/bin:$PATH" ANDROID_AVD_HOME="$r4/avd" HOME="$r4" RUNNER_TEMP="" EMULATOR_AVD_NAME=emulator-app-test-30 \
+  EMULATOR_DISK_SIZE=2048M EMULATOR_CORES=4 bash tool/emulator/prepare_avd.sh run 2>&1)"
+if ! grep -qx 'disk.dataPartition.size=6442450944' "$avd4/config.ini" ||
+   [[ "$(grep -c '^disk.dataPartition.size=' "$avd4/config.ini")" -ne 1 ]] ||
+   ! grep -q 'pinned to snapshot hardware.ini: disk=6442450944 cores=4 ram=2048' <<<"$p4"; then
+  echo "prepare_avd run: config.ini must follow the snapshot's 6g data partition (run 41373837994 cold boots)" >&2
+  echo "$p4" >&2; grep '^disk\.' "$avd4/config.ini" >&2; exit 1
+fi
+cp "$fx4/config_prelaunch.ini" "$avd4/config.ini"
+PATH="$r4/bin:$PATH" ANDROID_AVD_HOME="$r4/avd" HOME="$r4" RUNNER_TEMP="" EMULATOR_DISK_SIZE=2048M EMULATOR_CORES=4 \
+  bash tool/emulator/prepare_avd.sh create >/dev/null 2>&1
+if ! grep -qx 'disk.dataPartition.size=2048M' "$avd4/config.ini"; then
+  echo "prepare_avd create: keeps the key's 2048M (only the run phase pins to the snapshot)" >&2; exit 1
+fi
+# 2. Boot summary from the shard results' BOOT lines, not the job-log API.
+mkdir -p "$r4/sr/emulator-app-test-1" "$r4/sr/emulator-app-test-2"
+printf 'BOOT full-1 snapshot\nPASS x: y\n' > "$r4/sr/emulator-app-test-1/results.txt"
+printf 'BOOT full-2 cold\n' > "$r4/sr/emulator-app-test-2/results.txt"
+b4="$(GITHUB_STEP_SUMMARY="" bash tool/emulator/boot_log_check.sh --results "$r4/sr" 2>&1)"
+if ! grep -qx 'boot: snapshot (emulator full-1)' <<<"$b4" || ! grep -qx 'boot: cold (emulator full-2)' <<<"$b4" ||
+   grep -q 'unknown' <<<"$b4"; then
+  echo "boot_log_check --results: one verdict per shard from BOOT lines" >&2; echo "$b4" >&2; exit 1
+fi
+if ! bash tool/emulator/boot_log_check.sh --results "$r4/none" | grep -q '^boot: unknown (no BOOT lines'; then
+  echo "boot_log_check --results: no BOOT lines -> unknown" >&2; exit 1
+fi
+# 3. Drawer FILTERS row at y 478 of 640: invisible to the 70% chip band,
+# found with CHIP_MAX_TOP_PCT=95; flow 29 sets 95 for drawer_bar and waits
+# for a non-zero "All Temples" count (the sheet offered "Any state 0").
+: > "$r4/log"
+if (R4_SEQ=drawer_bar_chips.xml lib4 scroll_chips_until --resource-id filter-chip-district) >/dev/null 2>&1; then
+  echo "scroll_chips_until: drawer row is below the default 70% band (precondition)" >&2; exit 1
+fi
+: > "$r4/log"
+if ! (R4_SEQ=drawer_bar_chips.xml CHIP_MAX_TOP_PCT=95 lib4 scroll_chips_until --resource-id filter-chip-district) >/dev/null 2>&1 ||
+   grep -q '^ADB input swipe' "$r4/log"; then
+  echo "scroll_chips_until: CHIP_MAX_TOP_PCT=95 finds the drawer district chip without scrolling" >&2; cat "$r4/log" >&2; exit 1
+fi
+f29=tool/emulator/flows/29_filter_matrix.sh
+if ! sed -n '/^enter_drawer_bar() {/,/^}/p' "$f29" | grep -q 'CHIP_MAX_TOP_PCT=95' ||
+   ! sed -n '/^enter_drawer_bar() {/,/^}/p' "$f29" | grep -Fq -- "--content-desc-regex '^All Temples\\s+[1-9][0-9]*\$'"; then
+  echo "flow 29 drawer_bar: CHIP_MAX_TOP_PCT=95 and wait for a non-zero All Temples count" >&2; exit 1
+fi
+if ! python3 tool/emulator/lib/ui.py find "$fx4/drawer_bar_chips.xml" --content-desc-regex '^All Temples\s+[1-9][0-9]*$' >/dev/null ||
+   python3 tool/emulator/lib/ui.py find "$fx4/drawer_sheet_zero_temples.xml" --content-desc-regex '^All Temples\s+[1-9][0-9]*$' >/dev/null; then
+  echo "All Temples count regex: 992 matches, the zero-temple sheet does not" >&2; exit 1
+fi
+# 4. State chip off the LEFT edge (22 after detail back, 29 re-tap): the
+# scroll must reach the left side (swipe left-to-right) within 8 tries.
+: > "$r4/log"
+(R4_SEQ=state_chip_off_left.xml lib4 scroll_chips_until --resource-id filter-chip-state) >/dev/null 2>&1 || true
+if [[ "$(grep -c '^ADB input swipe' "$r4/log")" -ne 8 ]] ||
+   ! awk '$1 == "ADB" && $3 == "swipe" && $4 < $6 { r = 1 } END { exit !r }' "$r4/log"; then
+  echo "scroll_chips_until: 8 tries, the last ones swipe right (reveal the left side)" >&2; cat "$r4/log" >&2; exit 1
+fi
+if ! sed -n '/^chip_present() {/,/^}/p' "$f29" | grep -q 'state) find_filter_chip filter-chip-state'; then
+  echo "flow 29 chip_present: the state chip must be scrolled into view too" >&2; exit 1
+fi
+if grep -q 'for other in "${CHIPS\[@\]}" "$done_chip"' "$f29"; then
+  echo "flow 29: the duplicate re-tap probe of the done chip is gone" >&2; exit 1
+fi
+# 5. Flow 19 landscape: chip_exact Kerala takes the filter-chip-state node
+# (95,198), not the app bar title "Kerala" (320,64).
+: > "$r4/log"
+c4="$(R4_SEQ=landscape_title_kerala.xml R4_SIZE="640 320" lib4 eval 'chip_exact Kerala && echo "$UI_CX $UI_CY"' 2>/dev/null)"
+if [[ "$c4" != "95 198" ]]; then
+  echo "chip_exact: filter chip first, not the app bar title (got '${c4}')" >&2; exit 1
+fi
+# 6. Flow 25: Chrome's first-run screen after Get Directions with Maps
+# disabled is the URL fallback working; the Kerala list is not.
+if ! (R4_SEQ=chrome_first_run.xml lib4 eval 'ui_dump; maps_fallback_shown') ||
+   (R4_SEQ=kerala_list.xml lib4 eval 'ui_dump; maps_fallback_shown'); then
+  echo "maps_fallback_shown: browser in front passes, an unchanged app screen fails" >&2; exit 1
+fi
+f25=tool/emulator/flows/25_directions_edge.sh
+if grep -q "ui_find --text-contains \"irections\" && pass_step no-maps-fallback" "$f25" ||
+   ! grep -q 'pm enable com.google.android.apps.maps' "$f25"; then
+  echo "flow 25: fallback via maps_fallback_shown on a fresh dump, Maps re-enabled after" >&2; exit 1
+fi
+# 7. TempleEmuMark: a logcat without the marker is an error (exit 3, no
+# output), never an empty window that passes; 25 and 26 FAIL on it.
+mkdir -p "$r4/lc"
+cat > "$r4/lc/adb" <<'ADB'
+#!/usr/bin/env bash
+if [[ "$1" == logcat ]]; then cat "$R4_LOGCAT"; fi
+exit 0
+ADB
+chmod +x "$r4/lc/adb"
+printf '11-02 01:50:00.000 1 1 I ActivityTaskManager: START u0 {cmp=com.google.android.apps.maps/x}\n' > "$r4/lc/nomark.txt"
+printf '11-02 01:49:59.000 1 1 I TempleEmuMark: temple-emu-window-x-1-2\n11-02 01:50:00.000 1 1 I ActivityTaskManager: START u0 {cmp=com.google.android.apps.maps/x}\n' > "$r4/lc/mark.txt"
+lc_rc() {
+  ( export PATH="$r4/lc:$PATH" R4_LOGCAT="$1" EMULATOR_FLOW=26-drawer-nav-stack EMULATOR_ARTIFACTS="$r4/lcart" EMULATOR_PACKAGE=com.example
+    # shellcheck disable=SC1091
+    source tool/emulator/lib/common.sh
+    LOGCAT_MARK="${2-temple-emu-window-x-1-2}"
+    out="$(logcat_window_read 2>/dev/null)"; rc=$?
+    echo "$rc $(grep -c . <<<"$out")" )
+}
+if [[ "$(lc_rc "$r4/lc/nomark.txt")" != "3 0" ]] || [[ "$(lc_rc "$r4/lc/mark.txt")" != "0 2" ]] ||
+   [[ "$(lc_rc "$r4/lc/mark.txt" "")" != "3 0" ]]; then
+  echo "logcat_window_read: marker missing -> exit 3 and no lines; marker present -> the window" >&2; exit 1
+fi
+for f in tool/emulator/flows/25_directions_edge.sh tool/emulator/flows/26_drawer_nav_stack.sh; do
+  if ! grep -q 'TempleEmuMark logcat marker missing' "$f" || grep -q 'logcat_window_read |' "$f"; then
+    echo "${f}: must FAIL when the TempleEmuMark marker is missing" >&2; exit 1
+  fi
+done
+if grep -rn 'logcat_window_read' tool/emulator/flows | grep -v 'window="$(logcat_window_read)"' | grep -q .; then
+  echo "every logcat_window_read caller must check its exit status" >&2; exit 1
+fi
+# Flow 26 tail on a logcat without the marker: back-exits is a FAIL.
+b26="$(
+  export EMULATOR_FLOW=26-drawer-nav-stack EMULATOR_ARTIFACTS="$r4/b26" EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  step_shot() { :; }; dismiss_blockers() { :; }; adb_shell_capped() { :; }
+  logcat_window_read() { return 3; }
+  # shellcheck disable=SC2034 # read by the eval below
+  crash_dialog=0
+  eval "$(sed -n '/^window_rc=0$/,$p' tool/emulator/flows/26_drawer_nav_stack.sh)" >/dev/null 2>&1
+  cat "$RESULTS"
+)"
+if ! grep -qx 'FAIL 26-drawer-nav-stack: back-exits: TempleEmuMark logcat marker missing: crash check could not run' <<<"$b26"; then
+  echo "flow 26: back-exits must FAIL when the marker is missing" >&2; echo "$b26" >&2; exit 1
+fi
+# 8. Flow 24: a single-photo temple never records FAIL via skip_step.
+f24=tool/emulator/flows/24_gallery_autoadvance_viewer.sh
+if grep -q 'skip_step multi-photo' "$f24" || ! grep -q 'pass_step multi-photo-not-applicable' "$f24"; then
+  echo "flow 24: single-photo temples -> PASS multi-photo-not-applicable, no skip_step FAIL" >&2; exit 1
+fi
+# 9. Per-step timeout: ui_dump refuses once the step is older than the
+# budget, the FAIL says so, and the next record_* starts a fresh step.
+st4="$(
+  export EMULATOR_FLOW=99-step EMULATOR_ARTIFACTS="$r4/st" EMULATOR_PACKAGE=com.example EMULATOR_STEP_BUDGET_S=5
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  STEP_STARTED=$((SECONDS - 10))
+  if ui_dump 2>/dev/null; then echo "dump-ran"; fi
+  record_fail stuck "never appeared" >/dev/null
+  step_budget_ok && echo "reset-ok"
+  cat "$RESULTS"
+)"
+if grep -q dump-ran <<<"$st4" || ! grep -q reset-ok <<<"$st4" ||
+   ! grep -qx 'FAIL 99-step: stuck: never appeared \[step timeout 5s\]' <<<"$st4"; then
+  echo "step budget: ui_dump stops after EMULATOR_STEP_BUDGET_S, FAIL is tagged, record_* resets" >&2; echo "$st4" >&2; exit 1
+fi
+if ! grep -q 'STEP_BUDGET_S="${EMULATOR_STEP_BUDGET_S:-150}"' tool/emulator/lib/common.sh; then
+  echo "step budget default is 150s" >&2; exit 1
+fi
+# 10. Long lists (17 Shiva, 29 Madurai gave up at 20-22s): district/deity
+# get PICKER_LONG_GIVEUP_S (45) and one slower re-walk after a stall.
+pk4="$(
+  export EMULATOR_FLOW=99-pick EMULATOR_ARTIFACTS="$r4/pk" EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  wait_out_district_loader() { :; }
+  n=0
+  seek_option() { n=$((n + 1)); echo "SEEK $n fling=${SEEK_FLING_MS:-120} left=$(( $3 - SECONDS ))" >&2
+    if (( n == 1 )); then return 1; fi; UI_CX=1 UI_CY=2 UI_TEXT="Madurai  4"; return 0; }
+  ui_tap() { :; }
+  sleep() { :; }
+  select_labeled '^Madurai( +[0-9]+)?$' DISTRICT 2>&1 && echo "picked $SELECTED_LABEL"
+)"
+if ! grep -q '^SEEK 1 fling=120 left=30$' <<<"$pk4" || ! grep -q '^SEEK 2 fling=300' <<<"$pk4" || ! grep -q '^picked Madurai' <<<"$pk4"; then
+  echo "select_labeled: district walk gets 45s-15s, then one 300ms re-walk after a stall" >&2; echo "$pk4" >&2; exit 1
+fi
+# 11. Flow 06: combined-deity picks inside the applied state; the city
+# check reads chip ids from one dump instead of two 6-scroll misses.
+f06=tool/emulator/flows/06_filters.sh
+if ! grep -q 'combined_deity_rx="${COMBINED_DEITY_PICK:-^Vishnu( +\[0-9\]+)?$}"' "$f06" ||
+   grep -q 'scroll_chips_until --resource-id filter-chip-city' "$f06" ||
+   ! grep -q 'for n in $(seq 1 "${FILTER_REPEATS:-2}")' "$f06"; then
+  echo "flow 06: in-state combined deity, one-dump city check, 2 repeats" >&2; exit 1
+fi
+if ! python3 tool/emulator/lib/ui.py find "$fx4/kerala_list.xml" --content-desc-contains 'Vishnu' >/dev/null; then
+  echo "fixture: Kerala list offers a Vishnu temple" >&2; exit 1
+fi
+# 12. Flow 18 waits for the collage before flinging (it flung the loader).
+if ! grep -B1 -A3 'ui_wait 45 --content-desc "Discover"' tool/emulator/flows/18_home_reselect.sh | grep -q 'fail_step scrolled'; then
+  echo "flow 18: wait for the Home collage before the scroll check" >&2; exit 1
+fi
+# 13. Flow 17 parts a/b select its entries.
+for part in a b; do
+  e17="$(FILTER_MATRIX_PART=$part bash -c 'eval "$(sed -n "/^case \"\${FILTER_MATRIX_PART:-all}\" in/,/^esac/p" tool/emulator/flows/17_entry_matrix.sh)"; echo "${ENTRIES[*]}"')"
+  case "$part" in
+    a) [[ "$e17" == "home_button drawer_all" ]] ;;
+    b) [[ "$e17" == "drawer_search list_drawer_all" ]] ;;
+  esac || { echo "flow 17 part ${part}: wrong entries '${e17}'" >&2; exit 1; }
+done
+rm -rf "$r4"
 echo "emulator self-test ok"

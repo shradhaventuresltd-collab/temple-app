@@ -31,19 +31,45 @@ ALL_INDIA_DISTRICT_PICK='^24 Paraganas North( +[0-9]+)?$'
 ALL_INDIA_DEITY_PICK='^Ahalya( +[0-9]+)?$'
 # Bounded picker walk in select_labeled, in seconds.
 PICKER_GIVEUP_S="${EMULATOR_PICKER_GIVEUP_S:-20}"
+# District and deity lists are 400-600 options; run 41373837994 gave up on
+# Madurai (29) and Shiva (17) at 20-22s with the target one fling away.
+PICKER_LONG_GIVEUP_S="${EMULATOR_PICKER_LONG_GIVEUP_S:-45}"
+# Per-step cap. Every record_* call starts a new step; ui_dump (called by
+# every wait, scroll and find loop) refuses to run once the current step is
+# older than STEP_BUDGET_S, so a stuck step fails on its own instead of
+# eating the 600s flow budget (06, 17, 29, 30 in run 41373837994).
+STEP_BUDGET_S="${EMULATOR_STEP_BUDGET_S:-150}"
+STEP_STARTED=$SECONDS
+STEP_TIMED_OUT=0
+step_reset() { STEP_STARTED=$SECONDS; STEP_TIMED_OUT=0; }
+step_budget_ok() {
+  if (( SECONDS - STEP_STARTED > STEP_BUDGET_S )); then
+    if (( ! STEP_TIMED_OUT )); then
+      echo "step timeout: current step older than ${STEP_BUDGET_S}s (EMULATOR_STEP_BUDGET_S)" >&2
+    fi
+    STEP_TIMED_OUT=1
+    return 1
+  fi
+  return 0
+}
 
 mkdir -p "$SHOT_DIR" "$REC_DIR" "$LOG_DIR" "$DUMP_DIR"
 
 record_pass() {
   printf 'PASS %s: %s\n' "$FLOW" "$1" | tee -a "$RESULTS"
+  step_reset
 }
 
 record_fail() {
-  printf 'FAIL %s: %s: %s\n' "$FLOW" "$1" "$2" | tee -a "$RESULTS"
+  local why="$2"
+  (( STEP_TIMED_OUT )) && why="${why} [step timeout ${STEP_BUDGET_S}s]"
+  printf 'FAIL %s: %s: %s\n' "$FLOW" "$1" "$why" | tee -a "$RESULTS"
+  step_reset
 }
 
 record_xfail() {
   printf 'XFAIL %s: %s: %s\n' "$FLOW" "$1" "$2" | tee -a "$RESULTS"
+  step_reset
 }
 
 # An XFAIL step that passed: the known bug is fixed and the XFAIL mark must
@@ -51,10 +77,12 @@ record_xfail() {
 record_xpass() {
   printf 'XPASS %s: %s: %s\n' "$FLOW" "$1" "$2" | tee -a "$RESULTS"
   echo "::error::XPASS ${FLOW}: $1 passed but is marked XFAIL ($2); remove the XFAIL mark"
+  step_reset
 }
 
 record_not_run() {
   printf 'NOT RUN %s: %s: %s\n' "$FLOW" "$1" "$2" | tee -a "$RESULTS"
+  step_reset
 }
 
 step_shot() {
@@ -155,6 +183,7 @@ ui_screen_size() {
 
 ui_dump() {
   local attempt err noisy rc
+  step_budget_ok || return 1
   local saved=""
   local timed_out=0
   for attempt in 1 2 3 4 5; do
@@ -243,6 +272,16 @@ ui_back() {
 # Run 41314245431 (flow 25): Maps opened "Update Google Maps to continue",
 # which takes its own backs, so a fixed two backs left Maps on screen.
 # Sets BACKS_USED. Exit 0 when Get Directions in our package is visible.
+# After a Get Directions tap with Maps disabled: a browser in front (the
+# app's URL fallback) or an in-app message about Maps/directions.
+maps_fallback_shown() {
+  [[ -s "${DUMP:-}" ]] || return 1
+  if grep -Eq 'package="(com\.android\.chrome|org\.chromium\.[a-z.]+|com\.android\.browser|org\.mozilla\.[a-z.]+)"' "$DUMP"; then
+    return 0
+  fi
+  ui_find --text-regex '(?i)(maps|directions).*(not available|unavailable|could ?n.t|install|no app)'
+}
+
 back_until_detail() {
   local max="${1:-6}" pkg="${PKG:-${EMULATOR_PACKAGE:-}}"
   BACKS_USED=0
@@ -266,13 +305,31 @@ back_until_detail() {
 # operands), so the device command goes as ONE string with the tag quoted.
 # The marker line itself is printed first: its threadtime prefix is the
 # device-local start time of the window.
+# A missing marker is an error, not an empty window: without it the window
+# is empty, no crash or Maps START can be seen, and the check would pass on
+# nothing. logcat_window_read prints the window and exits 0 only when the
+# TempleEmuMark line is in the log; otherwise it prints nothing, says so on
+# stderr and exits 3. Callers must FAIL the step on a non-zero status.
 logcat_window_start() {
   LOGCAT_MARK="temple-emu-window-${1:-step}-$$-${RANDOM}"
-  adb_shell_capped 8 "log -t TempleEmuMark '${LOGCAT_MARK}'" >/dev/null 2>&1 || true
+  if ! adb_shell_capped 8 "log -t TempleEmuMark '${LOGCAT_MARK}'" >/dev/null 2>&1; then
+    echo "logcat_window_start: log -t TempleEmuMark failed" >&2
+    return 1
+  fi
 }
 logcat_window_read() {
-  timeout 8 adb logcat -d -v threadtime </dev/null 2>/dev/null | tr -d '\r' |
-    awk -v m="${LOGCAT_MARK:-}" 'm != "" && !f && index($0, m) { f = 1 } f'
+  local out
+  if [[ -z "${LOGCAT_MARK:-}" ]]; then
+    echo "logcat_window_read: no window started (TempleEmuMark marker missing)" >&2
+    return 3
+  fi
+  out="$(timeout 8 adb logcat -d -v threadtime </dev/null 2>/dev/null | tr -d '\r' |
+    awk -v m="${LOGCAT_MARK}" '!f && index($0, m) { f = 1 } f')"
+  if [[ -z "$out" ]]; then
+    echo "logcat_window_read: TempleEmuMark marker '${LOGCAT_MARK}' not in logcat" >&2
+    return 3
+  fi
+  printf '%s\n' "$out"
 }
 
 # Crash evidence for our package in logcat text on stdin: an AndroidRuntime
@@ -1154,12 +1211,14 @@ find_filter_chip() {
   read -r width height < <(ui_screen_size) || return 1
   # Landscape puts the chip row below 38% of the height, so a portrait band
   # misses Kerala after rotation and the shot still shows the old chip.
-  max_top=$((height * 70 / 100))
+  max_top=$((height * ${CHIP_MAX_TOP_PCT:-70} / 100))
   y=$((height * 22 / 100))
   for i in $(seq 1 8); do
     ui_dump || true
     found=0
     if [[ -n "$rid" ]] && ui_find --resource-id "$rid" --max-top "$max_top"; then
+      found=1
+    elif [[ -n "${CHIP_LABEL_RX:-}" ]] && ui_find --resource-id-regex '^filter-chip-' --text-regex "$CHIP_LABEL_RX" --max-top "$max_top"; then
       found=1
     elif [[ -n "$regex" ]] && ui_find --text-regex "$regex" --max-top "$max_top" --prefer upper; then
       found=1
@@ -1197,24 +1256,35 @@ find_filter_chip() {
   return 1
 }
 
+# Both directions: the row keeps its scroll offset, so a chip can sit off
+# the LEFT edge as well (run 41373837994: state chip after detail back in
+# 22, re-tap of the state chip in 29). Scrolls 1-4 reveal the right side,
+# 5-8 the left. CHIP_MAX_TOP_PCT (default 70) is the lowest top edge, in %
+# of the screen height, a chip may have; the drawer's FILTERS row sits at
+# 75% (y 478 of 640) and needs 95.
 scroll_chips_until() {
-  local i y width height max_top
+  local i y width height max_top dir
   read -r width height < <(ui_screen_size) || return 1
-  max_top=$((height * 70 / 100))
+  max_top=$((height * ${CHIP_MAX_TOP_PCT:-70} / 100))
   y=$((height * 22 / 100))
-  for i in $(seq 1 6); do
+  for i in $(seq 1 8); do
     if ui_dump && ui_find "$@" --max-top "$max_top"; then
       y=$UI_CY
       if (( UI_CX > 24 && UI_CX < width - 24 )); then
         return 0
       fi
-    elif ui_dump && ui_find --resource-id filter-chip-state --max-top "$max_top"; then
-      y=$UI_CY
+      if (( UI_CX >= width - 24 )); then dir=left; else dir=right; fi
+    else
+      if ui_find --resource-id filter-chip-state --max-top "$max_top" ||
+         ui_find --resource-id-regex '^filter-chip-' --max-top "$max_top"; then
+        y=$UI_CY
+      fi
+      if (( i <= 4 )); then dir=left; else dir=right; fi
     fi
-    scroll_chip_bar_at "$y" left || true
+    scroll_chip_bar_at "$y" "$dir" || true
     sleep 0.4
   done
-  echo "scroll_chips_until: not in view after 6 scrolls" >&2
+  echo "scroll_chips_until: not in view after 8 scrolls" >&2
   return 1
 }
 
@@ -1516,6 +1586,9 @@ select_labeled() {
   kind="$(printf '%s' "$_section" | tr '[:upper:]' '[:lower:]')"
   started=$SECONDS
   deadline=$((started + PICKER_GIVEUP_S))
+  if [[ "$kind" =~ ^(district|deity)$ ]] && (( PICKER_LONG_GIVEUP_S > PICKER_GIVEUP_S )); then
+    deadline=$((started + PICKER_LONG_GIVEUP_S))
+  fi
   if [[ -n "$name_hint" && "$kind" =~ ^(state|district|deity)$ ]]; then
     local seek_rc=0
     # '^Vishnu' (no $) takes the first Vishnu... option; '^Shiva( +N)?$' only Shiva.
@@ -1525,6 +1598,14 @@ select_labeled() {
     local seek_deadline=$((deadline - 15))
     (( seek_deadline > started + 15 )) || seek_deadline=$deadline
     seek_option "$kind" "$name_hint" "$seek_deadline" ${prefix_flag:+"$prefix_flag"} || seek_rc=$?
+    # "list stopped moving" (rc 1) on a slow (cold-booted, swiftshader)
+    # emulator: 120ms flings were not taken as drags. One more walk with
+    # slower flings while the deadline allows (run 41373837994: 17, 29).
+    if (( seek_rc == 1 )) && (( SECONDS + 8 < seek_deadline )); then
+      echo "select_labeled: retrying the ${kind} walk with ${SEEK_RETRY_FLING_MS:-300}ms flings" >&2
+      seek_rc=0
+      SEEK_FLING_MS="${SEEK_RETRY_FLING_MS:-300}" seek_option "$kind" "$name_hint" "$seek_deadline" ${prefix_flag:+"$prefix_flag"} || seek_rc=$?
+    fi
     if (( seek_rc == 0 )); then
       if [[ ! "$UI_TEXT" =~ $regex ]]; then
         echo "select_labeled: option '${UI_TEXT}' does not match '${regex}'" >&2
@@ -1688,7 +1769,11 @@ apply_sheet() {
 
 chip_exact() {
   local label="$1"
-  find_filter_chip "" "^$(re_escape "$label")$"
+  # A filter-chip-* node with that label first. The bare text regex also
+  # matches the app bar title ("Kerala", "Shiva · Tamil Nadu"), which sits
+  # above the chip bar (run 41373837994 flow 19 in landscape: the title at
+  # x=320 was taken for the chip and scrolled for 8 tries).
+  CHIP_LABEL_RX="^$(re_escape "$label")$" find_filter_chip "" "^$(re_escape "$label")$"
 }
 
 recover_sheet() {

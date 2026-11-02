@@ -22,7 +22,7 @@ FLOW_KILL_AFTER_S=15
 FLOW_RESET_S=60
 # One snapshot boot per job (emulator-boot-timeout).
 SHARD_BOOT_S=300
-SHARD_COUNT=6
+SHARD_COUNT=8
 
 SMOKE_FLOWS="01-first-launch 04-home 05-search 08-list-detail 14-back-relaunch 15-offline"
 
@@ -35,19 +35,24 @@ DEFAULT_SKIP_FLOWS="11-near-me 23-near-me-settings-roundtrip 30d-near-me"
 
 # id|script|FILTER_MATRIX_PART|shard
 # Shards are balanced by measured time from run 40916686359 (17, 06, 21,
-# 22 and the 29/30 matrix are the long ones; each long flow leads its own
-# shard) and hold at most five flows that are not skipped.
+# 22 and the filter matrix are the long ones) and hold at most five flows
+# that are not skipped. Run 41373837994 hit the 600s cap in 17, 29 and 30:
+# 17 is split in two (parts a/b), and the filter matrix runs one entry x
+# one chip per flow (FILTER_MATRIX_PART=<entry>:<chip>, "seqs" for the
+# 3+ step sequences), ~7 min each, on 8 shards.
 PLAN_ROWS=(
-  "17-entry-matrix|tool/emulator/flows/17_entry_matrix.sh||1"
+  "17-entry-matrix|tool/emulator/flows/17_entry_matrix.sh|a|1"
   "01-first-launch|tool/emulator/flows/01_first_launch.sh||1"
   "02-policy-gate|tool/emulator/flows/02_policy_gate.sh||1"
   "03-force-update|tool/emulator/flows/03_force_update.sh||1"
   "28-small-screen-rotation-overflow|tool/emulator/flows/28_small_screen_rotation_overflow.sh||1"
-  "29-filter-matrix|tool/emulator/flows/29_filter_matrix.sh|a|2"
+  "17b-entry-matrix-rest|tool/emulator/flows/17_entry_matrix.sh|b|2"
+  "29a-filter-matrix-home-state|tool/emulator/flows/29_filter_matrix.sh|home_browse:state|2"
   "04-home|tool/emulator/flows/04_home.sh||2"
   "05-search|tool/emulator/flows/05_search.sh||2"
   "07-district|tool/emulator/flows/07_district.sh||2"
-  "30-filter-matrix-rest|tool/emulator/flows/29_filter_matrix.sh|b|3"
+  "29b-filter-matrix-home-district|tool/emulator/flows/29_filter_matrix.sh|home_browse:district|3"
+  "30s-filter-matrix-sequences|tool/emulator/flows/29_filter_matrix.sh|seqs|3"
   "08-list-detail|tool/emulator/flows/08_list_detail.sh||3"
   "09-photos|tool/emulator/flows/09_photos.sh||3"
   "10-directions|tool/emulator/flows/10_directions.sh||3"
@@ -68,6 +73,16 @@ PLAN_ROWS=(
   "25-directions-edge|tool/emulator/flows/25_directions_edge.sh||6"
   "26-drawer-nav-stack|tool/emulator/flows/26_drawer_nav_stack.sh||6"
   "27-offline-cold-start|tool/emulator/flows/27_offline_cold_start.sh||6"
+  "29c-filter-matrix-home-deity|tool/emulator/flows/29_filter_matrix.sh|home_browse:deity|7"
+  "29d-filter-matrix-drawer-all-state|tool/emulator/flows/29_filter_matrix.sh|drawer_all:state|7"
+  "29e-filter-matrix-drawer-all-district|tool/emulator/flows/29_filter_matrix.sh|drawer_all:district|7"
+  "29f-filter-matrix-drawer-all-deity|tool/emulator/flows/29_filter_matrix.sh|drawer_all:deity|7"
+  "30a-filter-matrix-drawer-bar-state|tool/emulator/flows/29_filter_matrix.sh|drawer_bar:state|7"
+  "30b-filter-matrix-drawer-bar-district|tool/emulator/flows/29_filter_matrix.sh|drawer_bar:district|8"
+  "30c-filter-matrix-drawer-bar-deity|tool/emulator/flows/29_filter_matrix.sh|drawer_bar:deity|8"
+  "30e-filter-matrix-search-state|tool/emulator/flows/29_filter_matrix.sh|search:state|8"
+  "30f-filter-matrix-search-district|tool/emulator/flows/29_filter_matrix.sh|search:district|8"
+  "30g-filter-matrix-search-deity|tool/emulator/flows/29_filter_matrix.sh|search:deity|8"
 )
 
 plan_skip_list() {
