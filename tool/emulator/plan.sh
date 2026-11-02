@@ -27,24 +27,36 @@ FLOW_RESET_S=30
 # run_shard.sh's outer "timeout --kill-after" on top of the flow guard
 # (round 4.3.1: counted in plan_need_s).
 FLOW_OUTER_KILL_S=10
-# One snapshot boot per job (emulator-boot-timeout).
-SHARD_BOOT_S=200
+# One snapshot boot per job (emulator-boot-timeout, workflow
+# EMULATOR_BOOT_TIMEOUT). Round 4.4.2: 150s, Manu's floor (81 boots, the
+# slowest ~33.7s; cold boots 28-34s, snapshot loads ~6s).
+SHARD_BOOT_S=150
 # Round 4.4: after boot, run_shard.sh waits for the system services
-# (services_ready.sh, 90s + 2s kill-after) and unlocks with keyevent 82,
-# 5 tries of <= 3s, 2s apart (5 x 3 + 4 x 2 = 23s). The emulator boot
-# timeout is 200s (cold boots in runs 41391038302 / 41461260068: 28-34s,
-# snapshot loads ~6s), so boot + ready + unlock = 315s.
-SHARD_READY_S=92
-SHARD_UNLOCK_TRIES=5
+# (services_ready.sh) and unlocks with keyevent 82 (never fatal).
+# Round 4.4.2: 30s + 2s kill-after and 3 tries of <= 3s, 2s apart
+# (3 x 3 + 2 x 2 = 13s). The snapshot is now saved only after the same
+# readiness check, so a warm boot is ready within seconds (r6 deaths came
+# ~6s after the snapshot load); 30s is 5x that. boot + ready + unlock = 195s.
+SHARD_READY_S=32
+SHARD_UNLOCK_TRIES=3
 SHARD_UNLOCK_S=$((SHARD_UNLOCK_TRIES * 3 + (SHARD_UNLOCK_TRIES - 1) * 2))
+# Round 4.4.2: job budget with the boot retry. A dead first attempt (no
+# BOOT line) costs at most the action start (SHARD_ACTION_START_S) plus
+# boot + ready + unlock; then the boot-death check step and the retry
+# flows step (same cap as the flow step). JOB_SETUP_POST_MIN is the setup
+# + post-step allowance the job timeout already keeps (step + 20).
+# shellcheck disable=SC2034 # read by self_test.sh (job budget)
+SHARD_ACTION_START_S=30
+# shellcheck disable=SC2034 # read by self_test.sh (job budget)
+JOB_SETUP_POST_MIN=20
 # One variable: matrix, need-minutes, run_shard.sh and self_test follow it.
 SHARD_COUNT=14
 # The limit is the worst case, not a flow count (round 4.3.1). Per flow:
 # cap + kill-after 15 + reset 30 + outer kill-after 10. Shard 12 holds 4
 # (06a, 06b at 600s; 26, 08 at a 300s row cap). Boot + ready + unlock
-# (round 4.4) = 200 + 92 + 23 = 315s:
-# 315 + 2 x (600 + 55) + 2 x (300 + 55) = 2335s = 38.92 min.
-# Every other shard: 315 + 3 x 655 = 2280s = 38.0 min. Both <= 39 min,
+# (round 4.4.2) = 150 + 32 + 13 = 195s:
+# 195 + 2 x (600 + 55) + 2 x (300 + 55) = 2215s = 36.92 min.
+# Every other shard: 195 + 3 x 655 = 2160s = 36.0 min. Both <= 39 min,
 # step timeout 42 (self_test checks every shard against 39 min).
 # shellcheck disable=SC2034 # read by self_test.sh (sources this file)
 SHARD_WORST_MAX_S=$((39 * 60))

@@ -92,12 +92,22 @@ if [[ -n "${EMULATOR_SHARD_RESULTS:-}" ]]; then
     want="$tier"
   fi
   missing_shards=""
+  noboot_shards=""
   for s in $want; do
-    [[ -s "${EMULATOR_SHARD_RESULTS}/emulator-app-test-${s}/results.txt" ]] || missing_shards+="${s} "
+    sr="${EMULATOR_SHARD_RESULTS}/emulator-app-test-${s}/results.txt"
+    if [[ ! -s "$sr" ]]; then
+      missing_shards+="${s} "
+    elif ! grep -q '^BOOT ' "$sr"; then
+      # Round 4.4.2: results.txt without a BOOT line is a shard whose
+      # emulator never reached run_shard.sh (both attempts died at boot).
+      missing_shards+="${s} "
+      noboot_shards+="${s} "
+    fi
   done
   missing_shards="${missing_shards% }"
+  noboot_shards="${noboot_shards% }"
   if [[ -n "$missing_shards" ]]; then
-    refuse="${refuse:+${refuse}; }missing shard artifacts: ${missing_shards} (need $(wc -w <<< "$want"))"
+    refuse="${refuse:+${refuse}; }missing shard artifacts: ${missing_shards} (need $(wc -w <<< "$want"))${noboot_shards:+; no BOOT line (emulator died before run_shard.sh): ${noboot_shards}}"
   fi
 elif [[ "${EMULATOR_GATE_MODE:-}" == strict || "${EMULATOR_GATE_EVENT:-${GITHUB_EVENT_NAME:-}}" == release ]]; then
   refuse="${refuse:+${refuse}; }EMULATOR_SHARD_RESULTS not set, shard artifacts not checked"

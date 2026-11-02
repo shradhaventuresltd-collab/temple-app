@@ -113,6 +113,15 @@ do_action() {
   return "$rc"
 }
 
+# Round 4.4.2: with nothing applied, the chip bar is on screen and
+# filter-clear (built only while a filter is active) is not.
+none_applied_ok() {
+  FILTER_KEPT_WHY=""
+  if ! filter_bar_present; then FILTER_KEPT_WHY="filter bar missing after detail"; return 1; fi
+  if ui_find --resource-id filter-clear; then FILTER_KEPT_WHY="filter-clear shown with no filter applied"; return 1; fi
+  return 0
+}
+
 # Expected KIND=LABEL pairs for filter_kept.
 applied_pairs() {
   local k
@@ -281,7 +290,8 @@ for seq in "${SEQS[@]}"; do
     # (and the applied labels) are required; chips alone do not pass.
     mapfile -t kept < <(applied_pairs)
     if (( ${#kept[@]} == 0 )); then
-      if filter_bar_present; then pass_step "seq$n-filter-kept"; else fail_step "seq$n-filter-kept" "filter bar missing after detail"; fi
+      # Nothing applied: the bar must be there and filter-clear must not.
+      if none_applied_ok; then pass_step "seq$n-filter-kept"; else fail_step "seq$n-filter-kept" "$FILTER_KEPT_WHY"; fi
     elif filter_kept "${kept[@]}"; then
       pass_step "seq$n-filter-kept"
     else

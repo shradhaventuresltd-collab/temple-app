@@ -598,18 +598,27 @@ ui_replace_field_text() {
 ui_sheet_swipe() {
   local direction="${1:-up}"
   local start_pct="${2:-58}"
+  # Round 4.4.1 nit: optional travel in % of the screen (default 24). A
+  # short pull (the @first list-head search) keeps clear of the sheet's
+  # own drag-to-dismiss when the list is already near its top.
+  local travel_pct="${3:-}"
   local width height travel start_y end_y
   read -r width height < <(ui_screen_size) || return 1
   local x=$((width / 2))
   # A 72px step never reached Shiva, Madurai, or Vishnu before the
   # 120s cap. A quarter of the sheet crosses several rows per dump and
   # still stops inside the tap band on the next look.
-  travel=$((height * 24 / 100))
-  if (( travel < 160 )); then
-    travel=160
-  fi
-  if (( travel > 320 )); then
-    travel=320
+  if [[ -n "$travel_pct" ]]; then
+    travel=$((height * travel_pct / 100))
+    (( travel < 48 )) && travel=48
+  else
+    travel=$((height * 24 / 100))
+    if (( travel < 160 )); then
+      travel=160
+    fi
+    if (( travel > 320 )); then
+      travel=320
+    fi
   fi
   start_y=$((height * start_pct / 100))
   if [[ "$direction" == "down" ]]; then
@@ -1830,19 +1839,37 @@ filter_kept() {
     FILTER_KEPT_WHY="filter-clear missing (no filter applied)"
     return 1
   fi
-  local kv kind want got
+  local kv kind want got judged=0 first_kind=""
   for kv in "$@"; do
     kind="${kv%%=*}" want="${kv#*=}"
+    [[ -n "$first_kind" ]] || first_kind="$kind"
     if ui_find --resource-id "filter-chip-${kind}"; then
       got="$(chip_label "$UI_TEXT")"
       if [[ "$got" != "$want" ]]; then
         FILTER_KEPT_WHY="${kind} chip shows '${got}', want '${want}'"
         return 1
       fi
+      judged=$((judged + 1))
     else
       echo "filter_kept: ${kind} chip not in the dump (scrolled off); not judged" >&2
     fi
   done
+  # Round 4.4.2 (Reviewer/Manu nit): filter-clear alone is not enough when
+  # every expected chip is off the row. Scroll the chip row to the first
+  # expected chip and judge it.
+  if (( $# > 0 && judged == 0 )); then
+    want=""
+    for kv in "$@"; do [[ "${kv%%=*}" == "$first_kind" ]] && want="${kv#*=}" && break; done
+    if ! scroll_chips_until --resource-id "filter-chip-${first_kind}"; then
+      FILTER_KEPT_WHY="no expected chip (${first_kind}) on the row after scrolling"
+      return 1
+    fi
+    got="$(chip_label "$UI_TEXT")"
+    if [[ "$got" != "$want" ]]; then
+      FILTER_KEPT_WHY="${first_kind} chip shows '${got}', want '${want}'"
+      return 1
+    fi
+  fi
   return 0
 }
 
@@ -1891,7 +1918,7 @@ select_labeled() {
       fi
       _n=$((_n + 1))
       echo "select_labeled: ${_k} sheet not at the list head; scrolling to the top (${_n})" >&2
-      ui_sheet_swipe down || { echo "select_labeled: swipe failed" >&2; return 1; }
+      ui_sheet_swipe down 58 "${FIRST_TOP_SWIPE_PCT:-12}" || { echo "select_labeled: swipe failed" >&2; return 1; }
       sleep 0.3
       ui_dump || { echo "select_labeled: dump failed on the ${_k} sheet" >&2; return 1; }
     done

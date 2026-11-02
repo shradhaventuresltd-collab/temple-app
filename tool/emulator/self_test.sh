@@ -49,6 +49,7 @@ gate_clean_results() { # dir [missing-shard]
     mkdir -p "${d}/shards/emulator-app-test-${n}"
     [[ "$n" == "$miss" ]] && continue
     bash -c 'source tool/emulator/plan.sh
+      echo "BOOT full-$1 snapshot"
       for id in $(plan_ids full "$1"); do echo "PASS ${id}: ok"; done' _ "$n" > "${d}/shards/emulator-app-test-${n}/results.txt"
   done
 }
@@ -608,6 +609,24 @@ if (( job_smoke < step_smoke + 20 || job_full < step_full + 20 )); then
   echo "job timeouts should leave 20 min for setup beyond the flow step" >&2
   exit 1
 fi
+# Round 4.4.2 (review item 1): the boot retry fits the job timeout:
+# setup/post allowance + dead first attempt (action start + boot + ready +
+# unlock, no BOOT line) + the boot-death check step + the retry flow step.
+read -r jb_setup jb_dead < <(bash -c 'source tool/emulator/plan.sh; echo "$JOB_SETUP_POST_MIN $((SHARD_ACTION_START_S + SHARD_BOOT_S + SHARD_READY_S + SHARD_UNLOCK_S))"')
+bc_min="$(awk '/- name: Check for a boot death/ { f = 1 } f && /timeout-minutes:/ { print $2; exit }' "$workflow")"
+boot_to="$(sed -n 's/^  EMULATOR_BOOT_TIMEOUT: "\([0-9]*\)"$/\1/p' "$workflow")"
+[[ "$boot_to" == "$(bash -c 'source tool/emulator/plan.sh; echo "$SHARD_BOOT_S"')" ]] || { echo "EMULATOR_BOOT_TIMEOUT ${boot_to} != plan.sh SHARD_BOOT_S" >&2; exit 1; }
+(( boot_to >= 150 )) || { echo "EMULATOR_BOOT_TIMEOUT ${boot_to}s is under Manu's 150s floor" >&2; exit 1; }
+for t in smoke full; do
+  if [[ "$t" == smoke ]]; then st="$step_smoke" jt="$job_smoke"; else st="$step_full" jt="$job_full"; fi
+  need_s=$(( jb_setup * 60 + jb_dead + bc_min * 60 + st * 60 ))
+  need_m=$(( (need_s + 59) / 60 ))
+  if (( jt * 60 < need_s )); then
+    echo "job timeout ${jt} min (${t}) < setup ${jb_setup} + dead attempt ${jb_dead}s + boot check ${bc_min} + retry ${st} = ${need_m} min" >&2; exit 1
+  fi
+  echo "job budget (${t}): ${jb_setup} + ${jb_dead}s + ${bc_min} + ${st} = ${need_m} min <= ${jt}"
+done
+[[ "$job_full" == 68 && "$job_smoke" == 101 ]] || { echo "job timeouts: full 68, smoke 101 (round 4.4.2 retry budget)" >&2; exit 1; }
 # Tier choice per event.
 tier_out="$(mktemp)"
 for pair in pull_request:smoke release:full workflow_dispatch:full; do
@@ -2606,7 +2625,7 @@ f06=tool/emulator/flows/06_filters.sh
 grep -q "select_labeled '^(?!All districts)" "$f06" && { echo "flow 06: no name-less lookahead district pick" >&2; exit 1; }
 grep -q 'COMBINED_DISTRICT_PICK:-^Alappuzha' "$f06" && grep -q 'state_chip_is "$COMBINED_STATE"' "$f06" || { echo "flow 06: real district (Alappuzha) and the state-chip check" >&2; exit 1; }
 grep -q ': "${_section}"' tool/emulator/lib/common.sh && { echo "select_labeled must use its section" >&2; exit 1; }
-[[ "$(bash -c 'source tool/emulator/plan.sh; plan_cap_s 26-drawer-nav-stack; plan_cap_s 06a-filters-single; plan_need_s full 12')" == $'300\n600\n2335' ]] || { echo "plan: row caps 26=300, 06a=600, shard 12 = 2335s" >&2; exit 1; }
+[[ "$(bash -c 'source tool/emulator/plan.sh; plan_cap_s 26-drawer-nav-stack; plan_cap_s 06a-filters-single; plan_need_s full 12')" == $'300\n600\n2215' ]] || { echo "plan: row caps 26=300, 06a=600, shard 12 = 2215s" >&2; exit 1; }
 # 6-8. Replays of run 41391038302 (testdata/run41391038302/replay_*.sh):
 # 27 waits for validation, re-taps Try again, flaps only after recover; 17c
 # clears "temple" before typing; 24 sends one fling and compares.
@@ -2730,7 +2749,7 @@ grep -q '^SNAPCFG full-1 SNAPSHOT_CONFIG mismatch' "$r43/art431c/results.txt" &&
 grep -q '^::warning::emulator full shard 1: snapshot boot, but the AVD config differs from the snapshot: SNAPSHOT_CONFIG mismatch: disk.dataPartition.size' "$r43/art431c.out" ||
   { echo "run_shard: mismatch on a snapshot boot prints ::warning:: (round 4.3.3): $(cat "$r43/art431c.out")" >&2; exit 1; }
 # (a)/(3): worst case counts the outer kill-after; avd-warmup runs beside build.
-[[ "$(plan_need_s full 12)" == 2335 && "$(plan_need_s full 1)" == 2280 ]] || { echo "plan_need_s: shard 12 2335s, others 2280s (boot 200 + ready 92 + unlock 23, outer kill-after 10)" >&2; exit 1; }
+[[ "$(plan_need_s full 12)" == 2215 && "$(plan_need_s full 1)" == 2160 ]] || { echo "plan_need_s: shard 12 2215s, others 2160s (boot 150 + ready 32 + unlock 13, outer kill-after 10)" >&2; exit 1; }
 grep -q 'timeout --kill-after="$FLOW_OUTER_KILL_S"' tool/emulator/run_shard.sh || { echo "run_shard outer kill-after must be FLOW_OUTER_KILL_S" >&2; exit 1; }
 awk '/^  avd-warmup:/ { w = 1 } w && /needs:/ { print; exit }' "$workflow" | grep -qx '    needs: \[gate\]' || { echo "avd-warmup must need only the gate (parallel with build)" >&2; exit 1; }
 #R43_MORE
@@ -2782,7 +2801,7 @@ rc=0; svc 2 env EMULATOR_SNAPSHOT_READY_S=10 EMULATOR_SNAPSHOT_SETTLE_S=0 bash t
 grep -q 'EMULATOR_SNAPSHOT_READY_S:-120' tool/emulator/snapshot_create.sh && grep -q 'EMULATOR_SNAPSHOT_SETTLE_S:-10' tool/emulator/snapshot_create.sh ||
   { echo "snapshot_create waits up to 120s and settles 10s" >&2; exit 1; }
 # run_shard: readiness + unlock before the BOOT line, never fatal.
-grep -q 'wait_services_ready "${EMULATOR_SERVICES_WAIT_S:-90}"' tool/emulator/run_shard.sh &&
+grep -q 'wait_services_ready "${EMULATOR_SERVICES_WAIT_S:-30}"' tool/emulator/run_shard.sh &&
   awk '/wait_services_ready "/ { w = NR } /printf .BOOT / { b = NR } END { exit !(w && b > w) }' tool/emulator/run_shard.sh ||
   { echo "run_shard waits for services (90s) before the BOOT line" >&2; exit 1; }
 cat > "$r44/runner.sh" <<'RUN'
@@ -2797,7 +2816,7 @@ rc=0; svc -1 env EMULATOR_SERVICES_WAIT_S=1 EMULATOR_ARTIFACTS="$r44/art" EMULAT
 [[ "$rc" == 0 ]] && grep -q '^BOOT full-1 snapshot$' "$r44/art/results.txt" && grep -q '^TIME ' "$r44/art/results.txt" &&
   grep -q 'system services not ready after 1s' "$r44/shard.out" && [[ "$(grep -c 'shell input keyevent 82' "$r44/calls")" == 1 ]] ||
   { echo "run_shard: services not ready is a warning, unlock once, flows run (rc=$rc): $(cat "$r44/shard.out")" >&2; exit 1; }
-# keyevent 82 failing: retried 5 times, never fatal.
+# keyevent 82 failing: retried 3 times (round 4.4.2), never fatal.
 cat > "$r44/bin/adb.fail82" <<'ADB'
 #!/usr/bin/env bash
 echo "$*" >> "$STUB_DIR/calls"
@@ -2809,8 +2828,8 @@ rm -rf "$r44/art"; mkdir -p "$r44/art"
 rc=0; svc 0 env EMULATOR_ARTIFACTS="$r44/art" EMULATOR_FLOW_RUNNER="$r44/runner.sh" \
   EMULATOR_SNAPSHOT_HW="$av/create-booted/snapshot-hardware.ini" EMULATOR_RUN_HW="$av/create-booted/hardware-qemu.ini" \
   bash tool/emulator/run_shard.sh full 1 >"$r44/shard.out" 2>&1 || rc=$?
-[[ "$rc" == 0 && "$(grep -c 'shell input keyevent 82' "$r44/calls")" == 5 ]] && grep -q 'unlock (keyevent 82) failed 5 times; continuing' "$r44/shard.out" && grep -q '^TIME ' "$r44/art/results.txt" ||
-  { echo "run_shard: unlock retried 5 times, never fatal (rc=$rc): $(grep -c 'keyevent 82' "$r44/calls") $(cat "$r44/shard.out")" >&2; exit 1; }
+[[ "$rc" == 0 && "$(grep -c 'shell input keyevent 82' "$r44/calls")" == 3 ]] && grep -q 'unlock (keyevent 82) failed 3 times; continuing' "$r44/shard.out" && grep -q '^TIME ' "$r44/art/results.txt" ||
+  { echo "run_shard: unlock retried 3 times, never fatal (rc=$rc): $(grep -c 'keyevent 82' "$r44/calls") $(cat "$r44/shard.out")" >&2; exit 1; }
 mk_svc_adb "$r44/bin"
 # Workflow: boot-retry step only on a failed flows step with no BOOT line.
 python3 - "$workflow" <<'PY' || exit 1
@@ -2831,7 +2850,7 @@ assert chk.index("adb emu kill") < chk.index('echo "retry=true"'), chk
 assert "if: ${{ !cancelled() && steps.flows.outcome == 'failure' && steps.boot-check.outputs.retry == 'true' }}" in rt, rt
 strip = lambda t: [l for l in t.splitlines() if l.strip().startswith(("api-level", "target", "arch", "cores", "disk-size", "avd-name", "force-avd", "disable-anim", "emulator-", "pre-emulator", "script:", "uses:", "timeout-minutes"))]
 assert strip(rt) == strip(fl), (strip(rt), strip(fl))
-assert 'EMULATOR_BOOT_TIMEOUT: "200"' in wf
+assert 'EMULATOR_BOOT_TIMEOUT: "150"' in wf
 PY
 # The boot-check script itself: BOOT line -> retry=false; none -> kill + retry=true.
 chk_sh="$(python3 - "$workflow" <<'PY'
@@ -2988,7 +3007,7 @@ grep -q ', 0 failed, .*0 not run' <<<"$o" && grep -q '^RETRY (1):' <<<"$o" && gr
   { echo "4.4.1 summarize lists RETRY, counts nothing: $o" >&2; exit 1; }
 [[ "$(grep -c '^RETRY ' "$sm/results.txt")" == 1 ]] || { echo "4.4.1 summarize must not append RETRY lines" >&2; exit 1; }
 { echo 'RETRY boot 3: no BOOT line after the first emulator start; ran the shard once more'; bash -c 'source tool/emulator/plan.sh; plan_ids full' | while read -r id; do echo "PASS $id: ok"; done; } > "$sm/results.txt"
-o="$(EMULATOR_ARTIFACTS="$sm" GITHUB_STEP_SUMMARY= bash tool/emulator/release_gate.sh full 0123456789abcdef0123456789abcdef01234567 build 2>&1)" &&
+o="$(env -u GITHUB_STEP_SUMMARY EMULATOR_ARTIFACTS="$sm" bash tool/emulator/release_gate.sh full 0123456789abcdef0123456789abcdef01234567 build 2>&1)" &&
   grep -q '(1 boot retry: 3)$' <<<"$o" && ! grep -q 'NOT a release gate' <<<"$o" || { echo "4.4.1 release gate lists the retry and does not refuse it: $o" >&2; exit 1; }
 # 4. (PR body only.) 5. Fixtures carry no ad-click ids, emails, tokens or device ids.
 python3 tool/emulator/fixture_scan.py tool/emulator/testdata >"$r44/fscan" || { echo "4.4.1 fixture scan:" >&2; cat "$r44/fscan" >&2; exit 1; }
@@ -2997,6 +3016,60 @@ mkdir -p "$r44/fs"; for bad in 'content-desc="%3Fgclid%3DCj0KCQiAfake123"' 'a@b.
 done
 printf 'emulator-5554\tdevice\ngclid%%3DREDACTED\n' > "$r44/fs/x.xml"; python3 tool/emulator/fixture_scan.py "$r44/fs" >/dev/null || { echo "4.4.1 fixture scan: emulator-5554 and REDACTED are allowed" >&2; exit 1; }
 echo "round 4.4.1 checks ok"
+# Round 4.4.2 (review 54b55b7 + Manu's nits)
+# @first head search pulls short (FIRST_TOP_SWIPE_PCT, default 12%).
+o="$( ( export EMULATOR_FLOW=99-r442 EMULATOR_ARTIFACTS="$r44/art442" EMULATOR_PACKAGE=com.shradhaventures.temple
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  L=("$r44/mid.xml" "$T44/17c_deity_select.xml"); I=0
+  ui_dump() { cp "${L[$I]}" "$DUMP"; }
+  ui_sheet_swipe() { echo "SWIPE $*"; I=1; }
+  ui_screen_size() { echo 320 640; }; ui_tap() { echo "TAP ${UI_TEXT:-}"; }; sleep() { :; }
+  select_labeled '@first' DEITY ) 2>&1)"
+grep -qx 'SWIPE down 58 12' <<<"$o" || { echo "4.4.2 @first head search uses a short pull: $o" >&2; exit 1; }
+grep -q 'local travel_pct="${3:-}"' tool/emulator/lib/common.sh || { echo "4.4.2 ui_sheet_swipe takes a travel %" >&2; exit 1; }
+# filter_kept scrolls the chip row when every expected chip is off it.
+replay442() { # "fx..." fn...: each chip-row scroll moves to the next dump
+  ( export EMULATOR_FLOW=99-r442 EMULATOR_ARTIFACTS="$r44/art442" EMULATOR_PACKAGE=com.shradhaventures.temple
+    # shellcheck disable=SC1091
+    source tool/emulator/lib/common.sh
+    read -r -a L <<<"$1"; shift; I=0
+    ui_dump() { cp "${L[$I]}" "$DUMP"; }
+    scroll_chip_bar_at() { echo "CHIPSCROLL $*"; (( I + 1 < ${#L[@]} )) && I=$((I + 1)); return 0; }
+    ui_screen_size() { echo 320 640; }; ui_tap() { echo "TAP ${UI_TEXT:-}"; }; sleep() { :; }
+    fk2() { ui_dump && filter_kept "$@" && echo KEPT || echo "LOST ${FILTER_KEPT_WHY}"; }
+    "$@" ) 2>&1
+}
+drop_node "$T44/seq1_filter_kept.xml" "$r44/off1.xml" filter-chip-deity
+drop_node "$r44/off1.xml" "$r44/offrow.xml" filter-chip-district
+grep -q 'filter-clear' "$r44/offrow.xml" && ! grep -q 'filter-chip-' "$r44/offrow.xml" || { echo "fixture: filter-clear with every chip off the row" >&2; exit 1; }
+o="$(replay442 "$r44/offrow.xml $T44/seq1_filter_kept.xml" fk2 'deity=Shiva')"
+grep -qx KEPT <<<"$o" && grep -q '^CHIPSCROLL' <<<"$o" || { echo "4.4.2 filter_kept scrolls to the deity chip and judges it: $o" >&2; exit 1; }
+o="$(replay442 "$r44/offrow.xml $T44/seq1_filter_kept.xml" fk2 'deity=Ganesha')"
+grep -q "^LOST deity chip shows 'Shiva', want 'Ganesha'" <<<"$o" || { echo "4.4.2 filter_kept: scrolled-to chip with the wrong label fails: $o" >&2; exit 1; }
+o="$(replay442 "$r44/offrow.xml" fk2 'deity=Shiva')"
+grep -q '^LOST no expected chip (deity) on the row after scrolling' <<<"$o" || { echo "4.4.2 filter_kept: filter-clear alone (no chip judged) fails: $o" >&2; exit 1; }
+# Nothing applied: filter-clear must be absent (flow 29).
+grep -q 'if none_applied_ok; then pass_step' tool/emulator/flows/29_filter_matrix.sh || { echo "4.4.2 flow 29 uses none_applied_ok when nothing is applied" >&2; exit 1; }
+nao_def="$(python3 -c 'import re; s=open("tool/emulator/flows/29_filter_matrix.sh").read(); print(re.search(r"(?ms)^none_applied_ok\(\) \{.*?^\}", s).group(0))')"
+eval "$nao_def"
+fna() { ui_dump; if none_applied_ok; then echo OK; else echo "$FILTER_KEPT_WHY"; fi; }
+[[ "$(replay44 "$r44/chips_no_clear.xml" fna)" == OK && "$(replay44 "$T44/seq1_filter_kept.xml" fna)" == "filter-clear shown with no filter applied" && "$(replay44 "$T44/detail_no_filter_bar.xml" fna)" == "filter bar missing after detail" ]] ||
+  { echo "4.4.2 nothing-applied check: chips only OK, filter-clear fails, no bar fails" >&2; exit 1; }
+# release_gate: a shard artifact without a BOOT line is a missing shard.
+ms="$(mktemp -d)"; gate_clean_results "$ms"
+sed -i '/^BOOT /d' "${ms}/shards/emulator-app-test-5/results.txt"
+rc=0; g="$(EMULATOR_GATE_MODE=strict EMULATOR_SHARD_RESULTS="${ms}/shards" EMULATOR_ARTIFACTS="$ms" GITHUB_STEP_SUMMARY=/dev/null bash tool/emulator/release_gate.sh full "$gate_sha" build 2>&1)" || rc=$?
+[[ "$rc" == 1 && "$g" == *"missing shard artifacts: 5 (need 14); no BOOT line (emulator died before run_shard.sh): 5"* ]] || { echo "4.4.2 gate: shard 5 without BOOT refused with the reason: rc=${rc} ${g}" >&2; exit 1; }
+rm -rf "$ms"
+# fixture_scan nits: =/&#61;, (?!REDACTED\b), %40, advertising id, hyphenated IMEI, Luhn.
+for bad in 'gclid&#61;Cj0KCQiAfake12' 'gclid%3DREDACTEDx12345' 'a%40b.co' 'advertising_id: 38400000-8cf0-11bd-b23e-10b96e40000d' 'IMEI 35-693803-564380-9' '35-693803-564380-9' '490154203237518'; do
+  printf '%s\n' "$bad" > "$r44/fs/x.xml"; python3 tool/emulator/fixture_scan.py "$r44/fs" >/dev/null && { echo "4.4.2 fixture scan misses: $bad" >&2; exit 1; }
+done
+for ok in 'gclid%3DREDACTED' 'adid=00000000-0000-0000-0000-000000000000' '490154203237519' 'bounds="[0,0][1700000000000,1]"'; do
+  printf '%s\n' "$ok" > "$r44/fs/x.xml"; python3 tool/emulator/fixture_scan.py "$r44/fs" >/dev/null || { echo "4.4.2 fixture scan false positive: $ok" >&2; exit 1; }
+done
+echo "round 4.4.2 checks ok"
 rm -rf "$r44"
 rm -rf "$r4"
 echo "emulator self-test ok"

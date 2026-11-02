@@ -17,7 +17,8 @@ name: emulator-app-test
 # Flows 11, 23 and 30d (near-me filter matrix cells) are planned skips (location-dependent).
 # Picker give-up: PICKER_LONG_GIVEUP_S=45 for state/district/deity pickers (others 20s);
 # per-step budget EMULATOR_STEP_BUDGET_S=150; 14 shards (SHARD_COUNT in plan.sh), each <= 3 active flows,
-# worst case 300 + 3 x (600 + 15 + 30) s = 37.25 min, step timeout 42 min.
+# worst case 195 + 3 x (600 + 15 + 30 + 10) s = 36.0 min (shard 12: 36.92), step timeout 42 min;
+# job 68 = 20 setup/post + 3.75 dead first attempt + 2 boot check + 42 boot retry (round 4.4.2).
 #
 # workflow_dispatch APK source, first match wins:
 #   apk_url          https URL of an APK
@@ -100,7 +101,7 @@ env:
   EMULATOR_AVD_NAME: emulator-app-test-30
   EMULATOR_FORCE_AVD_CREATION: false
   EMULATOR_DISABLE_ANIMATIONS: true
-  EMULATOR_BOOT_TIMEOUT: "200"
+  EMULATOR_BOOT_TIMEOUT: "150"
   # One boot per job from the clean cached snapshot. Both boots (snapshot
   # creation and the flow run) use these exact options. -no-snapshot-save
   # keeps every exit from writing back; snapshot_create.sh saves the
@@ -411,7 +412,7 @@ jobs:
     if: ${{ !cancelled() && needs.gate.result != 'skipped' && needs.gate.outputs.run != 'false' && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
     # Worst case is plan.sh need-minutes plus setup; see self_test.sh.
-    timeout-minutes: ${{ matrix.shard == 'smoke' && 100 || 62 }}
+    timeout-minutes: ${{ matrix.shard == 'smoke' && 101 || 68 }}
     strategy:
       fail-fast: false
       matrix:
@@ -502,10 +503,10 @@ jobs:
       # The AVD cache is saved only by the avd-warmup job (no shard races
       # it). A shard whose restore missed (warm-up failed) creates its own
       # snapshot above and does not save it.
-      # One snapshot boot (300s), then each flow capped at 600s + 15s
+      # One snapshot boot (150s) + readiness (32s) + unlock (13s), then each flow capped at 600s + 15s
       # kill-after + 30s reset (measured <= 12s in run 41373837994).
       # smoke: 6 flows -> 70 min worst case; full shard (14 of them): at
-      # most 3 active flows -> 38 min, step timeout 42. run_shard.sh exits 0;
+      # most 3 active flows -> <= 37 min, step timeout 42. run_shard.sh exits 0;
       # the summary step decides pass/fail. !cancelled() skips only on a
       # real cancellation.
       - name: Run emulator flows
