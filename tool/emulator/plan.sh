@@ -2,7 +2,7 @@
 # Which emulator flows run in which tier and shard (Confluence 12353537).
 #
 #   smoke  six flows, one job, on non-draft pull requests (path-filtered)
-#   full   every flow, six parallel shards, on workflow_dispatch and
+#   full   every flow, nine parallel shards (SHARD_COUNT), on workflow_dispatch and
 #          when a release or pre-release is published
 #   all    every flow in one sequential list (local runs, summary job)
 #
@@ -22,7 +22,7 @@ FLOW_KILL_AFTER_S=15
 FLOW_RESET_S=60
 # One snapshot boot per job (emulator-boot-timeout).
 SHARD_BOOT_S=300
-SHARD_COUNT=8
+SHARD_COUNT=9
 
 SMOKE_FLOWS="01-first-launch 04-home 05-search 08-list-detail 14-back-relaunch 15-offline"
 
@@ -32,6 +32,11 @@ SMOKE_FLOWS="01-first-launch 04-home 05-search 08-list-detail 14-back-relaunch 1
 # exists. They report SKIPPED, which is neither a pass nor a failure.
 # EMULATOR_SKIP_FLOWS="" runs them.
 DEFAULT_SKIP_FLOWS="11-near-me 23-near-me-settings-roundtrip 30d-near-me"
+# Steps allowed to report NA ("<flow>:<step>") on the strict release gate.
+# Empty: every NA (e.g. 24 multi-photo on a single-photo temple) blocks a
+# release until it is fixed or deliberately listed here.
+# shellcheck disable=SC2034 # read by release_gate.sh (sources this file)
+DEFAULT_NA_STEPS=""
 
 # id|script|FILTER_MATRIX_PART|shard
 # Shards are balanced by measured time from run 40916686359 (17, 06, 21,
@@ -41,12 +46,12 @@ DEFAULT_SKIP_FLOWS="11-near-me 23-near-me-settings-roundtrip 30d-near-me"
 # one chip per flow (FILTER_MATRIX_PART=<entry>:<chip>, "seqs" for the
 # 3+ step sequences), ~7 min each, on 8 shards.
 PLAN_ROWS=(
-  "17-entry-matrix|tool/emulator/flows/17_entry_matrix.sh|a|1"
+  "17a-entry-matrix-home-button|tool/emulator/flows/17_entry_matrix.sh|home_button|1"
   "01-first-launch|tool/emulator/flows/01_first_launch.sh||1"
   "02-policy-gate|tool/emulator/flows/02_policy_gate.sh||1"
   "03-force-update|tool/emulator/flows/03_force_update.sh||1"
   "28-small-screen-rotation-overflow|tool/emulator/flows/28_small_screen_rotation_overflow.sh||1"
-  "17b-entry-matrix-rest|tool/emulator/flows/17_entry_matrix.sh|b|2"
+  "17b-entry-matrix-drawer-all|tool/emulator/flows/17_entry_matrix.sh|drawer_all|2"
   "29a-filter-matrix-home-state|tool/emulator/flows/29_filter_matrix.sh|home_browse:state|2"
   "04-home|tool/emulator/flows/04_home.sh||2"
   "05-search|tool/emulator/flows/05_search.sh||2"
@@ -83,6 +88,9 @@ PLAN_ROWS=(
   "30e-filter-matrix-search-state|tool/emulator/flows/29_filter_matrix.sh|search:state|8"
   "30f-filter-matrix-search-district|tool/emulator/flows/29_filter_matrix.sh|search:district|8"
   "30g-filter-matrix-search-deity|tool/emulator/flows/29_filter_matrix.sh|search:deity|8"
+  "30d-near-me|tool/emulator/flows/29_filter_matrix.sh|near_me:all|8"
+  "17c-entry-matrix-drawer-search|tool/emulator/flows/17_entry_matrix.sh|drawer_search|9"
+  "17d-entry-matrix-list-drawer-all|tool/emulator/flows/17_entry_matrix.sh|list_drawer_all|9"
 )
 
 plan_skip_list() {

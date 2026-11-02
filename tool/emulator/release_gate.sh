@@ -52,8 +52,16 @@ else
   unplanned="${unplanned% }"
   n_unplanned=0
   [[ -n "$unplanned" ]] && n_unplanned="$(wc -w <<< "$unplanned")"
-  if (( n_fail + n_xfail + n_xpass + n_notrun + n_unplanned > 0 )); then
-    refuse="${n_fail} FAIL, ${n_xfail} XFAIL, ${n_xpass} XPASS, ${n_notrun} NOT RUN, ${n_unplanned} unplanned SKIPPED${unplanned:+ (${unplanned})}"
+  # NA steps are refused unless "<flow>:<step>" is in plan.sh DEFAULT_NA_STEPS.
+  planned_na="$(bash -c 'source "$1"; printf "%s" "${DEFAULT_NA_STEPS:-}"' _ "${root}/tool/emulator/plan.sh")"
+  unplanned_na="$(sed -n 's/^NA \([^: ]*\): \([^:]*\):.*/\1:\2/p' "$results" | sort -u | while read -r fs; do
+    [[ " ${planned_na} " == *" ${fs} "* ]] || printf '%s ' "$fs"
+  done)"
+  unplanned_na="${unplanned_na% }"
+  n_na=0
+  [[ -n "$unplanned_na" ]] && n_na="$(wc -w <<< "$unplanned_na")"
+  if (( n_fail + n_xfail + n_xpass + n_notrun + n_unplanned + n_na > 0 )); then
+    refuse="${n_fail} FAIL, ${n_xfail} XFAIL, ${n_xpass} XPASS, ${n_notrun} NOT RUN, ${n_unplanned} unplanned SKIPPED${unplanned:+ (${unplanned})}, ${n_na} unplanned NA${unplanned_na:+ (${unplanned_na})}"
   fi
 fi
 if [[ -n "$refuse" ]]; then
@@ -63,7 +71,7 @@ echo "$line"
 if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
   printf '### Release gate\n\n%s\n\n' "$line" >> "$GITHUB_STEP_SUMMARY"
   if [[ -n "$refuse" && -s "$results" ]]; then
-    { grep -E '^(FAIL|XFAIL|XPASS|NOT RUN) ' "$results" || true; } | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
+    { grep -E '^(FAIL|XFAIL|XPASS|NOT RUN|NA) ' "$results" || true; } | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
     for id in $unplanned; do grep -m1 "^SKIPPED ${id}[: ]" "$results" | sed 's/^/- unplanned: /' >> "$GITHUB_STEP_SUMMARY"; done
   fi
 fi

@@ -71,4 +71,3 @@ else
   fail_step no-maps-fallback "Get Directions not on screen after return-to-detail"
 fi
 adb_shell_capped 8 pm enable com.google.android.apps.maps >/dev/null 2>&1 || true
-adb_shell_capped 8 pm enable com.google.android.apps.maps >/dev/null 2>&1

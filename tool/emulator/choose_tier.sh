@@ -2,7 +2,7 @@
 # Pick the emulator tier for this workflow event and write tier= and
 # matrix= to GITHUB_OUTPUT.
 #   pull_request        smoke (6 flows, one job)
-#   release published   full (6 shards); covers pre-releases
+#   release published   full (9 shards); covers pre-releases
 #   workflow_dispatch   the tier input, default full; release_gate=true
 #                       forces full (smoke, apk_url or artifact_run_id with
 #                       release_gate is an error)

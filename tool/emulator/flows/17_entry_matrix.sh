@@ -63,11 +63,11 @@ swipe_from_list() {
 declare -A PICK=( [state]='^Kerala( +[0-9]+)?$' [deity]='^Shiva( +[0-9]+)?$' [district]='^Agra( +[0-9]+)?$' )
 declare -A SECTION=( [state]=STATE [deity]=DEITY [district]=DISTRICT )
 
-# Run 41373837994: two entries took the whole 600s cap (drawer_search-enter
-# at the timeout). Part a = home_button + drawer_all, part b = the rest.
+# Run 41373837994: two entries took the whole 600s cap, and a two-entry
+# part a then took 597 of 600s. One entry point per flow (plan.sh 17a-17d):
+# FILTER_MATRIX_PART=<entry>; "all"/unset runs every entry (local runs).
 case "${FILTER_MATRIX_PART:-all}" in
-  a) ENTRIES=(home_button drawer_all) ;;
-  b) ENTRIES=(drawer_search list_drawer_all) ;;
+  home_button|drawer_all|drawer_search|list_drawer_all) ENTRIES=("${FILTER_MATRIX_PART}") ;;
   *) ENTRIES=(home_button drawer_all drawer_search list_drawer_all) ;;
 esac
 for entry in "${ENTRIES[@]}"; do

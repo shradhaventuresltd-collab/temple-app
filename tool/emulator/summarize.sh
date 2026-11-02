@@ -28,7 +28,7 @@ resolve_outcome="${EMULATOR_RESOLVE_OUTCOME:-success}"
 unstarted=()
 
 for flow in "${flows[@]}"; do
-  if grep -Eq "^(PASS|FAIL|XFAIL|SKIPPED) ${flow}:" "$results"; then
+  if grep -Eq "^(PASS|FAIL|XFAIL|SKIPPED|NA) ${flow}:" "$results"; then
     continue
   fi
   # Whole-flow "NOT RUN <flow>" or a skipped step "NOT RUN <flow>: <step>".
@@ -91,12 +91,21 @@ xfails="$(grep -c '^XFAIL ' "$results" || true)"
 not_run="$(grep -c '^NOT RUN ' "$results" || true)"
 skipped="$(grep -c '^SKIPPED ' "$results" || true)"
 xpasses="$(grep -c '^XPASS ' "$results" || true)"
+# NA (precondition proven absent) is neither a pass nor a failure here; it
+# is listed on its own, and a flow with only NA steps still needs a PASS.
+nas="$(grep -c '^NA ' "$results" || true)"
 
 {
   echo "### Emulator app test (${tier}${EMULATOR_SHARD:+ shard ${EMULATOR_SHARD}})"
   echo
-  echo "${passes} passed, ${fails} failed, ${xfails} expected failures, ${xpasses} unexpected passes, ${not_run} not run, ${skipped} skipped."
+  echo "${passes} passed, ${fails} failed, ${xfails} expected failures, ${xpasses} unexpected passes, ${not_run} not run, ${skipped} skipped, ${nas} not applicable."
   echo
+  if [[ "$nas" -gt 0 ]]; then
+    echo "#### Not applicable (NA: ${nas}) - not a pass; the strict release gate refuses unplanned NA"
+    echo
+    grep '^NA ' "$results" | sed 's/^/- /'
+    echo
+  fi
   if [[ "$xfails" -gt 0 ]]; then
     echo "#### Expected failures (XFAIL: ${xfails}) - known bugs, not a release gate"
     echo
@@ -114,7 +123,11 @@ xpasses="$(grep -c '^XPASS ' "$results" || true)"
   echo '```'
 } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
 
-echo "${passes} passed, ${fails} failed, ${xfails} expected failures, ${xpasses} unexpected passes, ${not_run} not run, ${skipped} skipped."
+echo "${passes} passed, ${fails} failed, ${xfails} expected failures, ${xpasses} unexpected passes, ${not_run} not run, ${skipped} skipped, ${nas} not applicable."
+if [[ "$nas" -gt 0 ]]; then
+  echo "NA (${nas}):"
+  grep '^NA ' "$results" | sed 's/^/  /'
+fi
 if [[ "$xfails" -gt 0 ]]; then
   echo "XFAIL (${xfails}):"
   grep '^XFAIL ' "$results" | sed 's/^/  /'

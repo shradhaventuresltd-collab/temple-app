@@ -6,15 +6,17 @@ name: emulator-app-test
 #             emulator-apk artifact. Test jobs download it; they do not
 #             run Flutter or Gradle.
 #   emulator  smoke tier (6 flows, one job) on non-draft pull requests;
-#             the full suite as 8 parallel shards on workflow_dispatch and
+#             the full suite as 9 parallel shards on workflow_dispatch and
 #             when a release or pre-release is published. Each job boots the emulator
 #             once from the cached AVD snapshot, then runs its flows with
 #             pm clear between them (tool/emulator/run_shard.sh).
 #   summary   merges every shard's results, prints the tested 40-char SHA
 #             (release gate), and fails on any FAIL or failed shard.
 #
-# Caps: picker give-up 20s, 600s per flow, every step has timeout-minutes.
-# Flows 11, 23 (and 30d once it exists) are skipped as location-dependent.
+# Caps: picker give-up 20s (45s district/deity), step 150s, 600s per flow, every step has timeout-minutes.
+# Flows 11, 23 and 30d (near-me filter matrix cells) are planned skips (location-dependent).
+# Picker give-up: PICKER_LONG_GIVEUP_S=45 for district/deity pickers only (others 20s);
+# per-step budget EMULATOR_STEP_BUDGET_S=150; 9 shards, each <= 5 active flows.
 #
 # workflow_dispatch APK source, first match wins:
 #   apk_url          https URL of an APK
@@ -29,7 +31,7 @@ on:
   workflow_dispatch:
     inputs:
       tier:
-        description: "smoke (6 flows) or full (8 shards)"
+        description: "smoke (6 flows) or full (9 shards)"
         required: false
         default: full
         type: choice
@@ -397,7 +399,7 @@ jobs:
 
       # One snapshot boot (300s), then each flow capped at 600s + 15s
       # kill-after + 60s reset. smoke: 6 flows -> 73 min worst case;
-      # shard (8 of them): at most 5 active flows -> 62 min. run_shard.sh exits 0;
+      # shard (9 of them): at most 5 active flows -> 62 min. run_shard.sh exits 0;
       # the summary step decides pass/fail. !cancelled() skips only on a
       # real cancellation.
       - name: Run emulator flows

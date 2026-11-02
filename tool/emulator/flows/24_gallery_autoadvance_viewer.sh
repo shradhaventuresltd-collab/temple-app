@@ -4,30 +4,72 @@
 # InteractiveViewer (:1082) is zoomed, and in background. :315 gallery[_currentPage]
 # can RangeError if frames shrink (full-size swap / photo failing).
 reach_browse || { fail_step browse "no list"; return 0; }
-if ! ui_dump || ! ui_find --resource-id temple-browse-card; then
-  fail_step open-card "no temple card"
-  return 0
-fi
-ui_tap; sleep 3
-# Multi-photo checks need a temple with 2+ photos. skip_step records FAIL
-# when nothing failed before it, so a single-photo first card used to fail
-# the flow. Try up to 3 cards; with none multi-photo the gallery paging
-# steps are not applicable and are not recorded (PASS multi-photo-not-applicable).
+# --- multi-photo open begin
+# Open a temple KNOWN to have several photos by searching its name:
+# "Aazhimala Shiva Temple" showed '1 / 5' in runs 41314245431 and
+# 41373837994 (EMULATOR_MULTI_PHOTO_QUERY overrides). The old walk over
+# the first 3 cards recorded a blanket "not applicable" PASS whenever it
+# did not see '1 / N', even after a failed scroll/tap or on the wrong
+# screen. Now:
+#   detail page + '1 / 2..N'            -> PASS multi-photo, paging checks run
+#   detail page + proven single photo   -> NA multi-photo ('1 / 1', or one
+#     ('1 / 1' or one gallery page,       detail-gallery page and no counter);
+#      no counter)                        the paging checks are NA too
+#   anything else (search, tap, screen) -> FAIL multi-photo, paging checks
+#                                          still run (and fail)
+MULTI_QUERY="${EMULATOR_MULTI_PHOTO_QUERY:-Aazhimala}"
+on_detail() {
+  ui_find --resource-id-regex '^detail-gallery-[0-9]+$' || ui_find --text-contains "How to Reach"
+}
+gallery_single_proven() {
+  python3 - "$DUMP" <<'PY'
+import re, sys
+s = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+counters = re.findall(r'(?:text|content-desc)="(\d+) / (\d+)"', s)
+pages = set(re.findall(r'resource-id="detail-gallery-(\d+)"', s))
+if counters:
+    sys.exit(0 if all(t == "1" for _, t in counters) else 1)
+sys.exit(0 if pages == {"0"} else 1)
+PY
+}
 MULTI=0
-for card in 1 2 3; do
-  if ui_dump && ui_find --text-regex '^1 / [2-9]'; then MULTI=1; break; fi
-  (( card == 3 )) && break
-  ui_back; sleep 2
-  ui_wait_scrolled 15 --resource-id temple-browse-card >/dev/null 2>&1 || break
-  for _ in $(seq 1 "$card"); do ui_fling up; sleep 0.5; done
-  ui_dump && ui_find --resource-id temple-browse-card --prefer lower && ui_tap && sleep 3
-done
+SINGLE=0
+open_why=""
+if ! ui_replace_field_text "$MULTI_QUERY"; then
+  open_why="search for '${MULTI_QUERY}' failed (field: ${UI_FIELD_ACTUAL:-?})"
+else
+  adb_shell_capped 8 input keyevent 66 >/dev/null 2>&1 || true
+  sleep 2
+  if ! ui_wait_scrolled 15 --resource-id temple-browse-card --text-contains "$MULTI_QUERY"; then
+    open_why="no '${MULTI_QUERY}' card after the search"
+  elif ! ui_tap; then
+    open_why="tap on the '${MULTI_QUERY}' card failed"
+  else
+    sleep 3
+    if ! ui_dump || ! on_detail; then
+      open_why="not on the detail page after tapping '${MULTI_QUERY}'"
+    elif ui_find --text-regex '^1 / [2-9][0-9]*$'; then
+      MULTI=1
+    elif gallery_single_proven; then
+      SINGLE=1
+    else
+      open_why="detail page shows no readable photo counter or gallery"
+    fi
+  fi
+fi
 if (( MULTI )); then
   pass_step multi-photo
+elif (( SINGLE )); then
+  na_step multi-photo "'${MULTI_QUERY}' has a single photo (proven '1 / 1' / one gallery page)"
 else
-  pass_step multi-photo-not-applicable
+  fail_step multi-photo "$open_why"
 fi
-if (( MULTI )); then
+# --- multi-photo open end
+if (( SINGLE )); then
+  na_step swipe-pages "single-photo temple"
+  na_step swipe-burst-index "single-photo temple"
+fi
+if (( ! SINGLE )); then
 ui_dump; page_before="$(gallery_page || echo none)"
 for i in 1 2 3 4 5 6; do ui_fling left; sleep 0.3; done
 # The flings must page the gallery (run 41314245431: they were vertical).

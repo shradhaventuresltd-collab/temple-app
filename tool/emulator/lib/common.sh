@@ -80,6 +80,20 @@ record_xpass() {
   step_reset
 }
 
+# NA: the step's precondition is proven absent on this device/data (e.g. a
+# '1 / 1' gallery). Not a PASS; summarize lists it apart, and the strict
+# release gate refuses it unless "<flow>:<step>" is in plan.sh
+# DEFAULT_NA_STEPS.
+record_na() {
+  printf 'NA %s: %s: %s\n' "$FLOW" "$1" "$2" | tee -a "$RESULTS"
+  step_reset
+}
+na_step() {
+  record_na "$1" "$2"
+  step_shot "$1"
+  cp -f "$DUMP" "${DUMP_DIR}/${FLOW}_${1}.xml" 2>/dev/null || true
+}
+
 record_not_run() {
   printf 'NOT RUN %s: %s: %s\n' "$FLOW" "$1" "$2" | tee -a "$RESULTS"
   step_reset
@@ -163,22 +177,32 @@ adb_shell_capped() {
   return "$rc"
 }
 
+# Width and height as the screen is now. wm size reports the natural
+# (portrait) size; in landscape (SurfaceOrientation 1 or 3) the two are
+# swapped. Run 41373837994 flow 19 computed portrait bands (320x640) on a
+# 640x320 landscape screen.
 ui_screen_size() {
-  local size_rc
-  timeout 8 adb shell wm size | tr -d '\r' | awk '
+  local size_rc size rot
+  size="$(timeout 8 adb shell wm size | tr -d '\r' | awk '
     /Override size:/ { w=$3; next }
     /Physical size:/ { if (w == "") w=$3 }
     END {
       split(w, a, "x")
       if (a[1] != "" && a[2] != "") print a[1], a[2]
     }
-  '
-  # awk's status would hide a timed-out wm size. Keep timeout's code.
-  size_rc=${PIPESTATUS[0]}
+  '; exit "${PIPESTATUS[0]}")"
+  size_rc=$?
   if [[ "$size_rc" -eq 124 ]]; then
     echo "ui_screen_size: wm size timed out after 8s" >&2
+    return "$size_rc"
   fi
-  return "$size_rc"
+  [[ -n "$size" ]] || return 1
+  rot="$(timeout 8 adb shell dumpsys input 2>/dev/null | tr -d '\r' | sed -n 's/.*SurfaceOrientation: *\([0-9]\).*/\1/p' | head -1)"
+  if [[ "$rot" == 1 || "$rot" == 3 ]]; then
+    read -r w h <<<"$size"
+    if (( w < h )); then size="$h $w"; fi
+  fi
+  echo "$size"
 }
 
 ui_dump() {
@@ -1262,6 +1286,30 @@ find_filter_chip() {
 # 5-8 the left. CHIP_MAX_TOP_PCT (default 70) is the lowest top edge, in %
 # of the screen height, a chip may have; the drawer's FILTERS row sits at
 # 75% (y 478 of 640) and needs 95.
+# "left"/"right" for scroll_chip_bar_at when the wanted filter-chip-<x> is
+# not in the dump, from its place in the row order relative to the chips
+# that are; empty when that cannot be told.
+chip_scroll_dir() {
+  local want="" a
+  local -a args=("$@")
+  for ((a = 0; a < ${#args[@]}; a++)); do
+    if [[ "${args[$a]}" == --resource-id ]]; then want="${args[$((a + 1))]:-}"; fi
+  done
+  [[ "$want" == filter-chip-* && -s "${DUMP:-}" ]] || return 0
+  python3 - "$DUMP" "$want" <<'PY'
+import re, sys
+order = ["filter-chip-state", "filter-chip-district", "filter-chip-city", "filter-chip-deity"]
+want = sys.argv[2]
+if want not in order:
+    sys.exit(0)
+ids = re.findall(r'resource-id="(filter-chip-[a-z]+)"', open(sys.argv[1], encoding="utf-8", errors="replace").read())
+seen = [order.index(i) for i in ids if i in order]
+if not seen:
+    sys.exit(0)
+print("right" if order.index(want) < min(seen) else "left")
+PY
+}
+
 scroll_chips_until() {
   local i y width height max_top dir
   read -r width height < <(ui_screen_size) || return 1
@@ -1279,7 +1327,15 @@ scroll_chips_until() {
          ui_find --resource-id-regex '^filter-chip-' --max-top "$max_top"; then
         y=$UI_CY
       fi
-      if (( i <= 4 )); then dir=left; else dir=right; fi
+      # Target not in the dump: the row order is state, district, city,
+      # deity. A target left of every visible chip is off the LEFT edge, so
+      # scroll right first (22 used to swipe left 4 times before that).
+      dir="$(chip_scroll_dir "$@")"
+      if [[ -z "$dir" ]]; then
+        if (( i <= 4 )); then dir=left; else dir=right; fi
+      elif (( i > 4 )); then
+        [[ "$dir" == left ]] && dir=right || dir=left
+      fi
     fi
     scroll_chip_bar_at "$y" "$dir" || true
     sleep 0.4
@@ -1299,7 +1355,13 @@ dump_scroll_sig() {
   python3 - "$DUMP" <<'PY'
 import hashlib, re, sys
 raw = open(sys.argv[1], encoding="utf-8", errors="replace").read()
-texts = re.findall(r'\btext="([^"]*)"', raw)
+# Flutter options carry their label in content-desc, not text (run
+# 41373837994: 0 text= values in the deity and district sheets). A
+# text-only signature was the same before and after every swipe, so
+# seek_option saw "list stopped moving" after 3 looks while the list moved
+# (17 Shiva x2, 29 Madurai). Labels and filter-option ids both count.
+texts = re.findall(r'\b(?:text|content-desc)="([^"]*)"', raw)
+texts += re.findall(r'resource-id="(filter-option-[^"]*)"', raw)
 keep = [
     t for t in texts
     if t and "Loading" not in t and not re.fullmatch(r"\d{1,2}:\d{2}", t)
@@ -1541,10 +1603,23 @@ seek_option() {
       local s_lo=$((height * 42 / 100)) s_hi=$((height * 84 / 100))
       (( s_lo < band_top )) && s_lo=$band_top
       (( s_hi > band_bot )) && s_hi=$band_bot
+      local drag_before drag_after
+      drag_before="$(dump_scroll_sig)" || return 1
       if [[ "$dir" == up ]]; then
-        adb_shell_capped 8 input swipe $((width / 2)) "$s_hi" $((width / 2)) "$s_lo" 900 || return 1
+        adb_shell_capped 8 input swipe $((width / 2)) "$s_hi" $((width / 2)) "$s_lo" "${SEEK_DRAG_MS:-900}" || return 1
       else
-        adb_shell_capped 8 input swipe $((width / 2)) "$s_lo" $((width / 2)) "$s_hi" 900 || return 1
+        adb_shell_capped 8 input swipe $((width / 2)) "$s_lo" $((width / 2)) "$s_hi" "${SEEK_DRAG_MS:-900}" || return 1
+      fi
+      # The slow drag has its own retry: when the list did not move, drag
+      # again off the centre column (a chip under the finger can take the
+      # touch as a tap-down) and slower, once per look.
+      if ui_dump && drag_after="$(dump_scroll_sig)" && [[ "$drag_after" == "$drag_before" ]]; then
+        echo "seek_option: slow drag did not move the ${kind} list; retrying at x=$((width / 4)) with ${SEEK_DRAG_RETRY_MS:-1500}ms" >&2
+        if [[ "$dir" == up ]]; then
+          adb_shell_capped 8 input swipe $((width / 4)) "$s_hi" $((width / 4)) "$s_lo" "${SEEK_DRAG_RETRY_MS:-1500}" || return 1
+        else
+          adb_shell_capped 8 input swipe $((width / 4)) "$s_lo" $((width / 4)) "$s_hi" "${SEEK_DRAG_RETRY_MS:-1500}" || return 1
+        fi
       fi
     fi
     if [[ "$reach" =~ ^(far|mid)$ ]] && (( flips == 0 )); then

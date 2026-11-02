@@ -81,7 +81,9 @@ normalize_config() {
 }
 
 if [[ "$phase" == run ]]; then
-  pin_to_snapshot "${avd_dir}/snapshots/default_boot/hardware.ini" || true
+  if ! pin_to_snapshot "${avd_dir}/snapshots/default_boot/hardware.ini"; then
+    echo "::warning::prepare_avd (run): no snapshots/default_boot/hardware.ini in ${avd_dir}; config.ini keeps the cache-key values and the flow boot may be cold"
+  fi
 fi
 
 if [[ -f "$config" ]]; then

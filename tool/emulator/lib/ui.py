@@ -388,6 +388,14 @@ def cmd_option_seek(args: argparse.Namespace) -> int:
             continue
         if name == args.name or (args.prefix and name.startswith(args.name)):
             x1, y1, x2, y2 = box
+            # A row clipped to a sliver at the scroller edge (run
+            # 41373837994: Madurai at [16,568][112,569], 1 px) is not
+            # tappable: step it fully into view first.
+            if y2 - y1 < 12:
+                lo = args.min_top if args.min_top is not None else 0
+                hi = args.max_top if args.max_top is not None else y1
+                print("up near" if y1 >= (lo + hi) / 2 else "down near")
+                return 0
             if args.min_top is not None and y1 < args.min_top:
                 print("down near")
                 return 0

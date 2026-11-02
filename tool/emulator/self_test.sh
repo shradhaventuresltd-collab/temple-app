@@ -556,7 +556,7 @@ if [[ -z "${step_smoke:-}" ]] || (( step_smoke < need_smoke )); then
   echo "smoke flow step timeout ${step_smoke:-unset} is under the ${need_smoke} min worst case" >&2
   exit 1
 fi
-for n in 1 2 3 4 5 6 7 8; do
+for n in 1 2 3 4 5 6 7 8 9; do
   need="$(bash tool/emulator/plan.sh need-minutes full "$n")"
   if [[ -z "${step_full:-}" ]] || (( step_full < need )); then
     echo "shard ${n} step timeout ${step_full:-unset} is under its ${need} min worst case" >&2
@@ -583,7 +583,7 @@ GITHUB_EVENT_NAME=workflow_dispatch GITHUB_OUTPUT="$tier_out" INPUT_TIER=smoke b
 grep -qx 'matrix=\["smoke"\]' "$tier_out"
 : > "$tier_out"
 GITHUB_EVENT_NAME=release GITHUB_OUTPUT="$tier_out" bash tool/emulator/choose_tier.sh >/dev/null
-grep -qx 'matrix=\["1","2","3","4","5","6","7","8"\]' "$tier_out"
+grep -qx 'matrix=\["1","2","3","4","5","6","7","8","9"\]' "$tier_out"
 if GITHUB_EVENT_NAME=workflow_dispatch INPUT_TIER=everything bash tool/emulator/choose_tier.sh >/dev/null 2>&1; then
   echo "choose_tier.sh should reject an unknown tier" >&2
   exit 1
@@ -614,8 +614,10 @@ flows=(
   14-back-relaunch
   15-offline
   16-home-browse
-  17-entry-matrix
-  17b-entry-matrix-rest
+  17a-entry-matrix-home-button
+  17b-entry-matrix-drawer-all
+  17c-entry-matrix-drawer-search
+  17d-entry-matrix-list-drawer-all
   18-home-reselect
   19-rotation-state
   20-empty-and-back
@@ -640,6 +642,7 @@ flows=(
   30f-filter-matrix-search-district
   30g-filter-matrix-search-deity
   30s-filter-matrix-sequences
+  30d-near-me
 )
 for flow in "${flows[@]}"; do
   if ! grep -q "\"${flow}|" tool/emulator/plan.sh; then
@@ -902,13 +905,14 @@ fi
 # as "FAIL missing").
 unstarted_n="$(grep -c '^NOT RUN [^:]*: did not start$' "${summary_dir}/results.txt")"
 skipped_n="$(grep -c '^SKIPPED ' "${summary_dir}/results.txt")"
-if [[ "$unstarted_n" -ne 40 || "$skipped_n" -ne 2 ]] ||
+if [[ "$unstarted_n" -ne 42 || "$skipped_n" -ne 3 ]] ||
+   ! grep -q '^SKIPPED 30d-near-me: ' "${summary_dir}/results.txt" ||
    grep -q '^FAIL ' "${summary_dir}/results.txt" ||
    ! grep -q '^SKIPPED 11-near-me: ' "${summary_dir}/results.txt" ||
    ! grep -q '^SKIPPED 23-near-me-settings-roundtrip: ' "${summary_dir}/results.txt" ||
-   ! grep -q '0 failed, 0 expected failures, 0 unexpected passes, 40 not run, 2 skipped' "${summary_dir}/fail.out" ||
+   ! grep -q '0 failed, 0 expected failures, 0 unexpected passes, 42 not run, 3 skipped' "${summary_dir}/fail.out" ||
    ! grep -q 'did not start' "${summary_dir}/fail.out"; then
-  echo "unstarted flows: 40 NOT RUN, 2 SKIPPED, no FAIL, job not green" >&2
+  echo "unstarted flows: 42 NOT RUN, 3 SKIPPED (11, 23, 30d), no FAIL, job not green" >&2
   cat "${summary_dir}/fail.out" >&2
   exit 1
 fi
@@ -951,8 +955,8 @@ if ! EMULATOR_ARTIFACTS="$not_run_dir" EMULATOR_RESOLVE_OUTCOME=failure \
   exit 1
 fi
 not_run="$(grep -c '^NOT RUN ' "${not_run_dir}/results.txt")"
-if [[ "$not_run" -ne 40 ]] || [[ "$(grep -c '^SKIPPED ' "${not_run_dir}/results.txt")" -ne 2 ]]; then
-  echo "expected 40 NOT RUN and 2 SKIPPED lines, found ${not_run} NOT RUN" >&2
+if [[ "$not_run" -ne 42 ]] || [[ "$(grep -c '^SKIPPED ' "${not_run_dir}/results.txt")" -ne 3 ]]; then
+  echo "expected 42 NOT RUN and 3 SKIPPED lines, found ${not_run} NOT RUN" >&2
   exit 1
 fi
 if grep -q '^FAIL ' "${not_run_dir}/results.txt"; then
@@ -1246,12 +1250,12 @@ for id in $(plan_ids smoke); do
     exit 1
   fi
 done
-if [[ "$(plan_matrix full)" != '["1","2","3","4","5","6","7","8"]' || "$(plan_matrix smoke)" != '["smoke"]' ]]; then
+if [[ "$(plan_matrix full)" != '["1","2","3","4","5","6","7","8","9"]' || "$(plan_matrix smoke)" != '["smoke"]' ]]; then
   echo "full must be 6 shards and smoke one job" >&2
   exit 1
 fi
 all_ids="$(plan_ids all | sort)"
-shard_ids="$(for n in 1 2 3 4 5 6 7 8; do plan_ids full "$n"; done | sort)"
+shard_ids="$(for n in 1 2 3 4 5 6 7 8 9; do plan_ids full "$n"; done | sort)"
 if [[ "$all_ids" != "$shard_ids" ]]; then
   echo "the 6 shards must cover every flow exactly once" >&2
   diff <(echo "$all_ids") <(echo "$shard_ids") >&2 || true
@@ -1279,20 +1283,23 @@ for script in tool/emulator/flows/*.sh; do
 done
 # Round 4 (run 41373837994: 17/29/30 at the 600s cap): 17 in parts a/b,
 # the filter matrix one entry x chip per flow, every cell covered once.
-if [[ "$(plan_flows all | awk '$1 == "17-entry-matrix" { print $3 }')" != a ||
-      "$(plan_flows all | awk '$1 == "17b-entry-matrix-rest" { print $3 }')" != b ||
+if [[ "$(plan_flows all | awk '$2 ~ /17_entry_matrix.sh$/ { print $3 }' | sort | paste -sd' ')" != "drawer_all drawer_search home_button list_drawer_all" ||
       "$(plan_flows all | awk '$1 == "29a-filter-matrix-home-state" { print $3 }')" != home_browse:state ||
       "$(plan_flows all | awk '$1 == "30s-filter-matrix-sequences" { print $3 }')" != seqs ]]; then
-  echo "flow 17 must keep parts a/b and the matrix entry:chip parts" >&2
+  echo "flow 17 must run one entry per flow (17a-17d) and the matrix entry:chip parts" >&2
   exit 1
 fi
 want_cells="$(for e in home_browse drawer_all drawer_bar search; do for c in state district deity; do echo "$e:$c"; done; done | sort)"
-got_cells="$(plan_flows all | awk '$2 ~ /29_filter_matrix.sh$/ && $3 ~ /:/ { print $3 }' | sort)"
+got_cells="$(plan_flows all | awk '$2 ~ /29_filter_matrix.sh$/ && $3 ~ /:/ && $3 !~ /^near_me:/ { print $3 }' | sort)"
+# The near-me cells are a planned-skip row (30d), never silently dropped.
+if [[ "$(plan_flows all | awk '$1 == "30d-near-me" { print $3 }')" != near_me:all ]] || ! (unset EMULATOR_SKIP_FLOWS; plan_is_skipped 30d-near-me); then
+  echo "30d-near-me must be a planned-skip row running near_me:all" >&2; exit 1
+fi
 if [[ "$want_cells" != "$got_cells" ]]; then
   echo "filter matrix parts must cover every entry x chip exactly once: ${got_cells}" >&2
   exit 1
 fi
-for n in 1 2 3 4 5 6 7 8; do
+for n in 1 2 3 4 5 6 7 8 9; do
   active=0
   for id in $(plan_ids full "$n"); do
     plan_is_skipped "$id" || active=$((active + 1))
@@ -1312,7 +1319,7 @@ if EMULATOR_SKIP_FLOWS="" plan_is_skipped 11-near-me; then
   echo "EMULATOR_SKIP_FLOWS=\"\" should run the location flows" >&2
   exit 1
 fi
-for bad in "full 0" "full 9" "full x" "nightly"; do
+for bad in "full 0" "full 10" "full x" "nightly"; do
   # shellcheck disable=SC2086 # split tier and shard on purpose
   if plan_flows $bad >/dev/null 2>&1; then
     echo "plan_flows should reject '${bad}'" >&2
@@ -1537,7 +1544,7 @@ cat >"${stub_dir}/flow.sh" <<'STUB'
 leaked="$(cat)"
 printf '%s %s\n' "$1" "${#leaked}" >>"${STUB_LOG}"
 STUB
-for tier_shard in smoke "full 1" "full 2" "full 3" "full 4" "full 5" "full 6" "full 7" "full 8"; do
+for tier_shard in smoke "full 1" "full 2" "full 3" "full 4" "full 5" "full 6" "full 7" "full 8" "full 9"; do
   : >"${stub_dir}/ran"
   # shellcheck disable=SC2086 # split tier and shard on purpose
   STUB_LOG="${stub_dir}/ran" EMULATOR_FLOW_RUNNER="${stub_dir}/flow.sh" \
@@ -2208,11 +2215,52 @@ b26="$(
 if ! grep -qx 'FAIL 26-drawer-nav-stack: back-exits: TempleEmuMark logcat marker missing: crash check could not run' <<<"$b26"; then
   echo "flow 26: back-exits must FAIL when the marker is missing" >&2; echo "$b26" >&2; exit 1
 fi
-# 8. Flow 24: a single-photo temple never records FAIL via skip_step.
+# 8. Flow 24 (Manu blocker): NA only on a detail page that proves a single
+# photo; a failed search/scroll, a failed tap or the wrong screen is FAIL.
+# Runs the flow's "multi-photo open" block with stubbed UI.
 f24=tool/emulator/flows/24_gallery_autoadvance_viewer.sh
-if grep -q 'skip_step multi-photo' "$f24" || ! grep -q 'pass_step multi-photo-not-applicable' "$f24"; then
-  echo "flow 24: single-photo temples -> PASS multi-photo-not-applicable, no skip_step FAIL" >&2; exit 1
+run24() {
+  ( export EMULATOR_FLOW=24-gallery-autoadvance-viewer EMULATOR_ARTIFACTS="$r4/f24-$1" EMULATOR_PACKAGE=com.example
+    # shellcheck disable=SC1091
+    source tool/emulator/lib/common.sh
+    step_shot() { :; }; dismiss_blockers() { :; }; sleep() { :; }
+    adb_shell_capped() { :; }
+    ui_replace_field_text() { [[ "${R24_SEARCH:-ok}" == ok ]] || { UI_FIELD_ACTUAL="field not found"; return 1; }; }
+    ui_wait_scrolled() { [[ "${R24_SCROLL:-ok}" == ok ]]; }
+    ui_tap() { [[ "${R24_TAP:-ok}" == ok ]]; }
+    ui_dump() { cp "${fx4}/${R24_DUMP}" "$DUMP"; }
+    eval "$(sed -n '/^# --- multi-photo open begin$/,/^# --- multi-photo open end$/p' "$f24")"
+    cat "$RESULTS" )
+}
+o="$(R24_DUMP=detail_single_1of1.xml R24_SCROLL=fail run24 scroll 2>/dev/null)"
+grep -q "^FAIL 24-gallery-autoadvance-viewer: multi-photo: no 'Aazhimala' card after the search" <<<"$o" || { echo "flow 24: scroll/search miss must FAIL: $o" >&2; exit 1; }
+o="$(R24_DUMP=detail_single_1of1.xml R24_SEARCH=fail run24 search 2>/dev/null)"
+grep -q "^FAIL 24-gallery-autoadvance-viewer: multi-photo: search for 'Aazhimala' failed" <<<"$o" || { echo "flow 24: search failure must FAIL: $o" >&2; exit 1; }
+o="$(R24_DUMP=detail_single_1of1.xml R24_TAP=fail run24 tap 2>/dev/null)"
+grep -q "^FAIL 24-gallery-autoadvance-viewer: multi-photo: tap on the 'Aazhimala' card failed" <<<"$o" || { echo "flow 24: tap failure must FAIL: $o" >&2; exit 1; }
+o="$(R24_DUMP=kerala_list.xml run24 wrong 2>/dev/null)"
+grep -q "^FAIL 24-gallery-autoadvance-viewer: multi-photo: not on the detail page" <<<"$o" || { echo "flow 24: wrong screen must FAIL: $o" >&2; exit 1; }
+o="$(R24_DUMP=detail_single_1of1.xml run24 single 2>/dev/null)"
+grep -q "^NA 24-gallery-autoadvance-viewer: multi-photo: 'Aazhimala' has a single photo" <<<"$o" && ! grep -q '^PASS ' <<<"$o" || { echo "flow 24: proven 1 / 1 -> NA (not PASS): $o" >&2; exit 1; }
+o="$(R24_DUMP=detail_multi_1of5.xml run24 multi 2>/dev/null)"
+grep -qx 'PASS 24-gallery-autoadvance-viewer: multi-photo' <<<"$o" || { echo "flow 24: '1 / 5' -> PASS: $o" >&2; exit 1; }
+if grep -q 'multi-photo-not-applicable\|skip_step multi-photo' "$f24" || ! grep -q '^if (( ! SINGLE )); then$' "$f24"; then
+  echo "flow 24: no blanket NA; paging checks run unless a single photo was proven" >&2; exit 1
 fi
+# NA is not a PASS for summarize, and the strict gate refuses unplanned NA.
+na_art="$r4/na"; mkdir -p "$na_art"
+printf 'START 24-gallery-autoadvance-viewer\nNA 24-gallery-autoadvance-viewer: multi-photo: single photo\nDONE 24-gallery-autoadvance-viewer\n' > "$na_art/results.txt"
+if EMULATOR_ARTIFACTS="$na_art" EMULATOR_TIER=all bash tool/emulator/summarize.sh > "$na_art/out" 2>&1 ||
+   ! grep -q '^FAIL 24-gallery-autoadvance-viewer: missing: flow did not pass any step' "$na_art/results.txt" ||
+   ! grep -q '0 passed, .* 1 not applicable' "$na_art/out"; then
+  echo "summarize: NA is not a PASS (a flow with only NA fails)" >&2; cat "$na_art/out" >&2; exit 1
+fi
+gate_art="$r4/gate"; mkdir -p "$gate_art"
+printf 'PASS 24-gallery-autoadvance-viewer: browse\nNA 24-gallery-autoadvance-viewer: multi-photo: single photo\n' > "$gate_art/results.txt"
+g="$(EMULATOR_ARTIFACTS="$gate_art" EMULATOR_GATE_MODE=strict bash tool/emulator/release_gate.sh full 0123456789abcdef0123456789abcdef01234567 build 2>&1)" && {
+  echo "strict gate must refuse an unplanned NA: $g" >&2; exit 1; }
+grep -q '1 unplanned NA (24-gallery-autoadvance-viewer:multi-photo)' <<<"$g" || { echo "gate output names the NA: $g" >&2; exit 1; }
+if ! grep -q '^DEFAULT_NA_STEPS=""' tool/emulator/plan.sh; then echo "no NA is planned by default" >&2; exit 1; fi
 # 9. Per-step timeout: ui_dump refuses once the step is older than the
 # budget, the FAIL says so, and the next record_* starts a fresh step.
 st4="$(
@@ -2264,13 +2312,90 @@ fi
 if ! grep -B1 -A3 'ui_wait 45 --content-desc "Discover"' tool/emulator/flows/18_home_reselect.sh | grep -q 'fail_step scrolled'; then
   echo "flow 18: wait for the Home collage before the scroll check" >&2; exit 1
 fi
-# 13. Flow 17 parts a/b select its entries.
-for part in a b; do
+# 13. Flow 17: one entry point per flow (17a-17d took 597s for two).
+for part in home_button drawer_all drawer_search list_drawer_all; do
   e17="$(FILTER_MATRIX_PART=$part bash -c 'eval "$(sed -n "/^case \"\${FILTER_MATRIX_PART:-all}\" in/,/^esac/p" tool/emulator/flows/17_entry_matrix.sh)"; echo "${ENTRIES[*]}"')"
-  case "$part" in
-    a) [[ "$e17" == "home_button drawer_all" ]] ;;
-    b) [[ "$e17" == "drawer_search list_drawer_all" ]] ;;
-  esac || { echo "flow 17 part ${part}: wrong entries '${e17}'" >&2; exit 1; }
+  [[ "$e17" == "$part" ]] || { echo "flow 17 part ${part}: wrong entries '${e17}'" >&2; exit 1; }
 done
+# 14. Seek stall root cause (17 Shiva x2, 29 Madurai): the sheet options
+# have no text= (0 in every sheet dump of runs 41306793034 and 41373837994),
+# so the old text-only signature was sha256("") for every look and seek
+# said "list stopped moving" after 3 looks. The signature now reads
+# content-desc and filter-option ids.
+for f in deity_sheet_ganesha_stall.xml district_sheet_madurai_sliver.xml; do
+  if grep -q ' text="[^"]' "$fx4/$f"; then echo "fixture ${f}: expected no text= values" >&2; exit 1; fi
+done
+sig4() { DUMP="$fx4/$1" bash -c 'source <(sed -n "/^dump_scroll_sig() {/,/^}/p" tool/emulator/lib/common.sh); dump_scroll_sig'; }
+if [[ "$(sig4 deity_sheet_ganesha_stall.xml)" == e3b0c44298fc1c14 || "$(sig4 deity_sheet_ganesha_stall.xml)" == "$(sig4 district_sheet_madurai_sliver.xml)" ]]; then
+  echo "dump_scroll_sig: must tell two different sheet positions apart (was sha256 of nothing)" >&2; exit 1
+fi
+# Replay: Madurai is a 1 px sliver at y 568-569. It must never be tapped
+# (option-seek "up near" even with no max-top limit), and a slow drag that
+# does not move the frozen list gets its own retry (x=80, 1500 ms).
+if [[ "$(python3 tool/emulator/lib/ui.py option-seek "$fx4/district_sheet_madurai_sliver.xml" --kind district --name Madurai --min-top 153 --max-top 640)" != "up near" ]]; then
+  echo "option-seek: a 1 px sliver is not tappable" >&2; exit 1
+fi
+: > "$r4/log"
+(R4_SEQ=district_sheet_madurai_sliver.xml lib4 seek_option district Madurai $((SECONDS + 30))) >/dev/null 2>"$r4/seek.err" || true
+if ! grep -q 'ADB input swipe 160 537 160 268 900' "$r4/log" || ! grep -q 'ADB input swipe 80 537 80 268 1500' "$r4/log" ||
+   ! grep -q 'slow drag did not move the district list; retrying' "$r4/seek.err" || grep -q '^TAP' "$r4/log"; then
+  echo "seek_option: slow drag on the Madurai dump, then its own retry; no tap on the sliver" >&2; cat "$r4/log" "$r4/seek.err" >&2; exit 1
+fi
+# 15. ui_screen_size honours rotation (SurfaceOrientation 1/3 swap).
+mkdir -p "$r4/rot"
+cat > "$r4/rot/adb" <<'ADB'
+#!/usr/bin/env bash
+case "$*" in
+  "shell wm size") echo "Physical size: 320x640" ;;
+  "shell dumpsys input") echo "    SurfaceOrientation: ${R4_ROT:-0}" ;;
+esac
+ADB
+chmod +x "$r4/rot/adb"
+rot4() { ( export PATH="$r4/rot:$PATH" R4_ROT="$1" EMULATOR_FLOW=99-rot EMULATOR_ARTIFACTS="$r4/rotart" EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh; ui_screen_size ); }
+if [[ "$(rot4 0)" != "320 640" || "$(rot4 1)" != "640 320" || "$(rot4 3)" != "640 320" || "$(rot4 2)" != "320 640" ]]; then
+  echo "ui_screen_size: landscape swaps width/height" >&2; exit 1
+fi
+# 16. Flow 22: the state chip is off the LEFT edge (district first in the
+# dump), so the FIRST swipe reveals the left side.
+: > "$r4/log"
+(R4_SEQ=state_chip_off_left.xml lib4 scroll_chips_until --resource-id filter-chip-state --text-regex '^Tamil Nadu') >/dev/null 2>&1 || true
+if ! head -1 <(grep '^ADB input swipe' "$r4/log") | awk '{ exit !($4 < $6) }'; then
+  echo "scroll_chips_until: first swipe must go right for a chip left of every visible chip" >&2; cat "$r4/log" >&2; exit 1
+fi
+# 17. Flow 18: relative scroll check, "scrolled" recorded exactly once.
+run18() {
+  ( export EMULATOR_FLOW=18-home-reselect EMULATOR_ARTIFACTS="$r4/f18-$1" EMULATOR_PACKAGE=com.example
+    # shellcheck disable=SC1091
+    source tool/emulator/lib/common.sh
+    step_shot() { :; }; dismiss_blockers() { :; }; sleep() { :; }; ui_fling() { R18_N=$((R18_N + 1)); }
+    R18_N=0
+    ui_dump() { :; }
+    ui_wait() { [[ "$R18_COLLAGE" == yes ]] && UI_Y1=357; }
+    ui_find() { [[ "$R18_COLLAGE" == yes ]] || return 1; if (( R18_N > 0 )); then UI_Y1="$R18_AFTER"; else UI_Y1=357; fi; }
+    eval "$(sed -n '/^HOME_TOP_Y=""$/,/^}$/p' tool/emulator/flows/18_home_reselect.sh)"
+    eval "$(sed -n '/^if ! ui_wait 45 --content-desc "Discover"; then$/,/^fi$/p' tool/emulator/flows/18_home_reselect.sh)" >/dev/null 2>&1
+    cat "$RESULTS" )
+}
+o="$(R18_COLLAGE=yes R18_AFTER=330 run18 moved)"; [[ "$o" == "PASS 18-home-reselect: scrolled" ]] || { echo "flow 18: Discover 357 -> 330 is a scroll: $o" >&2; exit 1; }
+o="$(R18_COLLAGE=yes R18_AFTER=357 run18 stuck)"; [[ "$(grep -c scrolled <<<"$o")" == 1 && "$o" == "FAIL 18-home-reselect: scrolled: could not scroll"* ]] || { echo "flow 18: unmoved -> one FAIL: $o" >&2; exit 1; }
+o="$(R18_COLLAGE=no R18_AFTER=357 run18 never)"; [[ "$(grep -c scrolled <<<"$o")" == 1 && "$o" == *"Home collage never appeared"* ]] || { echo "flow 18: no collage -> exactly one FAIL: $o" >&2; exit 1; }
+# 18. Flow 06: Kerala's list (run 41373837994) has a Vishnu-deity temple,
+# so the Kerala-scoped deity sheet offers Vishnu.
+grep -q 'content-desc="Ambalappuzha Sri Krishna Temple&#10;Ambalappuzha, Kerala&#10;Vishnu"' "$fx4/kerala_list.xml" || { echo "fixture: Kerala/Vishnu evidence" >&2; exit 1; }
+# 19. Nits: prepare_avd warns on a missing snapshot hardware.ini; 25 runs
+# pm enable once; plan/choose_tier/workflow say the real shard count.
+rm -f "$avd4/snapshots/default_boot/hardware.ini"
+w4="$(PATH="$r4/bin:$PATH" ANDROID_AVD_HOME="$r4/avd" HOME="$r4" RUNNER_TEMP="" EMULATOR_DISK_SIZE=2048M bash tool/emulator/prepare_avd.sh run 2>&1)"
+grep -q '^::warning::prepare_avd (run): no snapshots/default_boot/hardware.ini' <<<"$w4" || { echo "prepare_avd: warn on missing hardware.ini" >&2; echo "$w4" >&2; exit 1; }
+[[ "$(grep -c 'pm enable com.google.android.apps.maps' tool/emulator/flows/25_directions_edge.sh)" == 1 ]] || { echo "flow 25: pm enable once" >&2; exit 1; }
+sc="$(bash -c 'source tool/emulator/plan.sh; echo $SHARD_COUNT')"
+words=(zero one two three four five six seven eight nine ten)
+if ! grep -q "every flow, ${words[$sc]} parallel shards" tool/emulator/plan.sh || ! grep -q "full (${sc} shards)" tool/emulator/choose_tier.sh ||
+   ! grep -q "as ${sc} parallel shards" .github/workflows/emulator-app-test.yml || grep -qE 'six parallel|\(6 shards\)|\(8 shards\)' tool/emulator/plan.sh tool/emulator/choose_tier.sh .github/workflows/emulator-app-test.yml; then
+  echo "shard count text must say ${sc}" >&2; exit 1
+fi
+grep -q 'PICKER_LONG_GIVEUP_S=45' .github/workflows/emulator-app-test.yml && grep -q 'EMULATOR_STEP_BUDGET_S=150' .github/workflows/emulator-app-test.yml || { echo "workflow header: caps" >&2; exit 1; }
 rm -rf "$r4"
 echo "emulator self-test ok"
