@@ -117,12 +117,19 @@ for entry in "${ENTRIES[@]}"; do
       fi
     fi
   fi
+  # Clear the field first (round 4.3): on drawer_search it already holds
+  # "temple", and typing appended "templezzzqqq", which still matches every
+  # "... Temple" (temple_search.dart:640-641 reverse prefix, a pre-existing
+  # app bug since #103, Jira ticket). ui_replace_field_text clears exactly
+  # the current text, types, and reads the field back.
   if ui_dump && ui_find --resource-id temple-list-search-field; then
-    ui_tap
-    ui_type "zzzqqq"
+    field_ok=1
+    ui_replace_field_text "zzzqqq" temple-list-search-field || field_ok=0
     adb_shell_capped 8 input keyevent 66 || true
     sleep 2
-    if ui_dump && ui_find --resource-id filter-empty-clear; then
+    if (( ! field_ok )); then
+      fail_step "$entry-empty-clear" "search field reads '${UI_FIELD_ACTUAL:-?}', not 'zzzqqq'"
+    elif ui_dump && ui_find --resource-id filter-empty-clear; then
       ui_tap
       sleep 1
       ui_dump

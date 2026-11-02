@@ -70,14 +70,18 @@ if (( SINGLE )); then
   na_step swipe-burst-index "single-photo temple"
 fi
 if (( ! SINGLE )); then
+# One fling, then dump and compare (round 4.3). The gallery auto-advances
+# every 5s and wraps ((_currentPage + 1) % length, temple_detail_screen.dart
+# :200): six flings 0.3s apart took ~8s on 5 pages, reached the end and
+# wrapped back to the start index (run 41391038302: "1 -> 1", later "2 / 5").
+# The fling must page the gallery (run 41314245431: flings were vertical).
 ui_dump; page_before="$(gallery_page || echo none)"
-for i in 1 2 3 4 5 6; do ui_fling left; sleep 0.3; done
-# The flings must page the gallery (run 41314245431: they were vertical).
+ui_fling left
 ui_dump; page_after="$(gallery_page || echo none)"
 if [[ "$page_before" != none && "$page_after" != none && "$page_after" != "$page_before" ]]; then
   pass_step swipe-pages
 else
-  fail_step swipe-pages "flings did not change the page (${page_before} -> ${page_after})"
+  fail_step swipe-pages "one fling did not change the page (${page_before} -> ${page_after})"
 fi
 for i in 1 2 3 4 5 6; do ui_fling right; sleep 0.3; done; step_shot swipe-burst
 # The timer keeps auto-advancing, so the page after the burst is not fixed.

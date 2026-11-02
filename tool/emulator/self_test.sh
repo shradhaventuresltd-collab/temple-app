@@ -1561,7 +1561,7 @@ fi
 # PASS/FAIL assertions, no XFAIL left anywhere for KAN-186.
 f27=tool/emulator/flows/27_offline_cold_start.sh
 if grep -Eq 'xfail_known|xfail_step' "$f27" || grep -rq 'xfail_known [a-z-]* KAN-186' tool/emulator/flows ||
-   ! grep -q 'pass_step recover ||' "$f27" || ! grep -q 'pass_step chips-after-flap ||' "$f27"; then
+   ! grep -q '^  pass_step recover$' "$f27" || ! grep -q 'pass_step chips-after-flap ||' "$f27"; then
   echo "flow 27: recover and chips-after-flap must be normal assertions (KAN-186 fixed)" >&2; exit 1
 fi
 # Swipe-dismiss on each real sheet: a pull from the title centre (156,182)
@@ -2595,6 +2595,24 @@ grep -q "select_labeled '^(?!All districts)" "$f06" && { echo "flow 06: no name-
 grep -q 'COMBINED_DISTRICT_PICK:-^Alappuzha' "$f06" && grep -q 'state_chip_is "$COMBINED_STATE"' "$f06" || { echo "flow 06: real district (Alappuzha) and the state-chip check" >&2; exit 1; }
 grep -q ': "${_section}"' tool/emulator/lib/common.sh && { echo "select_labeled must use its section" >&2; exit 1; }
 [[ "$(bash -c 'source tool/emulator/plan.sh; plan_cap_s 26-drawer-nav-stack; plan_cap_s 06a-filters-single; plan_need_s full 12')" == $'300\n600\n2280' ]] || { echo "plan: row caps 26=300, 06a=600, shard 12 = 2280s" >&2; exit 1; }
+# 6-8. Replays of run 41391038302 (testdata/run41391038302/replay_*.sh):
+# 27 waits for validation, re-taps Try again, flaps only after recover; 17c
+# clears "temple" before typing; 24 sends one fling and compares.
+o="$(bash "$T41/replay_27.sh" tool/emulator/flows/27_offline_cold_start.sh)"
+grep -q '^PASS 27-offline-cold-start: recover$' <<<"$o" && grep -q '^PASS 27-offline-cold-start: chips-after-flap$' <<<"$o" ||
+  { echo "flow 27: recover within 60s of validation, then flaps: $o" >&2; exit 1; }
+o="$(LOAD_S=200 bash "$T41/replay_27.sh" tool/emulator/flows/27_offline_cold_start.sh)"
+grep -q '^FAIL 27-offline-cold-start: recover: did not recover within 60s' <<<"$o" && grep -q '^NOT RUN 27-offline-cold-start: chips-after-flap' <<<"$o" &&
+  ! grep -q 'network on' <<<"$(sed -n '/^--- events/,$p' <<<"$o" | sed 1,2d)" ||
+  { echo "flow 27: no flap after a failed recover; Try again re-tapped every 15s: $o" >&2; exit 1; }
+[[ "$(grep -c 'tapped Try again' <<<"$o")" -ge 4 ]] || { echo "flow 27: Try again re-tapped every 15s in 60s: $o" >&2; exit 1; }
+grep -q 'wait_network_validated 60' tool/emulator/flows/27_offline_cold_start.sh || { echo "flow 27 waits for VALIDATED" >&2; exit 1; }
+o="$(bash "$T41/replay_17c.sh" tool/emulator/flows/17_entry_matrix.sh)"
+grep -q "typed 'zzzqqq' -> field 'zzzqqq'" <<<"$o" && grep -q '^PASS 17c-entry-matrix-drawer-search: drawer_search-empty-clear$' <<<"$o" ||
+  { echo "flow 17c: clear 'temple' before typing zzzqqq: $o" >&2; exit 1; }
+o="$(bash "$T41/replay_24.sh" tool/emulator/flows/24_gallery_autoadvance_viewer.sh 1 1 2>&1)"
+[[ "$(grep -c ' fling ' <<<"$o")" == 1 ]] && grep -q '^PASS 24-gallery-autoadvance-viewer: swipe-pages$' <<<"$o" ||
+  { echo "flow 24: one fling, then dump and compare: $o" >&2; exit 1; }
 #R43_MORE
 rm -rf "$r43"
 echo "round 4.3 checks ok"

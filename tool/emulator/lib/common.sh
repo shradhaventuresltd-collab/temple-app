@@ -1160,6 +1160,61 @@ network_on() {
   adb shell svc data enable >/dev/null 2>&1 || true
 }
 
+# network_validated: Android's ConnectivityService has validated a default
+# network (NetworkCapabilities ... VALIDATED). Run 41391038302 flow 27:
+# "validation passed" at 05:11:19.85 UTC, the app's retry socket at 05:11:24,
+# and the harness read the old error page at 05:11:32.6 and gave up.
+network_validated() {
+  adb_shell_capped 10 dumpsys connectivity 2>/dev/null | tr -d '\r' \
+    | grep -Eq 'Capabilities: [^]]*(^|[&: ])VALIDATED([&] |[&]|[ ]|$)'
+}
+
+# wait_network_validated [TIMEOUT_S]: poll network_validated every 2s.
+wait_network_validated() {
+  local timeout="${1:-60}" start="$SECONDS"
+  while (( SECONDS - start < timeout )); do
+    if network_validated; then
+      echo "network validated after $((SECONDS - start))s"
+      return 0
+    fi
+    sleep 2
+  done
+  echo "network not validated after ${timeout}s" >&2
+  return 1
+}
+
+# recover_browse [GRACE_S] [RETAP_S]: after the network came back, tap
+# "Try again" and give the reload GRACE_S (60) seconds, tapping it again
+# every RETAP_S (15) seconds while "Could not load temples" is still shown.
+# Unlike wait_browse_ready, the error page is not final until the grace ends.
+# Sets RECOVER_BROWSE_MSG (call it directly, not in $(...), so the caller
+# sees it).
+recover_browse() {
+  local grace="${1:-60}" retap="${2:-15}" start="$SECONDS" last_tap=-1000 taps=0
+  while (( SECONDS - start < grace )); do
+    ui_dump || { sleep 2; continue; }
+    if ui_find --resource-id filter-chip-state || ui_find --text-regex '^State$'; then
+      if ! ui_find --text-contains "Loading temples" && ! ui_find --text-contains "Could not load temples"; then
+        RECOVER_BROWSE_MSG="browse recovered after $((SECONDS - start))s (${taps} Try again taps)"
+        echo "$RECOVER_BROWSE_MSG"
+        return 0
+      fi
+    fi
+    if ui_find --text-contains "Could not load temples" || ui_find --text-regex '^(Retry|Try again)$'; then
+      if (( SECONDS - last_tap >= retap )) && ui_find --text-regex '^(Retry|Try again)$'; then
+        ui_tap
+        taps=$((taps + 1))
+        last_tap=$SECONDS
+        echo "recover_browse: tapped Try again (${taps}) at +$((SECONDS - start))s"
+      fi
+    fi
+    sleep 2
+  done
+  RECOVER_BROWSE_MSG="browse did not recover within ${grace}s (${taps} Try again taps)"
+  echo "$RECOVER_BROWSE_MSG"
+  return 1
+}
+
 screenrecord_start() {
   local stop="${ARTIFACTS}/recordings/${FLOW}.stop"
   local pidfile="${ARTIFACTS}/recordings/${FLOW}.pid"
