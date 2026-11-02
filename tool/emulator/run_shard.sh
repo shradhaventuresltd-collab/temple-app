@@ -6,7 +6,7 @@
 # flow after the first.
 #
 # Usage: run_shard.sh smoke
-#        run_shard.sh full <shard 1-8>
+#        run_shard.sh full <shard 1-SHARD_COUNT> (plan.sh)
 #        run_shard.sh all
 # EMULATOR_SHARD_DRY_RUN=1 prints the plan and runs nothing.
 set -uo pipefail

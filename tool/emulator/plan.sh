@@ -42,9 +42,9 @@ DEFAULT_NA_STEPS=""
 # Shards are balanced by measured time from run 40916686359 (17, 06, 21,
 # 22 and the filter matrix are the long ones) and hold at most five flows
 # that are not skipped. Run 41373837994 hit the 600s cap in 17, 29 and 30:
-# 17 is split in two (parts a/b), and the filter matrix runs one entry x
-# one chip per flow (FILTER_MATRIX_PART=<entry>:<chip>, "seqs" for the
-# 3+ step sequences), ~7 min each, on 8 shards.
+# 17 is split per entry point (17a-17d), and the filter matrix runs one
+# entry x one chip per flow (FILTER_MATRIX_PART=<entry>:<chip>, "seqs" for
+# the 3+ step sequences), ~7 min each, on 9 shards.
 PLAN_ROWS=(
   "17a-entry-matrix-home-button|tool/emulator/flows/17_entry_matrix.sh|home_button|1"
   "01-first-launch|tool/emulator/flows/01_first_launch.sh||1"

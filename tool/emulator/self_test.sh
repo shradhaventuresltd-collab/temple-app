@@ -1251,13 +1251,13 @@ for id in $(plan_ids smoke); do
   fi
 done
 if [[ "$(plan_matrix full)" != '["1","2","3","4","5","6","7","8","9"]' || "$(plan_matrix smoke)" != '["smoke"]' ]]; then
-  echo "full must be 6 shards and smoke one job" >&2
+  echo "full must be ${SHARD_COUNT} shards and smoke one job" >&2
   exit 1
 fi
 all_ids="$(plan_ids all | sort)"
 shard_ids="$(for n in 1 2 3 4 5 6 7 8 9; do plan_ids full "$n"; done | sort)"
 if [[ "$all_ids" != "$shard_ids" ]]; then
-  echo "the 6 shards must cover every flow exactly once" >&2
+  echo "the ${SHARD_COUNT} shards must cover every flow exactly once" >&2
   diff <(echo "$all_ids") <(echo "$shard_ids") >&2 || true
   exit 1
 fi

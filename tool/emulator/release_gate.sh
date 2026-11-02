@@ -8,7 +8,9 @@
 # It also reads the merged results ($EMULATOR_ARTIFACTS/results.txt) and
 # prints "NOT a release gate: <reasons>" on any FAIL, XFAIL, XPASS or
 # NOT RUN, on any SKIPPED flow outside plan.sh's planned skips
-# (DEFAULT_SKIP_FLOWS; an EMULATOR_SKIP_FLOWS override does not count), or
+# (DEFAULT_SKIP_FLOWS; an EMULATOR_SKIP_FLOWS override does not count), on
+# any NA step outside plan.sh's planned NA steps (DEFAULT_NA_STEPS, reported
+# as "N unplanned NA (flow:step)"; NA is never counted as a PASS), or
 # when the results are missing: a known bug is still a bug in the release.
 # Only the release path exits 1 on that: EMULATOR_GATE_MODE=strict (set by
 # the workflow for a published release or a dispatch with release_gate=true),
