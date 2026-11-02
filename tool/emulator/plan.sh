@@ -28,10 +28,13 @@ FLOW_RESET_S=30
 SHARD_BOOT_S=300
 # One variable: matrix, need-minutes, run_shard.sh and self_test follow it.
 SHARD_COUNT=14
-# At most this many active (not skipped) flows per shard:
-# 300 + 3 x (600 + 15 + 30) = 2235s = 37.25 min <= 39 min, step timeout 42.
+# At most this many active (not skipped) flows per shard. Round 4.3: shard
+# 12 holds 4 (06a, 06b at 600s; 26, 08 at a 300s row cap):
+# 300 + 2 x (600 + 15 + 30) + 2 x (300 + 15 + 30) = 2280s = 38.0 min.
+# Every other shard: 300 + 3 x 645 = 2235s = 37.25 min. Both <= 39 min,
+# step timeout 42 (self_test checks every shard against 39 min).
 # shellcheck disable=SC2034 # read by self_test.sh (sources this file)
-SHARD_MAX_ACTIVE=3
+SHARD_MAX_ACTIVE=4
 
 SMOKE_FLOWS="01-first-launch 04-home 05-search 08-list-detail 14-back-relaunch 15-offline"
 
@@ -47,7 +50,10 @@ DEFAULT_SKIP_FLOWS="11-near-me 23-near-me-settings-roundtrip 30d-near-me"
 # shellcheck disable=SC2034 # read by release_gate.sh (sources this file)
 DEFAULT_NA_STEPS=""
 
-# id|script|FILTER_MATRIX_PART|shard
+# id|script|FILTER_MATRIX_PART|shard[|cap seconds, <= FLOW_CAP_S]
+# The optional 5th field lowers one flow's cap (run_one_flow.sh
+# EMULATOR_FLOW_BUDGET). Round 4.3: 26 and 08 (96s and 105s in run
+# 41391038302) get 300s, so 06 can split into 06a/06b in shard 12.
 # Balanced by worst-case time (Satyavrat, round 4.2): every active flow
 # can take 645s, so each shard holds at most 3 active flows. 20 "long"
 # flows (measured at or near the 600s cap in run 41373837994, or matrix
@@ -93,9 +99,10 @@ PLAN_ROWS=(
   "30s-filter-matrix-sequences|tool/emulator/flows/29_filter_matrix.sh|seqs|11"
   "19-rotation-state|tool/emulator/flows/19_rotation_state.sh||11"
   "20-empty-and-back|tool/emulator/flows/20_empty_and_back.sh||11"
-  "06-filters|tool/emulator/flows/06_filters.sh||12"
-  "26-drawer-nav-stack|tool/emulator/flows/26_drawer_nav_stack.sh||12"
-  "08-list-detail|tool/emulator/flows/08_list_detail.sh||12"
+  "06a-filters-single|tool/emulator/flows/06_filters.sh|single|12"
+  "06b-filters-combined|tool/emulator/flows/06_filters.sh|combined|12"
+  "26-drawer-nav-stack|tool/emulator/flows/26_drawer_nav_stack.sh||12|300"
+  "08-list-detail|tool/emulator/flows/08_list_detail.sh||12|300"
   "21-district-close-then-other-chip|tool/emulator/flows/21_district_close_then_other_chip.sh||13"
   "25-directions-edge|tool/emulator/flows/25_directions_edge.sh||13"
   "09-photos|tool/emulator/flows/09_photos.sh||13"
@@ -121,7 +128,7 @@ plan_flows() {
     smoke)
       for smoke_id in $SMOKE_FLOWS; do
         for row in "${PLAN_ROWS[@]}"; do
-          IFS='|' read -r id script part sh <<<"$row"
+          IFS='|' read -r id script part sh _ <<<"$row"
           if [[ "$id" == "$smoke_id" ]]; then
             printf '%s %s %s\n' "$id" "$script" "${part:--}"
           fi
@@ -134,7 +141,7 @@ plan_flows() {
         return 1
       fi
       for row in "${PLAN_ROWS[@]}"; do
-        IFS='|' read -r id script part sh <<<"$row"
+        IFS='|' read -r id script part sh _ <<<"$row"
         if [[ -z "$shard" || "$sh" == "$shard" ]]; then
           printf '%s %s %s\n' "$id" "$script" "${part:--}"
         fi
@@ -142,7 +149,7 @@ plan_flows() {
       ;;
     all)
       for row in "${PLAN_ROWS[@]}"; do
-        IFS='|' read -r id script part sh <<<"$row"
+        IFS='|' read -r id script part sh _ <<<"$row"
         printf '%s %s %s\n' "$id" "$script" "${part:--}"
       done | sort
       ;;
@@ -153,6 +160,19 @@ plan_flows() {
   esac
 }
 
+# Cap in seconds for one flow id: the row's 5th field, else FLOW_CAP_S.
+plan_cap_s() {
+  local want="$1" row id script part sh cap
+  for row in "${PLAN_ROWS[@]}"; do
+    IFS='|' read -r id script part sh cap <<<"$row"
+    if [[ "$id" == "$want" ]]; then
+      if [[ "$cap" =~ ^[0-9]+$ ]] && (( cap > 0 && cap < FLOW_CAP_S )); then echo "$cap"; else echo "$FLOW_CAP_S"; fi
+      return 0
+    fi
+  done
+  echo "$FLOW_CAP_S"
+}
+
 plan_ids() {
   plan_flows "$@" | awk '{ print $1 }'
 }
@@ -160,13 +180,13 @@ plan_ids() {
 # Worst case for one emulator step: one boot, then every flow that is not
 # skipped hitting its cap plus kill-after plus the reset around it.
 plan_need_s() {
-  local id active=0
+  local id total=$SHARD_BOOT_S
   while read -r id; do
     if ! plan_is_skipped "$id"; then
-      active=$((active + 1))
+      total=$((total + $(plan_cap_s "$id") + FLOW_KILL_AFTER_S + FLOW_RESET_S))
     fi
   done < <(plan_ids "$@")
-  echo $((SHARD_BOOT_S + active * (FLOW_CAP_S + FLOW_KILL_AFTER_S + FLOW_RESET_S)))
+  echo "$total"
 }
 
 plan_matrix() {

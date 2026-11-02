@@ -87,11 +87,14 @@ while read -r id script part <&3; do
   fi
   echo "::group::Flow ${id}"
   started=$SECONDS
-  FILTER_MATRIX_PART="${part:-all}" timeout --kill-after=10 "$guard" \
+  cap="$(plan_cap_s "$id")"
+  flow_guard=$((cap + FLOW_KILL_AFTER_S + FLOW_RESET_S))
+  (( flow_guard <= guard )) || flow_guard=$guard
+  EMULATOR_FLOW_BUDGET="$cap" FILTER_MATRIX_PART="${part:-all}" timeout --kill-after=10 "$flow_guard" \
     bash "$runner" "$id" "$script" </dev/null
   rc=$?
   if [[ "$rc" -eq 124 || "$rc" -eq 137 ]]; then
-    printf 'FAIL %s: timeout: wrapper exceeded %ss\n' "$id" "$guard" >> "${artifacts}/results.txt"
+    printf 'FAIL %s: timeout: wrapper exceeded %ss\n' "$id" "$flow_guard" >> "${artifacts}/results.txt"
   fi
   printf 'TIME %s %ss\n' "$id" "$((SECONDS - started))" >> "${artifacts}/results.txt"
   echo "::endgroup::"

@@ -639,7 +639,8 @@ flows=(
   03-force-update
   04-home
   05-search
-  06-filters
+  06a-filters-single
+  06b-filters-combined
   07-district
   08-list-detail
   09-photos
@@ -941,14 +942,14 @@ fi
 # as "FAIL missing").
 unstarted_n="$(grep -c '^NOT RUN [^:]*: did not start$' "${summary_dir}/results.txt")"
 skipped_n="$(grep -c '^SKIPPED ' "${summary_dir}/results.txt")"
-if [[ "$unstarted_n" -ne 42 || "$skipped_n" -ne 3 ]] ||
+if [[ "$unstarted_n" -ne 43 || "$skipped_n" -ne 3 ]] ||
    ! grep -q '^SKIPPED 30d-near-me: ' "${summary_dir}/results.txt" ||
    grep -q '^FAIL ' "${summary_dir}/results.txt" ||
    ! grep -q '^SKIPPED 11-near-me: ' "${summary_dir}/results.txt" ||
    ! grep -q '^SKIPPED 23-near-me-settings-roundtrip: ' "${summary_dir}/results.txt" ||
-   ! grep -q '0 failed, 0 expected failures, 0 unexpected passes, 42 not run, 3 skipped' "${summary_dir}/fail.out" ||
+   ! grep -q '0 failed, 0 expected failures, 0 unexpected passes, 43 not run, 3 skipped' "${summary_dir}/fail.out" ||
    ! grep -q 'did not start' "${summary_dir}/fail.out"; then
-  echo "unstarted flows: 42 NOT RUN, 3 SKIPPED (11, 23, 30d), no FAIL, job not green" >&2
+  echo "unstarted flows: 43 NOT RUN, 3 SKIPPED (11, 23, 30d), no FAIL, job not green" >&2
   cat "${summary_dir}/fail.out" >&2
   exit 1
 fi
@@ -962,7 +963,7 @@ if ! EMULATOR_ARTIFACTS="$summary_dir" GITHUB_STEP_SUMMARY="${summary_dir}/summa
   exit 1
 fi
 
-printf 'XFAIL 06-filters: force-stop-keeps-filter: filters live in memory and reset after force-stop\n' >> "${summary_dir}/results.txt"
+printf 'XFAIL 06b-filters-combined: force-stop-keeps-filter: filters live in memory and reset after force-stop\n' >> "${summary_dir}/results.txt"
 if ! EMULATOR_ARTIFACTS="$summary_dir" GITHUB_STEP_SUMMARY="${summary_dir}/summary.md" \
   bash tool/emulator/summarize.sh >"${summary_dir}/xfail.out"; then
   echo "summarize.sh should pass when the only extra line is XFAIL" >&2
@@ -991,8 +992,8 @@ if ! EMULATOR_ARTIFACTS="$not_run_dir" EMULATOR_RESOLVE_OUTCOME=failure \
   exit 1
 fi
 not_run="$(grep -c '^NOT RUN ' "${not_run_dir}/results.txt")"
-if [[ "$not_run" -ne 42 ]] || [[ "$(grep -c '^SKIPPED ' "${not_run_dir}/results.txt")" -ne 3 ]]; then
-  echo "expected 42 NOT RUN and 3 SKIPPED lines, found ${not_run} NOT RUN" >&2
+if [[ "$not_run" -ne 43 ]] || [[ "$(grep -c '^SKIPPED ' "${not_run_dir}/results.txt")" -ne 3 ]]; then
+  echo "expected 43 NOT RUN and 3 SKIPPED lines, found ${not_run} NOT RUN" >&2
   exit 1
 fi
 if grep -q '^FAIL ' "${not_run_dir}/results.txt"; then
@@ -1010,14 +1011,14 @@ step_dir="$(mktemp -d)"
 for flow in "${flows[@]}"; do
   printf 'PASS %s: ok\n' "$flow" >> "${step_dir}/results.txt"
 done
-printf 'NOT RUN 06-filters: combined-state: state-select did not apply a state\n' >> "${step_dir}/results.txt"
+printf 'NOT RUN 06b-filters-combined: combined-state: state-select did not apply a state\n' >> "${step_dir}/results.txt"
 if ! EMULATOR_ARTIFACTS="$step_dir" GITHUB_STEP_SUMMARY="${step_dir}/summary.md" \
   bash tool/emulator/summarize.sh >"${step_dir}/out"; then
   echo "a skipped step should not fail the summary" >&2
   cat "${step_dir}/out" >&2
   exit 1
 fi
-if grep -q 'FAIL 06-filters: missing' "${step_dir}/results.txt"; then
+if grep -q 'FAIL 06b-filters-combined: missing' "${step_dir}/results.txt"; then
   echo "a skipped step should count as the flow reporting" >&2
   exit 1
 fi
@@ -1026,8 +1027,8 @@ rm -rf "$step_dir"
 only_skip_dir="$(mktemp -d)"
 : > "${only_skip_dir}/results.txt"
 for flow in "${flows[@]}"; do
-  if [[ "$flow" == "06-filters" ]]; then
-    printf 'NOT RUN 06-filters: combined-state: state-select did not apply a state\n' >> "${only_skip_dir}/results.txt"
+  if [[ "$flow" == "06b-filters-combined" ]]; then
+    printf 'NOT RUN 06b-filters-combined: combined-state: state-select did not apply a state\n' >> "${only_skip_dir}/results.txt"
   else
     printf 'PASS %s: ok\n' "$flow" >> "${only_skip_dir}/results.txt"
   fi
@@ -1038,7 +1039,7 @@ if EMULATOR_ARTIFACTS="$only_skip_dir" GITHUB_STEP_SUMMARY="${only_skip_dir}/sum
   cat "${only_skip_dir}/out" >&2
   exit 1
 fi
-if ! grep -qx 'FAIL 06-filters: missing: flow did not pass any step' "${only_skip_dir}/results.txt"; then
+if ! grep -qx 'FAIL 06b-filters-combined: missing: flow did not pass any step' "${only_skip_dir}/results.txt"; then
   echo "a flow with only NOT RUN steps should be marked failed" >&2
   cat "${only_skip_dir}/results.txt" >&2
   exit 1
@@ -1074,7 +1075,7 @@ started_dir="$(mktemp -d)"
 for flow in "${flows[@]}"; do
   printf 'START %s\n' "$flow" >> "${started_dir}/results.txt"
   printf 'PASS %s: ok\n' "$flow" >> "${started_dir}/results.txt"
-  if [[ "$flow" != "06-filters" ]]; then
+  if [[ "$flow" != "06b-filters-combined" ]]; then
     printf 'DONE %s\n' "$flow" >> "${started_dir}/results.txt"
   fi
 done
@@ -1084,7 +1085,7 @@ if EMULATOR_ARTIFACTS="$started_dir" GITHUB_STEP_SUMMARY="${started_dir}/summary
   cat "${started_dir}/out" >&2
   exit 1
 fi
-if ! grep -qx 'FAIL 06-filters: timeout: started but did not finish' "${started_dir}/results.txt"; then
+if ! grep -qx 'FAIL 06b-filters-combined: timeout: started but did not finish' "${started_dir}/results.txt"; then
   echo "a flow with START and no DONE should be marked failed" >&2
   cat "${started_dir}/results.txt" >&2
   exit 1
@@ -1111,7 +1112,7 @@ rm -rf "$finished_dir"
 skip_dir="$(mktemp -d)"
 (
   set -euo pipefail
-  export EMULATOR_FLOW=06-filters
+  export EMULATOR_FLOW=06b-filters-combined
   export EMULATOR_ARTIFACTS="$skip_dir"
   export EMULATOR_PACKAGE=com.shradhaventures.temple
   # shellcheck disable=SC1091
@@ -1122,7 +1123,7 @@ skip_dir="$(mktemp -d)"
   : > "$RESULTS"
 
   skip_step combined-state "state-select did not apply a state"
-  grep -q '^FAIL 06-filters: combined-state: no failed prerequisite: state-select did not apply a state$' "$RESULTS"
+  grep -q '^FAIL 06b-filters-combined: combined-state: no failed prerequisite: state-select did not apply a state$' "$RESULTS"
   if grep -q '^NOT RUN ' "$RESULTS"; then
     echo "skip_step without a failed prerequisite must not record NOT RUN" >&2
     exit 1
@@ -1130,15 +1131,15 @@ skip_dir="$(mktemp -d)"
 
   : > "$RESULTS"
   skip_if_failed combined-chips "no combined filter was applied" state-select
-  grep -q '^FAIL 06-filters: combined-chips: no combined filter was applied$' "$RESULTS"
+  grep -q '^FAIL 06b-filters-combined: combined-chips: no combined filter was applied$' "$RESULTS"
   if grep -q '^NOT RUN ' "$RESULTS"; then
     echo "skip_if_failed without a prerequisite FAIL must not record NOT RUN" >&2
     exit 1
   fi
 
-  printf 'FAIL 06-filters: state-select: could not find Kerala\n' >> "$RESULTS"
+  printf 'FAIL 06b-filters-combined: state-select: could not find Kerala\n' >> "$RESULTS"
   skip_if_failed combined-state "state-select did not apply a state" state-open state-reopen state-select
-  grep -q '^NOT RUN 06-filters: combined-state: state-select did not apply a state$' "$RESULTS"
+  grep -q '^NOT RUN 06b-filters-combined: combined-state: state-select did not apply a state$' "$RESULTS"
 )
 rm -rf "$skip_dir"
 
@@ -1340,8 +1341,8 @@ for n in $(seq 1 "$SHARD_COUNT"); do
   for id in $(plan_ids full "$n"); do
     plan_is_skipped "$id" || active=$((active + 1))
   done
-  if (( active == 0 || active > 3 || active > SHARD_MAX_ACTIVE )); then
-    echo "shard ${n} should run 1-3 flows that are not skipped, has ${active}" >&2
+  if (( active == 0 || active > SHARD_MAX_ACTIVE )); then
+    echo "shard ${n} should run 1-${SHARD_MAX_ACTIVE} flows that are not skipped, has ${active}" >&2
     exit 1
   fi
   if (( $(plan_need_s full "$n") > 39 * 60 )); then
@@ -1388,7 +1389,7 @@ replay() {
   shift
   (
     set -uo pipefail
-    export EMULATOR_FLOW=06-filters EMULATOR_ARTIFACTS="$replay_dir/art" EMULATOR_PACKAGE=com.example
+    export EMULATOR_FLOW=06b-filters-combined EMULATOR_ARTIFACTS="$replay_dir/art" EMULATOR_PACKAGE=com.example
     # shellcheck disable=SC1091
     source tool/emulator/lib/common.sh
     ui_dump() { cp "tool/emulator/testdata/${REPLAY_DIR:-run41306793034}/${REPLAY_FIXTURE}" "$DUMP"; }
@@ -1488,14 +1489,14 @@ if ! grep -q 'abort_after_combined_fail combined-deity' tool/emulator/flows/06_f
 fi
 abort_out="$(
   set -uo pipefail
-  export EMULATOR_FLOW=06-filters EMULATOR_ARTIFACTS="$replay_dir/abort" EMULATOR_PACKAGE=com.example
+  export EMULATOR_FLOW=06b-filters-combined EMULATOR_ARTIFACTS="$replay_dir/abort" EMULATOR_PACKAGE=com.example
   # shellcheck disable=SC1091
   source tool/emulator/lib/common.sh
   eval "$(sed -n '/^COMBINED_REST=/p; /^abort_after_combined_fail() {/,/^}/p' tool/emulator/flows/06_filters.sh)"
   abort_after_combined_fail combined-deity >/dev/null
   cat "$RESULTS"
 )"
-if [[ "$(grep -c '^NOT RUN 06-filters: ' <<<"$abort_out")" -ne 7 ]] || grep -q '^NOT RUN 06-filters: combined-deity:' <<<"$abort_out"; then
+if [[ "$(grep -c '^NOT RUN 06b-filters-combined: ' <<<"$abort_out")" -ne 7 ]] || grep -q '^NOT RUN 06b-filters-combined: combined-deity:' <<<"$abort_out"; then
   echo "abort after combined-deity: the 7 later steps are NOT RUN" >&2
   echo "$abort_out" >&2
   exit 1
@@ -2365,6 +2366,8 @@ pk4="$(
   seek_option() { n=$((n + 1)); echo "SEEK $n fling=${SEEK_FLING_MS:-120} left=$(( $3 - SECONDS ))" >&2
     if (( n == 1 )); then return 1; fi; UI_CX=1 UI_CY=2 UI_TEXT="Madurai  4"; return 0; }
   ui_tap() { :; }
+  # Two-dump confirmation is tested on its own (round 4.3); here only the budget.
+  stable_option_tap() { SELECTED_LABEL="$(chip_label "$UI_TEXT")"; }
   sleep() { :; }
   select_labeled '^Madurai( +[0-9]+)?$' DISTRICT 2>&1 && echo "picked $SELECTED_LABEL"
 )"
@@ -2534,7 +2537,7 @@ sim="tool/emulator/testdata/sim/seek_dryrun.sh"
 o="$(bash "$sim" STATE '^Tamil Nadu( +[0-9]+)?$' state,district,deity all "$r43/simst")"
 grep -q "^RESULT rc=0 .* label='Tamil Nadu'" <<<"$o" || { echo "sim: state Tamil Nadu within the long budget: $o" >&2; exit 1; }
 # After each slow drag (900ms swipe from seek_option) count the dumps before the next swipe.
-per_look="$(awk '/^SWIPE .* 900 seek_option/ { if (n) print c; n = 1; c = 0; next } /^SWIPE/ { if (n) print c; n = 0 } /^DUMP/ && n { c++ } END { if (n) print c }' "$r43/simst/calls.log" | sort -n | tail -1)"
+per_look="$(awk '/^SWIPE .* 900 seek_option/ { if (n) print c; n = 1; c = 0; next } /^SWIPE/ { if (n) print c; n = 0 } /^DUMP/ && n && $2 !~ /^stable_option_tap/ { c++ } END { if (n) print c }' "$r43/simst/calls.log" | sort -n | tail -1)"
 [[ "$per_look" -le 2 ]] || { echo "sim: a slow-drag look must cost <= 2 dumps (post-drag dump reused), got ${per_look}" >&2; cat "$r43/simst/calls.log" >&2; exit 1; }
 o="$(bash "$sim" DEITY '^Shiva( +[0-9]+)?$' deity,state,district tn "$r43/simsh")"
 grep -q "^RESULT rc=0 .* label='Shiva'" <<<"$o" || { echo "sim: Tamil Nadu-scoped Shiva: $o" >&2; exit 1; }
@@ -2552,6 +2555,46 @@ if grep -n 'select_labeled "\${PICK\[' tool/emulator/flows/29_filter_matrix.sh t
   echo "flows 17/29 must pick through scoped_pick, not PICK[] directly" >&2; exit 1
 fi
 grep -q 'kind" =~ ^(state|district|deity)\$ ]] && (( PICKER_LONG_GIVEUP_S' tool/emulator/lib/common.sh || { echo "state picker gets PICKER_LONG_GIVEUP_S" >&2; exit 1; }
+# 5. Flow 06 (run 41391038302 dumps): the DISTRICT scan never taps a STATE
+# row; chip lookups match only filter-chip-* nodes (not the app bar title);
+# the state chip check catches "Bihar"; a row that moved between two dumps
+# is not tapped; 06 is split 06a/06b and picks a real district.
+T41=tool/emulator/testdata/run41391038302
+r5lib() { ( export EMULATOR_FLOW=06b-filters-combined EMULATOR_ARTIFACTS="$r43/r5" EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  sleep() { :; }; step_shot() { :; }; adb_shell_capped() { :; }
+  ui_screen_size() { echo "${R5_SIZE:-320 640}"; }
+  ui_dump() { cp "$R5_FX" "$DUMP"; }
+  ui_tap() { echo "TAP ${UI_TEXT}"; }
+  PICKER_GIVEUP_S=3; PICKER_LONG_GIVEUP_S=3
+  "$@" ); }
+o="$(R5_FX="$T41/sheet_district_then_state.xml" r5lib select_labeled '^(?!All districts).+[0-9]+$' DISTRICT 2>&1)" && { echo "flow 06: DISTRICT scan must not tap a STATE row: $o" >&2; exit 1; }
+grep -q '^TAP' <<<"$o" && { echo "flow 06: no tap outside DISTRICT: $o" >&2; exit 1; }
+o="$(R5_FX="$T41/sheet_district_then_state.xml" r5lib select_labeled '^Bihar( +[0-9]+)?$' STATE 2>&1)" || { echo "STATE scan still taps Bihar in STATE: $o" >&2; exit 1; }
+grep -q '^TAP Bihar 14' <<<"$o" || { echo "STATE scan tap: $o" >&2; exit 1; }
+if R5_SIZE="640 320" R5_FX="$T41/title_kerala_chip_bihar.xml" r5lib bash -c 'CHIP_LABEL_RX="^Kerala$" find_filter_chip "" "^Kerala$"' >/dev/null 2>&1; then
+  echo "find_filter_chip: the app bar title 'Kerala' is not a chip" >&2; exit 1
+fi
+R5_SIZE="640 320" R5_FX="$T41/title_kerala_chip_bihar.xml" r5lib find_filter_chip filter-chip-state "" "" >/dev/null 2>&1 || { echo "find_filter_chip by id still works" >&2; exit 1; }
+if R5_FX="$T41/combined_chips_state_bihar.xml" r5lib state_chip_is Kerala >/dev/null 2>&1; then echo "state_chip_is: Bihar is not Kerala" >&2; exit 1; fi
+R5_FX="$T41/combined_chips_state_bihar.xml" r5lib state_chip_is Bihar >/dev/null 2>&1 || { echo "state_chip_is Bihar" >&2; exit 1; }
+sed 's/\[16,471\]\[200,511\]/[16,431][200,471]/' "$T41/sheet_district_then_state.xml" > "$r43/moved.xml"
+o="$( ( export EMULATOR_FLOW=x EMULATOR_ARTIFACTS="$r43/r5m"
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh; sleep() { :; }; n=0
+  ui_dump() { n=$((n + 1)); if (( n == 1 )); then cp "$T41/sheet_district_then_state.xml" "$DUMP"; else cp "$r43/moved.xml" "$DUMP"; fi; }
+  ui_tap() { echo TAPPED; }
+  ui_dump; ui_find --resource-id filter-option-state-Bihar; stable_option_tap '^Bihar( +[0-9]+)?$' '^filter-option-state-' ) 2>&1)" && { echo "stable_option_tap: moved row must not be tapped: $o" >&2; exit 1; }
+grep -q TAPPED <<<"$o" && { echo "stable_option_tap tapped a moving row" >&2; exit 1; }
+grep -q '"06a-filters-single|tool/emulator/flows/06_filters.sh|single|12"' tool/emulator/plan.sh &&
+  grep -q '"06b-filters-combined|tool/emulator/flows/06_filters.sh|combined|12"' tool/emulator/plan.sh &&
+  ! grep -q '"06-filters|' tool/emulator/plan.sh || { echo "plan.sh: 06 split into 06a single / 06b combined" >&2; exit 1; }
+f06=tool/emulator/flows/06_filters.sh
+grep -q "select_labeled '^(?!All districts)" "$f06" && { echo "flow 06: no name-less lookahead district pick" >&2; exit 1; }
+grep -q 'COMBINED_DISTRICT_PICK:-^Alappuzha' "$f06" && grep -q 'state_chip_is "$COMBINED_STATE"' "$f06" || { echo "flow 06: real district (Alappuzha) and the state-chip check" >&2; exit 1; }
+grep -q ': "${_section}"' tool/emulator/lib/common.sh && { echo "select_labeled must use its section" >&2; exit 1; }
+[[ "$(bash -c 'source tool/emulator/plan.sh; plan_cap_s 26-drawer-nav-stack; plan_cap_s 06a-filters-single; plan_need_s full 12')" == $'300\n600\n2280' ]] || { echo "plan: row caps 26=300, 06a=600, shard 12 = 2280s" >&2; exit 1; }
 #R43_MORE
 rm -rf "$r43"
 echo "round 4.3 checks ok"

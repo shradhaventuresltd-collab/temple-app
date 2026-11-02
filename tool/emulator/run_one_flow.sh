@@ -26,6 +26,11 @@ source "${ROOT}/tool/emulator/plan.sh"
 # cap covers the flow alone. The shard step timeout is sized in plan.sh
 # from this cap, the kill-after, and the per-flow reset overhead.
 FLOW_BUDGET=600
+# plan.sh may lower one flow's cap (row field 5, passed by run_shard.sh as
+# EMULATOR_FLOW_BUDGET); it never raises it above 600.
+if [[ "${EMULATOR_FLOW_BUDGET:-}" =~ ^[0-9]+$ ]] && (( EMULATOR_FLOW_BUDGET > 0 && EMULATOR_FLOW_BUDGET < FLOW_BUDGET )); then
+  FLOW_BUDGET="$EMULATOR_FLOW_BUDGET"
+fi
 if [[ "${EMULATOR_FLOW_TIMED:-}" != 1 ]]; then
   if plan_is_skipped "$FLOW"; then
     printf 'SKIPPED %s: location-dependent, skipped on the emulator (EMULATOR_SKIP_FLOWS)\n' "$FLOW" >> "$RESULTS"

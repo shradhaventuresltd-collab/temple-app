@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 # Flow 6. Every directory filter: open, dismiss, select, back, tap-outside,
 # clear, repeat, then combined filters, detail, resume, and process death.
+# Round 4.3: split in two (plan.sh 06a/06b, FILTER_MATRIX_PART):
+#   single    the per-filter checks (state, deity, district, other chips)
+#   combined  Kerala + Vishnu + a real Kerala district (Alappuzha), then
+#             detail, resume, force-stop
+#   all       both (local runs)
+# Run 41391038302 hit the 600s cap with one flow doing both.
+FILTERS_PART="${FILTER_MATRIX_PART:-all}"
+case "$FILTERS_PART" in single|combined|all) ;; *) FILTERS_PART=all ;; esac
 if ! err="$(reach_browse)"; then
   fail_step browse "${err:-could not open the temple list}"
   return 0
@@ -190,6 +198,7 @@ exercise_filter() {
   clear_named "$clear_name" || true
 }
 
+if [[ "$FILTERS_PART" != combined ]]; then
 exercise_filter state '^Kerala( +[0-9]+)?$' State open_state state
 # State was cleared above, so the deity and district lists are all-India:
 # first-screen targets under the 20s picker give-up (Shiva and Madurai sit
@@ -222,6 +231,15 @@ while read -r chip_id; do
   opener_unknown() { open_by_id "$chip_id"; }
   exercise_filter "$chip_id" '^(?!Any |All ).+[0-9]+$' "" opener_unknown "$chip_id"
 done < <(python3 "$UI_PY" resource-ids "$DUMP" --prefix filter-chip- || true)
+fi
+if [[ "$FILTERS_PART" == single ]]; then
+  return 0
+fi
+# The combined part runs on its own (06b): it applies Kerala itself.
+if [[ "$FILTERS_PART" == combined ]]; then
+  STATE_SELECT_OK=1; STATE_LABEL=Kerala
+  DEITY_SELECT_OK=1; DEITY_LABEL=Vishnu
+fi
 
 # Combined filters. A step whose select never landed is NOT RUN, and later
 # checks assert only the values that were actually applied.
@@ -309,10 +327,22 @@ else
     return 0
   fi
 fi
+# A real district of the applied state, not '^(?!All districts).+[0-9]+$':
+# option_name_from_regex cannot read "(?!", so no seek ran and the old
+# section-blind step scan tapped "Bihar N" in STATE below DISTRICT (run
+# 41391038302: "Vishnu · Bihar", All districts, and the step still PASSed).
+# Alappuzha is Kerala's first district (Ambalappuzha Sri Krishna, Vishnu).
+# After the apply the state chip must still show the applied state.
+COMBINED_DISTRICT_RX="${COMBINED_DISTRICT_PICK:-^Alappuzha( +[0-9]+)?$}"
 if scroll_chips_until --resource-id filter-chip-district || scroll_chips_until --text-regex '^All districts$'; then
-  if open_district && select_labeled '^(?!All districts).+[0-9]+$' DISTRICT && apply_sheet; then
+  if open_district && select_labeled "$COMBINED_DISTRICT_RX" DISTRICT && apply_sheet; then
     COMBINED_DISTRICT="$SELECTED_LABEL"
     DISTRICT_LABEL="$SELECTED_LABEL"
+    if [[ -n "$COMBINED_STATE" ]] && ! state_chip_is "$COMBINED_STATE"; then
+      fail_step combined-district "state chip changed from ${COMBINED_STATE} to '${STATE_CHIP_ACTUAL}' after picking ${COMBINED_DISTRICT}"
+      abort_after_combined_fail combined-district
+      return 0
+    fi
     pass_step combined-district
   else
     fail_step combined-district "could not apply a district inside the selected state"

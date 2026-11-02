@@ -1250,11 +1250,19 @@ chip_bar_band() {
 
 # The selected chip's text is the value ("Shiva"), and it may sit past the
 # right edge. Match the idle label or the applied value, and scroll the bar.
+# Section-scoped (round 4.3): every match is a chip-bar node. With RID
+# (filter-chip-<kind>) only that chip counts; the label/regex/tooltip
+# fallbacks are tried only on filter-chip-<kind> nodes. With no RID
+# (chip_exact) they are tried only on filter-chip-* nodes. A bare
+# --text-regex anywhere matched the app bar title ("Kerala") and option
+# rows of an open sheet.
 find_filter_chip() {
   local rid="$1"
   local regex="$2"
   local desc="${3:-}"
   local i width height max_top y found
+  local scope_rx='^filter-chip-'
+  [[ -n "$rid" ]] && scope_rx="^$(re_escape "$rid")\$"
   read -r width height < <(ui_screen_size) || return 1
   # Landscape puts the chip row below 38% of the height, so a portrait band
   # misses Kerala after rotation and the shot still shows the old chip.
@@ -1265,11 +1273,11 @@ find_filter_chip() {
     found=0
     if [[ -n "$rid" ]] && ui_find --resource-id "$rid" --max-top "$max_top"; then
       found=1
-    elif [[ -n "${CHIP_LABEL_RX:-}" ]] && ui_find --resource-id-regex '^filter-chip-' --text-regex "$CHIP_LABEL_RX" --max-top "$max_top"; then
+    elif [[ -n "${CHIP_LABEL_RX:-}" ]] && ui_find --resource-id-regex "$scope_rx" --text-regex "$CHIP_LABEL_RX" --max-top "$max_top"; then
       found=1
-    elif [[ -n "$regex" ]] && ui_find --text-regex "$regex" --max-top "$max_top" --prefer upper; then
+    elif [[ -n "$regex" ]] && ui_find --resource-id-regex "$scope_rx" --text-regex "$regex" --max-top "$max_top" --prefer upper; then
       found=1
-    elif [[ -n "$desc" ]] && ui_find --content-desc "$desc" --max-top "$max_top"; then
+    elif [[ -n "$desc" ]] && ui_find --resource-id-regex "$scope_rx" --content-desc "$desc" --max-top "$max_top"; then
       found=1
     fi
     if [[ "$found" -eq 1 ]]; then
@@ -1668,6 +1676,47 @@ seek_option() {
   return 1
 }
 
+# stable_option_tap REGEX OPT_RX: UI_CX/UI_CY/UI_TEXT are an option found
+# on the current dump. Dump once more and tap only when the same option
+# (OPT_RX-scoped, REGEX-matching label) is at the same place (within 4 px)
+# in both dumps: a list still moving under the finger is never tapped.
+# Sets SELECTED_LABEL. Returns 1 (no tap) when the second dump disagrees.
+stable_option_tap() {
+  local regex="$1" opt_rx="${2:-.}" x="$UI_CX" y="$UI_CY" text="$UI_TEXT"
+  local sig1 sig2
+  sig1="$(dump_scroll_sig)" || return 1
+  ui_dump || return 1
+  sig2="$(dump_scroll_sig)" || return 1
+  if [[ "$sig1" != "$sig2" ]]; then
+    [[ -n "${SEEK_TRACE:-}" ]] && echo "stable_option_tap: list moved between dumps; not tapping '${text}'" >&2
+    return 1
+  fi
+  if ! ui_find --resource-id-regex "$opt_rx" --text-regex "$regex" --prefer upper \
+    || (( UI_CY - y > 4 || y - UI_CY > 4 )); then
+    UI_CX="$x"; UI_CY="$y"; UI_TEXT="$text"
+    if ! ui_find --resource-id-regex "$opt_rx" --text-regex "$(re_escape "$(chip_label "$text")")" --prefer upper \
+      || (( UI_CY - y > 4 || y - UI_CY > 4 )); then
+      echo "stable_option_tap: '${text}' not at y=${y} on the second dump" >&2
+      return 1
+    fi
+  fi
+  SELECTED_LABEL="$(chip_label "$UI_TEXT")"
+  ui_tap || { echo "stable_option_tap: tap on '${UI_TEXT}' failed" >&2; return 1; }
+  sleep 1
+  return 0
+}
+
+# state_chip_is LABEL: the state chip (filter-chip-state) shows LABEL.
+# Sets STATE_CHIP_ACTUAL to what it shows.
+state_chip_is() {
+  local want="$1"
+  STATE_CHIP_ACTUAL=""
+  ui_dump || return 1
+  find_filter_chip filter-chip-state "" "" >/dev/null 2>&1 || return 1
+  STATE_CHIP_ACTUAL="$(chip_label "$UI_TEXT")"
+  [[ "$STATE_CHIP_ACTUAL" == "$want" ]]
+}
+
 # Walk the option list until regex is inside the tap band, then tap it.
 # Callers pass the section name (STATE, DISTRICT, DEITY). The list ends when
 # a swipe leaves the option texts unchanged, not when the next header peeks in.
@@ -1676,15 +1725,23 @@ seek_option() {
 # starts again from the top. The whole walk gives up after
 # PICKER_GIVEUP_S (20s): a missing option fails fast instead of costing
 # about 2 minutes per case (Confluence 12353537, option A).
+# Round 4.3: the section is used. With STATE/DISTRICT/DEITY the step scan
+# only matches filter-option-<kind>-* rows (run 41391038302: the DISTRICT
+# scan tapped "Bihar N" in STATE), and every tap waits for two matching
+# dumps (stable_option_tap).
 select_labeled() {
   local regex="$1"
   local _section="${2:-}"
-  : "${_section}"
   local pass i height min_top max_top prev="" current stuck
+  local opt_rx='.'
+  case "$_section" in
+    STATE|DISTRICT|DEITY) opt_rx="^filter-option-$(printf '%s' "$_section" | tr '[:upper:]' '[:lower:]')-" ;;
+  esac
   local name_hint id_rx=""
   name_hint="$(option_name_from_regex "$regex")"
   if [[ -n "$name_hint" ]]; then
     id_rx="filter-option-.*-$(re_escape "$name_hint")$"
+    [[ "$opt_rx" != . ]] && id_rx="${opt_rx}$(re_escape "$name_hint")$"
   fi
   local started=0
   local deadline=0
@@ -1720,9 +1777,10 @@ select_labeled() {
         echo "select_labeled: option '${UI_TEXT}' does not match '${regex}'" >&2
         return 1
       fi
-      SELECTED_LABEL="$(chip_label "$UI_TEXT")"
-      ui_tap || { echo "select_labeled: tap on '${UI_TEXT}' failed" >&2; return 1; }
-      sleep 1
+      if ! stable_option_tap "$regex" "$opt_rx"; then
+        echo "select_labeled: '${UI_TEXT}' did not hold still for two dumps" >&2
+        return 1
+      fi
       return 0
     fi
     if (( seek_rc == 2 )); then
@@ -1787,14 +1845,15 @@ select_labeled() {
       min_top=$((height * 24 / 100))
       max_top=$((height * 84 / 100))
       if { [[ -n "$id_rx" ]] && ui_find --resource-id-regex "$id_rx" --min-top "$min_top" --max-top "$max_top" --prefer upper; } \
-        || { ui_find --text-regex "$regex" --min-top "$min_top" --max-top "$max_top" --prefer upper \
+        || { ui_find --resource-id-regex "$opt_rx" --text-regex "$regex" --min-top "$min_top" --max-top "$max_top" --prefer upper \
         && [[ ! "$UI_TEXT" =~ ^Show[[:space:]]+[0-9]+[[:space:]]+temples?$ ]]; }; then
-        SELECTED_LABEL="$(chip_label "$UI_TEXT")"
-        ui_tap
-        sleep 1
-        return 0
+        if stable_option_tap "$regex" "$opt_rx"; then
+          return 0
+        fi
+        # Moved between the two dumps: look again on the next dump.
+        continue
       fi
-      if ui_find --text-regex "$regex" --min-top "$max_top" --prefer upper \
+      if ui_find --resource-id-regex "$opt_rx" --text-regex "$regex" --min-top "$max_top" --prefer upper \
         && [[ ! "$UI_TEXT" =~ ^Show[[:space:]]+[0-9]+[[:space:]]+temples?$ ]]; then
         ui_sheet_swipe up || {
           echo "select_labeled: swipe failed while looking for '${regex}'" >&2
@@ -1803,7 +1862,7 @@ select_labeled() {
         sleep 0.3
         continue
       fi
-      if ui_find --text-regex "$regex" --max-top "$min_top" --prefer lower; then
+      if ui_find --resource-id-regex "$opt_rx" --text-regex "$regex" --max-top "$min_top" --prefer lower; then
         ui_sheet_swipe down || {
           echo "select_labeled: swipe failed while looking for '${regex}'" >&2
           return 1

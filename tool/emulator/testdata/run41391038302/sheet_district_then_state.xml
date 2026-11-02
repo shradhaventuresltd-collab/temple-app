@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?><hierarchy rotation="0">
+<!-- Run 41391038302 flow 06 combined-district, reconstructed: the DISTRICT
+     section (Kerala-scoped, sheet opened from the district chip) shows only
+     "All districts"; the STATE section follows in the option scroller with
+     counted rows. '^(?!All districts).+[0-9]+$' matches "Bihar  3" there. -->
+<node text="" resource-id="" content-desc="Filters" bounds="[0,120][320,640]" scrollable="false">
+<node text="" resource-id="" content-desc="Filter temples" bounds="[16,150][304,200]" scrollable="false" />
+<node text="" resource-id="" content-desc="" bounds="[0,251][320,569]" scrollable="true">
+<node text="" resource-id="" content-desc="DISTRICT" bounds="[16,251][200,281]" scrollable="false" />
+<node text="" resource-id="filter-option-district-any" content-desc="All districts  8" bounds="[16,281][200,321]" scrollable="false" />
+<node text="" resource-id="" content-desc="STATE" bounds="[16,321][200,351]" scrollable="false" />
+<node text="" resource-id="filter-option-state-any" content-desc="Any state  640" bounds="[16,351][200,391]" scrollable="false" />
+<node text="" resource-id="filter-option-state-Andhra Pradesh" content-desc="Andhra Pradesh  22" bounds="[16,391][200,431]" scrollable="false" />
+<node text="" resource-id="filter-option-state-Assam" content-desc="Assam  9" bounds="[16,431][200,471]" scrollable="false" />
+<node text="" resource-id="filter-option-state-Bihar" content-desc="Bihar  14" bounds="[16,471][200,511]" scrollable="false" />
+<node text="" resource-id="filter-option-state-Delhi" content-desc="Delhi  6" bounds="[16,511][200,551]" scrollable="false" />
+</node>
+<node text="" resource-id="filter-sheet-apply" content-desc="Show 8 temples" bounds="[96,579][304,627]" scrollable="false" />
+</node></hierarchy>
