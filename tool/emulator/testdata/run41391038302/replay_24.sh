@@ -4,15 +4,16 @@
 # temple_detail_screen.dart:200). A fling pages forward and clamps at the
 # last page (PageView). Simulated clock: a dump costs DUMP_S (2.3s on the
 # cold AVD), a fling 1.0s (200ms swipe + adb; six flings + 0.3s sleeps = 7.8s, "about 8 s" in the triage), sleep N its argument.
-#   [NOSWIPE=1] [NOAUTO=1: timer off] replay_24.sh FLOW_SCRIPT [START_PAGE] [PHASE_S]
+#   [NOSWIPE=1] [NOAUTO=1: timer off] [NPAGES=5] replay_24.sh FLOW_SCRIPT [START_PAGE] [PHASE_S]
 set -uo pipefail
 flow="${1:?flow script}" start="${2:-1}" phase="${3:-0}"
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; root="$(cd "$here/../../../.." && pwd)"
 (
-  export EMULATOR_FLOW=24-gallery-autoadvance-viewer EMULATOR_ARTIFACTS="$(mktemp -d)" EMULATOR_PACKAGE=com.example
+  EMULATOR_ARTIFACTS="$(mktemp -d)"
+  export EMULATOR_FLOW=24-gallery-autoadvance-viewer EMULATOR_ARTIFACTS EMULATOR_PACKAGE=com.example
   # shellcheck disable=SC1091
   source "$root/tool/emulator/lib/common.sh"
-  N=5; PAGE="$start"; T="$phase"; NEXT_AUTO=5; [[ "${NOAUTO:-0}" == 1 ]] && NEXT_AUTO=999999
+  N="${NPAGES:-5}"; PAGE="$start"; T="$phase"; NEXT_AUTO=5; [[ "${NOAUTO:-0}" == 1 ]] && NEXT_AUTO=999999
   adv() { T="$(python3 -c "print(round($T + $1, 2))")"; while python3 -c "import sys; sys.exit(0 if $T >= $NEXT_AUTO else 1)"; do PAGE=$(((PAGE + 1) % N)); echo "t=${NEXT_AUTO} auto-advance -> page ${PAGE}" >&2; NEXT_AUTO=$((NEXT_AUTO + 5)); done; }
   sleep() { adv "$1"; }; step_shot() { :; }; dismiss_blockers() { :; }
   ui_screen_size() { echo "320 640"; }

@@ -9,7 +9,8 @@ set -uo pipefail
 flow="${1:?flow script}"
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; root="$(cd "$here/../../../.." && pwd)"
 (
-  export EMULATOR_FLOW=17c-entry-matrix-drawer-search EMULATOR_ARTIFACTS="$(mktemp -d)" EMULATOR_PACKAGE=com.example
+  EMULATOR_ARTIFACTS="$(mktemp -d)"
+  export EMULATOR_FLOW=17c-entry-matrix-drawer-search EMULATOR_ARTIFACTS EMULATOR_PACKAGE=com.example
   # shellcheck disable=SC1091
   source "$root/tool/emulator/lib/common.sh"
   FIELD="temple"; CLEARED=0
@@ -27,7 +28,9 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; root="$(cd "$here/../../..
       else echo '<node text="" resource-id="" content-desc="50 temples" bounds="[16,230][200,250]" />'; fi
       echo '</hierarchy>'; } > "$DUMP"; }
   ui_tap() { [[ "${UI_TEXT:-}" == *"Clear filters"* ]] && { CLEARED=1; FIELD=""; }; return 0; }
-  entry=drawer_search; kerala_applied=0
+  # Read by the sourced flow snippet (17_entry_matrix.sh empty-clear block),
+  # so exported rather than unused locals.
+  export entry=drawer_search kerala_applied=0
   # shellcheck disable=SC1090
   source <(awk '/^  if ui_dump && ui_find --resource-id temple-list-search-field; then$/ { p = 1 } p { print } p && /^  fi$/ { exit }' "$flow")
   echo "--- results"; cat "$RESULTS"

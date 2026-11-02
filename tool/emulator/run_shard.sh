@@ -50,10 +50,11 @@ if [[ "${EMULATOR_SHARD_DRY_RUN:-}" != 1 ]]; then
   snapcheck="$(bash tool/emulator/check_snapshot_config.sh post 2>/dev/null)" || snaprc=$?
   snapcheck="$(head -1 <<<"$snapcheck")"
   [[ -n "$snapcheck" ]] && printf 'SNAPCFG %s%s %s\n' "$tier" "${shard:+-${shard}}" "$snapcheck" >> "${artifacts}/results.txt"
-  # Round 4.3.1: fail fast. A boot whose data partition size or initPath
-  # differs from the snapshot cold-booted; no flow runs on it silently.
-  # Every planned flow then has no result, so release_gate counts NOT RUN.
-  if [[ "$snaprc" == 1 ]]; then
+  # Round 4.3.2: fail fast only when the config differs (size, cores, RAM,
+  # partitions) AND the marker shows a cold boot: no flow runs on it
+  # silently, and every planned flow then has no result (release_gate:
+  # NOT RUN). A mismatch on a snapshot boot is only recorded (SNAPCFG).
+  if [[ "$snaprc" == 1 && "$boot" == cold ]]; then
     printf 'FAIL boot-%s%s: snapshot config mismatch, cold boot: %s\n' "$tier" "${shard:+-${shard}}" "$snapcheck" >> "${artifacts}/results.txt"
     echo "::error::emulator ${tier}${shard:+ shard ${shard}}: ${snapcheck}"
     exit 1

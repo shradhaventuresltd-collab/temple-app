@@ -91,26 +91,37 @@ for _ in 1 2; do
   [[ "$page_after" == "$page_before" && "$page_after" != none ]] || break
   page_before="$page_after"
 done
-# Round 4.3.1: the timer only moves forward, so a forward change (or a wrap
-# to page 0) can be the timer alone. Two back flings then one dump (~4.3s,
-# under the 5s period, so at most one advance) must land BELOW the page
-# before them: swipes give -2 (clamped at 0), the timer at most +1. The
-# timer alone gives the same page, +1, or a wrap from the last page to 0,
-# which is inconclusive and retried. Each try starts from a page in
-# [2, last-1] (single forward/back flings first). At most 3 tries.
+# Round 4.3.1/4.3.2: the timer only moves forward, so a forward change (or
+# a wrap to page 0) can be the timer alone. A window is flings + one dump
+# (~3.3-4.3s, under the 5s period: at most one advance per window).
+#  - 4+ pages: from a page in [2, last-1], two back flings then a dump must
+#    land BELOW it (swipes -2, clamped at 0; the timer at most +1). The timer
+#    alone gives the same page, +1, or last -> 0 (not counted).
+#  - 3 pages: from page 1, the same window must show 0; the timer needs two
+#    advances (1 -> 2 -> 0) to get there, which one window cannot hold.
+#  - 2 pages: every swipe result (1 -> 0, 0 -> 1) is also the timer's next
+#    page, and a ~3.3s window holds a tick 2/3 of the time, so no window
+#    pattern separates a swipe from the timer (round 4.3.2 replay: three
+#    clean windows in a row passed 0/20 with a real swipe). Recorded as NA,
+#    never a weak PASS.
+# At most 3 tries; each try first steps to its start page with single flings.
 back_trace="${page_after}"
 back_ok=0
-if [[ "$page_before" != none && "$page_after" != none && "$page_after" != "$page_before" ]]; then
+if (( n_pages >= 4 )); then lo=2; hi=$((n_pages - 2)); else lo=1; hi=1; fi
+two_page=0
+(( n_pages == 2 )) && two_page=1
+if (( ! two_page )) && [[ "$page_before" != none && "$page_after" != none && "$page_after" != "$page_before" ]]; then
   cur="$page_after"
   for _ in 1 2 3; do
     for _ in 1 2 3; do
       [[ "$cur" == none ]] && break
-      if (( cur < 2 && n_pages >= 4 )); then ui_fling left
-      elif (( cur == n_pages - 1 && n_pages >= 4 )); then ui_fling right
+      if (( cur < lo )); then ui_fling left
+      elif (( cur > hi )); then ui_fling right
       else break; fi
       ui_dump; cur="$(gallery_page || echo none)"; back_trace+=" ~${cur}"
     done
     [[ "$cur" == none ]] && break
+    (( cur >= lo && cur <= hi )) || continue
     ui_fling right; ui_fling right
     ui_dump; nb="$(gallery_page || echo none)"; back_trace+=" <<${nb}"
     [[ "$nb" == none ]] && break
@@ -118,14 +129,18 @@ if [[ "$page_before" != none && "$page_after" != none && "$page_after" != "$page
     cur="$nb"
   done
 fi
-if [[ "$page_after" == none || "$page_after" == "$page_before" ]]; then
+if (( two_page )); then
+  # A forward fling plus a tick also reads "unchanged", so not even the
+  # forward check is meaningful on 2 pages.
+  na_step swipe-pages "2-page gallery: a swipe and the 5s auto-advance wrap give the same pages (${page_before} -> ${page_after}); not provable from dumps"
+elif [[ "$page_after" == none || "$page_after" == "$page_before" ]]; then
   fail_step swipe-pages "one fling did not change the page (${page_before} -> ${page_after})"
 elif (( back_ok )); then
   pass_step swipe-pages
 else
   fail_step swipe-pages "fling back did not move the page back (${page_before} -> ${back_trace}; the timer only moves forward)"
 fi
-for i in 1 2 3 4 5 6; do ui_fling right; sleep 0.3; done; step_shot swipe-burst
+for _ in 1 2 3 4 5 6; do ui_fling right; sleep 0.3; done; step_shot swipe-burst
 # The timer keeps auto-advancing, so the page after the burst is not fixed.
 # Let the last fling and any advance settle, then check the counter against
 # the page on screen: two consecutive dumps 0.8s apart must each be
@@ -133,7 +148,7 @@ for i in 1 2 3 4 5 6; do ui_fling right; sleep 0.3; done; step_shot swipe-burst
 sleep 1.5
 burst_ok=0
 prev_page=""
-for i in 1 2 3 4 5; do
+for _ in 1 2 3 4 5; do
   if ui_dump && gallery_index_consistent; then
     cur_page="$(gallery_page || true)"
     if [[ -n "$prev_page" && "$cur_page" == "$prev_page" ]]; then burst_ok=1; break; fi

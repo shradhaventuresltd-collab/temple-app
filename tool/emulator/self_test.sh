@@ -2639,22 +2639,60 @@ for st in 0 1 2 3 4; do
     grep -q '^FAIL 24-gallery-autoadvance-viewer: swipe-pages' <<<"$o" || { echo "flow 24: auto-advance only start=$st phase=$ph must FAIL: $o" >&2; exit 1; }
   done
 done
-# Round 4.3.1 (d): the post-boot check fails fast on a data partition size
-# or initPath that differs from the snapshot (run-booted lacks initPath).
+# Round 4.3.2: small galleries. 3 pages: from page 1 a back window must
+# show 0 (the timer needs 1 -> 2 -> 0); 4 pages: start in [2, 2]. Both pass
+# with a real swipe and fail on auto-advance only. 2 pages: always NA (a
+# swipe and the wrap give the same pages), never PASS.
+for np in 3 4; do
+  for st in 0 $((np - 1)); do
+    for ph in 0 2.5; do
+      o="$(NPAGES=$np bash "$T41/replay_24.sh" "$f24" "$st" "$ph" 2>&1)"
+      grep -q '^PASS 24-gallery-autoadvance-viewer: swipe-pages$' <<<"$o" || { echo "flow 24: ${np}-page swipe start=$st phase=$ph must PASS: $o" >&2; exit 1; }
+      o="$(NPAGES=$np NOSWIPE=1 bash "$T41/replay_24.sh" "$f24" "$st" "$ph" 2>&1)"
+      grep -q '^FAIL 24-gallery-autoadvance-viewer: swipe-pages' <<<"$o" || { echo "flow 24: ${np}-page auto-advance only start=$st phase=$ph must FAIL: $o" >&2; exit 1; }
+    done
+  done
+done
+o="$(NPAGES=2 bash "$T41/replay_24.sh" "$f24" 0 1 2>&1)"
+grep -q '^NA 24-gallery-autoadvance-viewer: swipe-pages: 2-page gallery' <<<"$o" || { echo "flow 24: 2-page gallery is NA: $o" >&2; exit 1; }
+o="$(NPAGES=2 NOSWIPE=1 bash "$T41/replay_24.sh" "$f24" 0 1 2>&1)"
+! grep -q '^PASS 24-gallery-autoadvance-viewer: swipe-pages' <<<"$o" || { echo "flow 24: 2-page auto-advance only never PASSes: $o" >&2; exit 1; }
+for ph in 0 1.5 2 4.5; do
+  o="$(NPAGES=2 bash "$T41/replay_24.sh" "$f24" 1 "$ph" 2>&1)"
+  grep -q '^NA 24-gallery-autoadvance-viewer: swipe-pages: 2-page gallery' <<<"$o" || { echo "flow 24: 2-page gallery phase=$ph is NA, never FAIL/PASS: $o" >&2; exit 1; }
+done
+# Round 4.3.2: initPath is written only by the boot that creates
+# userdata-qemu.img, so its absence is info, not a mismatch; the 2g-vs-6g
+# size mismatch still is. run_shard fails fast only on mismatch + cold boot.
 mkdir -p "$r43/avd431"; cp "$av/run-booted/config.ini" "$r43/avd431/"
 sed '/disk.dataPartition.initPath/d' "$av/create-booted/hardware-qemu.ini" > "$r43/avd431/hardware-qemu.ini"
-o="$(EMULATOR_SNAPSHOT_HW="$av/create-booted/snapshot-hardware.ini" bash tool/emulator/check_snapshot_config.sh post "$r43/avd431")" && { echo "snapcfg post: missing initPath must mismatch: $o" >&2; exit 1; }
-[[ "$o" == *"disk.dataPartition.initPath snapshot=/home/runner/.android/avd/emulator-app-test-30.avd/userdata.img boot=<unset>"* ]] || { echo "snapcfg post names initPath: $o" >&2; exit 1; }
-o="$(EMULATOR_SNAPSHOT_HW="$av/run-booted/snapshot-hardware.ini" bash tool/emulator/check_snapshot_config.sh post "$av/run-booted")" && { echo "snapcfg post: run 41391038302 shard 3 boot must mismatch" >&2; exit 1; }
-[[ "$o" == *"disk.dataPartition.size snapshot=6442450944 boot=2147483648"*"disk.dataPartition.initPath"* ]] || { echo "snapcfg post: size and initPath both named: $o" >&2; exit 1; }
-EMULATOR_SNAPSHOT_HW="$av/create-booted/snapshot-hardware.ini" bash tool/emulator/check_snapshot_config.sh post "$av/create-booted" >/dev/null || { echo "snapcfg post: matching create boot passes" >&2; exit 1; }
-# run_shard fails fast: stub adb + a mismatching boot -> exit 1, FAIL boot line, no flow ran.
-mkdir -p "$r43/bin431" "$r43/art431"
-printf '#!/bin/sh\necho 1\n' > "$r43/bin431/adb"; chmod +x "$r43/bin431/adb"
-rc=0; PATH="$r43/bin431:$PATH" EMULATOR_ARTIFACTS="$r43/art431" EMULATOR_SNAPSHOT_HW="$av/run-booted/snapshot-hardware.ini" EMULATOR_RUN_HW="$av/run-booted/hardware-qemu.ini" \
-  EMULATOR_FLOW_RUNNER=/bin/false bash tool/emulator/run_shard.sh full 3 >/dev/null 2>&1 || rc=$?
-[[ "$rc" == 1 ]] && grep -q '^FAIL boot-full-3: snapshot config mismatch, cold boot: SNAPSHOT_CONFIG mismatch: .*initPath' "$r43/art431/results.txt" && ! grep -q '^TIME ' "$r43/art431/results.txt" ||
-  { echo "run_shard must fail fast on a snapshot config mismatch (rc=$rc): $(cat "$r43/art431/results.txt" 2>/dev/null)" >&2; exit 1; }
+o="$(EMULATOR_SNAPSHOT_HW="$av/create-booted/snapshot-hardware.ini" bash tool/emulator/check_snapshot_config.sh post "$r43/avd431" 2>&1)" || { echo "snapcfg post: missing initPath alone is not a mismatch: $o" >&2; exit 1; }
+[[ "$o" == *"SNAPSHOT_CONFIG info: disk.dataPartition.initPath snapshot=/home/runner/.android/avd/emulator-app-test-30.avd/userdata.img boot=<unset>"* && "$o" == *"SNAPSHOT_CONFIG ok (post)"* ]] || { echo "snapcfg post logs initPath as info: $o" >&2; exit 1; }
+o="$(EMULATOR_SNAPSHOT_HW="$av/run-booted/snapshot-hardware.ini" bash tool/emulator/check_snapshot_config.sh post "$av/run-booted" 2>/dev/null)" && { echo "snapcfg post: run 41391038302 shard 3 boot (2g vs 6g) must mismatch" >&2; exit 1; }
+[[ "$o" == *"disk.dataPartition.size snapshot=6442450944 boot=2147483648"* && "$o" != *initPath* ]] || { echo "snapcfg post: size is the fatal key, initPath is not: $o" >&2; exit 1; }
+EMULATOR_SNAPSHOT_HW="$av/create-booted/snapshot-hardware.ini" bash tool/emulator/check_snapshot_config.sh post "$av/create-booted" >/dev/null 2>&1 || { echo "snapcfg post: matching create boot passes" >&2; exit 1; }
+# run_shard with a stub adb: marker 1 = snapshot boot, empty = cold.
+mkdir -p "$r43/bin431s" "$r43/bin431c"
+printf '#!/bin/sh\necho 1\n' > "$r43/bin431s/adb"; printf '#!/bin/sh\necho\n' > "$r43/bin431c/adb"; chmod +x "$r43/bin431s/adb" "$r43/bin431c/adb"
+stub_runner="$r43/runner431.sh"; printf '#!/bin/sh\necho "PASS $1: stub" >> "$EMULATOR_ARTIFACTS/results.txt"\n' > "$stub_runner"; chmod +x "$stub_runner"
+shard_case() { # bin_dir art_dir run_hw -> rc
+  local rc=0; rm -rf "$2"; mkdir -p "$2"
+  PATH="$1:$PATH" EMULATOR_ARTIFACTS="$2" EMULATOR_SNAPSHOT_HW="$av/create-booted/snapshot-hardware.ini" EMULATOR_RUN_HW="$3" \
+    EMULATOR_FLOW_RUNNER="$stub_runner" bash tool/emulator/run_shard.sh full 1 >/dev/null 2>&1 || rc=$?
+  echo "$rc"
+}
+# initPath absent + BOOT snapshot: continues (flows run).
+rc="$(shard_case "$r43/bin431s" "$r43/art431a" "$r43/avd431/hardware-qemu.ini")"
+grep -q '^BOOT full-1 snapshot$' "$r43/art431a/results.txt" && grep -q '^TIME ' "$r43/art431a/results.txt" && ! grep -q '^FAIL boot-' "$r43/art431a/results.txt" ||
+  { echo "run_shard: initPath absent on a snapshot boot must continue (rc=$rc): $(cat "$r43/art431a/results.txt")" >&2; exit 1; }
+# 2g-vs-6g size mismatch + cold: fails fast, no flow ran.
+rc="$(shard_case "$r43/bin431c" "$r43/art431b" "$av/run-booted/hardware-qemu.ini")"
+[[ "$rc" == 1 ]] && grep -q '^FAIL boot-full-1: snapshot config mismatch, cold boot: SNAPSHOT_CONFIG mismatch: disk.dataPartition.size snapshot=6442450944 boot=2147483648' "$r43/art431b/results.txt" && ! grep -q '^TIME ' "$r43/art431b/results.txt" ||
+  { echo "run_shard must fail fast on size mismatch + cold boot (rc=$rc): $(cat "$r43/art431b/results.txt")" >&2; exit 1; }
+# size mismatch but the snapshot marker is set: recorded, not fatal.
+rc="$(shard_case "$r43/bin431s" "$r43/art431c" "$av/run-booted/hardware-qemu.ini")"
+grep -q '^SNAPCFG full-1 SNAPSHOT_CONFIG mismatch' "$r43/art431c/results.txt" && grep -q '^TIME ' "$r43/art431c/results.txt" && ! grep -q '^FAIL boot-' "$r43/art431c/results.txt" ||
+  { echo "run_shard: mismatch on a snapshot boot is recorded, not fatal (rc=$rc): $(cat "$r43/art431c/results.txt")" >&2; exit 1; }
 # (a)/(3): worst case counts the outer kill-after; avd-warmup runs beside build.
 [[ "$(plan_need_s full 12)" == 2320 && "$(plan_need_s full 1)" == 2265 ]] || { echo "plan_need_s: shard 12 2320s, others 2265s (incl. outer kill-after 10)" >&2; exit 1; }
 grep -q 'timeout --kill-after="$FLOW_OUTER_KILL_S"' tool/emulator/run_shard.sh || { echo "run_shard outer kill-after must be FLOW_OUTER_KILL_S" >&2; exit 1; }
