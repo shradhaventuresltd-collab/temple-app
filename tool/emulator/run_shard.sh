@@ -66,13 +66,15 @@ if [[ "${EMULATOR_SHARD_DRY_RUN:-}" != 1 ]]; then
     victims="$(tree "$main_pid")"
     kill -TERM "$main_pid" 2>/dev/null
     for c in $victims; do kill -TERM "$c" 2>/dev/null; done
+    # Round 4.4.5 (Manu nit 2): run_shard.sh is gone, so drop the claim.
+    rmdir "$claim" 2>/dev/null
   ) &
   preboot_watchdog=$!
   marker="$(timeout "${SHARD_GETPROP_S:-5}" adb shell getprop debug.temple.snapshot_marker 2>/dev/null </dev/null | tr -d '\r' || true)"
   if [[ "$marker" == 1 ]]; then boot=snapshot; else boot=cold; fi
   if ! mkdir "$claim" 2>/dev/null; then
     # The watchdog claimed first: it is ending this attempt (no BOOT line).
-    wait "$preboot_watchdog" 2>/dev/null; exit 1
+    wait "$preboot_watchdog" 2>/dev/null; rmdir "$claim" 2>/dev/null; exit 1
   fi
   # Test hook (self_test): widen the race window. The watchdog expires here,
   # after the claim and before it is disarmed; it must then stand down.

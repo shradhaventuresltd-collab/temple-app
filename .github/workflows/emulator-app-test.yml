@@ -113,10 +113,15 @@ env:
   # 10x a snapshot load and ~1.8x the slowest cold boot. plan.sh
   # SHARD_RETRY_BOOT_S follows it (self_test).
   EMULATOR_RETRY_BOOT_TIMEOUT: "60"
-  # Round 4.4.4 (Satyavrat): both "Create AVD snapshot" steps cold-boot
+  # Round 4.4.4 (Satyavrat): the warm-up's "Create AVD snapshot" cold-boots
   # with 120s (was 600): 3.6x the slowest cold boot (33.7s of 81). plan.sh
-  # SHARD_CREATE_BOOT_S follows it.
+  # WARMUP_CREATE_BOOT_S follows it.
   EMULATOR_CREATE_BOOT_TIMEOUT: "120"
+  # Round 4.4.5 (Manu nit 1): a shard's own fallback snapshot (warm-up
+  # refused) cold-boots with 60s, the retry boot wait (~1.8x the slowest
+  # cold boot), so the refused + boot-death path fits 2700s. plan.sh
+  # SHARD_CREATE_BOOT_S follows it.
+  EMULATOR_SHARD_CREATE_BOOT_TIMEOUT: "60"
   # Round 4.4.4 (Manu): android-emulator-runner's own adb calls go through
   # tool/emulator/adb_shim, capped at this many seconds (SHARD_ACTION_ADB_S).
   EMULATOR_ACTION_ADB_S: "5"
@@ -338,11 +343,13 @@ jobs:
 
       # Round 4.4.4 (Manu): the action's own post-boot adb calls (keyevent
       # 82) cannot hang a step: tool/emulator/adb_shim caps them.
+      # Round 4.4.5 (Manu): the action prepends $ANDROID_HOME/platform-tools
+      # to PATH (sdk-installer.ts core.addPath), ahead of any GITHUB_PATH
+      # entry, so the shim replaces the real binary in place: adb -> adb.real,
+      # shim -> adb. The shim execs adb.real.
       - name: Cap the emulator action's adb calls
         timeout-minutes: 1
-        run: |
-          chmod +x tool/emulator/adb_shim/adb
-          echo "${GITHUB_WORKSPACE}/tool/emulator/adb_shim" >> "$GITHUB_PATH"
+        run: bash tool/emulator/adb_shim/install.sh "${ANDROID_HOME}/platform-tools"
 
       - name: Enable KVM
         timeout-minutes: 2
@@ -454,11 +461,13 @@ jobs:
 
       # Round 4.4.4 (Manu): the action's own post-boot adb calls (keyevent
       # 82) cannot hang a step: tool/emulator/adb_shim caps them.
+      # Round 4.4.5 (Manu): the action prepends $ANDROID_HOME/platform-tools
+      # to PATH (sdk-installer.ts core.addPath), ahead of any GITHUB_PATH
+      # entry, so the shim replaces the real binary in place: adb -> adb.real,
+      # shim -> adb. The shim execs adb.real.
       - name: Cap the emulator action's adb calls
         timeout-minutes: 1
-        run: |
-          chmod +x tool/emulator/adb_shim/adb
-          echo "${GITHUB_WORKSPACE}/tool/emulator/adb_shim" >> "$GITHUB_PATH"
+        run: bash tool/emulator/adb_shim/install.sh "${ANDROID_HOME}/platform-tools"
 
       - name: Enable KVM
         timeout-minutes: 2
@@ -510,13 +519,16 @@ jobs:
       - name: Create AVD snapshot
         id: create-avd
         if: steps.avd-cache.outcome == 'success' && steps.avd-cache.outputs.cache-hit != 'true'
-        # Round 4.4.4 (Satyavrat): the warm-up-refused path. Cold boot 120s
-        # + keyevent 5 + animations 5 + readiness 20 + settle 5 + save 5 +
-        # action start 30 = 190s modelled (plan_e2e_s); capped at 4 min.
-        timeout-minutes: 4
+        # Round 4.4.5 (Manu nit 1): the warm-up-refused path. Action start 30
+        # + cold boot 60 + keyevent 5 + animations 5 + readiness 12 + settle 3
+        # + save 5 = 120s modelled (plan_e2e_s); capped at 2 min, which the
+        # job budget counts. Not ready in 12s: no snapshot, flows boot cold.
+        timeout-minutes: 2
+        # Round 4.4.5 (Satyavrat): never fails the shard; see the warning step.
+        continue-on-error: true
         env:
-          EMULATOR_SNAPSHOT_READY_S: "20"
-          EMULATOR_SNAPSHOT_SETTLE_S: "5"
+          EMULATOR_SNAPSHOT_READY_S: "12"
+          EMULATOR_SNAPSHOT_SETTLE_S: "3"
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
           api-level: ${{ env.EMULATOR_API_LEVEL }}
@@ -528,10 +540,17 @@ jobs:
           force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
           disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
           emulator-build: ${{ env.EMULATOR_BUILD }}
-          emulator-boot-timeout: ${{ env.EMULATOR_CREATE_BOOT_TIMEOUT }}
+          emulator-boot-timeout: ${{ env.EMULATOR_SHARD_CREATE_BOOT_TIMEOUT }}
           emulator-options: ${{ env.EMULATOR_OPTIONS }}
           pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }} create
           script: bash tool/emulator/snapshot_create.sh
+
+      # Round 4.4.5 (Satyavrat): a slow, timed-out or failed shard create is a
+      # warning; the flows still run (cold boot, retry boot wait).
+      - name: Warn on a failed shard snapshot create
+        if: ${{ always() && (steps.create-avd.outcome == 'failure' || steps.create-avd.outcome == 'cancelled') }}
+        timeout-minutes: 1
+        run: bash tool/emulator/create_warn.sh "${{ steps.create-avd.outcome }}"
 
       # The snapshot must have booted on the image revision in the key.
       - name: Check system image revision
@@ -543,8 +562,8 @@ jobs:
       # The AVD cache is saved only by the avd-warmup job (no shard races
       # it). A shard whose restore missed (warm-up failed) creates its own
       # snapshot above and does not save it.
-      # One snapshot boot (150s; 60s when this job just created the
-      # snapshot) + keyevent 5s + getprop 5s, BOOT, then readiness (22s) +
+      # One snapshot boot (150s; 60s when this job ran its own create step,
+      # whether it saved a snapshot or not: round 4.4.5) + keyevent 5s + getprop 5s, BOOT, then readiness (22s) +
       # unlock (13s) + animations (5s) = 200s, then each flow capped at its
       # cap + 15s kill-after + 30s reset + 10s outer kill. smoke: 6 flows ->
       # 70 min worst case; full shards (15): max 2165s = 36.08 min (shard
@@ -567,7 +586,7 @@ jobs:
           force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
           disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
           emulator-build: ${{ env.EMULATOR_BUILD }}
-          emulator-boot-timeout: ${{ steps.create-avd.outcome == 'success' && env.EMULATOR_RETRY_BOOT_TIMEOUT || env.EMULATOR_BOOT_TIMEOUT }}
+          emulator-boot-timeout: ${{ (steps.create-avd.outcome == 'success' || steps.create-avd.outcome == 'failure') && env.EMULATOR_RETRY_BOOT_TIMEOUT || env.EMULATOR_BOOT_TIMEOUT }}
           emulator-options: ${{ env.EMULATOR_OPTIONS }}
           pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }} run
           script: bash tool/emulator/run_shard.sh ${{ needs.build.outputs.tier }} ${{ matrix.shard != 'smoke' && matrix.shard || '' }}

@@ -1,26 +1,16 @@
 #!/usr/bin/env bash
-# Round 4.4.4 (Manu): put first on PATH (workflow "Cap the emulator action's
-# adb calls" -> GITHUB_PATH) so android-emulator-runner's own post-boot adb
-# calls ("shell input keyevent 82", "shell settings put ...") cannot hang
-# for the whole 42-min step. Those are capped at EMULATOR_ACTION_ADB_S
-# (plan.sh SHARD_ACTION_ADB_S, 5s); a timeout fails the action, which the
-# boot check then treats as a boot death (no BOOT line) and retries.
-# Every other adb call passes through unchanged.
+# Round 4.4.4/4.4.5 (Manu): installed by install.sh as
+# $ANDROID_HOME/platform-tools/adb (the real binary renamed to adb.real next
+# to it), because android-emulator-runner puts that dir first on PATH and
+# its own post-boot adb calls ("shell input keyevent 82", "shell settings
+# put ...") would otherwise hang for the whole 42-min step. Those are capped
+# at EMULATOR_ACTION_ADB_S (plan.sh SHARD_ACTION_ADB_S, 5s); a timeout fails
+# the action, which the boot check then treats as a boot death (no BOOT
+# line) and retries. Every other adb call passes through unchanged.
 set -uo pipefail
 self_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-real=""
-for d in "${ANDROID_HOME:-}/platform-tools" "${ANDROID_SDK_ROOT:-}/platform-tools"; do
-  [[ -x "$d/adb" && "$d" != "$self_dir" ]] && { real="$d/adb"; break; }
-done
-if [[ -z "$real" ]]; then
-  IFS=: read -r -a dirs <<<"$PATH"
-  for d in "${dirs[@]}"; do
-    [[ "$d" == "$self_dir" || ! -x "$d/adb" ]] && continue
-    [[ "$(cd "$d" && pwd)" == "$self_dir" ]] && continue
-    real="$d/adb"; break
-  done
-fi
-[[ -n "$real" ]] || { echo "adb_shim: no real adb on PATH" >&2; exit 127; }
+real="$self_dir/adb.real"
+[[ -x "$real" ]] || { echo "adb_shim: no $real (run adb_shim/install.sh)" >&2; exit 127; }
 args=" $* "
 if [[ "$args" == *" shell input keyevent "* || "$args" == *" shell settings put "* ]]; then
   exec timeout --kill-after=2 "${EMULATOR_ACTION_ADB_S:-5}" "$real" "$@"

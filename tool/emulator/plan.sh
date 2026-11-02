@@ -72,7 +72,14 @@ ANIM_OFF_CMD="settings put global window_animation_scale 0.0; settings put globa
 # (EMULATOR_SNAPSHOT_READY_S) and settles 10s; a shard's own fallback
 # snapshot waits 20s and settles 5s (SHARD_CREATE_*), save ~5s.
 # shellcheck disable=SC2034 # read by self_test.sh
-SHARD_CREATE_BOOT_S=120 WARMUP_READY_S=60 WARMUP_SETTLE_S=10 SHARD_CREATE_READY_S=20 SHARD_CREATE_SETTLE_S=5 SNAPSHOT_SAVE_S=5
+# Round 4.4.5 (Manu nit 1): the shard's own snapshot (warm-up refused) boots
+# with 60s (workflow EMULATOR_SHARD_CREATE_BOOT_TIMEOUT, = the retry boot
+# wait), waits 12s for services and settles 3s: 30 + 60 + 5 + 5 + 12 + 3 + 5
+# = 120s, the step cap (SHARD_CREATE_STEP_MIN 2), so the refused + boot-death
+# path fits 2700s and the job budget counts that step. The warm-up keeps 120s
+# (WARMUP_CREATE_BOOT_S, EMULATOR_CREATE_BOOT_TIMEOUT).
+# shellcheck disable=SC2034 # read by self_test.sh
+WARMUP_CREATE_BOOT_S=120 SHARD_CREATE_BOOT_S=60 WARMUP_READY_S=60 WARMUP_SETTLE_S=10 SHARD_CREATE_READY_S=12 SHARD_CREATE_SETTLE_S=3 SNAPSHOT_SAVE_S=5 SHARD_CREATE_STEP_MIN=2
 # Round 4.4.3 (Satyavrat): the retry attempt's boot wait (workflow
 # EMULATOR_RETRY_BOOT_TIMEOUT). It restores the snapshot (~6s); 60s is 10x
 # that and ~1.8x the slowest cold boot (33.7s). The first attempt keeps
@@ -257,8 +264,8 @@ plan_need_s() {
   echo "$total"
 }
 
-# Round 4.4.3/4.4.4: end-to-end worst case of a full run, in seconds.
-# Prints "warm retry cold cold_retry refused max_shard":
+# Round 4.4.3-4.4.5: end-to-end worst case of a full run, in seconds.
+# Prints "warm retry cold cold_retry refused refused_retry create_failed_retry max_shard":
 #   warm       gate + build + setup + max shard + post
 #   retry      ... + dead attempt + boot check + max shard with the retry
 #              boot wait (SHARD_RETRY_BOOT_S)
@@ -266,23 +273,34 @@ plan_need_s() {
 #              cold avd-warmup job
 #   cold_retry cold + the boot retry
 #   refused    the warm-up saved nothing: each shard creates its own
-#              snapshot, then its flows boot it with the retry boot wait
+#              snapshot (create step, <= SHARD_CREATE_STEP_MIN), then its
+#              flows boot with the retry boot wait
+#   refused_retry  refused + a dead first attempt (booting with the retry
+#              wait: action start + 60 + keyevent + pre-BOOT watchdog) +
+#              boot check + the retry flows (Manu: was 2767s in 4.4.4)
+#   create_failed_retry  refused, but the shard's create step failed or hit
+#              its cap: flows still boot with the retry wait (round 4.4.5),
+#              then die and retry
 plan_e2e_s() {
-  local n need max=0 dead wu crit create warm retry cold cold_retry refused
+  local n need max=0 dead dead_r wu crit create create_cap warm retry cold cold_retry refused refused_retry cf_retry
   for n in $(seq 1 "$SHARD_COUNT"); do
     need="$(plan_need_s full "$n")"
     (( need > max )) && max=$need
   done
   dead=$((SHARD_ACTION_START_S + SHARD_BOOT_S + SHARD_ACTION_ADB_S + SHARD_PREBOOT_S))
-  wu=$((E2E_WARMUP_BASE_S + SHARD_CREATE_BOOT_S + SHARD_ACTION_ADB_S + SHARD_ANIM_S + WARMUP_READY_S + WARMUP_SETTLE_S))
+  dead_r=$((SHARD_ACTION_START_S + SHARD_RETRY_BOOT_S + SHARD_ACTION_ADB_S + SHARD_PREBOOT_S))
+  wu=$((E2E_WARMUP_BASE_S + WARMUP_CREATE_BOOT_S + SHARD_ACTION_ADB_S + SHARD_ANIM_S + WARMUP_READY_S + WARMUP_SETTLE_S))
   crit=$E2E_BUILD_S; (( wu > crit )) && crit=$wu
   create=$((SHARD_ACTION_START_S + SHARD_CREATE_BOOT_S + SHARD_ACTION_ADB_S + SHARD_ANIM_S + SHARD_CREATE_READY_S + SHARD_CREATE_SETTLE_S + SNAPSHOT_SAVE_S))
+  create_cap=$((SHARD_CREATE_STEP_MIN * 60)); (( create > create_cap )) && create_cap=$create
   warm=$((E2E_GATE_S + E2E_BUILD_S + E2E_SETUP_S + max + E2E_POST_S))
   retry=$((E2E_GATE_S + E2E_BUILD_S + E2E_SETUP_S + dead + E2E_BOOT_CHECK_S + max - SHARD_BOOT_S + SHARD_RETRY_BOOT_S + E2E_POST_S))
   cold=$((E2E_GATE_S + crit + E2E_SETUP_S + max + E2E_POST_S))
   cold_retry=$((E2E_GATE_S + crit + E2E_SETUP_S + dead + E2E_BOOT_CHECK_S + max - SHARD_BOOT_S + SHARD_RETRY_BOOT_S + E2E_POST_S))
   refused=$((E2E_GATE_S + crit + E2E_SETUP_S + create + max - SHARD_BOOT_S + SHARD_RETRY_BOOT_S + E2E_POST_S))
-  echo "$warm $retry $cold $cold_retry $refused $max"
+  refused_retry=$((E2E_GATE_S + crit + E2E_SETUP_S + create + dead_r + E2E_BOOT_CHECK_S + max - SHARD_BOOT_S + SHARD_RETRY_BOOT_S + E2E_POST_S))
+  cf_retry=$((E2E_GATE_S + crit + E2E_SETUP_S + create_cap + dead_r + E2E_BOOT_CHECK_S + max - SHARD_BOOT_S + SHARD_RETRY_BOOT_S + E2E_POST_S))
+  echo "$warm $retry $cold $cold_retry $refused $refused_retry $cf_retry $max"
 }
 
 plan_matrix() {
