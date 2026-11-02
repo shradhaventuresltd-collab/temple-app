@@ -2,7 +2,7 @@
 # Which emulator flows run in which tier and shard (Confluence 12353537).
 #
 #   smoke  six flows, one job, on non-draft pull requests (path-filtered)
-#   full   every flow, fourteen parallel shards (SHARD_COUNT), on workflow_dispatch and
+#   full   every flow, fifteen parallel shards (SHARD_COUNT), on workflow_dispatch and
 #          when a release or pre-release is published
 #   all    every flow in one sequential list (local runs, summary job)
 #
@@ -33,11 +33,11 @@ FLOW_OUTER_KILL_S=10
 SHARD_BOOT_S=150
 # Round 4.4: after boot, run_shard.sh waits for the system services
 # (services_ready.sh) and unlocks with keyevent 82 (never fatal).
-# Round 4.4.2: 30s + 2s kill-after and 3 tries of <= 3s, 2s apart
-# (3 x 3 + 2 x 2 = 13s). The snapshot is now saved only after the same
-# readiness check, so a warm boot is ready within seconds (r6 deaths came
-# ~6s after the snapshot load); 30s is 5x that. boot + ready + unlock = 195s.
-SHARD_READY_S=32
+# Round 4.4.2: 3 tries of <= 3s, 2s apart (3 x 3 + 2 x 2 = 13s). Round
+# 4.4.3: readiness 20s + 2s kill-after. The snapshot is saved only after
+# the same readiness check, so a warm boot is ready within seconds (r6
+# deaths came ~6s after the snapshot load). boot + ready + unlock = 185s.
+SHARD_READY_S=22
 SHARD_UNLOCK_TRIES=3
 SHARD_UNLOCK_S=$((SHARD_UNLOCK_TRIES * 3 + (SHARD_UNLOCK_TRIES - 1) * 2))
 # Round 4.4.2: job budget with the boot retry. A dead first attempt (no
@@ -47,16 +47,40 @@ SHARD_UNLOCK_S=$((SHARD_UNLOCK_TRIES * 3 + (SHARD_UNLOCK_TRIES - 1) * 2))
 # + post-step allowance the job timeout already keeps (step + 20).
 # shellcheck disable=SC2034 # read by self_test.sh (job budget)
 SHARD_ACTION_START_S=30
+# Round 4.4.3: a retried (dead) attempt has no BOOT line. Either the
+# action died while booting (action start + boot), or run_shard.sh did
+# not reach the BOOT line within SHARD_PREBOOT_S and its watchdog ended
+# the attempt (Manu). The getprop just before BOOT is capped at
+# SHARD_GETPROP_S. Dead attempt = 30 + 150 + 25 = 205s.
+# shellcheck disable=SC2034 # read by self_test.sh (job budget)
+SHARD_GETPROP_S=5
+# shellcheck disable=SC2034 # read by run_shard.sh and self_test.sh
+SHARD_PREBOOT_S=25
+# Round 4.4.3 (Satyavrat): the retry attempt's boot wait (workflow
+# EMULATOR_RETRY_BOOT_TIMEOUT). It restores the snapshot (~6s); 60s is 10x
+# that and ~1.8x the slowest cold boot (33.7s). The first attempt keeps
+# SHARD_BOOT_S.
+SHARD_RETRY_BOOT_S=60
+# Round 4.4.3: end-to-end model (seconds), from run 41391038302 step times:
+# gate 6, build 264, shard setup 42, shard post + summary job 42; the
+# avd-warmup job on a cold cache is 102s + its cold boot (SHARD_BOOT_S)
+# + snapshot_create's readiness (120) and settle (10); the boot-death
+# check is kill + wait-for-disconnect (<= 5s). Every path <= 2700s
+# (Sanu, 45 min); the boot-retry path <= 2640s (Satyavrat, 44.0 min).
+# shellcheck disable=SC2034 # read by self_test.sh
+E2E_GATE_S=6 E2E_BUILD_S=264 E2E_SETUP_S=42 E2E_POST_S=42 E2E_WARMUP_BASE_S=102 E2E_BOOT_CHECK_S=5
 # shellcheck disable=SC2034 # read by self_test.sh (job budget)
 JOB_SETUP_POST_MIN=20
 # One variable: matrix, need-minutes, run_shard.sh and self_test follow it.
-SHARD_COUNT=14
+SHARD_COUNT=15
 # The limit is the worst case, not a flow count (round 4.3.1). Per flow:
 # cap + kill-after 15 + reset 30 + outer kill-after 10. Shard 12 holds 4
-# (06a, 06b at 600s; 26, 08 at a 300s row cap). Boot + ready + unlock
-# (round 4.4.2) = 150 + 32 + 13 = 195s:
-# 195 + 2 x (600 + 55) + 2 x (300 + 55) = 2215s = 36.92 min.
-# Every other shard: 195 + 3 x 655 = 2160s = 36.0 min. Both <= 39 min,
+# Round 4.4.3 (Sanu: 45 min on every path, incl. the boot retry): 26 and
+# 08 (300s row caps) moved off shard 12 onto a 15th shard. Boot + ready +
+# unlock = 150 + 22 + 13 = 185s:
+# shard 12: 185 + 2 x (600 + 55) = 1495s = 24.92 min;
+# shard 15: 185 + 2 x (300 + 55) = 895s = 14.92 min;
+# every other shard: 185 + 3 x 655 = 2150s = 35.83 min. All <= 39 min,
 # step timeout 42 (self_test checks every shard against 39 min).
 # shellcheck disable=SC2034 # read by self_test.sh (sources this file)
 SHARD_WORST_MAX_S=$((39 * 60))
@@ -85,6 +109,7 @@ DEFAULT_NA_STEPS=""
 # parts of those: 17a-d, 29a-f, 30a-c/e-g, 30s, 06, 21, 22) and 22 short
 # ones: shards 1-6 run 2 long + 1 short, shards 7-14 run 1 long + 2 short,
 # with the slowest short flows (14, 27, 24, 18, 19, 26, 25) in 7-14.
+# Round 4.4.3: shard 15 holds 26 and 08 (300s caps), off shard 12.
 # 17 is split per entry point (17a-17d), and the filter matrix runs one
 # entry x one chip per flow (FILTER_MATRIX_PART=<entry>:<chip>, "seqs" for
 # the 3+ step sequences). Planned skips (11, 23, 30d) cost nothing.
@@ -126,8 +151,8 @@ PLAN_ROWS=(
   "20-empty-and-back|tool/emulator/flows/20_empty_and_back.sh||11"
   "06a-filters-single|tool/emulator/flows/06_filters.sh|single|12"
   "06b-filters-combined|tool/emulator/flows/06_filters.sh|combined|12"
-  "26-drawer-nav-stack|tool/emulator/flows/26_drawer_nav_stack.sh||12|300"
-  "08-list-detail|tool/emulator/flows/08_list_detail.sh||12|300"
+  "26-drawer-nav-stack|tool/emulator/flows/26_drawer_nav_stack.sh||15|300"
+  "08-list-detail|tool/emulator/flows/08_list_detail.sh||15|300"
   "21-district-close-then-other-chip|tool/emulator/flows/21_district_close_then_other_chip.sh||13"
   "25-directions-edge|tool/emulator/flows/25_directions_edge.sh||13"
   "09-photos|tool/emulator/flows/09_photos.sh||13"
@@ -212,6 +237,27 @@ plan_need_s() {
     fi
   done < <(plan_ids "$@")
   echo "$total"
+}
+
+# Round 4.4.3: end-to-end worst case of a full run, in seconds: prints
+# "warm retry cold max_shard". Warm = gate + build + setup + max shard +
+# post. Retry = gate + build + setup + dead attempt (action start + boot +
+# getprop) + boot-death check + the max shard booted with the retry boot
+# wait + post. Cold = warm with the build replaced by the slower of build
+# and a cold avd-warmup job.
+plan_e2e_s() {
+  local n need max=0 dead warm retry cold wu
+  for n in $(seq 1 "$SHARD_COUNT"); do
+    need="$(plan_need_s full "$n")"
+    (( need > max )) && max=$need
+  done
+  dead=$((SHARD_ACTION_START_S + SHARD_BOOT_S + SHARD_PREBOOT_S))
+  warm=$((E2E_GATE_S + E2E_BUILD_S + E2E_SETUP_S + max + E2E_POST_S))
+  retry=$((E2E_GATE_S + E2E_BUILD_S + E2E_SETUP_S + dead + E2E_BOOT_CHECK_S + max - SHARD_BOOT_S + SHARD_RETRY_BOOT_S + E2E_POST_S))
+  wu=$((E2E_WARMUP_BASE_S + SHARD_BOOT_S + 120 + 10))
+  (( wu < E2E_BUILD_S )) && wu=$E2E_BUILD_S
+  cold=$((E2E_GATE_S + wu + E2E_SETUP_S + max + E2E_POST_S))
+  echo "$warm $retry $cold $max"
 }
 
 plan_matrix() {

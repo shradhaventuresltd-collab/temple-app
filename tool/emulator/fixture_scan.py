@@ -69,10 +69,9 @@ def scan(paths):
                 found = [(k, m) for k, rx in PATTERNS for m in rx.finditer(text)]
                 found += [("imei-like (Luhn)", m) for m in BARE15.finditer(text) if luhn_ok(m.group(0))]
                 for kind, m in found:
-                    if True:
-                        line = text.count("\n", 0, m.start()) + 1
-                        print(f"{p}:{line}: {kind}: {m.group(0)[:60]}")
-                        hits += 1
+                    line = text.count("\n", 0, m.start()) + 1
+                    print(f"{p}:{line}: {kind}: {m.group(0)[:60]}")
+                    hits += 1
     return hits
 
 
