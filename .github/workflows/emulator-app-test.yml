@@ -13,9 +13,9 @@ name: emulator-app-test
 #   summary   merges every shard's results, prints the tested 40-char SHA
 #             (release gate), and fails on any FAIL or failed shard.
 #
-# Caps: picker give-up 20s (45s district/deity), step 150s, 600s per flow, every step has timeout-minutes.
+# Caps: picker give-up 20s (45s state/district/deity), step 150s, 600s per flow, every step has timeout-minutes.
 # Flows 11, 23 and 30d (near-me filter matrix cells) are planned skips (location-dependent).
-# Picker give-up: PICKER_LONG_GIVEUP_S=45 for district/deity pickers only (others 20s);
+# Picker give-up: PICKER_LONG_GIVEUP_S=45 for state/district/deity pickers (others 20s);
 # per-step budget EMULATOR_STEP_BUDGET_S=150; 14 shards (SHARD_COUNT in plan.sh), each <= 3 active flows,
 # worst case 300 + 3 x (600 + 15 + 30) s = 37.25 min, step timeout 42 min.
 #

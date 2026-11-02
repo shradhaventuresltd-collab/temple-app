@@ -2525,6 +2525,33 @@ bash tool/emulator/sanitize_artifacts.sh "$r43/up" >/dev/null || { echo "sanitiz
 mkdir -p "$r43/empty"; bash tool/emulator/sanitize_artifacts.sh "$r43/empty" >/dev/null 2>&1 && { echo "sanitize_artifacts: no results.txt must fail" >&2; exit 1; }
 # Workflow-level env must not break the self-test (the build job inherits it).
 grep -q '^env:$' "$workflow" || { echo "static emulator env lives at workflow level" >&2; exit 1; }
+# 4. Pickers on the sheet simulator (testdata/sim, SEEK_TRACE=1): the state
+# picker has the long budget and reaches Tamil Nadu; a slow-drag look costs
+# 2 dumps (the post-drag dump is settle dump 1), not 3; Shiva from a
+# Tamil Nadu-scoped list fits; scoped_pick never sends Shiva to an
+# all-India list.
+sim="tool/emulator/testdata/sim/seek_dryrun.sh"
+o="$(bash "$sim" STATE '^Tamil Nadu( +[0-9]+)?$' state,district,deity all "$r43/simst")"
+grep -q "^RESULT rc=0 .* label='Tamil Nadu'" <<<"$o" || { echo "sim: state Tamil Nadu within the long budget: $o" >&2; exit 1; }
+# After each slow drag (900ms swipe from seek_option) count the dumps before the next swipe.
+per_look="$(awk '/^SWIPE .* 900 seek_option/ { if (n) print c; n = 1; c = 0; next } /^SWIPE/ { if (n) print c; n = 0 } /^DUMP/ && n { c++ } END { if (n) print c }' "$r43/simst/calls.log" | sort -n | tail -1)"
+[[ "$per_look" -le 2 ]] || { echo "sim: a slow-drag look must cost <= 2 dumps (post-drag dump reused), got ${per_look}" >&2; cat "$r43/simst/calls.log" >&2; exit 1; }
+o="$(bash "$sim" DEITY '^Shiva( +[0-9]+)?$' deity,state,district tn "$r43/simsh")"
+grep -q "^RESULT rc=0 .* label='Shiva'" <<<"$o" || { echo "sim: Tamil Nadu-scoped Shiva: $o" >&2; exit 1; }
+o="$(bash "$sim" DEITY '^Ahalya( +[0-9]+)?$' deity,state,district all "$r43/simah")"
+grep -q "^RESULT rc=0 .* label='Ahalya'" <<<"$o" || { echo "sim: all-India head pick Ahalya: $o" >&2; exit 1; }
+sp() { ( export EMULATOR_FLOW=99-sp EMULATOR_ARTIFACTS="$r43/sp" EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  ui_dump() { printf '<hierarchy><node text="" resource-id="filter-chip-state" content-desc="%s" bounds="[0,100][120,140]" /></hierarchy>' "$SP_STATE" > "$DUMP"; }
+  scoped_pick "$1" ); }
+[[ "$(SP_STATE='Tamil Nadu' sp deity)" == '^Shiva( +[0-9]+)?$' && "$(SP_STATE='State' sp deity)" == '^Ahalya( +[0-9]+)?$' &&
+   "$(SP_STATE='Tamil Nadu' sp district)" == '^Madurai( +[0-9]+)?$' && "$(SP_STATE='Kerala' sp district)" == '^24 Paraganas North( +[0-9]+)?$' &&
+   "$(SP_STATE='State' sp state)" == '^Tamil Nadu( +[0-9]+)?$' ]] || { echo "scoped_pick: Shiva/Madurai only when Tamil Nadu is the state" >&2; exit 1; }
+if grep -n 'select_labeled "\${PICK\[' tool/emulator/flows/29_filter_matrix.sh tool/emulator/flows/17_entry_matrix.sh; then
+  echo "flows 17/29 must pick through scoped_pick, not PICK[] directly" >&2; exit 1
+fi
+grep -q 'kind" =~ ^(state|district|deity)\$ ]] && (( PICKER_LONG_GIVEUP_S' tool/emulator/lib/common.sh || { echo "state picker gets PICKER_LONG_GIVEUP_S" >&2; exit 1; }
 #R43_MORE
 rm -rf "$r43"
 echo "round 4.3 checks ok"

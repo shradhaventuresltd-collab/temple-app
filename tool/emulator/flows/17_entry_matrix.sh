@@ -87,7 +87,11 @@ for entry in "${ENTRIES[@]}"; do
     pass_step "$id-open"
     if err="$(dismiss_sheet_swipe 2>&1)"; then pass_step "$id-swipe-header"; else fail_step "$id-swipe-header" "$err"; recover_sheet; fi
     open_chip "$f" && { if swipe_from_list; then pass_step "$id-swipe-list"; else fail_step "$id-swipe-list" "sheet stayed open"; recover_sheet; fi; }
-    if open_chip "$f" && select_labeled "${PICK[$f]}" "${SECTION[$f]}" && apply_sheet && chip_exact "$SELECTED_LABEL"; then
+    # Deity: Shiva only from a Tamil Nadu-scoped list (scoped_pick); the
+    # state was cleared above, so this is the all-India head pick (Ahalya).
+    pick="${PICK[$f]}"
+    if [[ "$f" == deity ]]; then pick="$(scoped_pick deity)" || pick="$ALL_INDIA_DEITY_PICK"; fi
+    if open_chip "$f" && select_labeled "$pick" "${SECTION[$f]}" && apply_sheet && chip_exact "$SELECTED_LABEL"; then
       pass_step "$id-select"
     else
       fail_step "$id-select" "chip did not take the selection on this route"; recover_sheet; continue

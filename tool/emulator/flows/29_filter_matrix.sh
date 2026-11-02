@@ -86,15 +86,19 @@ close_x() {
 }
 
 # Action leaves the sheet closed; returns 0 if the action itself worked.
+# The pick is scoped (round 4.3, scoped_pick in lib/common.sh): Shiva and
+# Madurai only when the state chip already shows Tamil Nadu, otherwise the
+# head-of-list all-India picks. PICK keeps the Tamil Nadu targets.
 do_action() {
-  local chip="$1" action="$2"
+  local chip="$1" action="$2" pick
+  pick="$(scoped_pick "$chip")" || pick="${PICK[$chip]}"
   case "$action" in
-    select) open_chip "$chip" && select_labeled "${PICK[$chip]}" "${SECTION[$chip]}" && apply_sheet ;;
-    pick-close) open_chip "$chip" && select_labeled "${PICK[$chip]}" "${SECTION[$chip]}" && close_x ;;
+    select) open_chip "$chip" && select_labeled "$pick" "${SECTION[$chip]}" && apply_sheet ;;
+    pick-close) open_chip "$chip" && select_labeled "$pick" "${SECTION[$chip]}" && close_x ;;
     dismiss-empty) open_chip "$chip" && dismiss_sheet_swipe ;;
     back-empty) open_chip "$chip" && { ui_back; sleep 1; ! sheet_open; } ;;
     outside-empty) open_chip "$chip" && dismiss_sheet_outside ;;
-    clear) open_chip "$chip" && select_labeled "${PICK[$chip]}" "${SECTION[$chip]}" && apply_sheet && clear_named "$chip" ;;
+    clear) open_chip "$chip" && select_labeled "$pick" "${SECTION[$chip]}" && apply_sheet && clear_named "$chip" ;;
   esac
 }
 

@@ -33,7 +33,17 @@ ALL_INDIA_DEITY_PICK='^Ahalya( +[0-9]+)?$'
 PICKER_GIVEUP_S="${EMULATOR_PICKER_GIVEUP_S:-20}"
 # District and deity lists are 400-600 options; run 41373837994 gave up on
 # Madurai (29) and Shiva (17) at 20-22s with the target one fling away.
+# Round 4.3: the state picker gets it too. Run 41391038302 gave up on Tamil
+# Nadu (27th of 36 states) at 20s: STATE is always "near" (slow drags, no
+# flings), each look costs a drag plus 2-3 dumps of ~2.3s on a cold
+# swiftshader AVD, so 20s held 3 looks (dryrun 04-pickers-before).
 PICKER_LONG_GIVEUP_S="${EMULATOR_PICKER_LONG_GIVEUP_S:-45}"
+# Scoped targets: Shiva and Madurai are picked only from a list already
+# scoped to Tamil Nadu (state chip shows it): ~32 deities / ~38 districts.
+# All-India lists (600 deities) get the head-of-list picks above.
+TN_DEITY_PICK='^Shiva( +[0-9]+)?$'
+TN_DISTRICT_PICK='^Madurai( +[0-9]+)?$'
+
 # Per-step cap. Every record_* call starts a new step; ui_dump (called by
 # every wait, scroll and find loop) refuses to run once the current step is
 # older than STEP_BUDGET_S, so a stuck step fails on its own instead of
@@ -1430,8 +1440,13 @@ print(name if name else "")
 # a walk back after an overshoot, and SEEK_BACK_STALL. #126's step scan
 # alone cannot reach Tamil Nadu Shiva (12th of 32) inside 20s
 # (dryrun-logs/fastemu/round2/shiva_tn_*).
+# seek_settle [SIG]: SIG is the signature of a dump already taken after
+# the last move (the slow drag's post-drag dump, or the dump after a far
+# fling). It counts as settle dump 1, so a list that has stopped costs one
+# more dump instead of two (round 4.3; the 4.1 slow-drag check had added a
+# third dump per near look, dryrun 04-pickers-before/state-tamil-nadu.log).
 seek_settle() {
-  local n prev="" cur
+  local n prev="${1:-}" cur
   for n in $(seq 1 "${SEEK_SETTLE_DUMPS:-6}"); do
     ui_dump || return 1
     cur="$(dump_scroll_sig)" || return 1
@@ -1472,7 +1487,11 @@ seek_option() {
   local i height width verdict dir reach prev="" current same=0
   local direction="" flips=0 order="" fling_pct=48 kinds settled=1 gallop=0
   read -r width height < <(ui_screen_size) || return 1
-  ui_dump || return 1
+  # SEEK_FRESH_DUMP=1: the caller's last dump (wait_out_district_loader)
+  # is the sheet as it is now; do not pay another 2.3s dump for it.
+  if [[ "${SEEK_FRESH_DUMP:-}" != 1 || ! -s "$DUMP" ]]; then
+    ui_dump || return 1
+  fi
   # Every drag starts inside the option scroller (ui.py sheet-band). Above
   # it is the sheet header, where a drag never scrolls and a downward pull
   # dismisses. The fixed 32% fling start (y 204 of 640) was on the header,
@@ -1509,7 +1528,7 @@ seek_option() {
     # Only "still far, same way" may act on a moving list; any other
     # verdict, above all a tap, is taken again on a settled dump.
     if (( ! settled )) && ! [[ "$dir" == "$direction" && "$reach" =~ ^(far|mid)$ && "$flips" -eq 0 ]]; then
-      seek_settle || return 1
+      seek_settle "$(dump_scroll_sig)" || return 1
       settled=1
       continue
     fi
@@ -1570,7 +1589,7 @@ seek_option() {
     # double fling from the head of a short section (Tamil Nadu's ~30
     # deities) crossed it and the next two sections; the walk back cost
     # more than the walk (replay test, 18s of a 20s PICKER_GIVEUP_S).
-    local gallop_flings=""
+    local gallop_flings="" drag_before="" drag_after=""
     if [[ "$reach" =~ ^(far|mid)$ ]] && (( flips == 0 )) && [[ "${SEEK_GALLOP:-1}" == 1 ]]; then
       local g_pcts=()
       read -r -a g_pcts <<<"${SEEK_GALLOP_PCTS:-32 48}"
@@ -1616,7 +1635,6 @@ seek_option() {
       local s_lo=$((height * 42 / 100)) s_hi=$((height * 84 / 100))
       (( s_lo < band_top )) && s_lo=$band_top
       (( s_hi > band_bot )) && s_hi=$band_bot
-      local drag_before drag_after
       drag_before="$(dump_scroll_sig)" || return 1
       if [[ "$dir" == up ]]; then
         adb_shell_capped 8 input swipe $((width / 2)) "$s_hi" $((width / 2)) "$s_lo" "${SEEK_DRAG_MS:-900}" || return 1
@@ -1633,13 +1651,16 @@ seek_option() {
         else
           adb_shell_capped 8 input swipe $((width / 4)) "$s_lo" $((width / 4)) "$s_hi" "${SEEK_DRAG_RETRY_MS:-1500}" || return 1
         fi
+        # The list moved after drag_after was taken: it cannot settle anything.
+        drag_after=""
       fi
     fi
     if [[ "$reach" =~ ^(far|mid)$ ]] && (( flips == 0 )); then
       ui_dump || return 1
       settled=0
     else
-      seek_settle || return 1
+      # A slow drag has no momentum: its post-drag dump is settle dump 1.
+      seek_settle "$drag_after" || return 1
       settled=1
     fi
   done
@@ -1674,7 +1695,7 @@ select_labeled() {
   kind="$(printf '%s' "$_section" | tr '[:upper:]' '[:lower:]')"
   started=$SECONDS
   deadline=$((started + PICKER_GIVEUP_S))
-  if [[ "$kind" =~ ^(district|deity)$ ]] && (( PICKER_LONG_GIVEUP_S > PICKER_GIVEUP_S )); then
+  if [[ "$kind" =~ ^(state|district|deity)$ ]] && (( PICKER_LONG_GIVEUP_S > PICKER_GIVEUP_S )); then
     deadline=$((started + PICKER_LONG_GIVEUP_S))
   fi
   if [[ -n "$name_hint" && "$kind" =~ ^(state|district|deity)$ ]]; then
@@ -1685,7 +1706,7 @@ select_labeled() {
     # Keep the last 15s for the bounded step scan below when the seek stalls.
     local seek_deadline=$((deadline - 15))
     (( seek_deadline > started + 15 )) || seek_deadline=$deadline
-    seek_option "$kind" "$name_hint" "$seek_deadline" ${prefix_flag:+"$prefix_flag"} || seek_rc=$?
+    SEEK_FRESH_DUMP=1 seek_option "$kind" "$name_hint" "$seek_deadline" ${prefix_flag:+"$prefix_flag"} || seek_rc=$?
     # "list stopped moving" (rc 1) on a slow (cold-booted, swiftshader)
     # emulator: 120ms flings were not taken as drags. One more walk with
     # slower flings while the deadline allows (run 41373837994: 17, 29).
@@ -1862,6 +1883,25 @@ chip_exact() {
   # above the chip bar (run 41373837994 flow 19 in landscape: the title at
   # x=320 was taken for the chip and scrolled for 8 tries).
   CHIP_LABEL_RX="^$(re_escape "$label")$" find_filter_chip "" "^$(re_escape "$label")$"
+}
+
+# scoped_pick KIND: the pick regex for KIND given the chip bar on screen.
+# Shiva / Madurai only when the state chip already shows Tamil Nadu (a
+# ~32-option list); otherwise the head-of-list all-India picks, so no walk
+# crosses the 600-deity list (run 41391038302: every all-India Shiva walk
+# gave up at "Ra..Ri" after 45s). State is always Tamil Nadu.
+scoped_pick() {
+  local kind="$1" tn=0
+  if ui_dump && ui_find --resource-id filter-chip-state \
+    && [[ "$(printf '%s' "${UI_TEXT:-}" | tr -s '[:space:]' ' ')" == *"Tamil Nadu"* ]]; then
+    tn=1
+  fi
+  case "$kind" in
+    state) echo '^Tamil Nadu( +[0-9]+)?$' ;;
+    deity) if (( tn )); then echo "$TN_DEITY_PICK"; else echo "$ALL_INDIA_DEITY_PICK"; fi ;;
+    district) if (( tn )); then echo "$TN_DISTRICT_PICK"; else echo "$ALL_INDIA_DISTRICT_PICK"; fi ;;
+    *) return 1 ;;
+  esac
 }
 
 recover_sheet() {
