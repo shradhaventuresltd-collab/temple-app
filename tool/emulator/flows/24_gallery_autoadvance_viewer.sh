@@ -75,13 +75,55 @@ if (( ! SINGLE )); then
 # :200): six flings 0.3s apart took ~8s on 5 pages, reached the end and
 # wrapped back to the start index (run 41391038302: "1 -> 1", later "2 / 5").
 # The fling must page the gallery (run 41314245431: flings were vertical).
-ui_dump; page_before="$(gallery_page || echo none)"
-ui_fling left
-ui_dump; page_after="$(gallery_page || echo none)"
+# PageView clamps: on the last page a forward fling cannot move, so step
+# back first.
+gallery_count() { python3 -c 'import re,sys; m=re.search(r"text=\"\d+ / (\d+)\"", open(sys.argv[1], errors="replace").read()); print(m.group(1) if m else 0)' "$DUMP"; }
+ui_dump; page_before="$(gallery_page || echo none)"; n_pages="$(gallery_count)"
+# Up to 2 tries: a timer tick can undo the step back off the last page.
+for _ in 1 2; do
+  for _ in 1 2; do
+    [[ "$page_before" != none ]] && (( n_pages > 1 && page_before == n_pages - 1 )) || break
+    # Two back flings: -2, so one timer tick (+1) still leaves the last page.
+    ui_fling right; ui_fling right; ui_dump; page_before="$(gallery_page || echo none)"
+  done
+  ui_fling left
+  ui_dump; page_after="$(gallery_page || echo none)"
+  [[ "$page_after" == "$page_before" && "$page_after" != none ]] || break
+  page_before="$page_after"
+done
+# Round 4.3.1: the timer only moves forward, so a forward change (or a wrap
+# to page 0) can be the timer alone. Two back flings then one dump (~4.3s,
+# under the 5s period, so at most one advance) must land BELOW the page
+# before them: swipes give -2 (clamped at 0), the timer at most +1. The
+# timer alone gives the same page, +1, or a wrap from the last page to 0,
+# which is inconclusive and retried. Each try starts from a page in
+# [2, last-1] (single forward/back flings first). At most 3 tries.
+back_trace="${page_after}"
+back_ok=0
 if [[ "$page_before" != none && "$page_after" != none && "$page_after" != "$page_before" ]]; then
+  cur="$page_after"
+  for _ in 1 2 3; do
+    for _ in 1 2 3; do
+      [[ "$cur" == none ]] && break
+      if (( cur < 2 && n_pages >= 4 )); then ui_fling left
+      elif (( cur == n_pages - 1 && n_pages >= 4 )); then ui_fling right
+      else break; fi
+      ui_dump; cur="$(gallery_page || echo none)"; back_trace+=" ~${cur}"
+    done
+    [[ "$cur" == none ]] && break
+    ui_fling right; ui_fling right
+    ui_dump; nb="$(gallery_page || echo none)"; back_trace+=" <<${nb}"
+    [[ "$nb" == none ]] && break
+    if (( nb < cur )) && ! (( cur == n_pages - 1 && nb == 0 )); then back_ok=1; break; fi
+    cur="$nb"
+  done
+fi
+if [[ "$page_after" == none || "$page_after" == "$page_before" ]]; then
+  fail_step swipe-pages "one fling did not change the page (${page_before} -> ${page_after})"
+elif (( back_ok )); then
   pass_step swipe-pages
 else
-  fail_step swipe-pages "one fling did not change the page (${page_before} -> ${page_after})"
+  fail_step swipe-pages "fling back did not move the page back (${page_before} -> ${back_trace}; the timer only moves forward)"
 fi
 for i in 1 2 3 4 5 6; do ui_fling right; sleep 0.3; done; step_shot swipe-burst
 # The timer keeps auto-advancing, so the page after the burst is not fixed.
@@ -107,5 +149,5 @@ fi
 ui_dump; ui_find --resource-id detail-gallery-0 && { ui_tap; sleep 1; ui_tap; }; sleep 10
 dump_logcat; grep -q "RangeError\|FlutterError" "$LOG_DIR"/* 2>/dev/null && fail_step gallery-errors "RangeError in logcat" || pass_step gallery-errors
 ui_home_key; sleep 20; resume_app; sleep 2; ui_dump && pass_step bg-resume
-network_off; for i in 1 2 3; do ui_fling left; sleep 1; done; step_shot offline-gallery
+network_off; for _ in 1 2 3; do ui_fling left; sleep 1; done; step_shot offline-gallery
 ui_dump; ui_find --text-contains "Exception" && fail_step offline-photo "raw error text" || pass_step offline-photo; network_on

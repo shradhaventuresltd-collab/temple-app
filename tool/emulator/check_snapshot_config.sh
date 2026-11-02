@@ -14,8 +14,9 @@
 #   pre:  EMULATOR_OPTIONS must not carry -partition-size (or it must equal
 #         the snapshot size), and config.ini's disk size, cores and RAM must
 #         equal snapshots/default_boot/hardware.ini.
-#   post: hardware-qemu.ini's disk size, cores, RAM and partition sizes must
-#         equal the snapshot's.
+#   post: hardware-qemu.ini's disk size, cores, RAM, partition sizes and
+#         disk.dataPartition.initPath must equal the snapshot's. run_shard.sh
+#         fails the shard fast on a post mismatch (round 4.3.1).
 # Prints "SNAPSHOT_CONFIG ok" or "SNAPSHOT_CONFIG mismatch: <keys>" and exits
 # 0 or 1. A missing snapshot exits 2 (nothing to compare).
 set -uo pipefail
@@ -79,6 +80,10 @@ case "$mode" in
         a="$(norm "$(ini_get "$snap" "$k")")"; b="$(norm "$(ini_get "$hq" "$k")")"
         [[ "$a" == "$b" ]] || bad+="${k} snapshot=${a} boot=${b} "
       done
+      # Round 4.3.1: the userdata image path is part of the snapshot's
+      # config too (run 41391038302: the snapshot had it, the boot did not).
+      a="$(ini_get "$snap" disk.dataPartition.initPath)"; b="$(ini_get "$hq" disk.dataPartition.initPath)"
+      [[ "$a" == "$b" ]] || bad+="disk.dataPartition.initPath snapshot=${a:-<unset>} boot=${b:-<unset>} "
     fi
     ;;
   *)

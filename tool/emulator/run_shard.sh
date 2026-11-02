@@ -46,8 +46,18 @@ if [[ "${EMULATOR_SHARD_DRY_RUN:-}" != 1 ]]; then
   printf 'BOOT %s%s %s\n' "$tier" "${shard:+-${shard}}" "$boot" >> "${artifacts}/results.txt"
   echo "boot: ${boot}"
   # Which keys differ between this boot's hardware-qemu.ini and the snapshot.
-  snapcheck="$(bash tool/emulator/check_snapshot_config.sh post 2>/dev/null | head -1)"
+  snaprc=0
+  snapcheck="$(bash tool/emulator/check_snapshot_config.sh post 2>/dev/null)" || snaprc=$?
+  snapcheck="$(head -1 <<<"$snapcheck")"
   [[ -n "$snapcheck" ]] && printf 'SNAPCFG %s%s %s\n' "$tier" "${shard:+-${shard}}" "$snapcheck" >> "${artifacts}/results.txt"
+  # Round 4.3.1: fail fast. A boot whose data partition size or initPath
+  # differs from the snapshot cold-booted; no flow runs on it silently.
+  # Every planned flow then has no result, so release_gate counts NOT RUN.
+  if [[ "$snaprc" == 1 ]]; then
+    printf 'FAIL boot-%s%s: snapshot config mismatch, cold boot: %s\n' "$tier" "${shard:+-${shard}}" "$snapcheck" >> "${artifacts}/results.txt"
+    echo "::error::emulator ${tier}${shard:+ shard ${shard}}: ${snapcheck}"
+    exit 1
+  fi
   if [[ "$boot" == cold ]]; then
     echo "::warning::emulator ${tier}${shard:+ shard ${shard}} cold-booted: the AVD snapshot was not loaded"
   fi
@@ -90,7 +100,7 @@ while read -r id script part <&3; do
   cap="$(plan_cap_s "$id")"
   flow_guard=$((cap + FLOW_KILL_AFTER_S + FLOW_RESET_S))
   (( flow_guard <= guard )) || flow_guard=$guard
-  EMULATOR_FLOW_BUDGET="$cap" FILTER_MATRIX_PART="${part:-all}" timeout --kill-after=10 "$flow_guard" \
+  EMULATOR_FLOW_BUDGET="$cap" FILTER_MATRIX_PART="${part:-all}" timeout --kill-after="$FLOW_OUTER_KILL_S" "$flow_guard" \
     bash "$runner" "$id" "$script" </dev/null
   rc=$?
   if [[ "$rc" -eq 124 || "$rc" -eq 137 ]]; then

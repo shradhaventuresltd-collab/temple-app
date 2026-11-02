@@ -307,8 +307,9 @@ jobs:
   # Fail open: if it fails, each shard still creates its own snapshot.
   avd-warmup:
     name: AVD cache warm-up
-    needs: [gate, build]
-    if: ${{ !cancelled() && needs.gate.result != 'skipped' && needs.gate.outputs.run != 'false' && needs.build.result == 'success' }}
+    # Round 4.3.1: needs only the gate, so it runs in parallel with build.
+    needs: [gate]
+    if: ${{ !cancelled() && needs.gate.result != 'skipped' && needs.gate.outputs.run != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:

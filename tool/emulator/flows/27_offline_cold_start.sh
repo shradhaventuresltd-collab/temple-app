@@ -24,7 +24,7 @@ else
   skip_step chips-after-flap "recover failed; no flaps on an unrecovered list"
   return 0
 fi
-for i in 1 2 3; do network_off; sleep 1; network_on; sleep 1; done
+for _ in 1 2 3; do network_off; sleep 1; network_on; sleep 1; done
 wait_network_validated 60 || true
 # A flap may abort the reload; the list must come back the same way.
 recover_browse 60 15 || true

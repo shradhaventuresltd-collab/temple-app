@@ -235,7 +235,11 @@ fi
 if [[ "$FILTERS_PART" == single ]]; then
   return 0
 fi
-# The combined part runs on its own (06b): it applies Kerala itself.
+# The combined part runs on its own (06b), so the single-chip part never set
+# these. Here *_SELECT_OK=1 does not mean a single-chip select passed: it
+# means "the combined steps below apply this value themselves" (Kerala via
+# the state chip, Vishnu via the deity chip), and the later checks assert
+# exactly those values.
 if [[ "$FILTERS_PART" == combined ]]; then
   STATE_SELECT_OK=1; STATE_LABEL=Kerala
   DEITY_SELECT_OK=1; DEITY_LABEL=Vishnu

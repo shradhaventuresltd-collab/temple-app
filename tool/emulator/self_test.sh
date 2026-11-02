@@ -1341,12 +1341,20 @@ for n in $(seq 1 "$SHARD_COUNT"); do
   for id in $(plan_ids full "$n"); do
     plan_is_skipped "$id" || active=$((active + 1))
   done
-  if (( active == 0 || active > SHARD_MAX_ACTIVE )); then
-    echo "shard ${n} should run 1-${SHARD_MAX_ACTIVE} flows that are not skipped, has ${active}" >&2
-    exit 1
+  if (( active == 0 )); then
+    echo "shard ${n} runs no flow" >&2; exit 1
   fi
-  if (( $(plan_need_s full "$n") > 39 * 60 )); then
-    echo "shard ${n} worst case $(plan_need_s full "$n")s is over 39 min (incl. boot)" >&2
+  # Round 4.3.1: worst case from the actual per-row caps, boot, kill-after,
+  # reset and run_shard.sh's outer --kill-after, recomputed here.
+  want=$SHARD_BOOT_S
+  for id in $(plan_ids full "$n"); do
+    plan_is_skipped "$id" || want=$((want + $(plan_cap_s "$id") + FLOW_KILL_AFTER_S + FLOW_RESET_S + FLOW_OUTER_KILL_S))
+  done
+  if [[ "$(plan_need_s full "$n")" != "$want" ]]; then
+    echo "shard ${n}: plan_need_s $(plan_need_s full "$n") != caps+boot+kill-afters ${want}" >&2; exit 1
+  fi
+  if (( want > SHARD_WORST_MAX_S || want > 39 * 60 )); then
+    echo "shard ${n} worst case ${want}s is over 39 min (incl. boot)" >&2
     exit 1
   fi
 done
@@ -2594,7 +2602,7 @@ f06=tool/emulator/flows/06_filters.sh
 grep -q "select_labeled '^(?!All districts)" "$f06" && { echo "flow 06: no name-less lookahead district pick" >&2; exit 1; }
 grep -q 'COMBINED_DISTRICT_PICK:-^Alappuzha' "$f06" && grep -q 'state_chip_is "$COMBINED_STATE"' "$f06" || { echo "flow 06: real district (Alappuzha) and the state-chip check" >&2; exit 1; }
 grep -q ': "${_section}"' tool/emulator/lib/common.sh && { echo "select_labeled must use its section" >&2; exit 1; }
-[[ "$(bash -c 'source tool/emulator/plan.sh; plan_cap_s 26-drawer-nav-stack; plan_cap_s 06a-filters-single; plan_need_s full 12')" == $'300\n600\n2280' ]] || { echo "plan: row caps 26=300, 06a=600, shard 12 = 2280s" >&2; exit 1; }
+[[ "$(bash -c 'source tool/emulator/plan.sh; plan_cap_s 26-drawer-nav-stack; plan_cap_s 06a-filters-single; plan_need_s full 12')" == $'300\n600\n2320' ]] || { echo "plan: row caps 26=300, 06a=600, shard 12 = 2320s" >&2; exit 1; }
 # 6-8. Replays of run 41391038302 (testdata/run41391038302/replay_*.sh):
 # 27 waits for validation, re-taps Try again, flaps only after recover; 17c
 # clears "temple" before typing; 24 sends one fling and compares.
@@ -2610,9 +2618,47 @@ grep -q 'wait_network_validated 60' tool/emulator/flows/27_offline_cold_start.sh
 o="$(bash "$T41/replay_17c.sh" tool/emulator/flows/17_entry_matrix.sh)"
 grep -q "typed 'zzzqqq' -> field 'zzzqqq'" <<<"$o" && grep -q '^PASS 17c-entry-matrix-drawer-search: drawer_search-empty-clear$' <<<"$o" ||
   { echo "flow 17c: clear 'temple' before typing zzzqqq: $o" >&2; exit 1; }
-o="$(bash "$T41/replay_24.sh" tool/emulator/flows/24_gallery_autoadvance_viewer.sh 1 1 2>&1)"
-[[ "$(grep -c ' fling ' <<<"$o")" == 1 ]] && grep -q '^PASS 24-gallery-autoadvance-viewer: swipe-pages$' <<<"$o" ||
-  { echo "flow 24: one fling, then dump and compare: $o" >&2; exit 1; }
+# Round 4.3.1: flow 24 must prove the swipe with a fling BACK (the timer
+# only moves forward). Auto-advance alone (NOSWIPE=1: flings do nothing)
+# must FAIL at every start page and phase, including the window where the
+# timer moves the page forward between the two dumps (phase 2, which the
+# round-4.3 one-fling check passed); a page that does not move ("1 -> 1",
+# run 41391038302) must FAIL; a working swipe must PASS everywhere.
+f24=tool/emulator/flows/24_gallery_autoadvance_viewer.sh
+o="$(NOSWIPE=1 bash "$T41/replay_24.sh" "$f24" 1 2 2>&1)"
+grep -q 'auto-advance -> page 2' <<<"$o" && grep -q '^FAIL 24-gallery-autoadvance-viewer: swipe-pages: fling back did not move the page back (1 -> 2 ' <<<"$o" ||
+  { echo "flow 24: auto-advance alone (forward change between dumps) must FAIL: $o" >&2; exit 1; }
+o="$(NOSWIPE=1 NOAUTO=1 bash "$T41/replay_24.sh" "$f24" 1 1 2>&1)"
+grep -q '^FAIL 24-gallery-autoadvance-viewer: swipe-pages: one fling did not change the page (1 -> 1)$' <<<"$o" ||
+  { echo "flow 24: an unchanged page (the old 1 -> 1 case) must FAIL: $o" >&2; exit 1; }
+for st in 0 1 2 3 4; do
+  for ph in 0 1.5 3.5; do
+    o="$(bash "$T41/replay_24.sh" "$f24" "$st" "$ph" 2>&1)"
+    grep -q '^PASS 24-gallery-autoadvance-viewer: swipe-pages$' <<<"$o" || { echo "flow 24: working swipe start=$st phase=$ph must PASS: $o" >&2; exit 1; }
+    o="$(NOSWIPE=1 bash "$T41/replay_24.sh" "$f24" "$st" "$ph" 2>&1)"
+    grep -q '^FAIL 24-gallery-autoadvance-viewer: swipe-pages' <<<"$o" || { echo "flow 24: auto-advance only start=$st phase=$ph must FAIL: $o" >&2; exit 1; }
+  done
+done
+# Round 4.3.1 (d): the post-boot check fails fast on a data partition size
+# or initPath that differs from the snapshot (run-booted lacks initPath).
+mkdir -p "$r43/avd431"; cp "$av/run-booted/config.ini" "$r43/avd431/"
+sed '/disk.dataPartition.initPath/d' "$av/create-booted/hardware-qemu.ini" > "$r43/avd431/hardware-qemu.ini"
+o="$(EMULATOR_SNAPSHOT_HW="$av/create-booted/snapshot-hardware.ini" bash tool/emulator/check_snapshot_config.sh post "$r43/avd431")" && { echo "snapcfg post: missing initPath must mismatch: $o" >&2; exit 1; }
+[[ "$o" == *"disk.dataPartition.initPath snapshot=/home/runner/.android/avd/emulator-app-test-30.avd/userdata.img boot=<unset>"* ]] || { echo "snapcfg post names initPath: $o" >&2; exit 1; }
+o="$(EMULATOR_SNAPSHOT_HW="$av/run-booted/snapshot-hardware.ini" bash tool/emulator/check_snapshot_config.sh post "$av/run-booted")" && { echo "snapcfg post: run 41391038302 shard 3 boot must mismatch" >&2; exit 1; }
+[[ "$o" == *"disk.dataPartition.size snapshot=6442450944 boot=2147483648"*"disk.dataPartition.initPath"* ]] || { echo "snapcfg post: size and initPath both named: $o" >&2; exit 1; }
+EMULATOR_SNAPSHOT_HW="$av/create-booted/snapshot-hardware.ini" bash tool/emulator/check_snapshot_config.sh post "$av/create-booted" >/dev/null || { echo "snapcfg post: matching create boot passes" >&2; exit 1; }
+# run_shard fails fast: stub adb + a mismatching boot -> exit 1, FAIL boot line, no flow ran.
+mkdir -p "$r43/bin431" "$r43/art431"
+printf '#!/bin/sh\necho 1\n' > "$r43/bin431/adb"; chmod +x "$r43/bin431/adb"
+rc=0; PATH="$r43/bin431:$PATH" EMULATOR_ARTIFACTS="$r43/art431" EMULATOR_SNAPSHOT_HW="$av/run-booted/snapshot-hardware.ini" EMULATOR_RUN_HW="$av/run-booted/hardware-qemu.ini" \
+  EMULATOR_FLOW_RUNNER=/bin/false bash tool/emulator/run_shard.sh full 3 >/dev/null 2>&1 || rc=$?
+[[ "$rc" == 1 ]] && grep -q '^FAIL boot-full-3: snapshot config mismatch, cold boot: SNAPSHOT_CONFIG mismatch: .*initPath' "$r43/art431/results.txt" && ! grep -q '^TIME ' "$r43/art431/results.txt" ||
+  { echo "run_shard must fail fast on a snapshot config mismatch (rc=$rc): $(cat "$r43/art431/results.txt" 2>/dev/null)" >&2; exit 1; }
+# (a)/(3): worst case counts the outer kill-after; avd-warmup runs beside build.
+[[ "$(plan_need_s full 12)" == 2320 && "$(plan_need_s full 1)" == 2265 ]] || { echo "plan_need_s: shard 12 2320s, others 2265s (incl. outer kill-after 10)" >&2; exit 1; }
+grep -q 'timeout --kill-after="$FLOW_OUTER_KILL_S"' tool/emulator/run_shard.sh || { echo "run_shard outer kill-after must be FLOW_OUTER_KILL_S" >&2; exit 1; }
+awk '/^  avd-warmup:/ { w = 1 } w && /needs:/ { print; exit }' "$workflow" | grep -qx '    needs: \[gate\]' || { echo "avd-warmup must need only the gate (parallel with build)" >&2; exit 1; }
 #R43_MORE
 rm -rf "$r43"
 echo "round 4.3 checks ok"

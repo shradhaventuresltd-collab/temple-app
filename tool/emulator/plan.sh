@@ -24,17 +24,21 @@ FLOW_KILL_AFTER_S=15
 # FAIL write, incl. the 600s-timeout flows) max 6.8s: <= 12s. 30s keeps
 # 2.5x headroom; every flow still gets reset_device_state + pm clear.
 FLOW_RESET_S=30
+# run_shard.sh's outer "timeout --kill-after" on top of the flow guard
+# (round 4.3.1: counted in plan_need_s).
+FLOW_OUTER_KILL_S=10
 # One snapshot boot per job (emulator-boot-timeout).
 SHARD_BOOT_S=300
 # One variable: matrix, need-minutes, run_shard.sh and self_test follow it.
 SHARD_COUNT=14
-# At most this many active (not skipped) flows per shard. Round 4.3: shard
-# 12 holds 4 (06a, 06b at 600s; 26, 08 at a 300s row cap):
-# 300 + 2 x (600 + 15 + 30) + 2 x (300 + 15 + 30) = 2280s = 38.0 min.
-# Every other shard: 300 + 3 x 645 = 2235s = 37.25 min. Both <= 39 min,
+# The limit is the worst case, not a flow count (round 4.3.1). Per flow:
+# cap + kill-after 15 + reset 30 + outer kill-after 10. Shard 12 holds 4
+# (06a, 06b at 600s; 26, 08 at a 300s row cap):
+# 300 + 2 x (600 + 55) + 2 x (300 + 55) = 2320s = 38.67 min.
+# Every other shard: 300 + 3 x 655 = 2265s = 37.75 min. Both <= 39 min,
 # step timeout 42 (self_test checks every shard against 39 min).
 # shellcheck disable=SC2034 # read by self_test.sh (sources this file)
-SHARD_MAX_ACTIVE=4
+SHARD_WORST_MAX_S=$((39 * 60))
 
 SMOKE_FLOWS="01-first-launch 04-home 05-search 08-list-detail 14-back-relaunch 15-offline"
 
@@ -183,7 +187,7 @@ plan_need_s() {
   local id total=$SHARD_BOOT_S
   while read -r id; do
     if ! plan_is_skipped "$id"; then
-      total=$((total + $(plan_cap_s "$id") + FLOW_KILL_AFTER_S + FLOW_RESET_S))
+      total=$((total + $(plan_cap_s "$id") + FLOW_KILL_AFTER_S + FLOW_RESET_S + FLOW_OUTER_KILL_S))
     fi
   done < <(plan_ids "$@")
   echo "$total"
