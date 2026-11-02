@@ -476,6 +476,10 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
   double _pullDown = 0;
   double _overscrollPull = 0;
   double _pointerY = 0;
+  double _pointerX = 0;
+  /// Sideways travel during the current pull. A pull dismisses only when
+  /// its vertical travel dominates, so a sideways swipe never closes it.
+  double _pullSide = 0;
 
   /// Option counts for the current draft. A drag rebuilds the sheet without
   /// changing the draft, so the walk must not run again.
@@ -579,6 +583,8 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
 
   void _onPointerDown(PointerDownEvent event) {
     _pointerY = event.position.dy;
+    _pointerX = event.position.dx;
+    _pullSide = 0;
     _pullArmed = _listAtTop || _eventOnHeader(event.position);
     if (_pullArmed) _pullDown = 0;
   }
@@ -589,14 +595,21 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
   void _onPointerMove(PointerMoveEvent event) {
     final dy = event.position.dy - _pointerY;
     _pointerY = event.position.dy;
+    _pullSide += (event.position.dx - _pointerX).abs();
+    _pointerX = event.position.dx;
     if (_dismissed || !_pullArmed) return;
-    if (dy <= 0) {
+    // A move with no vertical travel (horizontal jitter, or the first
+    // sample of `adb shell input swipe`, which repeats the down point) is
+    // not an upward scroll. Disarming on it made a header pull never
+    // dismiss the sheet.
+    if (dy == 0) return;
+    if (dy < 0) {
       _pullArmed = false;
       _pullDown = 0;
       return;
     }
     _pullDown += dy;
-    if (_pullDown >= 72) _dismiss();
+    if (_pullDown >= 72 && _pullDown > _pullSide) _dismiss();
   }
 
   void _onPointerEnd(PointerEvent event) {
