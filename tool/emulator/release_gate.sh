@@ -62,9 +62,45 @@ else
   unplanned_na="${unplanned_na% }"
   n_na=0
   [[ -n "$unplanned_na" ]] && n_na="$(wc -w <<< "$unplanned_na")"
-  if (( n_fail + n_xfail + n_xpass + n_notrun + n_unplanned + n_na > 0 )); then
-    refuse="${n_fail} FAIL, ${n_xfail} XFAIL, ${n_xpass} XPASS, ${n_notrun} NOT RUN, ${n_unplanned} unplanned SKIPPED${unplanned:+ (${unplanned})}, ${n_na} unplanned NA${unplanned_na:+ (${unplanned_na})}"
+  # Every flow plan.sh plans for this tier must have reported. A planned
+  # flow with no PASS/FAIL/XFAIL/SKIPPED/NA/NOT RUN line is NOT RUN here,
+  # whether or not summarize.sh already appended its line (run 41391038302:
+  # shard 11 lost, gate said 0 NOT RUN, summarize said 3). Not double
+  # counted: a flow that already has a "NOT RUN <flow>" line is skipped.
+  silent=""
+  while read -r id; do
+    [[ -n "$id" ]] || continue
+    if ! grep -Eq "^(PASS|FAIL|XFAIL|XPASS|SKIPPED|NA|NOT RUN) ${id}(:|$)" "$results"; then
+      silent+="${id} "
+    fi
+  done < <(bash -c 'source "$1"; plan_ids "$2"' _ "${root}/tool/emulator/plan.sh" "$tier" 2>/dev/null)
+  silent="${silent% }"
+  if [[ -n "$silent" ]]; then
+    n_notrun=$((n_notrun + $(wc -w <<< "$silent")))
   fi
+  if (( n_fail + n_xfail + n_xpass + n_notrun + n_unplanned + n_na > 0 )); then
+    refuse="${n_fail} FAIL, ${n_xfail} XFAIL, ${n_xpass} XPASS, ${n_notrun} NOT RUN${silent:+ (no result: ${silent})}, ${n_unplanned} unplanned SKIPPED${unplanned:+ (${unplanned})}, ${n_na} unplanned NA${unplanned_na:+ (${unplanned_na})}"
+  fi
+fi
+# Every shard must have uploaded its artifact: EMULATOR_SHARD_RESULTS (the
+# summary job's download dir) must hold emulator-app-test-<shard>/results.txt
+# for every shard plan.sh plans (1..SHARD_COUNT for full, "smoke" for smoke).
+if [[ -n "${EMULATOR_SHARD_RESULTS:-}" ]]; then
+  if [[ "$tier" == full ]]; then
+    want="$(bash -c 'source "$1"; seq 1 "$SHARD_COUNT"' _ "${root}/tool/emulator/plan.sh")"
+  else
+    want="$tier"
+  fi
+  missing_shards=""
+  for s in $want; do
+    [[ -s "${EMULATOR_SHARD_RESULTS}/emulator-app-test-${s}/results.txt" ]] || missing_shards+="${s} "
+  done
+  missing_shards="${missing_shards% }"
+  if [[ -n "$missing_shards" ]]; then
+    refuse="${refuse:+${refuse}; }missing shard artifacts: ${missing_shards} (need $(wc -w <<< "$want"))"
+  fi
+elif [[ "${EMULATOR_GATE_MODE:-}" == strict || "${EMULATOR_GATE_EVENT:-${GITHUB_EVENT_NAME:-}}" == release ]]; then
+  refuse="${refuse:+${refuse}; }EMULATOR_SHARD_RESULTS not set, shard artifacts not checked"
 fi
 if [[ -n "$refuse" ]]; then
   line="${line} NOT a release gate: ${refuse}."

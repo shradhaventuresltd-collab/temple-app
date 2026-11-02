@@ -91,7 +91,7 @@ record_na() {
 na_step() {
   record_na "$1" "$2"
   step_shot "$1"
-  cp -f "$DUMP" "${DUMP_DIR}/${FLOW}_${1}.xml" 2>/dev/null || true
+  save_step_dump "$1"
 }
 
 record_not_run() {
@@ -99,10 +99,23 @@ record_not_run() {
   step_reset
 }
 
+# Artifact file name for a step id. actions/upload-artifact rejects ':'
+# (and " < > | * ? CR LF), and run 41391038302 lost all of shard 11 on
+# "30s-filter-matrix-sequences_seq1-deity:select.xml". ':' becomes '_',
+# and anything outside [A-Za-z0-9_.-] becomes '_' too.
+artifact_safe_name() {
+  printf '%s' "$1" | tr ':' '_' | tr -c 'A-Za-z0-9_.-' '_'
+}
+
+# Copy the current dump next to the step it explains.
+save_step_dump() {
+  cp -f "$DUMP" "${DUMP_DIR}/$(artifact_safe_name "${FLOW}_${1}").xml" 2>/dev/null || true
+}
+
 step_shot() {
   local safe dest attempt
   SHOT_N=$((SHOT_N + 1))
-  safe=$(printf '%s' "$1" | tr -c 'A-Za-z0-9_-' '_')
+  safe=$(artifact_safe_name "$1")
   dest="${SHOT_DIR}/$(printf '%02d_%s.png' "$SHOT_N" "$safe")"
   # screencap, not the screenrecord buffer. After a resize the first frame
   # can be black; wait until a capture has pixels, then keep that file.
@@ -124,7 +137,7 @@ pass_step() {
 fail_step() {
   record_fail "$1" "$2"
   step_shot "$1"
-  cp -f "$DUMP" "${DUMP_DIR}/${FLOW}_${1}.xml" 2>/dev/null || true
+  save_step_dump "$1"
   # A sheet left open makes the next step fail on the wrong screen.
   dismiss_blockers || true
 }
@@ -132,7 +145,7 @@ fail_step() {
 xfail_step() {
   record_xfail "$1" "$2"
   step_shot "$1"
-  cp -f "$DUMP" "${DUMP_DIR}/${FLOW}_${1}.xml" 2>/dev/null || true
+  save_step_dump "$1"
 }
 
 # Known-bug step: XFAIL while the bug is there, XPASS (a failure) once the
@@ -155,7 +168,7 @@ skip_step() {
   if ! grep -Eq "^FAIL ${FLOW}:" "$RESULTS" 2>/dev/null; then
     record_fail "$1" "no failed prerequisite: $2"
     step_shot "$1"
-    cp -f "$DUMP" "${DUMP_DIR}/${FLOW}_${1}.xml" 2>/dev/null || true
+    save_step_dump "$1"
     dismiss_blockers || true
     return
   fi

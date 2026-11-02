@@ -92,6 +92,14 @@ if [[ -f "$config" ]]; then
   grep -E '^(hw\.cpu\.ncore|hw\.ramSize|disk\.dataPartition\.size)=' "$config" | sed 's/^/  /'
 fi
 
+# Round 4.3: verify before launch that this boot will load the snapshot
+# (EMULATOR_OPTIONS has no -partition-size override, config.ini equals the
+# snapshot's hardware.ini). A mismatch is a warning here (the boot still
+# runs, cold); run_shard.sh records BOOT cold and the post check names keys.
+if [[ "$phase" == run ]]; then
+  bash "$(dirname "${BASH_SOURCE[0]}")/check_snapshot_config.sh" pre "$avd_dir" || true
+fi
+
 if [[ -n "${RUNNER_TEMP:-}" && -d "$avd_dir" ]]; then
   dest="${RUNNER_TEMP}/avd-ini/${phase}-prelaunch"
   mkdir -p "$dest"

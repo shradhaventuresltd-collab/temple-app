@@ -45,6 +45,9 @@ if [[ "${EMULATOR_SHARD_DRY_RUN:-}" != 1 ]]; then
   if [[ "$marker" == 1 ]]; then boot=snapshot; else boot=cold; fi
   printf 'BOOT %s%s %s\n' "$tier" "${shard:+-${shard}}" "$boot" >> "${artifacts}/results.txt"
   echo "boot: ${boot}"
+  # Which keys differ between this boot's hardware-qemu.ini and the snapshot.
+  snapcheck="$(bash tool/emulator/check_snapshot_config.sh post 2>/dev/null | head -1)"
+  [[ -n "$snapcheck" ]] && printf 'SNAPCFG %s%s %s\n' "$tier" "${shard:+-${shard}}" "$snapcheck" >> "${artifacts}/results.txt"
   if [[ "$boot" == cold ]]; then
     echo "::warning::emulator ${tier}${shard:+ shard ${shard}} cold-booted: the AVD snapshot was not loaded"
   fi

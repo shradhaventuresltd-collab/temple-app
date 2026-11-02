@@ -89,6 +89,39 @@ concurrency:
   group: emulator-app-test-${{ github.event_name }}-${{ (inputs.release_gate && 'full') || inputs.tier || (github.event_name == 'pull_request' && 'smoke') || 'full' }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# Shared emulator-runner inputs for the avd-warmup and emulator jobs.
+# GitHub Actions does not expand YAML anchors, so each emulator step reads
+# these env values; one block keeps both jobs on the same AVD config.
+env:
+  EMULATOR_API_LEVEL: "30"
+  EMULATOR_TARGET: google_apis
+  EMULATOR_ARCH: x86_64
+  EMULATOR_DISK_SIZE: 2048M
+  EMULATOR_AVD_NAME: emulator-app-test-30
+  EMULATOR_FORCE_AVD_CREATION: false
+  EMULATOR_DISABLE_ANIMATIONS: true
+  EMULATOR_BOOT_TIMEOUT: "300"
+  # One boot per job from the clean cached snapshot. Both boots (snapshot
+  # creation and the flow run) use these exact options. -no-snapshot-save
+  # keeps every exit from writing back; snapshot_create.sh saves the
+  # snapshot explicitly (adb emu avd snapshot save default_boot). App
+  # data is cleared with pm clear between flows instead of -wipe-data.
+  # No -partition-size (round 4.3, run 41391038302): once userdata-qemu.img
+  # exists it overrode the pinned config.ini (6442450944) with 2g, the
+  # snapshot's hardware.ini said 6g, and every flow boot cold-booted.
+  # check_snapshot_config.sh refuses it before launch.
+  EMULATOR_OPTIONS: -no-window -gpu swiftshader_indirect -no-snapshot-save -no-audio -no-boot-anim -camera-back none -camera-front none
+  # Emulator binary pinned. "Install latest emulator" moved from 37.2.12.0
+  # (16428233, which saved the cached snapshot on 2026-10-25) to 37.2.13.0
+  # (16740729) and every job then logged "cannot load snapshot ...
+  # different AVD configuration" and cold-booted (run 41306793034).
+  EMULATOR_BUILD: "16740729"
+  # The AVD cache key (EMULATOR_AVD_CACHE_KEY) is written by "Choose
+  # emulator core count" (tool/emulator/avd_cache_key.sh) from everything
+  # that shapes the AVD config: api, target, arch, system image revision,
+  # cores, disk size, emulator build.
+  EMULATOR_PRE_LAUNCH: bash tool/emulator/prepare_avd.sh
+
 jobs:
   gate:
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
@@ -267,9 +300,113 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
+  # Round 4.3 (run 41391038302): every shard restored the AVD cache at
+  # 05:00:0x UTC and got "Cache not found"; shard 1 saved it at 05:01:25.
+  # This job creates and saves the snapshot cache once, before any shard
+  # starts (emulator needs: avd-warmup), so shards restore a warm cache.
+  # Fail open: if it fails, each shard still creates its own snapshot.
+  avd-warmup:
+    name: AVD cache warm-up
+    needs: [gate, build]
+    if: ${{ !cancelled() && needs.gate.result != 'skipped' && needs.gate.outputs.run != 'false' && needs.build.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout workflow scripts
+        timeout-minutes: 5
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Enable KVM
+        timeout-minutes: 2
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Restore emulator system image
+        id: system-image-cache
+        timeout-minutes: 10
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: /usr/local/lib/android/sdk/system-images
+          key: system-image-android-30-google_apis-x86_64
+
+      # Before the AVD cache restore: the core count (hw.cpu.ncore) and the
+      # system image revision (installed here exactly as the runner action
+      # installs it, then read from its source.properties) are part of the
+      # AVD config, so they are part of the cache key.
+      - name: Choose emulator core count and AVD cache key
+        timeout-minutes: 10
+        run: bash tool/emulator/avd_cache_key.sh
+
+      - name: Restore AVD cache
+        id: avd-cache
+        timeout-minutes: 10
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.android/avd
+            ~/.android/adb*
+          key: ${{ env.EMULATOR_AVD_CACHE_KEY }}
+
+      - name: Create AVD snapshot
+        id: create-avd
+        if: steps.avd-cache.outcome == 'success' && steps.avd-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 15
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          cores: ${{ env.EMULATOR_CORES }}
+          disk-size: ${{ env.EMULATOR_DISK_SIZE }}
+          avd-name: ${{ env.EMULATOR_AVD_NAME }}
+          force-avd-creation: ${{ env.EMULATOR_FORCE_AVD_CREATION }}
+          disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
+          emulator-build: ${{ env.EMULATOR_BUILD }}
+          emulator-boot-timeout: 600
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }} create
+          script: bash tool/emulator/snapshot_create.sh
+
+      # The snapshot must have booted on the image revision in the key.
+      - name: Check system image revision
+        id: sysimg-check
+        if: steps.create-avd.outcome == 'success'
+        timeout-minutes: 1
+        run: bash tool/emulator/avd_cache_key.sh --check
+
+      # One job saves the shared cache keys so parallel shards do not race.
+      # The saved snapshot must load on the flow boot: no -partition-size in
+      # EMULATOR_OPTIONS, config.ini equal to the snapshot's hardware.ini.
+      - name: Verify snapshot config
+        id: snapcfg
+        if: steps.create-avd.outcome == 'success'
+        timeout-minutes: 2
+        run: bash tool/emulator/check_snapshot_config.sh pre
+
+      - name: Save AVD cache
+        if: steps.create-avd.outcome == 'success' && steps.sysimg-check.outputs.same == 'true' && steps.snapcfg.outcome == 'success'
+        timeout-minutes: 10
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.android/avd
+            ~/.android/adb*
+          key: ${{ env.EMULATOR_AVD_CACHE_KEY }}
+
+      - name: Save emulator system image
+        if: always() && steps.system-image-cache.outcome == 'success' && steps.system-image-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 10
+        continue-on-error: true
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: /usr/local/lib/android/sdk/system-images
+          key: system-image-android-30-google_apis-x86_64
+
   emulator:
     name: emulator ${{ matrix.shard }}
-    needs: [gate, build]
+    needs: [gate, build, avd-warmup]
     if: ${{ !cancelled() && needs.gate.result != 'skipped' && needs.gate.outputs.run != 'false' && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
     # Worst case is plan.sh need-minutes plus setup; see self_test.sh.
@@ -278,35 +415,10 @@ jobs:
       fail-fast: false
       matrix:
         shard: ${{ fromJSON(needs.build.outputs.matrix) }}
-    # Shared emulator-runner inputs. GitHub Actions does not expand YAML
-    # anchors, so each emulator step reads these env values.
+    # The static emulator inputs are in the workflow-level env.
     env:
       EMULATOR_TIER: ${{ needs.build.outputs.tier }}
       EMULATOR_SHARD: ${{ matrix.shard != 'smoke' && matrix.shard || '' }}
-      EMULATOR_API_LEVEL: "30"
-      EMULATOR_TARGET: google_apis
-      EMULATOR_ARCH: x86_64
-      EMULATOR_DISK_SIZE: 2048M
-      EMULATOR_AVD_NAME: emulator-app-test-30
-      EMULATOR_FORCE_AVD_CREATION: false
-      EMULATOR_DISABLE_ANIMATIONS: true
-      EMULATOR_BOOT_TIMEOUT: "300"
-      # One boot per job from the clean cached snapshot. Both boots (snapshot
-      # creation and the flow run) use these exact options. -no-snapshot-save
-      # keeps every exit from writing back; snapshot_create.sh saves the
-      # snapshot explicitly (adb emu avd snapshot save default_boot). App
-      # data is cleared with pm clear between flows instead of -wipe-data.
-      EMULATOR_OPTIONS: -no-window -gpu swiftshader_indirect -no-snapshot-save -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048
-      # Emulator binary pinned. "Install latest emulator" moved from 37.2.12.0
-      # (16428233, which saved the cached snapshot on 2026-10-25) to 37.2.13.0
-      # (16740729) and every job then logged "cannot load snapshot ...
-      # different AVD configuration" and cold-booted (run 41306793034).
-      EMULATOR_BUILD: "16740729"
-      # The AVD cache key (EMULATOR_AVD_CACHE_KEY) is written by "Choose
-      # emulator core count" (tool/emulator/avd_cache_key.sh) from everything
-      # that shapes the AVD config: api, target, arch, system image revision,
-      # cores, disk size, emulator build.
-      EMULATOR_PRE_LAUNCH: bash tool/emulator/prepare_avd.sh
     steps:
       - name: Checkout workflow scripts
         timeout-minutes: 5
@@ -358,7 +470,7 @@ jobs:
           key: ${{ env.EMULATOR_AVD_CACHE_KEY }}
 
       # Boot once with no app so the cached snapshot does not contain an APK.
-      # A cache hit skips this.
+      # A cache hit (warmed by avd-warmup) skips this; it is the fallback.
       - name: Create AVD snapshot
         id: create-avd
         if: steps.avd-cache.outcome == 'success' && steps.avd-cache.outputs.cache-hit != 'true'
@@ -386,18 +498,9 @@ jobs:
         timeout-minutes: 1
         run: bash tool/emulator/avd_cache_key.sh --check
 
-      # One job saves the shared cache keys so parallel shards do not race.
-      - name: Save AVD cache
-        if: steps.create-avd.outcome == 'success' && steps.sysimg-check.outputs.same == 'true' && (matrix.shard == '1' || matrix.shard == 'smoke')
-        timeout-minutes: 10
-        continue-on-error: true
-        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: |
-            ~/.android/avd
-            ~/.android/adb*
-          key: ${{ env.EMULATOR_AVD_CACHE_KEY }}
-
+      # The AVD cache is saved only by the avd-warmup job (no shard races
+      # it). A shard whose restore missed (warm-up failed) creates its own
+      # snapshot above and does not save it.
       # One snapshot boot (300s), then each flow capped at 600s + 15s
       # kill-after + 30s reset (measured <= 12s in run 41373837994).
       # smoke: 6 flows -> 70 min worst case; full shard (14 of them): at
@@ -432,6 +535,14 @@ jobs:
           EMULATOR_RESOLVE_OUTCOME: ${{ steps.resolve-apk.outcome }}
         run: bash tool/emulator/summarize.sh
 
+      # Run 41391038302 lost shard 11's whole artifact on one ':' in a dump
+      # name. common.sh names files with artifact_safe_name; this renames
+      # anything upload-artifact would still reject, and requires results.txt.
+      - name: Check artifact file names
+        if: always()
+        timeout-minutes: 2
+        run: bash tool/emulator/sanitize_artifacts.sh emulator-app-test-artifacts
+
       - name: Upload emulator artifacts
         if: always()
         timeout-minutes: 10
@@ -440,7 +551,7 @@ jobs:
           name: emulator-app-test-${{ matrix.shard }}
           path: emulator-app-test-artifacts
           retention-days: 14
-          if-no-files-found: warn
+          if-no-files-found: error
 
       # AVD config files from both boots (prepare_avd.sh, snapshot_create.sh,
       # run_shard.sh), for diffing a "different AVD configuration" cold boot.
@@ -454,15 +565,6 @@ jobs:
           path: ${{ runner.temp }}/avd-ini
           retention-days: 14
           if-no-files-found: ignore
-
-      - name: Save emulator system image
-        if: always() && (matrix.shard == '1' || matrix.shard == 'smoke') && steps.system-image-cache.outcome == 'success' && steps.system-image-cache.outputs.cache-hit != 'true'
-        timeout-minutes: 10
-        continue-on-error: true
-        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: /usr/local/lib/android/sdk/system-images
-          key: system-image-android-30-google_apis-x86_64
 
   summary:
     needs: [gate, build, emulator]
@@ -495,21 +597,36 @@ jobs:
           done
           grep '^TIME ' emulator-app-test-artifacts/results.txt | sort -k3 -rn || true
 
+      # Round 4.3: summarize.sh runs BEFORE the release gate (run 41391038302
+      # ran the gate first, so its "NOT RUN ... did not start" lines were not
+      # there yet and the gate counted 0). When it fails the job, the gate
+      # still runs (if: !cancelled()) so the gate line is always printed.
+      - name: Write combined summary
+        if: ${{ !cancelled() }}
+        timeout-minutes: 5
+        env:
+          EMULATOR_TIER: ${{ needs.build.outputs.tier == 'smoke' && 'smoke' || 'all' }}
+        run: bash tool/emulator/summarize.sh
+
       # Shard flow steps use continue-on-error, but each shard's summary
       # step fails its job on any FAIL. This job fails too: on any FAIL in
       # the merged results (summarize.sh exits 1), on any XPASS, and on any
       # shard job that did not succeed. SKIPPED does not fail it. On the
       # release path (release published, or dispatch release_gate=true)
       # release_gate.sh is strict and exits 1 on any FAIL, XFAIL, XPASS,
-      # NOT RUN, SKIPPED outside plan.sh's DEFAULT_SKIP_FLOWS, missing
-      # results, non-full tier or non-build APK. Other runs list those
-      # reasons as "NOT a release gate" and exit 0.
+      # NOT RUN (including every planned flow with no result line), SKIPPED
+      # outside plan.sh's DEFAULT_SKIP_FLOWS, a missing shard artifact
+      # (all SHARD_COUNT emulator-app-test-<n> required), missing results,
+      # non-full tier or non-build APK. Other runs list those reasons as
+      # "NOT a release gate" and exit 0.
       - name: Record tested SHA (release gate)
+        if: ${{ !cancelled() }}
         timeout-minutes: 1
         env:
           TESTED_SHA: ${{ needs.build.outputs.tested_sha }}
           TIER: ${{ needs.build.outputs.tier }}
           APK_SOURCE: ${{ needs.build.outputs.apk_source }}
+          EMULATOR_SHARD_RESULTS: shard-results
           # Strict only on the release path: a published release, or a
           # dispatch with release_gate=true. Other runs print the refusal
           # and exit 0.
@@ -525,13 +642,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: bash tool/emulator/boot_log_check.sh
-
-      - name: Write combined summary
-        if: ${{ !cancelled() }}
-        timeout-minutes: 5
-        env:
-          EMULATOR_TIER: ${{ needs.build.outputs.tier == 'smoke' && 'smoke' || 'all' }}
-        run: bash tool/emulator/summarize.sh
 
       - name: Fail if any shard failed
         if: ${{ needs.emulator.result != 'success' }}

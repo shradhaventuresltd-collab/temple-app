@@ -34,6 +34,25 @@ expect_fail() {
   fi
 }
 
+
+# A clean full-tier run for the release gate: every planned flow PASSes
+# (planned skips SKIPPED), and every shard artifact is present under
+# <dir>/shards/emulator-app-test-<n>/results.txt (EMULATOR_SHARD_RESULTS).
+gate_clean_results() { # dir [missing-shard]
+  local d="$1" miss="${2:-}" n
+  bash -c 'source tool/emulator/plan.sh
+    for id in $(plan_ids full); do
+      if plan_is_skipped "$id"; then echo "SKIPPED ${id}: location-dependent, skipped on the emulator (EMULATOR_SKIP_FLOWS)"
+      else printf "START %s\nPASS %s: ok\nDONE %s\n" "$id" "$id" "$id"; fi
+    done' > "${d}/results.txt"
+  for n in $(bash -c 'source tool/emulator/plan.sh; seq 1 "$SHARD_COUNT"'); do
+    mkdir -p "${d}/shards/emulator-app-test-${n}"
+    [[ "$n" == "$miss" ]] && continue
+    bash -c 'source tool/emulator/plan.sh
+      for id in $(plan_ids full "$1"); do echo "PASS ${id}: ok"; done' _ "$n" > "${d}/shards/emulator-app-test-${n}/results.txt"
+  done
+}
+
 expect_mode url "https://example.com/app.apk" "" "" ""
 expect_mode artifact "" "123" "apk" ""
 expect_mode build "" "" "" "main"
@@ -281,14 +300,14 @@ if sum_out="$(EMULATOR_TIER=all EMULATOR_ARTIFACTS="$sum_art" GITHUB_STEP_SUMMAR
   echo "summarize.sh: an XPASS must fail the job with ::error::" >&2; echo "$sum_out" >&2; exit 1
 fi
 rm -rf "$sum_art" "$sum_md"
-if [[ "$(grep -c 'uses: reactivecircus/android-emulator-runner@' "$workflow")" -ne 2 ]]; then
-  echo "expected 2 emulator steps (snapshot plus one flow run per job)" >&2
+if [[ "$(grep -c 'uses: reactivecircus/android-emulator-runner@' "$workflow")" -ne 3 ]]; then
+  echo "expected 3 emulator steps (warm-up snapshot, fallback snapshot plus one flow run per shard job)" >&2
   exit 1
 fi
 # Both boots use the same emulator options (run 41314245431: the flow boot
 # could not load the snapshot saved minutes earlier in the same job).
 # shellcheck disable=SC2016 # literal workflow text
-if [[ "$(grep -F -c 'emulator-options: ${{ env.EMULATOR_OPTIONS }}' "$workflow")" -ne 2 ]] ||
+if [[ "$(grep -F -c 'emulator-options: ${{ env.EMULATOR_OPTIONS }}' "$workflow")" -ne 3 ]] ||
    grep -q 'EMULATOR_SNAPSHOT_OPTIONS' "$workflow"; then
   echo "snapshot creation and the flow run must both use EMULATOR_OPTIONS" >&2
   exit 1
@@ -321,8 +340,19 @@ if ! grep -Fq 'script: bash tool/emulator/snapshot_create.sh' "$workflow" ||
   echo "snapshot step saves the snapshot explicitly and installs no app" >&2
   exit 1
 fi
-if ! grep -Fq "if: steps.create-avd.outcome == 'success' && steps.sysimg-check.outputs.same == 'true' && (matrix.shard == '1' || matrix.shard == 'smoke')" "$workflow"; then
-  echo "AVD cache should be saved by one job, only after the clean snapshot boot" >&2
+# Round 4.3: the AVD cache is saved once, by the avd-warmup job that every
+# shard needs, only after the clean snapshot boot, the image check and the
+# snapshot config check; no shard saves it (run 41391038302 cache race).
+if ! grep -Fq "if: steps.create-avd.outcome == 'success' && steps.sysimg-check.outputs.same == 'true' && steps.snapcfg.outcome == 'success'" "$workflow" ||
+   [[ "$(grep -c '^      - name: Save AVD cache$' "$workflow")" -ne 1 ]] ||
+   ! grep -Fq 'needs: [gate, build, avd-warmup]' "$workflow" ||
+   ! grep -Fq 'run: bash tool/emulator/check_snapshot_config.sh pre' "$workflow" ||
+   grep -q "matrix.shard == '1'" "$workflow"; then
+  echo "AVD cache should be saved by the avd-warmup job only, after the snapshot and config checks" >&2
+  exit 1
+fi
+if [[ "$options_line" == *"-partition-size"* ]]; then
+  echo "EMULATOR_OPTIONS must not carry -partition-size (run 41391038302: 2g overrode the snapshot's 6g)" >&2
   exit 1
 fi
 # The cached snapshot loads only on the AVD config it was saved with
@@ -357,22 +387,28 @@ def idx(prefix):
     return -1
 order = [idx("Restore emulator system image"), idx("Choose emulator core count"),
          idx("Restore AVD cache"), idx("Create AVD snapshot"),
-         idx("Check system image revision"), idx("Save AVD cache"), idx("Run emulator flows")]
+         idx("Check system image revision"), idx("Run emulator flows")]
 if order != sorted(order):
-    errs.append(f"step order must be image restore, key, restore, create, check, save, run: {order}")
-if not re.search(r"- name: Save AVD cache\n        if: [^\n]*steps\.sysimg-check\.outputs\.same == 'true'", emu):
+    errs.append(f"step order must be image restore, key, restore, create, check, run: {order}")
+warm = wf[wf.index("\n  avd-warmup:"):wf.index("\n  emulator:")]
+wsteps = [m.group(1) for m in re.finditer(r"^      - name: (.+)$", warm, re.M)]
+want = ["Restore emulator system image", "Choose emulator core count and AVD cache key", "Restore AVD cache",
+        "Create AVD snapshot", "Check system image revision", "Verify snapshot config", "Save AVD cache"]
+if [n for n in wsteps if n in want] != want:
+    errs.append(f"avd-warmup step order must be {want}: {wsteps}")
+if not re.search(r"- name: Save AVD cache\n        if: [^\n]*steps\.sysimg-check\.outputs\.same == 'true'", warm):
     errs.append("Save AVD cache must require the system image revision check")
 if "run: bash tool/emulator/avd_cache_key.sh --check" not in emu:
     errs.append("Check system image revision must run avd_cache_key.sh --check")
-runners = re.findall(r"uses: reactivecircus/android-emulator-runner@\S+.*?\n        with:\n(.*?)(?=\n\n|\n      - )", emu, re.S)
+runners = re.findall(r"uses: reactivecircus/android-emulator-runner@\S+.*?\n        with:\n(.*?)(?=\n\n|\n      - )", warm + emu, re.S)
 cfg_keys = ("api-level", "target", "arch", "cores", "disk-size", "avd-name",
             "force-avd-creation", "disable-animations", "emulator-build")
 cfgs = []
 for body in runners:
     kv = dict(re.findall(r"^          ([a-z-]+): (.*)$", body, re.M))
     cfgs.append({k: kv.get(k) for k in cfg_keys})
-if len(cfgs) != 2 or cfgs[0] != cfgs[1] or None in cfgs[0].values():
-    errs.append(f"snapshot and flow steps must boot the same AVD config: {cfgs}")
+if len(cfgs) != 3 or any(c != cfgs[0] for c in cfgs) or None in cfgs[0].values():
+    errs.append(f"warm-up, snapshot and flow steps must boot the same AVD config: {cfgs}")
 opts = [re.search(r"^          emulator-options: (.*)$", body, re.M).group(1) for body in runners]
 if len(set(opts)) != 1:
     errs.append(f"both emulator boots must use identical options: {opts}")
@@ -402,7 +438,7 @@ key_env=(ANDROID_HOME="$key_tmp/sdk" EMULATOR_API_LEVEL=30 EMULATOR_TARGET=googl
   EMULATOR_ARCH=x86_64 EMULATOR_DISK_SIZE=2048M EMULATOR_BUILD=16740729
   EMULATOR_AVD_NAME=emulator-app-test-30 GITHUB_RUN_ID=77 GITHUB_RUN_ATTEMPT=1)
 env "${key_env[@]}" EMULATOR_NPROC=4 GITHUB_ENV="$key_tmp/env" bash tool/emulator/avd_cache_key.sh > /dev/null 2>&1
-if ! grep -qx 'EMULATOR_AVD_CACHE_KEY=avd-30-google_apis-x86_64-img6-cores4-disk2048M-emu16740729-emulator-app-test-30-clean-cfg3' "$key_tmp/env" ||
+if ! grep -qx 'EMULATOR_AVD_CACHE_KEY=avd-30-google_apis-x86_64-img6-cores4-disk2048M-emu16740729-emulator-app-test-30-clean-cfg4' "$key_tmp/env" ||
   ! grep -qx 'EMULATOR_SYSIMG_REVISION=6' "$key_tmp/env" || ! grep -qx 'EMULATOR_CORES=4' "$key_tmp/env"; then
   echo "AVD cache key must carry the system image revision the emulator steps will boot" >&2
   cat "$key_tmp/env" >&2
@@ -419,7 +455,7 @@ if [[ "$(env "${key_env[@]}" EMULATOR_SYSIMG_REVISION=6 GITHUB_OUTPUT=/dev/stdou
 fi
 rm -f "$key_props" "$key_tmp/sdk/cmdline-tools/latest/bin/sdkmanager"
 env "${key_env[@]}" EMULATOR_NPROC=2 GITHUB_ENV="$key_tmp/env2" bash tool/emulator/avd_cache_key.sh > /dev/null 2>&1
-if ! grep -qx 'EMULATOR_AVD_CACHE_KEY=avd-30-google_apis-x86_64-imgunknown-77-1-cores2-disk2048M-emu16740729-emulator-app-test-30-clean-cfg3' "$key_tmp/env2"; then
+if ! grep -qx 'EMULATOR_AVD_CACHE_KEY=avd-30-google_apis-x86_64-imgunknown-77-1-cores2-disk2048M-emu16740729-emulator-app-test-30-clean-cfg4' "$key_tmp/env2"; then
   echo "an unknown image revision must give a one-run AVD cache key" >&2
   cat "$key_tmp/env2" >&2
   exit 1
@@ -1783,7 +1819,7 @@ if ! grep -q 'setprop debug.temple.snapshot_marker 1' tool/emulator/snapshot_cre
    ! grep -q 'run: bash tool/emulator/boot_log_check.sh' "$workflow" ||
    ! grep -Fq "name: emulator-avd-ini-\${{ matrix.shard }}" "$workflow" ||
    ! grep -Fq "env.EMULATOR_BOOT != 'snapshot' || steps.flows.outcome != 'success'" "$workflow" ||
-   ! grep -q -- '-clean-cfg3"' tool/emulator/avd_cache_key.sh; then
+   ! grep -q -- '-clean-cfg4"' tool/emulator/avd_cache_key.sh; then
   echo "snapshot diagnostics: marker, boot log check, ini artifact on cold boot/failure, bumped key" >&2
   exit 1
 fi
@@ -1984,7 +2020,8 @@ fi
 # release_gate=true) exits 1 on any FAIL/XFAIL/XPASS/missing results, a
 # non-full tier, or an APK not built from the SHA; report mode exits 0.
 rg_art="$(mktemp -d)"
-printf 'START 01-first-launch\nPASS 01-first-launch: launch\nDONE 01-first-launch\n' > "${rg_art}/results.txt"
+gate_clean_results "$rg_art"
+export EMULATOR_SHARD_RESULTS="${rg_art}/shards"
 for mode in "EMULATOR_GATE_MODE=strict" "EMULATOR_GATE_EVENT=release"; do
   if ! env "$mode" EMULATOR_ARTIFACTS="$rg_art" GITHUB_STEP_SUMMARY=/dev/null bash tool/emulator/release_gate.sh full "$gate_sha" build >/dev/null 2>&1; then
     echo "release gate (${mode}): a clean full build run passes" >&2; exit 1
@@ -2004,6 +2041,7 @@ if ! out="$(env EMULATOR_GATE_MODE=report EMULATOR_GATE_EVENT=workflow_dispatch 
    [[ "$out" != *"NOT a release gate"* ]]; then
   echo "release gate (report): XFAIL prints 'NOT a release gate' and exits 0" >&2; exit 1
 fi
+unset EMULATOR_SHARD_RESULTS
 rm -rf "$rg_art"
 # choose_tier.sh: release -> full; dispatch release_gate=true -> full, and
 # release_gate with tier smoke is an error.
@@ -2028,9 +2066,9 @@ fi
 planned_skips="$(bash -c 'source tool/emulator/plan.sh; printf "%s" "$DEFAULT_SKIP_FLOWS"')"
 gate_case() { # want results-lines...
   local want="$1" d rc; shift; d="$(mktemp -d)"
-  printf 'PASS 01-first-launch: launch\n' > "${d}/results.txt"
+  gate_clean_results "$d"
   printf '%s\n' "$@" >> "${d}/results.txt"
-  rc=0; EMULATOR_GATE_MODE=strict EMULATOR_ARTIFACTS="$d" GITHUB_STEP_SUMMARY=/dev/null bash tool/emulator/release_gate.sh full "$gate_sha" build >/dev/null 2>&1 || rc=$?
+  rc=0; EMULATOR_GATE_MODE=strict EMULATOR_SHARD_RESULTS="${d}/shards" EMULATOR_ARTIFACTS="$d" GITHUB_STEP_SUMMARY=/dev/null bash tool/emulator/release_gate.sh full "$gate_sha" build >/dev/null 2>&1 || rc=$?
   if [[ "$rc" != "$want" ]]; then echo "strict gate: '$*' should exit ${want}, got ${rc}" >&2; exit 1; fi
   out="$(EMULATOR_GATE_MODE=report EMULATOR_GATE_EVENT=pull_request EMULATOR_ARTIFACTS="$d" GITHUB_STEP_SUMMARY="${d}/sum" bash tool/emulator/release_gate.sh full "$gate_sha" build 2>&1)" ||
     { echo "report gate must exit 0 for '$*'" >&2; exit 1; }
@@ -2044,6 +2082,37 @@ gate_case 1 "NOT RUN 05-search"
 gate_case 1 "SKIPPED 05-search: skipped"
 [[ "$GATE_OUT" == *"1 unplanned SKIPPED (05-search)"* && "$GATE_SUM" == *"- unplanned: SKIPPED 05-search"* ]] || { echo "report gate lists unplanned SKIPPED" >&2; exit 1; }
 gate_case 0 "${planned_lines[@]}"
+# Round 4.3 (run 41391038302): a missing shard must refuse the gate even
+# when summarize.sh has not run yet (no "NOT RUN" lines at all).
+ms="$(mktemp -d)"
+gate_clean_results "$ms" 11
+# Shard 11's flows never reported: drop them from the merged results.
+for id in $(bash -c 'source tool/emulator/plan.sh; plan_ids full 11'); do
+  sed -i "/ ${id}\(:\|\$\)/d" "${ms}/results.txt"
+done
+rc=0; g="$(EMULATOR_GATE_MODE=strict EMULATOR_SHARD_RESULTS="${ms}/shards" EMULATOR_ARTIFACTS="$ms" GITHUB_STEP_SUMMARY=/dev/null \
+  bash tool/emulator/release_gate.sh full "$gate_sha" build 2>&1)" || rc=$?
+if [[ "$rc" != 1 || "$g" != *"3 NOT RUN (no result: 30s-filter-matrix-sequences 19-rotation-state 20-empty-and-back)"* ||
+      "$g" != *"missing shard artifacts: 11 (need 14)"* ]]; then
+  echo "strict gate must refuse a run with shard 11 missing (3 silent NOT RUN + missing artifact): rc=${rc} ${g}" >&2; exit 1
+fi
+# Artifact present but its flows silent (e.g. results.txt from a dead shard):
+# the plan comparison alone refuses it.
+gate_clean_results "$ms"
+sed -i '/ 19-rotation-state\(:\|$\)/d' "${ms}/results.txt"
+rc=0; g="$(EMULATOR_GATE_MODE=strict EMULATOR_SHARD_RESULTS="${ms}/shards" EMULATOR_ARTIFACTS="$ms" GITHUB_STEP_SUMMARY=/dev/null \
+  bash tool/emulator/release_gate.sh full "$gate_sha" build 2>&1)" || rc=$?
+[[ "$rc" == 1 && "$g" == *"1 NOT RUN (no result: 19-rotation-state)"* ]] || { echo "gate: a planned flow with no line is NOT RUN: ${g}" >&2; exit 1; }
+# Shard artifacts present, results complete: passes; and only the missing
+# artifact (results complete) still refuses.
+gate_clean_results "$ms"
+EMULATOR_GATE_MODE=strict EMULATOR_SHARD_RESULTS="${ms}/shards" EMULATOR_ARTIFACTS="$ms" GITHUB_STEP_SUMMARY=/dev/null \
+  bash tool/emulator/release_gate.sh full "$gate_sha" build >/dev/null 2>&1 || { echo "gate: clean 14-shard run must pass" >&2; exit 1; }
+rm -f "${ms}/shards/emulator-app-test-7/results.txt"
+if EMULATOR_GATE_MODE=strict EMULATOR_SHARD_RESULTS="${ms}/shards" EMULATOR_ARTIFACTS="$ms" GITHUB_STEP_SUMMARY=/dev/null \
+  bash tool/emulator/release_gate.sh full "$gate_sha" build >/dev/null 2>&1; then echo "gate: missing shard 7 artifact must refuse" >&2; exit 1; fi
+rm -rf "$ms"
+echo "release gate negative: missing shard 11 refused (round 4.3)"
 [[ "${#planned_lines[@]}" -ge 3 ]] || { echo "plan.sh DEFAULT_SKIP_FLOWS should hold 11, 23, 30d" >&2; exit 1; }
 if grep -Eq '11-near-me|23-near-me|30d-near-me' tool/emulator/release_gate.sh; then
   echo "release_gate.sh must read planned skips from plan.sh, not hard-code them" >&2; exit 1
@@ -2402,5 +2471,62 @@ if ! grep -q "every flow, ${words[$sc]} parallel shards" tool/emulator/plan.sh |
   echo "shard count text must say ${sc}" >&2; exit 1
 fi
 grep -q 'PICKER_LONG_GIVEUP_S=45' .github/workflows/emulator-app-test.yml && grep -q 'EMULATOR_STEP_BUDGET_S=150' .github/workflows/emulator-app-test.yml || { echo "workflow header: caps" >&2; exit 1; }
+# ---------------------------------------------------------------------------
+# Round 4.3 (run 41391038302, triage-41391038302/TRIAGE.md)
+# ---------------------------------------------------------------------------
+r43="$(mktemp -d)"
+# 1. Cold boot: replay shard 3's AVD ini files. The flow boot's
+# hardware-qemu.ini (2g) against the snapshot (6g) is a mismatch; the old
+# EMULATOR_OPTIONS (-partition-size 2048) is refused before launch; the
+# new options and the pinned config.ini pass; the create boot's ini passes.
+av="tool/emulator/testdata/run41391038302/avdini3"
+mkdir -p "$r43/avd"; cp "$av/run-booted/config.ini" "$av/run-booted/hardware-qemu.ini" "$r43/avd/"
+snap_env=(EMULATOR_SNAPSHOT_HW="$av/run-booted/snapshot-hardware.ini")
+o="$(env "${snap_env[@]}" bash tool/emulator/check_snapshot_config.sh post "$r43/avd")" && { echo "snapcfg: 2g boot vs 6g snapshot must mismatch: $o" >&2; exit 1; }
+[[ "$o" == *"disk.dataPartition.size snapshot=6442450944 boot=2147483648"* ]] || { echo "snapcfg post names the disk key: $o" >&2; exit 1; }
+old_opts="-no-window -gpu swiftshader_indirect -no-snapshot-save -no-audio -no-boot-anim -camera-back none -camera-front none -partition-size 2048"
+o="$(env "${snap_env[@]}" EMULATOR_OPTIONS="$old_opts" bash tool/emulator/check_snapshot_config.sh pre "$r43/avd")" && { echo "snapcfg pre must refuse -partition-size 2048: $o" >&2; exit 1; }
+[[ "$o" == *"EMULATOR_OPTIONS -partition-size 2048 (snapshot 6144M)"* ]] || { echo "snapcfg pre names the option: $o" >&2; exit 1; }
+new_opts="$(sed -n 's/^  EMULATOR_OPTIONS: //p' "$workflow")"
+[[ -n "$new_opts" && "$new_opts" != *partition-size* ]] || { echo "workflow EMULATOR_OPTIONS (top-level env) without -partition-size: '$new_opts'" >&2; exit 1; }
+env "${snap_env[@]}" EMULATOR_OPTIONS="$new_opts" bash tool/emulator/check_snapshot_config.sh pre "$r43/avd" >/dev/null || { echo "snapcfg pre: new options + pinned config.ini pass" >&2; exit 1; }
+cp "$av/create-booted/hardware-qemu.ini" "$r43/avd/"
+env "${snap_env[@]}" bash tool/emulator/check_snapshot_config.sh post "$r43/avd" >/dev/null || { echo "snapcfg post: a 6g boot loads the 6g snapshot" >&2; exit 1; }
+rc=0; env EMULATOR_SNAPSHOT_HW="$r43/none.ini" bash tool/emulator/check_snapshot_config.sh pre "$r43/avd" >/dev/null || rc=$?
+[[ "$rc" == 2 ]] || { echo "snapcfg: no snapshot exits 2, got $rc" >&2; exit 1; }
+grep -q 'check_snapshot_config.sh" pre' tool/emulator/prepare_avd.sh || { echo "prepare_avd run must verify the snapshot config before launch" >&2; exit 1; }
+grep -q 'check_snapshot_config.sh post' tool/emulator/run_shard.sh || { echo "run_shard records the post-boot snapshot check" >&2; exit 1; }
+# 2. Gate ordering: summarize before the gate, gate gets the shard dir.
+sj="$(awk '/^  summary:$/ { j = 1 } j { print }' "$workflow")"
+ln_sum="$(grep -n 'name: Write combined summary' <<<"$sj" | cut -d: -f1)"
+ln_gate="$(grep -n 'name: Record tested SHA (release gate)' <<<"$sj" | cut -d: -f1)"
+if [[ -z "$ln_sum" || -z "$ln_gate" ]] || (( ln_sum > ln_gate )) || ! grep -Fq 'EMULATOR_SHARD_RESULTS: shard-results' <<<"$sj"; then
+  echo "summary: summarize.sh before release_gate.sh, with EMULATOR_SHARD_RESULTS" >&2; exit 1
+fi
+# 3. Upload: names, error on no files, results.txt required.
+grep -q 'if-no-files-found: warn' "$workflow" && { echo "upload must use if-no-files-found: error" >&2; exit 1; }
+[[ "$(sed -n '/name: Upload emulator artifacts/,/if-no-files-found/p' "$workflow" | grep -c 'if-no-files-found: error')" == 1 ]] || { echo "shard upload: if-no-files-found: error" >&2; exit 1; }
+n="$(EMULATOR_FLOW=x EMULATOR_ARTIFACTS="$r43/a0" bash -c 'source tool/emulator/lib/common.sh; artifact_safe_name "30s-filter-matrix-sequences_seq1-deity:select"')"
+[[ "$n" == "30s-filter-matrix-sequences_seq1-deity_select" ]] || { echo "artifact_safe_name ':' -> '_': $n" >&2; exit 1; }
+( export EMULATOR_FLOW=30s-filter-matrix-sequences EMULATOR_ARTIFACTS="$r43/a1" EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  step_shot() { :; }; dismiss_blockers() { :; }
+  echo '<node />' > "$DUMP"
+  fail_step "seq1-deity:select" "x" >/dev/null; na_step "seq2:pick" "y" >/dev/null; xfail_step "seq3:clear" "z" >/dev/null )
+found="$(cd "$r43/a1/dumps" && ls)"
+if grep -q ':' <<<"$found" || ! grep -qx '30s-filter-matrix-sequences_seq1-deity_select.xml' <<<"$found"; then
+  echo "step dumps must not contain ':': $found" >&2; exit 1
+fi
+grep -q 'cp -f "\$DUMP" "\${DUMP_DIR}/\${FLOW}_\${1}.xml"' tool/emulator/lib/common.sh && { echo "raw step-id dump names remain" >&2; exit 1; }
+mkdir -p "$r43/up/dumps/sub:dir"; echo x > "$r43/up/dumps/sub:dir/a:b.xml"; echo 'PASS x: y' > "$r43/up/results.txt"
+bash tool/emulator/sanitize_artifacts.sh "$r43/up" >/dev/null || { echo "sanitize_artifacts failed" >&2; exit 1; }
+[[ -f "$r43/up/dumps/sub_dir/a_b.xml" ]] && ! find "$r43/up" -name '*:*' | grep -q . || { echo "sanitize_artifacts renames ':'" >&2; exit 1; }
+mkdir -p "$r43/empty"; bash tool/emulator/sanitize_artifacts.sh "$r43/empty" >/dev/null 2>&1 && { echo "sanitize_artifacts: no results.txt must fail" >&2; exit 1; }
+# Workflow-level env must not break the self-test (the build job inherits it).
+grep -q '^env:$' "$workflow" || { echo "static emulator env lives at workflow level" >&2; exit 1; }
+#R43_MORE
+rm -rf "$r43"
+echo "round 4.3 checks ok"
 rm -rf "$r4"
 echo "emulator self-test ok"
