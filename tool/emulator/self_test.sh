@@ -556,7 +556,7 @@ if [[ -z "${step_smoke:-}" ]] || (( step_smoke < need_smoke )); then
   echo "smoke flow step timeout ${step_smoke:-unset} is under the ${need_smoke} min worst case" >&2
   exit 1
 fi
-for n in 1 2 3 4 5 6 7 8 9; do
+for n in $(seq 1 "$(bash -c 'source tool/emulator/plan.sh; echo "$SHARD_COUNT"')"); do
   need="$(bash tool/emulator/plan.sh need-minutes full "$n")"
   if [[ -z "${step_full:-}" ]] || (( step_full < need )); then
     echo "shard ${n} step timeout ${step_full:-unset} is under its ${need} min worst case" >&2
@@ -583,7 +583,7 @@ GITHUB_EVENT_NAME=workflow_dispatch GITHUB_OUTPUT="$tier_out" INPUT_TIER=smoke b
 grep -qx 'matrix=\["smoke"\]' "$tier_out"
 : > "$tier_out"
 GITHUB_EVENT_NAME=release GITHUB_OUTPUT="$tier_out" bash tool/emulator/choose_tier.sh >/dev/null
-grep -qx 'matrix=\["1","2","3","4","5","6","7","8","9"\]' "$tier_out"
+grep -qxF "matrix=[$(seq -s, -f '"%g"' 1 "$(bash -c 'source tool/emulator/plan.sh; echo "$SHARD_COUNT"')")]" "$tier_out"
 if GITHUB_EVENT_NAME=workflow_dispatch INPUT_TIER=everything bash tool/emulator/choose_tier.sh >/dev/null 2>&1; then
   echo "choose_tier.sh should reject an unknown tier" >&2
   exit 1
@@ -1250,12 +1250,12 @@ for id in $(plan_ids smoke); do
     exit 1
   fi
 done
-if [[ "$(plan_matrix full)" != '["1","2","3","4","5","6","7","8","9"]' || "$(plan_matrix smoke)" != '["smoke"]' ]]; then
+if [[ "$(plan_matrix full)" != "[$(seq -s, -f '"%g"' 1 "$SHARD_COUNT")]" || "$(plan_matrix smoke)" != '["smoke"]' ]]; then
   echo "full must be ${SHARD_COUNT} shards and smoke one job" >&2
   exit 1
 fi
 all_ids="$(plan_ids all | sort)"
-shard_ids="$(for n in 1 2 3 4 5 6 7 8 9; do plan_ids full "$n"; done | sort)"
+shard_ids="$(for n in $(seq 1 "$SHARD_COUNT"); do plan_ids full "$n"; done | sort)"
 if [[ "$all_ids" != "$shard_ids" ]]; then
   echo "the ${SHARD_COUNT} shards must cover every flow exactly once" >&2
   diff <(echo "$all_ids") <(echo "$shard_ids") >&2 || true
@@ -1299,13 +1299,17 @@ if [[ "$want_cells" != "$got_cells" ]]; then
   echo "filter matrix parts must cover every entry x chip exactly once: ${got_cells}" >&2
   exit 1
 fi
-for n in 1 2 3 4 5 6 7 8 9; do
+for n in $(seq 1 "$SHARD_COUNT"); do
   active=0
   for id in $(plan_ids full "$n"); do
     plan_is_skipped "$id" || active=$((active + 1))
   done
-  if (( active == 0 || active > 5 )); then
-    echo "shard ${n} should run 1-5 flows that are not skipped, has ${active}" >&2
+  if (( active == 0 || active > 3 || active > SHARD_MAX_ACTIVE )); then
+    echo "shard ${n} should run 1-3 flows that are not skipped, has ${active}" >&2
+    exit 1
+  fi
+  if (( $(plan_need_s full "$n") > 39 * 60 )); then
+    echo "shard ${n} worst case $(plan_need_s full "$n")s is over 39 min (incl. boot)" >&2
     exit 1
   fi
 done
@@ -1319,7 +1323,7 @@ if EMULATOR_SKIP_FLOWS="" plan_is_skipped 11-near-me; then
   echo "EMULATOR_SKIP_FLOWS=\"\" should run the location flows" >&2
   exit 1
 fi
-for bad in "full 0" "full 10" "full x" "nightly"; do
+for bad in "full 0" "full $((SHARD_COUNT + 1))" "full x" "nightly"; do
   # shellcheck disable=SC2086 # split tier and shard on purpose
   if plan_flows $bad >/dev/null 2>&1; then
     echo "plan_flows should reject '${bad}'" >&2
@@ -1331,7 +1335,7 @@ if bash tool/emulator/run_shard.sh full >/dev/null 2>&1; then
   exit 1
 fi
 dry="$(EMULATOR_SHARD_DRY_RUN=1 EMULATOR_ARTIFACTS="$(mktemp -d)" bash tool/emulator/run_shard.sh full 2)"
-if ! grep -qx 'PLAN 29a-filter-matrix-home-state tool/emulator/flows/29_filter_matrix.sh home_browse:state' <<<"$dry" ||
+if ! grep -qx 'PLAN 29b-filter-matrix-home-district tool/emulator/flows/29_filter_matrix.sh home_browse:district' <<<"$dry" ||
    [[ "$(grep -c '^PLAN ' <<<"$dry")" -ne "$(plan_ids full 2 | wc -l)" ]]; then
   echo "run_shard.sh dry run should list shard 2 with its matrix part" >&2
   echo "$dry" >&2
@@ -1544,7 +1548,8 @@ cat >"${stub_dir}/flow.sh" <<'STUB'
 leaked="$(cat)"
 printf '%s %s\n' "$1" "${#leaked}" >>"${STUB_LOG}"
 STUB
-for tier_shard in smoke "full 1" "full 2" "full 3" "full 4" "full 5" "full 6" "full 7" "full 8" "full 9"; do
+tier_shards=(smoke); for n in $(seq 1 "$SHARD_COUNT"); do tier_shards+=("full $n"); done
+for tier_shard in "${tier_shards[@]}"; do
   : >"${stub_dir}/ran"
   # shellcheck disable=SC2086 # split tier and shard on purpose
   STUB_LOG="${stub_dir}/ran" EMULATOR_FLOW_RUNNER="${stub_dir}/flow.sh" \
@@ -2391,9 +2396,9 @@ w4="$(PATH="$r4/bin:$PATH" ANDROID_AVD_HOME="$r4/avd" HOME="$r4" RUNNER_TEMP="" 
 grep -q '^::warning::prepare_avd (run): no snapshots/default_boot/hardware.ini' <<<"$w4" || { echo "prepare_avd: warn on missing hardware.ini" >&2; echo "$w4" >&2; exit 1; }
 [[ "$(grep -c 'pm enable com.google.android.apps.maps' tool/emulator/flows/25_directions_edge.sh)" == 1 ]] || { echo "flow 25: pm enable once" >&2; exit 1; }
 sc="$(bash -c 'source tool/emulator/plan.sh; echo $SHARD_COUNT')"
-words=(zero one two three four five six seven eight nine ten)
+words=(zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen)
 if ! grep -q "every flow, ${words[$sc]} parallel shards" tool/emulator/plan.sh || ! grep -q "full (${sc} shards)" tool/emulator/choose_tier.sh ||
-   ! grep -q "as ${sc} parallel shards" .github/workflows/emulator-app-test.yml || grep -qE 'six parallel|\(6 shards\)|\(8 shards\)' tool/emulator/plan.sh tool/emulator/choose_tier.sh .github/workflows/emulator-app-test.yml; then
+   ! grep -q "as ${sc} parallel shards" .github/workflows/emulator-app-test.yml || grep -qE 'six parallel|nine parallel|\((6|8|9) shards\)|as 9 parallel' tool/emulator/plan.sh tool/emulator/choose_tier.sh .github/workflows/emulator-app-test.yml; then
   echo "shard count text must say ${sc}" >&2; exit 1
 fi
 grep -q 'PICKER_LONG_GIVEUP_S=45' .github/workflows/emulator-app-test.yml && grep -q 'EMULATOR_STEP_BUDGET_S=150' .github/workflows/emulator-app-test.yml || { echo "workflow header: caps" >&2; exit 1; }
