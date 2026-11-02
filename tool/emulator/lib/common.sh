@@ -1811,13 +1811,45 @@ state_chip_is() {
 # (directory_filter_bar.dart _chipScroll) and run 41461260068's
 # seq1-filter-kept dump had it scrolled off to the left, with
 # filter-chip-district, filter-chip-deity "Shiva" and filter-clear on screen.
+# Round 4.4.1 (Manu): this is only "the bar is there". It says nothing
+# about a filter still being applied; use filter_kept for that.
 filter_bar_present() {
   ui_find --resource-id-regex '^(filter-chip-(state|district|deity)|filter-clear)$'
 }
 
+# filter_kept [KIND=LABEL...]: a filter is still applied. The chip-row
+# Clear (filter-clear) is only built while a filter is active
+# (directory_filter_bar.dart: `final clear = _active ? ...`), so it is
+# required; chips alone no longer pass (they are shown with no filter
+# too). Each KIND=LABEL whose chip (filter-chip-KIND) is in the dump must
+# show exactly LABEL; a chip scrolled off the row is not in the dump and is
+# not judged. Sets FILTER_KEPT_WHY on failure.
+filter_kept() {
+  FILTER_KEPT_WHY=""
+  if ! ui_find --resource-id filter-clear; then
+    FILTER_KEPT_WHY="filter-clear missing (no filter applied)"
+    return 1
+  fi
+  local kv kind want got
+  for kv in "$@"; do
+    kind="${kv%%=*}" want="${kv#*=}"
+    if ui_find --resource-id "filter-chip-${kind}"; then
+      got="$(chip_label "$UI_TEXT")"
+      if [[ "$got" != "$want" ]]; then
+        FILTER_KEPT_WHY="${kind} chip shows '${got}', want '${want}'"
+        return 1
+      fi
+    else
+      echo "filter_kept: ${kind} chip not in the dump (scrolled off); not judged" >&2
+    fi
+  done
+  return 0
+}
+
 # First real option of the open sheet for KIND (state|district|deity): the
 # first filter-option-KIND-* row in document order that is not -any, by its
-# exact label (content-desc without the trailing count). Prints the label.
+# exact label (content-desc without the trailing count). Prints the label,
+# then its resource-id on a second line.
 first_real_option() {
   python3 - "$DUMP" "$1" <<'PY'
 import re, sys
@@ -1835,6 +1867,7 @@ for node in re.finditer(r"<node [^>]*>", s):
     label = re.sub(r"\s+[0-9]+$", "", label)
     if label:
         print(label)
+        print(rid.group(1))
         raise SystemExit(0)
 raise SystemExit(1)
 PY
@@ -1844,15 +1877,40 @@ select_labeled() {
   local regex="$1"
   local _section="${2:-}"
   # Round 4.4: '@first' = the first real option on the opened sheet.
+  # Round 4.4.1 (Manu): tap the dumped row itself, no re-seek. The sheet
+  # must be at the head of the list (the -any row on screen); if it is
+  # not, pull the list down until it is (at most FIRST_TOP_SWIPES).
   if [[ "$regex" == @first ]]; then
-    local _k _first
+    local _k _first _rid _n=0 _h _max
     _k="$(printf '%s' "$_section" | tr '[:upper:]' '[:lower:]')"
-    if ! ui_dump || ! _first="$(first_real_option "$_k")"; then
+    ui_dump || { echo "select_labeled: dump failed on the ${_k} sheet" >&2; return 1; }
+    while ! ui_find --resource-id "filter-option-${_k}-any"; do
+      if (( _n >= ${FIRST_TOP_SWIPES:-6} )); then
+        echo "select_labeled: ${_k} list head (-any) not reached after ${_n} swipes" >&2
+        return 1
+      fi
+      _n=$((_n + 1))
+      echo "select_labeled: ${_k} sheet not at the list head; scrolling to the top (${_n})" >&2
+      ui_sheet_swipe down || { echo "select_labeled: swipe failed" >&2; return 1; }
+      sleep 0.3
+      ui_dump || { echo "select_labeled: dump failed on the ${_k} sheet" >&2; return 1; }
+    done
+    if ! { read -r _first; read -r _rid; } < <(first_real_option "$_k"); then
       echo "select_labeled: no real ${_k} option on the open sheet" >&2
       return 1
     fi
-    regex="^$(re_escape "$_first")( +[0-9]+)?\$"
-    echo "select_labeled: first real ${_k} option '${_first}'" >&2
+    echo "select_labeled: first real ${_k} option '${_first}' (tap in place)" >&2
+    read -r _ _h < <(ui_screen_size) || return 1
+    _max=$((_h * 84 / 100))
+    if ! ui_find --resource-id "$_rid" --max-top "$_max"; then
+      echo "select_labeled: '${_first}' row is not in the tap band" >&2
+      return 1
+    fi
+    stable_option_tap "^$(re_escape "$_first")( +[0-9]+)?\$" "^$(re_escape "$_rid")\$" || {
+      echo "select_labeled: '${_first}' did not hold still for two dumps" >&2
+      return 1
+    }
+    return 0
   fi
   local pass i height min_top max_top prev="" current stuck
   local opt_rx='.'

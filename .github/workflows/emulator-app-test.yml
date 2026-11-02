@@ -548,6 +548,12 @@ jobs:
             if [[ -f emulator-app-test-artifacts/results.txt ]]; then
               mv emulator-app-test-artifacts/results.txt emulator-app-test-artifacts/results-boot-death.txt
             fi
+            # Round 4.4.1: a RETRY line so the summary shows the retry. The
+            # dead attempt's lines live in results-boot-death.txt, so no
+            # line is counted twice; summarize.sh and release_gate.sh count
+            # only PASS/FAIL/XFAIL/XPASS/SKIPPED/NA/NOT RUN prefixes.
+            mkdir -p emulator-app-test-artifacts
+            printf 'RETRY boot %s: no BOOT line after the first emulator start; ran the shard once more\n' "${{ matrix.shard }}" >> emulator-app-test-artifacts/results.txt
             echo "retry=true" >> "$GITHUB_OUTPUT"
           fi
 

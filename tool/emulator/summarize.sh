@@ -94,12 +94,21 @@ xpasses="$(grep -c '^XPASS ' "$results" || true)"
 # NA (precondition proven absent) is neither a pass nor a failure here; it
 # is listed on its own, and a flow with only NA steps still needs a PASS.
 nas="$(grep -c '^NA ' "$results" || true)"
+# Round 4.4.1: RETRY lines (the workflow's boot retry) are listed, never
+# counted as a pass or a failure.
+retries="$(grep -c '^RETRY ' "$results" || true)"
 
 {
   echo "### Emulator app test (${tier}${EMULATOR_SHARD:+ shard ${EMULATOR_SHARD}})"
   echo
   echo "${passes} passed, ${fails} failed, ${xfails} expected failures, ${xpasses} unexpected passes, ${not_run} not run, ${skipped} skipped, ${nas} not applicable."
   echo
+  if [[ "$retries" -gt 0 ]]; then
+    echo "#### Boot retries (RETRY: ${retries}) - the emulator died before run_shard.sh and the shard ran again"
+    echo
+    grep '^RETRY ' "$results" | sed 's/^/- /'
+    echo
+  fi
   if [[ "$nas" -gt 0 ]]; then
     echo "#### Not applicable (NA: ${nas}) - not a pass; the strict release gate refuses unplanned NA"
     echo
@@ -124,6 +133,10 @@ nas="$(grep -c '^NA ' "$results" || true)"
 } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
 
 echo "${passes} passed, ${fails} failed, ${xfails} expected failures, ${xpasses} unexpected passes, ${not_run} not run, ${skipped} skipped, ${nas} not applicable."
+if [[ "$retries" -gt 0 ]]; then
+  echo "RETRY (${retries}):"
+  grep '^RETRY ' "$results" | sed 's/^/  /'
+fi
 if [[ "$nas" -gt 0 ]]; then
   echo "NA (${nas}):"
   grep '^NA ' "$results" | sed 's/^/  /'

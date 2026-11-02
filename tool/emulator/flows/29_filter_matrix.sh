@@ -8,6 +8,7 @@
 
 CHIPS=(state district deity)
 declare -A PICK=( [state]='^Tamil Nadu( +[0-9]+)?$' [deity]='^Shiva( +[0-9]+)?$' [district]='^Madurai( +[0-9]+)?$' )
+declare -A APPLIED=()
 declare -A SECTION=( [state]=STATE [deity]=DEITY [district]=DISTRICT )
 
 open_drawer() {
@@ -92,14 +93,30 @@ close_x() {
 do_action() {
   local chip="$1" action="$2" pick
   pick="$(scoped_pick "$chip")" || pick="${PICK[$chip]}"
+  local rc=0
   case "$action" in
-    select) open_chip "$chip" && select_labeled "$pick" "${SECTION[$chip]}" && apply_sheet ;;
-    pick-close) open_chip "$chip" && select_labeled "$pick" "${SECTION[$chip]}" && close_x ;;
-    dismiss-empty) open_chip "$chip" && dismiss_sheet_swipe ;;
-    back-empty) open_chip "$chip" && { ui_back; sleep 1; ! sheet_open; } ;;
-    outside-empty) open_chip "$chip" && dismiss_sheet_outside ;;
-    clear) open_chip "$chip" && select_labeled "$pick" "${SECTION[$chip]}" && apply_sheet && clear_named "$chip" ;;
+    select) open_chip "$chip" && select_labeled "$pick" "${SECTION[$chip]}" && apply_sheet || rc=1 ;;
+    pick-close) open_chip "$chip" && select_labeled "$pick" "${SECTION[$chip]}" && close_x || rc=1 ;;
+    dismiss-empty) open_chip "$chip" && dismiss_sheet_swipe || rc=1 ;;
+    back-empty) open_chip "$chip" && { ui_back; sleep 1; ! sheet_open; } || rc=1 ;;
+    outside-empty) open_chip "$chip" && dismiss_sheet_outside || rc=1 ;;
+    clear) open_chip "$chip" && select_labeled "$pick" "${SECTION[$chip]}" && apply_sheet && clear_named "$chip" || rc=1 ;;
   esac
+  # Round 4.4.1: what should still be applied, for seqN-filter-kept. A
+  # state change resets the district, so district is only known until then.
+  if (( rc == 0 )); then
+    case "$action" in
+      select) [[ "$chip" == state ]] && unset 'APPLIED[district]'; APPLIED[$chip]="$SELECTED_LABEL" ;;
+      clear) unset "APPLIED[$chip]"; [[ "$chip" == state ]] && unset 'APPLIED[district]' ;;
+    esac
+  fi
+  return "$rc"
+}
+
+# Expected KIND=LABEL pairs for filter_kept.
+applied_pairs() {
+  local k
+  for k in "${!APPLIED[@]}"; do printf '%s=%s\n' "$k" "${APPLIED[$k]}"; done
 }
 
 # xfail only when the district chip id is missing from the dump and no state
@@ -250,6 +267,7 @@ n=0
 for seq in "${SEQS[@]}"; do
   n=$((n+1))
   enter_home_browse >/dev/null 2>&1 || { fail_step "seq$n-enter" "browse not reached"; continue; }
+  APPLIED=()
   ok=1
   for st in $seq; do
     do_action "${st%%:*}" "${st##*:}" || { ok=0; fail_step "seq$n-$st" "step failed"; recover_sheet; break; }
@@ -259,10 +277,15 @@ for seq in "${SEQS[@]}"; do
   if ui_wait_scrolled 20 --resource-id temple-browse-card; then
     ui_tap; ui_wait_scrolled 20 --text-contains "How to Reach" && ui_back; sleep 2
     ui_dump || true
-    if filter_bar_present; then
+    # Round 4.4.1 (Manu): a filter should still be applied, so filter-clear
+    # (and the applied labels) are required; chips alone do not pass.
+    mapfile -t kept < <(applied_pairs)
+    if (( ${#kept[@]} == 0 )); then
+      if filter_bar_present; then pass_step "seq$n-filter-kept"; else fail_step "seq$n-filter-kept" "filter bar missing after detail"; fi
+    elif filter_kept "${kept[@]}"; then
       pass_step "seq$n-filter-kept"
     else
-      fail_step "seq$n-filter-kept" "filter bar missing after detail"
+      fail_step "seq$n-filter-kept" "filter lost after detail: ${FILTER_KEPT_WHY}"
     fi
     probe_others "seq$n-after-detail" state
   fi

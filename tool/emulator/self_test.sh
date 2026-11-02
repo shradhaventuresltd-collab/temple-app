@@ -2842,6 +2842,8 @@ blk = wf[i:j].split("        run: |\n", 1)[1]
 print("\n".join(l[10:] for l in blk.splitlines()))
 PY
 )"
+# The step's ${{ matrix.shard }} is an Actions expression; shard 7 here.
+chk_sh="${chk_sh//\$\{\{ matrix.shard \}\}/7}"
 for case in "BOOT full-1 snapshot:false" "FAIL x:true" ":true"; do
   line="${case%:*}" want="${case##*:}"
   d="$r44/bc"; rm -rf "$d"; mkdir -p "$d/emulator-app-test-artifacts"; [[ -n "$line" ]] && echo "$line" > "$d/emulator-app-test-artifacts/results.txt"
@@ -2864,7 +2866,7 @@ replay44() { # fixture fn...
     R44_FX="$1"; shift; "$@" ) 2>&1
 }
 T44=tool/emulator/testdata/run41461260068
-fro() { ui_dump && first_real_option "$1"; }
+fro() { ui_dump && first_real_option "$1" | sed -n 1p; }
 fbp() { ui_dump && filter_bar_present; }
 fbp_old() { ui_dump && ui_find --resource-id filter-chip-state; }
 deity44="$(sed -n "s/^ALL_INDIA_DEITY_PICK='\(.*\)'\$/\1/p" tool/emulator/lib/common.sh)"
@@ -2906,10 +2908,95 @@ grep -q "^RESULT rc=1 " <<<"$o" || { echo "sim (no Ahalya): the old pick must fa
 replay44 "$T44/seq1_filter_kept.xml" fbp >/dev/null || { echo "filter_bar_present on r6 seq1-filter-kept.xml" >&2; exit 1; }
 replay44 "$T44/seq1_filter_kept.xml" fbp_old >/dev/null && { echo "fixture: seq1 has no state chip on screen (the old false positive)" >&2; exit 1; }
 replay44 "$T44/detail_no_filter_bar.xml" fbp >/dev/null && { echo "filter_bar_present: a dump with no filter bar must fail" >&2; exit 1; }
-grep -q 'if filter_bar_present; then' tool/emulator/flows/29_filter_matrix.sh || { echo "flow 29 filter-kept uses filter_bar_present" >&2; exit 1; }
+grep -q 'elif filter_kept "${kept\[@\]}"; then' tool/emulator/flows/29_filter_matrix.sh || { echo "flow 29 filter-kept uses filter_kept when a filter is applied" >&2; exit 1; }
 # E. KAN-193 named at the 17c clear comment.
 grep -q 'Jira KAN-193' tool/emulator/flows/17_entry_matrix.sh || { echo "17_entry_matrix names KAN-193" >&2; exit 1; }
-rm -rf "$r44"
 echo "round 4.4 checks ok"
+# Round 4.4.1 (Manu's nits, Sanu's fixture rule)
+# 1. @first taps the dumped row in place, after making sure the sheet is at
+# the list head (-any on screen). R441_FX is a list of dumps; every sheet
+# swipe moves to the next one, so a mid-list sheet must swipe to the head.
+replay441() { # "fx1 fx2 ..." fn...
+  ( export EMULATOR_FLOW=99-r441 EMULATOR_ARTIFACTS="$r44/art441" EMULATOR_PACKAGE=com.shradhaventures.temple
+    # shellcheck disable=SC1091
+    source tool/emulator/lib/common.sh
+    read -r -a R441_LIST <<<"$1"; shift; R441_I=0
+    ui_dump() { cp "${R441_LIST[$R441_I]}" "$DUMP"; }
+    ui_sheet_swipe() { echo "SWIPE $1"; (( R441_I + 1 < ${#R441_LIST[@]} )) && R441_I=$((R441_I + 1)); return 0; }
+    seek_option() { echo "SEEK $*"; return 1; }
+    ui_screen_size() { echo 320 640; }
+    ui_tap() { echo "TAP ${UI_TEXT:-}"; }
+    adb_shell_capped() { shift; echo "ADB $*"; }
+    sleep() { :; }
+    "$@" ) 2>&1
+}
+for fx in 17c_deity_select.xml 30g_deity_select.xml; do
+  o="$(replay441 "$T44/$fx" select_labeled '@first' DEITY)" &&
+    grep -qx 'TAP 81 Yoginis; Gauri-Shankar (central shrine) 1' <<<"$o" && ! grep -Eq '^(SEEK|SWIPE)' <<<"$o" && grep -q 'tap in place' <<<"$o" ||
+    { echo "4.4.1 @first at the head of r6 ${fx}: tap in place, no seek/swipe: $o" >&2; exit 1; }
+done
+# Mid-list sheet: the -any row and the first two real rows scrolled off.
+drop_node "$T44/17c_deity_select.xml" "$r44/mid1.xml" filter-option-deity-any
+drop_node "$r44/mid1.xml" "$r44/mid2.xml" "filter-option-deity-81 Yoginis"
+drop_node "$r44/mid2.xml" "$r44/mid.xml" "filter-option-deity-Adinatha"
+grep -q 'filter-option-deity-any\|filter-option-deity-81 Yoginis' "$r44/mid.xml" && { echo "fixture: mid-list sheet" >&2; exit 1; }
+o="$(replay441 "$r44/mid.xml $r44/mid.xml $T44/17c_deity_select.xml" select_labeled '@first' DEITY)" &&
+  [[ "$(grep -c '^SWIPE down$' <<<"$o")" == 2 ]] && grep -qx 'TAP 81 Yoginis; Gauri-Shankar (central shrine) 1' <<<"$o" && ! grep -q '^SEEK' <<<"$o" && ! grep -q 'TAP Ajitnatha' <<<"$o" ||
+  { echo "4.4.1 @first on a mid-list sheet: swipe down to the head, then tap 81 Yoginis: $o" >&2; exit 1; }
+# Never at the head: give up after FIRST_TOP_SWIPES, no tap.
+o="$(FIRST_TOP_SWIPES=3 replay441 "$r44/mid.xml" select_labeled '@first' DEITY)" && { echo "4.4.1 @first with no list head must fail: $o" >&2; exit 1; }
+[[ "$(grep -c '^SWIPE down$' <<<"$o")" == 3 ]] && ! grep -q '^TAP' <<<"$o" || { echo "4.4.1 @first gives up after 3 swipes, no tap: $o" >&2; exit 1; }
+# 2. filter-kept needs filter-clear (and the applied labels): chips alone fail.
+fk() { ui_dump && filter_kept "$@"; }
+replay44 "$T44/seq1_filter_kept.xml" fk 'state=Tamil Nadu' 'deity=Shiva' >/dev/null || { echo "4.4.1 filter_kept on r6 seq1 (Tamil Nadu off-row, Shiva)" >&2; exit 1; }
+drop_node "$T44/seq1_filter_kept.xml" "$r44/chips_no_clear.xml" filter-clear
+grep -q 'filter-chip-deity' "$r44/chips_no_clear.xml" && ! grep -q 'filter-clear' "$r44/chips_no_clear.xml" || { echo "fixture: chips without filter-clear" >&2; exit 1; }
+replay44 "$r44/chips_no_clear.xml" fbp >/dev/null || { echo "fixture: the chip bar is still there" >&2; exit 1; }
+o="$(replay44 "$r44/chips_no_clear.xml" fk 'deity=Shiva')" && { echo "4.4.1 filter_kept: chips with no filter-clear (filter lost) must fail: $o" >&2; exit 1; }
+replay44 "$r44/chips_no_clear.xml" fk >/dev/null && { echo "4.4.1 filter_kept with no labels still needs filter-clear" >&2; exit 1; }
+replay44 "$T44/seq1_filter_kept.xml" fk 'deity=Ganesha' >/dev/null && { echo "4.4.1 filter_kept: wrong deity label must fail" >&2; exit 1; }
+replay44 "$T44/detail_no_filter_bar.xml" fk 'deity=Shiva' >/dev/null && { echo "4.4.1 filter_kept with no bar" >&2; exit 1; }
+grep -q "identifier: 'filter-clear'" lib/*/directory_filter_bar.dart 2>/dev/null || find lib -name directory_filter_bar.dart -exec grep -q "identifier: 'filter-clear'" {} + || { echo "app: filter-clear id moved" >&2; exit 1; }
+# do_action bookkeeping: select records, clear and a state change drop.
+fdefs="$(python3 - <<'PY2'
+import re
+s = open("tool/emulator/flows/29_filter_matrix.sh").read()
+for name in ("do_action", "applied_pairs"):
+    m = re.search(r"(?ms)^%s\(\) \{.*?^\}" % name, s)
+    print(m.group(0))
+PY2
+)"
+o="$(bash -c "declare -A APPLIED=() PICK=() SECTION=(); scoped_pick() { echo x; }; open_chip() { :; }; apply_sheet() { :; }; close_x() { :; }; clear_named() { :; }
+  select_labeled() { SELECTED_LABEL=\"L-\$CHIPN\"; }; $fdefs
+  CHIPN=1 do_action deity select; CHIPN=2 do_action district select; CHIPN=3 do_action district pick-close; applied_pairs | sort; echo --
+  CHIPN=4 do_action state select; applied_pairs | sort; echo --; do_action state clear; applied_pairs | sort")"
+[[ "$o" == $'deity=L-1\ndistrict=L-2\n--\ndeity=L-1\nstate=L-4\n--\ndeity=L-1' ]] || { echo "4.4.1 do_action APPLIED bookkeeping: $o" >&2; exit 1; }
+# 3. Boot retry RETRY line: written, shown by summarize, not counted twice.
+d="$r44/bc"; rm -rf "$d"; mkdir -p "$d/emulator-app-test-artifacts"
+chk441="$chk_sh"
+( cd "$d" && PATH="$r44/bin:$PATH" STUB_DIR="$r44" GITHUB_OUTPUT="$d/out" bash -c "sleep() { :; }; $chk441" ) >/dev/null 2>&1
+grep -qx 'retry=true' "$d/out" && grep -qx 'RETRY boot 7: no BOOT line after the first emulator start; ran the shard once more' "$d/emulator-app-test-artifacts/results.txt" ||
+  { echo "4.4.1 boot-check writes a RETRY line: $(cat "$d/emulator-app-test-artifacts/results.txt" 2>&1)" >&2; exit 1; }
+d="$r44/bc"; rm -rf "$d"; mkdir -p "$d/emulator-app-test-artifacts"; echo 'FAIL x: from the dead attempt' > "$d/emulator-app-test-artifacts/results.txt"
+( cd "$d" && PATH="$r44/bin:$PATH" STUB_DIR="$r44" GITHUB_OUTPUT="$d/out" bash -c "sleep() { :; }; $chk441" ) >/dev/null 2>&1
+grep -q '^FAIL x' "$d/emulator-app-test-artifacts/results-boot-death.txt" && ! grep -q '^FAIL' "$d/emulator-app-test-artifacts/results.txt" || { echo "4.4.1 dead attempt lines move out of results.txt" >&2; exit 1; }
+sm="$r44/sm"; rm -rf "$sm"; mkdir -p "$sm"
+{ echo 'RETRY boot 3: no BOOT line after the first emulator start; ran the shard once more'; echo 'BOOT full-3 snapshot'
+  while read -r id; do echo "START $id"; echo "PASS $id: ok"; echo "DONE $id"; done < <(bash -c 'source tool/emulator/plan.sh; plan_ids full 3'); } > "$sm/results.txt"
+o="$(EMULATOR_ARTIFACTS="$sm" EMULATOR_TIER=full EMULATOR_SHARD=3 GITHUB_STEP_SUMMARY="$sm/sum.md" bash tool/emulator/summarize.sh)" || { echo "4.4.1 summarize with a RETRY line must stay green: $o" >&2; exit 1; }
+grep -q ', 0 failed, .*0 not run' <<<"$o" && grep -q '^RETRY (1):' <<<"$o" && grep -q '^#### Boot retries (RETRY: 1)' "$sm/sum.md" && grep -q '^- RETRY boot 3:' "$sm/sum.md" ||
+  { echo "4.4.1 summarize lists RETRY, counts nothing: $o" >&2; exit 1; }
+[[ "$(grep -c '^RETRY ' "$sm/results.txt")" == 1 ]] || { echo "4.4.1 summarize must not append RETRY lines" >&2; exit 1; }
+{ echo 'RETRY boot 3: no BOOT line after the first emulator start; ran the shard once more'; bash -c 'source tool/emulator/plan.sh; plan_ids full' | while read -r id; do echo "PASS $id: ok"; done; } > "$sm/results.txt"
+o="$(EMULATOR_ARTIFACTS="$sm" GITHUB_STEP_SUMMARY= bash tool/emulator/release_gate.sh full 0123456789abcdef0123456789abcdef01234567 build 2>&1)" &&
+  grep -q '(1 boot retry: 3)$' <<<"$o" && ! grep -q 'NOT a release gate' <<<"$o" || { echo "4.4.1 release gate lists the retry and does not refuse it: $o" >&2; exit 1; }
+# 4. (PR body only.) 5. Fixtures carry no ad-click ids, emails, tokens or device ids.
+python3 tool/emulator/fixture_scan.py tool/emulator/testdata >"$r44/fscan" || { echo "4.4.1 fixture scan:" >&2; cat "$r44/fscan" >&2; exit 1; }
+mkdir -p "$r44/fs"; for bad in 'content-desc="%3Fgclid%3DCj0KCQiAfake123"' 'a@b.co' 'ya29.a0AfH6SMBfakefake' 'android_id=0123456789abcdef' '356938035643809' 'ZX1G22ABCD	device'; do
+  printf '%s\n' "$bad" > "$r44/fs/x.xml"; python3 tool/emulator/fixture_scan.py "$r44/fs" >/dev/null && { echo "4.4.1 fixture scan misses: $bad" >&2; exit 1; }
+done
+printf 'emulator-5554\tdevice\ngclid%%3DREDACTED\n' > "$r44/fs/x.xml"; python3 tool/emulator/fixture_scan.py "$r44/fs" >/dev/null || { echo "4.4.1 fixture scan: emulator-5554 and REDACTED are allowed" >&2; exit 1; }
+echo "round 4.4.1 checks ok"
+rm -rf "$r44"
 rm -rf "$r4"
 echo "emulator self-test ok"

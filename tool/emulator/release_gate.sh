@@ -105,6 +105,13 @@ fi
 if [[ -n "$refuse" ]]; then
   line="${line} NOT a release gate: ${refuse}."
 fi
+# Round 4.4.1: boot retries are reported, not refused and not counted
+# with the flow results (the dead attempt is in results-boot-death.txt).
+n_retry=0
+[[ -s "$results" ]] && n_retry="$(grep -c '^RETRY ' "$results" || true)"
+if (( n_retry > 0 )); then
+  line="${line} (${n_retry} boot retr$( ((n_retry == 1)) && echo y || echo ies): $(grep '^RETRY ' "$results" | sed 's/^RETRY boot \([^:]*\):.*/\1/' | paste -sd, -))"
+fi
 echo "$line"
 if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
   printf '### Release gate\n\n%s\n\n' "$line" >> "$GITHUB_STEP_SUMMARY"
