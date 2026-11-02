@@ -15,6 +15,7 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; root="$(cd "$here/../../..
   source "$root/tool/emulator/lib/common.sh"
   N="${NPAGES:-5}"; PAGE="$start"; T="$phase"; NEXT_AUTO=5; [[ "${NOAUTO:-0}" == 1 ]] && NEXT_AUTO=999999
   adv() { T="$(python3 -c "print(round($T + $1, 2))")"; while python3 -c "import sys; sys.exit(0 if $T >= $NEXT_AUTO else 1)"; do PAGE=$(((PAGE + 1) % N)); echo "t=${NEXT_AUTO} auto-advance -> page ${PAGE}" >&2; NEXT_AUTO=$((NEXT_AUTO + 5)); done; }
+  mono_now() { echo "$T"; }
   sleep() { adv "$1"; }; step_shot() { :; }; dismiss_blockers() { :; }
   ui_screen_size() { echo "320 640"; }
   # NOSWIPE=1: flings have no effect (only auto-advance moves the page).
@@ -23,7 +24,11 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; root="$(cd "$here/../../..
     if [[ "${NOSWIPE:-0}" != 1 ]]; then
       if (( $3 > $5 )); then (( PAGE < N - 1 )) && PAGE=$((PAGE + 1)); else (( PAGE > 0 )) && PAGE=$((PAGE - 1)); fi
     fi; echo "t=${T} fling $( (( $3 > $5 )) && echo left || echo right) -> page ${PAGE}" >&2; fi; }
-  ui_dump() { adv "${DUMP_S:-2.3}"; printf '<hierarchy><node text="%s / %s" resource-id="" content-desc="" bounds="[0,0][1,1]" /><node text="" resource-id="detail-gallery-%s" content-desc="" bounds="[0,100][320,300]" /></hierarchy>' "$((PAGE + 1))" "$N" "$PAGE" > "$DUMP"; echo "t=${T} dump: page ${PAGE}" >&2; }
+  # Real dumps put the counter in content-desc with text="" (run
+  # 41373837994/detail_multi_1of5.xml); COUNTER_ATTR=text keeps the old form.
+  if [[ "${COUNTER_ATTR:-content-desc}" == text ]]; then cattr='text="%s / %s" resource-id="" content-desc=""'; else cattr='text="" resource-id="" content-desc="%s / %s"'; fi
+  # shellcheck disable=SC2059 # cattr is a fixed format chosen above
+  ui_dump() { adv "${DUMP_S:-2.3}"; printf "<hierarchy><node ${cattr} bounds=\"[0,0][1,1]\" />"'<node text="" resource-id="detail-gallery-%s" content-desc="" bounds="[0,100][320,300]" /></hierarchy>' "$((PAGE + 1))" "$N" "$PAGE" > "$DUMP"; echo "t=${T} dump: page ${PAGE}" >&2; }
   # shellcheck disable=SC1090
   source <(awk '!p && /^(# One fling, then dump and compare|ui_dump; page_before=)/ { p = 1 } p { print } p && /^fi$/ && prev ~ /fail_step swipe-pages/ { exit } NF { prev = $0 }' "$flow")
   echo "--- results"; cat "$RESULTS"

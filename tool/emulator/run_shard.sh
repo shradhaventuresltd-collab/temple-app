@@ -59,6 +59,9 @@ if [[ "${EMULATOR_SHARD_DRY_RUN:-}" != 1 ]]; then
     echo "::error::emulator ${tier}${shard:+ shard ${shard}}: ${snapcheck}"
     exit 1
   fi
+  if [[ "$snaprc" == 1 ]]; then
+    echo "::warning::emulator ${tier}${shard:+ shard ${shard}}: snapshot boot, but the AVD config differs from the snapshot: ${snapcheck}"
+  fi
   if [[ "$boot" == cold ]]; then
     echo "::warning::emulator ${tier}${shard:+ shard ${shard}} cold-booted: the AVD snapshot was not loaded"
   fi

@@ -2639,6 +2639,36 @@ for st in 0 1 2 3 4; do
     grep -q '^FAIL 24-gallery-autoadvance-viewer: swipe-pages' <<<"$o" || { echo "flow 24: auto-advance only start=$st phase=$ph must FAIL: $o" >&2; exit 1; }
   done
 done
+# Round 4.3.3: the gallery counter is in content-desc on real dumps
+# (text=""); gallery_count reads both attributes, and gallery_page reads the
+# detail-gallery-N id either way.
+gc() { ( EMULATOR_ARTIFACTS="$(mktemp -d)"; export EMULATOR_ARTIFACTS EMULATOR_FLOW=gc EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh; DUMP="$1"; "$2" ); }
+for fx in "tool/emulator/testdata/run41373837994/detail_multi_1of5.xml:5:0" "tool/emulator/testdata/run41314245431/gallery_burst_5of5.xml:5:4"; do
+  IFS=: read -r fxf fxn fxp <<<"$fx"
+  [[ "$(gc "$fxf" gallery_count)" == "$fxn" && "$(gc "$fxf" gallery_page)" == "$fxp" ]] ||
+    { echo "gallery_count/gallery_page on $fxf: $(gc "$fxf" gallery_count)/$(gc "$fxf" gallery_page), want $fxn/$fxp" >&2; exit 1; }
+done
+printf '<hierarchy><node text="2 / 3" resource-id="" content-desc="" /></hierarchy>' > "$r43/counter_text.xml"
+[[ "$(gc "$r43/counter_text.xml" gallery_count)" == 3 ]] || { echo "gallery_count reads a text= counter too" >&2; exit 1; }
+grep -q '^gallery_count()' tool/emulator/flows/24_gallery_autoadvance_viewer.sh && { echo "flow 24 must use common.sh gallery_count" >&2; exit 1; }
+# Replays default to content-desc counters; the text= form still passes.
+for st in 0 4; do
+  o="$(COUNTER_ATTR=text bash "$T41/replay_24.sh" "$f24" "$st" 1 2>&1)"
+  grep -q '^PASS 24-gallery-autoadvance-viewer: swipe-pages$' <<<"$o" || { echo "flow 24: text= counter start=$st must PASS: $o" >&2; exit 1; }
+done
+# Last-page step-back runs on content-desc counters (5 pages, start on 4).
+o="$(bash "$T41/replay_24.sh" "$f24" 4 0 2>&1)"
+[[ "$(sed -n '/dump: page 4/,/fling left/p' <<<"$o" | grep -c 'fling right')" -ge 2 ]] && grep -q '^PASS 24-gallery-autoadvance-viewer: swipe-pages$' <<<"$o" ||
+  { echo "flow 24: last page steps back before the forward fling: $o" >&2; exit 1; }
+# A fling+dump window over 5s (slow dumps) is not trusted: NA (weak).
+o="$(DUMP_S=4.5 bash "$T41/replay_24.sh" "$f24" 1 1 2>&1)"
+grep -q '^NA 24-gallery-autoadvance-viewer: swipe-pages: weak: fling+dump window(s) 6.5s over the 5s timer period' <<<"$o" || { echo "flow 24: slow window must be NA (weak): $o" >&2; exit 1; }
+o="$(DUMP_S=4.5 NOSWIPE=1 bash "$T41/replay_24.sh" "$f24" 1 1 2>&1)"
+! grep -q '^PASS 24-gallery-autoadvance-viewer: swipe-pages' <<<"$o" || { echo "flow 24: slow window auto-only never PASSes: $o" >&2; exit 1; }
+# Snapshot boot with a config mismatch prints ::warning::.
+grep -q 'snapshot boot, but the AVD config differs from the snapshot' tool/emulator/run_shard.sh || { echo "run_shard warns on mismatch + snapshot boot" >&2; exit 1; }
 # Round 4.3.2: small galleries. 3 pages: from page 1 a back window must
 # show 0 (the timer needs 1 -> 2 -> 0); 4 pages: start in [2, 2]. Both pass
 # with a real swipe and fail on auto-advance only. 2 pages: always NA (a
@@ -2678,7 +2708,7 @@ stub_runner="$r43/runner431.sh"; printf '#!/bin/sh\necho "PASS $1: stub" >> "$EM
 shard_case() { # bin_dir art_dir run_hw -> rc
   local rc=0; rm -rf "$2"; mkdir -p "$2"
   PATH="$1:$PATH" EMULATOR_ARTIFACTS="$2" EMULATOR_SNAPSHOT_HW="$av/create-booted/snapshot-hardware.ini" EMULATOR_RUN_HW="$3" \
-    EMULATOR_FLOW_RUNNER="$stub_runner" bash tool/emulator/run_shard.sh full 1 >/dev/null 2>&1 || rc=$?
+    EMULATOR_FLOW_RUNNER="$stub_runner" bash tool/emulator/run_shard.sh full 1 >"$2.out" 2>&1 || rc=$?
   echo "$rc"
 }
 # initPath absent + BOOT snapshot: continues (flows run).
@@ -2693,6 +2723,8 @@ rc="$(shard_case "$r43/bin431c" "$r43/art431b" "$av/run-booted/hardware-qemu.ini
 rc="$(shard_case "$r43/bin431s" "$r43/art431c" "$av/run-booted/hardware-qemu.ini")"
 grep -q '^SNAPCFG full-1 SNAPSHOT_CONFIG mismatch' "$r43/art431c/results.txt" && grep -q '^TIME ' "$r43/art431c/results.txt" && ! grep -q '^FAIL boot-' "$r43/art431c/results.txt" ||
   { echo "run_shard: mismatch on a snapshot boot is recorded, not fatal (rc=$rc): $(cat "$r43/art431c/results.txt")" >&2; exit 1; }
+grep -q '^::warning::emulator full shard 1: snapshot boot, but the AVD config differs from the snapshot: SNAPSHOT_CONFIG mismatch: disk.dataPartition.size' "$r43/art431c.out" ||
+  { echo "run_shard: mismatch on a snapshot boot prints ::warning:: (round 4.3.3): $(cat "$r43/art431c.out")" >&2; exit 1; }
 # (a)/(3): worst case counts the outer kill-after; avd-warmup runs beside build.
 [[ "$(plan_need_s full 12)" == 2320 && "$(plan_need_s full 1)" == 2265 ]] || { echo "plan_need_s: shard 12 2320s, others 2265s (incl. outer kill-after 10)" >&2; exit 1; }
 grep -q 'timeout --kill-after="$FLOW_OUTER_KILL_S"' tool/emulator/run_shard.sh || { echo "run_shard outer kill-after must be FLOW_OUTER_KILL_S" >&2; exit 1; }

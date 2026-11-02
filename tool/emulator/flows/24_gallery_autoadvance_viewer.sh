@@ -77,7 +77,6 @@ if (( ! SINGLE )); then
 # The fling must page the gallery (run 41314245431: flings were vertical).
 # PageView clamps: on the last page a forward fling cannot move, so step
 # back first.
-gallery_count() { python3 -c 'import re,sys; m=re.search(r"text=\"\d+ / (\d+)\"", open(sys.argv[1], errors="replace").read()); print(m.group(1) if m else 0)' "$DUMP"; }
 ui_dump; page_before="$(gallery_page || echo none)"; n_pages="$(gallery_count)"
 # Up to 2 tries: a timer tick can undo the step back off the last page.
 for _ in 1 2; do
@@ -107,6 +106,7 @@ done
 # At most 3 tries; each try first steps to its start page with single flings.
 back_trace="${page_after}"
 back_ok=0
+slow_windows=""
 if (( n_pages >= 4 )); then lo=2; hi=$((n_pages - 2)); else lo=1; hi=1; fi
 two_page=0
 (( n_pages == 2 )) && two_page=1
@@ -122,8 +122,18 @@ if (( ! two_page )) && [[ "$page_before" != none && "$page_after" != none && "$p
     done
     [[ "$cur" == none ]] && break
     (( cur >= lo && cur <= hi )) || continue
+    w0="$(mono_now)"
     ui_fling right; ui_fling right
     ui_dump; nb="$(gallery_page || echo none)"; back_trace+=" <<${nb}"
+    # Round 4.3.3: the one-tick-per-window argument needs the window under
+    # the 5s timer period. A slower window can hold two ticks, so its
+    # result proves nothing (recorded, not trusted).
+    w="$(python3 -c "print(round($(mono_now) - $w0, 2))")"
+    if python3 -c "import sys; sys.exit(0 if $w > ${GALLERY_TICK_S:-5} else 1)"; then
+      slow_windows+=" ${w}s"; back_trace+="(slow ${w}s)"
+      [[ "$nb" == none ]] && break
+      cur="$nb"; continue
+    fi
     [[ "$nb" == none ]] && break
     if (( nb < cur )) && ! (( cur == n_pages - 1 && nb == 0 )); then back_ok=1; break; fi
     cur="$nb"
@@ -137,6 +147,8 @@ elif [[ "$page_after" == none || "$page_after" == "$page_before" ]]; then
   fail_step swipe-pages "one fling did not change the page (${page_before} -> ${page_after})"
 elif (( back_ok )); then
   pass_step swipe-pages
+elif [[ -n "$slow_windows" ]]; then
+  na_step swipe-pages "weak: fling+dump window(s)${slow_windows} over the ${GALLERY_TICK_S:-5}s timer period, so a page change cannot be told from the timer (${page_before} -> ${back_trace})"
 else
   fail_step swipe-pages "fling back did not move the page back (${page_before} -> ${back_trace}; the timer only moves forward)"
 fi

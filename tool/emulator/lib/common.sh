@@ -426,6 +426,24 @@ print(pages[0])
 PY2
 }
 
+# Gallery page count M from the "N / M" counter. Real dumps carry it in
+# content-desc with text="" (run41373837994/detail_multi_1of5.xml,
+# run41314245431/gallery_burst_5of5.xml), so match both attributes, the
+# same way gallery_index_consistent does. Prints 0 when there is none.
+gallery_count() {
+  python3 - "$DUMP" <<'PY2'
+import re, sys
+s = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+m = re.search(r'(?:text|content-desc)="\d+ / (\d+)"', s)
+print(m.group(1) if m else 0)
+PY2
+}
+
+# Monotonic seconds (float) for timing a fling+dump window.
+mono_now() {
+  python3 -c 'import time; print(f"{time.monotonic():.2f}")'
+}
+
 # Gallery counter matches the page on screen: detail-gallery-N shows
 # "N+1 / M". Run 41314245431 failed on '^1 / ' after a burst whose
 # left/right flings were vertical (ui_fling) and auto-advance had moved
