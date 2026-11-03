@@ -122,9 +122,20 @@ n_retry=0
 if (( n_retry > 0 )); then
   line="${line} (${n_retry} boot retr$( ((n_retry == 1)) && echo y || echo ies): $(grep '^RETRY ' "$results" | sed 's/^RETRY boot \([^:]*\):.*/\1/' | paste -sd, -))"
 fi
+# Round 4.4.8b (Reviewer): an app relaunch after an emulator GPU context
+# loss (flow 29 fresh_home) is reported, never counted as a failure, so a
+# relaunched flow is not a silent clean PASS.
+n_relaunch=0
+[[ -s "$results" ]] && n_relaunch="$(grep -c '^RELAUNCH ' "$results" || true)"
+if (( n_relaunch > 0 )); then
+  line="${line} (${n_relaunch} app relaunch$( ((n_relaunch == 1)) || echo es) after GPU context loss: $(grep '^RELAUNCH ' "$results" | sed 's/^RELAUNCH \([^:]*\):.*/\1/' | paste -sd, -))"
+fi
 echo "$line"
 if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
   printf '### Release gate\n\n%s\n\n' "$line" >> "$GITHUB_STEP_SUMMARY"
+  if (( n_relaunch > 0 )); then
+    { echo "App relaunches (RELAUNCH: ${n_relaunch}, reported, not failures):"; grep '^RELAUNCH ' "$results" | sed 's/^/- /'; echo; } >> "$GITHUB_STEP_SUMMARY"
+  fi
   if [[ -n "$refuse" && -s "$results" ]]; then
     { grep -E '^(FAIL|XFAIL|XPASS|NOT RUN|NA) ' "$results" || true; } | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
     for id in $unplanned; do grep -m1 "^SKIPPED ${id}[: ]" "$results" | sed 's/^/- unplanned: /' >> "$GITHUB_STEP_SUMMARY"; done

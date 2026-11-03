@@ -4,6 +4,13 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# Round 4.4.8b (Manu): every mktemp of this run (and of the scripts it
+# starts) goes under ONE temp root, removed on exit (pass, fail or signal).
+# Earlier runs left ~50 /tmp/tmp.* dirs each.
+st_tmp_root="$(mktemp -d "${TMPDIR:-/tmp}/emu-self-test.XXXXXX")"
+export TMPDIR="$st_tmp_root"
+trap 'rm -rf "$st_tmp_root"' EXIT
+trap 'exit 130' INT TERM
 cd "$root"
 
 while IFS= read -r script; do
@@ -3050,13 +3057,14 @@ shim_path="$shim_d/sdk/platform-tools:$shim_d/ghpath:$PATH"
 [[ "$(PATH="$shim_path" command -v adb)" == "$shim_d/sdk/platform-tools/adb" ]] || { echo "adb_shim: action PATH does not resolve to the shim" >&2; exit 1; }
 sh_t0=$SECONDS; rc1=0; rc2=0; rc4=0
 ANDROID_HOME="$shim_d/sdk" EMULATOR_ACTION_ADB_S=1 PATH="$shim_path" adb -s emulator-5554 shell input keyevent 82 || rc1=$?
-ANDROID_HOME="$shim_d/sdk" EMULATOR_ACTION_ADB_S=1 PATH="$shim_path" adb shell settings put global x 0 || rc2=$?
+ANDROID_HOME="$shim_d/sdk" EMULATOR_ACTION_ADB_S=1 PATH="$shim_path" adb -s emulator-5554 shell settings put global x 0 || rc2=$?
 sh_el=$((SECONDS - sh_t0))
 out3="$(ANDROID_HOME="$shim_d/sdk" PATH="$shim_path" adb devices)"
 ANDROID_HOME="$shim_d/sdk" PATH="$shim_path" adb shell getprop x || rc4=$?
-# Round 4.4.8: a timed-out keyevent/settings call is killed at the cap but
-# exits 0 with a warning (it must not fail the emulator action).
-[[ "$rc1" == 0 && "$rc2" == 0 && "$out3" == devices-ok && "$rc4" == 7 ]] && (( sh_el <= 5 )) && ! pgrep -f 'sleep 31.5' >/dev/null ||
+# Round 4.4.8b: the action's timed-out keyevent 82 is killed at the cap and
+# exits 0 with a warning; its settings put is killed at the cap with the
+# real exit code (124).
+[[ "$rc1" == 0 && "$rc2" == 124 && "$out3" == devices-ok && "$rc4" == 7 ]] && (( sh_el <= 5 )) && ! pgrep -f 'sleep 31.5' >/dev/null ||
   { echo "adb_shim: keyevent/settings capped (rc ${rc1} ${rc2}, ${sh_el}s), others pass (${out3} ${rc4})" >&2; pkill -f 'sleep 31.5'; exit 1; }
 rm -rf "$shim_d"
 # Round 4.4.6 (Manu A): prepare_avd.sh (pre-launch script of all four
@@ -3423,21 +3431,81 @@ for k in 1 2 3 4 5; do
 done
 grep -q '\[\[ -n "${SEQ_ONLY:-}" && "$n" != "$SEQ_ONLY" \]\] && continue' tool/emulator/flows/29_filter_matrix.sh || { echo "4.4.8: the SEQS loop skips other sequences under seqs:N" >&2; exit 1; }
 for k in 1 2 3 4 5; do [[ "$(bash -c 'source tool/emulator/plan.sh; plan_cap_s "30s'"$k"'-filter-matrix-seq'"$k"'"')" == 540 ]] || { echo "4.4.8: 30s$k cap 540s" >&2; exit 1; }; done
-# C. fresh_home relaunches once (29e: first launch stuck on the splash).
+# C (4.4.8b). fresh_home: relaunch once ONLY on the GPU context-loss
+# signature for the app pid with no crash/ANR; otherwise FAIL, no relaunch.
 fh="$(mktemp -d)"
-o="$( (
-  calls=0
-  force_stop_app() { :; }; launch_app() { calls=$((calls + 1)); echo "launch $calls" >> "$fh/log"; }
-  accept_policy_if_shown() { (( calls >= 2 )); }; wait_for_home() { :; }
-  eval "$(sed -n '/^fresh_home_once() {/,/^}/p; /^fresh_home() {/,/^}/p' tool/emulator/flows/29_filter_matrix.sh)"
-  fresh_home && echo OK
-) 2>&1)"
-[[ "$o" == *"relaunching the app once"*OK* && "$(grep -c launch "$fh/log")" == 2 ]] || { echo "4.4.8 fresh_home must relaunch once: $o" >&2; exit 1; }
-o="$( (
-  force_stop_app() { :; }; launch_app() { echo L >> "$fh/log2"; }; accept_policy_if_shown() { return 1; }; wait_for_home() { :; }
-  eval "$(sed -n '/^fresh_home_once() {/,/^}/p; /^fresh_home() {/,/^}/p' tool/emulator/flows/29_filter_matrix.sh)"
-  fresh_home && echo OK || echo GAVEUP
-) 2>&1)"
-[[ "$o" == *GAVEUP && "$(grep -c L "$fh/log2")" == 2 ]] || { echo "4.4.8 fresh_home gives up after two launches: $o" >&2; exit 1; }
+fh_case() { # name logcat-file -> prints results.txt, launches in $fh/<name>.n
+  local name="$1" lc="$2"
+  ( set +e
+    FLOW=29x; PKG=com.shradhaventures.temple; RESULTS="$fh/$name.results"; : > "$RESULTS"; calls=0
+    eval "$(sed -n '/^app_crashed_in_log() {/,/^}/p; /^record_fail() {/,/^}/p' tool/emulator/lib/common.sh)"
+    step_reset() { :; }; STEP_TIMED_OUT=0
+    logcat_window_start() { :; }
+    logcat_window_read() { [[ "$lc" == unreadable ]] && return 3; cat "$lc"; }
+    force_stop_app() { :; }; launch_app() { calls=$((calls + 1)); echo L >> "$fh/$name.n"; }
+    accept_policy_if_shown() { (( calls >= 2 )); }; wait_for_home() { :; }
+    eval "$(sed -n '/^fresh_home_once() {/,/^}/p; /^app_gpu_context_lost_in_log() {/,/^}/p; /^fresh_home() {/,/^}/p' tool/emulator/flows/29_filter_matrix.sh)"
+    fresh_home >/dev/null 2>&1 && echo HOME || echo NOHOME
+  ) > "$fh/$name.out"
+}
+P5='com.shradhaventures.temple'
+printf '%s\n' "11-03 08:18:22.719   519   566 I ActivityManager: Start proc 5697:${P5}/u0a167 for pre-top-activity {${P5}/${P5}.MainActivity}" \
+  "11-03 08:18:34.777  5697  5782 W OpenGLRenderer: Failed to make current on surface 0x7a1bea2461b0, error=EGL_BAD_CONTEXT" \
+  "11-03 08:18:34.779  5697  5697 W OpenGLRenderer: Surface lost, forcing relayout" > "$fh/sig.txt"
+{ cat "$fh/sig.txt"; printf '%s\n' "11-03 08:18:40.000  5697  5697 E AndroidRuntime: FATAL EXCEPTION: main" "11-03 08:18:40.000  5697  5697 E AndroidRuntime: Process: ${P5}, PID: 5697"; } > "$fh/fatal.txt"
+{ cat "$fh/sig.txt"; echo "11-03 08:18:41.000   519   600 E ActivityManager: ANR in ${P5} (${P5}/.MainActivity)"; } > "$fh/anr.txt"
+printf '%s\n' "11-03 08:18:22.719   519   566 I ActivityManager: Start proc 5697:${P5}/u0a167 for pre-top-activity" "11-03 08:18:30.000  5697  5697 I flutter: still on splash" > "$fh/nosig.txt"
+# signature on ANOTHER process (system UI), not the app pid
+printf '%s\n' "11-03 08:18:22.719   519   566 I ActivityManager: Start proc 5697:${P5}/u0a167 for pre-top-activity" "11-03 08:18:34.777   900   901 W OpenGLRenderer: Surface lost, forcing relayout" > "$fh/otherpid.txt"
+fh_case sig "$fh/sig.txt"
+[[ "$(cat "$fh/sig.out")" == HOME && "$(wc -l < "$fh/sig.n")" == 2 && "$(grep -c '^RELAUNCH 29x: fresh_home: home not reached, EGL context lost on com.shradhaventures.temple' "$fh/sig.results")" == 1 && "$(grep -c '^FAIL' "$fh/sig.results")" == 0 ]] ||
+  { echo "4.4.8b fresh_home: GPU signature -> one relaunch + RELAUNCH line: $(cat "$fh/sig.out" "$fh/sig.results")" >&2; exit 1; }
+for c in fatal:crashed anr:crashed nosig:"no GPU context-loss signature" otherpid:"no GPU context-loss signature" unreadable:"logcat unreadable"; do
+  name="${c%%:*}"; want="${c#*:}"; lc="$fh/$name.txt"; [[ "$name" == unreadable ]] && lc=unreadable
+  fh_case "$name" "$lc"
+  [[ "$(cat "$fh/$name.out")" == NOHOME && "$(wc -l < "$fh/$name.n")" == 1 && "$(cat "$fh/$name.results")" == "FAIL 29x: fresh_home: "*"$want"* ]] && ! grep -q '^RELAUNCH' "$fh/$name.results" ||
+    { echo "4.4.8b fresh_home ($name): FAIL, no relaunch: $(cat "$fh/$name.out" "$fh/$name.results")" >&2; exit 1; }
+done
+# The real 29e logcat (run 41601153030 shard 5) carries the signature on the app pid.
+echo "4.4.8b fresh_home: signature -> 1 relaunch + RELAUNCH; FATAL/ANR/no signature/other pid/unreadable -> FAIL, 1 launch"
+# D (4.4.8b). The gate reports RELAUNCH lines (count + ids), not as failures.
+ms="$(mktemp -d)"; gate_clean_results "$ms"
+echo "RELAUNCH 29e-filter-matrix-drawer-all-district: fresh_home: home not reached, EGL context lost on com.shradhaventures.temple (no crash/ANR); relaunched the app once" >> "$ms/results.txt"
+rc=0; g="$(EMULATOR_GATE_MODE=strict EMULATOR_SHARD_RESULTS="${ms}/shards" EMULATOR_ARTIFACTS="$ms" GITHUB_STEP_SUMMARY="$ms/sum.md" \
+  bash tool/emulator/release_gate.sh full "$gate_sha" build 2>&1)" || rc=$?
+[[ "$rc" == 0 && "$g" == *"(1 app relaunch after GPU context loss: 29e-filter-matrix-drawer-all-district)"* && "$g" != *"NOT a release gate"* ]] &&
+  grep -q '^- RELAUNCH 29e-filter-matrix-drawer-all-district:' "$ms/sum.md" ||
+  { echo "4.4.8b gate must report RELAUNCH (count + ids) and still pass: rc=${rc} ${g}" >&2; exit 1; }
+echo "4.4.8b gate: RELAUNCH reported (1, 29e), gate still passes"
+# E (4.4.8b). Shim scope: only the action's exact keyevent 82 outside the
+# harness is swallowed; harness/flow calls keep real exit codes, no retry.
+r48b="$(mktemp -d)"; mkdir -p "$r48b/pt"
+cat > "$r48b/pt/adb" <<'ADB'
+#!/usr/bin/env bash
+echo x >> "$STUB48B/n"; echo "No service published for: input" >&2; exit 1
+ADB
+chmod +x "$r48b/pt/adb"; bash tool/emulator/adb_shim/install.sh "$r48b/pt" >/dev/null
+export STUB48B="$r48b"
+for c in "harness|1|-s emulator-5554 shell input keyevent 82" "flow66||-s emulator-5554 shell input keyevent 66" \
+         "flow123||-s emulator-5554 shell input keyevent 123" "noserial||shell input keyevent 82" "harness66|1|shell input keyevent 66" \
+         "settings||-s emulator-5554 shell settings put global window_animation_scale 0.0" "extra||-s emulator-5554 shell input keyevent 82 x"; do
+  IFS='|' read -r name henv argv <<<"$c"; rm -f "$r48b/n"; rc=0
+  # shellcheck disable=SC2086
+  env ${henv:+ADB_SHIM_HARNESS=1} EMULATOR_ACTION_ADB_S=5 "$r48b/pt/adb" $argv >/dev/null 2>&1 || rc=$?
+  [[ "$rc" == 1 && "$(wc -l < "$r48b/n")" == 1 ]] || { echo "4.4.8b shim ($name: ${henv:+ADB_SHIM_HARNESS=1 }adb $argv): real rc 1, one call; got rc ${rc}, $(wc -l < "$r48b/n") calls" >&2; exit 1; }
+done
+grep -qx 'export ADB_SHIM_HARNESS=1' tool/emulator/run_shard.sh && grep -qx 'export ADB_SHIM_HARNESS=1' tool/emulator/run_one_flow.sh &&
+  ! grep -q ADB_SHIM_HARNESS "$workflow" || { echo "4.4.8b: run_shard/run_one_flow export ADB_SHIM_HARNESS=1, the workflow never sets it" >&2; exit 1; }
+unset STUB48B
+echo "4.4.8b shim: harness/flow/non-exact keyevents and settings keep rc 1 with one call; only the action's keyevent 82 is swallowed"
+# F (4.4.8b). Each 30sN missing -> strict gate refuses with that id NOT RUN.
+for k in 1 2 3 4 5; do
+  ms="$(mktemp -d)"; gate_clean_results "$ms"; id="30s${k}-filter-matrix-seq${k}"
+  sed -i "/ ${id}\(:\|\$\)/d" "$ms/results.txt"
+  rc=0; g="$(EMULATOR_GATE_MODE=strict EMULATOR_SHARD_RESULTS="${ms}/shards" EMULATOR_ARTIFACTS="$ms" GITHUB_STEP_SUMMARY=/dev/null \
+    bash tool/emulator/release_gate.sh full "$gate_sha" build 2>&1)" || rc=$?
+  [[ "$rc" == 1 && "$g" == *"1 NOT RUN (no result: ${id})"* ]] || { echo "4.4.8b: ${id} missing must refuse the gate (NOT RUN): rc=${rc} ${g}" >&2; exit 1; }
+  echo "4.4.8b gate: ${id} missing -> rc 1, '1 NOT RUN (no result: ${id})'"
+done
 echo "round 4.4.8 checks ok"
 echo "emulator self-test ok"

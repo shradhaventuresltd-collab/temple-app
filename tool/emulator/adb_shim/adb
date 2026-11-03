@@ -2,11 +2,11 @@
 # Round 4.4.4/4.4.5 (Manu): installed by install.sh as
 # $ANDROID_HOME/platform-tools/adb (the real binary renamed to adb.real next
 # to it), because android-emulator-runner puts that dir first on PATH and
-# its own post-boot adb calls ("shell input keyevent 82", "shell settings
-# put ...") would otherwise hang for the whole 42-min step. Those are capped
-# at EMULATOR_ACTION_ADB_S (plan.sh SHARD_ACTION_ADB_S, 5s). Round 4.4.8:
-# inside that cap a failing call is retried, and a call that still fails or
-# times out exits 0 with a warning, so it no longer kills the emulator
+# its own post-boot adb calls ("-s emulator-N shell input keyevent 82",
+# "-s emulator-N shell settings put global ...") would otherwise hang for the whole 42-min step. Those are capped
+# at EMULATOR_ACTION_ADB_S (plan.sh SHARD_ACTION_ADB_S, 5s). Round 4.4.8(b):
+# inside that cap a failing action keyevent 82 is retried, and one that still
+# fails or times out exits 0 with a warning, so it no longer kills the emulator
 # (run 41601153030 shards 3/6: "No service published for: input" right
 # after the snapshot load); run_shard.sh then waits for the services. Every other adb call passes through unchanged.
 set -uo pipefail
@@ -45,7 +45,32 @@ fi
 # Retry inside the SAME EMULATOR_ACTION_ADB_S cap (budget unchanged), then
 # return 0 with a warning: run_shard.sh's readiness wait + its own unlock
 # follow, and a device that stays broken fails its flows visibly.
-if [[ "$args" == *" shell input keyevent "* || "$args" == *" shell settings put "* ]]; then
+# Round 4.4.8b (Manu, Reviewer): ONLY the action's own unlock
+# "-s emulator-<port> shell input keyevent 82" is retried and swallowed; it
+# is the call that failed in run 41601153030 (shards 3/6). Its "settings put
+# global" calls never failed there (0 lines in all.log), so they keep the
+# 4.4.5 behaviour: capped at the same EMULATOR_ACTION_ADB_S, real exit code.
+# Discriminator, both required:
+#  a) the action's exact argv (emulator-manager.ts), argc 6 / 8;
+#  b) ADB_SHIM_HARNESS unset. run_shard.sh and run_one_flow.sh export
+#     ADB_SHIM_HARNESS=1, so run_shard's unlock, flows (22's keyevent 66,
+#     common.sh's keyevent 123/67) and anything they start pass through
+#     unchanged: real exit codes, never retried (no double ENTER/BACK).
+#     The action's node process only gets the workflow env, which never
+#     sets it.
+# a) alone is not enough: a harness "adb -s emulator-5554 shell input
+# keyevent 82" has the same argv; b) alone would catch every other adb call
+# made outside run_shard (prepare_avd's emu kill, workflow steps).
+action_call=""
+if [[ -z "${ADB_SHIM_HARNESS:-}" && $# -ge 6 && "$1" == -s && "$2" =~ ^emulator-[0-9]+$ && "$3" == shell ]]; then
+  if [[ $# -eq 6 && "$4 $5 $6" == "input keyevent 82" ]]; then action_call=unlock
+  elif [[ $# -eq 8 && "$4 $5 $6" == "settings put global" ]]; then action_call=settings
+  fi
+fi
+if [[ "$action_call" == settings ]]; then
+  exec timeout --kill-after=1 "${EMULATOR_ACTION_ADB_S:-5}" "$real" "$@"
+fi
+if [[ "$action_call" == unlock ]]; then
   cap_s="${EMULATOR_ACTION_ADB_S:-5}"; deadline=$((SECONDS + cap_s)); try=0
   while :; do
     try=$((try + 1)); left=$((deadline - SECONDS))

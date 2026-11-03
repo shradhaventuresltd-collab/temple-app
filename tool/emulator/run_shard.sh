@@ -27,6 +27,8 @@ if ! rows="$(plan_flows "$tier" "$shard")"; then
 fi
 
 export EMULATOR_REUSE_INSTALL=1
+# Round 4.4.8b: harness adb calls keep real exit codes (adb_shim/adb).
+export ADB_SHIM_HARNESS=1
 artifacts="${EMULATOR_ARTIFACTS:-${ROOT}/emulator-app-test-artifacts}"
 mkdir -p "$artifacts"
 total="$(printf '%s\n' "$rows" | grep -c .)"

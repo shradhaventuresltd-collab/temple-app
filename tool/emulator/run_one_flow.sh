@@ -11,6 +11,8 @@ fi
 export EMULATOR_FLOW="$1"
 export EMULATOR_FLOW_SCRIPT="$2"
 export EMULATOR_FLOW_SOURCED=1
+# Round 4.4.8b: harness adb calls keep real exit codes (adb_shim/adb).
+export ADB_SHIM_HARNESS=1
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT" || exit 1

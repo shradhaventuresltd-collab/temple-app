@@ -22,9 +22,46 @@ open_drawer() {
 fresh_home_once() {
   force_stop_app; launch_app; accept_policy_if_shown || return 1; wait_for_home
 }
+# Round 4.4.8b: emulator GPU context loss on the app's own process
+# (29e, run 41601153030 shard 5: EGL_BAD_CONTEXT / eglMakeCurrent 0x3006 /
+# "Surface lost, forcing relayout", first launch never displayed).
+# Reads logcat threadtime text on stdin; pids from "Start proc <pid>:$PKG/".
+app_gpu_context_lost_in_log() {
+  local pkg="${1:-$PKG}"
+  awk -v pkg="$pkg" '
+    { line[NR] = $0 }
+    match($0, /Start proc [0-9]+:[^ \/]+\//) {
+      s = substr($0, RSTART + 11, RLENGTH - 12); split(s, a, ":")
+      if (a[2] == pkg) pid[a[1]] = 1
+    }
+    END {
+      for (i = 1; i <= NR; i++) { split(line[i], f, " ")
+        if ((f[3] in pid) && line[i] ~ /EGL_BAD_CONTEXT|0x3006|Surface lost/) { found = 1; exit } }
+      exit !found
+    }'
+}
 fresh_home() {
+  # Round 4.4.8b (Manu, Reviewer): relaunch ONCE only when home was not
+  # reached AND, since the first launch, logcat shows the GPU context-loss
+  # signature on the app's pid AND no FATAL EXCEPTION / ANR / "has stopped"
+  # for the package under test ($PKG from the APK; com.shradhaventures.temple
+  # in CI). Anything else (crash, no signature, unreadable logcat) FAILs
+  # without a relaunch. A relaunch writes a RELAUNCH line that
+  # release_gate.sh reports (count + flow ids), not a failure.
+  local window
+  logcat_window_start fresh_home || { record_fail "fresh_home" "logcat window could not start; not relaunching"; return 1; }
   fresh_home_once && return 0
-  echo "fresh_home: home not reached; relaunching the app once" >&2
+  if ! window="$(logcat_window_read)"; then
+    record_fail "fresh_home" "home not reached and logcat unreadable; not relaunching"; return 1
+  fi
+  if printf '%s\n' "$window" | app_crashed_in_log "$PKG"; then
+    record_fail "fresh_home" "home not reached: ${PKG} crashed (FATAL EXCEPTION/ANR in logcat); not relaunching"; return 1
+  fi
+  if ! printf '%s\n' "$window" | app_gpu_context_lost_in_log "$PKG"; then
+    record_fail "fresh_home" "home not reached, no GPU context-loss signature for ${PKG}; not relaunching"; return 1
+  fi
+  echo "fresh_home: home not reached after GPU context loss; relaunching the app once" >&2
+  printf 'RELAUNCH %s: fresh_home: home not reached, EGL context lost on %s (no crash/ANR); relaunched the app once\n' "$FLOW" "$PKG" | tee -a "$RESULTS"
   fresh_home_once
 }
 enter_home_browse() {
