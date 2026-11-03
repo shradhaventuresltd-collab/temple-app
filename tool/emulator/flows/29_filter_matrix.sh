@@ -15,8 +15,17 @@ open_drawer() {
   ui_dump && ui_find --content-desc "Open navigation menu" || return 1
   ui_tap; sleep 1
 }
-fresh_home() {
+# Round 4.4.8 (run 41601153030, 29e first cell): the first launch after the
+# install sat on the splash for 21s+ while the emulator's GL context was
+# lost (logcat: EGL_BAD_CONTEXT, "Surface lost, forcing relayout"); the next
+# launch drew in 3.6s. One relaunch before giving up on the entry.
+fresh_home_once() {
   force_stop_app; launch_app; accept_policy_if_shown || return 1; wait_for_home
+}
+fresh_home() {
+  fresh_home_once && return 0
+  echo "fresh_home: home not reached; relaunching the app once" >&2
+  fresh_home_once
 }
 enter_home_browse() {
   fresh_home || return 1
@@ -218,6 +227,14 @@ case "${FILTER_MATRIX_PART:-all}" in
     ENTRIES=()
     RUN_SEQS=1
     ;;
+  # Round 4.4.8: one sequence per flow (30s1-30s5). The five sequences took
+  # ~226-260s each (run 41601153030: seq1 260s, seq2 226s), so one 600s flow
+  # never got past seq3.
+  seqs:[1-5])
+    ENTRIES=()
+    RUN_SEQS=1
+    SEQ_ONLY="${FILTER_MATRIX_PART#seqs:}"
+    ;;
   *:*)
     ENTRIES=("${FILTER_MATRIX_PART%%:*}")
     if [[ "${FILTER_MATRIX_PART##*:}" != all ]]; then
@@ -275,6 +292,7 @@ SEQS=(
 n=0
 for seq in "${SEQS[@]}"; do
   n=$((n+1))
+  [[ -n "${SEQ_ONLY:-}" && "$n" != "$SEQ_ONLY" ]] && continue
   enter_home_browse >/dev/null 2>&1 || { fail_step "seq$n-enter" "browse not reached"; continue; }
   APPLIED=()
   ok=1

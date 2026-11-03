@@ -827,7 +827,11 @@ flows=(
   30e-filter-matrix-search-state
   30f-filter-matrix-search-district
   30g-filter-matrix-search-deity
-  30s-filter-matrix-sequences
+  30s1-filter-matrix-seq1
+  30s2-filter-matrix-seq2
+  30s3-filter-matrix-seq3
+  30s4-filter-matrix-seq4
+  30s5-filter-matrix-seq5
   30d-near-me
 )
 for flow in "${flows[@]}"; do
@@ -1091,14 +1095,14 @@ fi
 # as "FAIL missing").
 unstarted_n="$(grep -c '^NOT RUN [^:]*: did not start$' "${summary_dir}/results.txt")"
 skipped_n="$(grep -c '^SKIPPED ' "${summary_dir}/results.txt")"
-if [[ "$unstarted_n" -ne 43 || "$skipped_n" -ne 3 ]] ||
+if [[ "$unstarted_n" -ne 47 || "$skipped_n" -ne 3 ]] ||
    ! grep -q '^SKIPPED 30d-near-me: ' "${summary_dir}/results.txt" ||
    grep -q '^FAIL ' "${summary_dir}/results.txt" ||
    ! grep -q '^SKIPPED 11-near-me: ' "${summary_dir}/results.txt" ||
    ! grep -q '^SKIPPED 23-near-me-settings-roundtrip: ' "${summary_dir}/results.txt" ||
-   ! grep -q '0 failed, 0 expected failures, 0 unexpected passes, 43 not run, 3 skipped' "${summary_dir}/fail.out" ||
+   ! grep -q '0 failed, 0 expected failures, 0 unexpected passes, 47 not run, 3 skipped' "${summary_dir}/fail.out" ||
    ! grep -q 'did not start' "${summary_dir}/fail.out"; then
-  echo "unstarted flows: 43 NOT RUN, 3 SKIPPED (11, 23, 30d), no FAIL, job not green" >&2
+  echo "unstarted flows: 47 NOT RUN, 3 SKIPPED (11, 23, 30d), no FAIL, job not green" >&2
   cat "${summary_dir}/fail.out" >&2
   exit 1
 fi
@@ -1141,8 +1145,8 @@ if ! EMULATOR_ARTIFACTS="$not_run_dir" EMULATOR_RESOLVE_OUTCOME=failure \
   exit 1
 fi
 not_run="$(grep -c '^NOT RUN ' "${not_run_dir}/results.txt")"
-if [[ "$not_run" -ne 43 ]] || [[ "$(grep -c '^SKIPPED ' "${not_run_dir}/results.txt")" -ne 3 ]]; then
-  echo "expected 43 NOT RUN and 3 SKIPPED lines, found ${not_run} NOT RUN" >&2
+if [[ "$not_run" -ne 47 ]] || [[ "$(grep -c '^SKIPPED ' "${not_run_dir}/results.txt")" -ne 3 ]]; then
+  echo "expected 47 NOT RUN and 3 SKIPPED lines, found ${not_run} NOT RUN" >&2
   exit 1
 fi
 if grep -q '^FAIL ' "${not_run_dir}/results.txt"; then
@@ -1471,12 +1475,12 @@ done
 # the filter matrix one entry x chip per flow, every cell covered once.
 if [[ "$(plan_flows all | awk '$2 ~ /17_entry_matrix.sh$/ { print $3 }' | sort | paste -sd' ')" != "drawer_all drawer_search home_button list_drawer_all" ||
       "$(plan_flows all | awk '$1 == "29a-filter-matrix-home-state" { print $3 }')" != home_browse:state ||
-      "$(plan_flows all | awk '$1 == "30s-filter-matrix-sequences" { print $3 }')" != seqs ]]; then
+      "$(plan_flows all | awk '$1 ~ /^30s[1-5]-filter-matrix-seq[1-5]$/ { print $3 }' | paste -sd' ')" != "seqs:1 seqs:2 seqs:3 seqs:4 seqs:5" ]]; then
   echo "flow 17 must run one entry per flow (17a-17d) and the matrix entry:chip parts" >&2
   exit 1
 fi
 want_cells="$(for e in home_browse drawer_all drawer_bar search; do for c in state district deity; do echo "$e:$c"; done; done | sort)"
-got_cells="$(plan_flows all | awk '$2 ~ /29_filter_matrix.sh$/ && $3 ~ /:/ && $3 !~ /^near_me:/ { print $3 }' | sort)"
+got_cells="$(plan_flows all | awk '$2 ~ /29_filter_matrix.sh$/ && $3 ~ /:/ && $3 !~ /^(near_me|seqs):/ { print $3 }' | sort)"
 # The near-me cells are a planned-skip row (30d), never silently dropped.
 if [[ "$(plan_flows all | awk '$1 == "30d-near-me" { print $3 }')" != near_me:all ]] || ! (unset EMULATOR_SKIP_FLOWS; plan_is_skipped 30d-near-me); then
   echo "30d-near-me must be a planned-skip row running near_me:all" >&2; exit 1
@@ -2250,9 +2254,9 @@ for id in $(bash -c 'source tool/emulator/plan.sh; plan_ids full 11'); do
 done
 rc=0; g="$(EMULATOR_GATE_MODE=strict EMULATOR_SHARD_RESULTS="${ms}/shards" EMULATOR_ARTIFACTS="$ms" GITHUB_STEP_SUMMARY=/dev/null \
   bash tool/emulator/release_gate.sh full "$gate_sha" build 2>&1)" || rc=$?
-if [[ "$rc" != 1 || "$g" != *"3 NOT RUN (no result: 30s-filter-matrix-sequences 19-rotation-state 20-empty-and-back)"* ||
+if [[ "$rc" != 1 || "$g" != *"4 NOT RUN (no result: 19-rotation-state 20-empty-and-back 30s1-filter-matrix-seq1 30s2-filter-matrix-seq2)"* ||
       "$g" != *"missing shard artifacts: 11 (need 15)"* ]]; then
-  echo "strict gate must refuse a run with shard 11 missing (3 silent NOT RUN + missing artifact): rc=${rc} ${g}" >&2; exit 1
+  echo "strict gate must refuse a run with shard 11 missing (4 silent NOT RUN + missing artifact): rc=${rc} ${g}" >&2; exit 1
 fi
 # Artifact present but its flows silent (e.g. results.txt from a dead shard):
 # the plan comparison alone refuses it.
@@ -2756,7 +2760,7 @@ f06=tool/emulator/flows/06_filters.sh
 grep -q "select_labeled '^(?!All districts)" "$f06" && { echo "flow 06: no name-less lookahead district pick" >&2; exit 1; }
 grep -q 'COMBINED_DISTRICT_PICK:-^Alappuzha' "$f06" && grep -q 'state_chip_is "$COMBINED_STATE"' "$f06" || { echo "flow 06: real district (Alappuzha) and the state-chip check" >&2; exit 1; }
 grep -q ': "${_section}"' tool/emulator/lib/common.sh && { echo "select_labeled must use its section" >&2; exit 1; }
-[[ "$(bash -c 'source tool/emulator/plan.sh; plan_cap_s 26-drawer-nav-stack; plan_cap_s 06a-filters-single; plan_need_s full 15')" == $'300\n600\n909' ]] || { echo "plan: row caps 26=300, 06a=600, shard 15 = 909s" >&2; exit 1; }
+[[ "$(bash -c 'source tool/emulator/plan.sh; plan_cap_s 26-drawer-nav-stack; plan_cap_s 06a-filters-single; plan_need_s full 15')" == $'300\n600\n2099' ]] || { echo "plan: row caps 26=300, 06a=600, shard 15 = 2099s (26, 08, 30s3, 30s4; round 4.4.8)" >&2; exit 1; }
 # 6-8. Replays of run 41391038302 (testdata/run41391038302/replay_*.sh):
 # 27 waits for validation, re-taps Try again, flaps only after recover; 17c
 # clears "temple" before typing; 24 sends one fling and compares.
@@ -2880,7 +2884,7 @@ grep -q '^SNAPCFG full-1 SNAPSHOT_CONFIG mismatch' "$r43/art431c/results.txt" &&
 grep -q '^::warning::emulator full shard 1: snapshot boot, but the AVD config differs from the snapshot: SNAPSHOT_CONFIG mismatch: disk.dataPartition.size' "$r43/art431c.out" ||
   { echo "run_shard: mismatch on a snapshot boot prints ::warning:: (round 4.3.3): $(cat "$r43/art431c.out")" >&2; exit 1; }
 # (a)/(3): worst case counts the outer kill-after; avd-warmup runs beside build.
-[[ "$(plan_need_s full 12)" == 1509 && "$(plan_need_s full 15)" == 909 && "$(plan_need_s full 1)" == 2164 ]] || { echo "plan_need_s: shard 12 1509s, 15 909s, others 2164s (boot 150 + getprop budget 4 + keyevent 5 + getprop 5 + ready 22 + unlock 8 + animations 5, outer kill-after 10)" >&2; exit 1; }
+[[ "$(plan_need_s full 12)" == 1509 && "$(plan_need_s full 15)" == 2099 && "$(plan_need_s full 11)" == 2099 && "$(plan_need_s full 9)" == 2159 && "$(plan_need_s full 1)" == 2164 ]] || { echo "plan_need_s: shard 12 1509s, 11 and 15 2099s, 9 2159s, others 2164s (boot 150 + getprop budget 4 + keyevent 5 + getprop 5 + ready 22 + unlock 8 + animations 5, outer kill-after 10)" >&2; exit 1; }
 grep -q 'timeout --kill-after="$FLOW_OUTER_KILL_S"' tool/emulator/run_shard.sh || { echo "run_shard outer kill-after must be FLOW_OUTER_KILL_S" >&2; exit 1; }
 awk '/^  avd-warmup:/ { w = 1 } w && /needs:/ { print; exit }' "$workflow" | grep -qx '    needs: \[gate\]' || { echo "avd-warmup must need only the gate (parallel with build)" >&2; exit 1; }
 #R43_MORE
@@ -3050,7 +3054,9 @@ ANDROID_HOME="$shim_d/sdk" EMULATOR_ACTION_ADB_S=1 PATH="$shim_path" adb shell s
 sh_el=$((SECONDS - sh_t0))
 out3="$(ANDROID_HOME="$shim_d/sdk" PATH="$shim_path" adb devices)"
 ANDROID_HOME="$shim_d/sdk" PATH="$shim_path" adb shell getprop x || rc4=$?
-[[ "$rc1" == 124 && "$rc2" == 124 && "$out3" == devices-ok && "$rc4" == 7 ]] && (( sh_el <= 5 )) && ! pgrep -f 'sleep 31.5' >/dev/null ||
+# Round 4.4.8: a timed-out keyevent/settings call is killed at the cap but
+# exits 0 with a warning (it must not fail the emulator action).
+[[ "$rc1" == 0 && "$rc2" == 0 && "$out3" == devices-ok && "$rc4" == 7 ]] && (( sh_el <= 5 )) && ! pgrep -f 'sleep 31.5' >/dev/null ||
   { echo "adb_shim: keyevent/settings capped (rc ${rc1} ${rc2}, ${sh_el}s), others pass (${out3} ${rc4})" >&2; pkill -f 'sleep 31.5'; exit 1; }
 rm -rf "$shim_d"
 # Round 4.4.6 (Manu A): prepare_avd.sh (pre-launch script of all four
@@ -3382,4 +3388,56 @@ done
 echo "round 4.4.2 checks ok"
 rm -rf "$r44"
 rm -rf "$r4"
+# Round 4.4.8 (run 41601153030, run126/r7/triage.md).
+# A. The shim's capped action calls (keyevent 82, settings put) retry inside
+# the same cap and never fail the action: "No service published for: input"
+# right after a snapshot load killed shards 3 and 6 twice each.
+r48="$(mktemp -d)"; mkdir -p "$r48/pt"
+cat > "$r48/pt/adb" <<'ADB'
+#!/usr/bin/env bash
+n="$(cat "$STUB48/n" 2>/dev/null || echo 0)"; n=$((n + 1)); echo "$n" > "$STUB48/n"
+case "$*" in
+  *"input keyevent 82"*)
+    if (( n <= ${STUB48_FAILS:-0} )); then echo "java.lang.IllegalStateException: android.os.ServiceManager\$ServiceNotFoundException: No service published for: input" >&2; exit 1; fi
+    echo ok ;;
+  *) echo pass ;;
+esac
+ADB
+chmod +x "$r48/pt/adb"; bash tool/emulator/adb_shim/install.sh "$r48/pt" >/dev/null || { echo "4.4.8 shim install" >&2; exit 1; }
+export STUB48="$r48"
+for case48 in "0 0 1" "2 0 3" "99 0 x"; do
+  read -r fails want_rc want_n <<<"$case48"
+  echo 0 > "$r48/n"; t0=$SECONDS
+  rc=0; o="$(STUB48_FAILS="$fails" EMULATOR_ACTION_ADB_S=5 "$r48/pt/adb" -s emulator-5554 shell input keyevent 82 2>&1)" || rc=$?
+  el=$((SECONDS - t0)); n="$(cat "$r48/n")"
+  [[ "$rc" == "$want_rc" ]] && (( el <= 6 )) || { echo "4.4.8 shim keyevent (fails=${fails}): rc ${rc} (want ${want_rc}) in ${el}s (<= 6): $o" >&2; exit 1; }
+  if [[ "$want_n" != x ]]; then [[ "$n" == "$want_n" ]] || { echo "4.4.8 shim keyevent (fails=${fails}): ${n} calls, want ${want_n}" >&2; exit 1; }
+  else (( n >= 3 )) && [[ "$o" == *"::warning::adb_shim: '-s emulator-5554 shell input keyevent 82' failed"* ]] || { echo "4.4.8 shim: a keyevent that keeps failing retries and warns, rc 0: n=${n} $o" >&2; exit 1; }; fi
+done
+echo "4.4.8 shim: keyevent 82 fails 0/2/always -> rc 0 within the 5s cap (retries, then a warning)"
+unset STUB48
+# B. 30s is five one-sequence flows (seqs:N), each runs only its sequence.
+for k in 1 2 3 4 5; do
+  o="$(FILTER_MATRIX_PART="seqs:$k" bash -c 'case "${FILTER_MATRIX_PART}" in seqs:[1-5]) echo "${FILTER_MATRIX_PART#seqs:}";; esac')"
+  [[ "$o" == "$k" ]] || { echo "4.4.8 seqs:$k" >&2; exit 1; }
+done
+grep -q '\[\[ -n "${SEQ_ONLY:-}" && "$n" != "$SEQ_ONLY" \]\] && continue' tool/emulator/flows/29_filter_matrix.sh || { echo "4.4.8: the SEQS loop skips other sequences under seqs:N" >&2; exit 1; }
+for k in 1 2 3 4 5; do [[ "$(bash -c 'source tool/emulator/plan.sh; plan_cap_s "30s'"$k"'-filter-matrix-seq'"$k"'"')" == 540 ]] || { echo "4.4.8: 30s$k cap 540s" >&2; exit 1; }; done
+# C. fresh_home relaunches once (29e: first launch stuck on the splash).
+fh="$(mktemp -d)"
+o="$( (
+  calls=0
+  force_stop_app() { :; }; launch_app() { calls=$((calls + 1)); echo "launch $calls" >> "$fh/log"; }
+  accept_policy_if_shown() { (( calls >= 2 )); }; wait_for_home() { :; }
+  eval "$(sed -n '/^fresh_home_once() {/,/^}/p; /^fresh_home() {/,/^}/p' tool/emulator/flows/29_filter_matrix.sh)"
+  fresh_home && echo OK
+) 2>&1)"
+[[ "$o" == *"relaunching the app once"*OK* && "$(grep -c launch "$fh/log")" == 2 ]] || { echo "4.4.8 fresh_home must relaunch once: $o" >&2; exit 1; }
+o="$( (
+  force_stop_app() { :; }; launch_app() { echo L >> "$fh/log2"; }; accept_policy_if_shown() { return 1; }; wait_for_home() { :; }
+  eval "$(sed -n '/^fresh_home_once() {/,/^}/p; /^fresh_home() {/,/^}/p' tool/emulator/flows/29_filter_matrix.sh)"
+  fresh_home && echo OK || echo GAVEUP
+) 2>&1)"
+[[ "$o" == *GAVEUP && "$(grep -c L "$fh/log2")" == 2 ]] || { echo "4.4.8 fresh_home gives up after two launches: $o" >&2; exit 1; }
+echo "round 4.4.8 checks ok"
 echo "emulator self-test ok"

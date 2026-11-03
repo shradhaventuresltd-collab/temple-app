@@ -131,7 +131,9 @@ SHARD_COUNT=15
 # animations 5 = 200s; round 4.4.6: + boot getprop budget 4, unlock 8 =
 # 199s:
 # shard 12: 199 + 2 x (600 + 55) = 1509s = 25.15 min;
-# shard 15: 199 + 2 x (300 + 55) = 909s = 15.15 min;
+# shard 15: 199 + 2 x (300 + 55) + 2 x (540 + 55) = 2099s (round 4.4.8:
+#   26, 08, 30s3, 30s4); shard 11: 199 + 2 x 355 + 2 x 595 = 2099s;
+#   shard 9: 199 + 655 + 2 x 355 + 595 = 2159s;
 # every other shard: 199 + 3 x 655 = 2164s = 36.07 min. All <= 39 min,
 # step timeout 42 (self_test checks every shard against 39 min).
 # shellcheck disable=SC2034 # read by self_test.sh (sources this file)
@@ -158,10 +160,14 @@ DEFAULT_NA_STEPS=""
 # Balanced by worst-case time (Satyavrat, round 4.2): every active flow
 # can take 645s, so each shard holds at most 3 active flows. 20 "long"
 # flows (measured at or near the 600s cap in run 41373837994, or matrix
-# parts of those: 17a-d, 29a-f, 30a-c/e-g, 30s, 06, 21, 22) and 22 short
+# parts of those: 17a-d, 29a-f, 30a-c/e-g, 30s1-5, 06, 21, 22) and 22 short
 # ones: shards 1-6 run 2 long + 1 short, shards 7-14 run 1 long + 2 short,
 # with the slowest short flows (14, 27, 24, 18, 19, 26, 25) in 7-14.
 # Round 4.4.3: shard 15 holds 26 and 08 (300s caps), off shard 12.
+# Round 4.4.8 (run 41601153030): 30s (5 sequences, 600s cap) ran out of time
+# after ~2.5 sequences (seq1 260s, seq2 226s); it is now 30s1-30s5
+# (FILTER_MATRIX_PART=seqs:N, 540s cap each) on shards 11, 11, 15, 15, 9;
+# 19, 20, 24 and 15 (observed max 94/53/137/38s) drop to 300s caps there.
 # 17 is split per entry point (17a-17d), and the filter matrix runs one
 # entry x one chip per flow (FILTER_MATRIX_PART=<entry>:<chip>, "seqs" for
 # the 3+ step sequences). Planned skips (11, 23, 30d) cost nothing.
@@ -193,18 +199,22 @@ PLAN_ROWS=(
   "27-offline-cold-start|tool/emulator/flows/27_offline_cold_start.sh||8"
   "13-licences|tool/emulator/flows/13_licences.sh||8"
   "30f-filter-matrix-search-district|tool/emulator/flows/29_filter_matrix.sh|search:district|9"
-  "24-gallery-autoadvance-viewer|tool/emulator/flows/24_gallery_autoadvance_viewer.sh||9"
-  "15-offline|tool/emulator/flows/15_offline.sh||9"
+  "24-gallery-autoadvance-viewer|tool/emulator/flows/24_gallery_autoadvance_viewer.sh||9|300"
+  "15-offline|tool/emulator/flows/15_offline.sh||9|300"
+  "30s5-filter-matrix-seq5|tool/emulator/flows/29_filter_matrix.sh|seqs:5|9|540"
   "30g-filter-matrix-search-deity|tool/emulator/flows/29_filter_matrix.sh|search:deity|10"
   "18-home-reselect|tool/emulator/flows/18_home_reselect.sh||10"
   "16-home-browse|tool/emulator/flows/16_home_browse.sh||10"
-  "30s-filter-matrix-sequences|tool/emulator/flows/29_filter_matrix.sh|seqs|11"
-  "19-rotation-state|tool/emulator/flows/19_rotation_state.sh||11"
-  "20-empty-and-back|tool/emulator/flows/20_empty_and_back.sh||11"
+  "19-rotation-state|tool/emulator/flows/19_rotation_state.sh||11|300"
+  "20-empty-and-back|tool/emulator/flows/20_empty_and_back.sh||11|300"
+  "30s1-filter-matrix-seq1|tool/emulator/flows/29_filter_matrix.sh|seqs:1|11|540"
+  "30s2-filter-matrix-seq2|tool/emulator/flows/29_filter_matrix.sh|seqs:2|11|540"
   "06a-filters-single|tool/emulator/flows/06_filters.sh|single|12"
   "06b-filters-combined|tool/emulator/flows/06_filters.sh|combined|12"
   "26-drawer-nav-stack|tool/emulator/flows/26_drawer_nav_stack.sh||15|300"
   "08-list-detail|tool/emulator/flows/08_list_detail.sh||15|300"
+  "30s3-filter-matrix-seq3|tool/emulator/flows/29_filter_matrix.sh|seqs:3|15|540"
+  "30s4-filter-matrix-seq4|tool/emulator/flows/29_filter_matrix.sh|seqs:4|15|540"
   "21-district-close-then-other-chip|tool/emulator/flows/21_district_close_then_other_chip.sh||13"
   "25-directions-edge|tool/emulator/flows/25_directions_edge.sh||13"
   "09-photos|tool/emulator/flows/09_photos.sh||13"

@@ -4,9 +4,11 @@
 # to it), because android-emulator-runner puts that dir first on PATH and
 # its own post-boot adb calls ("shell input keyevent 82", "shell settings
 # put ...") would otherwise hang for the whole 42-min step. Those are capped
-# at EMULATOR_ACTION_ADB_S (plan.sh SHARD_ACTION_ADB_S, 5s); a timeout fails
-# the action, which the boot check then treats as a boot death (no BOOT
-# line) and retries. Every other adb call passes through unchanged.
+# at EMULATOR_ACTION_ADB_S (plan.sh SHARD_ACTION_ADB_S, 5s). Round 4.4.8:
+# inside that cap a failing call is retried, and a call that still fails or
+# times out exits 0 with a warning, so it no longer kills the emulator
+# (run 41601153030 shards 3/6: "No service published for: input" right
+# after the snapshot load); run_shard.sh then waits for the services. Every other adb call passes through unchanged.
 set -uo pipefail
 self_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 real="$self_dir/adb.real"
@@ -36,7 +38,23 @@ if [[ "$args" == *" shell getprop sys.boot_completed "* ]]; then
   echo $(( left > used ? left - used : 0 )) > "$bf"
   exit "$rc"
 fi
+# Round 4.4.8 (run 41601153030, shards 3 and 6): right after a snapshot
+# load the action's "input keyevent 82" can fail at once with "No service
+# published for: input" (system_server still publishing services). Exit 1
+# there fails the whole action (boot + retry both died, 6 flows NOT RUN).
+# Retry inside the SAME EMULATOR_ACTION_ADB_S cap (budget unchanged), then
+# return 0 with a warning: run_shard.sh's readiness wait + its own unlock
+# follow, and a device that stays broken fails its flows visibly.
 if [[ "$args" == *" shell input keyevent "* || "$args" == *" shell settings put "* ]]; then
-  exec timeout --kill-after=2 "${EMULATOR_ACTION_ADB_S:-5}" "$real" "$@"
+  cap_s="${EMULATOR_ACTION_ADB_S:-5}"; deadline=$((SECONDS + cap_s)); try=0
+  while :; do
+    try=$((try + 1)); left=$((deadline - SECONDS))
+    (( left > 0 )) || break
+    timeout --kill-after=1 "$left" "$real" "$@" && exit 0
+    (( deadline - SECONDS > 1 )) || break
+    sleep 1
+  done
+  echo "::warning::adb_shim: '$*' failed ${try} time(s) in ${cap_s}s; not failing the emulator action (run_shard.sh waits for the services)" >&2
+  exit 0
 fi
 exec "$real" "$@"
