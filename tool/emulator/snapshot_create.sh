@@ -16,6 +16,22 @@ set -uo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=SCRIPTDIR/plan.sh
 source "${here}/plan.sh"
+# Round 4.4.6 (Satyavrat: shard create cap 1.5 min). GitHub truncates a
+# fractional timeout-minutes to an integer (runner ConvertToStepTimeout:
+# (Int32) value), so the cap is enforced here: EMULATOR_CREATE_DEADLINE_S
+# (90) from the "Mark shard snapshot create start" step's timestamp. The
+# step's timeout-minutes 2 stays as the hard backstop.
+if [[ -n "${EMULATOR_CREATE_DEADLINE_S:-}" && -z "${SNAPSHOT_CREATE_INNER:-}" ]]; then
+  t_start="$(cat "${EMULATOR_CREATE_START_FILE:-${RUNNER_TEMP:-/tmp}/create_start}" 2>/dev/null || date +%s)"
+  rem=$(( t_start + EMULATOR_CREATE_DEADLINE_S - $(date +%s) ))
+  if (( rem <= 0 )); then
+    echo "::error::shard snapshot create: ${EMULATOR_CREATE_DEADLINE_S}s deadline passed before the snapshot script; not saving"
+    exit 1
+  fi
+  rc=0; SNAPSHOT_CREATE_INNER=1 timeout --kill-after=1 "$rem" bash "${BASH_SOURCE[0]}" "$@" || rc=$?
+  (( rc == 124 || rc == 137 )) && echo "::error::shard snapshot create: ${EMULATOR_CREATE_DEADLINE_S}s deadline reached; not saving"
+  exit "$rc"
+fi
 if ! bash "${here}/services_ready.sh" "${EMULATOR_SNAPSHOT_READY_S:-60}"; then
   echo "::error::system services not ready; not saving a snapshot (the AVD is not cached)"
   exit 1
@@ -30,11 +46,13 @@ sleep "${EMULATOR_SNAPSHOT_SETTLE_S:-10}"
 # debug_prop, which the shell domain may set. setprop keeps the value in
 # memory only (no persist. prefix), so it survives a snapshot restore and
 # is gone after a cold boot.
-if ! adb shell setprop debug.temple.snapshot_marker 1; then
+# Round 4.4.6 (Reviewer): setprop and save are capped (plan.sh
+# SNAPSHOT_SETPROP_S 3, SNAPSHOT_SAVE_CAP_S 10).
+if ! timeout "${SNAPSHOT_SETPROP_S:-3}" adb shell setprop debug.temple.snapshot_marker 1 </dev/null; then
   echo "::error::could not set the boot marker property; not saving a snapshot"
   exit 1
 fi
-out="$(adb emu avd snapshot save default_boot 2>&1 | tr -d '\r')"
+out="$(timeout "${SNAPSHOT_SAVE_CAP_S:-10}" adb emu avd snapshot save default_boot 2>&1 </dev/null | tr -d '\r')"
 echo "snapshot save: ${out}"
 # A failed save must fail the step: Save AVD cache runs only when this
 # step succeeded, so a bad snapshot is never cached under the cfg5 key.

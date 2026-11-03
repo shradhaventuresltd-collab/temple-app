@@ -27,6 +27,15 @@
 set -u
 
 phase="${1:-run}"
+# Round 4.4.6 (Manu): this is the pre-emulator-launch-script of every
+# action call (warm-up create, shard create, flows, boot retry). It runs
+# after the action's "sdkmanager --install platform-tools", so the adb shim
+# is re-installed here (a fresh real adb moves over adb.real), and the
+# per-boot getprop budget gets a new boot id.
+if [[ -n "${ANDROID_HOME:-}" && -d "${ANDROID_HOME}/platform-tools" ]]; then
+  bash "$(dirname "${BASH_SOURCE[0]}")/adb_shim/install.sh" --reinstall "${ANDROID_HOME}/platform-tools" ||
+    echo "::warning::prepare_avd (${phase}): adb shim not re-installed (adb.real missing?)"
+fi
 avd_dir="${ANDROID_AVD_HOME:-${HOME}/.android/avd}/${EMULATOR_AVD_NAME:-emulator-app-test-30}.avd"
 config="${avd_dir}/config.ini"
 
@@ -111,7 +120,7 @@ if [[ -d "${HOME}/.android/avd" ]]; then
     -exec rm -rf {} + 2>/dev/null || true
 fi
 
-adb emu kill >/dev/null 2>&1 || true
+timeout --kill-after=1 5 adb emu kill </dev/null >/dev/null 2>&1 || true
 pkill -9 -f 'qemu-system' >/dev/null 2>&1 || true
 sleep 1
 exit 0

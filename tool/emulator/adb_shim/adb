@@ -12,6 +12,30 @@ self_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 real="$self_dir/adb.real"
 [[ -x "$real" ]] || { echo "adb_shim: no $real (run adb_shim/install.sh)" >&2; exit 127; }
 args=" $* "
+# Round 4.4.6 (Manu): the action's boot wait counts attempts (T/2 tries of
+# "getprop sys.boot_completed" + 2s delay, emulator-manager.ts:140-170), so
+# a hung getprop stretches it without bound. All those getprops of one boot
+# share ONE budget (ADB_SHIM_GETPROP_BUDGET_MS, 3500 ms + 0.5 s kill-after =
+# plan.sh SHARD_GETPROP_BUDGET_S 4 s), kept in $RUNNER_TEMP/adb_shim keyed
+# by serial + boot id (install.sh / prepare_avd.sh start a new boot id).
+# Once it is spent, getprop fails fast and the attempt loop runs out alone.
+# Other getprops (run_shard.sh caps its own) pass through.
+if [[ "$args" == *" shell getprop sys.boot_completed "* ]]; then
+  state="${ADB_SHIM_STATE_DIR:-${RUNNER_TEMP:-/tmp}/adb_shim}"
+  serial="${ANDROID_SERIAL:-default}"; prev=""
+  for a in "$@"; do [[ "$prev" == -s ]] && serial="$a"; prev="$a"; done
+  mkdir -p "$state" 2>/dev/null
+  boot_id="$(cat "$state/boot_id" 2>/dev/null || echo none)"
+  bf="$state/getprop.${serial}.${boot_id}"
+  left="$(cat "$bf" 2>/dev/null || echo "${ADB_SHIM_GETPROP_BUDGET_MS:-3500}")"
+  [[ "$left" =~ ^[0-9]+$ ]] || left=0
+  if (( left <= 0 )); then echo "adb_shim: getprop budget for this boot is spent" >&2; exit 1; fi
+  t0="$(date +%s%N)"; rc=0
+  timeout --kill-after=0.5 "$((left / 1000)).$(printf '%03d' $((left % 1000)))" "$real" "$@" || rc=$?
+  used=$(( ($(date +%s%N) - t0) / 1000000 ))
+  echo $(( left > used ? left - used : 0 )) > "$bf"
+  exit "$rc"
+fi
 if [[ "$args" == *" shell input keyevent "* || "$args" == *" shell settings put "* ]]; then
   exec timeout --kill-after=2 "${EMULATOR_ACTION_ADB_S:-5}" "$real" "$@"
 fi
