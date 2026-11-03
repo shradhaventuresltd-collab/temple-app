@@ -2980,14 +2980,19 @@ rc=0; svc 0 env TMPDIR="$r44/wdtmp" EMULATOR_PREBOOT_S=2 SHARD_GETPROP_S=30 EMUL
 wd_el=$((SECONDS - wd_t0)); wd_ms=$(( ($(date +%s%N) - wd_n0) / 1000000 ))
 # Round 4.4.5 (Manu nit 2): the watchdog that won removes the BOOT claim
 # dir (allow it 1s to finish after run_shard.sh is gone), and the attempt
-# ends within ~1s of the watchdog firing (2s): <= 3000 ms in all.
+# ends soon after the watchdog fires (2s). Round 4.4.7: <= 4500 ms (2s
+# watchdog + 2.5s teardown on a loaded 2-core runner; CI saw 2084/2113 ms,
+# 2 cores + 2 busy loops 2217 ms). Still proves the watchdog ended it: the
+# stubbed getprop hangs 37.5s under a 30s cap here, the default getprop
+# cap is 5s and the real watchdog is SHARD_PREBOOT_S=10s, all > 4.5s.
 for _ in 1 2 3 4 5 6 7 8 9 10; do compgen -G "$r44/wdtmp/run_shard.boot.*" >/dev/null || break; sleep 0.1; done
 ! compgen -G "$r44/wdtmp/run_shard.boot.*" >/dev/null || { echo "run_shard: watchdog won but left its BOOT claim dir: $(ls "$r44/wdtmp")" >&2; exit 1; }
-(( wd_ms <= 3000 )) || { echo "run_shard: attempt ended ${wd_ms} ms after start, > 1s after the 2s watchdog" >&2; exit 1; }
+(( wd_ms <= 4500 )) || { echo "run_shard: attempt ended ${wd_ms} ms after start, > 2.5s after the 2s watchdog" >&2; exit 1; }
 echo "pre-BOOT watchdog: attempt ended ${wd_ms} ms after start (watchdog 2000 ms), claim dir removed"
-# <= 4s: the watchdog itself must end it (2s), not the 5s getprop cap
+# <= 5s (round 4.4.7, whole seconds of the <= 4500 ms above): the watchdog
+# itself must end it (2s), not the 5s or 30s getprop cap
 # (round 4.4.4 mutation: a watchdog that kills nothing must fail here).
-[[ "$rc" != 0 ]] && (( wd_el <= 4 )) && ! grep -q '^BOOT ' "$r44/art/results.txt" 2>/dev/null && ! grep -q '^PASS ' "$r44/art/results.txt" 2>/dev/null &&
+[[ "$rc" != 0 ]] && (( wd_el <= 5 )) && ! grep -q '^BOOT ' "$r44/art/results.txt" 2>/dev/null && ! grep -q '^PASS ' "$r44/art/results.txt" 2>/dev/null &&
   grep -q 'no BOOT line 2s after run_shard.sh started' "$r44/shard.out" && ! pgrep -f 'sleep 37.5' >/dev/null ||
   { echo "run_shard pre-BOOT watchdog: rc=${rc} ${wd_el}s, no BOOT, hung adb killed: $(cat "$r44/shard.out"; pgrep -af 'sleep 37.5')" >&2; pkill -f 'sleep 37.5'; exit 1; }
 # Round 4.4.4: a hung "shell input keyevent 82" after BOOT is capped per
@@ -3054,14 +3059,22 @@ rm -rf "$shim_d"
 # not cp: writing onto a running binary fails with "Text file busy").
 r46="$(mktemp -d)"; export ADB_SHIM_STATE_DIR="$r46/state"
 mkdir -p "$r46/pt"
-cp "$(command -v sleep)" "$r46/pt/adb"   # an ELF "real adb"
+# Round 4.4.7: the "real adb" is a copy of bash, not of sleep. On the
+# ubuntu-26.04 runner sleep is rust-coreutils, a multi-call binary that
+# refuses to run under another file name ("Security violation: Requested
+# utility `adb` does not match executable name: .../pt/adb.real", runs
+# 41580611177 and 41580615725). bash runs under any name and stays mapped
+# (no exec) while its child sleeps, so the file is still busy.
+cp "$(command -v bash)" "$r46/pt/adb"   # an ELF "real adb"
 bash tool/emulator/adb_shim/install.sh "$r46/pt" >/dev/null || { echo "4.4.6 install.sh first install" >&2; exit 1; }
-"$r46/pt/adb.real" 37.25 & old_real=$!   # the old adb (server) still running
+"$r46/pt/adb.real" -c 'sleep 37.25; :' & old_real=$!   # the old adb (server) still running
+for _ in 1 2 3 4 5 6 7 8 9 10; do pgrep -P "$old_real" >/dev/null && break; sleep 0.1; done
+kill -0 "$old_real" 2>/dev/null || { echo "4.4.7: the stand-in real adb did not start" >&2; exit 1; }
 tfb="$(cp /bin/true "$r46/pt/adb.real" 2>&1)" && { echo "4.4.6: expected Text file busy writing onto a running adb.real" >&2; kill "$old_real"; exit 1; }
 [[ "$tfb" == *"Text file busy"* ]] || { echo "4.4.6: cp onto a running binary should say Text file busy: $tfb" >&2; kill "$old_real"; exit 1; }
 printf '#!/usr/bin/env bash\necho NEWREAL "$@"\n' > "$r46/pt/adb"; chmod +x "$r46/pt/adb"   # sdkmanager's fresh adb
 o="$(bash tool/emulator/adb_shim/install.sh --reinstall "$r46/pt" 2>&1)" || { echo "4.4.6 reinstall over a running adb.real failed: $o" >&2; kill "$old_real"; exit 1; }
-kill "$old_real" 2>/dev/null; wait "$old_real" 2>/dev/null || true
+pkill -P "$old_real" 2>/dev/null; kill "$old_real" 2>/dev/null; wait "$old_real" 2>/dev/null || true
 cmp -s tool/emulator/adb_shim/adb "$r46/pt/adb" && grep -q NEWREAL "$r46/pt/adb.real" && [[ "$o" == *"::warning::adb_shim: $r46/pt/adb was replaced"* ]] ||
   { echo "4.4.6 reinstall: adb must be the shim and adb.real the NEW binary: $o" >&2; exit 1; }
 [[ "$("$r46/pt/adb" devices)" == "NEWREAL devices" ]] || { echo "4.4.6: shim passes through to the new adb.real" >&2; exit 1; }
