@@ -128,7 +128,14 @@ class _AppDrawerState extends State<AppDrawer> {
   }
 
   Future<void> _reportSearch(String query) async {
-    final temples = await _templesFuture;
+    // A failed directory load (KAN-195) must not turn a search into an
+    // uncaught error; skip the analytics report instead.
+    final List<Temple> temples;
+    try {
+      temples = await _templesFuture;
+    } catch (_) {
+      return;
+    }
     if (!mounted) return;
     final matches = directoryMatchingTemples(
       temples,
@@ -312,9 +319,12 @@ class _AppDrawerState extends State<AppDrawer> {
                   child: Row(
                     children: [
                       Expanded(
-                        child: Text(
-                          'Could not load filters',
-                          style: GoogleFonts.poppins(fontSize: 13),
+                        child: Semantics(
+                          identifier: 'drawer-filters-error',
+                          child: Text(
+                            'Could not load filters. Check your connection.',
+                            style: GoogleFonts.poppins(fontSize: 13),
+                          ),
                         ),
                       ),
                       Semantics(

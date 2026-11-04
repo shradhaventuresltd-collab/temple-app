@@ -10,6 +10,7 @@ import 'package:temple_app/district/district_lookup.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/home_screen.dart';
 import 'package:temple_app/services/temple_service.dart';
+import 'package:temple_app/utils/temple_search.dart';
 import 'package:temple_app/widgets/app_drawer.dart';
 import 'package:temple_app/widgets/directory_filter_bar.dart';
 
@@ -154,6 +155,44 @@ void main() {
     expect(find.byKey(const Key('drawer-filters-error')), findsNothing);
     expect(find.byKey(const Key('drawer-filters-loading')), findsNothing);
     expect(find.byKey(const Key('filter-chip-state')), findsOneWidget);
+  });
+
+  testWidgets('drawer search after a failed load does not throw', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(480, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          drawer: AppDrawer(
+            templesLoader: () => Future.error(Exception('offline')),
+          ),
+          body: const SizedBox.expand(),
+        ),
+      ),
+    );
+    final ScaffoldState scaffold = tester.firstState(find.byType(Scaffold));
+    scaffold.openDrawer();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(
+      find.text('Could not load filters. Check your connection.'),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find
+          .descendant(
+            of: find.byType(AppDrawer),
+            matching: find.byType(EditableText),
+          )
+          .first,
+      'meenakshi',
+    );
+    await tester.pump(templeSearchDebounce + const Duration(milliseconds: 50));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('home warms districts when the directory loads, before a tap', (
