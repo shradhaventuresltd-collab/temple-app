@@ -7,11 +7,13 @@ reach_browse || { fail_step browse "no list"; return 0; }
 # --- multi-photo open begin
 # Open a temple KNOWN to have several photos by searching its name:
 # "Aazhimala Shiva Temple" showed '1 / 5' in runs 41314245431 and
-# 41373837994 (EMULATOR_MULTI_PHOTO_QUERY overrides). The old walk over
+# 41373837994 and '2 / 5' in 41781519101 (EMULATOR_MULTI_PHOTO_QUERY overrides). The old walk over
 # the first 3 cards recorded a blanket "not applicable" PASS whenever it
 # did not see '1 / N', even after a failed scroll/tap or on the wrong
 # screen. Now:
-#   detail page + '1 / 2..N'            -> PASS multi-photo, paging checks run
+#   detail page + 'k / N', N >= 2,      -> PASS multi-photo, paging checks run
+#     1 <= k <= N (round 4.4.9f: the
+#     5s auto-advance can show '2 / 5')
 #   detail page + proven single photo   -> NA multi-photo ('1 / 1', or one
 #     ('1 / 1' or one gallery page,       detail-gallery page and no counter);
 #      no counter)                        the paging checks are NA too
@@ -32,6 +34,13 @@ if counters:
 sys.exit(0 if pages == {"0"} else 1)
 PY
 }
+# counter_multi 'k / N': 0 when N >= 2 and 1 <= k <= N.
+counter_multi() {
+  local k n
+  [[ "$1" =~ ^([0-9]+)\ /\ ([0-9]+)$ ]] || return 1
+  k=$((10#${BASH_REMATCH[1]})); n=$((10#${BASH_REMATCH[2]}))
+  (( n >= 2 && k >= 1 && k <= n ))
+}
 MULTI=0
 SINGLE=0
 open_why=""
@@ -48,10 +57,11 @@ else
     sleep 3
     if ! ui_dump || ! on_detail; then
       open_why="not on the detail page after tapping '${MULTI_QUERY}'"
-    # Round 4.4.9e (run 41781519101 shard 9): the 5s auto-advance timer had
-    # already moved to '2 / 5' by the dump (sleep 3 + dump). Any 'k / N'
-    # with N >= 2 proves a multi-photo gallery.
-    elif ui_find --text-regex '^[1-9][0-9]* / ([2-9]|[1-9][0-9]+)$'; then
+    # Round 4.4.9e/f (run 41781519101 shard 9): the 5s auto-advance timer
+    # had already moved to '2 / 5' by the dump (sleep 3 + dump). A counter
+    # 'k / N' with N >= 2 and 1 <= k <= N proves a multi-photo gallery;
+    # an impossible counter ('6 / 5') is not proof.
+    elif ui_find --text-regex '^[0-9]+ / [0-9]+$' && counter_multi "$UI_TEXT"; then
       MULTI=1
     elif gallery_single_proven; then
       SINGLE=1

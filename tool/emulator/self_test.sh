@@ -2541,7 +2541,7 @@ run24() {
     ui_replace_field_text() { [[ "${R24_SEARCH:-ok}" == ok ]] || { UI_FIELD_ACTUAL="field not found"; return 1; }; }
     ui_wait_scrolled() { [[ "${R24_SCROLL:-ok}" == ok ]]; }
     ui_tap() { [[ "${R24_TAP:-ok}" == ok ]]; }
-    ui_dump() { cp "${fx4}/${R24_DUMP}" "$DUMP"; }
+    ui_dump() { cp "${R24_DUMP_PATH:-${fx4}/${R24_DUMP}}" "$DUMP"; }
     eval "$(sed -n '/^# --- multi-photo open begin$/,/^# --- multi-photo open end$/p' "$f24")"
     cat "$RESULTS" )
 }
@@ -2559,8 +2559,21 @@ o="$(R24_DUMP=detail_multi_1of5.xml run24 multi 2>/dev/null)"
 grep -qx 'PASS 24-gallery-autoadvance-viewer: multi-photo' <<<"$o" || { echo "flow 24: '1 / 5' -> PASS: $o" >&2; exit 1; }
 # Round 4.4.9e (run 41781519101 shard 9): the timer had advanced to '2 / 5'
 # before the dump (real dump); still a multi-photo gallery.
-o="$(R24_DUMP=detail_multi_2of5.xml run24 multi2 2>/dev/null)"
+o="$(R24_DUMP_PATH=tool/emulator/testdata/run41781519101/detail_multi_2of5.xml run24 multi2 2>/dev/null)"
 grep -qx 'PASS 24-gallery-autoadvance-viewer: multi-photo' <<<"$o" || { echo "flow 24: '2 / 5' (auto-advanced) -> PASS: $o" >&2; exit 1; }
+# Round 4.4.9f (Reviewer): k must be 1..N; '6 / 5' and '7 / 5' are not proof.
+for bad in 6 7; do
+  sed "s|\"2 / 5\"|\"${bad} / 5\"|" tool/emulator/testdata/run41781519101/detail_multi_2of5.xml > "$r4/f24_${bad}of5.xml"
+  grep -q "\"${bad} / 5\"" "$r4/f24_${bad}of5.xml" || { echo "flow 24: could not build the '${bad} / 5' dump" >&2; exit 1; }
+  o="$(R24_DUMP_PATH="$r4/f24_${bad}of5.xml" run24 "bad${bad}" 2>/dev/null)"
+  if ! grep -q '^FAIL 24-gallery-autoadvance-viewer: multi-photo: detail page shows no readable photo counter' <<<"$o" ||
+     grep -q '^PASS 24-gallery-autoadvance-viewer: multi-photo' <<<"$o"; then
+    echo "flow 24: '${bad} / 5' must FAIL multi-photo: $o" >&2; exit 1
+  fi
+done
+o="$(R24_DUMP=detail_single_1of1.xml run24 single2 2>/dev/null)"
+grep -q "^NA 24-gallery-autoadvance-viewer: multi-photo: 'Aazhimala' has a single photo" <<<"$o" || { echo "flow 24: '1 / 1' stays NA: $o" >&2; exit 1; }
+echo "4.4.9f flow 24: '2 / 5' PASS, '6 / 5' and '7 / 5' FAIL, '1 / 1' NA"
 if grep -q 'multi-photo-not-applicable\|skip_step multi-photo' "$f24" || ! grep -q '^if (( ! SINGLE )); then$' "$f24"; then
   echo "flow 24: no blanket NA; paging checks run unless a single photo was proven" >&2; exit 1
 fi
