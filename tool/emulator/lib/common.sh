@@ -2175,23 +2175,40 @@ chip_exact() {
 # crosses the 600-deity list (run 41391038302: every all-India Shiva walk
 # gave up at "Ra..Ri" after 45s). State is always Tamil Nadu.
 scoped_pick() {
-  local kind="$1" tn=0
-  if ui_dump && ui_find --resource-id filter-chip-state \
-    && [[ "$(printf '%s' "${UI_TEXT:-}" | tr -s '[:space:]' ' ')" == *"Tamil Nadu"* ]]; then
-    tn=1
+  local kind="$1" tn=0 st=""
+  # Round 4.4.9h (run 41872598981, 30s5 district:clear): the chip row
+  # scrolls sideways, so an applied chip can be off screen (the deity chip
+  # was not in the dump and the clear went back to the all-India head
+  # district, which the faceted sheet does not offer). What the flow applied
+  # (APPLIED, flow 29) counts first; the chip bar is the fallback.
+  local a_state="" a_deity="" a_district=""
+  if declare -p APPLIED >/dev/null 2>&1; then
+    a_state="${APPLIED[state]:-}"; a_deity="${APPLIED[deity]:-}"; a_district="${APPLIED[district]:-}"
   fi
-  # Round 4.4.9e (run 41781519101, 30s5 "deity:select district:select"):
-  # the sheet's counts are faceted (directory_filters.dart census) and a
-  # zero-count option is hidden, so with a deity applied the all-India
-  # head district (24 Paraganas North) is usually not offered at all. With
-  # a deity on the chip bar, the district pick is the first real option.
-  local deity_on=0 dl
-  if ui_find --resource-id filter-chip-deity; then
+  ui_dump || true
+  if [[ -n "$a_state" ]]; then
+    st="$a_state"
+  elif ui_find --resource-id filter-chip-state; then
+    st="${UI_TEXT:-}"
+  fi
+  [[ "$(printf '%s' "$st" | tr -s '[:space:]' ' ')" == *"Tamil Nadu"* ]] && tn=1
+  # Round 4.4.9e (run 41781519101): the sheet's counts are faceted
+  # (directory_filters.dart census) and a zero-count option is hidden, so
+  # with another filter applied a hard-coded all-India head pick may not be
+  # offered at all; the pick is then the first real option on the sheet.
+  local deity_on=0 district_on=0 dl
+  [[ -n "$a_deity" ]] && deity_on=1
+  [[ -n "$a_district" ]] && district_on=1
+  if (( ! deity_on )) && ui_find --resource-id filter-chip-deity; then
     dl="$(printf '%s' "${UI_TEXT:-}" | tr -s '[:space:]' ' ' | sed 's/^ //; s/ $//')"
     [[ -n "$dl" && "$dl" != Deity ]] && deity_on=1
   fi
+  if (( ! district_on )) && ui_find --resource-id filter-chip-district; then
+    dl="$(printf '%s' "${UI_TEXT:-}" | tr -s '[:space:]' ' ' | sed 's/^ //; s/ $//')"
+    [[ -n "$dl" && "$dl" != "All districts" && "$dl" != District ]] && district_on=1
+  fi
   case "$kind" in
-    state) echo '^Tamil Nadu( +[0-9]+)?$' ;;
+    state) if (( deity_on || district_on )); then echo '@first'; else echo '^Tamil Nadu( +[0-9]+)?$'; fi ;;
     deity) if (( tn )); then echo "$TN_DEITY_PICK"; else echo "$ALL_INDIA_DEITY_PICK"; fi ;;
     district) if (( tn )); then echo "$TN_DISTRICT_PICK"; elif (( deity_on )); then echo '@first'; else echo "$ALL_INDIA_DISTRICT_PICK"; fi ;;
     *) return 1 ;;

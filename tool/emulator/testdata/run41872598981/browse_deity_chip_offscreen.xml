@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<!-- run 41872598981 shard 9, 30s5 before district:clear: deity applied, deity chip scrolled off the row; filter nodes only -->
+<hierarchy rotation="0">
+<node index="0" text="" resource-id="filter-chip-state" class="android.widget.Button" package="com.shradhaventures.temple" content-desc="State" checkable="false" checked="false" clickable="true" enabled="true" focusable="true" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[14,184][114,219]" />
+<node index="1" text="" resource-id="filter-chip-district" class="android.widget.Button" package="com.shradhaventures.temple" content-desc="Jabalpur" checkable="false" checked="false" clickable="true" enabled="true" focusable="true" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[122,184][222,219]" />
+<node index="3" text="" resource-id="filter-clear" class="android.widget.Button" package="com.shradhaventures.temple" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[248,177][312,225]" />
+</hierarchy>

@@ -300,6 +300,7 @@ for entry in "${ENTRIES[@]}"; do
   for chip in "${MATRIX_CHIPS[@]}"; do
     for action in "${ACTIONS[@]}"; do
       id="$entry-$chip-$action"
+      APPLIED=()  # each cell starts from a fresh entry (scoped_pick reads APPLIED)
       "enter_$entry" >/dev/null 2>&1
       status=$?
       if [[ "$status" -ne 0 ]]; then

@@ -2614,6 +2614,26 @@ o29="$( ( export EMULATOR_FLOW=30s5-filter-matrix-seq5 EMULATOR_ARTIFACTS="$r4/f
   echo "ok=$ok" ) 2>/dev/null )"
 [[ "$o29" == "ok=1" ]] || { echo "4.4.9g flow 29: each sequence action must get its own step budget: $o29" >&2; exit 1; }
 echo "4.4.9g flow 29: sequence actions each get a fresh step budget"
+# Round 4.4.9h (run 41872598981 30s5): the deity chip had scrolled off the
+# chip row, so scoped_pick sent district:clear back to 24 Paraganas North
+# (not offered under the applied deity). What the flow applied counts first.
+o9h="$(bash tool/emulator/testdata/run41872598981/replay_seq5.sh "$PWD" 2>/dev/null)"
+if ! grep -qx "STEP district:select chip-bar=browse_deity_applied.xml pick=@first -> 'Jabalpur'" <<<"$o9h" ||
+   ! grep -qx "STEP district:clear chip-bar=browse_deity_chip_offscreen.xml pick=@first -> 'Jabalpur'" <<<"$o9h"; then
+  echo "4.4.9h: seq5 replay must pick the first shown district for select and clear: $o9h" >&2; exit 1
+fi
+# shellcheck disable=SC2016,SC2034,SC2154,SC2329 # stubs
+o9h="$( ( export EMULATOR_FLOW=99-sp9h EMULATOR_ARTIFACTS="$r4/sp9h" EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  ui_dump() { cp tool/emulator/testdata/run41872598981/browse_deity_chip_offscreen.xml "$DUMP"; }
+  declare -A APPLIED=([district]=Jabalpur)
+  printf '%s|' "$(scoped_pick state)"
+  APPLIED=(); printf '%s|' "$(scoped_pick deity)"
+  APPLIED=([state]='Tamil Nadu'); printf '%s|' "$(scoped_pick district)" ) 2>/dev/null )"
+[[ "$o9h" == '@first|@first|^Madurai( +[0-9]+)?$|' ]] ||
+  { echo "4.4.9h scoped_pick: state under an applied district -> @first; Tamil Nadu from APPLIED: $o9h" >&2; exit 1; }
+echo "4.4.9h: seq5 replay resolves every step; picks use what the flow applied, not only the visible chips"
 if grep -q 'multi-photo-not-applicable\|skip_step multi-photo' "$f24" || ! grep -q '^if (( ! SINGLE )); then$' "$f24"; then
   echo "flow 24: no blanket NA; paging checks run unless a single photo was proven" >&2; exit 1
 fi
