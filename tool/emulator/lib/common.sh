@@ -743,9 +743,19 @@ install_apk() {
     record_fail "install" "APK missing (${EMULATOR_APK:-unset})"
     return 1
   fi
-  local log
+  local log rc=0
   uninstall_app
-  if ! log="$(install_once)"; then
+  log="$(install_once)" || rc=$?
+  if (( rc != 0 )) && [[ "$log" == *"cmd: Can't find service: package"* ]]; then
+    # Round 4.4.9 (run 41757362316): the package service was not up. Wait
+    # for the services (bounded: EMULATOR_INSTALL_SERVICES_WAIT_S, 10s,
+    # inside the flow's guard) and retry the install ONCE, only on this
+    # exact error; any other install error is not retried here.
+    echo "install: 'Can't find service: package'; waiting for services, then one retry" >&2
+    timeout --kill-after=2 "${EMULATOR_INSTALL_SERVICES_WAIT_S:-10}" bash "${ROOT}/tool/emulator/services_ready.sh" "${EMULATOR_INSTALL_SERVICES_WAIT_S:-10}" >&2 || true
+    rc=0; log="$(install_once)" || rc=$?
+  fi
+  if (( rc != 0 )); then
     if [[ "$log" == *"INSTALL_FAILED_UPDATE_INCOMPATIBLE"* ]]; then
       uninstall_app
       if ! log="$(install_once)"; then

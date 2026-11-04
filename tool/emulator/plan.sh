@@ -37,7 +37,11 @@ SHARD_BOOT_S=150
 # 4.4.3: readiness 20s + 2s kill-after. The snapshot is saved only after
 # the same readiness check, so a warm boot is ready within seconds (r6
 # deaths came ~6s after the snapshot load). boot + ready + unlock = 185s.
-SHARD_READY_S=22
+# Round 4.4.9: the readiness wait runs before the BOOT line and decides a
+# dead boot (run 41757362316). 22 healthy boots in runs 41601153030 and
+# 41757362316 were ready on poll 1 in <= 1s; the 6 broken ones were never
+# ready in 20s. 10s (4 polls) + 2s kill-after = 12s.
+SHARD_READY_S=12
 # Round 4.4.6 (Satyavrat): 2 tries (2 x 3 + 1 x 2 = 8s).
 SHARD_UNLOCK_TRIES=2
 SHARD_UNLOCK_S=$((SHARD_UNLOCK_TRIES * 3 + (SHARD_UNLOCK_TRIES - 1) * 2))
@@ -58,7 +62,9 @@ SHARD_ACTION_START_S=30
 # shellcheck disable=SC2034 # read by self_test.sh (job budget)
 SHARD_GETPROP_S=5
 # shellcheck disable=SC2034 # read by run_shard.sh and self_test.sh
-SHARD_PREBOOT_S=10
+# Round 4.4.9: pre-BOOT = capped getprop (SHARD_GETPROP_S 5) + readiness
+# (SHARD_READY_S 12) + 5s margin = 22s.
+SHARD_PREBOOT_S=22
 # Round 4.4.4: the action's own adb calls (keyevent 82; disable-animations
 # is off, so no settings put) go through tool/emulator/adb_shim, capped at
 # SHARD_ACTION_ADB_S each. Animations are turned off in one capped call
@@ -129,12 +135,12 @@ SHARD_COUNT=15
 # 08 (300s row caps) moved off shard 12 onto a 15th shard. Round 4.4.4:
 # boot 150 + action keyevent 5 + getprop 5 + ready 22 + unlock 13 +
 # animations 5 = 200s; round 4.4.6: + boot getprop budget 4, unlock 8 =
-# 199s:
-# shard 12: 199 + 2 x (600 + 55) = 1509s = 25.15 min;
-# shard 15: 199 + 2 x (300 + 55) + 2 x (540 + 55) = 2099s (round 4.4.8:
-#   26, 08, 30s3, 30s4); shard 11: 199 + 2 x 355 + 2 x 595 = 2099s;
-#   shard 9: 199 + 655 + 2 x 355 + 595 = 2159s;
-# every other shard: 199 + 3 x 655 = 2164s = 36.07 min. All <= 39 min,
+# 199s; round 4.4.9: readiness 12s (before BOOT) = 189s:
+# shard 12: 189 + 2 x (600 + 55) = 1499s = 24.98 min;
+# shard 15: 189 + 2 x (300 + 55) + 2 x (540 + 55) = 2089s (round 4.4.8:
+#   26, 08, 30s3, 30s4); shard 11: 189 + 2 x 355 + 2 x 595 = 2089s;
+#   shard 9: 189 + 655 + 2 x 355 + 595 = 2149s;
+# every other shard: 189 + 3 x 655 = 2154s = 35.9 min. All <= 39 min,
 # step timeout 42 (self_test checks every shard against 39 min).
 # shellcheck disable=SC2034 # read by self_test.sh (sources this file)
 SHARD_WORST_MAX_S=$((39 * 60))

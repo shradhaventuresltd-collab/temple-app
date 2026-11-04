@@ -17,8 +17,8 @@ name: emulator-app-test
 # Flows 11, 23 and 30d (near-me filter matrix cells) are planned skips (location-dependent).
 # Picker give-up: PICKER_LONG_GIVEUP_S=45 for state/district/deity pickers (others 20s);
 # per-step budget EMULATOR_STEP_BUDGET_S=150; 15 shards (SHARD_COUNT in plan.sh). The shard limit is
-# time, not a flow count: boot + pre/post-BOOT work (199s) + per active flow (cap + 15 + 30 + 10s) <= 39 min
-# (self_test, plan_need_s); today 2164s = 36.07 min max (shard 12: 1509s, shard 15: 909s), step timeout 42.
+# time, not a flow count: boot + pre/post-BOOT work (189s) + per active flow (cap + 15 + 30 + 10s) <= 39 min
+# (self_test, plan_need_s); today 2154s = 35.9 min max (shard 12: 1499s, shards 11/15: 2089s, shard 9: 2149s), step timeout 42.
 # Job 68 >= 20 setup/post + 195s dead first attempt (30 start + 150 boot + 5 keyevent + 10 pre-BOOT
 # watchdog) + 2 boot check + 42 boot retry; end to end <= 45 min on every path (warm, retry, cold,
 # cold + retry, warm-up refused), retry <= 44.0 (rounds 4.4.3-4.4.4).
@@ -574,11 +574,12 @@ jobs:
       # snapshot above and does not save it.
       # One snapshot boot (150s; 50s when this job ran its own create step,
       # saved or not) + boot getprop budget 4s + keyevent 5s + getprop 5s,
-      # BOOT, then readiness (22s) + unlock (8s, 2 tries) + animations (5s)
-      # = 199s, then each flow capped at its
+      # readiness (12s; round 4.4.9: before BOOT, not ready = dead boot ->
+      # boot retry), BOOT, then unlock (8s, 2 tries) + animations (5s)
+      # = 189s, then each flow capped at its
       # cap + 15s kill-after + 30s reset + 10s outer kill. smoke: 6 flows ->
-      # 70 min worst case; full shards (15): max 2164s = 36.07 min (shard
-      # 12: 1509s, 15: 909s), step timeout 42. run_shard.sh exits 0;
+      # 70 min worst case; full shards (15): max 2154s = 35.9 min (shard
+      # 12: 1499s, 11/15: 2089s, 9: 2149s), step timeout 42. run_shard.sh exits 0;
       # the summary step decides pass/fail. !cancelled() skips only on a
       # real cancellation.
       - name: Run emulator flows

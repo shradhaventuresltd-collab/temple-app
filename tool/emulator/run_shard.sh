@@ -54,6 +54,18 @@ if [[ "${EMULATOR_SHARD_DRY_RUN:-}" != 1 ]]; then
   # makes the claim dir first wins, so a watchdog firing while BOOT is being
   # written can no longer kill a booted shard (round 4.4.4).
   preboot_s="${EMULATOR_PREBOOT_S:-$SHARD_PREBOOT_S}"
+  # Round 4.4.9 (run 41757362316, shards 1/3/4/6/9/10): readiness moved
+  # BEFORE the BOOT line. Those emulators loaded the snapshot, then zygote
+  # and native services crash-looped (SIGILL, "received signal 4", 9 zygote
+  # starts) and input/settings/package/activity never came up: the 4.4.8b
+  # run went on and every flow failed at install ("cmd: Can't find service:
+  # package"). Not ready within SHARD_READY_S (services_ready 10s + 2s
+  # kill-after; every healthy boot so far was ready on poll 1, <= 1s) is
+  # now a dead boot: no BOOT line, exit 1, so the workflow's boot check
+  # runs the one retry, and a second dead attempt leaves the shard without
+  # a BOOT line (release_gate: missing shard, its flows NOT RUN).
+  services_wait_s="${EMULATOR_SERVICES_WAIT_S:-$((SHARD_READY_S - 2))}"
+  wait_services_ready() { timeout --kill-after=2 "$1" bash tool/emulator/services_ready.sh "$1"; }
   main_pid=$$
   claim="$(mktemp -u "${TMPDIR:-/tmp}/run_shard.boot.XXXXXX")"
   (
@@ -74,6 +86,7 @@ if [[ "${EMULATOR_SHARD_DRY_RUN:-}" != 1 ]]; then
   preboot_watchdog=$!
   marker="$(timeout "${SHARD_GETPROP_S:-5}" adb shell getprop debug.temple.snapshot_marker 2>/dev/null </dev/null | tr -d '\r' || true)"
   if [[ "$marker" == 1 ]]; then boot=snapshot; else boot=cold; fi
+  svc_out="$(wait_services_ready "$services_wait_s" 2>&1)"; svc_rc=$?
   if ! mkdir "$claim" 2>/dev/null; then
     # The watchdog claimed first: it is ending this attempt (no BOOT line).
     wait "$preboot_watchdog" 2>/dev/null; rmdir "$claim" 2>/dev/null; exit 1
@@ -83,16 +96,19 @@ if [[ "${EMULATOR_SHARD_DRY_RUN:-}" != 1 ]]; then
   [[ -n "${EMULATOR_TEST_BOOT_WRITE_DELAY_S:-}" ]] && sleep "$EMULATOR_TEST_BOOT_WRITE_DELAY_S"
   kill "$preboot_watchdog" 2>/dev/null; wait "$preboot_watchdog" 2>/dev/null
   rmdir "$claim" 2>/dev/null
-  printf 'BOOT %s%s %s\n' "$tier" "${shard:+-${shard}}" "$boot" >> "${artifacts}/results.txt"
-  # Round 4.4 (after BOOT since 4.4.4): wait for the system services
-  # (SHARD_READY_S, plan.sh), unlock (keyevent 82) up to SHARD_UNLOCK_TRIES
-  # times 2s apart, and turn animations off in one capped call
-  # (SHARD_ANIM_S; the action's disable-animations is off). None is fatal:
-  # a shard that is still not ready fails in its flows, visibly.
-  wait_services_ready() { timeout --kill-after=2 "$1" bash tool/emulator/services_ready.sh "$1"; }
-  if ! wait_services_ready "${EMULATOR_SERVICES_WAIT_S:-20}"; then
-    echo "::warning::emulator ${tier}${shard:+ shard ${shard}}: system services not ready after ${EMULATOR_SERVICES_WAIT_S:-20}s"
+  printf '%s\n' "$svc_out"
+  host_cpu="$(sed -n 's/^model name[[:space:]]*: //p' /proc/cpuinfo 2>/dev/null | head -1) flags-md5=$(grep -m1 '^flags' /proc/cpuinfo 2>/dev/null | md5sum | cut -c1-8)"
+  if (( svc_rc != 0 )); then
+    printf 'DEAD boot %s%s: system services not ready after %ss (%s); host cpu %s\n' "$tier" "${shard:+-${shard}}" "$services_wait_s" "$(tail -1 <<<"$svc_out")" "$host_cpu" >> "${artifacts}/results.txt"
+    echo "::error::emulator ${tier}${shard:+ shard ${shard}}: system services not ready after ${services_wait_s}s; dead boot (no BOOT line), the boot check retries once"
+    exit 1
   fi
+  printf 'BOOT %s%s %s\n' "$tier" "${shard:+-${shard}}" "$boot" >> "${artifacts}/results.txt"
+  printf 'HOSTCPU %s%s %s\n' "$tier" "${shard:+-${shard}}" "$host_cpu" >> "${artifacts}/results.txt"
+  # Round 4.4 (after BOOT since 4.4.4): unlock (keyevent 82) up to
+  # SHARD_UNLOCK_TRIES times 2s apart, and turn animations off in one capped
+  # call (SHARD_ANIM_S; the action's disable-animations is off). Neither is
+  # fatal. Readiness runs before BOOT since round 4.4.9 (above).
   for ((u = 1; u <= SHARD_UNLOCK_TRIES; u++)); do
     timeout 3 adb shell input keyevent 82 </dev/null >/dev/null 2>&1 && break
     (( u < SHARD_UNLOCK_TRIES )) && sleep 2
