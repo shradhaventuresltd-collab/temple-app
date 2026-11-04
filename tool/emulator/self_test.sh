@@ -466,9 +466,17 @@ STUB
 chmod +x "$key_tmp/sdk/cmdline-tools/latest/bin/sdkmanager"
 key_env=(ANDROID_HOME="$key_tmp/sdk" EMULATOR_API_LEVEL=30 EMULATOR_TARGET=google_apis
   EMULATOR_ARCH=x86_64 EMULATOR_DISK_SIZE=2048M EMULATOR_BUILD=16740729
-  EMULATOR_AVD_NAME=emulator-app-test-30 GITHUB_RUN_ID=77 GITHUB_RUN_ATTEMPT=1)
+  EMULATOR_AVD_NAME=emulator-app-test-30 GITHUB_RUN_ID=77 GITHUB_RUN_ATTEMPT=1 EMULATOR_CPUINFO="$key_tmp/cpuA")
+# Round 4.4.9b: two hosts, same model name, one AVX-512 flag apart.
+printf 'processor\t: 0\nmodel name\t: Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz\nflags\t\t: fpu sse4_2 avx avx2 avx512f hypervisor\n\nprocessor\t: 1\nmodel name\t: Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz\nflags\t\t: fpu sse4_2 avx avx2 avx512f hypervisor\n' > "$key_tmp/cpuA"
+sed 's/ avx512f//' "$key_tmp/cpuA" > "$key_tmp/cpuB"
+# Same CPU, flags listed in another order: same identity.
+sed 's/fpu sse4_2 avx avx2 avx512f hypervisor/hypervisor avx512f avx2 avx sse4_2 fpu/' "$key_tmp/cpuA" > "$key_tmp/cpuA2"
+cpuA="$(EMULATOR_CPUINFO="$key_tmp/cpuA" bash tool/emulator/cpu_id.sh)"; cpuB="$(EMULATOR_CPUINFO="$key_tmp/cpuB" bash tool/emulator/cpu_id.sh)"
+[[ "$cpuA" =~ ^[0-9a-f]{12}$ && "$cpuB" =~ ^[0-9a-f]{12}$ && "$cpuA" != "$cpuB" && "$(EMULATOR_CPUINFO="$key_tmp/cpuA2" bash tool/emulator/cpu_id.sh)" == "$cpuA" ]] ||
+  { echo "4.4.9b cpu_id: 12-hex id, a flag apart -> different, flag order -> same: $cpuA $cpuB" >&2; exit 1; }
 env "${key_env[@]}" EMULATOR_NPROC=4 GITHUB_ENV="$key_tmp/env" bash tool/emulator/avd_cache_key.sh > /dev/null 2>&1
-if ! grep -qx 'EMULATOR_AVD_CACHE_KEY=avd-30-google_apis-x86_64-img6-cores4-disk2048M-emu16740729-emulator-app-test-30-clean-cfg5' "$key_tmp/env" ||
+if ! grep -qx "EMULATOR_AVD_CACHE_KEY=avd-30-google_apis-x86_64-img6-cores4-disk2048M-emu16740729-emulator-app-test-30-clean-cfg6-${cpuA}" "$key_tmp/env" || ! grep -qx "EMULATOR_CPU_ID=${cpuA}" "$key_tmp/env" ||
   ! grep -qx 'EMULATOR_SYSIMG_REVISION=6' "$key_tmp/env" || ! grep -qx 'EMULATOR_CORES=4' "$key_tmp/env"; then
   echo "AVD cache key must carry the system image revision the emulator steps will boot" >&2
   cat "$key_tmp/env" >&2
@@ -485,12 +493,41 @@ if [[ "$(env "${key_env[@]}" EMULATOR_SYSIMG_REVISION=6 GITHUB_OUTPUT=/dev/stdou
 fi
 rm -f "$key_props" "$key_tmp/sdk/cmdline-tools/latest/bin/sdkmanager"
 env "${key_env[@]}" EMULATOR_NPROC=2 GITHUB_ENV="$key_tmp/env2" bash tool/emulator/avd_cache_key.sh > /dev/null 2>&1
-if ! grep -qx 'EMULATOR_AVD_CACHE_KEY=avd-30-google_apis-x86_64-imgunknown-77-1-cores2-disk2048M-emu16740729-emulator-app-test-30-clean-cfg5' "$key_tmp/env2"; then
+if ! grep -qx "EMULATOR_AVD_CACHE_KEY=avd-30-google_apis-x86_64-imgunknown-77-1-cores2-disk2048M-emu16740729-emulator-app-test-30-clean-cfg6-${cpuA}" "$key_tmp/env2"; then
   echo "an unknown image revision must give a one-run AVD cache key" >&2
   cat "$key_tmp/env2" >&2
   exit 1
 fi
+# Round 4.4.9b: a different host CPU -> a different key (the snapshot is
+# never restored across CPUs); unreadable cpuinfo -> a one-run key.
+printf 'Pkg.Revision=6\n' > "$key_props"
+env "${key_env[@]}" EMULATOR_CPUINFO="$key_tmp/cpuB" EMULATOR_NPROC=4 GITHUB_ENV="$key_tmp/envB" bash tool/emulator/avd_cache_key.sh > /dev/null 2>&1
+kA="$(sed -n 's/^EMULATOR_AVD_CACHE_KEY=//p' "$key_tmp/env")"; kB="$(sed -n 's/^EMULATOR_AVD_CACHE_KEY=//p' "$key_tmp/envB")"
+[[ -n "$kB" && "$kA" != "$kB" && "$kB" == "${kA%-"$cpuA"}-${cpuB}" ]] || { echo "4.4.9b: another CPU must give another AVD cache key: $kA / $kB" >&2; exit 1; }
+env "${key_env[@]}" EMULATOR_CPUINFO="$key_tmp/none" EMULATOR_NPROC=4 GITHUB_ENV="$key_tmp/envN" GITHUB_JOB=emulator bash tool/emulator/avd_cache_key.sh > "$key_tmp/outN" 2>&1
+grep -Eq '^EMULATOR_AVD_CACHE_KEY=.*-clean-cfg6-cpuunknown-77-1-emulator-[0-9]+$' "$key_tmp/envN" && grep -q 'could not read the host CPU' "$key_tmp/outN" ||
+  { echo "4.4.9b: unreadable cpuinfo must give a one-run key: $(cat "$key_tmp/envN")" >&2; exit 1; }
+echo "4.4.9b AVD cache key: cpu ${cpuA} vs ${cpuB} -> different keys; flag order irrelevant; unreadable -> one-run key"
 rm -rf "$key_tmp"
+# Round 4.4.9b: no AVD cache restore may fall back to another key (another
+# CPU's snapshot): every step that restores ~/.android/avd uses exactly
+# EMULATOR_AVD_CACHE_KEY and no restore-keys; the warm-up and the shard
+# job compute the key with the same script; nothing else edits the key.
+python3 - "$workflow" <<'PY' || { echo "4.4.9b: AVD cache restore must be exact-key only, same script in warm-up and shards" >&2; exit 1; }
+import re, sys
+wf = open(sys.argv[1]).read()
+steps = re.split(r"\n      - name: ", wf)
+avd = [s for s in steps if "~/.android/avd" in s]
+restores = [s for s in avd if "actions/cache/restore@" in s]
+saves = [s for s in avd if "actions/cache/save@" in s]
+ok = len(restores) == 2 and len(saves) >= 1
+for s in avd:
+    ok &= "restore-keys" not in s and "key: ${{ env.EMULATOR_AVD_CACHE_KEY }}" in s
+ok &= wf.count("run: bash tool/emulator/avd_cache_key.sh\n") == 2
+ok &= len(re.findall(r"EMULATOR_AVD_CACHE_KEY\s*[:=]", wf)) == 0
+sys.exit(0 if ok else 1)
+PY
+echo "4.4.9b workflow: 2 AVD restores + save on the exact key, no restore-keys, one key script for warm-up and shards"
 if [[ "$(grep -F -c 'EMULATOR_AVD_CACHE_KEY' "$workflow")" -lt 3 ]]; then
   echo "restore and save should share EMULATOR_AVD_CACHE_KEY" >&2
   exit 1
@@ -716,7 +753,7 @@ allowed = {
     'rmdir "$claim" 2>/dev/null',
     # Round 4.4.9: readiness decides a dead boot before the BOOT line.
     'printf \'%s\\n\' "$svc_out"',
-    '''host_cpu="$(sed -n 's/^model name[[:space:]]*: //p' /proc/cpuinfo 2>/dev/null | head -1) flags-md5=$(grep -m1 '^flags' /proc/cpuinfo 2>/dev/null | md5sum | cut -c1-8)"''',
+    'host_cpu="$(bash tool/emulator/cpu_id.sh --describe 2>/dev/null || echo unknown) (cache key cpu ${EMULATOR_CPU_ID:-unset})"',
     'if (( svc_rc != 0 )); then',
     '''printf 'DEAD boot %s%s: system services not ready after %ss (%s); host cpu %s\\n' "$tier" "${shard:+-${shard}}" "$services_wait_s" "$(tail -1 <<<"$svc_out")" "$host_cpu" >> "${artifacts}/results.txt"''',
     'echo "::error::emulator ${tier}${shard:+ shard ${shard}}: system services not ready after ${services_wait_s}s; dead boot (no BOOT line), the boot check retries once"',
@@ -741,7 +778,7 @@ for pth in "warm $e2e_warm" "retry $e2e_retry" "cold $e2e_cold" "cold_retry $e2e
 done
 (( e2e_retry <= 2640 )) || { echo "boot-retry end-to-end ${e2e_retry}s > 2640s (44.0 min)" >&2; exit 1; }
 echo "end-to-end worst (s): warm ${e2e_warm}, retry ${e2e_retry}, cold ${e2e_cold}, cold+retry ${e2e_cretry}, warm-up refused ${e2e_refused}, refused+retry ${e2e_rretry}, create failed+retry ${e2e_cfretry}; max shard ${e2e_max}"
-[[ "$e2e_warm $e2e_retry $e2e_cold $e2e_cretry $e2e_refused $e2e_rretry $e2e_cfretry $e2e_max" == "2508 2624 2558 2674 2548 2664 2700 2154" ]] || { echo "end-to-end table changed: $e2e_warm $e2e_retry $e2e_cold $e2e_cretry $e2e_refused $e2e_rretry $e2e_cfretry $e2e_max (update PR body)" >&2; exit 1; }
+[[ "$e2e_warm $e2e_retry $e2e_cold $e2e_cretry $e2e_refused $e2e_rretry $e2e_cfretry $e2e_max" == "2493 2609 2543 2659 2533 2649 2685 2139" ]] || { echo "end-to-end table changed: $e2e_warm $e2e_retry $e2e_cold $e2e_cretry $e2e_refused $e2e_rretry $e2e_cfretry $e2e_max (update PR body)" >&2; exit 1; }
 # Per-flow caps are not lowered to fit (Sanu): FLOW_CAP_S 600, 26/08 at 300.
 [[ "$(bash -c 'source tool/emulator/plan.sh; echo "$FLOW_CAP_S $(plan_cap_s 26-drawer-nav-stack) $(plan_cap_s 08-list-detail)"')" == "600 300 300" ]] || { echo "per-flow cap changed" >&2; exit 1; }
 # Round 4.4.4 (Satyavrat A): the model's create/warm-up terms follow the workflow.
@@ -2015,7 +2052,7 @@ if ! grep -q 'setprop debug.temple.snapshot_marker 1' tool/emulator/snapshot_cre
    ! grep -q 'run: bash tool/emulator/boot_log_check.sh' "$workflow" ||
    ! grep -Fq "name: emulator-avd-ini-\${{ matrix.shard }}" "$workflow" ||
    ! grep -Fq "env.EMULATOR_BOOT != 'snapshot' || steps.flows.outcome != 'success'" "$workflow" ||
-   ! grep -q -- '-clean-cfg5"' tool/emulator/avd_cache_key.sh; then
+   ! grep -q -- '-clean-cfg6-${cpu}"' tool/emulator/avd_cache_key.sh; then
   echo "snapshot diagnostics: marker, boot log check, ini artifact on cold boot/failure, bumped key" >&2
   exit 1
 fi
@@ -2794,7 +2831,7 @@ f06=tool/emulator/flows/06_filters.sh
 grep -q "select_labeled '^(?!All districts)" "$f06" && { echo "flow 06: no name-less lookahead district pick" >&2; exit 1; }
 grep -q 'COMBINED_DISTRICT_PICK:-^Alappuzha' "$f06" && grep -q 'state_chip_is "$COMBINED_STATE"' "$f06" || { echo "flow 06: real district (Alappuzha) and the state-chip check" >&2; exit 1; }
 grep -q ': "${_section}"' tool/emulator/lib/common.sh && { echo "select_labeled must use its section" >&2; exit 1; }
-[[ "$(bash -c 'source tool/emulator/plan.sh; plan_cap_s 26-drawer-nav-stack; plan_cap_s 06a-filters-single; plan_need_s full 15')" == $'300\n600\n2089' ]] || { echo "plan: row caps 26=300, 06a=600, shard 15 = 2099s (26, 08, 30s3, 30s4; round 4.4.8)" >&2; exit 1; }
+[[ "$(bash -c 'source tool/emulator/plan.sh; plan_cap_s 26-drawer-nav-stack; plan_cap_s 06a-filters-single; plan_need_s full 15')" == $'300\n600\n2069' ]] || { echo "plan: row caps 26=300, 06a=600, shard 15 = 2099s (26, 08, 30s3, 30s4; round 4.4.8)" >&2; exit 1; }
 # 6-8. Replays of run 41391038302 (testdata/run41391038302/replay_*.sh):
 # 27 waits for validation, re-taps Try again, flaps only after recover; 17c
 # clears "temple" before typing; 24 sends one fling and compares.
@@ -2918,7 +2955,7 @@ grep -q '^SNAPCFG full-1 SNAPSHOT_CONFIG mismatch' "$r43/art431c/results.txt" &&
 grep -q '^::warning::emulator full shard 1: snapshot boot, but the AVD config differs from the snapshot: SNAPSHOT_CONFIG mismatch: disk.dataPartition.size' "$r43/art431c.out" ||
   { echo "run_shard: mismatch on a snapshot boot prints ::warning:: (round 4.3.3): $(cat "$r43/art431c.out")" >&2; exit 1; }
 # (a)/(3): worst case counts the outer kill-after; avd-warmup runs beside build.
-[[ "$(plan_need_s full 12)" == 1499 && "$(plan_need_s full 15)" == 2089 && "$(plan_need_s full 11)" == 2089 && "$(plan_need_s full 9)" == 2149 && "$(plan_need_s full 1)" == 2154 ]] || { echo "plan_need_s: shard 12 1509s, 11 and 15 2099s, 9 2159s, others 2164s (boot 150 + getprop budget 4 + keyevent 5 + getprop 5 + ready 22 + unlock 8 + animations 5, outer kill-after 10)" >&2; exit 1; }
+[[ "$(plan_need_s full 12)" == 1489 && "$(plan_need_s full 15)" == 2069 && "$(plan_need_s full 11)" == 2069 && "$(plan_need_s full 9)" == 2129 && "$(plan_need_s full 1)" == 2139 ]] || { echo "plan_need_s: shard 12 1509s, 11 and 15 2099s, 9 2159s, others 2164s (boot 150 + getprop budget 4 + keyevent 5 + getprop 5 + ready 22 + unlock 8 + animations 5, outer kill-after 10)" >&2; exit 1; }
 grep -q 'timeout --kill-after="$FLOW_OUTER_KILL_S"' tool/emulator/run_shard.sh || { echo "run_shard outer kill-after must be FLOW_OUTER_KILL_S" >&2; exit 1; }
 awk '/^  avd-warmup:/ { w = 1 } w && /needs:/ { print; exit }' "$workflow" | grep -qx '    needs: \[gate\]' || { echo "avd-warmup must need only the gate (parallel with build)" >&2; exit 1; }
 #R43_MORE
@@ -3594,5 +3631,25 @@ inst_case() { # plan... -> "rc installs services-checks"
   { echo "4.4.9 install: any other install error is not retried and waits for nothing: $(inst_case other ok)" >&2; exit 1; }
 [[ "$(inst_case ok)" == "0 1 0" ]] || { echo "4.4.9 install: a clean install runs once" >&2; exit 1; }
 echo "4.4.9 install: package-service error once -> wait + 1 retry -> ok; twice -> FAIL; other error -> FAIL, no retry"
+# Round 4.4.9b: the effective per-flow cap is in the logs. Run 41757362316
+# printed "cap 600s each" on shards 11/15/9 although 30s1-5 ran at 540s
+# (EMULATOR_FLOW_BUDGET); the header and group now print the row cap,
+# run_one_flow writes CAP <id> <s> and the flow's timeout uses it.
+cp_dir="$(mktemp -d)"; mk_ready_adb "$cp_dir/bin" 1
+printf '#!/bin/sh\necho "$1 $EMULATOR_FLOW_BUDGET" >> "$CP_LOG"\n' > "$cp_dir/runner.sh"; chmod +x "$cp_dir/runner.sh"
+CP_LOG="$cp_dir/budgets" PATH="$cp_dir/bin:$PATH" EMULATOR_FLOW_RUNNER="$cp_dir/runner.sh" EMULATOR_ARTIFACTS="$cp_dir/art" \
+  bash tool/emulator/run_shard.sh full 11 > "$cp_dir/out" 2>&1
+grep -q 'caps: 19-rotation-state=300s 20-empty-and-back=300s 30s1-filter-matrix-seq1=540s 30s2-filter-matrix-seq2=540s, worst case 2069s' "$cp_dir/out" &&
+  grep -qx '::group::Flow 30s1-filter-matrix-seq1 (cap 540s)' "$cp_dir/out" && ! grep -q 'cap 600s each' "$cp_dir/out" &&
+  grep -qx '30s1-filter-matrix-seq1 540' "$cp_dir/budgets" && grep -qx '30s2-filter-matrix-seq2 540' "$cp_dir/budgets" ||
+  { echo "4.4.9b: shard 11 must log and pass the 540s cap of 30s1/30s2: $(head -3 "$cp_dir/out"; cat "$cp_dir/budgets")" >&2; exit 1; }
+for want in "30s3-filter-matrix-seq3 540 540" "06a-filters-single 600 600" "30s1-filter-matrix-seq1 900 600"; do
+  read -r fid fb fwant <<<"$want"; rm -rf "$cp_dir/a1"; mkdir -p "$cp_dir/a1"
+  EMULATOR_FLOW_BUDGET="$fb" EMULATOR_ARTIFACTS="$cp_dir/a1" PATH="$cp_dir/bin:$PATH" EMULATOR_APK=/nonexistent \
+    timeout 60 bash tool/emulator/run_one_flow.sh "$fid" "tool/emulator/flows/29_filter_matrix.sh" > "$cp_dir/one.out" 2>&1
+  grep -qx "CAP ${fid} ${fwant}s" "$cp_dir/a1/results.txt" && grep -q "flow ${fid}: budget ${fwant}s" "$cp_dir/one.out" ||
+    { echo "4.4.9b run_one_flow: EMULATOR_FLOW_BUDGET=${fb} -> CAP ${fwant}s: $(cat "$cp_dir/a1/results.txt")" >&2; exit 1; }
+done
+echo "4.4.9b caps: shard 11 header/group/runner 540s for 30s1-2; run_one_flow CAP 540 (30s3), 600 (06a), 900 clamped to 600"
 echo "round 4.4.8 checks ok"
 echo "emulator self-test ok"

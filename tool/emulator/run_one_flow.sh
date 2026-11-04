@@ -40,6 +40,9 @@ if [[ "${EMULATOR_FLOW_TIMED:-}" != 1 ]]; then
     exit 0
   fi
   printf 'START %s\n' "$FLOW" >> "$RESULTS"
+  # Round 4.4.9b: the effective cap of this flow, as applied below.
+  printf 'CAP %s %ss\n' "$FLOW" "$FLOW_BUDGET" >> "$RESULTS"
+  echo "flow ${FLOW}: budget ${FLOW_BUDGET}s"
   set +e
   EMULATOR_FLOW_TIMED=1 timeout --kill-after=15 "$FLOW_BUDGET" bash "$0" "$@"
   flow_rc=$?

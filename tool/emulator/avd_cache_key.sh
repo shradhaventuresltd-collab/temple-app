@@ -65,10 +65,21 @@ else
   echo "::warning::no Pkg.Revision in ${props}; using a one-run AVD cache key"
 fi
 
-key="avd-${EMULATOR_API_LEVEL}-${EMULATOR_TARGET}-${EMULATOR_ARCH}-${image}-cores${cores}-disk${EMULATOR_DISK_SIZE}-emu${EMULATOR_BUILD}-${EMULATOR_AVD_NAME}-clean-cfg5"
+# Round 4.4.9b (architect): the snapshot is CPU-specific (cpu_id.sh; run
+# 41757362316 SIGILL on 6 of 15 shards). cfg5 -> cfg6-<cpu hash>. The
+# restore steps have no restore-keys, so another CPU's snapshot is never
+# restored. Unreadable cpuinfo: a one-run key, like an unknown image.
+if cpu="$(bash "$(dirname "${BASH_SOURCE[0]}")/cpu_id.sh")"; then
+  echo "host CPU: $(bash "$(dirname "${BASH_SOURCE[0]}")/cpu_id.sh" --describe)"
+else
+  cpu="cpuunknown-${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-0}-${GITHUB_JOB:-job}-${RANDOM}"
+  echo "::warning::could not read the host CPU (model name/flags); using a one-run AVD cache key"
+fi
+key="avd-${EMULATOR_API_LEVEL}-${EMULATOR_TARGET}-${EMULATOR_ARCH}-${image}-cores${cores}-disk${EMULATOR_DISK_SIZE}-emu${EMULATOR_BUILD}-${EMULATOR_AVD_NAME}-clean-cfg6-${cpu}"
 {
   echo "EMULATOR_CORES=${cores}"
   echo "EMULATOR_SYSIMG_REVISION=${rev}"
   echo "EMULATOR_AVD_CACHE_KEY=${key}"
+  echo "EMULATOR_CPU_ID=${cpu}"
 } >> "$out_env"
 echo "AVD cache key: ${key}"

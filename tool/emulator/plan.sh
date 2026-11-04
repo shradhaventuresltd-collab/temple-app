@@ -23,7 +23,10 @@ FLOW_KILL_AFTER_S=15
 # pm clear) max 4.9s (median 2.0s), last line -> group end (logcat pull,
 # FAIL write, incl. the 600s-timeout flows) max 6.8s: <= 12s. 30s keeps
 # 2.5x headroom; every flow still gets reset_device_state + pm clear.
-FLOW_RESET_S=30
+# Round 4.4.9b (architect: >= 10s margin on create failed + retry): 25s,
+# still 2.1x the 12s measured maximum; the 4.4.9 install retry (services
+# wait + install) runs inside the flow's own cap, not in this allowance.
+FLOW_RESET_S=25
 # run_shard.sh's outer "timeout --kill-after" on top of the flow guard
 # (round 4.3.1: counted in plan_need_s).
 FLOW_OUTER_KILL_S=10
@@ -136,11 +139,12 @@ SHARD_COUNT=15
 # boot 150 + action keyevent 5 + getprop 5 + ready 22 + unlock 13 +
 # animations 5 = 200s; round 4.4.6: + boot getprop budget 4, unlock 8 =
 # 199s; round 4.4.9: readiness 12s (before BOOT) = 189s:
-# shard 12: 189 + 2 x (600 + 55) = 1499s = 24.98 min;
-# shard 15: 189 + 2 x (300 + 55) + 2 x (540 + 55) = 2089s (round 4.4.8:
-#   26, 08, 30s3, 30s4); shard 11: 189 + 2 x 355 + 2 x 595 = 2089s;
-#   shard 9: 189 + 655 + 2 x 355 + 595 = 2149s;
-# every other shard: 189 + 3 x 655 = 2154s = 35.9 min. All <= 39 min,
+# round 4.4.9b: per flow cap + 15 + 25 reset + 10 = cap + 50:
+# shard 12: 189 + 2 x (600 + 50) = 1489s = 24.82 min;
+# shard 15: 189 + 2 x (300 + 50) + 2 x (540 + 50) = 2069s (round 4.4.8:
+#   26, 08, 30s3, 30s4); shard 11: 189 + 2 x 350 + 2 x 590 = 2069s;
+#   shard 9: 189 + 650 + 2 x 350 + 590 = 2129s;
+# every other shard: 189 + 3 x 650 = 2139s = 35.65 min. All <= 39 min,
 # step timeout 42 (self_test checks every shard against 39 min).
 # shellcheck disable=SC2034 # read by self_test.sh (sources this file)
 SHARD_WORST_MAX_S=$((39 * 60))

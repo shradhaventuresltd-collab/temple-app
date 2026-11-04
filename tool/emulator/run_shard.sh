@@ -36,7 +36,11 @@ skipped=0
 while read -r id _; do
   if [[ -n "$id" ]] && plan_is_skipped "$id"; then skipped=$((skipped + 1)); fi
 done <<<"$rows"
-echo "Emulator ${tier}${shard:+ shard ${shard}}: ${total} flows (${skipped} skipped, $((total - skipped)) to run), cap ${FLOW_CAP_S}s each, worst case $(plan_need_s "$tier" "$shard")s"
+# Round 4.4.9b: the per-row caps (plan.sh field 5), not the 600s ceiling:
+# run 41757362316 printed "cap 600s each" for shards whose 30sN rows run
+# at 540s, which read as if 540 was not applied.
+caps_line="$(plan_ids "$tier" "$shard" | while read -r cid; do plan_is_skipped "$cid" || printf '%s=%ss ' "$cid" "$(plan_cap_s "$cid")"; done)"
+echo "Emulator ${tier}${shard:+ shard ${shard}}: ${total} flows (${skipped} skipped, $((total - skipped)) to run), caps: ${caps_line% }, worst case $(plan_need_s "$tier" "$shard")s"
 
 # Boot check, once per job: snapshot_create.sh set a RAM-only property
 # before saving the snapshot, so it is still set only if this boot restored
@@ -97,7 +101,7 @@ if [[ "${EMULATOR_SHARD_DRY_RUN:-}" != 1 ]]; then
   kill "$preboot_watchdog" 2>/dev/null; wait "$preboot_watchdog" 2>/dev/null
   rmdir "$claim" 2>/dev/null
   printf '%s\n' "$svc_out"
-  host_cpu="$(sed -n 's/^model name[[:space:]]*: //p' /proc/cpuinfo 2>/dev/null | head -1) flags-md5=$(grep -m1 '^flags' /proc/cpuinfo 2>/dev/null | md5sum | cut -c1-8)"
+  host_cpu="$(bash tool/emulator/cpu_id.sh --describe 2>/dev/null || echo unknown) (cache key cpu ${EMULATOR_CPU_ID:-unset})"
   if (( svc_rc != 0 )); then
     printf 'DEAD boot %s%s: system services not ready after %ss (%s); host cpu %s\n' "$tier" "${shard:+-${shard}}" "$services_wait_s" "$(tail -1 <<<"$svc_out")" "$host_cpu" >> "${artifacts}/results.txt"
     echo "::error::emulator ${tier}${shard:+ shard ${shard}}: system services not ready after ${services_wait_s}s; dead boot (no BOOT line), the boot check retries once"
@@ -170,9 +174,9 @@ while read -r id script part <&3; do
     echo "SKIPPED ${id}"
     continue
   fi
-  echo "::group::Flow ${id}"
-  started=$SECONDS
   cap="$(plan_cap_s "$id")"
+  echo "::group::Flow ${id} (cap ${cap}s)"
+  started=$SECONDS
   flow_guard=$((cap + FLOW_KILL_AFTER_S + FLOW_RESET_S))
   (( flow_guard <= guard )) || flow_guard=$guard
   EMULATOR_FLOW_BUDGET="$cap" FILTER_MATRIX_PART="${part:-all}" timeout --kill-after="$FLOW_OUTER_KILL_S" "$flow_guard" \
