@@ -46,7 +46,7 @@ class _AppDrawerState extends State<AppDrawer> {
   String? _selectedDeity;
   String? _selectedDistrict;
 
-  late final Future<List<Temple>> _templesFuture;
+  late Future<List<Temple>> _templesFuture;
   final TextEditingController _searchController = TextEditingController();
   Timer? _searchDebounce;
   String _appliedQuery = '';
@@ -74,9 +74,19 @@ class _AppDrawerState extends State<AppDrawer> {
   @override
   void initState() {
     super.initState();
+    _loadTemples();
+  }
+
+  void _loadTemples() {
     _templesFuture =
         widget.templesLoader?.call() ?? TempleService().getTemples();
     warmDirectoryDistricts(_templesFuture);
+  }
+
+  /// A failed directory load left "Loading filters" up for the life of the
+  /// drawer. Try again runs the load once more.
+  void _retryTemples() {
+    setState(_loadTemples);
   }
 
   @override
@@ -294,7 +304,32 @@ class _AppDrawerState extends State<AppDrawer> {
               // The sheet captures the temple list when it opens. Opening it
               // before the directory arrives showed "Any state 0" and
               // "Show 0 temples" for the life of that sheet (run 40463875634).
-              if (!snapshot.hasData)
+              if (snapshot.hasError &&
+                  snapshot.connectionState == ConnectionState.done)
+                Padding(
+                  key: const Key('drawer-filters-error'),
+                  padding: const EdgeInsets.fromLTRB(18, 4, 8, 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Could not load filters',
+                          style: GoogleFonts.poppins(fontSize: 13),
+                        ),
+                      ),
+                      Semantics(
+                        identifier: 'drawer-filters-retry',
+                        button: true,
+                        child: TextButton(
+                          key: const Key('drawer-filters-retry'),
+                          onPressed: _retryTemples,
+                          child: const Text('Try again'),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else if (!snapshot.hasData)
                 Semantics(
                   identifier: 'drawer-filters-loading',
                   label: 'Loading filters',

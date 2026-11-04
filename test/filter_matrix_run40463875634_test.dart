@@ -112,6 +112,50 @@ void main() {
     expect(find.byKey(const Key('filter-chip-state')), findsOneWidget);
   });
 
+  testWidgets('drawer filters: a failed load offers Try again, which reloads', (
+    tester,
+  ) async {
+    var calls = 0;
+    Completer<List<Temple>>? pending;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          drawer: AppDrawer(
+            templesLoader: () {
+              calls++;
+              if (calls == 1) return Future.error(Exception('offline'));
+              pending = Completer<List<Temple>>();
+              return pending!.future;
+            },
+          ),
+          body: const SizedBox.expand(),
+        ),
+      ),
+    );
+    final ScaffoldState scaffold = tester.firstState(find.byType(Scaffold));
+    scaffold.openDrawer();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.byKey(const Key('drawer-filters-error')), findsOneWidget);
+    expect(find.byKey(const Key('drawer-filters-loading')), findsNothing);
+    expect(find.byKey(const Key('filter-chip-state')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('drawer-filters-retry')));
+    await tester.pump();
+    expect(calls, 2);
+    // The retry is still loading: the loader shows, not the error.
+    expect(find.byKey(const Key('drawer-filters-loading')), findsOneWidget);
+    expect(find.byKey(const Key('drawer-filters-error')), findsNothing);
+
+    pending!.complete([_temple(), _temple(id: 't2', state: 'Kerala')]);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byKey(const Key('drawer-filters-error')), findsNothing);
+    expect(find.byKey(const Key('drawer-filters-loading')), findsNothing);
+    expect(find.byKey(const Key('filter-chip-state')), findsOneWidget);
+  });
+
   testWidgets('home warms districts when the directory loads, before a tap', (
     tester,
   ) async {
