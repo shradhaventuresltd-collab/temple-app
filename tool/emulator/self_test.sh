@@ -2574,6 +2574,46 @@ done
 o="$(R24_DUMP=detail_single_1of1.xml run24 single2 2>/dev/null)"
 grep -q "^NA 24-gallery-autoadvance-viewer: multi-photo: 'Aazhimala' has a single photo" <<<"$o" || { echo "flow 24: '1 / 1' stays NA: $o" >&2; exit 1; }
 echo "4.4.9f flow 24: '2 / 5' PASS, '6 / 5' and '7 / 5' FAIL, '1 / 1' NA"
+# Round 4.4.9g (run 41825986479 shard 13): Get Directions came into view
+# with the 3rd fling; the loop must look once more after its last fling.
+# Real dumps: 3 looks without the button, the 4th with it.
+f25=tool/emulator/flows/25_directions_edge.sh
+fx25=tool/emulator/testdata/run41825986479
+# shellcheck disable=SC2016,SC2034,SC2154,SC2178,SC2329 # stubs and eval of the flow block
+o25="$( ( export EMULATOR_FLOW=25-directions-edge EMULATOR_ARTIFACTS="$r4/f25" EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  n25=0
+  ui_dump() { n25=$((n25 + 1)); if (( n25 <= 3 )); then cp "$fx25/detail_no_directions.xml" "$DUMP"; else cp "$fx25/detail_directions_in_view.xml" "$DUMP"; fi; }
+  flings=0; ui_fling() { flings=$((flings + 1)); }
+  eval "$(sed -n '/^directions_found=0$/,/^done$/p' "$f25")"
+  echo "found=$directions_found flings=$flings looks=$n25" ) 2>/dev/null )"
+[[ "$o25" == "found=1 flings=3 looks=4" ]] || { echo "4.4.9g flow 25: button after the 3rd fling must be found (3 flings, 4 looks): $o25" >&2; exit 1; }
+# shellcheck disable=SC2016,SC2034,SC2154,SC2178,SC2329 # stubs and eval of the flow block
+o25="$( ( export EMULATOR_FLOW=25-directions-edge EMULATOR_ARTIFACTS="$r4/f25b" EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  n25=0; ui_dump() { n25=$((n25 + 1)); cp "$fx25/detail_no_directions.xml" "$DUMP"; }
+  flings=0; ui_fling() { flings=$((flings + 1)); }
+  eval "$(sed -n '/^directions_found=0$/,/^done$/p' "$f25")"
+  echo "found=$directions_found flings=$flings looks=$n25" ) 2>/dev/null )"
+[[ "$o25" == "found=0 flings=3 looks=4" ]] || { echo "4.4.9g flow 25: never in view -> not found after 3 flings, no 4th fling: $o25" >&2; exit 1; }
+echo "4.4.9g flow 25: a look after the last fling finds Get Directions (real 41825986479 dumps)"
+# Round 4.4.9g (run 41825986479 shard 9): each sequence action gets its own
+# step budget (the 150s clock ran across install + Home + 3 actions).
+f29=tool/emulator/flows/29_filter_matrix.sh
+# shellcheck disable=SC2016,SC2034,SC2154,SC2178,SC2329 # stubs and eval of the flow block
+o29="$( ( export EMULATOR_FLOW=30s5-filter-matrix-seq5 EMULATOR_ARTIFACTS="$r4/f29seq" EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  STEP_BUDGET_S=2
+  do_action() { sleep 1.2; step_budget_ok; }
+  recover_sheet() { :; }
+  seq="deity:select district:select state:outside-empty district:clear"; n=5; ok=1
+  eval "$(sed -n '/^  for st in \$seq; do$/,/^  done$/p' "$f29")"
+  echo "ok=$ok" ) 2>/dev/null )"
+[[ "$o29" == "ok=1" ]] || { echo "4.4.9g flow 29: each sequence action must get its own step budget: $o29" >&2; exit 1; }
+echo "4.4.9g flow 29: sequence actions each get a fresh step budget"
 if grep -q 'multi-photo-not-applicable\|skip_step multi-photo' "$f24" || ! grep -q '^if (( ! SINGLE )); then$' "$f24"; then
   echo "flow 24: no blanket NA; paging checks run unless a single photo was proven" >&2; exit 1
 fi
