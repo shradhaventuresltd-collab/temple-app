@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:temple_app/district/district_lookup.dart';
 import 'package:temple_app/config/build_flags.dart';
 import 'package:temple_app/data/heritage_content.dart';
 import 'package:temple_app/models/temple.dart';
@@ -134,6 +135,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _templeService = widget.templeService ?? TempleService(now: widget.now);
     HomeScroll.attach(_homeScroll);
     _templesFuture = _loadTemples();
+    // Match districts as soon as the directory arrives, not on the first
+    // District tap, so that sheet opens on names instead of a loader.
+    warmDirectoryDistricts(_templesFuture);
     unawaited(_markInitialLoadFinished());
     DirectoryReconnect.tick.addListener(_onReconnect);
     TempleService.revision.addListener(_onPublished);
