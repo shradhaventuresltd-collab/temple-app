@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 # Flow 6. Every directory filter: open, dismiss, select, back, tap-outside,
 # clear, repeat, then combined filters, detail, resume, and process death.
+# Round 4.3: split in two (plan.sh 06a/06b, FILTER_MATRIX_PART):
+#   single    the per-filter checks (state, deity, district, other chips)
+#   combined  Kerala + Vishnu + a real Kerala district (Alappuzha), then
+#             detail, resume, force-stop
+#   all       both (local runs)
+# Run 41391038302 hit the 600s cap with one flow doing both.
+FILTERS_PART="${FILTER_MATRIX_PART:-all}"
+case "$FILTERS_PART" in single|combined|all) ;; *) FILTERS_PART=all ;; esac
 if ! err="$(reach_browse)"; then
   fail_step browse "${err:-could not open the temple list}"
   return 0
@@ -168,7 +176,7 @@ exercise_filter() {
   fi
 
   local n
-  for n in 1 2 3; do
+  for n in $(seq 1 "${FILTER_REPEATS:-2}"); do
     if ! "$opener"; then
       fail_step "${key}-repeat-${n}" "could not open"
       continue
@@ -190,17 +198,25 @@ exercise_filter() {
   clear_named "$clear_name" || true
 }
 
+if [[ "$FILTERS_PART" != combined ]]; then
 exercise_filter state '^Kerala( +[0-9]+)?$' State open_state state
-exercise_filter deity '^Shiva( +[0-9]+)?$' Deity open_deity deity
+# State was cleared above, so the deity and district lists are all-India:
+# first-screen targets under the 20s picker give-up (Shiva and Madurai sit
+# far down those lists and gave up at 20-21s in run 41306793034).
+exercise_filter deity "$ALL_INDIA_DEITY_PICK" Deity open_deity deity
 
 if scroll_chips_until --resource-id filter-chip-district || scroll_chips_until --text-regex '^All districts$'; then
   pass_step district-chip-visible
-  exercise_filter district '^Madurai( +[0-9]+)?$' "All districts" open_district district
+  exercise_filter district "$ALL_INDIA_DISTRICT_PICK" "All districts" open_district district
 else
   pass_step district-chip-not-visible
 fi
 
-if scroll_chips_until --resource-id filter-chip-city || scroll_chips_until --text-regex '^(City|All cities)$'; then
+# Absence check from the chip ids in one dump: two scroll_chips_until
+# misses spent 70s here in run 41373837994 (01:58:02 -> 01:59:13).
+ui_dump || true
+if python3 "$UI_PY" resource-ids "$DUMP" --prefix filter-chip- 2>/dev/null | grep -qx 'filter-chip-city' ||
+   ui_find --text-regex '^(City|All cities)$'; then
   pass_step city-chip-visible
 else
   pass_step city-chip-not-shown
@@ -215,6 +231,19 @@ while read -r chip_id; do
   opener_unknown() { open_by_id "$chip_id"; }
   exercise_filter "$chip_id" '^(?!Any |All ).+[0-9]+$' "" opener_unknown "$chip_id"
 done < <(python3 "$UI_PY" resource-ids "$DUMP" --prefix filter-chip- || true)
+fi
+if [[ "$FILTERS_PART" == single ]]; then
+  return 0
+fi
+# The combined part runs on its own (06b), so the single-chip part never set
+# these. Here *_SELECT_OK=1 does not mean a single-chip select passed: it
+# means "the combined steps below apply this value themselves" (Kerala via
+# the state chip, Vishnu via the deity chip), and the later checks assert
+# exactly those values.
+if [[ "$FILTERS_PART" == combined ]]; then
+  STATE_SELECT_OK=1; STATE_LABEL=Kerala
+  DEITY_SELECT_OK=1; DEITY_LABEL=Vishnu
+fi
 
 # Combined filters. A step whose select never landed is NOT RUN, and later
 # checks assert only the values that were actually applied.
@@ -249,6 +278,23 @@ applied_chips_present() {
   [[ -z "$APPLIED_MISSING" ]]
 }
 
+# After the first combined-* failure the rest of the flow builds on a
+# filter that is not there. Run 41314245431 kept going after combined-deity
+# and burned the 600s budget. Record what is left as NOT RUN and stop.
+COMBINED_REST="combined-deity combined-district combined-chips detail-open detail-back-keeps-filter home-resume-keeps-filter force-stop-relaunch force-stop-resets-filter"
+abort_after_combined_fail() {
+  local failed="$1" step started=0
+  for step in $COMBINED_REST; do
+    if [[ "$started" -eq 1 ]]; then
+      record_not_run "$step" "stopped after ${failed} failed"
+    fi
+    [[ "$step" == "$failed" ]] && started=1
+  done
+  if [[ "$failed" == combined-state ]]; then
+    for step in $COMBINED_REST; do record_not_run "$step" "stopped after ${failed} failed"; done
+  fi
+}
+
 if [[ "$STATE_SELECT_OK" -ne 1 || -z "$STATE_LABEL" ]]; then
   skip_if_failed combined-state "state-select did not apply a state" \
     state-open state-reopen state-select
@@ -259,28 +305,54 @@ else
   else
     fail_step combined-state "could not apply ${STATE_LABEL}"
     recover_sheet
+    abort_after_combined_fail combined-state
+    return 0
   fi
 fi
 if [[ "$DEITY_SELECT_OK" -ne 1 || -z "$DEITY_LABEL" ]]; then
   skip_if_failed combined-deity "deity-select did not apply a deity" \
     deity-open deity-reopen deity-select
 else
-  if open_deity && select_labeled "^$(re_escape "$DEITY_LABEL")( +[0-9]+)?$" DEITY && apply_sheet && chip_exact "$DEITY_LABEL"; then
-    COMBINED_DEITY="$DEITY_LABEL"
+  # The deity list is scoped to the applied state. The all-India pick
+  # (Ahalya in run 41373837994) is not offered inside Kerala, so seek
+  # answered "none". Inside a state, pick a deity that state offers.
+  combined_deity_rx="^$(re_escape "$DEITY_LABEL")( +[0-9]+)?$"
+  if [[ -n "$COMBINED_STATE" ]]; then
+    combined_deity_rx="${COMBINED_DEITY_PICK:-^Vishnu( +[0-9]+)?$}"
+  fi
+  if open_deity && select_labeled "$combined_deity_rx" DEITY && apply_sheet && chip_exact "$SELECTED_LABEL"; then
+    COMBINED_DEITY="$SELECTED_LABEL"
+    DEITY_LABEL="$SELECTED_LABEL"
     pass_step combined-deity
   else
     fail_step combined-deity "could not apply ${DEITY_LABEL}"
     recover_sheet
+    abort_after_combined_fail combined-deity
+    return 0
   fi
 fi
+# A real district of the applied state, not '^(?!All districts).+[0-9]+$':
+# option_name_from_regex cannot read "(?!", so no seek ran and the old
+# section-blind step scan tapped "Bihar N" in STATE below DISTRICT (run
+# 41391038302: "Vishnu · Bihar", All districts, and the step still PASSed).
+# Alappuzha is Kerala's first district (Ambalappuzha Sri Krishna, Vishnu).
+# After the apply the state chip must still show the applied state.
+COMBINED_DISTRICT_RX="${COMBINED_DISTRICT_PICK:-^Alappuzha( +[0-9]+)?$}"
 if scroll_chips_until --resource-id filter-chip-district || scroll_chips_until --text-regex '^All districts$'; then
-  if open_district && select_labeled '^(?!All districts).+[0-9]+$' DISTRICT && apply_sheet; then
+  if open_district && select_labeled "$COMBINED_DISTRICT_RX" DISTRICT && apply_sheet; then
     COMBINED_DISTRICT="$SELECTED_LABEL"
     DISTRICT_LABEL="$SELECTED_LABEL"
+    if [[ -n "$COMBINED_STATE" ]] && ! state_chip_is "$COMBINED_STATE"; then
+      fail_step combined-district "state chip changed from ${COMBINED_STATE} to '${STATE_CHIP_ACTUAL}' after picking ${COMBINED_DISTRICT}"
+      abort_after_combined_fail combined-district
+      return 0
+    fi
     pass_step combined-district
   else
     fail_step combined-district "could not apply a district inside the selected state"
     recover_sheet
+    abort_after_combined_fail combined-district
+    return 0
   fi
 else
   pass_step combined-district-not-visible
@@ -343,14 +415,15 @@ accept_policy_if_shown || true
 if ! open_browse || ! wait_browse_ready; then
   fail_step force-stop-relaunch "browse list did not return after force-stop"
 elif [[ -z "$COMBINED_STATE" && -z "$COMBINED_DEITY" && -z "$COMBINED_DISTRICT" ]]; then
-  skip_if_failed force-stop-keeps-filter "no combined filter was applied" \
+  skip_if_failed force-stop-resets-filter "no combined filter was applied" \
     state-open state-reopen state-select \
     deity-open deity-reopen deity-select \
     district-open district-select \
     combined-state combined-deity combined-district
 elif applied_chips_present; then
-  pass_step force-stop-keeps-filter
+  # By design filters live in memory (app_drawer.dart _selectedState etc.,
+  # no SharedPreferences), so a force-stop must reset them.
+  fail_step force-stop-resets-filter "filters survived force-stop: ${COMBINED_STATE} ${COMBINED_DEITY} ${COMBINED_DISTRICT}"
 else
-  # Filters are in memory only. Force-stop clears them; that is expected.
-  xfail_step force-stop-keeps-filter "filters live in memory and reset after force-stop"
+  pass_step force-stop-resets-filter
 fi

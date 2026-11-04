@@ -20,29 +20,116 @@ RESULTS="${ARTIFACTS}/results.txt"
 DUMP="${DUMP_DIR}/${FLOW}.xml"
 SHOT_N=0
 PKG="${EMULATOR_PACKAGE:-}"
+# All-India pick targets (flows 06, 22). Each is on the filter sheet's
+# first screen at 320x640, so it fits the 20s picker give-up with no
+# scroll: the first district of the bundled boundary asset in the app's
+# sort, and the first single-word live deity label (same targets and
+# replay evidence as PR #124). Shiva is picked only Tamil Nadu-scoped.
+# shellcheck disable=SC2034
+ALL_INDIA_DISTRICT_PICK='^24 Paraganas North( +[0-9]+)?$'
+# Round 4.4: the deity pick is the sheet's first real option (@first, see
+# first_real_option): the hard-coded '^Ahalya( +[0-9]+)?$' left the live
+# list (run 41461260068: "81 Yoginis; Gauri-Shankar (central shrine)",
+# "Adinatha — Jain", ...; shard 10 "deity 'Ahalya' is not in the list").
+# shellcheck disable=SC2034
+ALL_INDIA_DEITY_PICK='@first'
+# Bounded picker walk in select_labeled, in seconds.
+PICKER_GIVEUP_S="${EMULATOR_PICKER_GIVEUP_S:-20}"
+# District and deity lists are 400-600 options; run 41373837994 gave up on
+# Madurai (29) and Shiva (17) at 20-22s with the target one fling away.
+# Round 4.3: the state picker gets it too. Run 41391038302 gave up on Tamil
+# Nadu (27th of 36 states) at 20s: STATE is always "near" (slow drags, no
+# flings), each look costs a drag plus 2-3 dumps of ~2.3s on a cold
+# swiftshader AVD, so 20s held 3 looks (dryrun 04-pickers-before).
+PICKER_LONG_GIVEUP_S="${EMULATOR_PICKER_LONG_GIVEUP_S:-45}"
+# Scoped targets: Shiva and Madurai are picked only from a list already
+# scoped to Tamil Nadu (state chip shows it): ~32 deities / ~38 districts.
+# All-India lists (600 deities) get the head-of-list picks above.
+TN_DEITY_PICK='^Shiva( +[0-9]+)?$'
+TN_DISTRICT_PICK='^Madurai( +[0-9]+)?$'
+
+# Per-step cap. Every record_* call starts a new step; ui_dump (called by
+# every wait, scroll and find loop) refuses to run once the current step is
+# older than STEP_BUDGET_S, so a stuck step fails on its own instead of
+# eating the 600s flow budget (06, 17, 29, 30 in run 41373837994).
+STEP_BUDGET_S="${EMULATOR_STEP_BUDGET_S:-150}"
+STEP_STARTED=$SECONDS
+STEP_TIMED_OUT=0
+step_reset() { STEP_STARTED=$SECONDS; STEP_TIMED_OUT=0; }
+step_budget_ok() {
+  if (( SECONDS - STEP_STARTED > STEP_BUDGET_S )); then
+    if (( ! STEP_TIMED_OUT )); then
+      echo "step timeout: current step older than ${STEP_BUDGET_S}s (EMULATOR_STEP_BUDGET_S)" >&2
+    fi
+    STEP_TIMED_OUT=1
+    return 1
+  fi
+  return 0
+}
 
 mkdir -p "$SHOT_DIR" "$REC_DIR" "$LOG_DIR" "$DUMP_DIR"
 
 record_pass() {
   printf 'PASS %s: %s\n' "$FLOW" "$1" | tee -a "$RESULTS"
+  step_reset
 }
 
 record_fail() {
-  printf 'FAIL %s: %s: %s\n' "$FLOW" "$1" "$2" | tee -a "$RESULTS"
+  local why="$2"
+  (( STEP_TIMED_OUT )) && why="${why} [step timeout ${STEP_BUDGET_S}s]"
+  printf 'FAIL %s: %s: %s\n' "$FLOW" "$1" "$why" | tee -a "$RESULTS"
+  step_reset
 }
 
 record_xfail() {
   printf 'XFAIL %s: %s: %s\n' "$FLOW" "$1" "$2" | tee -a "$RESULTS"
+  step_reset
+}
+
+# An XFAIL step that passed: the known bug is fixed and the XFAIL mark must
+# go. summarize.sh fails the job on any XPASS.
+record_xpass() {
+  printf 'XPASS %s: %s: %s\n' "$FLOW" "$1" "$2" | tee -a "$RESULTS"
+  echo "::error::XPASS ${FLOW}: $1 passed but is marked XFAIL ($2); remove the XFAIL mark"
+  step_reset
+}
+
+# NA: the step's precondition is proven absent on this device/data (e.g. a
+# '1 / 1' gallery). Not a PASS; summarize lists it apart, and the strict
+# release gate refuses it unless "<flow>:<step>" is in plan.sh
+# DEFAULT_NA_STEPS.
+record_na() {
+  printf 'NA %s: %s: %s\n' "$FLOW" "$1" "$2" | tee -a "$RESULTS"
+  step_reset
+}
+na_step() {
+  record_na "$1" "$2"
+  step_shot "$1"
+  save_step_dump "$1"
 }
 
 record_not_run() {
   printf 'NOT RUN %s: %s: %s\n' "$FLOW" "$1" "$2" | tee -a "$RESULTS"
+  step_reset
+}
+
+# Artifact file name for a step id. actions/upload-artifact rejects ':'
+# (and " < > | * ? CR LF), and run 41391038302 lost all of shard 11 on
+# "30s-filter-matrix-sequences_seq1-deity:select.xml". ':' becomes '_',
+# and anything outside [A-Za-z0-9_.-] becomes '_' too.
+artifact_safe_name() {
+  printf '%s' "$1" | tr ':' '_' | tr -c 'A-Za-z0-9_.-' '_'
+}
+
+# Copy the current dump next to the step it explains.
+save_step_dump() {
+  cp -f "$DUMP" "${DUMP_DIR}/$(artifact_safe_name "${FLOW}_${1}").xml" 2>/dev/null || true
 }
 
 step_shot() {
   local safe dest attempt
   SHOT_N=$((SHOT_N + 1))
-  safe=$(printf '%s' "$1" | tr -c 'A-Za-z0-9_-' '_')
+  safe=$(artifact_safe_name "$1")
   dest="${SHOT_DIR}/$(printf '%02d_%s.png' "$SHOT_N" "$safe")"
   # screencap, not the screenrecord buffer. After a resize the first frame
   # can be black; wait until a capture has pixels, then keep that file.
@@ -64,7 +151,7 @@ pass_step() {
 fail_step() {
   record_fail "$1" "$2"
   step_shot "$1"
-  cp -f "$DUMP" "${DUMP_DIR}/${FLOW}_${1}.xml" 2>/dev/null || true
+  save_step_dump "$1"
   # A sheet left open makes the next step fail on the wrong screen.
   dismiss_blockers || true
 }
@@ -72,7 +159,21 @@ fail_step() {
 xfail_step() {
   record_xfail "$1" "$2"
   step_shot "$1"
-  cp -f "$DUMP" "${DUMP_DIR}/${FLOW}_${1}.xml" 2>/dev/null || true
+  save_step_dump "$1"
+}
+
+# Known-bug step: XFAIL while the bug is there, XPASS (a failure) once the
+# check passes, so the mark is removed when the fix lands.
+#   xfail_known STEP TICKET REASON COMMAND...
+xfail_known() {
+  local step="$1" ticket="$2" reason="$3"
+  shift 3
+  if "$@"; then
+    record_xpass "$step" "${ticket}: ${reason}"
+    step_shot "$step"
+  else
+    xfail_step "$step" "${ticket}: ${reason}"
+  fi
 }
 
 skip_step() {
@@ -81,7 +182,7 @@ skip_step() {
   if ! grep -Eq "^FAIL ${FLOW}:" "$RESULTS" 2>/dev/null; then
     record_fail "$1" "no failed prerequisite: $2"
     step_shot "$1"
-    cp -f "$DUMP" "${DUMP_DIR}/${FLOW}_${1}.xml" 2>/dev/null || true
+    save_step_dump "$1"
     dismiss_blockers || true
     return
   fi
@@ -103,26 +204,37 @@ adb_shell_capped() {
   return "$rc"
 }
 
+# Width and height as the screen is now. wm size reports the natural
+# (portrait) size; in landscape (SurfaceOrientation 1 or 3) the two are
+# swapped. Run 41373837994 flow 19 computed portrait bands (320x640) on a
+# 640x320 landscape screen.
 ui_screen_size() {
-  local size_rc
-  timeout 8 adb shell wm size | tr -d '\r' | awk '
+  local size_rc size rot
+  size="$(timeout 8 adb shell wm size | tr -d '\r' | awk '
     /Override size:/ { w=$3; next }
     /Physical size:/ { if (w == "") w=$3 }
     END {
       split(w, a, "x")
       if (a[1] != "" && a[2] != "") print a[1], a[2]
     }
-  '
-  # awk's status would hide a timed-out wm size. Keep timeout's code.
-  size_rc=${PIPESTATUS[0]}
+  '; exit "${PIPESTATUS[0]}")"
+  size_rc=$?
   if [[ "$size_rc" -eq 124 ]]; then
     echo "ui_screen_size: wm size timed out after 8s" >&2
+    return "$size_rc"
   fi
-  return "$size_rc"
+  [[ -n "$size" ]] || return 1
+  rot="$(timeout 8 adb shell dumpsys input 2>/dev/null | tr -d '\r' | sed -n 's/.*SurfaceOrientation: *\([0-9]\).*/\1/p' | head -1)"
+  if [[ "$rot" == 1 || "$rot" == 3 ]]; then
+    read -r w h <<<"$size"
+    if (( w < h )); then size="$h $w"; fi
+  fi
+  echo "$size"
 }
 
 ui_dump() {
   local attempt err noisy rc
+  step_budget_ok || return 1
   local saved=""
   local timed_out=0
   for attempt in 1 2 3 4 5; do
@@ -207,6 +319,152 @@ ui_back() {
   adb_shell_capped 8 input keyevent 4
 }
 
+# Back out until the app's detail screen is on top, at most $1 backs.
+# Run 41314245431 (flow 25): Maps opened "Update Google Maps to continue",
+# which takes its own backs, so a fixed two backs left Maps on screen.
+# Sets BACKS_USED. Exit 0 when Get Directions in our package is visible.
+# After a Get Directions tap with Maps disabled: a browser in front (the
+# app's URL fallback) or an in-app message about Maps/directions.
+maps_fallback_shown() {
+  [[ -s "${DUMP:-}" ]] || return 1
+  if grep -Eq 'package="(com\.android\.chrome|org\.chromium\.[a-z.]+|com\.android\.browser|org\.mozilla\.[a-z.]+)"' "$DUMP"; then
+    return 0
+  fi
+  ui_find --text-regex '(?i)(maps|directions).*(not available|unavailable|could ?n.t|install|no app)'
+}
+
+back_until_detail() {
+  local max="${1:-6}" pkg="${PKG:-${EMULATOR_PACKAGE:-}}"
+  BACKS_USED=0
+  while (( BACKS_USED < max )); do
+    ui_back
+    BACKS_USED=$((BACKS_USED + 1))
+    sleep 1
+    ui_dump || continue
+    if ui_find --resource-id get-directions-button --package-contains "$pkg" ||
+       ui_find --text-regex 'Get Directions' --package-contains "$pkg"; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+# Logcat window for one step, without clearing the buffer (later checks
+# still see earlier lines): write a unique marker line with log -t, then
+# read only the lines after it. adb shell joins its arguments and the device
+# shell re-splits them (run of cc3e912: date +'%m-%d %H:%M:%S.000' became two
+# operands), so the device command goes as ONE string with the tag quoted.
+# The marker line itself is printed first: its threadtime prefix is the
+# device-local start time of the window.
+# A missing marker is an error, not an empty window: without it the window
+# is empty, no crash or Maps START can be seen, and the check would pass on
+# nothing. logcat_window_read prints the window and exits 0 only when the
+# TempleEmuMark line is in the log; otherwise it prints nothing, says so on
+# stderr and exits 3. Callers must FAIL the step on a non-zero status.
+logcat_window_start() {
+  LOGCAT_MARK="temple-emu-window-${1:-step}-$$-${RANDOM}"
+  if ! adb_shell_capped 8 "log -t TempleEmuMark '${LOGCAT_MARK}'" >/dev/null 2>&1; then
+    echo "logcat_window_start: log -t TempleEmuMark failed" >&2
+    return 1
+  fi
+}
+logcat_window_read() {
+  local out
+  if [[ -z "${LOGCAT_MARK:-}" ]]; then
+    echo "logcat_window_read: no window started (TempleEmuMark marker missing)" >&2
+    return 3
+  fi
+  out="$(timeout 8 adb logcat -d -v threadtime </dev/null 2>/dev/null | tr -d '\r' |
+    awk -v m="${LOGCAT_MARK}" '!f && index($0, m) { f = 1 } f')"
+  if [[ -z "$out" ]]; then
+    echo "logcat_window_read: TempleEmuMark marker '${LOGCAT_MARK}' not in logcat" >&2
+    return 3
+  fi
+  printf '%s\n' "$out"
+}
+
+# Crash evidence for our package in logcat text on stdin: an AndroidRuntime
+# FATAL EXCEPTION for PKG, an ANR in PKG, or "PKG has stopped".
+app_crashed_in_log() {
+  local pkg="${1:-$PKG}" p
+  p="${pkg//./\\.}"
+  grep -Eq "Process: ${p}, PID|ANR in ${p}( |\$)|${p}.* has stopped|Force finishing activity ${p}/"
+}
+
+# Chip bar on screen (state chip there, deity chip reachable) and ONLY the
+# district chip missing. Anything else (no bar at all, e.g. the screen is
+# Home, run 41314245431 30 drawer_bar-*-then-district) is not this case.
+chip_bar_only_district_missing() {
+  ui_dump || return 1
+  ui_find --resource-id filter-chip-state || ui_find --content-desc "Choose a state" || return 1
+  if python3 "$UI_PY" resource-ids "$DUMP" --prefix filter-chip- 2>/dev/null | grep -qx 'filter-chip-district' ||
+     ui_find --content-desc "Choose a district"; then
+    return 1
+  fi
+  ui_find --resource-id filter-chip-deity || ui_find --content-desc "Choose a deity" || ui_find --text-regex '^Deity$' ||
+    scroll_chips_until --content-desc "Choose a deity" || return 1
+}
+
+# XPASS probe for the district XFAIL: the chip shows up after a short wait.
+district_chip_reappears() {
+  sleep 2
+  ui_dump || return 1
+  python3 "$UI_PY" resource-ids "$DUMP" --prefix filter-chip- 2>/dev/null | grep -qx 'filter-chip-district'
+}
+
+# Maps activity launches in logcat text on stdin (ActivityTaskManager START
+# lines for com.google.android.apps.maps).
+count_maps_starts() {
+  grep -c 'ActivityTaskManager: START u0 .*cmp=com\.google\.android\.apps\.maps/' || true
+}
+
+# Page index on screen (N of detail-gallery-N) from the last dump.
+gallery_page() {
+  python3 - "$DUMP" <<'PY2'
+import re, sys
+s = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+pages = sorted(set(re.findall(r'resource-id="detail-gallery-(\d+)"', s)))
+if len(pages) != 1:
+    sys.exit(1)
+print(pages[0])
+PY2
+}
+
+# Gallery page count M from the "N / M" counter. Real dumps carry it in
+# content-desc with text="" (run41373837994/detail_multi_1of5.xml,
+# run41314245431/gallery_burst_5of5.xml), so match both attributes, the
+# same way gallery_index_consistent does. Prints 0 when there is none.
+gallery_count() {
+  python3 - "$DUMP" <<'PY2'
+import re, sys
+s = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+m = re.search(r'(?:text|content-desc)="\d+ / (\d+)"', s)
+print(m.group(1) if m else 0)
+PY2
+}
+
+# Monotonic seconds (float) for timing a fling+dump window.
+mono_now() {
+  python3 -c 'import time; print(f"{time.monotonic():.2f}")'
+}
+
+# Gallery counter matches the page on screen: detail-gallery-N shows
+# "N+1 / M". Run 41314245431 failed on '^1 / ' after a burst whose
+# left/right flings were vertical (ui_fling) and auto-advance had moved
+# on; the dump itself was consistent (detail-gallery-4, '5 / 5').
+gallery_index_consistent() {
+  python3 - "$DUMP" <<'PY2'
+import re, sys
+s = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+pages = [int(m) for m in re.findall(r'resource-id="detail-gallery-(\d+)"', s)]
+counters = re.findall(r'(?:text|content-desc)="(\d+) / (\d+)"', s)
+if len(set(pages)) != 1 or len(set(counters)) != 1:
+    sys.exit(1)
+k, m = (int(x) for x in counters[0])
+sys.exit(0 if k == pages[0] + 1 and 1 <= k <= m else 1)
+PY2
+}
+
 ui_home_key() {
   adb_shell_capped 8 input keyevent 3
 }
@@ -219,11 +477,23 @@ ui_fling() {
     return 1
   fi
   local x=$((width / 2))
-  if [[ "$direction" == "up" ]]; then
-    adb_shell_capped 8 input swipe "$x" $((height * 3 / 4)) "$x" $((height / 3)) 280
-  else
-    adb_shell_capped 8 input swipe "$x" $((height / 3)) "$x" $((height * 3 / 4)) 280
-  fi
+  # Horizontal flings run at a third of the height (inside the detail
+  # gallery) and stay 20% away from both edges so the system back gesture
+  # cannot fire. "left" moves content to the next page.
+  local y=$((height / 3))
+  case "$direction" in
+    up)
+      adb_shell_capped 8 input swipe "$x" $((height * 3 / 4)) "$x" $((height / 3)) 280 ;;
+    down)
+      adb_shell_capped 8 input swipe "$x" $((height / 3)) "$x" $((height * 3 / 4)) 280 ;;
+    left)
+      adb_shell_capped 8 input swipe $((width * 4 / 5)) "$y" $((width / 5)) "$y" 200 ;;
+    right)
+      adb_shell_capped 8 input swipe $((width / 5)) "$y" $((width * 4 / 5)) "$y" 200 ;;
+    *)
+      echo "ui_fling: unknown direction '${direction}'" >&2
+      return 2 ;;
+  esac
 }
 
 # Dump and search, flinging up between tries. Coordinates stay derived from wm size.
@@ -328,18 +598,27 @@ ui_replace_field_text() {
 ui_sheet_swipe() {
   local direction="${1:-up}"
   local start_pct="${2:-58}"
+  # Round 4.4.1 nit: optional travel in % of the screen (default 24). A
+  # short pull (the @first list-head search) keeps clear of the sheet's
+  # own drag-to-dismiss when the list is already near its top.
+  local travel_pct="${3:-}"
   local width height travel start_y end_y
   read -r width height < <(ui_screen_size) || return 1
   local x=$((width / 2))
   # A 72px step never reached Shiva, Madurai, or Vishnu before the
   # 120s cap. A quarter of the sheet crosses several rows per dump and
   # still stops inside the tap band on the next look.
-  travel=$((height * 24 / 100))
-  if (( travel < 160 )); then
-    travel=160
-  fi
-  if (( travel > 320 )); then
-    travel=320
+  if [[ -n "$travel_pct" ]]; then
+    travel=$((height * travel_pct / 100))
+    (( travel < 48 )) && travel=48
+  else
+    travel=$((height * 24 / 100))
+    if (( travel < 160 )); then
+      travel=160
+    fi
+    if (( travel > 320 )); then
+      travel=320
+    fi
   fi
   start_y=$((height * start_pct / 100))
   if [[ "$direction" == "down" ]]; then
@@ -358,6 +637,15 @@ ui_sheet_swipe() {
   fi
   if (( start_y > height * 88 / 100 )); then
     start_y=$((height * 88 / 100))
+  fi
+  # Start inside the option scroller (ui.py sheet-band, 16px in from its
+  # edges). Above it is the sheet header: a drag there never scrolls and a
+  # downward pull dismisses the sheet (ported from PR #124, run 41269171081).
+  local band_top band_bot
+  if [[ -s "${DUMP:-}" ]] && read -r band_top band_bot < <(python3 "$UI_PY" sheet-band "$DUMP" 2>/dev/null) \
+    && [[ "$band_top" =~ ^[0-9]+$ && "$band_bot" =~ ^[0-9]+$ ]]; then
+    (( start_y < band_top + 16 )) && start_y=$((band_top + 16))
+    (( start_y > band_bot - 16 )) && start_y=$((band_bot - 16))
   fi
   adb_shell_capped 8 input swipe "$x" "$start_y" "$x" "$end_y" 900
 }
@@ -430,8 +718,13 @@ uninstall_app() {
   adb uninstall "$PKG" >/dev/null 2>&1 || true
 }
 
+# Round 4.4.9c (Reviewer): each install is bounded (EMULATOR_INSTALL_S,
+# 120s + 5s kill-after). It runs inside the flow's own cap (300-600s), so
+# a hung install fails the flow ("adb install failed", rc 124) instead of
+# eating the whole cap; worst case install + services wait 12s + retry
+# install = 262s, still inside the 300s minimum cap.
 install_once() {
-  adb install -r -d "$EMULATOR_APK" 2>&1
+  timeout --kill-after=5 "${EMULATOR_INSTALL_S:-120}" adb install -r -d "$EMULATOR_APK" 2>&1
 }
 
 # Printed once per flow, after the APK is on the emulator. Lessons row 4
@@ -455,10 +748,23 @@ install_apk() {
     record_fail "install" "APK missing (${EMULATOR_APK:-unset})"
     return 1
   fi
-  local log
+  local log rc=0 retried=0
   uninstall_app
-  if ! log="$(install_once)"; then
-    if [[ "$log" == *"INSTALL_FAILED_UPDATE_INCOMPATIBLE"* ]]; then
+  log="$(install_once)" || rc=$?
+  if (( rc != 0 )) && [[ "$log" == *"cmd: Can't find service: package"* ]]; then
+    # Round 4.4.9 (run 41757362316): the package service was not up. Wait
+    # for the services (bounded: EMULATOR_INSTALL_SERVICES_WAIT_S, 10s,
+    # inside the flow's guard) and retry the install ONCE, only on this
+    # exact error; any other install error is not retried here.
+    echo "install: 'Can't find service: package'; waiting for services, then one retry" >&2
+    timeout --kill-after=2 "${EMULATOR_INSTALL_SERVICES_WAIT_S:-10}" bash "${ROOT}/tool/emulator/services_ready.sh" "${EMULATOR_INSTALL_SERVICES_WAIT_S:-10}" >&2 || true
+    rc=0; retried=1; log="$(install_once)" || rc=$?
+  fi
+  if (( rc != 0 )); then
+    # Round 4.4.9d: the uninstall+reinstall branch only runs when the
+    # package-service retry was not used, so at most 2 installs (2 x 125s)
+    # + the 12s services wait = 262s per flow, inside the 300s minimum cap.
+    if (( retried == 0 )) && [[ "$log" == *"INSTALL_FAILED_UPDATE_INCOMPATIBLE"* ]]; then
       uninstall_app
       if ! log="$(install_once)"; then
         record_fail "install" "adb install failed after uninstall retry: $(printf '%s' "$log" | tr '\n' ' ')"
@@ -505,6 +811,57 @@ resolve_package() {
   printf '%s\n' "$PKG" > "${ARTIFACTS}/package_name.txt"
   echo "Package ${PKG}"
   return 0
+}
+
+app_installed() {
+  [[ -n "${PKG:-}" ]] || return 1
+  adb_shell_capped 15 pm path "$PKG" 2>/dev/null | grep -q '^package:'
+}
+
+# Wipe this app's data between flows on a reused emulator. Same starting
+# state as a fresh install (prefs, databases, caches, runtime grants).
+clear_app_data() {
+  local out
+  out="$(adb_shell_capped 30 pm clear "$PKG" 2>&1 | tr -d '\r')" || true
+  if [[ "$out" != *Success* ]]; then
+    record_fail "pm-clear" "pm clear ${PKG} failed: ${out}"
+    return 1
+  fi
+  return 0
+}
+
+# Undo device-wide state an earlier flow on this emulator may have left.
+# Audit of tool/emulator/flows (PR #126 review):
+#   network: wifi/data/ethernet + ip link (15, 24, 27)  -> network_on
+#   airplane mode (no flow sets it; reset defensively)  -> cmd connectivity
+#   wm size/density, font scale (28)                    -> reset
+#   rotation (19, 23, 28)                               -> portrait, auto off
+#   location mode (23), location grants (11, 23)        -> mode 3, revoke
+#   Google Maps disabled (25, killed before re-enable)  -> pm enable
+#   animations (runner disables them at boot)           -> scales back to 0
+#   notification shade / dialogs                        -> collapse, HOME
+# pm clear (clear_app_data) then wipes the app's prefs, databases, caches.
+# Not reset: clipboard and locale. No flow sets them, and API 30 has no
+# shell command to clear the clipboard. Each call is capped.
+reset_device_state() {
+  network_on || true
+  adb_shell_capped 8 cmd connectivity airplane-mode disable >/dev/null 2>&1 || true
+  adb_shell_capped 8 settings put global airplane_mode_on 0 >/dev/null 2>&1 || true
+  adb_shell_capped 8 wm size reset >/dev/null 2>&1 || true
+  adb_shell_capped 8 wm density reset >/dev/null 2>&1 || true
+  adb_shell_capped 8 settings put system font_scale 1.0 >/dev/null 2>&1 || true
+  adb_shell_capped 8 settings put system accelerometer_rotation 0 >/dev/null 2>&1 || true
+  adb_shell_capped 8 settings put system user_rotation 0 >/dev/null 2>&1 || true
+  adb_shell_capped 8 settings put secure location_mode 3 >/dev/null 2>&1 || true
+  adb_shell_capped 8 pm enable com.google.android.apps.maps >/dev/null 2>&1 || true
+  adb_shell_capped 8 settings put global window_animation_scale 0 >/dev/null 2>&1 || true
+  adb_shell_capped 8 settings put global transition_animation_scale 0 >/dev/null 2>&1 || true
+  adb_shell_capped 8 settings put global animator_duration_scale 0 >/dev/null 2>&1 || true
+  adb_shell_capped 8 am force-stop "$PKG" >/dev/null 2>&1 || true
+  adb_shell_capped 8 pm revoke "$PKG" android.permission.ACCESS_FINE_LOCATION >/dev/null 2>&1 || true
+  adb_shell_capped 8 pm revoke "$PKG" android.permission.ACCESS_COARSE_LOCATION >/dev/null 2>&1 || true
+  adb_shell_capped 8 cmd statusbar collapse >/dev/null 2>&1 || true
+  adb_shell_capped 8 input keyevent KEYCODE_HOME >/dev/null 2>&1 || true
 }
 
 clean_install() {
@@ -590,9 +947,17 @@ push_emulator_geo() {
 
 # Drag from the sheet handle or title. A swipe that starts in the list scrolls
 # the options instead of dismissing the sheet.
+# The sheet closes on PointerMove travel from the header (_onPointerMove,
+# 72px), never on the up event alone (test/sheet_header_pull_test.dart: a
+# down/up with no move leaves it open). An 80ms swipe left the sheet
+# unmoved in every header pull of PR #126's run 41306793034 (06, 17, 21,
+# recordings show zero frames of travel) while 120ms+ swipes on the same
+# devices worked. Pull slowly enough that moves are delivered on a busy
+# emulator: SHEET_PULL_MS (default 300ms), then twice that on the retry.
 dismiss_sheet_from_handle() {
   local width="$1"
   local height="$2"
+  local pull_ms="${3:-${SHEET_PULL_MS:-300}}"
   local start_x=$((width / 2))
   local start_y=$((height * 24 / 100))
   local max_title=$((height * 36 / 100))
@@ -607,7 +972,7 @@ dismiss_sheet_from_handle() {
     start_x=$((width / 2))
     start_y=$((height * 24 / 100))
   fi
-  adb_shell_capped 8 input swipe "$start_x" "$start_y" "$start_x" $((height * 96 / 100)) 80
+  adb_shell_capped 8 input swipe "$start_x" "$start_y" "$start_x" $((height * 96 / 100)) "$pull_ms"
 }
 
 dismiss_sheet_swipe() {
@@ -625,7 +990,7 @@ dismiss_sheet_swipe() {
   dismiss_sheet_from_handle "$width" "$height"
   sleep 1
   if sheet_open; then
-    dismiss_sheet_from_handle "$width" "$height"
+    dismiss_sheet_from_handle "$width" "$height" $(( ${SHEET_PULL_MS:-300} * 2 ))
     sleep 1
   fi
   if sheet_open; then
@@ -844,6 +1209,61 @@ network_on() {
   adb shell svc data enable >/dev/null 2>&1 || true
 }
 
+# network_validated: Android's ConnectivityService has validated a default
+# network (NetworkCapabilities ... VALIDATED). Run 41391038302 flow 27:
+# "validation passed" at 05:11:19.85 UTC, the app's retry socket at 05:11:24,
+# and the harness read the old error page at 05:11:32.6 and gave up.
+network_validated() {
+  adb_shell_capped 10 dumpsys connectivity 2>/dev/null | tr -d '\r' \
+    | grep -Eq 'Capabilities: [^]]*(^|[&: ])VALIDATED([&] |[&]|[ ]|$)'
+}
+
+# wait_network_validated [TIMEOUT_S]: poll network_validated every 2s.
+wait_network_validated() {
+  local timeout="${1:-60}" start="$SECONDS"
+  while (( SECONDS - start < timeout )); do
+    if network_validated; then
+      echo "network validated after $((SECONDS - start))s"
+      return 0
+    fi
+    sleep 2
+  done
+  echo "network not validated after ${timeout}s" >&2
+  return 1
+}
+
+# recover_browse [GRACE_S] [RETAP_S]: after the network came back, tap
+# "Try again" and give the reload GRACE_S (60) seconds, tapping it again
+# every RETAP_S (15) seconds while "Could not load temples" is still shown.
+# Unlike wait_browse_ready, the error page is not final until the grace ends.
+# Sets RECOVER_BROWSE_MSG (call it directly, not in $(...), so the caller
+# sees it).
+recover_browse() {
+  local grace="${1:-60}" retap="${2:-15}" start="$SECONDS" last_tap=-1000 taps=0
+  while (( SECONDS - start < grace )); do
+    ui_dump || { sleep 2; continue; }
+    if ui_find --resource-id filter-chip-state || ui_find --text-regex '^State$'; then
+      if ! ui_find --text-contains "Loading temples" && ! ui_find --text-contains "Could not load temples"; then
+        RECOVER_BROWSE_MSG="browse recovered after $((SECONDS - start))s (${taps} Try again taps)"
+        echo "$RECOVER_BROWSE_MSG"
+        return 0
+      fi
+    fi
+    if ui_find --text-contains "Could not load temples" || ui_find --text-regex '^(Retry|Try again)$'; then
+      if (( SECONDS - last_tap >= retap )) && ui_find --text-regex '^(Retry|Try again)$'; then
+        ui_tap
+        taps=$((taps + 1))
+        last_tap=$SECONDS
+        echo "recover_browse: tapped Try again (${taps}) at +$((SECONDS - start))s"
+      fi
+    fi
+    sleep 2
+  done
+  RECOVER_BROWSE_MSG="browse did not recover within ${grace}s (${taps} Try again taps)"
+  echo "$RECOVER_BROWSE_MSG"
+  return 1
+}
+
 screenrecord_start() {
   local stop="${ARTIFACTS}/recordings/${FLOW}.stop"
   local pidfile="${ARTIFACTS}/recordings/${FLOW}.pid"
@@ -898,50 +1318,82 @@ app_pid() {
 # scroll_chip_bar_at, find_filter_chip, and re_escape support the ones
 # the flow scripts call directly.
 
+# Swipe the filter chip bar inside its own scroll area (ui.py chip-bar:
+# the HorizontalScrollView bounds, minus the pinned Clear button). "left"
+# moves content left, revealing chips past the right edge. Falls back to
+# 25%-80% of the width only when the last dump has no chip bar.
+# Sets CHIP_BAR_L/R for callers that need the visible band.
 scroll_chip_bar_at() {
   local y="$1"
   local direction="$2"
-  local width
+  local width l t r b x_from x_to
   read -r width _ < <(ui_screen_size) || return 1
-  if [[ "$direction" == "right" ]]; then
-    adb_shell_capped 8 input swipe \
-      $((width * 25 / 100)) "$y" \
-      $((width * 80 / 100)) "$y" 250
+  if [[ -s "${DUMP:-}" ]] && read -r l t r b < <(python3 "$UI_PY" chip-bar "$DUMP" 2>/dev/null); then
+    y=$(((t + b) / 2))
+    x_from=$((r - 12)); x_to=$((l + 12))
   else
-    adb_shell_capped 8 input swipe \
-      $((width * 80 / 100)) "$y" \
-      $((width * 25 / 100)) "$y" 250
+    x_from=$((width * 80 / 100)); x_to=$((width * 25 / 100))
   fi
+  if [[ "$direction" == "right" ]]; then
+    adb_shell_capped 8 input swipe "$x_to" "$y" "$x_from" "$y" 300
+  else
+    adb_shell_capped 8 input swipe "$x_from" "$y" "$x_to" "$y" 300
+  fi
+}
+
+# Visible band of the chip bar from the last dump: "LEFT RIGHT".
+chip_bar_band() {
+  local width l t r b
+  if [[ -s "${DUMP:-}" ]] && read -r l t r b < <(python3 "$UI_PY" chip-bar "$DUMP" 2>/dev/null); then
+    echo "$l $r"
+    return 0
+  fi
+  read -r width _ < <(ui_screen_size) || return 1
+  echo "24 $((width - 24))"
 }
 
 # The selected chip's text is the value ("Shiva"), and it may sit past the
 # right edge. Match the idle label or the applied value, and scroll the bar.
+# Section-scoped (round 4.3): every match is a chip-bar node. With RID
+# (filter-chip-<kind>) only that chip counts; the label/regex/tooltip
+# fallbacks are tried only on filter-chip-<kind> nodes. With no RID
+# (chip_exact) they are tried only on filter-chip-* nodes. A bare
+# --text-regex anywhere matched the app bar title ("Kerala") and option
+# rows of an open sheet.
 find_filter_chip() {
   local rid="$1"
   local regex="$2"
   local desc="${3:-}"
   local i width height max_top y found
+  local scope_rx='^filter-chip-'
+  [[ -n "$rid" ]] && scope_rx="^$(re_escape "$rid")\$"
   read -r width height < <(ui_screen_size) || return 1
   # Landscape puts the chip row below 38% of the height, so a portrait band
   # misses Kerala after rotation and the shot still shows the old chip.
-  max_top=$((height * 70 / 100))
+  max_top=$((height * ${CHIP_MAX_TOP_PCT:-70} / 100))
   y=$((height * 22 / 100))
   for i in $(seq 1 8); do
     ui_dump || true
     found=0
     if [[ -n "$rid" ]] && ui_find --resource-id "$rid" --max-top "$max_top"; then
       found=1
-    elif [[ -n "$regex" ]] && ui_find --text-regex "$regex" --max-top "$max_top" --prefer upper; then
+    elif [[ -n "${CHIP_LABEL_RX:-}" ]] && ui_find --resource-id-regex "$scope_rx" --text-regex "$CHIP_LABEL_RX" --max-top "$max_top"; then
       found=1
-    elif [[ -n "$desc" ]] && ui_find --content-desc "$desc" --max-top "$max_top"; then
+    elif [[ -n "$regex" ]] && ui_find --resource-id-regex "$scope_rx" --text-regex "$regex" --max-top "$max_top" --prefer upper; then
+      found=1
+    elif [[ -n "$desc" ]] && ui_find --resource-id-regex "$scope_rx" --content-desc "$desc" --max-top "$max_top"; then
       found=1
     fi
     if [[ "$found" -eq 1 ]]; then
       y=$UI_CY
-      if (( UI_CX > 24 && UI_CX < width - 24 )); then
+      local band_l band_r
+      read -r band_l band_r < <(chip_bar_band) || { band_l=24; band_r=$((width - 24)); }
+      # Fully tappable only when the chip centre is inside the bar, not
+      # under the pinned Clear button.
+      if (( UI_CX > band_l && UI_CX < band_r )); then
         return 0
       fi
-      if (( UI_CX >= width - 24 )); then
+      if (( UI_CX >= band_r )); then
         scroll_chip_bar_at "$y" left || true
       else
         scroll_chip_bar_at "$y" right || true
@@ -963,24 +1415,67 @@ find_filter_chip() {
   return 1
 }
 
+# Both directions: the row keeps its scroll offset, so a chip can sit off
+# the LEFT edge as well (run 41373837994: state chip after detail back in
+# 22, re-tap of the state chip in 29). Scrolls 1-4 reveal the right side,
+# 5-8 the left. CHIP_MAX_TOP_PCT (default 70) is the lowest top edge, in %
+# of the screen height, a chip may have; the drawer's FILTERS row sits at
+# 75% (y 478 of 640) and needs 95.
+# "left"/"right" for scroll_chip_bar_at when the wanted filter-chip-<x> is
+# not in the dump, from its place in the row order relative to the chips
+# that are; empty when that cannot be told.
+chip_scroll_dir() {
+  local want="" a
+  local -a args=("$@")
+  for ((a = 0; a < ${#args[@]}; a++)); do
+    if [[ "${args[$a]}" == --resource-id ]]; then want="${args[$((a + 1))]:-}"; fi
+  done
+  [[ "$want" == filter-chip-* && -s "${DUMP:-}" ]] || return 0
+  python3 - "$DUMP" "$want" <<'PY'
+import re, sys
+order = ["filter-chip-state", "filter-chip-district", "filter-chip-city", "filter-chip-deity"]
+want = sys.argv[2]
+if want not in order:
+    sys.exit(0)
+ids = re.findall(r'resource-id="(filter-chip-[a-z]+)"', open(sys.argv[1], encoding="utf-8", errors="replace").read())
+seen = [order.index(i) for i in ids if i in order]
+if not seen:
+    sys.exit(0)
+print("right" if order.index(want) < min(seen) else "left")
+PY
+}
+
 scroll_chips_until() {
-  local i y width height max_top
+  local i y width height max_top dir
   read -r width height < <(ui_screen_size) || return 1
-  max_top=$((height * 70 / 100))
+  max_top=$((height * ${CHIP_MAX_TOP_PCT:-70} / 100))
   y=$((height * 22 / 100))
-  for i in $(seq 1 6); do
+  for i in $(seq 1 8); do
     if ui_dump && ui_find "$@" --max-top "$max_top"; then
       y=$UI_CY
       if (( UI_CX > 24 && UI_CX < width - 24 )); then
         return 0
       fi
-    elif ui_dump && ui_find --resource-id filter-chip-state --max-top "$max_top"; then
-      y=$UI_CY
+      if (( UI_CX >= width - 24 )); then dir=left; else dir=right; fi
+    else
+      if ui_find --resource-id filter-chip-state --max-top "$max_top" ||
+         ui_find --resource-id-regex '^filter-chip-' --max-top "$max_top"; then
+        y=$UI_CY
+      fi
+      # Target not in the dump: the row order is state, district, city,
+      # deity. A target left of every visible chip is off the LEFT edge, so
+      # scroll right first (22 used to swipe left 4 times before that).
+      dir="$(chip_scroll_dir "$@")"
+      if [[ -z "$dir" ]]; then
+        if (( i <= 4 )); then dir=left; else dir=right; fi
+      elif (( i > 4 )); then
+        [[ "$dir" == left ]] && dir=right || dir=left
+      fi
     fi
-    scroll_chip_bar_at "$y" left || true
+    scroll_chip_bar_at "$y" "$dir" || true
     sleep 0.4
   done
-  echo "scroll_chips_until: not in view after 6 scrolls" >&2
+  echo "scroll_chips_until: not in view after 8 scrolls" >&2
   return 1
 }
 
@@ -995,7 +1490,13 @@ dump_scroll_sig() {
   python3 - "$DUMP" <<'PY'
 import hashlib, re, sys
 raw = open(sys.argv[1], encoding="utf-8", errors="replace").read()
-texts = re.findall(r'\btext="([^"]*)"', raw)
+# Flutter options carry their label in content-desc, not text (run
+# 41373837994: 0 text= values in the deity and district sheets). A
+# text-only signature was the same before and after every swipe, so
+# seek_option saw "list stopped moving" after 3 looks while the list moved
+# (17 Shiva x2, 29 Madurai). Labels and filter-option ids both count.
+texts = re.findall(r'\b(?:text|content-desc)="([^"]*)"', raw)
+texts += re.findall(r'resource-id="(filter-option-[^"]*)"', raw)
 keep = [
     t for t in texts
     if t and "Loading" not in t and not re.fullmatch(r"\d{1,2}:\d{2}", t)
@@ -1047,29 +1548,479 @@ print(name if name else "")
 ' "$1"
 }
 
+# Seek, ported from PR #124 v4 (e55a51a): sorted-order jumps with a gallop,
+# a walk back after an overshoot, and SEEK_BACK_STALL. #126's step scan
+# alone cannot reach Tamil Nadu Shiva (12th of 32) inside 20s
+# (dryrun-logs/fastemu/round2/shiva_tn_*).
+# seek_settle [SIG]: SIG is the signature of a dump already taken after
+# the last move (the slow drag's post-drag dump, or the dump after a far
+# fling). It counts as settle dump 1, so a list that has stopped costs one
+# more dump instead of two (round 4.3; the 4.1 slow-drag check had added a
+# third dump per near look, dryrun 04-pickers-before/state-tamil-nadu.log).
+seek_settle() {
+  local n prev="${1:-}" cur
+  for n in $(seq 1 "${SEEK_SETTLE_DUMPS:-6}"); do
+    ui_dump || return 1
+    cur="$(dump_scroll_sig)" || return 1
+    [[ -n "$prev" && "$cur" == "$prev" ]] && return 0
+    prev="$cur"
+    sleep 0.4
+  done
+  echo "seek_option: list still moving after ${SEEK_SETTLE_DUMPS:-6} dumps" >&2
+  return 1
+}
+
+# Scroll toward option NAME of section KIND (state, district, deity) by
+# comparing it with the visible option ids, which are in sorted order, and
+# with the visible sections (the sheet's order is: tapped section, then
+# state, district, deity). Returns 0 with UI_CX/UI_CY/UI_TEXT set when the
+# option is in the tap band; 2 when the dump proves it is not listed;
+# 1 otherwise. Every decision is made on a settled dump: a dump taken while
+# a fling still runs sent run 40916686359 past Shiva and out of STATE.
+# Usage: seek_option KIND NAME DEADLINE [--prefix]
+# Environment overrides are clamped: SEEK_FAR_FLINGS 1-4 (more flings per
+# look only overshoot further), SEEK_MAX_MOVES 1-60 (the deadline bounds
+# the walk anyway; a huge value would only hide a stuck loop).
+seek_clamp() {
+  local v="$1" lo="$2" hi="$3"
+  [[ "$v" =~ ^[0-9]+$ ]] || v="$lo"
+  (( v < lo )) && v="$lo"
+  (( v > hi )) && v="$hi"
+  echo "$v"
+}
+
+seek_option() {
+  local kind="$1" name="$2" deadline="$3"
+  local max_moves far_flings
+  max_moves="$(seek_clamp "${SEEK_MAX_MOVES:-40}" 1 60)"
+  far_flings="$(seek_clamp "${SEEK_FAR_FLINGS:-2}" 1 4)"
+  local extra=()
+  [[ "${4:-}" == --prefix ]] && extra=(--prefix)
+  local i height width verdict dir reach prev="" current same=0
+  local direction="" flips=0 order="" fling_pct=48 kinds settled=1 gallop=0
+  read -r width height < <(ui_screen_size) || return 1
+  # SEEK_FRESH_DUMP=1: the caller's last dump (wait_out_district_loader)
+  # is the sheet as it is now; do not pay another 2.3s dump for it.
+  if [[ "${SEEK_FRESH_DUMP:-}" != 1 || ! -s "$DUMP" ]]; then
+    ui_dump || return 1
+  fi
+  # Every drag starts inside the option scroller (ui.py sheet-band). Above
+  # it is the sheet header, where a drag never scrolls and a downward pull
+  # dismisses. The fixed 32% fling start (y 204 of 640) was on the header,
+  # so each downward fling after an overshoot did nothing and the walk
+  # ended "list stopped moving" (run 41269171081: Madurai in 06 and 30b,
+  # Shiva in 06 and 29j). 16px keeps the finger off the scroller's edges.
+  local band_top band_bot
+  if ! read -r band_top band_bot < <(python3 "$UI_PY" sheet-band "$DUMP") \
+    || ! [[ "$band_top" =~ ^[0-9]+$ && "$band_bot" =~ ^[0-9]+$ ]]; then
+    band_top=$((height * 39 / 100))
+    band_bot=$((height * 89 / 100))
+  fi
+  band_top=$((band_top + 16))
+  band_bot=$((band_bot - 16))
+  # The first dump is the sheet as it opened: scrolled to the top, so the
+  # first visible section is the head of the order.
+  if kinds="$(python3 "$UI_PY" sheet-kinds "$DUMP")"; then
+    order="$(printf '%s state district deity' "$kinds" | tr ' ' '\n' | awk 'NF && !seen[$0]++' | paste -sd, -)"
+  else
+    echo "seek_option: no picker section on screen (is the sheet open?)" >&2
+    return 1
+  fi
+  for i in $(seq 1 "$max_moves"); do
+    if (( SECONDS >= deadline )); then
+      echo "seek_option: ${kind} '${name}' not reached before the deadline (${i} looks, order ${order})" >&2
+      return 1
+    fi
+    verdict="$(python3 "$UI_PY" option-seek "$DUMP" --kind "$kind" --name "$name" --order "$order" "${extra[@]}" \
+      --min-top $((height * 24 / 100)) --max-top $((height * 84 / 100)))" || return 1
+    read -r dir reach _ <<<"$verdict"
+    [[ -n "${SEEK_TRACE:-}" ]] && echo "seek_option: t=$SECONDS look ${i}: ${verdict} settled=${settled} pct=${fling_pct} first=$(grep -o "filter-option-[a-z]*-[^\"]*" "$DUMP" | head -1)" >&2
+    # A far run is flung without waiting for the list to stop (run
+    # 40992967143: settling after every fling spent 45s to cross A-P).
+    # Only "still far, same way" may act on a moving list; any other
+    # verdict, above all a tap, is taken again on a settled dump.
+    if (( ! settled )) && ! [[ "$dir" == "$direction" && "$reach" =~ ^(far|mid)$ && "$flips" -eq 0 ]]; then
+      seek_settle "$(dump_scroll_sig)" || return 1
+      settled=1
+      continue
+    fi
+    case "$dir" in
+      tap)
+        read -r _ UI_CX UI_CY UI_TEXT <<<"$verdict"
+        return 0 ;;
+      up|down) ;;
+      absent)
+        echo "seek_option: ${kind} '${name}' is not in the list (neighbours bracket it)" >&2
+        return 2 ;;
+      *)
+        echo "seek_option: ${kind} '${name}': ${verdict}" >&2
+        return 1 ;;
+    esac
+    # Every change of direction is an overshoot. Fling weaker after each;
+    # the list swinging forever is stopped by SEEK_MAX_FLIPS.
+    if [[ -n "$direction" && "$dir" != "$direction" ]]; then
+      flips=$((flips + 1))
+      fling_pct=$((fling_pct / 2))
+      if (( flips >= ${SEEK_MAX_FLIPS:-6} )); then
+        echo "seek_option: ${kind} '${name}' changed direction ${flips} times" >&2
+        return 1
+      fi
+    fi
+    direction="$dir"
+    current="$(dump_scroll_sig)" || return 1
+    if [[ "$current" == "$prev" ]]; then
+      same=$((same + 1))
+      # Only an upward walk can hit the real end of the list. Once the walk
+      # has passed the target (dir down) the top is still ahead, so one or
+      # two unmoved looks there are not the end. But a list that never
+      # moves back (sheet stuck, swipes eaten) is: stop after
+      # SEEK_BACK_STALL (default 4, ~12s) unchanged looks, return 3 so
+      # select_labeled does not spend the rest of its give-up on a step
+      # scan that would only swipe the same dead list.
+      if (( same >= $(seek_clamp "${SEEK_BACK_STALL:-4}" 2 8) )) && [[ "$dir" == down ]]; then
+        echo "seek_option: list stopped moving while walking back to ${kind} '${name}'" >&2
+        return 3
+      fi
+      if (( same >= 3 )) && [[ "$dir" == up ]]; then
+        # Three swipes that moved nothing: the end of the list, or swipes
+        # that missed the scroller. The caller's bounded step scan decides.
+        echo "seek_option: list stopped moving before ${kind} '${name}'" >&2
+        return 1
+      fi
+    else
+      same=0
+    fi
+    prev="$current"
+    local pct=0
+    case "$reach" in
+      far) pct=$fling_pct ;;
+      mid) pct=$((fling_pct / 3)) ;;
+    esac
+    # Gallop: before the first overshoot, start with one short fling and
+    # grow it each look the target is still far the same way. A full
+    # double fling from the head of a short section (Tamil Nadu's ~30
+    # deities) crossed it and the next two sections; the walk back cost
+    # more than the walk (replay test, 18s of a 20s PICKER_GIVEUP_S).
+    local gallop_flings="" drag_before="" drag_after=""
+    if [[ "$reach" =~ ^(far|mid)$ ]] && (( flips == 0 )) && [[ "${SEEK_GALLOP:-1}" == 1 ]]; then
+      local g_pcts=()
+      read -r -a g_pcts <<<"${SEEK_GALLOP_PCTS:-32 48}"
+      if (( gallop < ${#g_pcts[@]} )); then
+        pct=${g_pcts[$gallop]}
+        # "mid" is the next initial or closer: half the step.
+        [[ "$reach" == mid ]] && pct=$((pct / 2))
+        gallop_flings=1
+      fi
+      gallop=$((gallop + 1))
+    fi
+    if (( pct >= 8 )); then
+      # A short, fast drag leaves momentum: many rows per dump.
+      local y_lo=$((height * 32 / 100)) y_hi n flings=1
+      (( y_lo < band_top )) && y_lo=$band_top
+      y_hi=$((y_lo + height * pct / 100))
+      (( y_hi > height * 82 / 100 )) && y_hi=$((height * 82 / 100))
+      (( y_hi > band_bot )) && y_hi=$band_bot
+      # Run 40992967143: one 120ms fling per look moved the 600-option
+      # DEITY section by about a letter, and each look costs ~5s (swipe +
+      # settle dumps), so every Shiva/Vishnu pick ran out of its 45s at
+      # P-R. Settling, not swiping, is the cost: until the first overshoot
+      # (far: another section or 2+ initials away; mid: the next initial or
+      # a far letter inside the name), send SEEK_FAR_FLINGS flings back to
+      # back and do not wait for the list to stop (see settled above).
+      if [[ "$reach" =~ ^(far|mid)$ ]] && (( flips == 0 )); then
+        flings="${gallop_flings:-$far_flings}"
+      fi
+      for n in $(seq 1 "$flings"); do
+        if [[ "$dir" == up ]]; then
+          adb_shell_capped 8 input swipe $((width / 2)) "$y_hi" $((width / 2)) "$y_lo" "${SEEK_FLING_MS:-120}" || return 1
+        else
+          adb_shell_capped 8 input swipe $((width / 2)) "$y_lo" $((width / 2)) "$y_hi" "${SEEK_FLING_MS:-120}" || return 1
+        fi
+      done
+      : "$n"
+    else
+      # Slow drag: no momentum, the list moves by the finger's travel.
+      # Run 40992967143's endgame crept through the "Shiva (...)" rows at
+      # ui_sheet_swipe's 24% a look. 84% -> 42% of the screen (y 537 -> 269
+      # on 640) is 42%, still less than the 318px option scroller, so no
+      # row can pass between two looks unseen.
+      local s_lo=$((height * 42 / 100)) s_hi=$((height * 84 / 100))
+      (( s_lo < band_top )) && s_lo=$band_top
+      (( s_hi > band_bot )) && s_hi=$band_bot
+      drag_before="$(dump_scroll_sig)" || return 1
+      if [[ "$dir" == up ]]; then
+        adb_shell_capped 8 input swipe $((width / 2)) "$s_hi" $((width / 2)) "$s_lo" "${SEEK_DRAG_MS:-900}" || return 1
+      else
+        adb_shell_capped 8 input swipe $((width / 2)) "$s_lo" $((width / 2)) "$s_hi" "${SEEK_DRAG_MS:-900}" || return 1
+      fi
+      # The slow drag has its own retry: when the list did not move, drag
+      # again off the centre column (a chip under the finger can take the
+      # touch as a tap-down) and slower, once per look.
+      if ui_dump && drag_after="$(dump_scroll_sig)" && [[ "$drag_after" == "$drag_before" ]]; then
+        echo "seek_option: slow drag did not move the ${kind} list; retrying at x=$((width / 4)) with ${SEEK_DRAG_RETRY_MS:-1500}ms" >&2
+        if [[ "$dir" == up ]]; then
+          adb_shell_capped 8 input swipe $((width / 4)) "$s_hi" $((width / 4)) "$s_lo" "${SEEK_DRAG_RETRY_MS:-1500}" || return 1
+        else
+          adb_shell_capped 8 input swipe $((width / 4)) "$s_lo" $((width / 4)) "$s_hi" "${SEEK_DRAG_RETRY_MS:-1500}" || return 1
+        fi
+        # The list moved after drag_after was taken: it cannot settle anything.
+        drag_after=""
+      fi
+    fi
+    if [[ "$reach" =~ ^(far|mid)$ ]] && (( flips == 0 )); then
+      ui_dump || return 1
+      settled=0
+    else
+      # A slow drag has no momentum: its post-drag dump is settle dump 1.
+      seek_settle "$drag_after" || return 1
+      settled=1
+    fi
+  done
+  echo "seek_option: ${kind} '${name}' not reached in ${max_moves} moves" >&2
+  return 1
+}
+
+# stable_option_tap REGEX OPT_RX: UI_CX/UI_CY/UI_TEXT are an option found
+# on the current dump. Dump once more and tap only when the same option
+# (OPT_RX-scoped, REGEX-matching label) is at the same place (within 4 px)
+# in both dumps: a list still moving under the finger is never tapped.
+# Sets SELECTED_LABEL. Returns 1 (no tap) when the second dump disagrees.
+stable_option_tap() {
+  local regex="$1" opt_rx="${2:-.}" x="$UI_CX" y="$UI_CY" text="$UI_TEXT"
+  local sig1 sig2
+  sig1="$(dump_scroll_sig)" || return 1
+  ui_dump || return 1
+  sig2="$(dump_scroll_sig)" || return 1
+  if [[ "$sig1" != "$sig2" ]]; then
+    [[ -n "${SEEK_TRACE:-}" ]] && echo "stable_option_tap: list moved between dumps; not tapping '${text}'" >&2
+    return 1
+  fi
+  if ! ui_find --resource-id-regex "$opt_rx" --text-regex "$regex" --prefer upper \
+    || (( UI_CY - y > 4 || y - UI_CY > 4 )); then
+    UI_CX="$x"; UI_CY="$y"; UI_TEXT="$text"
+    if ! ui_find --resource-id-regex "$opt_rx" --text-regex "$(re_escape "$(chip_label "$text")")" --prefer upper \
+      || (( UI_CY - y > 4 || y - UI_CY > 4 )); then
+      echo "stable_option_tap: '${text}' not at y=${y} on the second dump" >&2
+      return 1
+    fi
+  fi
+  SELECTED_LABEL="$(chip_label "$UI_TEXT")"
+  ui_tap || { echo "stable_option_tap: tap on '${UI_TEXT}' failed" >&2; return 1; }
+  sleep 1
+  return 0
+}
+
+# state_chip_is LABEL: the state chip (filter-chip-state) shows LABEL.
+# Sets STATE_CHIP_ACTUAL to what it shows.
+state_chip_is() {
+  local want="$1"
+  STATE_CHIP_ACTUAL=""
+  ui_dump || return 1
+  find_filter_chip filter-chip-state "" "" >/dev/null 2>&1 || return 1
+  STATE_CHIP_ACTUAL="$(chip_label "$UI_TEXT")"
+  [[ "$STATE_CHIP_ACTUAL" == "$want" ]]
+}
+
 # Walk the option list until regex is inside the tap band, then tap it.
 # Callers pass the section name (STATE, DISTRICT, DEITY). The list ends when
 # a swipe leaves the option texts unchanged, not when the next header peeks in.
 # One missed drag is not the end of the list: the finger may have landed on
 # the apply button. Retry other finger heights, then stop. A second pass
-# starts again from the top. The whole walk gives up after 120s.
+# starts again from the top. The whole walk gives up after
+# PICKER_GIVEUP_S (20s): a missing option fails fast instead of costing
+# about 2 minutes per case (Confluence 12353537, option A).
+# Round 4.3: the section is used. With STATE/DISTRICT/DEITY the step scan
+# only matches filter-option-<kind>-* rows (run 41391038302: the DISTRICT
+# scan tapped "Bihar N" in STATE), and every tap waits for two matching
+# dumps (stable_option_tap).
+# Filter bar on screen: any filter chip or the chip-row Clear. The state
+# chip alone is not enough: the chip row scrolls horizontally
+# (directory_filter_bar.dart _chipScroll) and run 41461260068's
+# seq1-filter-kept dump had it scrolled off to the left, with
+# filter-chip-district, filter-chip-deity "Shiva" and filter-clear on screen.
+# Round 4.4.1 (Manu): this is only "the bar is there". It says nothing
+# about a filter still being applied; use filter_kept for that.
+filter_bar_present() {
+  ui_find --resource-id-regex '^(filter-chip-(state|district|deity)|filter-clear)$'
+}
+
+# filter_kept [KIND=LABEL...]: a filter is still applied. The chip-row
+# Clear (filter-clear) is only built while a filter is active
+# (directory_filter_bar.dart: `final clear = _active ? ...`), so it is
+# required; chips alone no longer pass (they are shown with no filter
+# too). Each KIND=LABEL whose chip (filter-chip-KIND) is in the dump must
+# show exactly LABEL; a chip scrolled off the row is not in the dump and is
+# not judged. Sets FILTER_KEPT_WHY on failure.
+filter_kept() {
+  FILTER_KEPT_WHY=""
+  if ! ui_find --resource-id filter-clear; then
+    FILTER_KEPT_WHY="filter-clear missing (no filter applied)"
+    return 1
+  fi
+  local kv kind want got judged=0 first_kind=""
+  for kv in "$@"; do
+    kind="${kv%%=*}" want="${kv#*=}"
+    [[ -n "$first_kind" ]] || first_kind="$kind"
+    if ui_find --resource-id "filter-chip-${kind}"; then
+      got="$(chip_label "$UI_TEXT")"
+      if [[ "$got" != "$want" ]]; then
+        FILTER_KEPT_WHY="${kind} chip shows '${got}', want '${want}'"
+        return 1
+      fi
+      judged=$((judged + 1))
+    else
+      echo "filter_kept: ${kind} chip not in the dump (scrolled off); not judged" >&2
+    fi
+  done
+  # Round 4.4.2 (Reviewer/Manu nit): filter-clear alone is not enough when
+  # every expected chip is off the row. Scroll the chip row to the first
+  # expected chip and judge it.
+  if (( $# > 0 && judged == 0 )); then
+    want=""
+    for kv in "$@"; do [[ "${kv%%=*}" == "$first_kind" ]] && want="${kv#*=}" && break; done
+    if ! scroll_chips_until --resource-id "filter-chip-${first_kind}"; then
+      FILTER_KEPT_WHY="no expected chip (${first_kind}) on the row after scrolling"
+      return 1
+    fi
+    got="$(chip_label "$UI_TEXT")"
+    if [[ "$got" != "$want" ]]; then
+      FILTER_KEPT_WHY="${first_kind} chip shows '${got}', want '${want}'"
+      return 1
+    fi
+  fi
+  return 0
+}
+
+# First real option of the open sheet for KIND (state|district|deity): the
+# first filter-option-KIND-* row in document order that is not -any, by its
+# exact label (content-desc without the trailing count). Prints the label,
+# then its resource-id on a second line.
+first_real_option() {
+  python3 - "$DUMP" "$1" <<'PY'
+import re, sys
+s = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+kind = sys.argv[2]
+for node in re.finditer(r"<node [^>]*>", s):
+    n = node.group(0)
+    rid = re.search(r'resource-id="([^"]*)"', n)
+    if not rid or not rid.group(1).startswith(f"filter-option-{kind}-") or rid.group(1) == f"filter-option-{kind}-any":
+        continue
+    desc = re.search(r'content-desc="([^"]*)"', n)
+    text = re.search(r' text="([^"]*)"', n)
+    label = (desc.group(1) if desc and desc.group(1) else (text.group(1) if text else ""))
+    label = " ".join(label.replace("&#10;", " ").split())
+    label = re.sub(r"\s+[0-9]+$", "", label)
+    if label:
+        print(label)
+        print(rid.group(1))
+        raise SystemExit(0)
+raise SystemExit(1)
+PY
+}
+
 select_labeled() {
   local regex="$1"
   local _section="${2:-}"
-  : "${_section}"
+  # Round 4.4: '@first' = the first real option on the opened sheet.
+  # Round 4.4.1 (Manu): tap the dumped row itself, no re-seek. The sheet
+  # must be at the head of the list (the -any row on screen); if it is
+  # not, pull the list down until it is (at most FIRST_TOP_SWIPES).
+  if [[ "$regex" == @first ]]; then
+    local _k _first _rid _n=0 _h _max
+    _k="$(printf '%s' "$_section" | tr '[:upper:]' '[:lower:]')"
+    ui_dump || { echo "select_labeled: dump failed on the ${_k} sheet" >&2; return 1; }
+    while ! ui_find --resource-id "filter-option-${_k}-any"; do
+      if (( _n >= ${FIRST_TOP_SWIPES:-6} )); then
+        echo "select_labeled: ${_k} list head (-any) not reached after ${_n} swipes" >&2
+        return 1
+      fi
+      _n=$((_n + 1))
+      echo "select_labeled: ${_k} sheet not at the list head; scrolling to the top (${_n})" >&2
+      ui_sheet_swipe down 58 "${FIRST_TOP_SWIPE_PCT:-12}" || { echo "select_labeled: swipe failed" >&2; return 1; }
+      sleep 0.3
+      ui_dump || { echo "select_labeled: dump failed on the ${_k} sheet" >&2; return 1; }
+    done
+    if ! { read -r _first; read -r _rid; } < <(first_real_option "$_k"); then
+      echo "select_labeled: no real ${_k} option on the open sheet" >&2
+      return 1
+    fi
+    echo "select_labeled: first real ${_k} option '${_first}' (tap in place)" >&2
+    read -r _ _h < <(ui_screen_size) || return 1
+    _max=$((_h * 84 / 100))
+    if ! ui_find --resource-id "$_rid" --max-top "$_max"; then
+      echo "select_labeled: '${_first}' row is not in the tap band" >&2
+      return 1
+    fi
+    stable_option_tap "^$(re_escape "$_first")( +[0-9]+)?\$" "^$(re_escape "$_rid")\$" || {
+      echo "select_labeled: '${_first}' did not hold still for two dumps" >&2
+      return 1
+    }
+    return 0
+  fi
   local pass i height min_top max_top prev="" current stuck
+  local opt_rx='.'
+  case "$_section" in
+    STATE|DISTRICT|DEITY) opt_rx="^filter-option-$(printf '%s' "$_section" | tr '[:upper:]' '[:lower:]')-" ;;
+  esac
   local name_hint id_rx=""
   name_hint="$(option_name_from_regex "$regex")"
   if [[ -n "$name_hint" ]]; then
     id_rx="filter-option-.*-$(re_escape "$name_hint")$"
+    [[ "$opt_rx" != . ]] && id_rx="${opt_rx}$(re_escape "$name_hint")$"
   fi
   local started=0
   local deadline=0
   if ! wait_out_district_loader; then
     return 1
   fi
+  local kind
+  kind="$(printf '%s' "$_section" | tr '[:upper:]' '[:lower:]')"
   started=$SECONDS
-  deadline=$((started + 120))
+  deadline=$((started + PICKER_GIVEUP_S))
+  if [[ "$kind" =~ ^(state|district|deity)$ ]] && (( PICKER_LONG_GIVEUP_S > PICKER_GIVEUP_S )); then
+    deadline=$((started + PICKER_LONG_GIVEUP_S))
+  fi
+  if [[ -n "$name_hint" && "$kind" =~ ^(state|district|deity)$ ]]; then
+    local seek_rc=0
+    # '^Vishnu' (no $) takes the first Vishnu... option; '^Shiva( +N)?$' only Shiva.
+    local prefix_flag=""
+    [[ "$regex" == *'$' ]] || prefix_flag=--prefix
+    # Keep the last 15s for the bounded step scan below when the seek stalls.
+    local seek_deadline=$((deadline - 15))
+    (( seek_deadline > started + 15 )) || seek_deadline=$deadline
+    SEEK_FRESH_DUMP=1 seek_option "$kind" "$name_hint" "$seek_deadline" ${prefix_flag:+"$prefix_flag"} || seek_rc=$?
+    # "list stopped moving" (rc 1) on a slow (cold-booted, swiftshader)
+    # emulator: 120ms flings were not taken as drags. One more walk with
+    # slower flings while the deadline allows (run 41373837994: 17, 29).
+    if (( seek_rc == 1 )) && (( SECONDS + 8 < seek_deadline )); then
+      echo "select_labeled: retrying the ${kind} walk with ${SEEK_RETRY_FLING_MS:-300}ms flings" >&2
+      seek_rc=0
+      SEEK_FLING_MS="${SEEK_RETRY_FLING_MS:-300}" seek_option "$kind" "$name_hint" "$seek_deadline" ${prefix_flag:+"$prefix_flag"} || seek_rc=$?
+    fi
+    if (( seek_rc == 0 )); then
+      if [[ ! "$UI_TEXT" =~ $regex ]]; then
+        echo "select_labeled: option '${UI_TEXT}' does not match '${regex}'" >&2
+        return 1
+      fi
+      if ! stable_option_tap "$regex" "$opt_rx"; then
+        echo "select_labeled: '${UI_TEXT}' did not hold still for two dumps" >&2
+        return 1
+      fi
+      return 0
+    fi
+    if (( seek_rc == 2 )); then
+      echo "select_labeled: '${regex}' is not offered in the ${kind} list" >&2
+      return 1
+    fi
+    if (( seek_rc == 3 )); then
+      echo "select_labeled: gave up on '${regex}': the ${kind} list stopped moving" >&2
+      return 1
+    fi
+    if ! python3 "$UI_PY" sheet-band "$DUMP" >/dev/null 2>&1; then
+      echo "select_labeled: the filter sheet is not on screen while looking for '${regex}'" >&2
+      return 1
+    fi
+  fi
   for pass in 1 2; do
     if (( SECONDS >= deadline )); then
       echo "select_labeled: gave up looking for '${regex}' after $((SECONDS - started))s" >&2
@@ -1119,14 +2070,15 @@ select_labeled() {
       min_top=$((height * 24 / 100))
       max_top=$((height * 84 / 100))
       if { [[ -n "$id_rx" ]] && ui_find --resource-id-regex "$id_rx" --min-top "$min_top" --max-top "$max_top" --prefer upper; } \
-        || { ui_find --text-regex "$regex" --min-top "$min_top" --max-top "$max_top" --prefer upper \
+        || { ui_find --resource-id-regex "$opt_rx" --text-regex "$regex" --min-top "$min_top" --max-top "$max_top" --prefer upper \
         && [[ ! "$UI_TEXT" =~ ^Show[[:space:]]+[0-9]+[[:space:]]+temples?$ ]]; }; then
-        SELECTED_LABEL="$(chip_label "$UI_TEXT")"
-        ui_tap
-        sleep 1
-        return 0
+        if stable_option_tap "$regex" "$opt_rx"; then
+          return 0
+        fi
+        # Moved between the two dumps: look again on the next dump.
+        continue
       fi
-      if ui_find --text-regex "$regex" --min-top "$max_top" --prefer upper \
+      if ui_find --resource-id-regex "$opt_rx" --text-regex "$regex" --min-top "$max_top" --prefer upper \
         && [[ ! "$UI_TEXT" =~ ^Show[[:space:]]+[0-9]+[[:space:]]+temples?$ ]]; then
         ui_sheet_swipe up || {
           echo "select_labeled: swipe failed while looking for '${regex}'" >&2
@@ -1135,7 +2087,7 @@ select_labeled() {
         sleep 0.3
         continue
       fi
-      if ui_find --text-regex "$regex" --max-top "$min_top" --prefer lower; then
+      if ui_find --resource-id-regex "$opt_rx" --text-regex "$regex" --max-top "$min_top" --prefer lower; then
         ui_sheet_swipe down || {
           echo "select_labeled: swipe failed while looking for '${regex}'" >&2
           return 1
@@ -1148,6 +2100,12 @@ select_labeled() {
         return 1
       }
       if [[ -n "$prev" && "$current" == "$prev" ]]; then
+        # A sheet that closed under the walk leaves nothing to scan; more
+        # swipes would only drag the list behind it until the give-up.
+        if ! python3 "$UI_PY" sheet-band "$DUMP" >/dev/null 2>&1; then
+          echo "select_labeled: the filter sheet is not on screen while looking for '${regex}'" >&2
+          return 1
+        fi
         stuck=$((stuck + 1))
         # A drag that misses the list leaves the texts unchanged before
         # anything has scrolled. After the list has moved, one unchanged
@@ -1204,7 +2162,40 @@ apply_sheet() {
 
 chip_exact() {
   local label="$1"
-  find_filter_chip "" "^$(re_escape "$label")$"
+  # A filter-chip-* node with that label first. The bare text regex also
+  # matches the app bar title ("Kerala", "Shiva · Tamil Nadu"), which sits
+  # above the chip bar (run 41373837994 flow 19 in landscape: the title at
+  # x=320 was taken for the chip and scrolled for 8 tries).
+  CHIP_LABEL_RX="^$(re_escape "$label")$" find_filter_chip "" "^$(re_escape "$label")$"
+}
+
+# scoped_pick KIND: the pick regex for KIND given the chip bar on screen.
+# Shiva / Madurai only when the state chip already shows Tamil Nadu (a
+# ~32-option list); otherwise the head-of-list all-India picks, so no walk
+# crosses the 600-deity list (run 41391038302: every all-India Shiva walk
+# gave up at "Ra..Ri" after 45s). State is always Tamil Nadu.
+scoped_pick() {
+  local kind="$1" tn=0
+  if ui_dump && ui_find --resource-id filter-chip-state \
+    && [[ "$(printf '%s' "${UI_TEXT:-}" | tr -s '[:space:]' ' ')" == *"Tamil Nadu"* ]]; then
+    tn=1
+  fi
+  # Round 4.4.9e (run 41781519101, 30s5 "deity:select district:select"):
+  # the sheet's counts are faceted (directory_filters.dart census) and a
+  # zero-count option is hidden, so with a deity applied the all-India
+  # head district (24 Paraganas North) is usually not offered at all. With
+  # a deity on the chip bar, the district pick is the first real option.
+  local deity_on=0 dl
+  if ui_find --resource-id filter-chip-deity; then
+    dl="$(printf '%s' "${UI_TEXT:-}" | tr -s '[:space:]' ' ' | sed 's/^ //; s/ $//')"
+    [[ -n "$dl" && "$dl" != Deity ]] && deity_on=1
+  fi
+  case "$kind" in
+    state) echo '^Tamil Nadu( +[0-9]+)?$' ;;
+    deity) if (( tn )); then echo "$TN_DEITY_PICK"; else echo "$ALL_INDIA_DEITY_PICK"; fi ;;
+    district) if (( tn )); then echo "$TN_DISTRICT_PICK"; elif (( deity_on )); then echo '@first'; else echo "$ALL_INDIA_DISTRICT_PICK"; fi ;;
+    *) return 1 ;;
+  esac
 }
 
 recover_sheet() {

@@ -8,14 +8,61 @@
 
 CHIPS=(state district deity)
 declare -A PICK=( [state]='^Tamil Nadu( +[0-9]+)?$' [deity]='^Shiva( +[0-9]+)?$' [district]='^Madurai( +[0-9]+)?$' )
+declare -A APPLIED=()
 declare -A SECTION=( [state]=STATE [deity]=DEITY [district]=DISTRICT )
 
 open_drawer() {
   ui_dump && ui_find --content-desc "Open navigation menu" || return 1
   ui_tap; sleep 1
 }
-fresh_home() {
+# Round 4.4.8 (run 41601153030, 29e first cell): the first launch after the
+# install sat on the splash for 21s+ while the emulator's GL context was
+# lost (logcat: EGL_BAD_CONTEXT, "Surface lost, forcing relayout"); the next
+# launch drew in 3.6s. One relaunch before giving up on the entry.
+fresh_home_once() {
   force_stop_app; launch_app; accept_policy_if_shown || return 1; wait_for_home
+}
+# Round 4.4.8b: emulator GPU context loss on the app's own process
+# (29e, run 41601153030 shard 5: EGL_BAD_CONTEXT / eglMakeCurrent 0x3006 /
+# "Surface lost, forcing relayout", first launch never displayed).
+# Reads logcat threadtime text on stdin; pids from "Start proc <pid>:$PKG/".
+app_gpu_context_lost_in_log() {
+  local pkg="${1:-$PKG}"
+  awk -v pkg="$pkg" '
+    { line[NR] = $0 }
+    match($0, /Start proc [0-9]+:[^ \/]+\//) {
+      s = substr($0, RSTART + 11, RLENGTH - 12); split(s, a, ":")
+      if (a[2] == pkg) pid[a[1]] = 1
+    }
+    END {
+      for (i = 1; i <= NR; i++) { split(line[i], f, " ")
+        if ((f[3] in pid) && line[i] ~ /EGL_BAD_CONTEXT|0x3006|Surface lost/) { found = 1; exit } }
+      exit !found
+    }'
+}
+fresh_home() {
+  # Round 4.4.8b (Manu, Reviewer): relaunch ONCE only when home was not
+  # reached AND, since the first launch, logcat shows the GPU context-loss
+  # signature on the app's pid AND no FATAL EXCEPTION / ANR / "has stopped"
+  # for the package under test ($PKG from the APK; com.shradhaventures.temple
+  # in CI). Anything else (crash, no signature, unreadable logcat) FAILs
+  # without a relaunch. A relaunch writes a RELAUNCH line that
+  # release_gate.sh reports (count + flow ids), not a failure.
+  local window
+  logcat_window_start fresh_home || { record_fail "fresh_home" "logcat window could not start; not relaunching"; return 1; }
+  fresh_home_once && return 0
+  if ! window="$(logcat_window_read)"; then
+    record_fail "fresh_home" "home not reached and logcat unreadable; not relaunching"; return 1
+  fi
+  if printf '%s\n' "$window" | app_crashed_in_log "$PKG"; then
+    record_fail "fresh_home" "home not reached: ${PKG} crashed (FATAL EXCEPTION/ANR in logcat); not relaunching"; return 1
+  fi
+  if ! printf '%s\n' "$window" | app_gpu_context_lost_in_log "$PKG"; then
+    record_fail "fresh_home" "home not reached, no GPU context-loss signature for ${PKG}; not relaunching"; return 1
+  fi
+  echo "fresh_home: home not reached after GPU context loss; relaunching the app once" >&2
+  printf 'RELAUNCH %s: fresh_home: home not reached, EGL context lost on %s (no crash/ANR); relaunched the app once\n' "$FLOW" "$PKG" | tee -a "$RESULTS"
+  fresh_home_once
 }
 enter_home_browse() {
   fresh_home || return 1
@@ -28,8 +75,15 @@ enter_drawer_all() {
   ui_tap; wait_browse_ready
 }
 # Filters inside the drawer itself (the "District from drawer" bar).
+# The drawer sheet filters "the temples already loaded": opened before the
+# list loads it offers "Any state 0" and "Show 0 temples" (run 41373837994,
+# 30 drawer_bar-state-select, first cell after boot). Wait for a non-zero
+# "All Temples" count first. The FILTERS row sits at ~75% of the height,
+# below the 70% chip band of the list screens: CHIP_MAX_TOP_PCT=95.
 enter_drawer_bar() {
   fresh_home || return 1; open_drawer || return 1
+  ui_wait 30 --content-desc-regex '^All Temples\s+[1-9][0-9]*$' || return 1
+  CHIP_MAX_TOP_PCT=95
   ui_wait_scrolled 15 --text-regex '^FILTERS$'
 }
 enter_search() {
@@ -49,12 +103,15 @@ enter_near_me() {
   return 2
 }
 
+# Every chip scrolls into view in both directions (find_filter_chip): after
+# district/deity probes the row is scrolled right and the state chip is off
+# the left edge (run 41373837994, 29 home_browse-state-select-then-state).
 chip_present() {
   ui_dump || return 1
   case "$1" in
-    state) ui_find --resource-id filter-chip-state || ui_find --content-desc "Choose a state" ;;
-    district) scroll_chips_until --resource-id filter-chip-district || ui_find --content-desc "Choose a district" ;;
-    deity) scroll_chips_until --resource-id filter-chip-deity || ui_find --content-desc "Choose a deity" ;;
+    state) find_filter_chip filter-chip-state "" "Choose a state" ;;
+    district) find_filter_chip filter-chip-district "" "Choose a district" ;;
+    deity) find_filter_chip filter-chip-deity "" "Choose a deity" ;;
   esac
 }
 open_chip() {
@@ -76,16 +133,45 @@ close_x() {
 }
 
 # Action leaves the sheet closed; returns 0 if the action itself worked.
+# The pick is scoped (round 4.3, scoped_pick in lib/common.sh): Shiva and
+# Madurai only when the state chip already shows Tamil Nadu, otherwise the
+# head-of-list all-India picks. PICK keeps the Tamil Nadu targets.
 do_action() {
-  local chip="$1" action="$2"
+  local chip="$1" action="$2" pick
+  pick="$(scoped_pick "$chip")" || pick="${PICK[$chip]}"
+  local rc=0
   case "$action" in
-    select) open_chip "$chip" && select_labeled "${PICK[$chip]}" "${SECTION[$chip]}" && apply_sheet ;;
-    pick-close) open_chip "$chip" && select_labeled "${PICK[$chip]}" "${SECTION[$chip]}" && close_x ;;
-    dismiss-empty) open_chip "$chip" && dismiss_sheet_swipe ;;
-    back-empty) open_chip "$chip" && { ui_back; sleep 1; ! sheet_open; } ;;
-    outside-empty) open_chip "$chip" && dismiss_sheet_outside ;;
-    clear) open_chip "$chip" && select_labeled "${PICK[$chip]}" "${SECTION[$chip]}" && apply_sheet && clear_named "$chip" ;;
+    select) open_chip "$chip" && select_labeled "$pick" "${SECTION[$chip]}" && apply_sheet || rc=1 ;;
+    pick-close) open_chip "$chip" && select_labeled "$pick" "${SECTION[$chip]}" && close_x || rc=1 ;;
+    dismiss-empty) open_chip "$chip" && dismiss_sheet_swipe || rc=1 ;;
+    back-empty) open_chip "$chip" && { ui_back; sleep 1; ! sheet_open; } || rc=1 ;;
+    outside-empty) open_chip "$chip" && dismiss_sheet_outside || rc=1 ;;
+    clear) open_chip "$chip" && select_labeled "$pick" "${SECTION[$chip]}" && apply_sheet && clear_named "$chip" || rc=1 ;;
   esac
+  # Round 4.4.1: what should still be applied, for seqN-filter-kept. A
+  # state change resets the district, so district is only known until then.
+  if (( rc == 0 )); then
+    case "$action" in
+      select) [[ "$chip" == state ]] && unset 'APPLIED[district]'; APPLIED[$chip]="$SELECTED_LABEL" ;;
+      clear) unset "APPLIED[$chip]"; [[ "$chip" == state ]] && unset 'APPLIED[district]' ;;
+    esac
+  fi
+  return "$rc"
+}
+
+# Round 4.4.2: with nothing applied, the chip bar is on screen and
+# filter-clear (built only while a filter is active) is not.
+none_applied_ok() {
+  FILTER_KEPT_WHY=""
+  if ! filter_bar_present; then FILTER_KEPT_WHY="filter bar missing after detail"; return 1; fi
+  if ui_find --resource-id filter-clear; then FILTER_KEPT_WHY="filter-clear shown with no filter applied"; return 1; fi
+  return 0
+}
+
+# Expected KIND=LABEL pairs for filter_kept.
+applied_pairs() {
+  local k
+  for k in "${!APPLIED[@]}"; do printf '%s=%s\n' "$k" "${APPLIED[$k]}"; done
 }
 
 # xfail only when the district chip id is missing from the dump and no state
@@ -122,8 +208,10 @@ raise SystemExit(0 if text and text != "State" else 1)
 # District's first load can take longer than a chip tap. State and deity stay at 3 s.
 probe_others() {
   local id="$1" done_chip="$2" other in_dump state_selected outcome
-  for other in "${CHIPS[@]}" "$done_chip"; do
-    # also re-tap the same chip last
+  # CHIPS already holds done_chip; the old extra re-tap of it repeated the
+  # same probe and cost ~25s a cell.
+  : "$done_chip"
+  for other in "${CHIPS[@]}"; do
     if ! chip_present "$other"; then
       if [[ "$other" == district ]] && ui_dump; then
         in_dump=0
@@ -135,8 +223,12 @@ probe_others() {
           state_selected=1
         fi
         outcome="$(district_miss_outcome "$in_dump" "$state_selected")"
+        if [[ "$outcome" == xfail ]] && chip_bar_only_district_missing; then
+          xfail_known "$id-then-$other" KAN-190 "district chip hidden with no state selected" district_chip_reappears
+          continue
+        fi
         if [[ "$outcome" == xfail ]]; then
-          xfail_step "$id-then-$other" "district chip hidden with no state selected"
+          fail_step "$id-then-$other" "filter chip bar not on screen"
           continue
         fi
         if [[ "$state_selected" -eq 1 && "$in_dump" -eq 0 ]]; then
@@ -163,7 +255,30 @@ probe_others() {
 # One 1140s budget died at cell 47, still inside the first half of this
 # matrix, so the 3+ step sequences never started. Part a is home + drawer
 # All Temples. Part b is the drawer bar, Search, near me, and the sequences.
+# Run 41373837994: part a reached cell 32 of 90 and part b cell 24 at the
+# 600s cap. plan.sh now runs one entry x one chip per flow:
+# FILTER_MATRIX_PART=<entry>:<chip> (e.g. drawer_bar:state), or "seqs".
+MATRIX_CHIPS=("${CHIPS[@]}")
 case "${FILTER_MATRIX_PART:-all}" in
+  seqs)
+    ENTRIES=()
+    RUN_SEQS=1
+    ;;
+  # Round 4.4.8: one sequence per flow (30s1-30s5). The five sequences took
+  # ~226-260s each (run 41601153030: seq1 260s, seq2 226s), so one 600s flow
+  # never got past seq3.
+  seqs:[1-5])
+    ENTRIES=()
+    RUN_SEQS=1
+    SEQ_ONLY="${FILTER_MATRIX_PART#seqs:}"
+    ;;
+  *:*)
+    ENTRIES=("${FILTER_MATRIX_PART%%:*}")
+    if [[ "${FILTER_MATRIX_PART##*:}" != all ]]; then
+      MATRIX_CHIPS=("${FILTER_MATRIX_PART##*:}")
+    fi
+    RUN_SEQS=0
+    ;;
   a)
     ENTRIES=(home_browse drawer_all)
     RUN_SEQS=0
@@ -180,7 +295,9 @@ esac
 ACTIONS=(select pick-close dismiss-empty back-empty outside-empty clear)
 
 for entry in "${ENTRIES[@]}"; do
-  for chip in "${CHIPS[@]}"; do
+  # shellcheck disable=SC2034 # read by lib/common.sh chip lookups
+  CHIP_MAX_TOP_PCT=70
+  for chip in "${MATRIX_CHIPS[@]}"; do
     for action in "${ACTIONS[@]}"; do
       id="$entry-$chip-$action"
       "enter_$entry" >/dev/null 2>&1
@@ -212,7 +329,9 @@ SEQS=(
 n=0
 for seq in "${SEQS[@]}"; do
   n=$((n+1))
+  [[ -n "${SEQ_ONLY:-}" && "$n" != "$SEQ_ONLY" ]] && continue
   enter_home_browse >/dev/null 2>&1 || { fail_step "seq$n-enter" "browse not reached"; continue; }
+  APPLIED=()
   ok=1
   for st in $seq; do
     do_action "${st%%:*}" "${st##*:}" || { ok=0; fail_step "seq$n-$st" "step failed"; recover_sheet; break; }
@@ -222,10 +341,16 @@ for seq in "${SEQS[@]}"; do
   if ui_wait_scrolled 20 --resource-id temple-browse-card; then
     ui_tap; ui_wait_scrolled 20 --text-contains "How to Reach" && ui_back; sleep 2
     ui_dump || true
-    if ui_find --resource-id filter-chip-state; then
+    # Round 4.4.1 (Manu): a filter should still be applied, so filter-clear
+    # (and the applied labels) are required; chips alone do not pass.
+    mapfile -t kept < <(applied_pairs)
+    if (( ${#kept[@]} == 0 )); then
+      # Nothing applied: the bar must be there and filter-clear must not.
+      if none_applied_ok; then pass_step "seq$n-filter-kept"; else fail_step "seq$n-filter-kept" "$FILTER_KEPT_WHY"; fi
+    elif filter_kept "${kept[@]}"; then
       pass_step "seq$n-filter-kept"
     else
-      fail_step "seq$n-filter-kept" "filter bar missing after detail"
+      fail_step "seq$n-filter-kept" "filter lost after detail: ${FILTER_KEPT_WHY}"
     fi
     probe_others "seq$n-after-detail" state
   fi

@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+# Round 4.4.4/4.4.5 (Manu): installed by install.sh as
+# $ANDROID_HOME/platform-tools/adb (the real binary renamed to adb.real next
+# to it), because android-emulator-runner puts that dir first on PATH and
+# its own post-boot adb calls ("-s emulator-N shell input keyevent 82",
+# "-s emulator-N shell settings put global ...") would otherwise hang for the whole 42-min step. Those are capped
+# at EMULATOR_ACTION_ADB_S (plan.sh SHARD_ACTION_ADB_S, 5s). Round 4.4.8(b):
+# inside that cap a failing action keyevent 82 is retried, and one that still
+# fails or times out exits 0 with a warning, so it no longer kills the emulator
+# (run 41601153030 shards 3/6: "No service published for: input" right
+# after the snapshot load); run_shard.sh then waits for the services. Every other adb call passes through unchanged.
+set -uo pipefail
+self_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+real="$self_dir/adb.real"
+[[ -x "$real" ]] || { echo "adb_shim: no $real (run adb_shim/install.sh)" >&2; exit 127; }
+args=" $* "
+# Round 4.4.6 (Manu): the action's boot wait counts attempts (T/2 tries of
+# "getprop sys.boot_completed" + 2s delay, emulator-manager.ts:140-170), so
+# a hung getprop stretches it without bound. All those getprops of one boot
+# share ONE budget (ADB_SHIM_GETPROP_BUDGET_MS, 3500 ms + 0.5 s kill-after =
+# plan.sh SHARD_GETPROP_BUDGET_S 4 s), kept in $RUNNER_TEMP/adb_shim keyed
+# by serial + boot id (install.sh / prepare_avd.sh start a new boot id).
+# Once it is spent, getprop fails fast and the attempt loop runs out alone.
+# Other getprops (run_shard.sh caps its own) pass through.
+if [[ "$args" == *" shell getprop sys.boot_completed "* ]]; then
+  state="${ADB_SHIM_STATE_DIR:-${RUNNER_TEMP:-/tmp}/adb_shim}"
+  serial="${ANDROID_SERIAL:-default}"; prev=""
+  for a in "$@"; do [[ "$prev" == -s ]] && serial="$a"; prev="$a"; done
+  mkdir -p "$state" 2>/dev/null
+  boot_id="$(cat "$state/boot_id" 2>/dev/null || echo none)"
+  bf="$state/getprop.${serial}.${boot_id}"
+  left="$(cat "$bf" 2>/dev/null || echo "${ADB_SHIM_GETPROP_BUDGET_MS:-3500}")"
+  [[ "$left" =~ ^[0-9]+$ ]] || left=0
+  if (( left <= 0 )); then echo "adb_shim: getprop budget for this boot is spent" >&2; exit 1; fi
+  t0="$(date +%s%N)"; rc=0
+  timeout --kill-after=0.5 "$((left / 1000)).$(printf '%03d' $((left % 1000)))" "$real" "$@" || rc=$?
+  used=$(( ($(date +%s%N) - t0) / 1000000 ))
+  echo $(( left > used ? left - used : 0 )) > "$bf"
+  exit "$rc"
+fi
+# Round 4.4.8 (run 41601153030, shards 3 and 6): right after a snapshot
+# load the action's "input keyevent 82" can fail at once with "No service
+# published for: input" (system_server still publishing services). Exit 1
+# there fails the whole action (boot + retry both died, 6 flows NOT RUN).
+# Retry inside the SAME EMULATOR_ACTION_ADB_S cap (budget unchanged), then
+# return 0 with a warning: run_shard.sh's readiness wait + its own unlock
+# follow, and a device that stays broken fails its flows visibly.
+# Round 4.4.8b (Manu, Reviewer): ONLY the action's own unlock
+# "-s emulator-<port> shell input keyevent 82" is retried and swallowed; it
+# is the call that failed in run 41601153030 (shards 3/6). Its "settings put
+# global" calls never failed there (0 lines in all.log), so they keep the
+# 4.4.5 behaviour: capped at the same EMULATOR_ACTION_ADB_S, real exit code.
+# Discriminator, both required:
+#  a) the action's exact argv (emulator-manager.ts), argc 6 / 8;
+#  b) ADB_SHIM_HARNESS unset. run_shard.sh and run_one_flow.sh export
+#     ADB_SHIM_HARNESS=1, so run_shard's unlock, flows (22's keyevent 66,
+#     common.sh's keyevent 123/67) and anything they start pass through
+#     unchanged: real exit codes, never retried (no double ENTER/BACK).
+#     The action's node process only gets the workflow env, which never
+#     sets it.
+# a) alone is not enough: a harness "adb -s emulator-5554 shell input
+# keyevent 82" has the same argv; b) alone would catch every other adb call
+# made outside run_shard (prepare_avd's emu kill, workflow steps).
+action_call=""
+if [[ -z "${ADB_SHIM_HARNESS:-}" && $# -ge 6 && "$1" == -s && "$2" =~ ^emulator-[0-9]+$ && "$3" == shell ]]; then
+  if [[ $# -eq 6 && "$4 $5 $6" == "input keyevent 82" ]]; then action_call=unlock
+  elif [[ $# -eq 8 && "$4 $5 $6" == "settings put global" ]]; then action_call=settings
+  fi
+fi
+if [[ "$action_call" == settings ]]; then
+  exec timeout --kill-after=1 "${EMULATOR_ACTION_ADB_S:-5}" "$real" "$@"
+fi
+if [[ "$action_call" == unlock ]]; then
+  cap_s="${EMULATOR_ACTION_ADB_S:-5}"; deadline=$((SECONDS + cap_s)); try=0
+  while :; do
+    try=$((try + 1)); left=$((deadline - SECONDS))
+    (( left > 0 )) || break
+    timeout --kill-after=1 "$left" "$real" "$@" && exit 0
+    (( deadline - SECONDS > 1 )) || break
+    sleep 1
+  done
+  echo "::warning::adb_shim: '$*' failed ${try} time(s) in ${cap_s}s; not failing the emulator action (run_shard.sh waits for the services)" >&2
+  exit 0
+fi
+exec "$real" "$@"

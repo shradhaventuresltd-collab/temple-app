@@ -1,6 +1,8 @@
 # Miscellaneous
 *.class
 *.log
+# Replay fixtures for tool/emulator/self_test.sh (real CI log excerpts).
+!tool/emulator/testdata/**/*.log
 *.pyc
 *.swp
 .DS_Store

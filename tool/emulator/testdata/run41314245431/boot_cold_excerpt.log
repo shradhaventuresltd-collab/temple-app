@@ -1,0 +1,4 @@
+2026-11-01T14:09:22.6461824Z INFO         | Loading snapshot 'default_boot'...
+2026-11-01T14:09:22.6471825Z ERROR        | The emulator hardware cannot load snapshot: default_boot
+2026-11-01T14:09:22.6652523Z WARNING      | Error -1 from the snapshot callback
+2026-11-01T14:09:22.6655091Z USER_INFO    | The emulator is starting from scratch. Reason: different AVD configuration

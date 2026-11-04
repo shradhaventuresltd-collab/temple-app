@@ -63,7 +63,14 @@ swipe_from_list() {
 declare -A PICK=( [state]='^Kerala( +[0-9]+)?$' [deity]='^Shiva( +[0-9]+)?$' [district]='^Agra( +[0-9]+)?$' )
 declare -A SECTION=( [state]=STATE [deity]=DEITY [district]=DISTRICT )
 
-for entry in home_button drawer_all drawer_search list_drawer_all; do
+# Run 41373837994: two entries took the whole 600s cap, and a two-entry
+# part a then took 597 of 600s. One entry point per flow (plan.sh 17a-17d):
+# FILTER_MATRIX_PART=<entry>; "all"/unset runs every entry (local runs).
+case "${FILTER_MATRIX_PART:-all}" in
+  home_button|drawer_all|drawer_search|list_drawer_all) ENTRIES=("${FILTER_MATRIX_PART}") ;;
+  *) ENTRIES=(home_button drawer_all drawer_search list_drawer_all) ;;
+esac
+for entry in "${ENTRIES[@]}"; do
   if ! err="$(enter_$entry)"; then
     fail_step "$entry-enter" "${err:-could not reach the list}"; continue
   fi
@@ -71,13 +78,21 @@ for entry in home_button drawer_all drawer_search list_drawer_all; do
   for f in state deity district; do
     id="$entry-$f"
     if ! open_chip "$f"; then
-      [[ $f == district ]] && { xfail_step "$id-open" "district chip hidden (asset not bundled?)"; continue; }
+      if [[ $f == district ]] && chip_bar_only_district_missing; then
+        xfail_known "$id-open" KAN-190 "district chip hidden while the rest of the chip bar is on screen" district_chip_reappears
+        continue
+      fi
       fail_step "$id-open" "chip did not open the sheet"; continue
     fi
     pass_step "$id-open"
     if err="$(dismiss_sheet_swipe 2>&1)"; then pass_step "$id-swipe-header"; else fail_step "$id-swipe-header" "$err"; recover_sheet; fi
     open_chip "$f" && { if swipe_from_list; then pass_step "$id-swipe-list"; else fail_step "$id-swipe-list" "sheet stayed open"; recover_sheet; fi; }
-    if open_chip "$f" && select_labeled "${PICK[$f]}" "${SECTION[$f]}" && apply_sheet && chip_exact "$SELECTED_LABEL"; then
+    # Deity: Shiva only from a Tamil Nadu-scoped list (scoped_pick); the
+    # state was cleared above, so this is the all-India head pick: the
+    # sheet's first real option (@first, round 4.4; Ahalya left the list).
+    pick="${PICK[$f]}"
+    if [[ "$f" == deity ]]; then pick="$(scoped_pick deity)" || pick="$ALL_INDIA_DEITY_PICK"; fi
+    if open_chip "$f" && select_labeled "$pick" "${SECTION[$f]}" && apply_sheet && chip_exact "$SELECTED_LABEL"; then
       pass_step "$id-select"
     else
       fail_step "$id-select" "chip did not take the selection on this route"; recover_sheet; continue
@@ -103,12 +118,19 @@ for entry in home_button drawer_all drawer_search list_drawer_all; do
       fi
     fi
   fi
+  # Clear the field first (round 4.3): on drawer_search it already holds
+  # "temple", and typing appended "templezzzqqq", which still matches every
+  # "... Temple" (temple_search.dart:640-641 reverse prefix, a pre-existing
+  # app bug since #103, Jira KAN-193). ui_replace_field_text clears exactly
+  # the current text, types, and reads the field back.
   if ui_dump && ui_find --resource-id temple-list-search-field; then
-    ui_tap
-    ui_type "zzzqqq"
+    field_ok=1
+    ui_replace_field_text "zzzqqq" temple-list-search-field || field_ok=0
     adb_shell_capped 8 input keyevent 66 || true
     sleep 2
-    if ui_dump && ui_find --resource-id filter-empty-clear; then
+    if (( ! field_ok )); then
+      fail_step "$entry-empty-clear" "search field reads '${UI_FIELD_ACTUAL:-?}', not 'zzzqqq'"
+    elif ui_dump && ui_find --resource-id filter-empty-clear; then
       ui_tap
       sleep 1
       ui_dump
