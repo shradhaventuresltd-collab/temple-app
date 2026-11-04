@@ -19,9 +19,10 @@ name: emulator-app-test
 # per-step budget EMULATOR_STEP_BUDGET_S=150; 15 shards (SHARD_COUNT in plan.sh). The shard limit is
 # time, not a flow count: boot + pre/post-BOOT work (189s) + per active flow (cap + 15 + 25 + 10s) <= 39 min
 # (self_test, plan_need_s); today 2139s = 35.65 min max (shard 12: 1489s, shards 11/15: 2069s, shard 9: 2129s), step timeout 42.
-# Job 68 >= 20 setup/post + 195s dead first attempt (30 start + 150 boot + 5 keyevent + 10 pre-BOOT
-# watchdog) + 2 boot check + 42 boot retry; end to end <= 45 min on every path (warm, retry, cold,
-# cold + retry, warm-up refused), retry <= 44.0 (rounds 4.4.3-4.4.4).
+# Job 68 >= 20 setup/post + 211s dead first attempt (30 start + 150 boot + 4 getprop budget +
+# 5 keyevent + 22s pre-BOOT watchdog incl. 12s readiness, round 4.4.9) + 2 boot check + 42 boot
+# retry; end to end <= 45 min on every path (warm, retry, cold, cold + retry, warm-up refused,
+# refused + retry, create failed + retry), retry <= 44.0 (rounds 4.4.3-4.4.9c).
 #
 # workflow_dispatch APK source, first match wins:
 #   apk_url          https URL of an APK
@@ -635,6 +636,15 @@ jobs:
           fi
 
       - name: Run emulator flows (boot retry)
+        # Round 4.4.9c (Manu nit 1): the retry cold-boots (-no-snapshot-load), so
+        # a snapshot that cannot run on this runner (run 41757362316: SIGILL
+        # after the restore) is not loaded twice. Cold boots in CI logs, launch
+        # -> "Emulator booted": 41 boots in runs r3/r5/r6, max 30.3s (81 boots
+        # in round 4.4.2: max 33.7s); the retry boot wait stays
+        # EMULATOR_RETRY_BOOT_TIMEOUT 50s (1.48x 33.7s), so the budget does not
+        # change. Readiness after it is the 12s pre-BOOT wait in run_shard.sh.
+        # The marker then says "cold": a warning, and fatal only if the AVD
+        # config also differs from the snapshot (as on the first attempt).
         id: flows-retry
         if: ${{ !cancelled() && steps.flows.outcome == 'failure' && steps.boot-check.outputs.retry == 'true' }}
         timeout-minutes: ${{ matrix.shard == 'smoke' && 75 || 42 }}
@@ -651,7 +661,7 @@ jobs:
           disable-animations: ${{ env.EMULATOR_DISABLE_ANIMATIONS }}
           emulator-build: ${{ env.EMULATOR_BUILD }}
           emulator-boot-timeout: ${{ env.EMULATOR_RETRY_BOOT_TIMEOUT }}
-          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          emulator-options: ${{ env.EMULATOR_OPTIONS }} -no-snapshot-load
           pre-emulator-launch-script: ${{ env.EMULATOR_PRE_LAUNCH }} run
           script: bash tool/emulator/run_shard.sh ${{ needs.build.outputs.tier }} ${{ matrix.shard != 'smoke' && matrix.shard || '' }}
 

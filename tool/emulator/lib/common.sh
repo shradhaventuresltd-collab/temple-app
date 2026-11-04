@@ -718,8 +718,13 @@ uninstall_app() {
   adb uninstall "$PKG" >/dev/null 2>&1 || true
 }
 
+# Round 4.4.9c (Reviewer): each install is bounded (EMULATOR_INSTALL_S,
+# 120s + 5s kill-after). It runs inside the flow's own cap (300-600s), so
+# a hung install fails the flow ("adb install failed", rc 124) instead of
+# eating the whole cap; worst case install + services wait 12s + retry
+# install = 262s, still inside the 300s minimum cap.
 install_once() {
-  adb install -r -d "$EMULATOR_APK" 2>&1
+  timeout --kill-after=5 "${EMULATOR_INSTALL_S:-120}" adb install -r -d "$EMULATOR_APK" 2>&1
 }
 
 # Printed once per flow, after the APK is on the emulator. Lessons row 4

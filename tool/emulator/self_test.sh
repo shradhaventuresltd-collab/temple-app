@@ -440,8 +440,9 @@ for body in runners:
 if len(cfgs) != 4 or any(c != cfgs[0] for c in cfgs) or None in cfgs[0].values():
     errs.append(f"warm-up, snapshot and flow steps must boot the same AVD config: {cfgs}")
 opts = [re.search(r"^          emulator-options: (.*)$", body, re.M).group(1) for body in runners]
-if len(set(opts)) != 1:
-    errs.append(f"both emulator boots must use identical options: {opts}")
+# Round 4.4.9c: the boot retry (last runner) adds only -no-snapshot-load.
+if len(opts) != 4 or len(set(opts[:3])) != 1 or opts[3] != opts[0] + " -no-snapshot-load":
+    errs.append(f"emulator boots must use identical options (retry: + -no-snapshot-load only): {opts}")
 if "avd-30-x86_64-google_apis-emulator-app-test-clean" in wf:
     errs.append("the old fixed AVD key (snapshot saved by emulator 37.2.12.0) must not be restored")
 print("\n".join(errs), file=sys.stderr)
@@ -3255,7 +3256,9 @@ assert chk.index("adb emu kill") < chk.index('echo "retry=true"'), chk
 assert "if: ${{ !cancelled() && steps.flows.outcome == 'failure' && steps.boot-check.outputs.retry == 'true' }}" in rt, rt
 strip = lambda t: [l for l in t.splitlines() if l.strip().startswith(("api-level", "target", "arch", "cores", "disk-size", "avd-name", "force-avd", "disable-anim", "emulator-", "pre-emulator", "script:", "uses:", "timeout-minutes"))]
 # Round 4.4.3: identical except the retry's boot wait (EMULATOR_RETRY_BOOT_TIMEOUT).
-assert [l for l in strip(rt) if "emulator-boot-timeout" not in l] == [l for l in strip(fl) if "emulator-boot-timeout" not in l], (strip(rt), strip(fl))
+# Round 4.4.9c: the retry differs only in its boot wait and -no-snapshot-load.
+assert [l.replace(" -no-snapshot-load", "") for l in strip(rt) if "emulator-boot-timeout" not in l] == [l for l in strip(fl) if "emulator-boot-timeout" not in l], (strip(rt), strip(fl))
+assert "emulator-options: ${{ env.EMULATOR_OPTIONS }} -no-snapshot-load" in rt, rt
 assert "emulator-boot-timeout: ${{ env.EMULATOR_RETRY_BOOT_TIMEOUT }}" in rt
 # Round 4.4.4/4.4.5: after this job's own create step (saved or failed) 60s like the retry.
 assert "emulator-boot-timeout: ${{ (steps.create-avd.outcome == 'success' || steps.create-avd.outcome == 'failure') && env.EMULATOR_RETRY_BOOT_TIMEOUT || env.EMULATOR_BOOT_TIMEOUT }}" in fl, fl
@@ -3651,5 +3654,37 @@ for want in "30s3-filter-matrix-seq3 540 540" "06a-filters-single 600 600" "30s1
     { echo "4.4.9b run_one_flow: EMULATOR_FLOW_BUDGET=${fb} -> CAP ${fwant}s: $(cat "$cp_dir/a1/results.txt")" >&2; exit 1; }
 done
 echo "4.4.9b caps: shard 11 header/group/runner 540s for 30s1-2; run_one_flow CAP 540 (30s3), 600 (06a), 900 clamped to 600"
+# Round 4.4.9c (Manu nit 1): only the boot-retry step cold-boots
+# (-no-snapshot-load); every other emulator step keeps the plain options.
+python3 - "$workflow" <<'PY' || { echo "4.4.9c: -no-snapshot-load on the boot retry step only" >&2; exit 1; }
+import re, sys
+steps = re.split(r"\n      - name: ", open(sys.argv[1]).read())
+opts = [(s.split("\n", 1)[0], re.findall(r"emulator-options: (.*)", s)) for s in steps if "emulator-options:" in s]
+retry = [v for k, v in opts if k == "Run emulator flows (boot retry)"]
+ok = len(opts) == 4 and retry == [["${{ env.EMULATOR_OPTIONS }} -no-snapshot-load"]]
+ok &= all(v == ["${{ env.EMULATOR_OPTIONS }}"] for k, v in opts if k != "Run emulator flows (boot retry)")
+sys.exit(0 if ok else 1)
+PY
+echo "4.4.9c: boot retry cold-boots (-no-snapshot-load) within the 50s retry wait; other emulator steps unchanged"
+# Round 4.4.9c (Reviewer 1): with the cold-boot retry, the retry paths keep
+# the 50s retry boot wait and stay within budget (<= 2640 retry, <= 2700 all,
+# >= 10s margin on the longest).
+read -r q_warm q_retry q_cold q_cretry q_ref q_rretry q_cf q_max < <(bash -c 'source tool/emulator/plan.sh; plan_e2e_s')
+(( q_retry <= 2640 && q_cretry <= 2690 && q_rretry <= 2690 && q_cf <= 2690 )) &&
+  [[ "$(bash -c 'source tool/emulator/plan.sh; echo "$SHARD_RETRY_BOOT_S"')" == 50 ]] ||
+  { echo "4.4.9c: cold-boot retry paths over budget: retry ${q_retry} cold+retry ${q_cretry} refused+retry ${q_rretry} create failed+retry ${q_cf}" >&2; exit 1; }
+echo "4.4.9c: retry paths ${q_retry}/${q_cretry}/${q_rretry}/${q_cf}s with the 50s cold-boot retry wait (<= 2700 - 10)"
+# Round 4.4.9c (Reviewer 2): adb install is bounded.
+grep -q 'timeout --kill-after=5 "${EMULATOR_INSTALL_S:-120}" adb install -r -d "$EMULATOR_APK" 2>&1' tool/emulator/lib/common.sh ||
+  { echo "4.4.9c: install_once must be bounded (120s + 5s)" >&2; exit 1; }
+(( 2 * 125 + 12 <= $(bash -c 'source tool/emulator/plan.sh; for i in $(plan_ids full); do plan_is_skipped "$i" || plan_cap_s "$i"; done' | sort -n | head -1) )) ||
+  { echo "4.4.9c: two bounded installs + services wait must fit the smallest flow cap" >&2; exit 1; }
+hd="$(mktemp -d)"; mkdir -p "$hd/bin"; printf '#!/bin/sh\n[ "$1" = install ] && exec sleep 39.5\nexit 0\n' > "$hd/bin/adb"; chmod +x "$hd/bin/adb"; : > "$hd/app.apk"
+t0=$SECONDS; rc=0
+PATH="$hd/bin:$PATH" EMULATOR_FLOW=inst EMULATOR_ARTIFACTS="$hd/art" EMULATOR_APK="$hd/app.apk" EMULATOR_INSTALL_S=1 \
+  bash -c 'source tool/emulator/lib/common.sh >/dev/null 2>&1; install_apk' >/dev/null 2>&1 || rc=$?
+(( rc != 0 && SECONDS - t0 <= 8 )) && grep -q '^FAIL inst: install: adb install failed' "$hd/art/results.txt" && ! pgrep -f 'sleep 39.5' >/dev/null ||
+  { echo "4.4.9c: a hung adb install must fail within its bound (rc=$rc $((SECONDS - t0))s)" >&2; pkill -f 'sleep 39.5'; exit 1; }
+echo "4.4.9c install: a hung adb install fails within EMULATOR_INSTALL_S, no retry"
 echo "round 4.4.8 checks ok"
 echo "emulator self-test ok"
