@@ -748,7 +748,7 @@ install_apk() {
     record_fail "install" "APK missing (${EMULATOR_APK:-unset})"
     return 1
   fi
-  local log rc=0
+  local log rc=0 retried=0
   uninstall_app
   log="$(install_once)" || rc=$?
   if (( rc != 0 )) && [[ "$log" == *"cmd: Can't find service: package"* ]]; then
@@ -758,10 +758,13 @@ install_apk() {
     # exact error; any other install error is not retried here.
     echo "install: 'Can't find service: package'; waiting for services, then one retry" >&2
     timeout --kill-after=2 "${EMULATOR_INSTALL_SERVICES_WAIT_S:-10}" bash "${ROOT}/tool/emulator/services_ready.sh" "${EMULATOR_INSTALL_SERVICES_WAIT_S:-10}" >&2 || true
-    rc=0; log="$(install_once)" || rc=$?
+    rc=0; retried=1; log="$(install_once)" || rc=$?
   fi
   if (( rc != 0 )); then
-    if [[ "$log" == *"INSTALL_FAILED_UPDATE_INCOMPATIBLE"* ]]; then
+    # Round 4.4.9d: the uninstall+reinstall branch only runs when the
+    # package-service retry was not used, so at most 2 installs (2 x 125s)
+    # + the 12s services wait = 262s per flow, inside the 300s minimum cap.
+    if (( retried == 0 )) && [[ "$log" == *"INSTALL_FAILED_UPDATE_INCOMPATIBLE"* ]]; then
       uninstall_app
       if ! log="$(install_once)"; then
         record_fail "install" "adb install failed after uninstall retry: $(printf '%s' "$log" | tr '\n' ' ')"

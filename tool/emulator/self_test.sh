@@ -3669,7 +3669,7 @@ echo "4.4.9c: boot retry cold-boots (-no-snapshot-load) within the 50s retry wai
 # Round 4.4.9c (Reviewer 1): with the cold-boot retry, the retry paths keep
 # the 50s retry boot wait and stay within budget (<= 2640 retry, <= 2700 all,
 # >= 10s margin on the longest).
-read -r q_warm q_retry q_cold q_cretry q_ref q_rretry q_cf q_max < <(bash -c 'source tool/emulator/plan.sh; plan_e2e_s')
+read -r _ q_retry _ q_cretry _ q_rretry q_cf _ < <(bash -c 'source tool/emulator/plan.sh; plan_e2e_s')
 (( q_retry <= 2640 && q_cretry <= 2690 && q_rretry <= 2690 && q_cf <= 2690 )) &&
   [[ "$(bash -c 'source tool/emulator/plan.sh; echo "$SHARD_RETRY_BOOT_S"')" == 50 ]] ||
   { echo "4.4.9c: cold-boot retry paths over budget: retry ${q_retry} cold+retry ${q_cretry} refused+retry ${q_rretry} create failed+retry ${q_cf}" >&2; exit 1; }
@@ -3686,5 +3686,26 @@ PATH="$hd/bin:$PATH" EMULATOR_FLOW=inst EMULATOR_ARTIFACTS="$hd/art" EMULATOR_AP
 (( rc != 0 && SECONDS - t0 <= 8 )) && grep -q '^FAIL inst: install: adb install failed' "$hd/art/results.txt" && ! pgrep -f 'sleep 39.5' >/dev/null ||
   { echo "4.4.9c: a hung adb install must fail within its bound (rc=$rc $((SECONDS - t0))s)" >&2; pkill -f 'sleep 39.5'; exit 1; }
 echo "4.4.9c install: a hung adb install fails within EMULATOR_INSTALL_S, no retry"
+# Round 4.4.9d: package-service retry then UPDATE_INCOMPATIBLE -> FAIL after
+# exactly 2 installs; without the retry, UPDATE_INCOMPATIBLE still reinstalls.
+ud="$(mktemp -d)"; mkdir -p "$ud/bin"; : > "$ud/app.apk"
+cat > "$ud/bin/adb" <<'ADB'
+#!/bin/bash
+[[ "$1" == install ]] || exit 0
+n=$(( $(cat "$UD/n" 2>/dev/null || echo 0) + 1 )); echo "$n" > "$UD/n"
+r="$(sed -n "${n}p" "$UD/script")"
+case "$r" in svc) echo "cmd: Can't find service: package"; exit 1;;
+  inc) echo "Failure [INSTALL_FAILED_UPDATE_INCOMPATIBLE: x]"; exit 1;; *) echo Success;; esac
+ADB
+chmod +x "$ud/bin/adb"; printf '#!/bin/sh\nexit 0\n' > "$ud/svc.sh"
+inst_case() { rm -f "$ud/n" "$ud/art/results.txt"; printf '%s\n' "$@" > "$ud/script"; local rc=0
+  UD="$ud" PATH="$ud/bin:$PATH" EMULATOR_FLOW=inst EMULATOR_ARTIFACTS="$ud/art" EMULATOR_APK="$ud/app.apk" EMULATOR_INSTALL_SERVICES_WAIT_S=1 \
+    bash -c 'source tool/emulator/lib/common.sh >/dev/null 2>&1; install_apk' >/dev/null 2>&1 || rc=$?; echo "$rc $(cat "$ud/n")"; }
+if ! { [[ "$(inst_case svc inc ok)" == "1 2" ]] && grep -q '^FAIL inst: install: adb install failed' "$ud/art/results.txt"; }; then
+  echo "4.4.9d: retry + UPDATE_INCOMPATIBLE must FAIL after exactly 2 installs" >&2; exit 1
+fi
+[[ "$(inst_case inc ok)" == "0 2" ]] || { echo "4.4.9d: plain UPDATE_INCOMPATIBLE must still uninstall+reinstall" >&2; exit 1; }
+rm -rf "$ud"
+echo "4.4.9d install: retry then UPDATE_INCOMPATIBLE -> FAIL (2 installs); plain UPDATE_INCOMPATIBLE -> reinstall ok"
 echo "round 4.4.8 checks ok"
 echo "emulator self-test ok"
