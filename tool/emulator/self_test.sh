@@ -2633,6 +2633,36 @@ o9h="$( ( export EMULATOR_FLOW=99-sp9h EMULATOR_ARTIFACTS="$r4/sp9h" EMULATOR_PA
   APPLIED=([state]='Tamil Nadu'); printf '%s|' "$(scoped_pick district)" ) 2>/dev/null )"
 [[ "$o9h" == '@first|@first|^Madurai( +[0-9]+)?$|' ]] ||
   { echo "4.4.9h scoped_pick: state under an applied district -> @first; Tamil Nadu from APPLIED: $o9h" >&2; exit 1; }
+# Round 4.4.9i (Reviewer): a non-Tamil Nadu state applied, no deity ->
+# district @first (24 Paraganas North may be hidden); nothing applied -> head pick.
+# shellcheck disable=SC2034,SC2329 # stubs
+o9i="$( ( export EMULATOR_FLOW=99-sp9i EMULATOR_ARTIFACTS="$r4/sp9i" EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  ui_dump() { printf '<hierarchy><node text="" resource-id="filter-chip-state" content-desc="State" bounds="[14,184][114,219]" /><node text="" resource-id="filter-chip-deity" content-desc="Deity" bounds="[230,184][300,219]" /></hierarchy>' > "$DUMP"; }
+  declare -A APPLIED=([state]='Madhya Pradesh'); printf '%s|' "$(scoped_pick district)"
+  APPLIED=(); printf '%s|' "$(scoped_pick district)" ) 2>/dev/null )"
+[[ "$o9i" == '@first|^24 Paraganas North( +[0-9]+)?$|' ]] ||
+  { echo "4.4.9i scoped_pick: non-TN state applied -> district @first; nothing applied -> head pick: $o9i" >&2; exit 1; }
+echo "4.4.9i: district pick is @first under any applied state or deity"
+# Round 4.4.9i (Manu): two matrix cells; cell 1 applies a deity, cell 2
+# (district) must get the all-India head pick again after the per-cell
+# APPLIED reset in flow 29 (fails if that reset line is removed).
+f29=tool/emulator/flows/29_filter_matrix.sh
+# shellcheck disable=SC2016,SC2034,SC2154,SC2329 # stubs and eval of the flow blocks
+o9c="$( ( set +eu; export EMULATOR_FLOW=29a-two-cells EMULATOR_ARTIFACTS="$r4/sp9c" EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  ui_dump() { printf '<hierarchy><node text="" resource-id="filter-chip-state" content-desc="State" bounds="[14,184][114,219]" /><node text="" resource-id="filter-chip-deity" content-desc="Deity" bounds="[230,184][300,219]" /></hierarchy>' > "$DUMP"; }
+  declare -A APPLIED=() PICK=() SECTION=()
+  enter_home_browse() { :; }; open_chip() { :; }; apply_sheet() { :; }; probe_others() { :; }
+  select_labeled() { echo "PICK $1" >&2; SELECTED_LABEL=X; }
+  eval "$(sed -n '/^do_action() {$/,/^}$/p' "$f29")"
+  ENTRIES=(home_browse); MATRIX_CHIPS=(deity district); ACTIONS=(select)
+  eval "$(sed -n '/^for entry in "\${ENTRIES\[@\]}"; do$/,/^done$/p' "$f29")"; true ) 2>&1 >/dev/null | { grep '^PICK ' || true; } | paste -sd'|' )"
+[[ "$o9c" == 'PICK @first|PICK ^24 Paraganas North( +[0-9]+)?$' ]] ||
+  { echo "4.4.9i flow 29: cell 2 must not see cell 1's deity (per-cell APPLIED reset): $o9c" >&2; exit 1; }
+echo "4.4.9i flow 29: each matrix cell starts with APPLIED empty"
 echo "4.4.9h: seq5 replay resolves every step; picks use what the flow applied, not only the visible chips"
 if grep -q 'multi-photo-not-applicable\|skip_step multi-photo' "$f24" || ! grep -q '^if (( ! SINGLE )); then$' "$f24"; then
   echo "flow 24: no blanket NA; paging checks run unless a single photo was proven" >&2; exit 1

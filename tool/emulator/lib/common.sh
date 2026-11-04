@@ -2196,21 +2196,21 @@ scoped_pick() {
   # (directory_filters.dart census) and a zero-count option is hidden, so
   # with another filter applied a hard-coded all-India head pick may not be
   # offered at all; the pick is then the first real option on the sheet.
-  local deity_on=0 district_on=0 dl
+  local deity_on=0 dl
   [[ -n "$a_deity" ]] && deity_on=1
-  [[ -n "$a_district" ]] && district_on=1
   if (( ! deity_on )) && ui_find --resource-id filter-chip-deity; then
     dl="$(printf '%s' "${UI_TEXT:-}" | tr -s '[:space:]' ' ' | sed 's/^ //; s/ $//')"
     [[ -n "$dl" && "$dl" != Deity ]] && deity_on=1
   fi
-  if (( ! district_on )) && ui_find --resource-id filter-chip-district; then
-    dl="$(printf '%s' "${UI_TEXT:-}" | tr -s '[:space:]' ' ' | sed 's/^ //; s/ $//')"
-    [[ -n "$dl" && "$dl" != "All districts" && "$dl" != District ]] && district_on=1
-  fi
   case "$kind" in
-    state) if (( deity_on || district_on )); then echo '@first'; else echo '^Tamil Nadu( +[0-9]+)?$'; fi ;;
+    # Only on what the flow applied (APPLIED, flow 29): flows without it
+    # (17) keep the ee7ffbde picks from the visible chips.
+    state) if [[ -n "$a_deity" || -n "$a_district" ]]; then echo '@first'; else echo '^Tamil Nadu( +[0-9]+)?$'; fi ;;
     deity) if (( tn )); then echo "$TN_DEITY_PICK"; else echo "$ALL_INDIA_DEITY_PICK"; fi ;;
-    district) if (( tn )); then echo "$TN_DISTRICT_PICK"; elif (( deity_on )); then echo '@first'; else echo "$ALL_INDIA_DISTRICT_PICK"; fi ;;
+    # Round 4.4.9i (Reviewer): any other applied filter (a non-Tamil Nadu
+    # state, which the state @first pick can now choose, or a deity) can
+    # hide the all-India head district; it is used only with none applied.
+    district) if (( tn )); then echo "$TN_DISTRICT_PICK"; elif (( deity_on )) || [[ -n "$a_state" ]]; then echo '@first'; else echo "$ALL_INDIA_DISTRICT_PICK"; fi ;;
     *) return 1 ;;
   esac
 }
