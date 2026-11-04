@@ -2557,6 +2557,10 @@ o="$(R24_DUMP=detail_single_1of1.xml run24 single 2>/dev/null)"
 grep -q "^NA 24-gallery-autoadvance-viewer: multi-photo: 'Aazhimala' has a single photo" <<<"$o" && ! grep -q '^PASS ' <<<"$o" || { echo "flow 24: proven 1 / 1 -> NA (not PASS): $o" >&2; exit 1; }
 o="$(R24_DUMP=detail_multi_1of5.xml run24 multi 2>/dev/null)"
 grep -qx 'PASS 24-gallery-autoadvance-viewer: multi-photo' <<<"$o" || { echo "flow 24: '1 / 5' -> PASS: $o" >&2; exit 1; }
+# Round 4.4.9e (run 41781519101 shard 9): the timer had advanced to '2 / 5'
+# before the dump (real dump); still a multi-photo gallery.
+o="$(R24_DUMP=detail_multi_2of5.xml run24 multi2 2>/dev/null)"
+grep -qx 'PASS 24-gallery-autoadvance-viewer: multi-photo' <<<"$o" || { echo "flow 24: '2 / 5' (auto-advanced) -> PASS: $o" >&2; exit 1; }
 if grep -q 'multi-photo-not-applicable\|skip_step multi-photo' "$f24" || ! grep -q '^if (( ! SINGLE )); then$' "$f24"; then
   echo "flow 24: no blanket NA; paging checks run unless a single photo was proven" >&2; exit 1
 fi
@@ -2789,6 +2793,20 @@ sp() { ( export EMULATOR_FLOW=99-sp EMULATOR_ARTIFACTS="$r43/sp" EMULATOR_PACKAG
 [[ "$(SP_STATE='Tamil Nadu' sp deity)" == '^Shiva( +[0-9]+)?$' && "$(SP_STATE='State' sp deity)" == '@first' &&
    "$(SP_STATE='Tamil Nadu' sp district)" == '^Madurai( +[0-9]+)?$' && "$(SP_STATE='Kerala' sp district)" == '^24 Paraganas North( +[0-9]+)?$' &&
    "$(SP_STATE='State' sp state)" == '^Tamil Nadu( +[0-9]+)?$' ]] || { echo "scoped_pick: Shiva/Madurai only when Tamil Nadu is the state" >&2; exit 1; }
+# Round 4.4.9e (run 41781519101 30s5): with a deity on the chip bar the
+# district list is faceted, so the district pick is @first (real dump);
+# no deity -> the all-India head district; Tamil Nadu still wins.
+spd() { ( export EMULATOR_FLOW=99-spd EMULATOR_ARTIFACTS="$r43/spd" EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  ui_dump() { if [[ -n "${SPD_FILE:-}" ]]; then cp "$SPD_FILE" "$DUMP"; else printf '<hierarchy><node text="" resource-id="filter-chip-state" content-desc="%s" bounds="[0,100][120,140]" /><node text="" resource-id="filter-chip-deity" content-desc="%s" bounds="[130,100][200,140]" /></hierarchy>' "$SP_STATE" "$SP_DEITY" > "$DUMP"; fi; }
+  scoped_pick "$1" ); }
+[[ "$(SPD_FILE=tool/emulator/testdata/run41781519101/browse_deity_applied.xml spd district)" == '@first' &&
+   "$(SP_STATE='State' SP_DEITY='Deity' spd district)" == '^24 Paraganas North( +[0-9]+)?$' &&
+   "$(SP_STATE='State' SP_DEITY='Shiva' spd district)" == '@first' &&
+   "$(SP_STATE='Tamil Nadu' SP_DEITY='Shiva' spd district)" == '^Madurai( +[0-9]+)?$' &&
+   "$(SP_STATE='State' SP_DEITY='Shiva' spd deity)" == '@first' ]] || { echo "4.4.9e scoped_pick: district must be @first when a deity is applied" >&2; exit 1; }
+echo "4.4.9e: district pick is @first under an applied deity (real 41781519101 dump)"
 if grep -n 'select_labeled "\${PICK\[' tool/emulator/flows/29_filter_matrix.sh tool/emulator/flows/17_entry_matrix.sh; then
   echo "flows 17/29 must pick through scoped_pick, not PICK[] directly" >&2; exit 1
 fi

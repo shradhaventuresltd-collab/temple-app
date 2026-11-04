@@ -2180,10 +2180,20 @@ scoped_pick() {
     && [[ "$(printf '%s' "${UI_TEXT:-}" | tr -s '[:space:]' ' ')" == *"Tamil Nadu"* ]]; then
     tn=1
   fi
+  # Round 4.4.9e (run 41781519101, 30s5 "deity:select district:select"):
+  # the sheet's counts are faceted (directory_filters.dart census) and a
+  # zero-count option is hidden, so with a deity applied the all-India
+  # head district (24 Paraganas North) is usually not offered at all. With
+  # a deity on the chip bar, the district pick is the first real option.
+  local deity_on=0 dl
+  if ui_find --resource-id filter-chip-deity; then
+    dl="$(printf '%s' "${UI_TEXT:-}" | tr -s '[:space:]' ' ' | sed 's/^ //; s/ $//')"
+    [[ -n "$dl" && "$dl" != Deity ]] && deity_on=1
+  fi
   case "$kind" in
     state) echo '^Tamil Nadu( +[0-9]+)?$' ;;
     deity) if (( tn )); then echo "$TN_DEITY_PICK"; else echo "$ALL_INDIA_DEITY_PICK"; fi ;;
-    district) if (( tn )); then echo "$TN_DISTRICT_PICK"; else echo "$ALL_INDIA_DISTRICT_PICK"; fi ;;
+    district) if (( tn )); then echo "$TN_DISTRICT_PICK"; elif (( deity_on )); then echo '@first'; else echo "$ALL_INDIA_DISTRICT_PICK"; fi ;;
     *) return 1 ;;
   esac
 }

@@ -48,7 +48,10 @@ else
     sleep 3
     if ! ui_dump || ! on_detail; then
       open_why="not on the detail page after tapping '${MULTI_QUERY}'"
-    elif ui_find --text-regex '^1 / [2-9][0-9]*$'; then
+    # Round 4.4.9e (run 41781519101 shard 9): the 5s auto-advance timer had
+    # already moved to '2 / 5' by the dump (sleep 3 + dump). Any 'k / N'
+    # with N >= 2 proves a multi-photo gallery.
+    elif ui_find --text-regex '^[1-9][0-9]* / ([2-9]|[1-9][0-9]+)$'; then
       MULTI=1
     elif gallery_single_proven; then
       SINGLE=1
