@@ -28,7 +28,10 @@ import 'package:temple_app/widgets/unavailable_states_notice.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 class AppDrawer extends StatefulWidget {
-  const AppDrawer({super.key});
+  const AppDrawer({super.key, this.templesLoader});
+
+  /// Injected in tests. Defaults to [TempleService.getTemples].
+  final Future<List<Temple>> Function()? templesLoader;
 
   @override
   State<AppDrawer> createState() => _AppDrawerState();
@@ -43,7 +46,7 @@ class _AppDrawerState extends State<AppDrawer> {
   String? _selectedDeity;
   String? _selectedDistrict;
 
-  late final Future<List<Temple>> _templesFuture;
+  late Future<List<Temple>> _templesFuture;
   final TextEditingController _searchController = TextEditingController();
   Timer? _searchDebounce;
   String _appliedQuery = '';
@@ -71,8 +74,19 @@ class _AppDrawerState extends State<AppDrawer> {
   @override
   void initState() {
     super.initState();
-    _templesFuture = TempleService().getTemples();
+    _loadTemples();
+  }
+
+  void _loadTemples() {
+    _templesFuture =
+        widget.templesLoader?.call() ?? TempleService().getTemples();
     warmDirectoryDistricts(_templesFuture);
+  }
+
+  /// A failed directory load left "Loading filters" up for the life of the
+  /// drawer. Try again runs the load once more.
+  void _retryTemples() {
+    setState(_loadTemples);
   }
 
   @override
@@ -114,7 +128,14 @@ class _AppDrawerState extends State<AppDrawer> {
   }
 
   Future<void> _reportSearch(String query) async {
-    final temples = await _templesFuture;
+    // A failed directory load (KAN-195) must not turn a search into an
+    // uncaught error; skip the analytics report instead.
+    final List<Temple> temples;
+    try {
+      temples = await _templesFuture;
+    } catch (_) {
+      return;
+    }
     if (!mounted) return;
     final matches = directoryMatchingTemples(
       temples,
@@ -287,42 +308,84 @@ class _AppDrawerState extends State<AppDrawer> {
 
               // ── State + deity chips (sheet). Same control as the browse list. ──
               _SectionHeader(label: 'FILTERS'),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 0, 8, 4),
-                child: DirectoryFilterBar(
-                  temples: all,
-                  query: _appliedQuery,
-                  selectedState: _selectedState,
-                  selectedDeity: _selectedDeity,
-                  selectedDistrict: _selectedDistrict,
-                  districtOf: districtOf,
-                  prepareDistricts: () => prepareDirectoryDistricts(all),
-                  onDistrictsLoaded: () {
-                    if (mounted) setState(() {});
-                  },
-                  onClearAll: _clearFiltersAndSearch,
-                  onChanged: (state, deity, district) {
-                    final previousState = _selectedState;
-                    final previousDeity = _selectedDeity;
-                    final previousDistrict = _selectedDistrict;
-                    setState(() {
-                      _selectedState = state;
-                      _selectedDeity = deity;
-                      _selectedDistrict = district;
-                    });
-                    unawaited(
-                      AppAnalytics.instance.logFilterTransition(
-                        previousState: previousState,
-                        nextState: state,
-                        previousDeity: previousDeity,
-                        nextDeity: deity,
-                        previousDistrict: previousDistrict,
-                        nextDistrict: district,
+              // The sheet captures the temple list when it opens. Opening it
+              // before the directory arrives showed "Any state 0" and
+              // "Show 0 temples" for the life of that sheet (run 40463875634).
+              if (snapshot.hasError &&
+                  snapshot.connectionState == ConnectionState.done)
+                Padding(
+                  key: const Key('drawer-filters-error'),
+                  padding: const EdgeInsets.fromLTRB(18, 4, 8, 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Semantics(
+                          identifier: 'drawer-filters-error',
+                          child: Text(
+                            'Could not load filters. Check your connection.',
+                            style: GoogleFonts.poppins(fontSize: 13),
+                          ),
+                        ),
                       ),
-                    );
-                  },
+                      Semantics(
+                        identifier: 'drawer-filters-retry',
+                        button: true,
+                        child: TextButton(
+                          key: const Key('drawer-filters-retry'),
+                          onPressed: _retryTemples,
+                          child: const Text('Try again'),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else if (!snapshot.hasData)
+                Semantics(
+                  identifier: 'drawer-filters-loading',
+                  label: 'Loading filters',
+                  child: const Padding(
+                    key: Key('drawer-filters-loading'),
+                    padding: EdgeInsets.fromLTRB(18, 8, 18, 12),
+                    child: LinearProgressIndicator(minHeight: 2),
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 0, 8, 4),
+                  child: DirectoryFilterBar(
+                    temples: all,
+                    query: _appliedQuery,
+                    selectedState: _selectedState,
+                    selectedDeity: _selectedDeity,
+                    selectedDistrict: _selectedDistrict,
+                    districtOf: districtOf,
+                    prepareDistricts: () => prepareDirectoryDistricts(all),
+                    onDistrictsLoaded: () {
+                      if (mounted) setState(() {});
+                    },
+                    onClearAll: _clearFiltersAndSearch,
+                    onChanged: (state, deity, district) {
+                      final previousState = _selectedState;
+                      final previousDeity = _selectedDeity;
+                      final previousDistrict = _selectedDistrict;
+                      setState(() {
+                        _selectedState = state;
+                        _selectedDeity = deity;
+                        _selectedDistrict = district;
+                      });
+                      unawaited(
+                        AppAnalytics.instance.logFilterTransition(
+                          previousState: previousState,
+                          nextState: state,
+                          previousDeity: previousDeity,
+                          nextDeity: deity,
+                          previousDistrict: previousDistrict,
+                          nextDistrict: district,
+                        ),
+                      );
+                    },
+                  ),
                 ),
-              ),
 
               const SizedBox(height: 8),
 

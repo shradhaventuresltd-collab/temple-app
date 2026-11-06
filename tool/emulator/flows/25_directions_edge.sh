@@ -9,12 +9,16 @@ if ! ui_dump || ! ui_find --resource-id temple-browse-card; then
 fi
 ui_tap; sleep 3
 directions_found=0
-for i in 1 2 3; do
+# Round 4.4.9g (run 41825986479 shard 13): the button came into view with
+# the 3rd fling, but the loop never looked after its last fling. Look after
+# every fling: 4 looks, 3 flings.
+for i in 1 2 3 4; do
   ui_dump || true
   if ui_find --resource-id get-directions-button || ui_find --text-regex 'Get Directions'; then
     directions_found=1
     break
   fi
+  (( i < 4 )) || break
   ui_fling up || { echo "directions: fling timed out" >&2; break; }
 done
 if [[ "$directions_found" -ne 1 ]]; then

@@ -300,6 +300,7 @@ for entry in "${ENTRIES[@]}"; do
   for chip in "${MATRIX_CHIPS[@]}"; do
     for action in "${ACTIONS[@]}"; do
       id="$entry-$chip-$action"
+      APPLIED=()  # each cell starts from a fresh entry (scoped_pick reads APPLIED)
       "enter_$entry" >/dev/null 2>&1
       status=$?
       if [[ "$status" -ne 0 ]]; then
@@ -334,6 +335,11 @@ for seq in "${SEQS[@]}"; do
   APPLIED=()
   ok=1
   for st in $seq; do
+    # Round 4.4.9g (run 41825986479 shard 9): no result line is written
+    # between a sequence's actions, so the 150s step clock ran from the flow
+    # start (install + Home + 3 actions) and cut seq5's 4th action. Each
+    # action gets its own step budget; the 540s flow cap still bounds it.
+    step_reset
     do_action "${st%%:*}" "${st##*:}" || { ok=0; fail_step "seq$n-$st" "step failed"; recover_sheet; break; }
   done
   [[ $ok -eq 1 ]] && pass_step "seq$n" && probe_others "seq$n" "${st%%:*}"

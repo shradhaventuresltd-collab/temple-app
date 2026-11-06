@@ -2574,6 +2574,96 @@ done
 o="$(R24_DUMP=detail_single_1of1.xml run24 single2 2>/dev/null)"
 grep -q "^NA 24-gallery-autoadvance-viewer: multi-photo: 'Aazhimala' has a single photo" <<<"$o" || { echo "flow 24: '1 / 1' stays NA: $o" >&2; exit 1; }
 echo "4.4.9f flow 24: '2 / 5' PASS, '6 / 5' and '7 / 5' FAIL, '1 / 1' NA"
+# Round 4.4.9g (run 41825986479 shard 13): Get Directions came into view
+# with the 3rd fling; the loop must look once more after its last fling.
+# Real dumps: 3 looks without the button, the 4th with it.
+f25=tool/emulator/flows/25_directions_edge.sh
+fx25=tool/emulator/testdata/run41825986479
+# shellcheck disable=SC2016,SC2034,SC2154,SC2178,SC2329 # stubs and eval of the flow block
+o25="$( ( export EMULATOR_FLOW=25-directions-edge EMULATOR_ARTIFACTS="$r4/f25" EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  n25=0
+  ui_dump() { n25=$((n25 + 1)); if (( n25 <= 3 )); then cp "$fx25/detail_no_directions.xml" "$DUMP"; else cp "$fx25/detail_directions_in_view.xml" "$DUMP"; fi; }
+  flings=0; ui_fling() { flings=$((flings + 1)); }
+  eval "$(sed -n '/^directions_found=0$/,/^done$/p' "$f25")"
+  echo "found=$directions_found flings=$flings looks=$n25" ) 2>/dev/null )"
+[[ "$o25" == "found=1 flings=3 looks=4" ]] || { echo "4.4.9g flow 25: button after the 3rd fling must be found (3 flings, 4 looks): $o25" >&2; exit 1; }
+# shellcheck disable=SC2016,SC2034,SC2154,SC2178,SC2329 # stubs and eval of the flow block
+o25="$( ( export EMULATOR_FLOW=25-directions-edge EMULATOR_ARTIFACTS="$r4/f25b" EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  n25=0; ui_dump() { n25=$((n25 + 1)); cp "$fx25/detail_no_directions.xml" "$DUMP"; }
+  flings=0; ui_fling() { flings=$((flings + 1)); }
+  eval "$(sed -n '/^directions_found=0$/,/^done$/p' "$f25")"
+  echo "found=$directions_found flings=$flings looks=$n25" ) 2>/dev/null )"
+[[ "$o25" == "found=0 flings=3 looks=4" ]] || { echo "4.4.9g flow 25: never in view -> not found after 3 flings, no 4th fling: $o25" >&2; exit 1; }
+echo "4.4.9g flow 25: a look after the last fling finds Get Directions (real 41825986479 dumps)"
+# Round 4.4.9g (run 41825986479 shard 9): each sequence action gets its own
+# step budget (the 150s clock ran across install + Home + 3 actions).
+f29=tool/emulator/flows/29_filter_matrix.sh
+# shellcheck disable=SC2016,SC2034,SC2154,SC2178,SC2329 # stubs and eval of the flow block
+o29="$( ( export EMULATOR_FLOW=30s5-filter-matrix-seq5 EMULATOR_ARTIFACTS="$r4/f29seq" EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  STEP_BUDGET_S=2
+  do_action() { sleep 1.2; step_budget_ok; }
+  recover_sheet() { :; }
+  seq="deity:select district:select state:outside-empty district:clear"; n=5; ok=1
+  eval "$(sed -n '/^  for st in \$seq; do$/,/^  done$/p' "$f29")"
+  echo "ok=$ok" ) 2>/dev/null )"
+[[ "$o29" == "ok=1" ]] || { echo "4.4.9g flow 29: each sequence action must get its own step budget: $o29" >&2; exit 1; }
+echo "4.4.9g flow 29: sequence actions each get a fresh step budget"
+# Round 4.4.9h (run 41872598981 30s5): the deity chip had scrolled off the
+# chip row, so scoped_pick sent district:clear back to 24 Paraganas North
+# (not offered under the applied deity). What the flow applied counts first.
+o9h="$(bash tool/emulator/testdata/run41872598981/replay_seq5.sh "$PWD" 2>/dev/null)"
+if ! grep -qx "STEP district:select chip-bar=browse_deity_applied.xml pick=@first -> 'Jabalpur'" <<<"$o9h" ||
+   ! grep -qx "STEP district:clear chip-bar=browse_deity_chip_offscreen.xml pick=@first -> 'Jabalpur'" <<<"$o9h"; then
+  echo "4.4.9h: seq5 replay must pick the first shown district for select and clear: $o9h" >&2; exit 1
+fi
+# shellcheck disable=SC2016,SC2034,SC2154,SC2329 # stubs
+o9h="$( ( export EMULATOR_FLOW=99-sp9h EMULATOR_ARTIFACTS="$r4/sp9h" EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  ui_dump() { cp tool/emulator/testdata/run41872598981/browse_deity_chip_offscreen.xml "$DUMP"; }
+  declare -A APPLIED=([district]=Jabalpur)
+  printf '%s|' "$(scoped_pick state)"
+  APPLIED=(); printf '%s|' "$(scoped_pick deity)"
+  APPLIED=([state]='Tamil Nadu'); printf '%s|' "$(scoped_pick district)" ) 2>/dev/null )"
+[[ "$o9h" == '@first|@first|^Madurai( +[0-9]+)?$|' ]] ||
+  { echo "4.4.9h scoped_pick: state under an applied district -> @first; Tamil Nadu from APPLIED: $o9h" >&2; exit 1; }
+# Round 4.4.9i (Reviewer): a non-Tamil Nadu state applied, no deity ->
+# district @first (24 Paraganas North may be hidden); nothing applied -> head pick.
+# shellcheck disable=SC2034,SC2329 # stubs
+o9i="$( ( export EMULATOR_FLOW=99-sp9i EMULATOR_ARTIFACTS="$r4/sp9i" EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  ui_dump() { printf '<hierarchy><node text="" resource-id="filter-chip-state" content-desc="State" bounds="[14,184][114,219]" /><node text="" resource-id="filter-chip-deity" content-desc="Deity" bounds="[230,184][300,219]" /></hierarchy>' > "$DUMP"; }
+  declare -A APPLIED=([state]='Madhya Pradesh'); printf '%s|' "$(scoped_pick district)"
+  APPLIED=(); printf '%s|' "$(scoped_pick district)" ) 2>/dev/null )"
+[[ "$o9i" == '@first|^24 Paraganas North( +[0-9]+)?$|' ]] ||
+  { echo "4.4.9i scoped_pick: non-TN state applied -> district @first; nothing applied -> head pick: $o9i" >&2; exit 1; }
+echo "4.4.9i: district pick is @first under any applied state or deity"
+# Round 4.4.9i (Manu): two matrix cells; cell 1 applies a deity, cell 2
+# (district) must get the all-India head pick again after the per-cell
+# APPLIED reset in flow 29 (fails if that reset line is removed).
+f29=tool/emulator/flows/29_filter_matrix.sh
+# shellcheck disable=SC2016,SC2034,SC2154,SC2329 # stubs and eval of the flow blocks
+o9c="$( ( set +eu; export EMULATOR_FLOW=29a-two-cells EMULATOR_ARTIFACTS="$r4/sp9c" EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  ui_dump() { printf '<hierarchy><node text="" resource-id="filter-chip-state" content-desc="State" bounds="[14,184][114,219]" /><node text="" resource-id="filter-chip-deity" content-desc="Deity" bounds="[230,184][300,219]" /></hierarchy>' > "$DUMP"; }
+  declare -A APPLIED=() PICK=() SECTION=()
+  enter_home_browse() { :; }; open_chip() { :; }; apply_sheet() { :; }; probe_others() { :; }
+  select_labeled() { echo "PICK $1" >&2; SELECTED_LABEL=X; }
+  eval "$(sed -n '/^do_action() {$/,/^}$/p' "$f29")"
+  ENTRIES=(home_browse); MATRIX_CHIPS=(deity district); ACTIONS=(select)
+  eval "$(sed -n '/^for entry in "\${ENTRIES\[@\]}"; do$/,/^done$/p' "$f29")"; true ) 2>&1 >/dev/null | { grep '^PICK ' || true; } | paste -sd'|' )"
+[[ "$o9c" == 'PICK @first|PICK ^24 Paraganas North( +[0-9]+)?$' ]] ||
+  { echo "4.4.9i flow 29: cell 2 must not see cell 1's deity (per-cell APPLIED reset): $o9c" >&2; exit 1; }
+echo "4.4.9i flow 29: each matrix cell starts with APPLIED empty"
+echo "4.4.9h: seq5 replay resolves every step; picks use what the flow applied, not only the visible chips"
 if grep -q 'multi-photo-not-applicable\|skip_step multi-photo' "$f24" || ! grep -q '^if (( ! SINGLE )); then$' "$f24"; then
   echo "flow 24: no blanket NA; paging checks run unless a single photo was proven" >&2; exit 1
 fi
