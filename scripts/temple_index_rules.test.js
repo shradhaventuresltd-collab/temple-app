@@ -962,8 +962,9 @@ test("prod-shaped research docs with 0 or 1 photo stay under the expression limi
 
 // ---------------------------------------------------------------------------
 // KAN-200: admin saves on temples with 2+ photos crossed the 1000-expression
-// limit. Photos are client-immutable on update; the setTemplePhotos callable
-// (functions/) writes them. Non-photo saves never check stored photos.
+// limit. Photos, imageUrl and images are client-immutable on update; the
+// setTemplePhotos callable (functions/) writes them. Non-photo saves never
+// check stored photos.
 // ---------------------------------------------------------------------------
 
 const MAX_GALLERY = 12; // kMaxTemplePhotos in lib/models/temple_photo.dart
@@ -1092,6 +1093,43 @@ test("client photo changes are denied at 0, 1, 2, 9 and max photos, with and wit
       );
       assert.deepEqual((await readRaw(id)).photos, p);
     }
+  }
+});
+
+test("client imageUrl and images changes are denied (mirror lock)", async () => {
+  const db = adminDb("admin-kan200-mirror");
+  for (const n of [0, 1, 2, 9, MAX_GALLERY]) {
+    const id = `kan200-mirror-${n}`;
+    const seeded = { ...kavlemDoc(n), id };
+    await seedRaw(id, seeded);
+    await assertFails(
+      setDoc(at(db, `temples/${id}`), { imageUrl: "https://example.com/other.jpg" }, { merge: true }),
+      `imageUrl ${n}`,
+    );
+    await assertFails(
+      setDoc(at(db, `temples/${id}`), { images: ["https://example.com/other.jpg"] }, { merge: true }),
+      `images ${n}`,
+    );
+    await assertFails(
+      setDoc(
+        at(db, `temples/${id}`),
+        { imageUrl: "https://example.com/other.jpg", images: ["https://example.com/other.jpg"] },
+        { merge: true },
+      ),
+      `both ${n}`,
+    );
+    if (n > 0) {
+      await assertFails(setDoc(at(db, `temples/${id}`), { images: deleteField() }, { merge: true }));
+      await assertFails(setDoc(at(db, `temples/${id}`), { imageUrl: deleteField() }, { merge: true }));
+    }
+    // Resending the stored mirror unchanged is a non-photo save.
+    await assertSucceeds(
+      setDoc(
+        at(db, `temples/${id}`),
+        { story: "Mirror ok.", imageUrl: seeded.imageUrl, images: seeded.images, photos: seeded.photos },
+        { merge: true },
+      ),
+    );
   }
 });
 

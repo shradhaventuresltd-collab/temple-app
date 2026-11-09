@@ -28,7 +28,7 @@ const HTTPS_NO_SPACE = /^https:\/\/[^\t\n\f\r ]+$/;
 const PLACEHOLDER_HOST =
   /^https?:\/\/([^/?#@]+@)?(([a-z0-9-]+\.){0,4}(picsum\.photos|placeholder\.com|placehold\.co|placehold\.it|dummyimage\.com|lorempixel\.com|loremflickr\.com|placekitten\.com|fakeimg\.pl|placeimg\.com)|source\.unsplash\.com)(:\d+)?([/?#][\s\S]*)?$/i;
 
-const chars = (s) => [...s].length;
+const chars = (s) => (s.length > 4000 ? 4001 : [...s].length);
 
 function isPlainMap(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value) &&
