@@ -130,3 +130,79 @@ test("with enforcement off (default), an admin call without App Check works", as
   await call({ auth: ADMIN, data: { templeId: "kavlem", photos: [] } });
   assert.equal(db.writes.length, 1);
 });
+
+test("1 photo + 4 images: photo changes refused while legacy URLs uncovered", async () => {
+  const cover = prodPhoto("brihadeeswarar-temple", 0);
+  const images = [
+    cover.url,
+    "https://firebasestorage.googleapis.com/v0/b/app/o/extra1.jpg",
+    "https://firebasestorage.googleapis.com/v0/b/app/o/extra2.jpg",
+    "https://firebasestorage.googleapis.com/v0/b/app/o/extra3.jpg",
+  ];
+  const docs = {
+    "brihadeeswarar-temple": {
+      id: "brihadeeswarar-temple",
+      name: "Brihadeeswarar",
+      photos: [cover],
+      imageUrl: cover.url,
+      images,
+    },
+  };
+  const cases = [
+    ["add", [cover, prodPhoto("brihadeeswarar-temple", 1)]],
+    ["delete", []],
+    [
+      "reorder/cover",
+      [
+        {
+          ...prodPhoto("brihadeeswarar-temple", 0),
+          url: images[1],
+          order: 0,
+        },
+      ],
+    ],
+  ];
+  for (const [name, photos] of cases) {
+    const { db, call } = setup({ docs: structuredClone(docs) });
+    await rejects(
+      call({ auth: ADMIN, data: { templeId: "brihadeeswarar-temple", photos } }),
+      "failed-precondition",
+    );
+    assert.equal(db.writes.length, 0, name);
+    assert.deepEqual(db.store.get("brihadeeswarar-temple").images, images, name);
+  }
+});
+
+test("1 photo + 4 images: allowed once photos cover all legacy URLs", async () => {
+  const cover = prodPhoto("brihadeeswarar-temple", 0);
+  const images = [
+    cover.url,
+    "https://firebasestorage.googleapis.com/v0/b/app/o/extra1.jpg",
+    "https://firebasestorage.googleapis.com/v0/b/app/o/extra2.jpg",
+    "https://firebasestorage.googleapis.com/v0/b/app/o/extra3.jpg",
+  ];
+  const { db, call } = setup({
+    docs: {
+      "brihadeeswarar-temple": {
+        id: "brihadeeswarar-temple",
+        name: "Brihadeeswarar",
+        photos: [cover],
+        imageUrl: cover.url,
+        images,
+      },
+    },
+  });
+  const photos = images.map((url, i) => ({
+    ...prodPhoto("brihadeeswarar-temple", Math.min(i, 11)),
+    url,
+    order: i,
+    credit: `Licensed ${i}`,
+  }));
+  const out = await call({
+    auth: ADMIN,
+    data: { templeId: "brihadeeswarar-temple", photos },
+  });
+  assert.equal(db.writes.length, 1);
+  assert.deepEqual(db.store.get("brihadeeswarar-temple").images, images);
+  assert.deepEqual(out.images, images);
+});

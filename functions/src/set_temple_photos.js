@@ -7,7 +7,7 @@
  * saves them directly, and that save also refreshes the temple_index entry.
  */
 import { HttpsError } from "firebase-functions/v2/https";
-import { photoMirror, photosError } from "./photo_validator.js";
+import { photoMirror, photosError, uncoveredLegacyImagesError } from "./photo_validator.js";
 
 // Same charset createTemple can index: assertTempleIndexId / INDEX_ID.
 const TEMPLE_ID = /^[A-Za-z0-9_-]{1,200}$/;
@@ -57,6 +57,11 @@ export function makeSetTemplePhotos({ db, enforceAppCheck }) {
       if (!snap.exists) {
         throw new HttpsError("not-found", "Temple was not found. It may have been deleted.");
       }
+      // KAN-200 C6: refuse a photo rewrite that would drop legacy images[]
+      // URLs not covered by the new photos[].url list.
+      const stored = snap.data() ?? {};
+      const legacy = uncoveredLegacyImagesError(stored.images, photos, stored.photos);
+      if (legacy) throw new HttpsError("failed-precondition", legacy);
       tx.update(ref, { photos, imageUrl: mirror.imageUrl, images: mirror.images });
     });
     return { templeId, photos, ...mirror };
