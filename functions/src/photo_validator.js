@@ -30,7 +30,7 @@ const HTTPS_NO_SPACE = /^https:\/\/[^\t\n\f\r ]+$/;
 const PLACEHOLDER_HOST =
   /^https?:\/\/([^/?#@]+@)?(([a-z0-9-]+\.){0,4}(picsum\.photos|placeholder\.com|placehold\.co|placehold\.it|dummyimage\.com|lorempixel\.com|loremflickr\.com|placekitten\.com|fakeimg\.pl|placeimg\.com)|source\.unsplash\.com)(:\d+)?([/?#][\s\S]*)?$/i;
 
-/** UTF-16 length; cheap reject above 4000 before any further work. */
+/** UTF-16 code-unit length (rules string.size() / JS string.length). */
 const chars = (s) => s.length;
 
 function isPlainMap(value) {
@@ -97,5 +97,41 @@ export function photosError(photos) {
   }
   const { imageUrl } = photoMirror(photos);
   if (isPlaceholderHost(imageUrl)) return "the cover photo is on a placeholder host";
+  return null;
+}
+
+/**
+ * Why rewriting photos would drop a legacy images[] URL — one that has no
+ * entry in the *stored* photos[] — that the new photos list also omits.
+ * Intentional delete/reorder of mirrored photo URLs is allowed. Null when
+ * every legacy gallery URL is covered by newPhotos[].url (including when
+ * the editor adds licensed photos entries for those URLs).
+ */
+export function uncoveredLegacyImagesError(storedImages, newPhotos, storedPhotos) {
+  const inStoredPhotos = new Set();
+  if (Array.isArray(storedPhotos)) {
+    for (const p of storedPhotos) {
+      if (p && typeof p.url === "string" && p.url.trim()) {
+        inStoredPhotos.add(p.url.trim());
+      }
+    }
+  }
+  const covered = new Set();
+  if (Array.isArray(newPhotos)) {
+    for (const p of newPhotos) {
+      if (p && typeof p.url === "string" && p.url.trim()) covered.add(p.url.trim());
+    }
+  }
+  const images = Array.isArray(storedImages) ? storedImages : [];
+  for (const raw of images) {
+    if (typeof raw !== "string") continue;
+    const url = raw.trim();
+    if (!url) continue;
+    // Only legacy gallery rows (no stored photos entry) must stay covered.
+    if (inStoredPhotos.has(url)) continue;
+    if (!covered.has(url)) {
+      return "Add licences for the existing photos in the editor first";
+    }
+  }
   return null;
 }
