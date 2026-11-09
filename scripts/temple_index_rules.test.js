@@ -805,3 +805,154 @@ test("a batch against an existing meta doc increments and keeps sibling shards",
   assert.ok(meta.data().shards.bihar);
   assert.ok(meta.data().shards["tamil-nadu"]);
 });
+
+// KAN-197: dress-code and timings research fields are written by the Admin
+// SDK (rules bypassed). The app never writes them (Temple.toFirestoreData
+// leaves them out), so an admin save is a merge that must keep them, and a
+// client write must not add, change, or remove them.
+const RESEARCH_FIELDS = {
+  dressCode: "Men: dhoti. Women: saree.",
+  dressCodeSourceUrl: "https://example.org/dress",
+  dressCodeSourceType: "secondary",
+  dressCodeVerified: false,
+  timingsVerified: false,
+  timingsSourceUrl: "https://example.org/timings",
+  timingsSourceType: "official",
+};
+
+async function seedResearchTemple(id, extra = RESEARCH_FIELDS) {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(at(context.firestore(), `temples/${id}`), {
+      ...templePayload(id),
+      ...extra,
+    });
+  });
+}
+
+test("an admin merge save keeps dress-code and timings research fields", async () => {
+  const id = "research-temple";
+  await seedResearchTemple(id);
+  const db = adminDb("admin-research");
+  await assertSucceeds(
+    setDoc(
+      at(db, `temples/${id}`),
+      { ...templePayload(id), story: "Edited story." },
+      { merge: true },
+    ),
+  );
+  const saved = (await getDoc(at(db, `temples/${id}`))).data();
+  assert.equal(saved.story, "Edited story.");
+  for (const [key, value] of Object.entries(RESEARCH_FIELDS)) {
+    assert.deepEqual(saved[key], value, key);
+  }
+});
+
+test("a client write cannot add, change, or delete research fields", async () => {
+  const id = "research-locked";
+  await seedResearchTemple(id);
+  await seedResearchTemple("research-none", {});
+  const db = adminDb("admin-research-locked");
+  await assertFails(
+    setDoc(at(db, `temples/${id}`), { dressCodeVerified: true }, { merge: true }),
+  );
+  await assertFails(
+    setDoc(at(db, `temples/${id}`), { dressCode: "Anything." }, { merge: true }),
+  );
+  await assertFails(
+    setDoc(at(db, `temples/${id}`), { timingsVerified: true }, { merge: true }),
+  );
+  await assertFails(
+    setDoc(at(db, `temples/${id}`), { dressCodeSourceUrl: deleteField() }, { merge: true }),
+  );
+  await assertFails(
+    setDoc(
+      at(db, "temples/research-none"),
+      { dressCode: "Added by a client." },
+      { merge: true },
+    ),
+  );
+  await assertFails(
+    setDoc(
+      at(db, "temples/research-new"),
+      templePayload("research-new", { dressCode: "On create." }),
+    ),
+  );
+  await assertSucceeds(
+    setDoc(at(db, "temples/research-none"), { story: "Plain edit." }, { merge: true }),
+  );
+});
+
+// Shapes seen in prod (Nov 9, 2026): dress-code apply wrote strings,
+// official|secondary and bools; #125 wrote timings fields the same way.
+const PROD_SHAPED = [
+  RESEARCH_FIELDS,
+  { ...RESEARCH_FIELDS, dressCodeSourceType: "official", dressCodeVerified: true },
+  { timingsVerified: true, timingsSourceUrl: "https://example.org/t", timingsSourceType: "official" },
+  { dressCode: "Modest clothing.", dressCodeSourceUrl: "https://example.org/d", dressCodeSourceType: "secondary", dressCodeVerified: false },
+  {},
+];
+
+test("prod-shaped research docs pass an admin merge save", async () => {
+  const db = adminDb("admin-research-types-ok");
+  for (const [i, extra] of PROD_SHAPED.entries()) {
+    const id = `research-ok-${i}`;
+    await seedResearchTemple(id, extra);
+    await assertSucceeds(
+      setDoc(at(db, `temples/${id}`), { ...templePayload(id), story: `Edit ${i}.` }, { merge: true }),
+    );
+  }
+});
+
+test("a client cannot retype research fields (still immutable)", async () => {
+  const id = "research-immutable-types";
+  await seedResearchTemple(id);
+  const db = adminDb("admin-research-immutable");
+  await assertFails(
+    setDoc(at(db, `temples/${id}`), { dressCodeVerified: "true" }, { merge: true }),
+  );
+  await assertFails(
+    setDoc(at(db, `temples/${id}`), { dressCodeSourceType: "official" }, { merge: true }),
+  );
+});
+
+// Budget: a prod-shaped research doc (all 7 research fields, Firebase
+// Storage download URLs, credit, thumbUrl and galleryUrl) with 0 or 1 photo
+// saves under the 1000-expression limit. Docs with 2 or more photos are
+// KAN-200.
+function prodShapedPhoto(id, i) {
+  const dl = (size) =>
+    `https://firebasestorage.googleapis.com/v0/b/app/o/temples%2F${id}%2Fphoto_${i}_${size}.jpg?alt=media&token=00000000-0000-4000-8000-00000000000${i}`;
+  return {
+    url: dl("full"),
+    credit: `Contributor ${i} · CC BY-SA 3.0`,
+    licence: "CC-BY-SA",
+    order: i,
+    thumbUrl: dl("480"),
+    galleryUrl: dl("1080"),
+  };
+}
+
+test("prod-shaped research docs with 0 or 1 photo stay under the expression limit", async () => {
+  const db = adminDb("admin-research-budget");
+  for (const n of [0, 1]) {
+    const id = `research-budget-${n}`;
+    const photos = Array.from({ length: n }, (_, i) => prodShapedPhoto(id, i));
+    const shaped = {
+      photos,
+      images: photos.map((p) => p.url),
+      imageUrl: photos.length ? photos[0].url : "",
+    };
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(at(context.firestore(), `temples/${id}`), {
+        ...templePayload(id, shaped),
+        ...RESEARCH_FIELDS,
+      });
+    });
+    await assertSucceeds(
+      setDoc(at(db, `temples/${id}`), { ...templePayload(id, shaped), story: "Edit." }, { merge: true }),
+    );
+    await assertSucceeds(
+      setDoc(at(db, `temples/${id}`), { description: "Description edit." }, { merge: true }),
+    );
+  }
+});
