@@ -55,3 +55,9 @@ test("mirror is the cover url and the urls in list order", () => {
   assert.deepEqual(photoMirror(photos), { imageUrl: photos[0].url, images: [photos[0].url, photos[1].url] });
   assert.deepEqual(photoMirror([]), { imageUrl: "", images: [] });
 });
+
+test("strings longer than 4000 UTF-16 units are refused without spreading", () => {
+  const huge = `https://example.com/${"a".repeat(5000)}`;
+  assert.match(photoError({ url: huge, licence: "CC0", order: 0 }), /over 2000/);
+  assert.match(photoError({ ...prodPhoto("t", 0), credit: "c".repeat(5000) }), /over 200/);
+});
