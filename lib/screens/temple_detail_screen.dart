@@ -8,6 +8,8 @@ import 'package:temple_app/screens/home_scroll.dart';
 import 'package:temple_app/services/app_analytics.dart';
 import 'package:temple_app/services/client_cache.dart';
 import 'package:temple_app/widgets/offline_banner.dart';
+import 'package:temple_app/widgets/dress_code_card.dart';
+import 'package:temple_app/widgets/unverified_source_notice.dart';
 import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/services/temple_service.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
@@ -108,6 +110,12 @@ class TempleDetailScreen extends StatefulWidget {
   /// document passed in is shown as-is.
   final Future<TempleDetailLoad> Function(String id)? loadTemple;
 
+  /// Test hook: used when [loadTemple] is null, before [TempleService].
+  /// Lets entry-point tests (Browse, Search, Near Me, drawer) open the real
+  /// screen without Firestore.
+  @visibleForTesting
+  static Future<TempleDetailLoad> Function(String id)? debugLoadTemple;
+
   @override
   State<TempleDetailScreen> createState() => _TempleDetailScreenState();
 }
@@ -125,7 +133,10 @@ class _TempleDetailScreenState extends State<TempleDetailScreen> {
     final id = widget.temple.id.trim();
     if (!widget.temple.isIndexSummary || id.isEmpty) return;
     _loading = true;
-    final load = widget.loadTemple ?? TempleService().getTemple;
+    final load =
+        widget.loadTemple ??
+        TempleDetailScreen.debugLoadTemple ??
+        TempleService().getTemple;
     unawaited(_fetch(load, id));
   }
 
@@ -794,6 +805,10 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
                         contentKey: const Key('detail-timings-body'),
                         leading: _timingsLeading(caveat),
                       ),
+                      if (temple.hasDressCode) ...[
+                        const SizedBox(height: 12),
+                        DressCodeCard(temple: temple),
+                      ],
                       if (temple.hasCoordinates) ...[
                         const SizedBox(height: 12),
                         _InfoCard(
@@ -1263,149 +1278,22 @@ class _RequestFullSizeState extends State<_RequestFullSize> {
   }
 }
 
-/// Amber "unverified timings" chip (KAN-42 honesty chip style). Shown only
-/// when `timingsVerified == false`; restyle here once Ux tokens land.
-class TimingsUnverifiedChip extends StatefulWidget {
+/// Timings caution block. One shared widget with the dress-code block
+/// ([UnverifiedSourceNotice], KAN-197 AC2); Key and Semantics ids stay
+/// `timings-unverified-chip` and `timings-source-link`.
+class TimingsUnverifiedChip extends StatelessWidget {
   const TimingsUnverifiedChip({super.key, this.sourceUri});
 
   final Uri? sourceUri;
 
   @override
-  State<TimingsUnverifiedChip> createState() => _TimingsUnverifiedChipState();
-}
-
-class _TimingsUnverifiedChipState extends State<TimingsUnverifiedChip> {
-  bool _opening = false;
-
-  Future<void> _openSource() async {
-    final uri = widget.sourceUri;
-    if (uri == null || _opening) return;
-    _opening = true;
-    var opened = false;
-    try {
-      opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } on Exception {
-      opened = false;
-    } finally {
-      _opening = false;
-    }
-    if (!opened && mounted) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(content: Text("Couldn't open the source link.")),
-        );
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final dark = theme.brightness == Brightness.dark;
-    final amber = dark ? Colors.amber.shade300 : const Color(0xFFFFB300);
-    final iconColor = dark ? Colors.amber.shade300 : const Color(0xFFB26A00);
-    final onSurface = theme.colorScheme.onSurface;
-    final linkColor = theme.colorScheme.primary;
-    final body =
-        theme.textTheme.bodySmall?.copyWith(color: onSurface) ??
-        TextStyle(fontSize: 12, color: onSurface);
-    final hasLink = widget.sourceUri != null;
-    final label = hasLink
-        ? 'Timings unverified. Check before visiting. View source, opens browser.'
-        : 'Timings unverified. Check before visiting. Confirm with the temple.';
-
-    return Semantics(
-      key: const Key('timings-unverified-chip'),
-      identifier: 'timings-unverified-chip',
-      container: true,
-      label: label,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: amber.withValues(alpha: dark ? 0.16 : 0.12),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: amber),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(Icons.info_outline, size: 16, color: iconColor),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ExcludeSemantics(
-                    child: Text(
-                      'Unverified, check before visiting',
-                      style: body.copyWith(fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                  if (!hasLink)
-                    ExcludeSemantics(
-                      child: Text(
-                        'Timings may have changed. Confirm with the temple.',
-                        style: body,
-                      ),
-                    )
-                  else
-                    Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        ExcludeSemantics(
-                          child: Text(
-                            'Timings may have changed. ',
-                            style: body,
-                          ),
-                        ),
-                        Semantics(
-                          identifier: 'timings-source-link',
-                          button: true,
-                          link: true,
-                          label: 'View source, opens browser',
-                          onTap: _openSource,
-                          excludeSemantics: true,
-                          child: InkWell(
-                            key: const Key('timings-source-link'),
-                            onTap: _openSource,
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(
-                                minHeight: 48,
-                                minWidth: 48,
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      'View source',
-                                      style: body.copyWith(
-                                        color: linkColor,
-                                        decoration: TextDecoration.underline,
-                                        decorationColor: linkColor,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 2),
-                                  Icon(
-                                    Icons.open_in_new,
-                                    size: 12,
-                                    color: linkColor,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+    return UnverifiedSourceNotice(
+      id: 'timings',
+      subject: 'Timings',
+      lead: 'Timings may have changed.',
+      noLinkText: 'Timings may have changed. Confirm with the temple.',
+      sourceUri: sourceUri,
     );
   }
 }
