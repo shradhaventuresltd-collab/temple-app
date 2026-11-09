@@ -140,7 +140,7 @@ SHARD_COUNT=15
 # animations 5 = 200s; round 4.4.6: + boot getprop budget 4, unlock 8 =
 # 199s; round 4.4.9: readiness 12s (before BOOT) = 189s:
 # round 4.4.9b: per flow cap + 15 + 25 reset + 10 = cap + 50:
-# shard 12: 189 + 2 x (600 + 50) = 1489s = 24.82 min;
+# shard 12: 189 + 2 x (600 + 50) + (300 + 50) = 1839s (06a, 06b, 31);
 # shard 15: 189 + 2 x (300 + 50) + 2 x (540 + 50) = 2069s (round 4.4.8:
 #   26, 08, 30s3, 30s4); shard 11: 189 + 2 x 350 + 2 x 590 = 2069s;
 #   shard 9: 189 + 650 + 2 x 350 + 590 = 2129s;
@@ -221,6 +221,7 @@ PLAN_ROWS=(
   "30s2-filter-matrix-seq2|tool/emulator/flows/29_filter_matrix.sh|seqs:2|11|540"
   "06a-filters-single|tool/emulator/flows/06_filters.sh|single|12"
   "06b-filters-combined|tool/emulator/flows/06_filters.sh|combined|12"
+  "31-filter-chain|tool/emulator/flows/31_filter_chain.sh||12|300"
   "26-drawer-nav-stack|tool/emulator/flows/26_drawer_nav_stack.sh||15|300"
   "08-list-detail|tool/emulator/flows/08_list_detail.sh||15|300"
   "30s3-filter-matrix-seq3|tool/emulator/flows/29_filter_matrix.sh|seqs:3|15|540"

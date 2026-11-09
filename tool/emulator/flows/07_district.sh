@@ -10,19 +10,29 @@ pass_step browse
 visible=0
 if ui_dump && ui_find --resource-id filter-chip-district; then
   visible=1
-elif ui_find --text-regex '^All districts$'; then
+elif ui_find --text-regex '^(District|All districts)$'; then
   visible=1
 fi
 
 if [[ "$visible" -eq 1 ]]; then
   pass_step chip-visible
   ui_tap
-  if ui_wait 25 --text-regex '^DISTRICT$'; then
+  if ! ui_wait 20 --text-regex "$FILTER_SHEET_TITLE_RX"; then
+    fail_step sheet-open "sheet title was not State, District, or Deity"
+    return 0
+  fi
+  if ui_find --text "Choose a state first"; then
+    finish_choose_state_first || {
+      fail_step sheet-lists-districts "Choose a state first did not apply Tamil Nadu"
+      return 0
+    }
+  fi
+  if ui_wait 15 --text-regex '^(District|All districts)' || ui_find --resource-id filter-section-district; then
     pass_step sheet-lists-districts
   else
-    pass_step sheet-without-district-names
+    fail_step sheet-lists-districts "district sheet did not open"
   fi
   ui_back || true
 else
-  pass_step chip-not-visible
+  fail_step chip-not-visible "district chip was not on the browse bar"
 fi

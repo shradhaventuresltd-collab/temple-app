@@ -93,7 +93,7 @@ for entry in "${ENTRIES[@]}"; do
     if open_chip "$f"; then
       if [[ "$f" == district ]]; then finish_choose_state_first || true; fi
       pick="${PICK[$f]}"
-      if [[ "$f" == deity || "$f" == district ]]; then pick="$(scoped_pick "$f")" || pick="$ALL_INDIA_DEITY_PICK"; fi
+      if [[ "$f" == deity || "$f" == district ]]; then pick="$(scoped_pick "$f")" || pick="${PICK[$f]}"; fi
       if select_labeled "$pick" "${SECTION[$f]}" && apply_sheet && chip_exact "$SELECTED_LABEL"; then
         pass_step "$id-select"
       else
@@ -112,8 +112,17 @@ for entry in "${ENTRIES[@]}"; do
   # Empty-state Clear filters, from this entry. The chip-row Clear is a
   # different control. The search text must go. The State chip is checked
   # only when Kerala actually applied; a missed pick is not a failed clear.
+  # Choose-a-state-first may already have applied Tamil Nadu. That chip
+  # is not labelled State, and skipping the reset check is a failure.
   kerala_applied=0
-  if ui_dump && ui_find --resource-id filter-chip-state --text-regex '^State$'; then
+  state_label=""
+  if ui_dump && ui_find --resource-id filter-chip-state; then
+    state_label="$(printf '%s' "${UI_TEXT:-}" | tr -s '[:space:]' ' ' | sed 's/^ //;s/ $//')"
+  fi
+  if [[ -n "$state_label" && "$state_label" != State ]]; then
+    kerala_applied=1
+    CHOOSE_STATE_APPLIED=""
+  elif ui_dump && ui_find --resource-id filter-chip-state --text-regex '^State$'; then
     ui_tap
     if ui_wait 12 --text-regex "$FILTER_SHEET_TITLE_RX"; then
       if select_labeled '^Kerala( +[0-9]+)?$' STATE && apply_sheet; then
@@ -141,7 +150,9 @@ for entry in "${ENTRIES[@]}"; do
       ui_dump
       if ui_find --text-contains "zzzqqq"; then
         fail_step "$entry-empty-clear" "search text kept"
-      elif [[ "$kerala_applied" == 1 ]] && ! ui_find --resource-id filter-chip-state --text-regex '^State$'; then
+      elif [[ "$kerala_applied" != 1 ]]; then
+        fail_step "$entry-empty-clear" "state chip check skipped"
+      elif ! ui_find --resource-id filter-chip-state --text-regex '^State$'; then
         fail_step "$entry-empty-clear" "state chip kept"
       else
         pass_step "$entry-empty-clear"

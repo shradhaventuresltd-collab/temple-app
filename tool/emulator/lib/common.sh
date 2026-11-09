@@ -2161,6 +2161,13 @@ finish_choose_state_first() {
   fi
   select_labeled '^Tamil Nadu( +[0-9]+)?$' STATE || return 1
   apply_sheet || return 1
+  # The District sheet opens next and covers the chip bar. Remember Tamil
+  # Nadu so later picks stay scoped to it (flow 29's APPLIED map).
+  CHOOSE_STATE_APPLIED="Tamil Nadu"
+  if declare -p APPLIED >/dev/null 2>&1; then
+    APPLIED[state]="Tamil Nadu"
+    unset 'APPLIED[district]'
+  fi
 }
 
 apply_sheet() {
@@ -2215,6 +2222,8 @@ scoped_pick() {
   ui_dump || true
   if [[ -n "$a_state" ]]; then
     st="$a_state"
+  elif [[ -n "${CHOOSE_STATE_APPLIED:-}" ]]; then
+    st="$CHOOSE_STATE_APPLIED"
   elif ui_find --resource-id filter-chip-state; then
     st="${UI_TEXT:-}"
   fi
@@ -2254,11 +2263,13 @@ clear_named() {
   if ui_dump && ui_find --content-desc "Clear ${which} filter"; then
     ui_tap
     sleep 1
+    if [[ "$which" == state ]]; then CHOOSE_STATE_APPLIED=""; fi
     return 0
   fi
   if ui_dump && ui_find --text-regex '^Clear$' --prefer upper; then
     ui_tap
     sleep 1
+    if [[ "$which" == state ]]; then CHOOSE_STATE_APPLIED=""; fi
     return 0
   fi
   return 1

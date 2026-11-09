@@ -904,6 +904,7 @@ flows=(
   30s4-filter-matrix-seq4
   30s5-filter-matrix-seq5
   30d-near-me
+  31-filter-chain
 )
 for flow in "${flows[@]}"; do
   if ! grep -q "\"${flow}|" tool/emulator/plan.sh; then
@@ -1099,6 +1100,22 @@ if ! grep -q 'kerala_applied' tool/emulator/flows/17_entry_matrix.sh; then
   echo "flow 17 should check the State reset only after Kerala applies" >&2
   exit 1
 fi
+if grep -q 'pick="\$ALL_INDIA_DEITY_PICK"' tool/emulator/flows/17_entry_matrix.sh; then
+  echo "flow 17 district fallback must be the chip's own pick, not a deity name" >&2
+  exit 1
+fi
+if ! grep -q 'pick="\${PICK\[\$f\]}"' tool/emulator/flows/17_entry_matrix.sh; then
+  echo "flow 17 must fall back to PICK[\$f] when scoped_pick fails" >&2
+  exit 1
+fi
+if ! grep -q 'state chip check skipped' tool/emulator/flows/17_entry_matrix.sh; then
+  echo "flow 17 must fail when the state-chip reset check is skipped" >&2
+  exit 1
+fi
+if grep -q "text-regex '\\^DISTRICT\\$'" tool/emulator/flows/07_district.sh tool/emulator/flows/29_filter_matrix.sh; then
+  echo "flows 07 and 29 must use the new District sheet title, not DISTRICT" >&2
+  exit 1
+fi
 if ! grep -q 'adb_shell_capped 8 settings put secure show_ime_with_hard_keyboard' tool/emulator/run_one_flow.sh; then
   echo "IME settings should use the step cap" >&2
   exit 1
@@ -1166,14 +1183,14 @@ fi
 # as "FAIL missing").
 unstarted_n="$(grep -c '^NOT RUN [^:]*: did not start$' "${summary_dir}/results.txt")"
 skipped_n="$(grep -c '^SKIPPED ' "${summary_dir}/results.txt")"
-if [[ "$unstarted_n" -ne 47 || "$skipped_n" -ne 3 ]] ||
+if [[ "$unstarted_n" -ne 48 || "$skipped_n" -ne 3 ]] ||
    ! grep -q '^SKIPPED 30d-near-me: ' "${summary_dir}/results.txt" ||
    grep -q '^FAIL ' "${summary_dir}/results.txt" ||
    ! grep -q '^SKIPPED 11-near-me: ' "${summary_dir}/results.txt" ||
    ! grep -q '^SKIPPED 23-near-me-settings-roundtrip: ' "${summary_dir}/results.txt" ||
-   ! grep -q '0 failed, 0 expected failures, 0 unexpected passes, 47 not run, 3 skipped' "${summary_dir}/fail.out" ||
+   ! grep -q '0 failed, 0 expected failures, 0 unexpected passes, 48 not run, 3 skipped' "${summary_dir}/fail.out" ||
    ! grep -q 'did not start' "${summary_dir}/fail.out"; then
-  echo "unstarted flows: 47 NOT RUN, 3 SKIPPED (11, 23, 30d), no FAIL, job not green" >&2
+  echo "unstarted flows: 48 NOT RUN, 3 SKIPPED (11, 23, 30d), no FAIL, job not green" >&2
   cat "${summary_dir}/fail.out" >&2
   exit 1
 fi
@@ -1216,8 +1233,8 @@ if ! EMULATOR_ARTIFACTS="$not_run_dir" EMULATOR_RESOLVE_OUTCOME=failure \
   exit 1
 fi
 not_run="$(grep -c '^NOT RUN ' "${not_run_dir}/results.txt")"
-if [[ "$not_run" -ne 47 ]] || [[ "$(grep -c '^SKIPPED ' "${not_run_dir}/results.txt")" -ne 3 ]]; then
-  echo "expected 47 NOT RUN and 3 SKIPPED lines, found ${not_run} NOT RUN" >&2
+if [[ "$not_run" -ne 48 ]] || [[ "$(grep -c '^SKIPPED ' "${not_run_dir}/results.txt")" -ne 3 ]]; then
+  echo "expected 48 NOT RUN and 3 SKIPPED lines, found ${not_run} NOT RUN" >&2
   exit 1
 fi
 if grep -q '^FAIL ' "${not_run_dir}/results.txt"; then
@@ -2893,6 +2910,18 @@ sp() { ( export EMULATOR_FLOW=99-sp EMULATOR_ARTIFACTS="$r43/sp" EMULATOR_PACKAG
   source tool/emulator/lib/common.sh
   ui_dump() { printf '<hierarchy><node text="" resource-id="filter-chip-state" content-desc="%s" bounds="[0,100][120,140]" /></hierarchy>' "$SP_STATE" > "$DUMP"; }
   scoped_pick "$1" ); }
+[[ "$(CHOOSE_STATE_APPLIED='Tamil Nadu' SP_STATE='State' sp deity)" == '^Shiva( +[0-9]+)?$' && "$(CHOOSE_STATE_APPLIED='Tamil Nadu' SP_STATE='State' sp district)" == '^Madurai( +[0-9]+)?$' ]] || { echo "scoped_pick: Tamil Nadu recorded by choose-a-state-first scopes deity and district" >&2; exit 1; }
+python3 - <<'PY'
+import importlib.util
+spec = importlib.util.spec_from_file_location("ui", "tool/emulator/lib/ui.py")
+ui = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(ui)
+regions = ui._state_regions()
+alias = ui._state_sort_key("Andaman and Nicobar Islands", regions)
+canonical = ui._state_sort_key("Andaman & Nicobar Islands", regions)
+assert alias[0] == canonical[0] == 1, (alias, canonical)
+assert ui._state_sort_key("Atlantis", regions)[0] == 6
+PY
 [[ "$(SP_STATE='Tamil Nadu' sp deity)" == '^Shiva( +[0-9]+)?$' && "$(SP_STATE='State' sp deity)" == '@first' &&
    "$(SP_STATE='Tamil Nadu' sp district)" == '^Madurai( +[0-9]+)?$' && "$(SP_STATE='Kerala' sp district)" == '^24 Paraganas North( +[0-9]+)?$' &&
    "$(SP_STATE='State' sp state)" == '^Tamil Nadu( +[0-9]+)?$' ]] || { echo "scoped_pick: Shiva/Madurai only when Tamil Nadu is the state" >&2; exit 1; }
@@ -3077,7 +3106,7 @@ grep -q '^SNAPCFG full-1 SNAPSHOT_CONFIG mismatch' "$r43/art431c/results.txt" &&
 grep -q '^::warning::emulator full shard 1: snapshot boot, but the AVD config differs from the snapshot: SNAPSHOT_CONFIG mismatch: disk.dataPartition.size' "$r43/art431c.out" ||
   { echo "run_shard: mismatch on a snapshot boot prints ::warning:: (round 4.3.3): $(cat "$r43/art431c.out")" >&2; exit 1; }
 # (a)/(3): worst case counts the outer kill-after; avd-warmup runs beside build.
-[[ "$(plan_need_s full 12)" == 1489 && "$(plan_need_s full 15)" == 2069 && "$(plan_need_s full 11)" == 2069 && "$(plan_need_s full 9)" == 2129 && "$(plan_need_s full 1)" == 2139 ]] || { echo "plan_need_s: shard 12 1509s, 11 and 15 2099s, 9 2159s, others 2164s (boot 150 + getprop budget 4 + keyevent 5 + getprop 5 + ready 22 + unlock 8 + animations 5, outer kill-after 10)" >&2; exit 1; }
+[[ "$(plan_need_s full 12)" == 1839 && "$(plan_need_s full 15)" == 2069 && "$(plan_need_s full 11)" == 2069 && "$(plan_need_s full 9)" == 2129 && "$(plan_need_s full 1)" == 2139 ]] || { echo "plan_need_s: shard 12 1839s (06a 06b plus 31 at 300s), 11 and 15 2069s, 9 2129s, shard 1 2139s" >&2; exit 1; }
 grep -q 'timeout --kill-after="$FLOW_OUTER_KILL_S"' tool/emulator/run_shard.sh || { echo "run_shard outer kill-after must be FLOW_OUTER_KILL_S" >&2; exit 1; }
 awk '/^  avd-warmup:/ { w = 1 } w && /needs:/ { print; exit }' "$workflow" | grep -qx '    needs: \[gate\]' || { echo "avd-warmup must need only the gate (parallel with build)" >&2; exit 1; }
 #R43_MORE

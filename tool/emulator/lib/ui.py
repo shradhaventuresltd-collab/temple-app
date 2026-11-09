@@ -504,13 +504,26 @@ _REGION_RANK = {
 }
 
 
-def _state_regions() -> dict[str, str]:
-    """Names from lib/utils/india_regions.dart, the KAN-198 catalog."""
+def _regions_source() -> str:
     path = os.path.normpath(
         os.path.join(os.path.dirname(__file__), "..", "..", "..", "lib", "utils", "india_regions.dart")
     )
-    text = open(path, encoding="utf-8").read()
+    return open(path, encoding="utf-8").read()
+
+
+def _state_regions() -> dict[str, str]:
+    """Names from lib/utils/india_regions.dart, the KAN-198 catalog."""
+    text = _regions_source()
     return dict(re.findall(r"\(name: '([^']+)', region: '([^']+)'\)", text))
+
+
+def _state_aliases() -> dict[str, str]:
+    """kIndiaStateAliases, so seek order matches indiaRegionOf."""
+    text = _regions_source()
+    start = text.find("kIndiaStateAliases = {")
+    end = text.find("};", start)
+    block = text[start:end]
+    return dict(re.findall(r"'([^']+)':\s*'([^']+)'", block))
 
 
 def _sheet_uses_regions(root: ET.Element) -> bool:
@@ -522,7 +535,9 @@ def _sheet_uses_regions(root: ET.Element) -> bool:
 
 
 def _state_sort_key(name: str, regions: dict[str, str]) -> tuple:
-    return (_REGION_RANK.get(regions.get(name), 6), _dart_key(name))
+    canonical = _state_aliases().get(name, name)
+    region = regions.get(canonical, regions.get(name))
+    return (_REGION_RANK.get(region, 6), _dart_key(name))
 
 
 def cmd_sheet_band(args: argparse.Namespace) -> int:

@@ -123,7 +123,7 @@ open_chip() {
   if [[ "$1" == district ]]; then
     ui_dump || return 1
     if ui_find --resource-id filter-district-loading; then
-      ui_wait 10 --text-regex '^DISTRICT$' || return 1
+      ui_wait 15 --text-regex '^(District|All districts)' || return 1
     fi
   fi
 }
