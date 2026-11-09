@@ -311,6 +311,7 @@ for entry in "${ENTRIES[@]}"; do
   for chip in "${MATRIX_CHIPS[@]}"; do
     for action in "${ACTIONS[@]}"; do
       id="$entry-$chip-$action"
+      step_reset
       APPLIED=()  # each cell starts from a fresh entry (scoped_pick reads APPLIED)
       CHOOSE_STATE_APPLIED=""
       "enter_$entry" >/dev/null 2>&1

@@ -148,6 +148,40 @@ void main() {
     expect(tester.getSize(find.text(label)).width, lessThanOrEqualTo(180));
   });
 
+  testWidgets('a tap above the sheet dismisses it', (tester) async {
+    await pumpFilterBar(tester, temples: temples);
+    await openFilterChip(tester, 'state');
+    expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
+    final sheetTop = tester
+        .getTopLeft(find.byKey(const Key('filter-sheet')))
+        .dy;
+    expect(sheetTop, greaterThan(40));
+    await tester.tapAt(const Offset(400, 20));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('filter-sheet')), findsNothing);
+    expect(find.text('Vaikom Mahadeva Temple'), findsOneWidget);
+  });
+
+  testWidgets('Apply stays on screen in a short landscape sheet', (
+    tester,
+  ) async {
+    await pumpFilterBar(
+      tester,
+      temples: temples,
+      size: const Size(900, 400),
+      textScaler: const TextScaler.linear(1.3),
+    );
+    await openFilterChip(tester, 'state');
+    final apply = find.byKey(const Key('filter-sheet-apply'));
+    expect(apply.hitTestable(), findsOneWidget);
+    final rect = tester.getRect(apply);
+    expect(rect.bottom, lessThanOrEqualTo(400));
+    expect(rect.top, greaterThanOrEqualTo(0));
+    await tester.tap(apply);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('filter-sheet')), findsNothing);
+  });
+
   testWidgets('each sheet title is its own semantics node', (tester) async {
     String? districtOf(temple) => temple.city as String;
     await pumpFilterBar(

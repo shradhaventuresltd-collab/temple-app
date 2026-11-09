@@ -137,6 +137,16 @@ for entry in "${ENTRIES[@]}"; do
   # "... Temple" (temple_search.dart:640-641 reverse prefix, a pre-existing
   # app bug since #103, Jira KAN-193). ui_replace_field_text clears exactly
   # the current text, types, and reads the field back.
+  recover_sheet || true
+  local search_try
+  for search_try in 1 2 3; do
+    ui_dump || break
+    if ui_find --resource-id temple-list-search-field; then
+      break
+    fi
+    ui_fling down || break
+    sleep 0.4
+  done
   if ui_dump && ui_find --resource-id temple-list-search-field; then
     field_ok=1
     ui_replace_field_text "zzzqqq" temple-list-search-field || field_ok=0

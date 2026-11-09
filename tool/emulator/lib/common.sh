@@ -1684,7 +1684,14 @@ seek_option() {
   # The first dump is the sheet as it opened: scrolled to the top, so the
   # first visible section is the head of the order.
   if kinds="$(python3 "$UI_PY" sheet-kinds "$DUMP")"; then
-    order="$(printf '%s state district deity' "$kinds" | tr ' ' '\n' | awk 'NF && !seen[$0]++' | paste -sd, -)"
+    # One kind means this is a separate State, District, or Deity sheet.
+    # Do not append the other kinds: a name past the last visible row is
+    # further down this sheet, not absent in a section that is not open.
+    if [[ "$kinds" != *" "* ]]; then
+      order="$kinds"
+    else
+      order="$(printf '%s state district deity' "$kinds" | tr ' ' '\n' | awk 'NF && !seen[$0]++' | paste -sd, -)"
+    fi
   else
     echo "seek_option: no picker section on screen (is the sheet open?)" >&2
     return 1
@@ -1993,6 +2000,31 @@ raise SystemExit(1)
 PY
 }
 
+# Type NAME into filter-sheet-search and tap filter-option-KIND-NAME.
+# 0 tapped, 1 no search field (caller scrolls), 2 field used but no row.
+sheet_search_pick() {
+  local kind="$1" name="$2" regex="$3"
+  local id="filter-option-${kind}-${name}" i
+  ui_dump || return 1
+  if ! ui_find --resource-id filter-sheet-search; then
+    return 1
+  fi
+  ui_tap || return 1
+  sleep 0.3
+  ui_type "$name" || return 1
+  sleep 0.8
+  ui_dump || return 1
+  if ui_find --resource-id "$id"; then
+    if stable_option_tap "$regex" "^$(re_escape "$id")\$"; then
+      return 0
+    fi
+  fi
+  for ((i = 0; i < ${#name}; i++)); do
+    adb_shell_capped 8 input keyevent 67 >/dev/null 2>&1 || true
+  done
+  return 2
+}
+
 select_labeled() {
   local regex="$1"
   local _section="${2:-}"
@@ -2056,6 +2088,11 @@ select_labeled() {
     deadline=$((started + PICKER_LONG_GIVEUP_S))
   fi
   if [[ -n "$name_hint" && "$kind" =~ ^(state|district|deity)$ ]]; then
+    # The sheet search jumps to the row. Scrolling a state list one
+    # "near" drag at a time is what pushed 29a to 575s and 29d to 566s.
+    if sheet_search_pick "$kind" "$name_hint" "$regex"; then
+      return 0
+    fi
     local seek_rc=0
     # '^Vishnu' (no $) takes the first Vishnu... option; '^Shiva( +N)?$' only Shiva.
     local prefix_flag=""

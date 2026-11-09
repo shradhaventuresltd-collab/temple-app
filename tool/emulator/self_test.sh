@@ -1259,6 +1259,75 @@ shard6=tool/emulator/testdata/run42675181050
   sheet_open || { echo "a separate title node must open the sheet" >&2; exit 1; }
   echo "shard6 dry-run: merged sheet opens via Close filters; chips do not; title id is its own node"
 )
+# Run 42681684346. Outside tap at y=40 is above the sheet (top 141).
+# Kerala is further down this separate state sheet ("up near"), not absent
+# in a district section. Landscape Apply is not in the tree.
+run4268=tool/emulator/testdata/run42681684346
+seek_kerala="$(python3 tool/emulator/lib/ui.py option-seek "$run4268/outside-empty.xml" --kind state --name Kerala --order state --min-top 150 --max-top 530)"
+[[ "$seek_kerala" == "up near" ]] || { echo "Kerala on the separate state sheet should be up near, got ${seek_kerala}" >&2; exit 1; }
+python3 - "$run4268/outside-empty.xml" "$run4268/land-apply.xml" <<'PY' || { echo "run 42681684346 dump shape" >&2; exit 1; }
+import sys
+from xml.etree import ElementTree as ET
+def load(path):
+    raw = open(path, encoding="utf-8", errors="replace").read()
+    return ET.fromstring(raw[raw.find("<"):])
+out = load(sys.argv[1])
+sheet = next(n for n in out.iter("node") if n.attrib.get("resource-id") == "filter-sheet")
+top = int(sheet.attrib["bounds"].split("][")[0].split(",")[1])
+assert top > 40, top
+assert any(n.attrib.get("resource-id") == "filter-option-state-Delhi" for n in out.iter("node"))
+land = load(sys.argv[2])
+descs = [n.attrib.get("content-desc") or "" for n in land.iter("node")]
+assert not any(d.startswith("Show ") for d in descs), descs
+print(f"run4268 dry-run: sheet top {top} > 40; Kerala up near; landscape has no Show button")
+PY
+if grep -q 'exercise_filter district .* "All districts"' tool/emulator/flows/06_filters.sh; then
+  echo "06 district idle label is District, not All districts" >&2
+  exit 1
+fi
+if ! grep -q 'exercise_filter district .* "District"' tool/emulator/flows/06_filters.sh; then
+  echo "06 must expect the idle district chip to read District" >&2
+  exit 1
+fi
+if ! grep -q "identifier: 'filter-sheet-search'" lib/widgets/filter_sheet.dart; then
+  echo "the sheet search field needs resource-id filter-sheet-search" >&2
+  exit 1
+fi
+if ! grep -q 'step_reset' tool/emulator/flows/29_filter_matrix.sh; then
+  echo "29 matrix cells must start a step budget" >&2
+  exit 1
+fi
+(
+  set -euo pipefail
+  export EMULATOR_FLOW=self-test EMULATOR_ARTIFACTS=/tmp EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  ui_dump() { return 0; }
+  ui_tap() { return 0; }
+  ui_type() { echo "TYPED $*"; return 0; }
+  sleep() { :; }
+  adb_shell_capped() { return 0; }
+  DUMP="$run4268/outside-empty.xml"
+  # The real dump has no search id yet. Adding the id and Kerala row is the
+  # post-fix shape of this same sheet.
+  python3 - "$DUMP" /tmp/run4268-with-search.xml <<'PY'
+import sys
+raw = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+extra = (
+    '<node text="" resource-id="filter-sheet-search" class="android.widget.EditText" '
+    'content-desc="Search state" bounds="[16,230][304,280]" />'
+    '<node text="" resource-id="filter-option-state-Kerala" class="android.widget.Button" '
+    'content-desc="Kerala  40" bounds="[0,300][320,348]" />'
+)
+raw = raw.replace("</hierarchy>", extra + "</hierarchy>")
+open(sys.argv[2], "w", encoding="utf-8").write(raw)
+PY
+  DUMP=/tmp/run4268-with-search.xml
+  sheet_search_pick state Kerala '^Kerala( +[0-9]+)?$'
+  [[ "$SELECTED_LABEL" == Kerala ]] || { echo "search pick label ${SELECTED_LABEL}" >&2; exit 1; }
+  echo "run4268 dry-run: sheet search taps filter-option-state-Kerala"
+)
+rm -f /tmp/run4268-with-search.xml
 if ! grep -q 'adb_shell_capped 8 settings put secure show_ime_with_hard_keyboard' tool/emulator/run_one_flow.sh; then
   echo "IME settings should use the step cap" >&2
   exit 1

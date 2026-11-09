@@ -205,9 +205,9 @@ exercise_filter state '^Kerala( +[0-9]+)?$' State open_state state
 # far down those lists and gave up at 20-21s in run 41306793034).
 exercise_filter deity "$ALL_INDIA_DEITY_PICK" Deity open_deity deity
 
-if scroll_chips_until --resource-id filter-chip-district || scroll_chips_until --text-regex '^All districts$'; then
+if scroll_chips_until --resource-id filter-chip-district || scroll_chips_until --text-regex '^District$'; then
   pass_step district-chip-visible
-  exercise_filter district "$ALL_INDIA_DISTRICT_PICK" "All districts" open_district district
+  exercise_filter district "$ALL_INDIA_DISTRICT_PICK" "District" open_district district
 else
   pass_step district-chip-not-visible
 fi
@@ -338,7 +338,7 @@ fi
 # Alappuzha is Kerala's first district (Ambalappuzha Sri Krishna, Vishnu).
 # After the apply the state chip must still show the applied state.
 COMBINED_DISTRICT_RX="${COMBINED_DISTRICT_PICK:-^Alappuzha( +[0-9]+)?$}"
-if scroll_chips_until --resource-id filter-chip-district || scroll_chips_until --text-regex '^All districts$'; then
+if scroll_chips_until --resource-id filter-chip-district || scroll_chips_until --text-regex '^District$'; then
   if open_district && select_labeled "$COMBINED_DISTRICT_RX" DISTRICT && apply_sheet; then
     COMBINED_DISTRICT="$SELECTED_LABEL"
     DISTRICT_LABEL="$SELECTED_LABEL"
