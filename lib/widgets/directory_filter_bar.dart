@@ -237,6 +237,11 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
         if (!mounted || chosen == null) return;
         widget.onChanged(chosen.state, chosen.deity, chosen.district);
         if (chosen.state == null || chosen.state!.isEmpty) return;
+        // The apply tap is still finishing. Opening the district sheet on
+        // that same pointer dismisses it (run 42689905451: Tamil Nadu is
+        // applied, the District chip is still idle, and no sheet remains).
+        await Future<void>.delayed(Duration.zero);
+        if (!mounted) return;
         pending = _startDistrictLoadIfNeeded();
         final district = await _present(
           section: DirectoryFilterSection.district,

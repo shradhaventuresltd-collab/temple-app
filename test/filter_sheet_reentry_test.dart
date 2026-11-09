@@ -386,6 +386,7 @@ void main() {
       expect(deity, isNull);
       expect(changes, ['Kerala||']);
 
+      await tester.pump(const Duration(milliseconds: 400));
       await tester.tap(find.byKey(const Key('filter-sheet-close')));
       await tester.pumpAndSettle();
 

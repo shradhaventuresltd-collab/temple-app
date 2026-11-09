@@ -71,7 +71,13 @@ open_district() {
   fi
   find_filter_chip filter-chip-district "$rx" "Choose a district" || return 1
   ui_tap
-  wait_filter_sheet 20
+  wait_filter_sheet 20 || return 1
+  # No state yet: the District chip opens State ("Choose a state first").
+  # Apply Tamil Nadu and stay on the District sheet that follows.
+  if ui_dump && ui_find --resource-id filter-choose-state-first; then
+    finish_choose_state_first || return 1
+  fi
+  wait_out_district_loader || return 1
 }
 
 open_by_id() {
@@ -181,7 +187,11 @@ exercise_filter() {
       fail_step "${key}-repeat-${n}" "could not open"
       continue
     fi
-    if ! select_labeled "$regex" "$(section_for "$key")"; then
+    local repeat_rx="$regex"
+    if [[ "$regex" == @first && -n "$picked" ]]; then
+      repeat_rx="^$(re_escape "$picked")( +[0-9]+)?$"
+    fi
+    if ! select_labeled "$repeat_rx" "$(section_for "$key")"; then
       fail_step "${key}-repeat-${n}" "option not found"
       recover_sheet
       continue
@@ -207,7 +217,7 @@ exercise_filter deity "$ALL_INDIA_DEITY_PICK" Deity open_deity deity
 
 if scroll_chips_until --resource-id filter-chip-district || scroll_chips_until --text-regex '^District$'; then
   pass_step district-chip-visible
-  exercise_filter district "$ALL_INDIA_DISTRICT_PICK" "District" open_district district
+  exercise_filter district "$TN_DISTRICT_PICK" "District" open_district district
 else
   pass_step district-chip-not-visible
 fi

@@ -1114,6 +1114,65 @@ echo "flow 13 dry-run drawer: $(grep open-licences "$lic_dir/fail/results.txt")"
 echo "flow 13 dry-run screen: $(grep open-licences "$lic_dir/pass/results.txt")"
 echo "flow 13 dry-run log: $(tr '\n' ' ' < "$lic_dir/fail/log")"
 rm -rf "$lic_dir"
+# Run 42689905451. No-state District leaves Tamil Nadu applied and the
+# sheet gone. 06a is still on Choose a state first. Vishnu is not in the
+# visible head; Devi is a filter-deity-top row. Repeat-2 is sitting on Murugan.
+run899=tool/emulator/testdata/run42689905451
+python3 - "$run899" <<'PY' || { echo "run 42689905451 dump shape" >&2; exit 1; }
+import sys
+from pathlib import Path
+from xml.etree import ElementTree as ET
+root = Path(sys.argv[1])
+def load(name):
+    raw = (root / name).read_text(encoding="utf-8", errors="replace")
+    return ET.fromstring(raw[raw.find("<"):])
+def ids(tree):
+    return {n.attrib.get("resource-id") or "" for n in tree.iter("node")}
+no_sheet = load("07-no-district-sheet.xml")
+no_ids = ids(no_sheet)
+assert "filter-sheet" not in no_ids
+assert any((n.attrib.get("content-desc") or "") == "Tamil Nadu" and (n.attrib.get("resource-id") or "") == "filter-chip-state" for n in no_sheet.iter("node"))
+assert any((n.attrib.get("content-desc") or "") == "District" and (n.attrib.get("resource-id") or "") == "filter-chip-district" for n in no_sheet.iter("node"))
+state_gate = ids(load("06a-district-still-state.xml"))
+assert "filter-choose-state-first" in state_gate and "filter-sheet-title-state" in state_gate
+assert not any(i.startswith("filter-option-district-") for i in state_gate)
+vishnu = ids(load("06b-vishnu.xml"))
+assert "filter-deity-top-Devi" in vishnu
+assert "filter-deity-top-Vishnu" not in vishnu and "filter-option-deity-Vishnu" not in vishnu
+repeat = ids(load("06a-deity-repeat-2.xml"))
+assert "filter-option-deity-Murugan" in repeat
+print("run899 dumps: TN applied with no sheet; district pick still on State; Vishnu not in the head; Murugan is on screen")
+PY
+if ! grep -q 'filter-sheet-title-district' tool/emulator/lib/common.sh; then
+  echo "apply_sheet must not tap Show on the District sheet that follows State" >&2
+  exit 1
+fi
+if ! grep -q 'finish_choose_state_first' tool/emulator/flows/06_filters.sh || ! grep -q 'TN_DISTRICT_PICK' tool/emulator/flows/06_filters.sh; then
+  echo "06 district pick must apply Tamil Nadu and then choose Madurai" >&2
+  exit 1
+fi
+if ! grep -q 'select_labeled @first DISTRICT' tool/emulator/flows/21_district_close_then_other_chip.sh || ! grep -q 'step_reset' tool/emulator/flows/21_district_close_then_other_chip.sh; then
+  echo "flow 21 must pick @first under a step budget" >&2
+  exit 1
+fi
+(
+  set -euo pipefail
+  export EMULATOR_FLOW=self-test EMULATOR_ARTIFACTS=/tmp EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  ui_dump() { return 0; }
+  ui_tap() { return 0; }
+  ui_type() { echo "TYPED $*"; return 0; }
+  sleep() { :; }
+  adb_shell_capped() { return 0; }
+  DUMP="$run899/06b-vishnu.xml"
+  sheet_search_pick deity Devi '^Devi( +[0-9]+)?$'
+  [[ "$SELECTED_LABEL" == Devi ]] || { echo "top-row deity pick got ${SELECTED_LABEL}" >&2; exit 1; }
+  DUMP="$run899/06a-deity-repeat-2.xml"
+  sheet_search_pick deity Murugan '^Murugan( +[0-9]+)?$'
+  [[ "$SELECTED_LABEL" == Murugan ]] || { echo "repeat pick got ${SELECTED_LABEL}" >&2; exit 1; }
+  echo "run899 dry-run: Devi via filter-deity-top; Murugan via filter-option"
+)
 if ! awk '
   /open_browse\(\)/ { fn = 1 }
   fn && $0 ~ /scroll_drawer_until --text-regex/ { search = 1 }

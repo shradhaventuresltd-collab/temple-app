@@ -2014,11 +2014,14 @@ sheet_search_pick() {
   ui_type "$name" || return 1
   sleep 0.8
   ui_dump || return 1
-  if ui_find --resource-id "$id"; then
-    if stable_option_tap "$regex" "^$(re_escape "$id")\$"; then
-      return 0
+  local alt
+  for alt in "$id" "filter-${kind}-top-${name}"; do
+    if ui_find --resource-id "$alt"; then
+      if stable_option_tap "$regex" "^$(re_escape "$alt")\$"; then
+        return 0
+      fi
     fi
-  fi
+  done
   for ((i = 0; i < ${#name}; i++)); do
     adb_shell_capped 8 input keyevent 67 >/dev/null 2>&1 || true
   done
@@ -2267,9 +2270,23 @@ finish_choose_state_first() {
 }
 
 apply_sheet() {
-  local height attempt
+  local height attempt title_id
   read -r _ height < <(ui_screen_size) || return 1
+  title_id=""
+  ui_dump || true
+  if ui_find --resource-id filter-sheet-title-state; then
+    title_id=state
+  elif ui_find --resource-id filter-sheet-title-district; then
+    title_id=district
+  elif ui_find --resource-id filter-sheet-title-deity; then
+    title_id=deity
+  fi
   for attempt in 1 2; do
+    # Choose-a-state-first opens the District sheet itself. A second tap
+    # on Show would apply Any district and close it (run 42689905451).
+    if [[ "$title_id" == state ]] && ui_dump && ui_find --resource-id filter-sheet-title-district; then
+      return 0
+    fi
     # The result button is pinned to the bottom of the sheet. Prefer that
     # node so a higher label is not tapped and the sheet left open.
     if ! ui_wait 8 --text-regex '^Show [0-9]+ temples?$' --prefer lower; then
@@ -2282,6 +2299,9 @@ apply_sheet() {
     fi
     ui_tap
     sleep 1
+    if [[ "$title_id" == state ]] && ui_dump && ui_find --resource-id filter-sheet-title-district; then
+      return 0
+    fi
     if ! sheet_open; then
       return 0
     fi

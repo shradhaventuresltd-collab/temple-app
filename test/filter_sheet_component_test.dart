@@ -165,21 +165,97 @@ void main() {
   testWidgets('Apply stays on screen in a short landscape sheet', (
     tester,
   ) async {
+    const keyboard = 180.0;
+    final many = [
+      for (final state in [
+        'Tamil Nadu',
+        'Kerala',
+        'Karnataka',
+        'Andhra Pradesh',
+        'Telangana',
+        'Maharashtra',
+        'Gujarat',
+        'Rajasthan',
+        'Delhi',
+        'Punjab',
+        'Uttar Pradesh',
+        'Bihar',
+        'West Bengal',
+        'Odisha',
+        'Assam',
+        'Goa',
+        'Haryana',
+        'Madhya Pradesh',
+        'Chhattisgarh',
+        'Jharkhand',
+        'Uttarakhand',
+        'Himachal Pradesh',
+        'Manipur',
+        'Meghalaya',
+        'Tripura',
+      ])
+        filterTemple(
+          name: '$state temple',
+          state: state,
+          city: 'City',
+          deity: 'Shiva',
+        ),
+    ];
+    tester.view.viewInsets = const FakeViewPadding(bottom: keyboard);
+    addTearDown(tester.view.resetViewInsets);
     await pumpFilterBar(
       tester,
-      temples: temples,
+      temples: many,
       size: const Size(900, 400),
       textScaler: const TextScaler.linear(1.3),
     );
     await openFilterChip(tester, 'state');
+    await tester.enterText(find.byKey(const Key('filter-sheet-search')), 'Ker');
+    await tester.pump();
     final apply = find.byKey(const Key('filter-sheet-apply'));
     expect(apply.hitTestable(), findsOneWidget);
     final rect = tester.getRect(apply);
-    expect(rect.bottom, lessThanOrEqualTo(400));
     expect(rect.top, greaterThanOrEqualTo(0));
+    expect(rect.height, greaterThanOrEqualTo(48));
+    expect(rect.bottom, lessThanOrEqualTo(400 - keyboard));
+    expect(find.byKey(const Key('filter-sheet-options')), findsOneWidget);
     await tester.tap(apply);
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('filter-sheet')), findsNothing);
+  });
+
+  testWidgets('a district picked with no state applies and reopens', (
+    tester,
+  ) async {
+    String? districtOf(temple) => temple.city as String;
+    await pumpFilterBar(tester, temples: temples, districtOf: districtOf);
+    await tester.tap(find.byKey(const Key('filter-chip-district')));
+    await tester.pumpAndSettle();
+    expect(find.text('Choose a state first'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('filter-option-state-Tamil Nadu')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('filter-sheet-apply')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('filter-section-district')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('filter-option-district-Madurai')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('filter-sheet-apply')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('filter-sheet')), findsNothing);
+    expect(find.text('Tamil Nadu'), findsWidgets);
+    expect(find.text('Madurai'), findsWidgets);
+    expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
+    expect(find.text('Vaikom Mahadeva Temple'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('filter-chip-district')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('filter-section-district')), findsOneWidget);
+    expect(find.text('Choose a state first'), findsNothing);
+    expect(
+      find.byKey(const Key('filter-option-district-Madurai')),
+      findsOneWidget,
+    );
+    expect(find.text('Tamil Nadu'), findsWidgets);
   });
 
   testWidgets('each sheet title is its own semantics node', (tester) async {

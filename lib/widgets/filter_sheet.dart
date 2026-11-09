@@ -258,8 +258,11 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
   Widget build(BuildContext context) {
     final colors = FilterSheetColors.of(context);
     final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
-    final screen = MediaQuery.sizeOf(context);
-    final height = screen.height * 0.78;
+    final media = MediaQuery.of(context);
+    final screen = media.size;
+    final keyboard = media.viewInsets.bottom;
+    final usable = math.max(0.0, screen.height - keyboard);
+    final height = math.min(usable * 0.78, math.max(0.0, usable - 8));
     final sheetWidth = math.min(screen.width, 560).toDouble();
     final sections = _sections;
     final jumps = [
@@ -270,141 +273,148 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
     // A tight height, not an Align that grows to the screen. The modal
     // sheet's Material is only as tall as this child, so a tap above it
     // hits the barrier and dismisses (run 42681684346, y=40).
-    return SizedBox(
-      width: screen.width,
-      height: height,
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: Listener(
-          onPointerDown: _onPointerDown,
-          onPointerMove: _onPointerMove,
-          onPointerUp: _onPointerEnd,
-          onPointerCancel: _onPointerEnd,
-          child: Material(
-            color: colors.sheetBackground,
-            child: SafeArea(
-              child: Semantics(
-                identifier: 'filter-sheet',
-                container: true,
-                // Run 42675181050: without explicitChildNodes the search field
-                // merged into this node. The sheet was one empty EditText and
-                // the title was not in the accessibility tree.
-                explicitChildNodes: true,
-                child: SizedBox(
-                  key: const Key('filter-sheet'),
-                  width: sheetWidth,
-                  height: height,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const SizedBox(height: 10),
-                      Center(
-                        child: Container(
-                          width: 36,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: colors.border,
-                            borderRadius: BorderRadius.circular(2),
+    return Padding(
+      padding: EdgeInsets.only(bottom: keyboard),
+      child: SizedBox(
+        width: screen.width,
+        height: height,
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: Listener(
+            onPointerDown: _onPointerDown,
+            onPointerMove: _onPointerMove,
+            onPointerUp: _onPointerEnd,
+            onPointerCancel: _onPointerEnd,
+            child: Material(
+              color: colors.sheetBackground,
+              child: SafeArea(
+                child: Semantics(
+                  identifier: 'filter-sheet',
+                  container: true,
+                  // Run 42675181050: without explicitChildNodes the search field
+                  // merged into this node. The sheet was one empty EditText and
+                  // the title was not in the accessibility tree.
+                  explicitChildNodes: true,
+                  child: SizedBox(
+                    key: const Key('filter-sheet'),
+                    width: sheetWidth,
+                    height: height,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 10),
+                        Center(
+                          child: Container(
+                            width: 36,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: colors.border,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
                           ),
                         ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 8, 8, 0),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: KeyedSubtree(
-                                key: widget.sectionKey,
-                                child: Semantics(
-                                  identifier: filterSheetTitleId(widget.title),
-                                  label: widget.title,
-                                  header: true,
-                                  container: true,
-                                  explicitChildNodes: true,
-                                  child: Text(
-                                    widget.title,
-                                    key: const Key('filter-sheet-title'),
-                                    style: GoogleFonts.lora(
-                                      fontSize: 26,
-                                      fontWeight: FontWeight.w700,
-                                      color: colors.label,
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 8, 8, 0),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: KeyedSubtree(
+                                  key: widget.sectionKey,
+                                  child: Semantics(
+                                    identifier: filterSheetTitleId(
+                                      widget.title,
+                                    ),
+                                    label: widget.title,
+                                    header: true,
+                                    container: true,
+                                    explicitChildNodes: true,
+                                    child: Text(
+                                      widget.title,
+                                      key: const Key('filter-sheet-title'),
+                                      style: GoogleFonts.lora(
+                                        fontSize: 26,
+                                        fontWeight: FontWeight.w700,
+                                        color: colors.label,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
-                            IconButton(
-                              key: const Key('filter-sheet-close'),
-                              tooltip: 'Close filters',
-                              onPressed: () => Navigator.pop(context),
-                              icon: Icon(
-                                Icons.close_rounded,
-                                color: colors.muted,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (widget.subtitle != null)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                          child: widget.subtitle,
-                        ),
-                      Expanded(
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            final search = _showSearch
-                                ? _searchField(colors)
-                                : null;
-                            final jumpRow = jumps.isEmpty
-                                ? null
-                                : _jumpRow(jumps, scale);
-                            final searchHeight = search == null ? 0.0 : 64.0;
-                            final jumpHeight = jumpRow == null
-                                ? 0.0
-                                : 48 * scale.clamp(1.0, 1.4);
-                            // Run 42681684346 landscape: jumps sat on the
-                            // bottom edge and Apply was past the screen.
-                            // Pin them only when the list still has room.
-                            final pinSearch =
-                                search != null &&
-                                constraints.maxHeight - searchHeight >= 96;
-                            final pinJumps =
-                                jumpRow != null &&
-                                constraints.maxHeight -
-                                        (pinSearch ? searchHeight : 0) -
-                                        jumpHeight >=
-                                    96;
-                            return Column(
-                            children: [
-                              if (pinSearch) search,
-                              if (pinJumps) jumpRow,
-                              Expanded(
-                                  child: _body(
-                                    colors,
-                                    sections,
-                                    leading: [
-                                      if (search != null && !pinSearch) search,
-                                      if (jumpRow != null && !pinJumps) jumpRow,
-                                    ],
-                                  ),
+                              IconButton(
+                                key: const Key('filter-sheet-close'),
+                                tooltip: 'Close filters',
+                                onPressed: () => Navigator.pop(context),
+                                icon: Icon(
+                                  Icons.close_rounded,
+                                  color: colors.muted,
                                 ),
-                              ],
-                            );
-                          },
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      if (widget.mode == FilterSheetMode.apply)
-                        _Footer(
-                          colors: colors,
-                          resultLabel: widget.resultLabel ?? 'Show temples',
-                          clearEnabled: widget.clearEnabled,
-                          onClear: widget.onClear,
-                          onApply: widget.onApply,
-                          scale: scale,
+                        if (widget.subtitle != null)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                            child: widget.subtitle,
+                          ),
+                        Expanded(
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final search = _showSearch
+                                  ? _searchField(colors)
+                                  : null;
+                              final jumpRow = jumps.isEmpty
+                                  ? null
+                                  : _jumpRow(jumps, scale);
+                              final searchHeight = search == null ? 0.0 : 64.0;
+                              final jumpHeight = jumpRow == null
+                                  ? 0.0
+                                  : 48 * scale.clamp(1.0, 1.4);
+                              // Run 42681684346 landscape: jumps sat on the
+                              // bottom edge and Apply was past the screen.
+                              // Pin them only when the list still has room.
+                              final pinSearch =
+                                  search != null &&
+                                  constraints.maxHeight - searchHeight >= 96;
+                              final pinJumps =
+                                  jumpRow != null &&
+                                  constraints.maxHeight -
+                                          (pinSearch ? searchHeight : 0) -
+                                          jumpHeight >=
+                                      96;
+                              return Column(
+                                children: [
+                                  if (pinSearch) search,
+                                  if (pinJumps) jumpRow,
+                                  Expanded(
+                                    child: _body(
+                                      colors,
+                                      sections,
+                                      leading: [
+                                        if (search != null && !pinSearch)
+                                          search,
+                                        if (jumpRow != null && !pinJumps)
+                                          jumpRow,
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
                         ),
-                    ],
+                        if (widget.mode == FilterSheetMode.apply)
+                          _Footer(
+                            colors: colors,
+                            resultLabel: widget.resultLabel ?? 'Show temples',
+                            clearEnabled: widget.clearEnabled,
+                            onClear: widget.onClear,
+                            onApply: widget.onApply,
+                            scale: scale,
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
