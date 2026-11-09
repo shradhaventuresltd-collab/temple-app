@@ -564,11 +564,13 @@ test("placeholder hosts and their subdomains fail on imageUrl and images[0], and
     "https://www.shutterstock.com/image-photo/temple",
     "https://www.shutterstock.com:443/image-photo/temple",
   ];
-  for (const url of passes) {
+  // A fresh doc per URL: photos are client-immutable on update (KAN-200),
+  // so each case is a create.
+  for (const [i, url] of passes.entries()) {
     await assertSucceeds(
       setDoc(
-        at(db, "temples/real-cover"),
-        templePayload("real-cover", {
+        at(db, `temples/real-cover-${i}`),
+        templePayload(`real-cover-${i}`, {
           imageUrl: url,
           images: [url],
           photos: [{ url, licence: "CC0", order: 0 }],
@@ -960,7 +962,8 @@ test("prod-shaped research docs with 0 or 1 photo stay under the expression limi
 
 // ---------------------------------------------------------------------------
 // KAN-200: admin saves on temples with 2+ photos crossed the 1000-expression
-// limit. Photos are now checked only when a write changes them.
+// limit. Photos are client-immutable on update; the setTemplePhotos callable
+// (functions/) writes them. Non-photo saves never check stored photos.
 // ---------------------------------------------------------------------------
 
 const MAX_GALLERY = 12; // kMaxTemplePhotos in lib/models/temple_photo.dart
@@ -1046,37 +1049,60 @@ test("non-photo admin saves pass at 0, 1, 2, 9 and max photos, with and without 
   }
 });
 
-test("photo-changing admin saves pass with 0 or 1 photo, with and without research fields", async () => {
+test("client photo changes are denied at 0, 1, 2, 9 and max photos, with and without research fields", async () => {
   const db = adminDb("admin-kan200-photos");
-  for (const research of [false, true]) {
-    const id = `kan200-photos-${research ? "r" : "plain"}`;
-    const seeded = { ...kavlemDoc(1), id };
-    if (!research) for (const k of RESEARCH_KEYS) delete seeded[k];
-    await seedRaw(id, seeded);
-    const edited = [{ ...seeded.photos[0], credit: "Edited credit · CC BY-SA 4.0" }];
-    await assertSucceeds(
-      setDoc(at(db, `temples/${id}`), { photos: edited, images: [edited[0].url], imageUrl: edited[0].url }, { merge: true }),
-    );
-    await assertSucceeds(
-      setDoc(at(db, `temples/${id}`), { photos: [], images: [], imageUrl: "" }, { merge: true }),
-    );
+  for (const n of [0, 1, 2, 9, MAX_GALLERY]) {
+    for (const research of [false, true]) {
+      const id = `kan200-photos-${n}-${research ? "r" : "plain"}`;
+      const seeded = { ...kavlemDoc(n), id };
+      if (!research) for (const k of RESEARCH_KEYS) delete seeded[k];
+      const p = seeded.photos;
+      const renumber = (list) => list.map((x, i) => ({ ...x, order: i }));
+      const extra = { ...KAVLEM.photos[0], order: n, credit: "Added · CC BY-SA 4.0" };
+      const variants = {
+        add: n < MAX_GALLERY ? [...p, extra] : null,
+        "delete last": n > 0 ? p.slice(0, -1) : null,
+        "delete first": n > 1 ? renumber(p.slice(1)) : null,
+        reorder: n > 1 ? renumber(p.slice().reverse()) : null,
+        "cover change": n > 1 ? renumber([p[n - 1], ...p.slice(0, -1)]) : null,
+        "credit edit": n > 0 ? p.map((x, i) => (i === 0 ? { ...x, credit: "Edited · CC BY-SA 4.0" } : x)) : null,
+        clear: n > 0 ? [] : null,
+      };
+      await seedRaw(id, seeded);
+      for (const [name, photos] of Object.entries(variants)) {
+        if (photos === null) continue;
+        await assertFails(setDoc(at(db, `temples/${id}`), { photos }, { merge: true }), `${name} ${n}`);
+        // Same with a text edit and the mirror alongside.
+        await assertFails(
+          setDoc(
+            at(db, `temples/${id}`),
+            { story: "Edit.", photos, images: photos.map((x) => x.url), imageUrl: photos[0]?.url ?? "" },
+            { merge: true },
+          ),
+          `${name} ${n} with text`,
+        );
+      }
+      if (n > 0) {
+        await assertFails(setDoc(at(db, `temples/${id}`), { photos: deleteField() }, { merge: true }));
+        await assertFails(updateDoc(at(db, `temples/${id}`), { photos: [] }));
+      }
+      // Resending the stored photos unchanged is a non-photo save.
+      await assertSucceeds(
+        setDoc(at(db, `temples/${id}`), { story: "Resend.", photos: p }, { merge: true }),
+      );
+      assert.deepEqual((await readRaw(id)).photos, p);
+    }
   }
 });
 
-// Known limit, kept visible: a write that changes photos checks every slot.
-// With prod-shaped photos that crosses 1000 expressions from 2 photos up.
-// Fallback (Admin SDK callable) needs Satyavrat's call.
-for (const n of [2, 9, MAX_GALLERY]) {
-  test(`photo-changing admin save at ${n} photos`, { todo: "KAN-200: over the 1000-expression limit" }, async () => {
-    const id = `kan200-photos-${n}`;
-    const seeded = { ...kavlemDoc(n), id };
-    await seedRaw(id, seeded);
-    const photos = seeded.photos.map((p, i) => (i === n - 1 ? { ...p, credit: "Edited · CC BY-SA 4.0" } : p));
-    await assertSucceeds(
-      setDoc(at(adminDb("admin-kan200-todo"), `temples/${id}`), { photos }, { merge: true }),
-    );
-  });
-}
+test("a temple without a photos field cannot gain one from a client", async () => {
+  const db = adminDb("admin-kan200-nophotos");
+  const { photos, ...legacy } = templePayload("kan200-legacy");
+  await seedRaw("kan200-legacy", legacy);
+  await assertFails(setDoc(at(db, "temples/kan200-legacy"), { photos: [] }, { merge: true }));
+  await assertFails(setDoc(at(db, "temples/kan200-legacy"), { photos }, { merge: true }));
+  await assertSucceeds(setDoc(at(db, "temples/kan200-legacy"), { story: "Edit." }, { merge: true }));
+});
 
 test("malicious photo writes are still rejected", async () => {
   const db = adminDb("admin-kan200-bad");
@@ -1115,7 +1141,7 @@ test("malicious photo writes are still rejected", async () => {
   await assertFails(
     setDoc(at(db, `temples/${id}`), { story: "Edit.", photos: [bad["http url"]] }, { merge: true }),
   );
-  // A bad photo on a 9-photo doc is rejected (by rule or by the limit).
+  // A bad photo on a 9-photo doc is rejected.
   const nine = kavlemDoc(9);
   await seedRaw(id, nine);
   const tampered = nine.photos.map((p, i) => (i === 4 ? bad["extra key"] : p));
@@ -1126,9 +1152,8 @@ test("malicious photo writes are still rejected", async () => {
   for (const other of [anon, user]) {
     await assertFails(setDoc(at(other, `temples/${id}`), { description: "x" }, { merge: true }));
   }
-  // The good photo passes on the same doc (the rejects above are the rule).
-  await seedRaw(id, kavlemDoc(1));
-  await assertSucceeds(setDoc(at(db, `temples/${id}`), { photos: [base] }, { merge: true }));
+  // Photos are client-immutable now; the same bad photos are refused at
+  // create (see the parity test) and by the callable validator.
 });
 
 test("new temple create still validates photos", async () => {
@@ -1144,4 +1169,55 @@ test("new temple create still validates photos", async () => {
       photos: [{ ...create.photos[0], url: "http://example.com/a.jpg" }],
     }),
   );
+});
+
+// One set of photo cases for the rules and the callable validator
+// (functions/src/photo_validator.js). Create still checks photos in full.
+test("create accepts and refuses the same photos as the setTemplePhotos validator", async () => {
+  const db = adminDb("admin-kan200-parity");
+  const { GOOD_PHOTOS, BAD_PHOTOS } = await import("../functions/test/photo_cases.js");
+  const { photoError } = await import("../functions/src/photo_validator.js");
+  let i = 0;
+  for (const [name, photo] of Object.entries(GOOD_PHOTOS)) {
+    assert.equal(photoError(photo), null, `validator: ${name}`);
+    const id = `parity-good-${i++}`;
+    await assertSucceeds(
+      setDoc(at(db, `temples/${id}`), templePayload(id, { photos: [photo], images: [photo.url], imageUrl: photo.url })),
+      name,
+    );
+  }
+  for (const [name, photo] of Object.entries(BAD_PHOTOS)) {
+    assert.notEqual(photoError(photo), null, `validator: ${name}`);
+    const id = `parity-bad-${i++}`;
+    if (Array.isArray(photo)) {
+      // Firestore cannot store a list inside a list; the SDK refuses it
+      // before the rules run.
+      await assert.rejects(
+        async () => setDoc(at(db, `temples/${id}`), templePayload(id, { photos: [photo] })),
+        /Nested arrays are not supported/,
+        name,
+      );
+      continue;
+    }
+    await assertFails(setDoc(at(db, `temples/${id}`), templePayload(id, { photos: [photo] })), name);
+  }
+});
+
+// The 12-photo cap itself, not the expression limit: 13 minimal photos are
+// refused by `n <= 12` before any photo is checked, so the error is a plain
+// rule denial. Without the cap, the same create is refused only by the
+// limit, and this test fails.
+test("create with 13 photos is refused by the 12-photo cap, not the expression limit", async () => {
+  const db = adminDb("admin-kan200-cap");
+  const photo = (i) => ({ url: `https://e.co/${i}.jpg`, licence: "CC0", order: Math.min(i, 11) });
+  const thirteen = Array.from({ length: 13 }, (_, i) => photo(i));
+  let err;
+  try {
+    await setDoc(at(db, "temples/cap-13"), templePayload("cap-13", { photos: thirteen }));
+  } catch (e) {
+    err = e;
+  }
+  assert.ok(err, "13 photos must be refused");
+  assert.match(String(err.message), /PERMISSION_DENIED/);
+  assert.doesNotMatch(String(err.message), /maximum of 1000 expressions/);
 });
