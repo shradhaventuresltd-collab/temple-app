@@ -115,3 +115,44 @@ test("bad photos, non-admins and missing temples are refused through the emulato
   assert.equal(r.status, 404);
   assert.deepEqual(await stored(), before);
 });
+
+test("1 photo + 4 images: photo changes refused until photos cover all URLs", async () => {
+  const id = "brihadeeswarar-temple-emu";
+  const cover = prodPhoto(id, 0);
+  const images = [
+    cover.url,
+    "https://firebasestorage.googleapis.com/v0/b/app/o/extra1.jpg",
+    "https://firebasestorage.googleapis.com/v0/b/app/o/extra2.jpg",
+    "https://firebasestorage.googleapis.com/v0/b/app/o/extra3.jpg",
+  ];
+  await db.doc(`temples/${id}`).set({
+    id, name: "Brihadeeswarar", photos: [cover], imageUrl: cover.url, images,
+    description: "d", story: "s",
+  });
+
+  for (const [name, photos] of [
+    ["add", [cover, prodPhoto(id, 1)]],
+    ["delete", []],
+    ["reorder/cover", [{ ...prodPhoto(id, 0), url: images[1], order: 0 }]],
+  ]) {
+    const r = await call({ templeId: id, photos });
+    assert.equal(r.status, 400, name);
+    assert.equal(r.body.error.status, "FAILED_PRECONDITION", name);
+    assert.match(r.body.error.message, /Add licences for the existing photos/, name);
+    const doc = (await db.doc(`temples/${id}`).get()).data();
+    assert.deepEqual(doc.images, images, name);
+    assert.equal(doc.photos.length, 1, name);
+  }
+
+  const covered = images.map((url, i) => ({
+    ...prodPhoto(id, Math.min(i, 11)),
+    url,
+    order: i,
+    credit: `Licensed ${i}`,
+  }));
+  const ok = await call({ templeId: id, photos: covered });
+  assert.equal(ok.status, 200, JSON.stringify(ok.body));
+  const after = (await db.doc(`temples/${id}`).get()).data();
+  assert.deepEqual(after.images, images);
+  assert.equal(after.photos.length, 4);
+});
