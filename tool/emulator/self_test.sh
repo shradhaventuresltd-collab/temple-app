@@ -1039,6 +1039,81 @@ if ! grep -q "text-regex '\\^Licences\\$'" tool/emulator/flows/13_licences.sh; t
   echo "Licences has no trailing count; its anchor should stay" >&2
   exit 1
 fi
+if grep -q 'ui_wait_scrolled 15 --text-regex' tool/emulator/flows/13_licences.sh; then
+  echo "flow 13 must scroll the drawer, not fling the whole screen" >&2
+  exit 1
+fi
+if ! grep -q 'ui_wait 15 --text-contains "District boundaries"' tool/emulator/flows/13_licences.sh; then
+  echo "flow 13 must see the Licences screen before open-licences passes" >&2
+  exit 1
+fi
+# Run 42681684346 shard 8: the Licences tile is on screen and the drawer
+# stays open, so a tap alone must not pass open-licences.
+lic13=tool/emulator/testdata/run42681684346
+lic_dir="$(mktemp -d)"
+eval "$(sed -n '/^open_licences_screen()/,/^}/p' tool/emulator/flows/13_licences.sh)"
+run_open_licences() {
+  local dump="$1"
+  local out="$2"
+  (
+    set -euo pipefail
+    export EMULATOR_FLOW=13-licences EMULATOR_ARTIFACTS="$out" EMULATOR_PACKAGE=com.example
+    # shellcheck disable=SC1091
+    source tool/emulator/lib/common.sh
+    ui_dump() { return 0; }
+    ui_tap() { echo TAP >> "$out/log"; return 0; }
+    ui_screen_size() { echo 320 640; }
+    ui_back() { return 0; }
+    step_shot() { :; }
+    save_step_dump() { :; }
+    dismiss_blockers() { return 0; }
+    scroll_drawer_top() { echo TOP >> "$out/log"; return 0; }
+    sleep() { echo SLEEP >> "$out/log"; }
+    ui_wait() {
+      local timeout="$1"
+      shift
+      echo "WAIT $timeout $*" >> "$out/log"
+      ui_find "$@"
+    }
+    # shellcheck disable=SC1091
+    eval "$(sed -n '/^open_licences_screen()/,/^}/p' tool/emulator/flows/13_licences.sh)"
+    DUMP="$dump"
+    if open_licences_screen; then
+      pass_step open-licences
+    else
+      fail_step open-licences "Licences tile tap did not open the Licences screen"
+    fi
+  )
+}
+rm -rf "$lic_dir/fail" "$lic_dir/pass"
+mkdir -p "$lic_dir/fail" "$lic_dir/pass"
+run_open_licences "$lic13/licences-drawer-open.xml" "$lic_dir/fail"
+if ! grep -q 'FAIL 13-licences: open-licences: Licences tile tap did not open the Licences screen' "$lic_dir/fail/results.txt"; then
+  echo "a drawer that stays open must fail open-licences" >&2
+  cat "$lic_dir/fail/results.txt" "$lic_dir/fail/log" >&2
+  exit 1
+fi
+if ! grep -q 'WAIT 15 --text-contains District boundaries' "$lic_dir/fail/log"; then
+  echo "open-licences must wait for District boundaries" >&2
+  cat "$lic_dir/fail/log" >&2
+  exit 1
+fi
+taps="$(grep -c '^TAP$' "$lic_dir/fail/log" || true)"
+if [[ "$taps" -ne 2 ]]; then
+  echo "a no-op Licences tap must be retried once, got ${taps}" >&2
+  cat "$lic_dir/fail/log" >&2
+  exit 1
+fi
+run_open_licences "$lic13/licences-screen.xml" "$lic_dir/pass"
+if ! grep -q 'PASS 13-licences: open-licences' "$lic_dir/pass/results.txt"; then
+  echo "a Licences screen must pass open-licences" >&2
+  cat "$lic_dir/pass/results.txt" "$lic_dir/pass/log" >&2
+  exit 1
+fi
+echo "flow 13 dry-run drawer: $(grep open-licences "$lic_dir/fail/results.txt")"
+echo "flow 13 dry-run screen: $(grep open-licences "$lic_dir/pass/results.txt")"
+echo "flow 13 dry-run log: $(tr '\n' ' ' < "$lic_dir/fail/log")"
+rm -rf "$lic_dir"
 if ! awk '
   /open_browse\(\)/ { fn = 1 }
   fn && $0 ~ /scroll_drawer_until --text-regex/ { search = 1 }
@@ -2936,6 +3011,7 @@ pk4="$(
   # shellcheck disable=SC1091
   source tool/emulator/lib/common.sh
   wait_out_district_loader() { :; }
+  ui_dump() { return 0; }
   n=0
   seek_option() { n=$((n + 1)); echo "SEEK $n fling=${SEEK_FLING_MS:-120} left=$(( $3 - SECONDS ))" >&2
     if (( n == 1 )); then return 1; fi; UI_CX=1 UI_CY=2 UI_TEXT="Madurai  4"; return 0; }
