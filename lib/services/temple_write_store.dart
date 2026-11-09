@@ -31,9 +31,9 @@ abstract class TempleWriteStore {
   Future<void> deleteDocument(String id, {Map<String, dynamic>? previous});
 
   /// Replaces `temples/{id}.photos` and its `imageUrl` / `images` mirror
-  /// through the admin `setTemplePhotos` callable (KAN-200). Photos are
-  /// client-immutable in the rules once that change is deployed. Text
-  /// fields are not written here.
+  /// through the admin `setTemplePhotos` callable (KAN-200). Photos,
+  /// imageUrl and images are client-immutable in the rules once that
+  /// change is deployed. Text fields are not written here.
   Future<void> setPhotos(String id, List<Map<String, dynamic>> photos);
 
   /// Deletes objects under `temples/{docId}/`. Returns how many were removed.

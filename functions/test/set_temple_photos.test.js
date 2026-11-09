@@ -72,10 +72,32 @@ test("13 photos, a non-list, unknown fields and bad ids are refused", async () =
   await rejects(call({ auth: ADMIN, data: { templeId: "kavlem", photos: thirteen } }), "invalid-argument");
   await rejects(call({ auth: ADMIN, data: { templeId: "kavlem", photos: "x" } }), "invalid-argument");
   await rejects(call({ auth: ADMIN, data: { templeId: "kavlem", photos: [], name: "x" } }), "invalid-argument");
-  for (const templeId of [undefined, "", "../meta/temple_index", "Kavlem", "a/b", 7]) {
+  for (const templeId of [undefined, "", "../meta/temple_index", "a/b", "a.b", 7]) {
     await rejects(call({ auth: ADMIN, data: { templeId, photos: [] } }), "invalid-argument");
   }
   assert.equal(db.writes.length, 0);
+});
+
+test("photos[i].order must equal i", async () => {
+  const { db, call } = setup();
+  const photos = [prodPhoto("kavlem", 0), { ...prodPhoto("kavlem", 1), order: 0 }];
+  await rejects(call({ auth: ADMIN, data: { templeId: "kavlem", photos } }), "invalid-argument");
+  assert.equal(db.writes.length, 0);
+  const ok = [prodPhoto("kavlem", 0), prodPhoto("kavlem", 1)];
+  await call({ auth: ADMIN, data: { templeId: "kavlem", photos: ok } });
+  assert.equal(db.writes.length, 1);
+});
+
+test("uppercase and underscore temple ids match createTemple / INDEX_ID", async () => {
+  const { db, call } = setup({
+    docs: {
+      Kavlem: { id: "Kavlem", name: "Kavlem" },
+      shore_temple: { id: "shore_temple", name: "Shore" },
+    },
+  });
+  await call({ auth: ADMIN, data: { templeId: "Kavlem", photos: [] } });
+  await call({ auth: ADMIN, data: { templeId: "shore_temple", photos: [] } });
+  assert.equal(db.writes.length, 2);
 });
 
 test("a missing temple is not created", async () => {

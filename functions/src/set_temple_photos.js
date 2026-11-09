@@ -9,7 +9,8 @@
 import { HttpsError } from "firebase-functions/v2/https";
 import { photoMirror, photosError } from "./photo_validator.js";
 
-const TEMPLE_ID = /^[a-z0-9][a-z0-9-]{0,199}$/;
+// Same charset createTemple can index: assertTempleIndexId / INDEX_ID.
+const TEMPLE_ID = /^[A-Za-z0-9_-]{1,200}$/;
 
 /**
  * @param {{ db: () => import("firebase-admin/firestore").Firestore,
@@ -39,6 +40,15 @@ export function makeSetTemplePhotos({ db, enforceAppCheck }) {
     const photos = data.photos;
     const error = photosError(photos);
     if (error) throw new HttpsError("invalid-argument", error);
+    // Cover equals the Dart deriveTemplePhotoMirror cover for any caller.
+    for (let i = 0; i < photos.length; i += 1) {
+      if (photos[i].order !== i) {
+        throw new HttpsError(
+          "invalid-argument",
+          `photos[${i}].order must equal ${i}`,
+        );
+      }
+    }
 
     const mirror = photoMirror(photos);
     const ref = db().collection("temples").doc(templeId);
