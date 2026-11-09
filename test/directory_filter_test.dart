@@ -130,24 +130,29 @@ void main() {
     expect(find.text('Vaikom Mahadeva Temple'), findsOneWidget);
     expect(find.text('Dilwara Temples'), findsOneWidget);
 
-    await openSheet(tester);
+    await tester.tap(find.byKey(const Key('filter-chip-state')));
+    await tester.pumpAndSettle();
     expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
-    expect(find.text('Filters'), findsOneWidget);
-    expect(find.byKey(const Key('filter-deity-note')), findsOneWidget);
-    expect(find.textContaining('Hindu darshan'), findsOneWidget);
-    expect(
-      find.textContaining('Jain Tirthankaras · Jain', findRichText: true),
-      findsOneWidget,
-    );
-    expect(find.textContaining('Buddha'), findsNothing);
+    expect(find.byKey(const Key('filter-sheet-title')), findsOneWidget);
+    expect(find.byKey(const Key('filter-option-district-any')), findsNothing);
+    expect(find.byKey(const Key('filter-option-deity-any')), findsNothing);
     expect(find.text('Goa'), findsNothing);
     expect(find.text('Himachal Pradesh'), findsNothing);
-    expect(find.text('District'), findsNothing);
-    expect(find.text('Festival'), findsNothing);
-    expect(find.text('ASI'), findsNothing);
 
     await tester.tap(find.byKey(const Key('filter-option-state-Kerala')));
     await tester.pump();
+    await tester.tap(find.byKey(const Key('filter-sheet-apply')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('filter-chip-deity')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('filter-deity-note')), findsOneWidget);
+    expect(find.textContaining('sites are labelled'), findsOneWidget);
+    expect(find.text('Jain Tirthankaras'), findsOneWidget);
+    expect(find.text('Jain'), findsWidgets);
+    expect(find.textContaining('Buddha'), findsNothing);
+    expect(find.byKey(const Key('filter-option-state-any')), findsNothing);
+
     await tester.tap(find.byKey(const Key('filter-option-deity-Shiva')));
     await tester.pump();
     expect(find.text('Show 1 temple'), findsOneWidget);
@@ -541,7 +546,7 @@ void main() {
       await tester.pump();
 
       await openDismissReopen(const Key('filter-chip-district'), () async {
-        await tester.drag(find.byType(ListView), const Offset(0, 400));
+        await tester.drag(find.byKey(const Key('filter-sheet-options')), const Offset(0, 400));
       });
       await applyOption(const Key('filter-option-district-Madurai'));
       expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
@@ -552,7 +557,7 @@ void main() {
       await tester.pump();
 
       await openDismissReopen(const Key('filter-chip-deity'), () async {
-        await tester.drag(find.byType(ListView), const Offset(0, 400));
+        await tester.drag(find.byKey(const Key('filter-sheet-options')), const Offset(0, 400));
       });
       await applyOption(const Key('filter-option-deity-Devi'));
       expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
@@ -563,7 +568,7 @@ void main() {
       await tester.pump();
 
       await openDismissReopen(const Key('filter-chip-state'), () async {
-        await tester.drag(find.byType(ListView), const Offset(0, 400));
+        await tester.drag(find.byKey(const Key('filter-sheet-options')), const Offset(0, 400));
       });
       await applyOption(const Key('filter-option-state-Tamil Nadu'));
       expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
@@ -603,7 +608,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('filter-chip-deity')));
     await tester.pumpAndSettle();
-    await tester.drag(find.byType(ListView), const Offset(0, -320));
+    await tester.drag(find.byKey(const Key('filter-sheet-options')), const Offset(0, -320));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
     expect(
@@ -611,13 +616,8 @@ void main() {
       findsOneWidget,
     );
 
-    final optionList = find.descendant(
-      of: find.byKey(const Key('filter-sheet')),
-      matching: find.byType(ListView),
-    );
-    final scrollable = tester.state<ScrollableState>(
-      find.descendant(of: optionList, matching: find.byType(Scrollable)),
-    );
+    final optionList = find.byKey(const Key('filter-sheet-options'));
+    final scrollable = tester.state<ScrollableState>(optionList);
     // Each return drag stays under the 72px pull-to-dismiss threshold, including
     // the last one that reaches the top and overscrolls.
     for (var step = 0; step < 40 && scrollable.position.pixels > 0; step++) {
@@ -677,16 +677,16 @@ void main() {
         await tester.tap(find.byKey(const Key('filter-chip-district')));
         await tester.pumpAndSettle();
         expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
-        expect(find.text('DISTRICT'), findsOneWidget);
+        expect(find.byKey(const Key('filter-section-district')), findsOneWidget);
       }
 
       final optionList = find.descendant(
         of: find.byKey(const Key('filter-sheet')),
-        matching: find.byType(ListView),
+        matching: find.byKey(const Key('filter-sheet-options')),
       );
 
       await openDistrict();
-      await tester.drag(find.text('Filters'), const Offset(0, 400));
+      await tester.drag(find.byKey(const Key('filter-sheet-title')), const Offset(0, 400));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('filter-sheet')), findsNothing);
 
@@ -698,18 +698,13 @@ void main() {
       await tester.drag(optionList, const Offset(0, -320));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
-      final scrolled = tester
-          .state<ScrollableState>(
-            find.descendant(of: optionList, matching: find.byType(Scrollable)),
-          )
-          .position
-          .pixels;
+      final scrolled = tester.state<ScrollableState>(optionList).position.pixels;
       expect(scrolled, greaterThan(200));
       await tester.drag(optionList, const Offset(0, 200));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
 
-      await tester.drag(find.text('Filters'), const Offset(0, 400));
+      await tester.drag(find.byKey(const Key('filter-sheet-title')), const Offset(0, 400));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('filter-sheet')), findsNothing);
 
@@ -993,9 +988,9 @@ void main() {
     directoryOptionCensusCalls = 0;
     await pumpSheet(query: 'temple', rows: many);
     await tester.pump();
-    await tester.drag(find.text('Filters'), const Offset(0, 40));
+    await tester.drag(find.byKey(const Key('filter-sheet-title')), const Offset(0, 40));
     await tester.pump();
-    expect(find.text('Filters'), findsOneWidget);
+    expect(find.byKey(const Key('filter-sheet-title')), findsOneWidget);
     expect(directoryOptionCensusCalls, 1);
 
     await tester.tap(find.byKey(const Key('filter-option-state-Kerala')));
@@ -1036,11 +1031,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
 
-    await tester.drag(find.text('Filters'), const Offset(0, 60));
+    await tester.drag(find.byKey(const Key('filter-sheet-title')), const Offset(0, 60));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
 
-    await tester.drag(find.text('Filters'), const Offset(0, 80));
+    await tester.drag(find.byKey(const Key('filter-sheet-title')), const Offset(0, 80));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('filter-sheet')), findsNothing);
   });
@@ -1118,7 +1113,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byKey(const Key('filter-chip-district')),
-        matching: find.text('All districts'),
+        matching: find.text('District'),
       ),
       findsOneWidget,
     );

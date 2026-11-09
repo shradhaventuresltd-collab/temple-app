@@ -12,6 +12,8 @@ import 'package:temple_app/near_me/near_me_session.dart';
 import 'package:temple_app/near_me/nearby_temples.dart';
 import 'package:temple_app/screens/temple_detail_screen.dart';
 import 'package:temple_app/services/analytics_routes.dart';
+import 'package:temple_app/utils/india_regions.dart';
+import 'package:temple_app/widgets/filter_sheet.dart';
 import 'package:temple_app/widgets/temple_browse_card.dart';
 
 /// Sorted temples from one coarse fix, or from a state/city centroid.
@@ -455,13 +457,24 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
 
   Future<void> _chooseState() async {
     final states = nearbyStates(widget.temples);
-    final picked = await _pick(
-      options: [
-        for (final state in states)
-          (id: 'near-me-state-option-$state', value: state, label: state),
-      ],
+    final picked = await _pickPlace(
+      title: 'Sort from state',
+      sectionKey: const Key('filter-section-state'),
+      searchHint: 'Search state',
+      subtitle: Text(
+        'Tap a state to sort temples by distance from it',
+        style: GoogleFonts.poppins(
+          fontSize: 13,
+          color: FilterSheetColors.of(context).muted,
+        ),
+      ),
+      forceSearch: states.length > 8,
+      sections: _stateSections(states),
+      selectedId: _session.anchorState == null
+          ? null
+          : 'near-me-state-option-${_session.anchorState}',
     );
-    if (!mounted || picked == null) return;
+    if (!mounted || picked == null || picked.isEmpty) return;
     _session.selectState(picked);
   }
 
@@ -469,12 +482,46 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
     final state = _session.anchorState;
     if (state == null) return;
     final cities = nearbyCities(widget.temples, state: state);
-    final picked = await _pick(
-      options: [
-        (id: 'near-me-city-option-any', value: '', label: NearMeCopy.anyCity),
-        for (final city in cities)
-          (id: 'near-me-city-option-$city', value: city, label: city),
+    final picked = await _pickPlace(
+      title: 'City',
+      sectionKey: const Key('near-me-city-sheet'),
+      searchHint: 'Search city',
+      subtitle: Text(
+        'In $state',
+        style: GoogleFonts.poppins(
+          fontSize: 13,
+          color: FilterSheetColors.of(context).muted,
+        ),
+      ),
+      any: FilterSheetOption(
+        id: 'near-me-city-option-any',
+        label: NearMeCopy.anyCity,
+        count: _count((temple) => temple.state.trim() == state),
+        value: '',
+        selected: _session.anchorCity == null,
+      ),
+      sections: [
+        FilterSheetSection(
+          id: 'cities',
+          title: '',
+          options: [
+            for (final city in cities)
+              FilterSheetOption(
+                id: 'near-me-city-option-$city',
+                label: city,
+                count: _count(
+                  (temple) =>
+                      temple.state.trim() == state && temple.city.trim() == city,
+                ),
+                value: city,
+                selected: _session.anchorCity == city,
+              ),
+          ],
+        ),
       ],
+      selectedId: _session.anchorCity == null
+          ? 'near-me-city-option-any'
+          : 'near-me-city-option-${_session.anchorCity}',
     );
     if (!mounted || picked == null) return;
     _session.selectCity(picked.isEmpty ? null : picked);
@@ -487,48 +534,126 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
       setState(() {});
     }
     final lookup = widget.districtOf ?? DistrictDirectory.instance.peek;
+    final state = _session.anchorState;
     final districts = nearbyDistricts(
       widget.temples,
-      state: _session.anchorState,
+      state: state,
       districtOf: lookup,
     );
-    final picked = await _pick(
-      options: [
-        (
-          id: 'near-me-district-option-any',
-          value: '',
-          label: NearMeCopy.anyDistrict,
+    final picked = await _pickPlace(
+      title: 'District',
+      sectionKey: const Key('filter-section-district'),
+      searchHint: 'Search district',
+      subtitle: state == null
+          ? null
+          : Text(
+              'In $state',
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: FilterSheetColors.of(context).muted,
+              ),
+            ),
+      any: FilterSheetOption(
+        id: 'near-me-district-option-any',
+        label: NearMeCopy.anyDistrict,
+        count: _count((temple) => state == null || temple.state.trim() == state),
+        value: '',
+        selected: _session.anchorDistrict == null,
+      ),
+      sections: [
+        FilterSheetSection(
+          id: 'districts',
+          title: '',
+          options: [
+            for (final district in districts)
+              FilterSheetOption(
+                id: 'near-me-district-option-$district',
+                label: district,
+                count: _count((temple) {
+                  if (state != null && temple.state.trim() != state) {
+                    return false;
+                  }
+                  return (lookup(temple)?.trim() ?? '') == district;
+                }),
+                value: district,
+                selected: _session.anchorDistrict == district,
+              ),
+          ],
         ),
-        for (final district in districts)
-          (
-            id: 'near-me-district-option-$district',
-            value: district,
-            label: district,
-          ),
       ],
+      selectedId: _session.anchorDistrict == null
+          ? 'near-me-district-option-any'
+          : 'near-me-district-option-${_session.anchorDistrict}',
     );
     if (!mounted || picked == null) return;
     _session.selectDistrict(picked.isEmpty ? null : picked);
   }
 
-  Future<String?> _pick({
-    required List<({String id, String value, String label})> options,
+  int _count(bool Function(Temple temple) test) {
+    var count = 0;
+    for (final temple in widget.temples) {
+      if (test(temple)) count++;
+    }
+    return count;
+  }
+
+  List<FilterSheetSection> _stateSections(List<String> states) {
+    return [
+      for (final group in groupStatesByRegion(states))
+        FilterSheetSection(
+          id: group.id,
+          title: group.title,
+          total: group.states.fold<int>(
+            0,
+            (sum, state) =>
+                sum + _count((temple) => temple.state.trim() == state),
+          ),
+          options: [
+            for (final state in group.states)
+              FilterSheetOption(
+                id: 'near-me-state-option-$state',
+                label: state,
+                count: _count((temple) => temple.state.trim() == state),
+                value: state,
+                selected: _session.anchorState == state,
+                badge: indiaStateIsUnionTerritory(state) ? 'UT' : null,
+              ),
+          ],
+        ),
+    ];
+  }
+
+  Future<String?> _pickPlace({
+    required String title,
+    required Key sectionKey,
+    required String searchHint,
+    Widget? subtitle,
+    FilterSheetOption? any,
+    required List<FilterSheetSection> sections,
+    String? selectedId,
+    bool forceSearch = false,
   }) {
+    final colors = FilterSheetColors.of(context);
     return showModalBottomSheet<String>(
       context: context,
-      backgroundColor: _cream,
+      isScrollControlled: true,
+      enableDrag: false,
+      backgroundColor: colors.sheetBackground,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) {
-        return SafeArea(
-          child: ListView(
-            children: [
-              for (final option in options)
-                ListTile(
-                  key: Key(option.id),
-                  title: Text(option.label),
-                  onTap: () => Navigator.pop(context, option.value),
-                ),
-            ],
-          ),
+        return FilterSheetScaffold(
+          title: title,
+          sectionKey: sectionKey,
+          subtitle: subtitle,
+          searchHint: searchHint,
+          forceSearch: forceSearch,
+          any: any,
+          sections: sections,
+          mode: FilterSheetMode.instant,
+          scrollToId: selectedId,
+          onOption: (option) => Navigator.pop(context, option.value),
         );
       },
     );

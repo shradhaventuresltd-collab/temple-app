@@ -71,11 +71,11 @@ void main() {
     );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
-    expect(find.text('Filters'), findsOneWidget);
+    expect(find.byKey(const Key('filter-sheet-title')), findsOneWidget);
 
     // `adb shell input swipe` repeats the down point as its first move.
     final gesture = await tester.startGesture(
-      tester.getCenter(find.text('Filters')),
+      tester.getCenter(find.byKey(const Key('filter-sheet-title'))),
     );
     await gesture.moveBy(Offset.zero);
     await tester.pump();
@@ -85,7 +85,7 @@ void main() {
     }
     await gesture.up();
     await tester.pumpAndSettle();
-    expect(find.text('Filters'), findsNothing);
+    expect(find.byKey(const Key('filter-sheet-title')), findsNothing);
   });
 
   testWidgets('drawer filter chips wait for the directory', (tester) async {

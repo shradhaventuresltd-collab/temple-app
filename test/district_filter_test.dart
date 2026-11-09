@@ -152,11 +152,11 @@ void main() {
     expect(find.text('All districts'), findsNothing);
   });
 
-  testWidgets('All districts is the default before the asset loads', (
+  testWidgets('District is the default before the asset loads', (
     tester,
   ) async {
     await pumpBar(tester);
-    expect(find.text('All districts'), findsOneWidget);
+    expect(find.text('District'), findsOneWidget);
     expect(find.byKey(const Key('filter-chip-district')), findsOneWidget);
   });
 
@@ -174,7 +174,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(loads, 0);
     expect(find.text('DISTRICT'), findsNothing);
-    expect(find.text('District'), findsNothing);
+    expect(find.text('District'), findsWidgets);
 
     await tester.tap(find.byKey(const Key('filter-sheet-close')));
     await tester.pumpAndSettle();
@@ -237,30 +237,39 @@ void main() {
       ),
     );
 
+    await tester.tap(find.byKey(const Key('filter-chip-state')));
+    await tester.pumpAndSettle();
+    expect(loads, 0);
+    await tester.tap(find.byKey(const Key('filter-option-state-Tamil Nadu')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('filter-sheet-apply')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('filter-chip-deity')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('filter-option-deity-Devi')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('filter-sheet-apply')));
+    await tester.pumpAndSettle();
+
     await tester.tap(find.byKey(const Key('filter-chip-district')));
     await tester.pumpAndSettle();
     expect(loads, 1);
-    expect(find.text('DISTRICT'), findsOneWidget);
+    expect(find.byKey(const Key('filter-section-district')), findsOneWidget);
     expect(find.byKey(const Key('filter-option-district-any')), findsOneWidget);
-    expect(find.text('All districts'), findsWidgets);
+    expect(find.text('All districts in Tamil Nadu'), findsOneWidget);
     expect(
       find.byKey(const Key('filter-option-district-Madurai')),
       findsOneWidget,
     );
     expect(
       find.byKey(const Key('filter-option-district-Kottayam')),
-      findsOneWidget,
-    );
-
-    await tester.tap(find.byKey(const Key('filter-option-state-Tamil Nadu')));
-    await tester.pump();
-    expect(
-      find.byKey(const Key('filter-option-district-Kottayam')),
       findsNothing,
     );
+    expect(find.byKey(const Key('filter-option-state-Tamil Nadu')), findsNothing);
+    expect(find.byKey(const Key('filter-option-deity-Devi')), findsNothing);
+
     await tester.tap(find.byKey(const Key('filter-option-district-Madurai')));
-    await tester.pump();
-    await tester.tap(find.byKey(const Key('filter-option-deity-Devi')));
     await tester.pump();
     expect(find.text('Show 1 temple'), findsOneWidget);
     await tester.tap(find.byKey(const Key('filter-sheet-apply')));
@@ -271,27 +280,29 @@ void main() {
     expect(find.text('Vaikom Mahadeva Temple'), findsNothing);
     expect(find.text('Madurai'), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('filter-chip-district')));
+    await tester.tap(find.byKey(const Key('filter-chip-deity')));
     await tester.pumpAndSettle();
     expect(loads, 1);
     await tester.tap(find.byKey(const Key('filter-option-deity-any')));
     await tester.pump();
+    await tester.tap(find.byKey(const Key('filter-sheet-apply')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('filter-chip-state')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('filter-option-state-Kerala')));
     await tester.pump();
-    expect(
-      find.byKey(const Key('filter-option-district-Madurai')),
-      findsNothing,
-    );
     await tester.tap(find.byKey(const Key('filter-sheet-apply')));
     await tester.pumpAndSettle();
     expect(find.text('Vaikom Mahadeva Temple'), findsOneWidget);
     expect(find.text('Meenakshi Amman Temple'), findsNothing);
+    expect(find.text('Madurai'), findsNothing);
 
     await tester.tap(find.byKey(const Key('filter-clear')));
     await tester.pump();
     expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
     expect(find.text('Shore Temple'), findsOneWidget);
-    expect(find.text('All districts'), findsOneWidget);
+    expect(find.text('District'), findsOneWidget);
   });
 
   testWidgets('an empty district combination can be cleared', (tester) async {
@@ -463,7 +474,7 @@ void main() {
       );
 
       expect(find.byKey(const Key('filter-chip-district')), findsOneWidget);
-      expect(find.text('All districts'), findsOneWidget);
+      expect(find.text('District'), findsOneWidget);
       await tester.tap(find.byKey(const Key('filter-chip-district')));
       await tester.pumpAndSettle();
       expect(
