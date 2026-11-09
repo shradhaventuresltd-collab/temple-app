@@ -32,10 +32,10 @@ void main() {
     expect(firestoreRules, contains("validStringLength('timings', 1, 1000)"));
     expect(firestoreRules, contains('request.auth.token.admin == true'));
     expect(firestoreRules, contains("'photos'"));
-    expect(firestoreRules, contains('photos.size() <= 12'));
+    expect(firestoreRules, contains('n <= 12'));
     expect(firestoreRules, contains('value.size() <= 2000'));
     expect(firestoreRules, contains(r"^https://[^\\s]+$"));
-    expect(firestoreRules, contains('photo.credit.size() <= 200'));
+    expect(firestoreRules, contains('credit.size() <= 200'));
     expect(firestoreRules, contains('photo.order is int'));
     expect(firestoreRules, contains('photo.order >= 0'));
     expect(firestoreRules, contains('photo.order <= 11'));
@@ -43,8 +43,14 @@ void main() {
       firestoreRules,
       contains("'CC-BY', 'CC-BY-SA', 'CC0', 'Own', 'Permission'"),
     );
-    expect(firestoreRules, contains("photo.licence == 'CC-BY'"));
-    expect(firestoreRules, contains("photo.licence == 'CC-BY-SA'"));
+    expect(firestoreRules, contains("!(licence in ['CC-BY', 'CC-BY-SA'])"));
+    // KAN-200: photos are checked only when a write changes them.
+    expect(
+      firestoreRules,
+      contains(
+        "request.resource.data.diff(resource.data).affectedKeys().hasAny(['photos'])",
+      ),
+    );
     expect(firestoreRules, contains('optionalValidPhotos(data)'));
     expect(firestoreRules, contains('function isValidPhoto(photo)'));
     expect(firestoreRules, contains('function coordinatesArePaired(data)'));
@@ -52,12 +58,12 @@ void main() {
     expect(firestoreRules, contains('function coordinatesOkOnUpdate(data)'));
     expect(firestoreRules, contains('coordinatesOkOnUpdate(data)'));
     expect(firestoreRules, contains("'thumbUrl'"));
-    expect(firestoreRules, contains('photo.thumbUrl.size() <= 2000'));
+    expect(firestoreRules, contains('photoUrlOk(photo.thumbUrl)'));
     expect(firestoreRules, contains("'galleryUrl'"));
-    expect(firestoreRules, contains('httpsUrl(photo.galleryUrl)'));
+    expect(firestoreRules, contains('photoUrlOk(photo.galleryUrl)'));
     expect(
       firestoreRules,
-      contains("photo.keys().hasAll(['url', 'licence', 'order'])"),
+      contains("keys.hasAll(['url', 'licence', 'order'])"),
     );
     expect(firestoreRules, isNot(contains('allow write: if true')));
     expect(
