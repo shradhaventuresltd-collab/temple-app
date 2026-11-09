@@ -139,12 +139,35 @@ class AdminTempleService implements AdminTempleApi {
       );
     }
 
-    await _store.set(
-      id,
-      _payload(temple, id),
-      isNew: false,
-      previous: previous,
-    );
+    final payload = _payload(temple, id);
+    var stored = previous;
+    final photos = payload['photos'];
+    // KAN-200: a photo change (add, reorder, delete, cover) goes through the
+    // admin callable. The direct save below then sends the same photos the
+    // callable stored, so Firestore sees no photo change, and it refreshes
+    // the text fields and the temple_index entry. Text-only edits skip the
+    // callable.
+    if (photos is List && !templeDataDeepEquals(photos, previous['photos'])) {
+      final list = [
+        for (final p in photos) Map<String, dynamic>.from(p as Map),
+      ];
+      try {
+        await _store.setPhotos(id, list);
+      } catch (e) {
+        throw StateError(
+          'Could not save photos. Nothing was changed. '
+          '${adminWriteErrorMessage(e)}',
+        );
+      }
+      stored = {
+        ...previous,
+        'photos': list,
+        'imageUrl': payload['imageUrl'],
+        'images': payload['images'],
+      };
+    }
+
+    await _store.set(id, payload, isNew: false, previous: stored);
   }
 
   /// Storage has already succeeded. Merge URLs, then `set(merge: true)` the
@@ -534,4 +557,27 @@ String adminWriteErrorMessage(Object error) {
   }
   if (text.isEmpty) return 'Write failed.';
   return text;
+}
+
+/// Deep equality for Firestore-shaped values (maps, lists, scalars).
+/// Map key order does not matter; list order does. Ints and doubles that
+/// are numerically equal compare equal, as Firestore stores them.
+bool templeDataDeepEquals(Object? a, Object? b) {
+  if (a is Map && b is Map) {
+    if (a.length != b.length) return false;
+    for (final key in a.keys) {
+      if (!b.containsKey(key)) return false;
+      if (!templeDataDeepEquals(a[key], b[key])) return false;
+    }
+    return true;
+  }
+  if (a is List && b is List) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (!templeDataDeepEquals(a[i], b[i])) return false;
+    }
+    return true;
+  }
+  if (a is num && b is num) return a == b;
+  return a == b;
 }
