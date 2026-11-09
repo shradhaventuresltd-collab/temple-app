@@ -6,6 +6,16 @@ import 'package:temple_app/widgets/filter_sheet_theme.dart';
 
 export 'package:temple_app/widgets/filter_sheet_theme.dart';
 
+/// Resource-id for a sheet title. "Sort from state" becomes
+/// `filter-sheet-title-sort-from-state`.
+String filterSheetTitleId(String title) {
+  final slug = title
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+      .replaceAll(RegExp(r'^-+|-+$'), '');
+  return 'filter-sheet-title-$slug';
+}
+
 /// Shared filter sheet. Browse and Near Me both use this scaffold.
 ///
 /// The sheet owns search text and the pull-to-dismiss gesture. The caller
@@ -260,149 +270,160 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
     return Align(
       alignment: Alignment.bottomCenter,
       child: Listener(
-      onPointerDown: _onPointerDown,
-      onPointerMove: _onPointerMove,
-      onPointerUp: _onPointerEnd,
-      onPointerCancel: _onPointerEnd,
-      child: Material(
-        color: colors.sheetBackground,
-        child: SafeArea(
-          child: Semantics(
-            identifier: 'filter-sheet',
-            container: true,
-            child: SizedBox(
-              key: const Key('filter-sheet'),
-              width: sheetWidth,
-              height: height,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 10),
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: colors.border,
-                      borderRadius: BorderRadius.circular(2),
+        onPointerDown: _onPointerDown,
+        onPointerMove: _onPointerMove,
+        onPointerUp: _onPointerEnd,
+        onPointerCancel: _onPointerEnd,
+        child: Material(
+          color: colors.sheetBackground,
+          child: SafeArea(
+            child: Semantics(
+              identifier: 'filter-sheet',
+              container: true,
+              // Run 42675181050: without explicitChildNodes the search field
+              // merged into this node. The sheet was one empty EditText and
+              // the title was not in the accessibility tree.
+              explicitChildNodes: true,
+              child: SizedBox(
+                key: const Key('filter-sheet'),
+                width: sheetWidth,
+                height: height,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 10),
+                    Center(
+                      child: Container(
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: colors.border,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 8, 0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: KeyedSubtree(
-                          key: widget.sectionKey,
-                          child: Text(
-                            widget.title,
-                            key: const Key('filter-sheet-title'),
-                            style: GoogleFonts.lora(
-                              fontSize: 26,
-                              fontWeight: FontWeight.w700,
-                              color: colors.label,
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 8, 0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: KeyedSubtree(
+                              key: widget.sectionKey,
+                              child: Semantics(
+                                identifier: filterSheetTitleId(widget.title),
+                                label: widget.title,
+                                header: true,
+                                container: true,
+                                explicitChildNodes: true,
+                                child: Text(
+                                  widget.title,
+                                  key: const Key('filter-sheet-title'),
+                                  style: GoogleFonts.lora(
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w700,
+                                    color: colors.label,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            key: const Key('filter-sheet-close'),
+                            tooltip: 'Close filters',
+                            onPressed: () => Navigator.pop(context),
+                            icon: Icon(
+                              Icons.close_rounded,
+                              color: colors.muted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (widget.subtitle != null)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                        child: widget.subtitle,
+                      ),
+                    if (_showSearch)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                        child: TextField(
+                          key: const Key('filter-sheet-search'),
+                          controller: _search,
+                          onChanged: (_) => setState(() {}),
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            color: colors.label,
+                          ),
+                          decoration: InputDecoration(
+                            isDense: true,
+                            hintText: widget.searchHint,
+                            hintStyle: GoogleFonts.poppins(color: colors.muted),
+                            prefixIcon: Icon(
+                              Icons.search_rounded,
+                              color: colors.muted,
+                            ),
+                            filled: true,
+                            fillColor: colors.searchFill,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 12,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: BorderSide(color: colors.border),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: BorderSide(color: colors.border),
                             ),
                           ),
                         ),
                       ),
-                      IconButton(
-                        key: const Key('filter-sheet-close'),
-                        tooltip: 'Close filters',
-                        onPressed: () => Navigator.pop(context),
-                        icon: Icon(Icons.close_rounded, color: colors.muted),
+                    if (jumps.isNotEmpty)
+                      SizedBox(
+                        height: 48 * scale.clamp(1, 1.4),
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                          child: Row(
+                            children: [
+                              for (final jump in jumps)
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: _JumpChip(
+                                    jump: jump,
+                                    selected:
+                                        (_jumpId ?? jumps.first.sectionId) ==
+                                        jump.sectionId,
+                                    onTap: () => _jumpTo(jump),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ],
-                  ),
+                    Expanded(child: _body(colors, sections)),
+                    if (widget.mode == FilterSheetMode.apply)
+                      _Footer(
+                        colors: colors,
+                        resultLabel: widget.resultLabel ?? 'Show temples',
+                        clearEnabled: widget.clearEnabled,
+                        onClear: widget.onClear,
+                        onApply: widget.onApply,
+                        scale: scale,
+                      ),
+                  ],
                 ),
-                if (widget.subtitle != null)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                    child: widget.subtitle,
-                  ),
-                if (_showSearch)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                    child: TextField(
-                      key: const Key('filter-sheet-search'),
-                      controller: _search,
-                      onChanged: (_) => setState(() {}),
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: colors.label,
-                      ),
-                      decoration: InputDecoration(
-                        isDense: true,
-                        hintText: widget.searchHint,
-                        hintStyle: GoogleFonts.poppins(color: colors.muted),
-                        prefixIcon: Icon(
-                          Icons.search_rounded,
-                          color: colors.muted,
-                        ),
-                        filled: true,
-                        fillColor: colors.searchFill,
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 12,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide(color: colors.border),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide(color: colors.border),
-                        ),
-                      ),
-                    ),
-                  ),
-                if (jumps.isNotEmpty)
-                  SizedBox(
-                    height: 48 * scale.clamp(1, 1.4),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                      child: Row(
-                        children: [
-                          for (final jump in jumps)
-                            Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: _JumpChip(
-                                jump: jump,
-                                selected:
-                                    (_jumpId ?? jumps.first.sectionId) ==
-                                    jump.sectionId,
-                                onTap: () => _jumpTo(jump),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                Expanded(child: _body(colors, sections)),
-                if (widget.mode == FilterSheetMode.apply)
-                  _Footer(
-                    colors: colors,
-                    resultLabel: widget.resultLabel ?? 'Show temples',
-                    clearEnabled: widget.clearEnabled,
-                    onClear: widget.onClear,
-                    onApply: widget.onApply,
-                    scale: scale,
-                  ),
-              ],
+              ),
             ),
           ),
         ),
-        ),
-      ),
       ),
     );
   }
 
-  Widget _body(
-    FilterSheetColors colors,
-    List<FilterSheetSection> sections,
-  ) {
+  Widget _body(FilterSheetColors colors, List<FilterSheetSection> sections) {
     if (widget.loading) {
       return _Skeleton(loadingKey: widget.loadingKey, colors: colors);
     }
@@ -417,9 +438,7 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
     final query = _search.text.trim();
     final slivers = <Widget>[
       if (_anyVisible && widget.any != null)
-        SliverToBoxAdapter(
-          child: _optionTile(widget.any!),
-        ),
+        SliverToBoxAdapter(child: _optionTile(widget.any!)),
       for (final section in sections) _sectionSliver(section, colors, extent),
       if (_nothingMatches)
         SliverToBoxAdapter(
@@ -489,7 +508,6 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
   }
 }
 
-
 class _PinnedHeaderDelegate extends SliverPersistentHeaderDelegate {
   _PinnedHeaderDelegate({required this.extent, required this.child});
 
@@ -503,7 +521,11 @@ class _PinnedHeaderDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => extent;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
     return SizedBox(height: extent, width: double.infinity, child: child);
   }
 
@@ -623,11 +645,7 @@ class _Footer extends StatelessWidget {
             return Column(
               key: const Key('filter-sheet-footer-stack'),
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                apply,
-                const SizedBox(height: 8),
-                clear,
-              ],
+              children: [apply, const SizedBox(height: 8), clear],
             );
           }
           return Row(
@@ -778,7 +796,6 @@ class _OptionRow extends StatelessWidget {
     );
   }
 }
-
 
 class _Skeleton extends StatelessWidget {
   const _Skeleton({required this.loadingKey, required this.colors});

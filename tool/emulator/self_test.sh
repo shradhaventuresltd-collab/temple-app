@@ -1200,6 +1200,65 @@ XML
   fi
 )
 rm -rf "$nit_dir"
+# Run 42675181050 shard 6: the sheet was open, but the title was not a text
+# node. These waits must take the title id, sheet_open, or Close filters,
+# and each names a timeout.
+for sheet_wait in \
+  'tool/emulator/flows/06_filters.sh:wait_filter_sheet 12' \
+  'tool/emulator/flows/07_district.sh:wait_filter_sheet 20' \
+  'tool/emulator/flows/17_entry_matrix.sh:wait_filter_sheet 20' \
+  'tool/emulator/flows/29_filter_matrix.sh:wait_filter_sheet 20' \
+  'tool/emulator/flows/31_filter_chain.sh:wait_filter_sheet 15'
+do
+  file="${sheet_wait%%:*}"
+  needle="${sheet_wait#*:}"
+  if ! grep -q "$needle" "$file"; then
+    echo "sheet-open wait missing: $file should call $needle" >&2
+    exit 1
+  fi
+  if grep -q 'ui_wait .*FILTER_SHEET_TITLE_RX' "$file"; then
+    echo "$file still waits only on the title text regex" >&2
+    exit 1
+  fi
+done
+shard6=tool/emulator/testdata/run42675181050
+(
+  set -euo pipefail
+  export EMULATOR_FLOW=self-test EMULATOR_ARTIFACTS="$shard6" EMULATOR_PACKAGE=com.shradhaventures.temple
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  ui_dump() { return 0; }
+  sleep() { :; }
+  DUMP="$shard6/sheet-open-merged.xml"
+  if ui_find --text-regex "$FILTER_SHEET_TITLE_RX"; then
+    echo "shard 6 merged dump must not match the title text regex" >&2
+    exit 1
+  fi
+  ui_find --content-desc "Close filters" || { echo "shard 6 dump has no Close filters" >&2; exit 1; }
+  ui_find --resource-id filter-choose-state-first || { echo "shard 6 dump missing filter-choose-state-first" >&2; exit 1; }
+  ui_find --resource-id filter-option-state-any || { echo "shard 6 dump missing filter-option-state-any" >&2; exit 1; }
+  if ui_find --resource-id filter-option-district-any; then
+    echo "shard 6 state sheet must not already show a district row" >&2
+    exit 1
+  fi
+  sheet_open || { echo "shard 6 merged sheet must count as open" >&2; exit 1; }
+  wait_filter_sheet 2 || { echo "wait_filter_sheet must accept the shard 6 sheet" >&2; exit 1; }
+  DUMP="$shard6/chip-bar.xml"
+  ui_find --resource-id filter-chip-state || { echo "bar dump missing filter-chip-state" >&2; exit 1; }
+  ui_find --resource-id filter-chip-district || { echo "bar dump missing filter-chip-district" >&2; exit 1; }
+  ui_find --resource-id filter-chip-deity || { echo "bar dump missing filter-chip-deity" >&2; exit 1; }
+  if sheet_open; then
+    echo "idle State/District/Deity chips must not count as an open sheet" >&2
+    exit 1
+  fi
+  DUMP="$shard6/title-node.xml"
+  ui_find --resource-id filter-sheet-title-state --content-desc "State" || {
+    echo "title id must be its own node labelled State" >&2
+    exit 1
+  }
+  sheet_open || { echo "a separate title node must open the sheet" >&2; exit 1; }
+  echo "shard6 dry-run: merged sheet opens via Close filters; chips do not; title id is its own node"
+)
 if ! grep -q 'adb_shell_capped 8 settings put secure show_ime_with_hard_keyboard' tool/emulator/run_one_flow.sh; then
   echo "IME settings should use the step cap" >&2
   exit 1

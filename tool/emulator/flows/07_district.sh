@@ -20,7 +20,7 @@ fi
 if [[ "$visible" -eq 1 ]]; then
   pass_step chip-visible
   ui_tap
-  if ! ui_wait 20 --text-regex "$FILTER_SHEET_TITLE_RX"; then
+  if ! wait_filter_sheet 20; then
     fail_step sheet-open "sheet title was not State, District, or Deity"
     return 0
   fi

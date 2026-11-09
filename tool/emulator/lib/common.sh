@@ -870,17 +870,45 @@ clean_install() {
 }
 
 FILTER_SHEET_TITLE_RX='^(Filters|State|District|Deity|City|Sort from state)$'
+# Titles that are also idle chip labels. A content-desc of "State" is the
+# chip, not proof the sheet is open (run 42675181050 bar dump).
+FILTER_SHEET_TITLE_ID_RX='^filter-sheet-title-(state|district|deity|city|filters|sort-from-state)$'
 
 sheet_open() {
   ui_dump || return 1
-  # Prefer the title so a dismiss swipe starts on the sheet, not the close icon.
-  # KAN-198 titles the sheet State, District, Deity, City, or Sort from state.
-  # Filters remains accepted for older dumps.
-  if ui_find --text-regex "$FILTER_SHEET_TITLE_RX" || ui_find --content-desc-regex "$FILTER_SHEET_TITLE_RX"; then
+  # The title's own resource-id. Chips never use this id.
+  if ui_find --resource-id-regex "$FILTER_SHEET_TITLE_ID_RX"; then
     return 0
   fi
-  ui_find --content-desc "Close filters" && return 0
-  ui_find --text-regex '^Show [0-9]+ temples?$'
+  # Run 42675181050: the sheet was open, Close filters was on screen, and
+  # the title text had been merged away.
+  if ui_find --content-desc "Close filters"; then
+    return 0
+  fi
+  # Older sheets titled "Filters" / "City" / "Sort from state" in
+  # content-desc. State, District, and Deity are also the idle chip
+  # labels, and ui_find --text-regex reads content-desc, so those three
+  # words do not count as an open sheet.
+  if ui_find --content-desc-regex '^(Filters|City|Sort from state)$'; then
+    return 0
+  fi
+  ui_find --content-desc-regex '^Show [0-9]+ temples?$' \
+    || ui_find --text-regex '^Show [0-9]+ temples?$'
+}
+
+# Wait until the filter sheet is up. [timeout] seconds is required.
+# Succeeds on the title id, sheet_open, or the Close filters button.
+wait_filter_sheet() {
+  local timeout="${1:?wait_filter_sheet needs a timeout in seconds}"
+  local start="$SECONDS"
+  while (( SECONDS - start < timeout )); do
+    if sheet_open || { ui_dump && ui_find --content-desc "Close filters"; }; then
+      return 0
+    fi
+    sleep 1
+  done
+  echo "wait_filter_sheet: timed out after ${timeout}s" >&2
+  return 1
 }
 
 # Close a sheet that would block the next step. Does not press back on Home.
@@ -984,7 +1012,7 @@ dismiss_sheet_swipe() {
   # The sheet title can land a moment after the chip tap. Flows 06 and 17
   # otherwise report "sheet was not open" while Filters is still animating in.
   if ! sheet_open; then
-    ui_wait 3 --text-regex "$FILTER_SHEET_TITLE_RX" || true
+    wait_filter_sheet 3 || true
   fi
   if ! sheet_open; then
     echo "sheet was not open"
@@ -1007,7 +1035,7 @@ dismiss_sheet_swipe() {
 dismiss_sheet_outside() {
   local target_y
   if ! sheet_open; then
-    ui_wait 3 --text-regex "$FILTER_SHEET_TITLE_RX" || true
+    wait_filter_sheet 3 || true
   fi
   if ! sheet_open; then
     echo "sheet was not open"

@@ -6,14 +6,14 @@ chain_filters() {
   local where="$1"
   find_filter_chip filter-chip-state "" "Choose a state" || return 1
   ui_tap
-  ui_wait 15 --text-regex "$FILTER_SHEET_TITLE_RX" || return 1
+  wait_filter_sheet 15 || return 1
   select_labeled '^Kerala( +[0-9]+)?$' STATE || return 1
   apply_sheet || return 1
   pass_step "$where-state"
 
   find_filter_chip filter-chip-state "" "Choose a state" || return 1
   ui_tap
-  ui_wait 12 --text-regex "$FILTER_SHEET_TITLE_RX" || return 1
+  wait_filter_sheet 12 || return 1
   ui_dump && ui_find --text-regex '^Kerala( +[0-9]+)?$' || return 1
   ui_back || return 1
   sleep 1
@@ -21,7 +21,7 @@ chain_filters() {
 
   find_filter_chip filter-chip-district "" "Choose a district" || return 1
   ui_tap
-  ui_wait 15 --text-regex "$FILTER_SHEET_TITLE_RX" || return 1
+  wait_filter_sheet 15 || return 1
   if ui_find --resource-id filter-choose-state-first; then
     finish_choose_state_first || return 1
   fi
@@ -31,7 +31,7 @@ chain_filters() {
 
   find_filter_chip filter-chip-deity "" "Choose a deity" || return 1
   ui_tap
-  ui_wait 15 --text-regex "$FILTER_SHEET_TITLE_RX" || return 1
+  wait_filter_sheet 15 || return 1
   select_labeled '^Shiva( +[0-9]+)?$' DEITY || return 1
   apply_sheet || return 1
   pass_step "$where-deity"

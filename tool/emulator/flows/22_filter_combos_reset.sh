@@ -28,7 +28,7 @@ pick_labeled() {
     return 1
   fi
   ui_tap
-  if ! ui_wait 12 --text-regex "$FILTER_SHEET_TITLE_RX"; then
+  if ! wait_filter_sheet 12; then
     fail_step "$step" "filter sheet did not open"
     return 1
   fi

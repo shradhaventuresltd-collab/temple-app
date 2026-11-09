@@ -117,13 +117,14 @@ chip_present() {
 open_chip() {
   chip_present "$1" || return 1
   ui_tap
-  ui_wait 20 --text-regex "$FILTER_SHEET_TITLE_RX" || return 1
+  wait_filter_sheet 20 || return 1
   # The district sheet opens with a loader. Names can take several seconds
-  # on the first load, so wait for the section before picking a district.
+  # on the first load. filter-district-loading is a resource-id, not title text.
   if [[ "$1" == district ]]; then
     ui_dump || return 1
-    if ui_find --resource-id filter-district-loading; then
-      ui_wait 15 --text-regex '^(District|All districts)' || return 1
+    if ui_find --resource-id filter-district-loading \
+      || ui_find --text-contains "Loading districts"; then
+      wait_out_district_loader || return 1
     fi
   fi
 }
@@ -254,7 +255,7 @@ probe_others() {
     if [[ "$other" == district ]]; then
       wait_s=10
     fi
-    if ui_wait "$wait_s" --text-regex "$FILTER_SHEET_TITLE_RX"; then
+    if wait_filter_sheet "$wait_s"; then
       pass_step "$id-then-$other"; ui_back; sleep 1; recover_sheet
     else
       fail_step "$id-then-$other" "tap on ${other} chip did nothing after ${id}"

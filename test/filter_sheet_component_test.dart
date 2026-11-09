@@ -32,13 +32,22 @@ void main() {
     expect(find.byKey(const Key('filter-sheet-close')), findsOneWidget);
     expect(find.byKey(const Key('filter-sheet-apply')), findsOneWidget);
     expect(find.byKey(const Key('filter-sheet-clear')), findsOneWidget);
-    expect(find.byKey(const Key('filter-sheet-apply')).hitTestable(), findsOneWidget);
-    expect(find.byKey(const Key('filter-sheet-clear')).hitTestable(), findsOneWidget);
+    expect(
+      find.byKey(const Key('filter-sheet-apply')).hitTestable(),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('filter-sheet-clear')).hitTestable(),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byKey(const Key('filter-option-state-Kerala')));
     await tester.pump();
     expect(find.text('Show 1 temple'), findsOneWidget);
-    expect(find.byKey(const Key('filter-sheet-apply')).hitTestable(), findsOneWidget);
+    expect(
+      find.byKey(const Key('filter-sheet-apply')).hitTestable(),
+      findsOneWidget,
+    );
 
     tester.view.physicalSize = const Size(900, 500);
     await tester.pumpAndSettle();
@@ -46,7 +55,10 @@ void main() {
     expect(landscape.width, 560);
     expect(landscape.height, 500 * 0.78);
     expect(find.text('Kerala'), findsWidgets);
-    expect(find.byKey(const Key('filter-sheet-apply')).hitTestable(), findsOneWidget);
+    expect(
+      find.byKey(const Key('filter-sheet-apply')).hitTestable(),
+      findsOneWidget,
+    );
     expect(find.text('Show 1 temple'), findsOneWidget);
   });
 
@@ -134,5 +146,34 @@ void main() {
     expect(text.maxLines, 1);
     expect(text.overflow, TextOverflow.ellipsis);
     expect(tester.getSize(find.text(label)).width, lessThanOrEqualTo(180));
+  });
+
+  testWidgets('each sheet title is its own semantics node', (tester) async {
+    String? districtOf(temple) => temple.city as String;
+    await pumpFilterBar(
+      tester,
+      temples: temples,
+      initialState: 'Kerala',
+      districtOf: districtOf,
+    );
+    for (final (:chip, :title) in [
+      (chip: 'state', title: 'State'),
+      (chip: 'district', title: 'District'),
+      (chip: 'deity', title: 'Deity'),
+    ]) {
+      await openFilterChip(tester, chip);
+      final id = filterSheetTitleId(title);
+      final titleNode = tester.getSemantics(find.bySemanticsIdentifier(id));
+      expect(titleNode.identifier, id);
+      expect(titleNode.label, title);
+      final sheetNode = tester.getSemantics(
+        find.bySemanticsIdentifier('filter-sheet'),
+      );
+      expect(titleNode.id, isNot(sheetNode.id));
+      expect(sheetNode.flagsCollection.isTextField, isFalse);
+      expect(find.text(title), findsWidgets);
+      await tester.tap(find.byKey(const Key('filter-sheet-close')));
+      await tester.pumpAndSettle();
+    }
   });
 }

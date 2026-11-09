@@ -45,7 +45,7 @@ open_chip() {
     deity) ui_dump && { ui_find --resource-id filter-chip-deity || ui_find --content-desc "Choose a deity"; } ;;
   esac || return 1
   ui_tap
-  ui_wait 20 --text-regex "$FILTER_SHEET_TITLE_RX"
+  wait_filter_sheet 20
 }
 
 swipe_from_list() {
@@ -124,7 +124,7 @@ for entry in "${ENTRIES[@]}"; do
     CHOOSE_STATE_APPLIED=""
   elif ui_dump && ui_find --resource-id filter-chip-state --text-regex '^State$'; then
     ui_tap
-    if ui_wait 12 --text-regex "$FILTER_SHEET_TITLE_RX"; then
+    if wait_filter_sheet 12; then
       if select_labeled '^Kerala( +[0-9]+)?$' STATE && apply_sheet; then
         kerala_applied=1
       else
