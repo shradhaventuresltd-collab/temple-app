@@ -233,7 +233,7 @@ void main() {
       );
       await tester.pump();
       expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
-      expect(find.byKey(const Key('filter-district-loading')), findsOneWidget);
+      expect(find.byKey(const Key('filter-choose-state-first')), findsOneWidget);
 
       await tester.binding.handlePopRoute();
       await tester.pump();
@@ -521,9 +521,15 @@ Future<void> _openChip(
   expect(find.byKey(const Key('filter-sheet')), findsOneWidget, reason: where);
   if (chip == 'district' &&
       find.byKey(const Key('filter-choose-state-first')).evaluate().isNotEmpty) {
-    final kerala = find.byKey(const Key('filter-option-state-Kerala'));
-    await tester.ensureVisible(kerala);
-    await tester.tap(kerala);
+    final kerala = find.byWidgetPredicate((widget) {
+      final key = widget.key;
+      return key is ValueKey<String> &&
+          key.value.startsWith('filter-option-state-') &&
+          !key.value.endsWith('-any');
+    });
+    expect(kerala, findsWidgets, reason: where);
+    await tester.ensureVisible(kerala.first);
+    await tester.tap(kerala.first);
     await tester.pump();
     await tester.tap(find.byKey(const Key('filter-sheet-apply')));
     await tester.pumpAndSettle();

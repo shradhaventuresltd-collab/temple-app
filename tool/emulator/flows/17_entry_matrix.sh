@@ -45,7 +45,7 @@ open_chip() {
     deity) ui_dump && { ui_find --resource-id filter-chip-deity || ui_find --content-desc "Choose a deity"; } ;;
   esac || return 1
   ui_tap
-  ui_wait 20 --text-regex '^Filters$'
+  ui_wait 20 --text-regex "$FILTER_SHEET_TITLE_RX"
 }
 
 swipe_from_list() {
@@ -90,10 +90,15 @@ for entry in "${ENTRIES[@]}"; do
     # Deity: Shiva only from a Tamil Nadu-scoped list (scoped_pick); the
     # state was cleared above, so this is the all-India head pick: the
     # sheet's first real option (@first, round 4.4; Ahalya left the list).
-    pick="${PICK[$f]}"
-    if [[ "$f" == deity ]]; then pick="$(scoped_pick deity)" || pick="$ALL_INDIA_DEITY_PICK"; fi
-    if open_chip "$f" && select_labeled "$pick" "${SECTION[$f]}" && apply_sheet && chip_exact "$SELECTED_LABEL"; then
-      pass_step "$id-select"
+    if open_chip "$f"; then
+      if [[ "$f" == district ]]; then finish_choose_state_first || true; fi
+      pick="${PICK[$f]}"
+      if [[ "$f" == deity || "$f" == district ]]; then pick="$(scoped_pick "$f")" || pick="$ALL_INDIA_DEITY_PICK"; fi
+      if select_labeled "$pick" "${SECTION[$f]}" && apply_sheet && chip_exact "$SELECTED_LABEL"; then
+        pass_step "$id-select"
+      else
+        fail_step "$id-select" "chip did not take the selection on this route"; recover_sheet; continue
+      fi
     else
       fail_step "$id-select" "chip did not take the selection on this route"; recover_sheet; continue
     fi
@@ -110,7 +115,7 @@ for entry in "${ENTRIES[@]}"; do
   kerala_applied=0
   if ui_dump && ui_find --resource-id filter-chip-state --text-regex '^State$'; then
     ui_tap
-    if ui_wait 12 --text-regex '^Filters$'; then
+    if ui_wait 12 --text-regex "$FILTER_SHEET_TITLE_RX"; then
       if select_labeled '^Kerala( +[0-9]+)?$' STATE && apply_sheet; then
         kerala_applied=1
       else

@@ -146,10 +146,8 @@ void main() {
 
     await tester.tap(find.byKey(const Key('filter-chip-deity')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('filter-deity-note')), findsOneWidget);
-    expect(find.textContaining('sites are labelled'), findsOneWidget);
-    expect(find.text('Jain Tirthankaras'), findsOneWidget);
-    expect(find.text('Jain'), findsWidgets);
+    expect(find.byKey(const Key('filter-section-deity')), findsOneWidget);
+    expect(find.byKey(const Key('filter-option-deity-Shiva')), findsOneWidget);
     expect(find.textContaining('Buddha'), findsNothing);
     expect(find.byKey(const Key('filter-option-state-any')), findsNothing);
 
@@ -410,7 +408,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.byKey(const Key('filter-option-deity-Deity 00')).hitTestable(),
+      find.byKey(const Key('filter-deity-top-Deity 00')).hitTestable(),
       findsOneWidget,
     );
     expect(
@@ -548,6 +546,11 @@ void main() {
       await openDismissReopen(const Key('filter-chip-district'), () async {
         await tester.drag(find.byKey(const Key('filter-sheet-options')), const Offset(0, 400));
       });
+      await tester.tap(find.byKey(const Key('filter-option-state-Tamil Nadu')));
+      await tester.pump();
+      await tester.ensureVisible(find.byKey(const Key('filter-sheet-apply')));
+      await tester.tap(find.byKey(const Key('filter-sheet-apply')));
+      await tester.pumpAndSettle();
       await applyOption(const Key('filter-option-district-Madurai'));
       expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
       expect(find.text('Vaikom Mahadeva Temple'), findsNothing);
@@ -608,7 +611,14 @@ void main() {
 
     await tester.tap(find.byKey(const Key('filter-chip-deity')));
     await tester.pumpAndSettle();
-    await tester.drag(find.byKey(const Key('filter-sheet-options')), const Offset(0, -320));
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('filter-option-deity-Deity 20')),
+      300,
+      scrollable: find.descendant(
+        of: find.byKey(const Key('filter-sheet-options')),
+        matching: find.byType(Scrollable),
+      ),
+    );
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
     expect(
@@ -617,7 +627,9 @@ void main() {
     );
 
     final optionList = find.byKey(const Key('filter-sheet-options'));
-    final scrollable = tester.state<ScrollableState>(optionList);
+    final scrollable = tester.state<ScrollableState>(
+      find.descendant(of: optionList, matching: find.byType(Scrollable)),
+    );
     // Each return drag stays under the 72px pull-to-dismiss threshold, including
     // the last one that reaches the top and overscrolls.
     for (var step = 0; step < 40 && scrollable.position.pixels > 0; step++) {
@@ -627,7 +639,7 @@ void main() {
     }
     expect(scrollable.position.pixels, 0);
     expect(
-      find.byKey(const Key('filter-option-deity-Deity 00')).hitTestable(),
+      find.byKey(const Key('filter-deity-top-Deity 00')).hitTestable(),
       findsOneWidget,
     );
   });
@@ -664,7 +676,7 @@ void main() {
           home: Scaffold(
             body: DirectoryFilterBar(
               temples: many,
-              selectedState: null,
+              selectedState: 'Tamil Nadu',
               selectedDeity: null,
               districtOf: districtOf,
               onChanged: (_, _, _) {},
@@ -698,7 +710,12 @@ void main() {
       await tester.drag(optionList, const Offset(0, -320));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
-      final scrolled = tester.state<ScrollableState>(optionList).position.pixels;
+      final scrolled = tester
+          .state<ScrollableState>(
+            find.descendant(of: optionList, matching: find.byType(Scrollable)),
+          )
+          .position
+          .pixels;
       expect(scrolled, greaterThan(200));
       await tester.drag(optionList, const Offset(0, 200));
       await tester.pumpAndSettle();

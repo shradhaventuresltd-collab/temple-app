@@ -51,7 +51,7 @@ open_state() {
   fi
   find_filter_chip filter-chip-state "$rx" "Choose a state" || return 1
   ui_tap
-  ui_wait 12 --text-regex '^Filters$'
+  ui_wait 12 --text-regex "$FILTER_SHEET_TITLE_RX"
 }
 
 open_deity() {
@@ -61,23 +61,23 @@ open_deity() {
   fi
   find_filter_chip filter-chip-deity "$rx" "Choose a deity" || return 1
   ui_tap
-  ui_wait 12 --text-regex '^Filters$'
+  ui_wait 12 --text-regex "$FILTER_SHEET_TITLE_RX"
 }
 
 open_district() {
-  local rx='^All districts$'
+  local rx='^(All districts|District)$'
   if [[ -n "${DISTRICT_LABEL:-}" ]]; then
-    rx="^($(re_escape "$DISTRICT_LABEL")|All districts)$"
+    rx="^($(re_escape "$DISTRICT_LABEL")|All districts|District)$"
   fi
   find_filter_chip filter-chip-district "$rx" "Choose a district" || return 1
   ui_tap
-  ui_wait 20 --text-regex '^DISTRICT$' || ui_wait 8 --text-regex '^Filters$'
+  ui_wait 20 --text-regex '^District$' || ui_wait 8 --text-regex "$FILTER_SHEET_TITLE_RX"
 }
 
 open_by_id() {
   scroll_chips_until --resource-id "$1" || return 1
   ui_tap
-  ui_wait 12 --text-regex '^Filters$'
+  ui_wait 12 --text-regex "$FILTER_SHEET_TITLE_RX"
 }
 
 

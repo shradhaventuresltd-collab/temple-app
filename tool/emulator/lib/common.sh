@@ -869,10 +869,14 @@ clean_install() {
   install_apk
 }
 
+FILTER_SHEET_TITLE_RX='^(Filters|State|District|Deity|City|Sort from state)$'
+
 sheet_open() {
   ui_dump || return 1
   # Prefer the title so a dismiss swipe starts on the sheet, not the close icon.
-  if ui_find --text-regex '^Filters$' || ui_find --content-desc-regex '^Filters$'; then
+  # KAN-198 titles the sheet State, District, Deity, City, or Sort from state.
+  # Filters remains accepted for older dumps.
+  if ui_find --text-regex "$FILTER_SHEET_TITLE_RX" || ui_find --content-desc-regex "$FILTER_SHEET_TITLE_RX"; then
     return 0
   fi
   ui_find --content-desc "Close filters" && return 0
@@ -899,7 +903,7 @@ dismiss_blockers() {
     sleep 1
     return 0
   fi
-  if ui_find --text-regex '^Filters$' || ui_find --content-desc-regex '^Filters$' || ui_find --text-regex '^Show [0-9]+ temples?$'; then
+  if ui_find --text-regex "$FILTER_SHEET_TITLE_RX" || ui_find --content-desc-regex "$FILTER_SHEET_TITLE_RX" || ui_find --text-regex '^Show [0-9]+ temples?$'; then
     ui_back
     sleep 1
     return 0
@@ -961,7 +965,7 @@ dismiss_sheet_from_handle() {
   local start_x=$((width / 2))
   local start_y=$((height * 24 / 100))
   local max_title=$((height * 36 / 100))
-  if ui_find --text-regex '^Filters$' --max-top "$max_title" || ui_find --content-desc-regex '^Filters$' --max-top "$max_title"; then
+  if ui_find --text-regex "$FILTER_SHEET_TITLE_RX" --max-top "$max_title" || ui_find --content-desc-regex "$FILTER_SHEET_TITLE_RX" --max-top "$max_title"; then
     local node_h=$((UI_Y2 - UI_Y1))
     if (( node_h > 0 && node_h < height / 6 && UI_CY < max_title )); then
       start_x=$UI_CX
@@ -980,7 +984,7 @@ dismiss_sheet_swipe() {
   # The sheet title can land a moment after the chip tap. Flows 06 and 17
   # otherwise report "sheet was not open" while Filters is still animating in.
   if ! sheet_open; then
-    ui_wait 3 --text-regex '^Filters$' || true
+    ui_wait 3 --text-regex "$FILTER_SHEET_TITLE_RX" || true
   fi
   if ! sheet_open; then
     echo "sheet was not open"
@@ -1003,7 +1007,7 @@ dismiss_sheet_swipe() {
 dismiss_sheet_outside() {
   local target_y
   if ! sheet_open; then
-    ui_wait 3 --text-regex '^Filters$' || true
+    ui_wait 3 --text-regex "$FILTER_SHEET_TITLE_RX" || true
   fi
   if ! sheet_open; then
     echo "sheet was not open"
@@ -1900,10 +1904,22 @@ first_real_option() {
 import re, sys
 s = open(sys.argv[1], encoding="utf-8", errors="replace").read()
 kind = sys.argv[2]
+prefixes = (f"filter-option-{kind}-",)
+if kind == "deity":
+    # KAN-198 Most listed rows sit above A-Z and use this id.
+    prefixes = (f"filter-deity-top-", f"filter-option-{kind}-")
 for node in re.finditer(r"<node [^>]*>", s):
     n = node.group(0)
     rid = re.search(r'resource-id="([^"]*)"', n)
-    if not rid or not rid.group(1).startswith(f"filter-option-{kind}-") or rid.group(1) == f"filter-option-{kind}-any":
+    if not rid:
+        continue
+    short = rid.group(1)
+    matched = False
+    for prefix in prefixes:
+        if short.startswith(prefix) and not short.endswith("-any"):
+            matched = True
+            break
+    if not matched:
         continue
     desc = re.search(r'content-desc="([^"]*)"', n)
     text = re.search(r' text="([^"]*)"', n)
@@ -1912,7 +1928,7 @@ for node in re.finditer(r"<node [^>]*>", s):
     label = re.sub(r"\s+[0-9]+$", "", label)
     if label:
         print(label)
-        print(rid.group(1))
+        print(short)
         raise SystemExit(0)
 raise SystemExit(1)
 PY
@@ -2134,6 +2150,17 @@ select_labeled() {
   done
   echo "select_labeled: gave up looking for '${regex}' after $((SECONDS - started))s" >&2
   return 1
+}
+
+# KAN-198: District with no state opens the State sheet ("Choose a state
+# first"). Apply Tamil Nadu so the District sheet that follows is scoped.
+finish_choose_state_first() {
+  ui_dump || return 1
+  if ! ui_find --text "Choose a state first"; then
+    return 0
+  fi
+  select_labeled '^Tamil Nadu( +[0-9]+)?$' STATE || return 1
+  apply_sheet || return 1
 }
 
 apply_sheet() {

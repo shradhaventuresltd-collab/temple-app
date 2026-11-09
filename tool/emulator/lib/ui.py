@@ -8,6 +8,7 @@ Coordinates come from the node's bounds. Callers tap those, not a fixed pixel.
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import sys
 import xml.etree.ElementTree as ET
@@ -452,9 +453,18 @@ def cmd_option_seek(args: argparse.Namespace) -> int:
             k != args.kind and order.index(k) < mine and b[1] < min(mine_ys)
             for k, _n, b, _node in rows
         )
-        if target > _dart_key(hi):
+        if args.kind == "state" and _sheet_uses_regions(root):
+            regions = _state_regions()
+            target_key = _state_sort_key(args.name, regions)
+            hi_key = _state_sort_key(hi, regions)
+            lo_key = _state_sort_key(lo, regions)
+        else:
+            target_key = _dart_key(args.name)
+            hi_key = _dart_key(hi)
+            lo_key = _dart_key(lo)
+        if target_key > hi_key:
             print("absent" if later_below else f"up {reach(hi)}")
-        elif target < _dart_key(lo):
+        elif target_key < lo_key:
             print("absent" if earlier_above else f"down {reach(lo)}")
         else:
             print("absent")
@@ -482,6 +492,37 @@ def cmd_option_seek(args: argparse.Namespace) -> int:
         return 0
     print("none")
     return 0
+
+
+_REGION_RANK = {
+    "north": 0,
+    "south": 1,
+    "east": 2,
+    "northeast": 3,
+    "west": 4,
+    "central": 5,
+}
+
+
+def _state_regions() -> dict[str, str]:
+    """Names from lib/utils/india_regions.dart, the KAN-198 catalog."""
+    path = os.path.normpath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "..", "lib", "utils", "india_regions.dart")
+    )
+    text = open(path, encoding="utf-8").read()
+    return dict(re.findall(r"\(name: '([^']+)', region: '([^']+)'\)", text))
+
+
+def _sheet_uses_regions(root: ET.Element) -> bool:
+    for node in _iter_nodes(root):
+        short = _resource_id(node).split("/")[-1]
+        if short.startswith("filter-region-"):
+            return True
+    return False
+
+
+def _state_sort_key(name: str, regions: dict[str, str]) -> tuple:
+    return (_REGION_RANK.get(regions.get(name), 6), _dart_key(name))
 
 
 def cmd_sheet_band(args: argparse.Namespace) -> int:
