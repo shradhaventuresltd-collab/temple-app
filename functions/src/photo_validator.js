@@ -16,7 +16,9 @@
  *   - imageUrl (photos[0].url, or "" with no photos) and images[0] are not
  *     a placeholder host (placeholderHost in the rules)
  *
- * Rules count string size() in characters; this counts code points.
+ * Rules string.size() counts UTF-16 code units ( empirically measured
+ * against the Firestore emulator: same as JavaScript string.length, not
+ * UTF-8 bytes and not Unicode code points). This matches that unit.
  */
 
 export const MAX_PHOTOS = 12;
@@ -28,7 +30,8 @@ const HTTPS_NO_SPACE = /^https:\/\/[^\t\n\f\r ]+$/;
 const PLACEHOLDER_HOST =
   /^https?:\/\/([^/?#@]+@)?(([a-z0-9-]+\.){0,4}(picsum\.photos|placeholder\.com|placehold\.co|placehold\.it|dummyimage\.com|lorempixel\.com|loremflickr\.com|placekitten\.com|fakeimg\.pl|placeimg\.com)|source\.unsplash\.com)(:\d+)?([/?#][\s\S]*)?$/i;
 
-const chars = (s) => (s.length > 4000 ? 4001 : [...s].length);
+/** UTF-16 length; cheap reject above 4000 before any further work. */
+const chars = (s) => s.length;
 
 function isPlainMap(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value) &&
