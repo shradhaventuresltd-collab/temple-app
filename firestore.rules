@@ -354,7 +354,10 @@ service cloud.firestore {
         'id', 'name', 'state', 'city', 'deity', 'imageUrl',
         'description', 'story', 'address', 'location', 'timings',
         'specialities', 'images', 'photos', 'latitude', 'longitude',
-        'createdAt', 'tradition'
+        'createdAt', 'tradition',
+        'dressCode', 'dressCodeSourceUrl', 'dressCodeSourceType',
+        'dressCodeVerified', 'timingsVerified', 'timingsSourceUrl',
+        'timingsSourceType'
       ];
 
       return hasOnlyAllowedFields(allowedFields) &&
@@ -390,10 +393,18 @@ service cloud.firestore {
       allow create: if isAdmin() && isValidTempleCreate(request.resource.data);
 
       // Only admins may update temples, with relaxed validation for merge writes.
-      // createdAt is immutable once set.
+      // createdAt is immutable once set. Research fields (dress code KAN-197,
+      // timings verification #125) are written by the Admin SDK only: an
+      // admin merge save keeps them, but a client write cannot add, change,
+      // or delete them.
       allow update: if isAdmin() &&
         isValidTempleUpdate(request.resource.data) &&
-        areImmutableFieldsUnchanged(['createdAt']);
+        areImmutableFieldsUnchanged([
+          'createdAt',
+          'dressCode', 'dressCodeSourceUrl', 'dressCodeSourceType',
+          'dressCodeVerified', 'timingsVerified', 'timingsSourceUrl',
+          'timingsSourceType'
+        ]);
 
       // Only admins may delete temples.
       allow delete: if isAdmin();
