@@ -141,14 +141,15 @@ void main() {
         isA<StateError>().having(
           (e) => e.message,
           'message',
-          contains('Could not save photos'),
+          contains('Photos may not have been saved; retry'),
         ),
       ),
     );
     expect(store.docs[_id], before);
   });
 
-  test('createTemple and appendTempleImages stay direct writes', () async {
+  test('createTemple stays a direct write; appendTempleImages uses the callable',
+      () async {
     final store = MemoryTempleWriteStore();
     final service = _service(store);
     await service.createTemple(_temple(_nine()));
@@ -156,8 +157,36 @@ void main() {
     expect((store.docs[_id]!['photos'] as List).length, 9);
 
     final stored = Temple.fromMap(_id, store.docs[_id]!);
-    await service.appendTempleImages(stored, ['https://example.com/extra.jpg']);
-    expect(store.photoCalls, isEmpty);
+    await service.appendTempleImages(stored, [
+      'https://firebasestorage.googleapis.com/v0/b/app/o/extra.jpg',
+    ]);
+    expect(store.photoCalls, hasLength(1));
+    final sent = store.photoCalls.single['photos'] as List;
+    expect(sent, hasLength(10));
+    expect(sent.last['url'], contains('extra.jpg'));
+    expect(sent.last['licence'], 'Own');
+    expect(sent.last['order'], 9);
+    expect((store.docs[_id]!['images'] as List).length, 10);
+  });
+
+  test('text save failure after a photo callable still reports photos saved',
+      () async {
+    final store = _seeded(_nine())
+      ..setError = StateError('index shard full');
+    await expectLater(
+      _service(store).updateTemple(
+        _temple([..._nine(), _photo(9)], story: 'Lost text.'),
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (e) => e.message,
+          'message',
+          contains('Photos saved; details/directory not updated, save again'),
+        ),
+      ),
+    );
+    expect(store.photoCalls, hasLength(1));
+    expect((store.docs[_id]!['photos'] as List).length, 10);
   });
 
   test('templeDataDeepEquals ignores map key order, not list order', () {
