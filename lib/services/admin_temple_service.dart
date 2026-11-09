@@ -157,6 +157,13 @@ class AdminTempleService implements AdminTempleApi {
       final list = [
         for (final p in photos) Map<String, dynamic>.from(p as Map),
       ];
+      // KAN-200 C6: refuse before the callable if the new photos[] would
+      // drop stored images[] URLs that have no photos entry (legacy gallery).
+      assertNewPhotosCoverStoredImages(
+        previous['images'],
+        list,
+        storedPhotos: previous['photos'],
+      );
       try {
         await _store.setPhotos(id, list);
       } catch (e) {
@@ -391,6 +398,43 @@ void _assertNoDisallowedFirestoreKeys(Map<String, dynamic> stored) {
 double? _preferCoordinate(double? current, double? stored) {
   if (current == null || current == 0) return stored;
   return current;
+}
+
+/// Throws when [newPhotos] would drop a legacy [images] URL — one with no
+/// entry in the *stored* [photos] — that the new list also omits. Delete /
+/// reorder of mirrored photo URLs is allowed. The editor path that adds
+/// licensed photos entries covering those legacy URLs passes. Message
+/// matches the callable / photosForGalleryAppend refuse.
+void assertNewPhotosCoverStoredImages(
+  Object? storedImages,
+  List<Map<String, dynamic>> newPhotos, {
+  Object? storedPhotos,
+}) {
+  final inStoredPhotos = <String>{
+    if (storedPhotos is List)
+      for (final p in storedPhotos)
+        if (p is Map &&
+            p['url'] is String &&
+            (p['url'] as String).trim().isNotEmpty)
+          (p['url'] as String).trim(),
+  };
+  final covered = <String>{
+    for (final p in newPhotos)
+      if (p['url'] is String && (p['url'] as String).trim().isNotEmpty)
+        (p['url'] as String).trim(),
+  };
+  if (storedImages is! List) return;
+  for (final item in storedImages) {
+    if (item == null) continue;
+    final url = item.toString().trim();
+    if (url.isEmpty) continue;
+    if (inStoredPhotos.contains(url)) continue;
+    if (!covered.contains(url)) {
+      throw StateError(
+        'Add licences for the existing photos in the editor first',
+      );
+    }
+  }
 }
 
 /// Builds the photos list for [AdminTempleService.appendTempleImages].
