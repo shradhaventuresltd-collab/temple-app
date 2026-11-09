@@ -3,8 +3,9 @@
  *
  * setTemplePhotos (KAN-200): admin-only photo writes in asia-south1, the
  * Firestore region. App Check is enforced when ENFORCE_APP_CHECK is true.
- * It stays false until the app ships firebase_app_check (KAN-200 follow-up:
+ * It stays false until the app ships firebase_app_check (KAN-201:
  * add firebase_app_check, register Play Integrity, debug tokens, then flip).
+ * KAN-202: Storage cleanup for removed photos, and create with 2+ photos.
  */
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
