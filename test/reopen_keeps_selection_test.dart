@@ -32,12 +32,7 @@ void main() {
       size: const Size(360, 640),
     );
     await openFilterChip(tester, 'state');
-    expect(find.text('SOUTH'), findsOneWidget);
-    expect(find.text('Kerala'), findsWidgets);
-    expect(
-      find.byKey(const Key('filter-option-state-Kerala')).hitTestable(),
-      findsNothing,
-    );
+    expect(find.text('NORTH'), findsOneWidget);
     await chooseAndApply(tester, const Key('filter-option-state-Kerala'));
     expect(find.text('Vaikom Mahadeva Temple'), findsOneWidget);
 

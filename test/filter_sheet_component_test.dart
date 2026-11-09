@@ -25,6 +25,9 @@ void main() {
     await openFilterChip(tester, 'state');
 
     expect(find.byKey(const Key('filter-sheet-title')), findsOneWidget);
+    final sheet = tester.getSize(find.byKey(const Key('filter-sheet')));
+    expect(sheet.height, 1600 * 0.78);
+    expect(sheet.width, 560);
     expect(find.text('State'), findsWidgets);
     expect(find.byKey(const Key('filter-sheet-close')), findsOneWidget);
     expect(find.byKey(const Key('filter-sheet-apply')), findsOneWidget);
@@ -39,6 +42,9 @@ void main() {
 
     tester.view.physicalSize = const Size(900, 500);
     await tester.pumpAndSettle();
+    final landscape = tester.getSize(find.byKey(const Key('filter-sheet')));
+    expect(landscape.width, 560);
+    expect(landscape.height, 500 * 0.78);
     expect(find.text('Kerala'), findsWidgets);
     expect(find.byKey(const Key('filter-sheet-apply')).hitTestable(), findsOneWidget);
     expect(find.text('Show 1 temple'), findsOneWidget);
@@ -108,5 +114,25 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('filter-sheet')), findsNothing);
     expect(picked, 'Kochi');
+  });
+
+  testWidgets('a long chip label ellipsizes within 180dp', (tester) async {
+    const label = 'Dadra and Nagar Haveli and Daman and Diu';
+    await pumpFilterBar(
+      tester,
+      temples: [
+        filterTemple(
+          name: 'Temple',
+          state: label,
+          city: 'City',
+          deity: 'Shiva',
+        ),
+      ],
+      initialState: label,
+    );
+    final text = tester.widget<Text>(find.text(label));
+    expect(text.maxLines, 1);
+    expect(text.overflow, TextOverflow.ellipsis);
+    expect(tester.getSize(find.text(label)).width, lessThanOrEqualTo(180));
   });
 }

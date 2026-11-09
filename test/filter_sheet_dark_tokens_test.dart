@@ -20,8 +20,24 @@ void main() {
         greaterThanOrEqualTo(4.5),
       );
       expect(
-        FilterSheetColors.contrast(colors.onAccent, colors.accent),
+        FilterSheetColors.contrast(colors.accentText, colors.sheetBackground),
         greaterThanOrEqualTo(4.5),
+      );
+      expect(
+        FilterSheetColors.contrast(colors.accentText, colors.barBackground),
+        greaterThanOrEqualTo(4.5),
+      );
+      expect(
+        FilterSheetColors.contrast(colors.accentText, colors.chipFill),
+        greaterThanOrEqualTo(4.5),
+      );
+      expect(
+        FilterSheetColors.contrast(colors.onButton, colors.buttonFill),
+        greaterThanOrEqualTo(4.5),
+      );
+      expect(
+        FilterSheetColors.contrast(colors.radio, colors.sheetBackground),
+        greaterThanOrEqualTo(3),
       );
       expect(
         FilterSheetColors.contrast(colors.muted, colors.headerBand),

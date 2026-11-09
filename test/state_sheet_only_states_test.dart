@@ -70,6 +70,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('filter-sheet-no-match')), findsOneWidget);
+    expect(find.text('No match for \u2018zzzz-no-state\u2019'), findsOneWidget);
   });
 
   testWidgets('state sheet region headers stay pinned', (tester) async {
@@ -143,7 +144,7 @@ void main() {
     expect(find.text('SOUTH'), findsOneWidget);
     final southDy = tester.getTopLeft(find.text('SOUTH')).dy;
     expect(southDy, inInclusiveRange(listTop, listTop + 16));
-    expect(tester.getTopLeft(find.text('NORTH')).dy, lessThan(listTop));
+    expect(find.text('NORTH'), findsNothing);
     expect(
       find.byKey(const Key('filter-option-state-Telangana')).hitTestable(),
       findsOneWidget,

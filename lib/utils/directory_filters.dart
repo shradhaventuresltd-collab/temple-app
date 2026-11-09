@@ -45,22 +45,28 @@ String directoryDeityChipLabel(String deity) {
   return '$deity · $tradition';
 }
 
-/// Note under the deity section when [deities] includes a non-Hindu label.
-String? directoryDeityFilterNote(Iterable<String> deities) {
+/// Subtitle for the Deity sheet.
+///
+/// With no Jain, Buddhist, or Sikh name this is "N deities". Otherwise it
+/// names those traditions, for example "Jain and Buddhist sites are labelled
+/// by their own tradition, not Hindu darshan."
+String directoryDeityFilterNote(Iterable<String> deities, {int? count}) {
   const order = ['Jain', 'Buddhist', 'Sikh'];
   final present = [
     for (final label in order)
       if (deities.any((deity) => listedDeityTraditionLabel(deity) == label))
         label,
   ];
-  if (present.isEmpty) return null;
+  if (present.isEmpty) {
+    final total = count ?? deities.length;
+    return '$total deities';
+  }
   final joined = switch (present.length) {
     1 => present.single,
     2 => '${present[0]} and ${present[1]}',
-    _ =>
-      '${present.sublist(0, present.length - 1).join(', ')}, and ${present.last}',
+    _ => '${present.sublist(0, present.length - 1).join(', ')} and ${present.last}',
   };
-  return '$joined labels are the listed tradition, not Hindu darshan filters.';
+  return '$joined sites are labelled by their own tradition, not Hindu darshan.';
 }
 
 /// District name for one loaded temple, or null when it is not resolved.

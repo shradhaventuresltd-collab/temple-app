@@ -220,12 +220,8 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
       widget.selectedDeity != null ||
       (widget.selectedDistrict != null && widget.selectedDistrict!.isNotEmpty);
 
-  bool get _showDistrict => directoryDistrictChipVisible(
-    temples: widget.temples,
-    state: widget.selectedState,
-    selectedDistrict: widget.selectedDistrict,
-    districtOf: widget.districtOf,
-  );
+  bool get _districtNeedsState =>
+      widget.selectedState == null || widget.selectedState!.isEmpty;
 
   Future<void> _openSheet(DirectoryFilterSection section) async {
     if (_opening) return;
@@ -386,9 +382,8 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
                     onClear: () => widget.onChanged(null, selectedDeity, null),
                   ),
                 ),
-                if (_showDistrict) ...[
-                  const SizedBox(width: 8),
-                  KeyedSubtree(
+                const SizedBox(width: 8),
+                KeyedSubtree(
                     key: _districtChip,
                     child: _TriggerChip(
                       chipKey: const Key('filter-chip-district'),
@@ -402,14 +397,15 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
                       selected:
                           selectedDistrict != null &&
                           selectedDistrict.isNotEmpty,
-                      openTooltip: 'Choose a district',
+                      openTooltip: _districtNeedsState
+                          ? 'Choose a state first'
+                          : 'Choose a district',
                       clearTooltip: 'Clear district filter',
                       onOpen: () => _openSheet(DirectoryFilterSection.district),
                       onClear: () =>
                           widget.onChanged(selectedState, selectedDeity, null),
                     ),
                   ),
-                ],
                 const SizedBox(width: 8),
                 KeyedSubtree(
                   key: _deityChip,
@@ -462,7 +458,7 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
                       style: GoogleFonts.poppins(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: colors.accent,
+                        color: colors.accentText,
                       ),
                     ),
                   ),
@@ -508,6 +504,7 @@ class _DirectoryFilterSheet extends StatefulWidget {
 }
 
 class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
+  bool _changingState = false;
   String? _state;
   String? _deity;
   String? _district;
@@ -604,13 +601,25 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
     );
     setState(() {
       _state = state;
-      if (changed && _district != null && !names.contains(_district)) {
+      if (state == null || state.isEmpty) {
+        _district = null;
+      } else if (changed && _district != null && !names.contains(_district)) {
         _district = null;
       }
     });
   }
 
   Future<void> _changeState() async {
+    if (_changingState) return;
+    _changingState = true;
+    try {
+      await _changeStateOnce();
+    } finally {
+      _changingState = false;
+    }
+  }
+
+  Future<void> _changeStateOnce() async {
     final next = await showDirectoryFilterSheet(
       context: context,
       temples: widget.temples,
@@ -630,7 +639,11 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
     setState(() {
       _state = next.state;
       _deity = next.deity;
-      if (_district != null && !names.contains(_district)) _district = null;
+      if (next.state == null ||
+          next.state!.isEmpty ||
+          (_district != null && !names.contains(_district))) {
+        _district = null;
+      }
     });
     widget.onLiveChange?.call(_selection);
     if ((_state == null || _state!.isEmpty) && mounted) {
@@ -793,7 +806,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
                     style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: colors.accent,
+                      color: colors.accentText,
                     ),
                   ),
                 ),
@@ -901,9 +914,12 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
       for (final label in ['Jain', 'Buddhist', 'Sikh'])
         if (visible.any((group) => group.tradition == label)) label,
     ];
-    final note = traditions.isEmpty
-        ? '${visible.length} deities'
-        : '${_joinTraditions(traditions)} sites are labelled';
+    final note = directoryDeityFilterNote(
+      [for (final group in visible) group.label, ...[
+        for (final group in visible) ...group.variants,
+      ]],
+      count: visible.length,
+    );
     return FilterSheetScaffold(
       title: 'Deity',
       sectionKey: const Key('filter-section-deity'),
@@ -932,12 +948,6 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
       onApply: () => Navigator.pop(context, _selection),
     );
   }
-}
-
-String _joinTraditions(List<String> labels) {
-  if (labels.length == 1) return labels.single;
-  if (labels.length == 2) return '${labels[0]} and ${labels[1]}';
-  return '${labels.sublist(0, labels.length - 1).join(', ')} and ${labels.last}';
 }
 
 class _TriggerChip extends StatelessWidget {
@@ -1001,7 +1011,8 @@ class _TriggerChip extends StatelessWidget {
                           constraints: const BoxConstraints(maxWidth: 180),
                           child: Text(
                             label,
-                            softWrap: true,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.poppins(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
@@ -1034,7 +1045,7 @@ class _TriggerChip extends StatelessWidget {
                   height: 48,
                 ),
                 onPressed: onClear,
-                icon: Icon(Icons.close_rounded, size: 16, color: colors.accent),
+                icon: Icon(Icons.close_rounded, size: 16, color: colors.accentText),
               ),
           ],
         ),

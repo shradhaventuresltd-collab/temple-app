@@ -68,5 +68,28 @@ void main() {
     );
     await tester.pump();
     expect(find.byKey(const Key('filter-sheet-no-match')), findsOneWidget);
+    expect(
+      find.text('No match for \u2018no-such-district\u2019'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('change state ignores a second tap while the state sheet opens', (
+    tester,
+  ) async {
+    await pumpFilterBar(
+      tester,
+      temples: temples,
+      districtOf: districtOf,
+      initialState: 'Kerala',
+    );
+    await openFilterChip(tester, 'district');
+    final button = tester.widget<TextButton>(
+      find.byKey(const Key('filter-change-state')),
+    );
+    button.onPressed!();
+    button.onPressed!();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('filter-section-state')), findsOneWidget);
   });
 }

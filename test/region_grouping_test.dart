@@ -38,6 +38,58 @@ void main() {
     }
   });
 
+  test('region_grouping_test pins the 34 states that have temples', () {
+    const expected = <String, String>{
+      'Chandigarh': 'north',
+      'Delhi': 'north',
+      'Haryana': 'north',
+      'Himachal Pradesh': 'north',
+      'Jammu and Kashmir': 'north',
+      'Ladakh': 'north',
+      'Punjab': 'north',
+      'Uttar Pradesh': 'north',
+      'Uttarakhand': 'north',
+      'Andaman & Nicobar Islands': 'south',
+      'Andhra Pradesh': 'south',
+      'Karnataka': 'south',
+      'Kerala': 'south',
+      'Puducherry': 'south',
+      'Tamil Nadu': 'south',
+      'Telangana': 'south',
+      'Bihar': 'east',
+      'Jharkhand': 'east',
+      'Odisha': 'east',
+      'West Bengal': 'east',
+      'Arunachal Pradesh': 'northeast',
+      'Assam': 'northeast',
+      'Manipur': 'northeast',
+      'Meghalaya': 'northeast',
+      'Nagaland': 'northeast',
+      'Sikkim': 'northeast',
+      'Tripura': 'northeast',
+      'Dadra and Nagar Haveli and Daman and Diu': 'west',
+      'Goa': 'west',
+      'Gujarat': 'west',
+      'Maharashtra': 'west',
+      'Rajasthan': 'west',
+      'Chhattisgarh': 'central',
+      'Madhya Pradesh': 'central',
+    };
+    expect(expected, hasLength(34));
+    for (final entry in expected.entries) {
+      expect(indiaStateSectionId(entry.key), entry.value, reason: entry.key);
+    }
+    final grouped = groupStatesByRegion(expected.keys);
+    expect(grouped.map((section) => section.id), [
+      'north',
+      'south',
+      'east',
+      'northeast',
+      'west',
+      'central',
+    ]);
+  });
+
   test('unmapped labels are kept under Other', () {
     final sections = groupStatesByRegion(['Kerala', 'Atlantis', 'Kerala']);
     expect(sections.map((section) => section.id), ['south', 'other']);

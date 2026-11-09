@@ -16,6 +16,9 @@ class FilterSheetColors extends ThemeExtension<FilterSheetColors> {
     required this.selectedRow,
     required this.muted,
     required this.accent,
+    required this.accentText,
+    required this.buttonFill,
+    required this.onButton,
     required this.onAccent,
     required this.radio,
     required this.searchFill,
@@ -31,6 +34,14 @@ class FilterSheetColors extends ThemeExtension<FilterSheetColors> {
   final Color selectedRow;
   final Color muted;
   final Color accent;
+
+  /// Text and outline accent. Dark is #FFB74D so it stays at or above 4.5:1
+  /// on the brown sheet and on chip fill. The filled button keeps [accent].
+  final Color accentText;
+
+  /// Filled "Show N temples" background. Dark is #FF9F2E with [onButton] #1A0F08.
+  final Color buttonFill;
+  final Color onButton;
   final Color onAccent;
   final Color radio;
   final Color searchFill;
@@ -46,8 +57,11 @@ class FilterSheetColors extends ThemeExtension<FilterSheetColors> {
     selectedRow: Color(0xFFFFF3E0),
     muted: Color(0xFF6D4C41),
     accent: Color(0xFFBF360C),
+    accentText: Color(0xFFBF360C),
+    buttonFill: Color(0xFFBF360C),
+    onButton: Color(0xFFFFFFFF),
     onAccent: Color(0xFFFFFFFF),
-    radio: Color(0xFFFF8F00),
+    radio: Color(0xFFE65100),
     searchFill: Color(0xFFFFFFFF),
     border: Color(0xFFE6D3B3),
     headerBand: Color(0xFFFFF6EA),
@@ -61,8 +75,11 @@ class FilterSheetColors extends ThemeExtension<FilterSheetColors> {
     selectedLabel: Color(0xFFF6C7B8),
     selectedRow: Color(0xFF3A2A22),
     muted: Color(0xFFE6D3C4),
-    accent: Color(0xFFBF360C),
-    onAccent: Color(0xFFFFFFFF),
+    accent: Color(0xFFFFB74D),
+    accentText: Color(0xFFFFB74D),
+    buttonFill: Color(0xFFFF9F2E),
+    onButton: Color(0xFF1A0F08),
+    onAccent: Color(0xFF1A0F08),
     radio: Color(0xFFFF8F00),
     searchFill: Color(0xFF2C211B),
     border: Color(0xFF5C463A),
@@ -110,6 +127,9 @@ class FilterSheetColors extends ThemeExtension<FilterSheetColors> {
     Color? selectedRow,
     Color? muted,
     Color? accent,
+    Color? accentText,
+    Color? buttonFill,
+    Color? onButton,
     Color? onAccent,
     Color? radio,
     Color? searchFill,
@@ -125,6 +145,9 @@ class FilterSheetColors extends ThemeExtension<FilterSheetColors> {
       selectedRow: selectedRow ?? this.selectedRow,
       muted: muted ?? this.muted,
       accent: accent ?? this.accent,
+      accentText: accentText ?? this.accentText,
+      buttonFill: buttonFill ?? this.buttonFill,
+      onButton: onButton ?? this.onButton,
       onAccent: onAccent ?? this.onAccent,
       radio: radio ?? this.radio,
       searchFill: searchFill ?? this.searchFill,
@@ -145,6 +168,9 @@ class FilterSheetColors extends ThemeExtension<FilterSheetColors> {
       selectedRow: Color.lerp(selectedRow, other.selectedRow, t)!,
       muted: Color.lerp(muted, other.muted, t)!,
       accent: Color.lerp(accent, other.accent, t)!,
+      accentText: Color.lerp(accentText, other.accentText, t)!,
+      buttonFill: Color.lerp(buttonFill, other.buttonFill, t)!,
+      onButton: Color.lerp(onButton, other.onButton, t)!,
       onAccent: Color.lerp(onAccent, other.onAccent, t)!,
       radio: Color.lerp(radio, other.radio, t)!,
       searchFill: Color.lerp(searchFill, other.searchFill, t)!,

@@ -144,12 +144,21 @@ void main() {
     );
   });
 
-  testWidgets('the district chip stays hidden until a name resolves', (
+  testWidgets('the district chip stays visible before a name resolves', (
     tester,
   ) async {
     await pumpBar(tester, lookup: (_) => null);
-    expect(find.byKey(const Key('filter-chip-district')), findsNothing);
-    expect(find.text('All districts'), findsNothing);
+    expect(find.byKey(const Key('filter-chip-district')), findsOneWidget);
+    expect(find.text('District'), findsWidgets);
+    expect(
+      tester.widget<Tooltip>(
+        find.descendant(
+          of: find.byKey(const Key('filter-chip-district')),
+          matching: find.byType(Tooltip),
+        ),
+      ).message,
+      'Choose a state first',
+    );
   });
 
   testWidgets('District is the default before the asset loads', (
@@ -525,7 +534,7 @@ void main() {
         ),
       );
 
-      expect(find.byKey(const Key('filter-chip-district')), findsNothing);
+      expect(find.byKey(const Key('filter-chip-district')), findsOneWidget);
       expect(find.text('All districts'), findsNothing);
       expect(find.text('Bhadradri Kothagudem'), findsNothing);
       expect(DistrictDirectory.instance.assetLoadCount, 0);

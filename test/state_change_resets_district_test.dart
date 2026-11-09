@@ -58,5 +58,13 @@ void main() {
     expect(find.text('Shared Tamil'), findsOneWidget);
     expect(find.text('Shared Kerala'), findsNothing);
     expect(find.text('Meenakshi Amman Temple'), findsNothing);
+
+    await openFilterChip(tester, 'district');
+    await chooseAndApply(tester, const Key('filter-option-district-Shared'));
+    await openFilterChip(tester, 'state');
+    await chooseAndApply(tester, const Key('filter-option-state-any'));
+    expect(find.byKey(const Key('filter-chip-district-clear')), findsNothing);
+    expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
+    expect(find.text('Vaikom Mahadeva Temple'), findsOneWidget);
   });
 }

@@ -110,6 +110,7 @@ void main() {
     );
     await tester.pump();
     expect(find.byKey(const Key('filter-sheet-no-match')), findsOneWidget);
+    expect(find.text('No match for \u2018no-such-deity\u2019'), findsOneWidget);
     await tester.tap(find.byKey(const Key('filter-sheet-close')));
     await tester.pumpAndSettle();
 
@@ -149,5 +150,34 @@ void main() {
       districtOf: (temple) => temple.city == 'Madurai' ? 'Madurai' : 'Ernakulam',
     );
     expect(hidden, isEmpty);
+  });
+
+  testWidgets('deity rows are built lazily', (tester) async {
+    final temples = [
+      for (var i = 0; i < 40; i++)
+        filterTemple(
+          name: 'Temple $i',
+          state: 'Kerala',
+          city: 'City $i',
+          deity: 'Deity ${i.toString().padLeft(2, '0')}',
+        ),
+    ];
+    await pumpFilterBar(tester, temples: temples, size: const Size(400, 640));
+    await openFilterChip(tester, 'deity');
+    final built = find
+        .byWidgetPredicate(
+          (widget) =>
+              widget.key is ValueKey<String> &&
+              ((widget.key! as ValueKey<String>).value.startsWith(
+                    'filter-option-deity-',
+                  ) ||
+                  (widget.key! as ValueKey<String>).value.startsWith(
+                    'filter-deity-top-',
+                  )),
+        )
+        .evaluate()
+        .length;
+    expect(built, greaterThan(0));
+    expect(built, lessThan(30));
   });
 }

@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/widgets/filter_sheet_theme.dart';
 
@@ -105,17 +104,37 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
 
   GlobalKey _anchor(String id) => _anchors.putIfAbsent(id, GlobalKey.new);
 
-  void _scheduleReveal(String? id) {
+  void _scheduleReveal(String? id, {double alignment = 0.3}) {
     if (id == null || id.isEmpty) return;
+    _reveal(id, alignment: alignment, hops: 0);
+  }
+
+  /// Scrolls until [id] is built. Deity rows are lazy, so an off-screen
+  /// selection is not in the tree until the viewport reaches it.
+  void _reveal(String id, {required double alignment, required int hops}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final target = _anchor(id).currentContext;
-      if (target == null) return;
-      Scrollable.ensureVisible(
-        target,
-        alignment: 0.3,
-        duration: const Duration(milliseconds: 200),
+      if (target != null) {
+        Scrollable.ensureVisible(
+          target,
+          alignment: alignment,
+          duration: const Duration(milliseconds: 200),
+        );
+        return;
+      }
+      if (hops >= 40 || !_options.hasClients) return;
+      final position = _options.position;
+      if (!position.hasContentDimensions || position.maxScrollExtent <= 0) {
+        return;
+      }
+      final next = math.min(
+        position.maxScrollExtent,
+        position.pixels + position.viewportDimension,
       );
+      if (next <= position.pixels + 1) return;
+      position.jumpTo(next);
+      _reveal(id, alignment: alignment, hops: hops + 1);
     });
   }
 
@@ -222,27 +241,25 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
 
   void _jumpTo(FilterSheetJump jump) {
     setState(() => _jumpId = jump.sectionId);
-    final target = _anchor(jump.sectionId).currentContext;
-    if (target == null) return;
-    Scrollable.ensureVisible(
-      target,
-      alignment: 0,
-      duration: const Duration(milliseconds: 220),
-    );
+    _scheduleReveal(jump.sectionId, alignment: 0);
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = FilterSheetColors.of(context);
     final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
-    final height = MediaQuery.sizeOf(context).height * 0.9;
+    final screen = MediaQuery.sizeOf(context);
+    final height = screen.height * 0.78;
+    final sheetWidth = math.min(screen.width, 560).toDouble();
     final sections = _sections;
     final jumps = [
       for (final jump in widget.jumps)
         if (sections.any((section) => section.id == jump.sectionId)) jump,
     ];
 
-    return Listener(
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Listener(
       onPointerDown: _onPointerDown,
       onPointerMove: _onPointerMove,
       onPointerUp: _onPointerEnd,
@@ -255,6 +272,7 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
             container: true,
             child: SizedBox(
               key: const Key('filter-sheet'),
+              width: sheetWidth,
               height: height,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -377,6 +395,7 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
         ),
         ),
       ),
+      ),
     );
   }
 
@@ -394,231 +413,102 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
         colors: colors,
       );
     }
-    final rows = <Widget>[
+    final extent = _headerExtent(context);
+    final query = _search.text.trim();
+    final slivers = <Widget>[
       if (_anyVisible && widget.any != null)
-        _OptionRow(
-          option: widget.any!,
-          anchor: _anchor(widget.any!.id),
-          onTap: () => widget.onOption?.call(widget.any!),
+        SliverToBoxAdapter(
+          child: _optionTile(widget.any!),
         ),
-      for (final section in sections)
-        if (section.title.isEmpty)
-          for (final option in section.options)
-            _OptionRow(
-              option: option,
-              anchor: _anchor(option.id),
-              onTap: () => widget.onOption?.call(option),
-            )
-        else
-          _StickySection(
-            header: _InlineHeader(
+      for (final section in sections) _sectionSliver(section, colors, extent),
+      if (_nothingMatches)
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+            child: Text(
+              'No match for \u2018$query\u2019',
+              key: const Key('filter-sheet-no-match'),
+            ),
+          ),
+        ),
+    ];
+    return NotificationListener<ScrollNotification>(
+      onNotification: _pullToDismiss,
+      child: CustomScrollView(
+        key: const Key('filter-sheet-options'),
+        controller: _options,
+        slivers: slivers,
+      ),
+    );
+  }
+
+  double _headerExtent(BuildContext context) {
+    final font = MediaQuery.textScalerOf(context).scale(12);
+    return math.max(36, font * 1.5 + 16);
+  }
+
+  Widget _optionTile(FilterSheetOption option) {
+    return _OptionRow(
+      option: option,
+      anchor: _anchor(option.id),
+      onTap: () => widget.onOption?.call(option),
+    );
+  }
+
+  /// Lazy rows via [SliverChildBuilderDelegate], the same delegate
+  /// [ListView.builder] uses. Section headers stay pinned.
+  Widget _sectionSliver(
+    FilterSheetSection section,
+    FilterSheetColors colors,
+    double extent,
+  ) {
+    final rows = SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) => _optionTile(section.options[index]),
+        childCount: section.options.length,
+      ),
+    );
+    if (section.title.isEmpty) return rows;
+    return SliverMainAxisGroup(
+      slivers: [
+        SliverPersistentHeader(
+          pinned: true,
+          delegate: _PinnedHeaderDelegate(
+            extent: extent,
+            child: _InlineHeader(
               key: _anchor(section.id),
               title: section.title,
               total: section.total,
               colors: colors,
             ),
-            rows: [
-              for (final option in section.options)
-                _OptionRow(
-                  option: option,
-                  anchor: _anchor(option.id),
-                  onTap: () => widget.onOption?.call(option),
-                ),
-            ],
           ),
-      if (_nothingMatches)
-        const Padding(
-          padding: EdgeInsets.fromLTRB(20, 24, 20, 12),
-          child: Text('No matches', key: Key('filter-sheet-no-match')),
         ),
-    ];
-    return NotificationListener<ScrollNotification>(
-      onNotification: _pullToDismiss,
-      child: SingleChildScrollView(
-        key: const Key('filter-sheet-options'),
-        controller: _options,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: rows,
-        ),
-      ),
+        rows,
+      ],
     );
   }
 }
 
-/// Pins [header] to the top of the sheet while this section is on screen.
-///
-/// One header widget is painted at the stuck offset, so region labels stay
-/// in the tree for search and for scrolling a selection back into view.
-class _StickySection extends StatefulWidget {
-  const _StickySection({required this.header, required this.rows});
 
-  final Widget header;
-  final List<Widget> rows;
+class _PinnedHeaderDelegate extends SliverPersistentHeaderDelegate {
+  _PinnedHeaderDelegate({required this.extent, required this.child});
+
+  final double extent;
+  final Widget child;
 
   @override
-  State<_StickySection> createState() => _StickySectionState();
-}
-
-class _StickySectionState extends State<_StickySection> {
-  ScrollPosition? _position;
+  double get minExtent => extent;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _position = Scrollable.maybeOf(context)?.position;
+  double get maxExtent => extent;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return SizedBox(height: extent, width: double.infinity, child: child);
   }
 
   @override
-  Widget build(BuildContext context) {
-    return _StickyHeader(
-      position: _position,
-      header: IgnorePointer(child: widget.header),
-      content: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: widget.rows,
-      ),
-    );
-  }
-}
-
-class _StickyHeader extends MultiChildRenderObjectWidget {
-  _StickyHeader({
-    required this.position,
-    required Widget header,
-    required Widget content,
-  }) : super(children: [header, content]);
-
-  final ScrollPosition? position;
-
-  @override
-  RenderObject createRenderObject(BuildContext context) {
-    return _RenderStickyHeader(position: position);
-  }
-
-  @override
-  void updateRenderObject(BuildContext context, _RenderStickyHeader renderObject) {
-    renderObject.position = position;
-  }
-}
-
-class _StickyParentData extends ContainerBoxParentData<RenderBox> {}
-
-class _RenderStickyHeader extends RenderBox
-    with
-        ContainerRenderObjectMixin<RenderBox, _StickyParentData>,
-        RenderBoxContainerDefaultsMixin<RenderBox, _StickyParentData> {
-  _RenderStickyHeader({ScrollPosition? position}) : _position = position;
-
-  ScrollPosition? _position;
-
-  ScrollPosition? get position => _position;
-
-  set position(ScrollPosition? value) {
-    if (_position == value) return;
-    if (attached) _position?.removeListener(_onScroll);
-    _position = value;
-    if (attached) _position?.addListener(_onScroll);
-    markNeedsPaint();
-  }
-
-  @override
-  void attach(PipelineOwner owner) {
-    super.attach(owner);
-    _position?.addListener(_onScroll);
-  }
-
-  @override
-  void detach() {
-    _position?.removeListener(_onScroll);
-    super.detach();
-  }
-
-  void _onScroll() {
-    markNeedsPaint();
-    markNeedsSemanticsUpdate();
-  }
-
-  @override
-  void setupParentData(RenderBox child) {
-    if (child.parentData is! _StickyParentData) {
-      child.parentData = _StickyParentData();
-    }
-  }
-
-  RenderBox get _header => firstChild!;
-
-  RenderBox get _content => childAfter(_header)!;
-
-  double _stuck(double headerHeight) {
-    final viewport = RenderAbstractViewport.maybeOf(this);
-    if (viewport is! RenderBox || !attached || !hasSize) return 0;
-    final dy = localToGlobal(Offset.zero, ancestor: viewport as RenderBox).dy;
-    if (dy >= 0) return 0;
-    final max = math.max(0.0, size.height - headerHeight);
-    return math.min(-dy, max);
-  }
-
-  @override
-  void performLayout() {
-    final header = _header;
-    final content = _content;
-    final width = constraints.maxWidth;
-    header.layout(
-      BoxConstraints(maxWidth: width),
-      parentUsesSize: true,
-    );
-    content.layout(
-      BoxConstraints(maxWidth: width),
-      parentUsesSize: true,
-    );
-    final height = header.size.height + content.size.height;
-    size = constraints.constrain(Size(width, height));
-    (header.parentData! as _StickyParentData).offset = Offset.zero;
-    (content.parentData! as _StickyParentData).offset = Offset(
-      0,
-      header.size.height,
-    );
-  }
-
-  @override
-  void paint(PaintingContext context, Offset offset) {
-    final header = _header;
-    final content = _content;
-    final contentOffset = (content.parentData! as _StickyParentData).offset;
-    final stuck = _stuck(header.size.height);
-    context.pushClipRect(
-      needsCompositing,
-      offset,
-      Offset.zero & size,
-      (PaintingContext context, Offset offset) {
-        context.paintChild(content, offset + contentOffset);
-        context.paintChild(header, offset + Offset(0, stuck));
-      },
-    );
-  }
-
-  @override
-  void applyPaintTransform(RenderBox child, Matrix4 transform) {
-    if (child == firstChild) {
-      transform.translateByDouble(0, _stuck(child.size.height), 0, 1);
-      return;
-    }
-    final childOffset = (child.parentData! as _StickyParentData).offset;
-    transform.translateByDouble(childOffset.dx, childOffset.dy, 0, 1);
-  }
-
-  @override
-  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
-    final header = _header;
-    final stuck = _stuck(header.size.height);
-    if (header.hitTest(result, position: position - Offset(0, stuck))) {
-      return true;
-    }
-    final content = _content;
-    final contentOffset = (content.parentData! as _StickyParentData).offset;
-    return content.hitTest(result, position: position - contentOffset);
-  }
+  bool shouldRebuild(covariant _PinnedHeaderDelegate oldDelegate) => true;
 }
 
 class _InlineHeader extends StatelessWidget {
@@ -698,9 +588,11 @@ class _Footer extends StatelessWidget {
         onPressed: clearEnabled ? onClear : null,
         style: OutlinedButton.styleFrom(
           minimumSize: const Size(0, 48),
-          foregroundColor: colors.accent,
+          foregroundColor: colors.accentText,
           disabledForegroundColor: colors.muted,
-          side: BorderSide(color: clearEnabled ? colors.accent : colors.border),
+          side: BorderSide(
+            color: clearEnabled ? colors.accentText : colors.border,
+          ),
           shape: const StadiumBorder(),
           textStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
@@ -711,8 +603,8 @@ class _Footer extends StatelessWidget {
       key: const Key('filter-sheet-apply'),
       style: FilledButton.styleFrom(
         minimumSize: const Size(0, 48),
-        backgroundColor: colors.accent,
-        foregroundColor: colors.onAccent,
+        backgroundColor: colors.buttonFill,
+        foregroundColor: colors.onButton,
         shape: const StadiumBorder(),
         textStyle: GoogleFonts.poppins(
           fontSize: 15,
@@ -789,7 +681,7 @@ class _JumpChip extends StatelessWidget {
                 style: GoogleFonts.poppins(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: selected ? colors.radio : colors.label,
+                  color: selected ? colors.accentText : colors.label,
                 ),
               ),
             ),
@@ -962,7 +854,7 @@ class _ErrorBody extends StatelessWidget {
                     'Try again',
                     style: GoogleFonts.poppins(
                       fontWeight: FontWeight.w700,
-                      color: colors.accent,
+                      color: colors.accentText,
                     ),
                   ),
                 ),

@@ -124,7 +124,17 @@ Future<void> applyFilterSheet(WidgetTester tester) async {
 
 Future<void> chooseAndApply(WidgetTester tester, Key option) async {
   final finder = find.byKey(option);
-  await tester.ensureVisible(finder);
+  if (finder.hitTestable().evaluate().isEmpty) {
+    await tester.scrollUntilVisible(
+      finder,
+      240,
+      scrollable: find.descendant(
+        of: find.byKey(const Key('filter-sheet-options')),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
   await tester.tap(finder);
   await tester.pump();
   await applyFilterSheet(tester);
