@@ -149,6 +149,9 @@ class AdminTempleService implements AdminTempleApi {
     // mirror change, and it refreshes the text fields and the temple_index
     // entry. Text-only edits skip the callable. After create, gallery edits
     // must use setTemplePhotos (imageUrl / images are client-immutable).
+    // When photos are unchanged, omit imageUrl/images: writePhotos rebuilds
+    // images from photos[], which drops extra gallery URLs on 1-photo prod
+    // temples (arunachaleswarar, brihadeeswarar, …).
     var photosSaved = false;
     if (photos is List && !templeDataDeepEquals(photos, previous['photos'])) {
       final list = [
@@ -170,6 +173,9 @@ class AdminTempleService implements AdminTempleApi {
         'imageUrl': payload['imageUrl'],
         'images': payload['images'],
       };
+    } else {
+      payload.remove('imageUrl');
+      payload.remove('images');
     }
 
     try {
@@ -222,6 +228,7 @@ class AdminTempleService implements AdminTempleApi {
     final photoMaps = photosForGalleryAppend(
       stored: previous,
       mergedImages: updated.images,
+      newlyUploadedUrls: urls.toSet(),
     );
     final mirror = deriveTemplePhotoMirror([
       for (final m in photoMaps) TemplePhoto.fromJson(m),
@@ -234,9 +241,14 @@ class AdminTempleService implements AdminTempleApi {
     );
     final payload = _payload(withPhotos, id);
     assertTemplePayloadValidForRules(payload);
+    // Normalised photos from the mirror (order === index), not the raw maps.
+    final normalisedPhotos = [
+      for (final p in payload['photos'] as List)
+        Map<String, dynamic>.from(p as Map),
+    ];
 
     try {
-      await _store.setPhotos(id, photoMaps);
+      await _store.setPhotos(id, normalisedPhotos);
     } catch (e) {
       throw StateError(
         'Photos may not have been saved; retry. '
@@ -245,7 +257,7 @@ class AdminTempleService implements AdminTempleApi {
     }
     final stored = {
       ...previous,
-      'photos': photoMaps,
+      'photos': normalisedPhotos,
       'imageUrl': payload['imageUrl'],
       'images': payload['images'],
     };
@@ -383,12 +395,14 @@ double? _preferCoordinate(double? current, double? stored) {
 
 /// Builds the photos list for [AdminTempleService.appendTempleImages].
 ///
-/// Keeps credit/licence/thumbs for URLs already in `photos`, and adds new
-/// URLs as Own-licence entries (no credit required). Order matches the
-/// merged gallery so the callable mirror equals [images].
+/// Keeps credit/licence/thumbs for URLs already in `photos`. Only URLs in
+/// [newlyUploadedUrls] may be added as Own-licence entries. An existing
+/// gallery URL with no `photos` entry is refused — inventing Own would
+/// erase Wikimedia attribution on legacy temples (KAN-200 / C5).
 List<Map<String, dynamic>> photosForGalleryAppend({
   required Map<String, dynamic> stored,
   required List<String> mergedImages,
+  required Set<String> newlyUploadedUrls,
 }) {
   if (mergedImages.length > kMaxTemplePhotos) {
     throw StateError('A temple can have at most $kMaxTemplePhotos photos.');
@@ -405,6 +419,10 @@ List<Map<String, dynamic>> photosForGalleryAppend({
       }
     }
   }
+  final storedImageUrls = <String>{
+    for (final item in (stored['images'] is List ? stored['images'] as List : const []))
+      if (item != null && item.toString().trim().isNotEmpty) item.toString().trim(),
+  };
   return [
     for (var i = 0; i < mergedImages.length; i++)
       () {
@@ -412,6 +430,13 @@ List<Map<String, dynamic>> photosForGalleryAppend({
         final prev = byUrl[url];
         if (prev != null) {
           return {...prev, 'order': i};
+        }
+        // Existing gallery URL with no photos[] row: never invent Own
+        // (Wikimedia credit would be lost). Only brand-new uploads may be Own.
+        if (storedImageUrls.contains(url) || !newlyUploadedUrls.contains(url)) {
+          throw StateError(
+            'Add licences for the existing photos in the editor first',
+          );
         }
         return {
           'url': url,

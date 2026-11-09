@@ -56,8 +56,24 @@ test("mirror is the cover url and the urls in list order", () => {
   assert.deepEqual(photoMirror([]), { imageUrl: "", images: [] });
 });
 
-test("strings longer than 4000 UTF-16 units are refused without spreading", () => {
+test("strings longer than 2000/200 UTF-16 units are refused", () => {
   const huge = `https://example.com/${"a".repeat(5000)}`;
   assert.match(photoError({ url: huge, licence: "CC0", order: 0 }), /over 2000/);
   assert.match(photoError({ ...prodPhoto("t", 0), credit: "c".repeat(5000) }), /over 200/);
+});
+
+test("UTF-16 emoji credit/url limits match rules size()", () => {
+  // 😀 is 2 UTF-16 code units. Rules size() uses the same unit as JS length.
+  const credit200 = `${"c".repeat(198)}😀`;
+  const credit201 = `${"c".repeat(199)}😀`;
+  assert.equal(credit200.length, 200);
+  assert.equal(credit201.length, 201);
+  assert.equal(photoError({ ...prodPhoto("t", 0), credit: credit200 }), null);
+  assert.match(photoError({ ...prodPhoto("t", 0), credit: credit201 }), /over 200/);
+  const url2000 = `https://example.com/${"a".repeat(1978)}😀`;
+  const url2001 = `https://example.com/${"a".repeat(1979)}😀`;
+  assert.equal(url2000.length, 2000);
+  assert.equal(url2001.length, 2001);
+  assert.equal(photoError({ ...prodPhoto("t", 0), url: url2000, credit: "x" }), null);
+  assert.match(photoError({ ...prodPhoto("t", 0), url: url2001, credit: "x" }), /over 2000/);
 });

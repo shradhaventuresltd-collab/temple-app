@@ -1096,6 +1096,47 @@ test("client photo changes are denied at 0, 1, 2, 9 and max photos, with and wit
   }
 });
 
+test("text save with 1 photo and extra images is allowed when mirror unchanged", async () => {
+  // Prod shape (arunachaleswarar, brihadeeswarar, …): 1 photos[] + 3–4 images[].
+  const db = adminDb("admin-kan200-1plus");
+  const photo = { ...KAVLEM.photos[0], order: 0 };
+  const images = [
+    photo.url,
+    "https://example.com/extra-1.jpg",
+    "https://example.com/extra-2.jpg",
+    "https://example.com/extra-3.jpg",
+  ];
+  const id = "kan200-1photo-extras";
+  const seeded = {
+    ...kavlemDoc(1),
+    id,
+    photos: [photo],
+    images,
+    imageUrl: photo.url,
+  };
+  await seedRaw(id, seeded);
+  // Admin text save that resends photos but must not rebuild images from photos.
+  await assertSucceeds(
+    setDoc(
+      at(db, `temples/${id}`),
+      { story: "Text only.", photos: [photo] },
+      { merge: true },
+    ),
+  );
+  const after = await readRaw(id);
+  assert.equal(after.story, "Text only.");
+  assert.deepEqual(after.images, images);
+  assert.equal(after.imageUrl, photo.url);
+  // Changing images while leaving photos alone is still denied.
+  await assertFails(
+    setDoc(
+      at(db, `temples/${id}`),
+      { images: [photo.url], imageUrl: photo.url },
+      { merge: true },
+    ),
+  );
+});
+
 test("client imageUrl and images changes are denied (mirror lock)", async () => {
   const db = adminDb("admin-kan200-mirror");
   for (const n of [0, 1, 2, 9, MAX_GALLERY]) {
