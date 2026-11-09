@@ -1,6 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:temple_app/models/temple_index.dart';
+
+/// Region of the `setTemplePhotos` callable; the Firestore region.
+const kTemplePhotosRegion = 'asia-south1';
+
+/// Admin-only callable that writes `photos`, `imageUrl` and `images`.
+const kSetTemplePhotosCallable = 'setTemplePhotos';
 
 /// Persistence used by [AdminTempleService] so write paths can be tested
 /// without a live Firebase project.
@@ -23,6 +30,12 @@ abstract class TempleWriteStore {
 
   Future<void> deleteDocument(String id, {Map<String, dynamic>? previous});
 
+  /// Replaces `temples/{id}.photos` and its `imageUrl` / `images` mirror
+  /// through the admin `setTemplePhotos` callable (KAN-200). Photos are
+  /// client-immutable in the rules once that change is deployed. Text
+  /// fields are not written here.
+  Future<void> setPhotos(String id, List<Map<String, dynamic>> photos);
+
   /// Deletes objects under `temples/{docId}/`. Returns how many were removed.
   /// External URLs (picsum seed images, etc.) are not Storage objects.
   Future<int> deleteStoragePrefix(String docId);
@@ -33,11 +46,25 @@ class FirebaseTempleWriteStore implements TempleWriteStore {
   FirebaseTempleWriteStore({
     FirebaseFirestore? firestore,
     FirebaseStorage? storage,
+    FirebaseFunctions? functions,
   }) : _firestore = firestore ?? FirebaseFirestore.instance,
-       _storage = storage ?? FirebaseStorage.instance;
+       _storage = storage ?? FirebaseStorage.instance,
+       _functions = functions;
 
   final FirebaseFirestore _firestore;
   final FirebaseStorage _storage;
+  final FirebaseFunctions? _functions;
+
+  @override
+  Future<void> setPhotos(String id, List<Map<String, dynamic>> photos) async {
+    final functions =
+        _functions ??
+        FirebaseFunctions.instanceFor(region: kTemplePhotosRegion);
+    await functions.httpsCallable(kSetTemplePhotosCallable).call<Object?>({
+      'templeId': id,
+      'photos': photos,
+    });
+  }
 
   CollectionReference<Map<String, dynamic>> get _col =>
       _firestore.collection('temples');
@@ -240,6 +267,10 @@ class MemoryTempleWriteStore implements TempleWriteStore {
   List<String> lastIndexFieldPaths = const [];
 
   Object? setError;
+  Object? setPhotosError;
+
+  /// Every [setPhotos] call, in order: `{'templeId': id, 'photos': photos}`.
+  final List<Map<String, dynamic>> photoCalls = [];
   Object? deleteDocumentError;
   Object? deleteStorageError;
   int deleteStorageCalls = 0;
@@ -276,6 +307,21 @@ class MemoryTempleWriteStore implements TempleWriteStore {
       docs[id] = {...?docs[id], ...payload};
     }
     _applyIndexPlan(plan);
+  }
+
+  /// Same effect as the callable: photos and the mirror, nothing else.
+  @override
+  Future<void> setPhotos(String id, List<Map<String, dynamic>> photos) async {
+    photoCalls.add({'templeId': id, 'photos': photos});
+    if (setPhotosError != null) throw setPhotosError!;
+    final doc = docs[id];
+    if (doc == null) throw StateError('Temple was not found.');
+    docs[id] = {
+      ...doc,
+      'photos': [for (final p in photos) Map<String, dynamic>.from(p)],
+      'imageUrl': photos.isEmpty ? '' : photos.first['url'],
+      'images': [for (final p in photos) p['url']],
+    };
   }
 
   @override
