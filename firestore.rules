@@ -28,10 +28,9 @@ service cloud.firestore {
     //       credit: string, max 200, required for CC-BY and CC-BY-SA
     //       thumbUrl: optional https string, max 2000 (480px list thumb)
     //       galleryUrl: optional https string, max 2000 (~1080px detail copy)
-    //     On update, photos is immutable for clients; the setTemplePhotos
-    //     callable (functions/src/photo_validator.js) writes it (KAN-200).
-    //     imageUrl and images are mirrors of photos, written in the same
-    //     admin payload. Existing docs are not backfilled.
+    //     On update, photos, imageUrl and images are immutable for clients;
+    //     the setTemplePhotos callable (functions/src/photo_validator.js)
+    //     writes them together (KAN-200). Existing docs are not backfilled.
     //   - latitude: number (-90 to 90) or null when coordinates are not listed
     //   - longitude: number (-180 to 180) or null when coordinates are not listed
     //     Both are null, or both are numbers. One set and one null is rejected.
@@ -394,14 +393,15 @@ service cloud.firestore {
       // createdAt is immutable once set. Research fields (dress code KAN-197,
       // timings verification #125) are written by the Admin SDK only: an
       // admin merge save keeps them, but a client write cannot add, change,
-      // or delete them. photos is client-immutable too (KAN-200): add,
-      // reorder, delete and cover changes go through the admin-only
-      // setTemplePhotos callable. A save that resends the stored photos
-      // unchanged still passes. Create still checks photos in full.
+      // or delete them. photos, imageUrl and images are client-immutable
+      // too (KAN-200): add, reorder, delete, cover and gallery changes go
+      // through the admin-only setTemplePhotos callable. A save that
+      // resends the stored photos / imageUrl / images unchanged still
+      // passes. Create still checks photos in full.
       allow update: if isAdmin() &&
         isValidTempleUpdate(request.resource.data) &&
         areImmutableFieldsUnchanged([
-          'createdAt', 'photos',
+          'createdAt', 'photos', 'imageUrl', 'images',
           'dressCode', 'dressCodeSourceUrl', 'dressCodeSourceType',
           'dressCodeVerified', 'timingsVerified', 'timingsSourceUrl',
           'timingsSourceType'

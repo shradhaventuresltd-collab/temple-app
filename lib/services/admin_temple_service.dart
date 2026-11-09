@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:temple_app/config/build_flags.dart';
+import 'package:temple_app/models/photo_licence.dart';
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/services/seed_service.dart';
 import 'package:temple_app/services/temple_write_store.dart';
@@ -35,12 +37,11 @@ abstract class AdminTempleApi {
 
   Future<AdminDeleteResult> deleteTemple(String id);
 
-  /// After Storage upload: merge [imageUrls] into `images` and write a
-  /// **full** temple payload (not an images-only `update` / `arrayUnion`).
-  ///
-  /// Firestore rules validate `request.resource.data` on every update, so a
-  /// partial images write is denied when the existing doc is missing required
-  /// fields. Returns the temple as persisted.
+  /// After Storage upload: merge [imageUrls] into the gallery through the
+  /// [setTemplePhotos] callable (KAN-200), then refresh text fields and the
+  /// temple_index entry. Create still writes photos directly; after create,
+  /// gallery edits must go through setTemplePhotos — imageUrl / images are
+  /// client-immutable on update. Returns the temple as persisted.
   Future<Temple> appendTempleImages(Temple temple, List<String> imageUrls);
 }
 
@@ -143,10 +144,12 @@ class AdminTempleService implements AdminTempleApi {
     var stored = previous;
     final photos = payload['photos'];
     // KAN-200: a photo change (add, reorder, delete, cover) goes through the
-    // admin callable. The direct save below then sends the same photos the
-    // callable stored, so Firestore sees no photo change, and it refreshes
-    // the text fields and the temple_index entry. Text-only edits skip the
-    // callable.
+    // admin callable. The direct save below then sends the same photos /
+    // imageUrl / images the callable stored, so Firestore sees no photo or
+    // mirror change, and it refreshes the text fields and the temple_index
+    // entry. Text-only edits skip the callable. After create, gallery edits
+    // must use setTemplePhotos (imageUrl / images are client-immutable).
+    var photosSaved = false;
     if (photos is List && !templeDataDeepEquals(photos, previous['photos'])) {
       final list = [
         for (final p in photos) Map<String, dynamic>.from(p as Map),
@@ -154,11 +157,13 @@ class AdminTempleService implements AdminTempleApi {
       try {
         await _store.setPhotos(id, list);
       } catch (e) {
+        // The server may already have committed when the client times out.
         throw StateError(
-          'Could not save photos. Nothing was changed. '
+          'Photos may not have been saved; retry. '
           '${adminWriteErrorMessage(e)}',
         );
       }
+      photosSaved = true;
       stored = {
         ...previous,
         'photos': list,
@@ -167,11 +172,22 @@ class AdminTempleService implements AdminTempleApi {
       };
     }
 
-    await _store.set(id, payload, isNew: false, previous: stored);
+    try {
+      await _store.set(id, payload, isNew: false, previous: stored);
+    } catch (e) {
+      if (photosSaved) {
+        throw StateError(
+          'Photos saved; details/directory not updated, save again. '
+          '${adminWriteErrorMessage(e)}',
+        );
+      }
+      rethrow;
+    }
   }
 
-  /// Storage has already succeeded. Merge URLs, then `set(merge: true)` the
-  /// complete temple map rules expect — never `arrayUnion` on `images` alone.
+  /// Storage has already succeeded. Merge URLs through setTemplePhotos, then
+  /// refresh text fields and temple_index. Never `arrayUnion` on `images`
+  /// alone — imageUrl / images are client-immutable on update (KAN-200).
   @override
   Future<Temple> appendTempleImages(
     Temple temple,
@@ -192,29 +208,56 @@ class AdminTempleService implements AdminTempleApi {
       throw StateError('No image URLs to save.');
     }
 
-    final stored = await _store.get(id);
-    if (stored == null) {
+    final previous = await _store.get(id);
+    if (previous == null) {
       throw StateError(
         'Temple was not found. It may have already been deleted.',
       );
     }
 
-    _assertNoDisallowedFirestoreKeys(stored);
+    _assertNoDisallowedFirestoreKeys(previous);
 
-    final current = coalesceTemple(Temple.fromMap(id, stored), temple);
+    final current = coalesceTemple(Temple.fromMap(id, previous), temple);
     final updated = templeWithAppendedImages(current, urls);
-    final payload = _payload(updated, id);
+    final photoMaps = photosForGalleryAppend(
+      stored: previous,
+      mergedImages: updated.images,
+    );
+    final mirror = deriveTemplePhotoMirror([
+      for (final m in photoMaps) TemplePhoto.fromJson(m),
+    ]);
+    final withPhotos = updated.copyWith(
+      photos: mirror.photos,
+      imageUrl: mirror.imageUrl,
+      images: mirror.images,
+      writePhotos: true,
+    );
+    final payload = _payload(withPhotos, id);
     assertTemplePayloadValidForRules(payload);
 
+    try {
+      await _store.setPhotos(id, photoMaps);
+    } catch (e) {
+      throw StateError(
+        'Photos may not have been saved; retry. '
+        '${adminWriteErrorMessage(e)}',
+      );
+    }
+    final stored = {
+      ...previous,
+      'photos': photoMaps,
+      'imageUrl': payload['imageUrl'],
+      'images': payload['images'],
+    };
     try {
       await _store.set(id, payload, isNew: false, previous: stored);
     } catch (e) {
       throw StateError(
-        'Storage upload succeeded, but Firestore could not save the image '
-        'list. ${adminWriteErrorMessage(e)}',
+        'Photos saved; details/directory not updated, save again. '
+        '${adminWriteErrorMessage(e)}',
       );
     }
-    return updated;
+    return withPhotos;
   }
 
   /// Deletes the Firestore document after removing known Storage objects
@@ -336,6 +379,48 @@ void _assertNoDisallowedFirestoreKeys(Map<String, dynamic> stored) {
 double? _preferCoordinate(double? current, double? stored) {
   if (current == null || current == 0) return stored;
   return current;
+}
+
+/// Builds the photos list for [AdminTempleService.appendTempleImages].
+///
+/// Keeps credit/licence/thumbs for URLs already in `photos`, and adds new
+/// URLs as Own-licence entries (no credit required). Order matches the
+/// merged gallery so the callable mirror equals [images].
+List<Map<String, dynamic>> photosForGalleryAppend({
+  required Map<String, dynamic> stored,
+  required List<String> mergedImages,
+}) {
+  if (mergedImages.length > kMaxTemplePhotos) {
+    throw StateError('A temple can have at most $kMaxTemplePhotos photos.');
+  }
+  final byUrl = <String, Map<String, dynamic>>{};
+  final raw = stored['photos'];
+  if (raw is List) {
+    for (final item in raw) {
+      if (item is! Map) continue;
+      final map = Map<String, dynamic>.from(item);
+      final url = map['url'];
+      if (url is String && url.trim().isNotEmpty) {
+        byUrl[url.trim()] = map;
+      }
+    }
+  }
+  return [
+    for (var i = 0; i < mergedImages.length; i++)
+      () {
+        final url = mergedImages[i];
+        final prev = byUrl[url];
+        if (prev != null) {
+          return {...prev, 'order': i};
+        }
+        return {
+          'url': url,
+          'licence': PhotoLicence.own.wireValue,
+          'order': i,
+          'credit': '',
+        };
+      }(),
+  ];
 }
 
 /// Builds the temple that will be written after an image upload.

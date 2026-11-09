@@ -31,6 +31,13 @@ export const GOOD_PHOTOS = {
   "order 11": { ...base, order: 11 },
   "credit of 200": { ...base, credit: "c".repeat(200) },
   "url of 2000": { ...base, url: `https://example.com/${"a".repeat(2000 - 20)}` },
+  // Emoji at the limit: rules size() is UTF-8 bytes; the validator counts
+  // code points. Size so UTF-8 bytes hit 200 / 2000 (code points stay under).
+  "credit of 200 with emoji": { ...base, credit: `${"c".repeat(196)}😀` },
+  "url of 2000 with emoji": {
+    ...base,
+    url: `https://example.com/${"a".repeat(2000 - 20 - 4)}😀`,
+  },
   "thumb only": without("galleryUrl"),
   "gallery only": without("thumbUrl"),
 };
@@ -39,6 +46,9 @@ export const BAD_PHOTOS = {
   "http url": { ...base, url: "http://example.com/a.jpg" },
   "whitespace in url": { ...base, url: "https://example.com/a b.jpg" },
   "tab in url": { ...base, url: "https://example.com/a\tb.jpg" },
+  "newline in url": { ...base, url: "https://example.com/a\nb.jpg" },
+  "cr in url": { ...base, url: "https://example.com/a\rb.jpg" },
+  "form feed in url": { ...base, url: "https://example.com/a\fb.jpg" },
   "url of 2001": { ...base, url: `https://example.com/${"a".repeat(2001 - 20)}` },
   "url not a string": { ...base, url: ["https://example.com/a.jpg"] },
   "missing url": without("url"),
