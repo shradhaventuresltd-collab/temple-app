@@ -385,25 +385,30 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
                                           (pinSearch ? searchHeight : 0) -
                                           jumpHeight >=
                                       96;
-                              final anyRow = _anyVisible && widget.any != null
+                              final chrome = (pinSearch ? searchHeight : 0) +
+                                  (pinJumps ? jumpHeight : 0);
+                              final room = constraints.maxHeight - chrome;
+                              // A full 48px row needs 96px left so the list
+                              // can still scroll. A short landscape sheet
+                              // (900x400) is under that, and a North jump
+                              // then hides Any state (run 42710826857).
+                              // Pin a 32px row there instead.
+                              final pinAnyFull =
+                                  _anyVisible && widget.any != null && room >= 96;
+                              final pinAnyCompact = _anyVisible &&
+                                  widget.any != null &&
+                                  !pinAnyFull &&
+                                  room >= 32;
+                              final anyRow = pinAnyFull
                                   ? _optionTile(widget.any!)
+                                  : pinAnyCompact
+                                  ? _optionTile(widget.any!, compact: true)
                                   : null;
-                              // Any state / district / deity sits above a
-                              // long list. Once the sheet scrolls to a
-                              // region or a selected row, that head row is
-                              // off screen (run 42710826857: North states,
-                              // six pulls never reached Any state).
-                              final pinAny =
-                                  anyRow != null &&
-                                  constraints.maxHeight -
-                                          (pinSearch ? searchHeight : 0) -
-                                          (pinJumps ? jumpHeight : 0) >=
-                                      96;
                               return Column(
                                 children: [
                                   if (pinSearch) search,
                                   if (pinJumps) jumpRow,
-                                  if (pinAny) anyRow,
+                                  ?anyRow,
                                   Expanded(
                                     child: _body(
                                       colors,
@@ -414,7 +419,7 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
                                         if (jumpRow != null && !pinJumps)
                                           jumpRow,
                                       ],
-                                      includeAny: !pinAny,
+                                      includeAny: anyRow == null,
                                     ),
                                   ),
                                 ],
@@ -571,10 +576,11 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
     return math.max(36, font * 1.5 + 16);
   }
 
-  Widget _optionTile(FilterSheetOption option) {
+  Widget _optionTile(FilterSheetOption option, {bool compact = false}) {
     return _OptionRow(
       option: option,
       anchor: _anchor(option.id),
+      compact: compact,
       onTap: () => widget.onOption?.call(option),
     );
   }
@@ -820,11 +826,13 @@ class _OptionRow extends StatelessWidget {
     required this.option,
     required this.anchor,
     required this.onTap,
+    this.compact = false,
   });
 
   final FilterSheetOption option;
   final GlobalKey anchor;
   final VoidCallback onTap;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -843,9 +851,12 @@ class _OptionRow extends StatelessWidget {
             key: Key(option.id),
             onTap: onTap,
             child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 48),
+              constraints: BoxConstraints(minHeight: compact ? 32 : 48),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: compact ? 2 : 0,
+                ),
                 child: Row(
                   children: [
                     Expanded(

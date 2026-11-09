@@ -145,8 +145,9 @@ SHARD_COUNT=15
 # 42699042193 and 42700039403; the siblings were 419-574s). Short flows
 # whose measured time is under half the new cap drop a 5th field so the
 # worst shard stays 2129s and every plan_e2e_s path stays under 2700s.
-# shard 12: 189 + 2 x 650 + 350 = 1839s (06a, 06b, 31).
-# shards 10, 11 and 13: 2129s. All <= 39 min. Step timeout 42.
+# shard 12: 189 + 2 x (400 + 50) + (600 + 50) + (300 + 50) = 2089s
+# (06a1, 06a2, 06b, 31). Worst shard 2129s (1-5, 9-11, 13, 14).
+# All <= 39 min (2340s). Worst plan_e2e_s path 2675s <= 2700s.
 # shellcheck disable=SC2034 # read by self_test.sh (sources this file)
 SHARD_WORST_MAX_S=$((39 * 60))
 

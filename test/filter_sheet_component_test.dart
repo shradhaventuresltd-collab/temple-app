@@ -344,6 +344,44 @@ void main() {
     expect(find.byKey(const Key('filter-section-deity')), findsOneWidget);
   });
 
+  testWidgets('Any state stays tappable after a North jump on a short sheet', (
+    tester,
+  ) async {
+    const states = [
+      'Himachal Pradesh',
+      'Delhi',
+      'Punjab',
+      'Uttar Pradesh',
+      'Kerala',
+      'Tamil Nadu',
+      'Karnataka',
+      'Gujarat',
+      'Rajasthan',
+      'Maharashtra',
+      'West Bengal',
+      'Odisha',
+      'Bihar',
+    ];
+    final many = [
+      for (final state in states)
+        filterTemple(
+          name: '$state temple',
+          state: state,
+          city: 'City',
+          deity: 'Shiva',
+        ),
+    ];
+    await pumpFilterBar(tester, temples: many, size: const Size(900, 400));
+    await openFilterChip(tester, 'state');
+    await tester.tap(find.byKey(const Key('filter-region-jump-north')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('filter-option-state-any')).hitTestable(),
+      findsOneWidget,
+    );
+    expect(find.text('NORTH'), findsWidgets);
+  });
+
   testWidgets('Any state stays visible after the list scrolls', (
     tester,
   ) async {

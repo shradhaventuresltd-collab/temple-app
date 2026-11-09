@@ -1256,6 +1256,38 @@ grep -q '^SWIPE' <<<"$run427_out" && { echo "run427: clear/jump must reach Any s
 grep -q '^CLEAR' <<<"$run427_out" || { echo "run427: search field should be cleared on the North dump: $run427_out" >&2; exit 1; }
 rm -f "$run427_head"
 echo "run427 dry-run: Any state returns after search clear, no swipe"
+# Short sheet: Any is not pinned, so clearing an empty search leaves the
+# North window in place. One bounded fallback swipe then reaches the head.
+run427_short_head="$(mktemp)"
+python3 - "$run427/30s2-state-clear.xml" "$run427_short_head" <<'PY'
+import pathlib, sys
+text = pathlib.Path(sys.argv[1]).read_text()
+node = '<node resource-id="filter-option-state-any" content-desc="Any state  4" bounds="[0,300][320,348]" />'
+text = text.replace('<hierarchy rotation="0">', '<hierarchy rotation="0">' + node, 1)
+pathlib.Path(sys.argv[2]).write_text(text)
+PY
+run427_short="$(
+  export EMULATOR_FLOW=self-test EMULATOR_ARTIFACTS=/tmp EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  n=0
+  ui_dump() {
+    n=$((n + 1))
+    if (( n <= 2 )); then cp "$run427/30s2-state-clear.xml" "$DUMP"
+    else cp "$run427_short_head" "$DUMP"; fi
+  }
+  ui_sheet_swipe() { echo "SWIPE $*"; return 0; }
+  ui_tap() { echo "CLEAR"; }
+  sleep() { :; }
+  adb_shell_capped() { return 0; }
+  ensure_list_head state
+)"
+[[ "$(grep -c '^SWIPE ' <<<"$run427_short")" == 1 ]] || {
+  echo "run427 short sheet: one fallback swipe must reach Any state: $run427_short" >&2
+  exit 1
+}
+rm -f "$run427_short_head"
+echo "run427 dry-run: unpinned short sheet reaches Any state in one fallback swipe"
 if ! awk '
   /open_browse\(\)/ { fn = 1 }
   fn && $0 ~ /scroll_drawer_until --text-regex/ { search = 1 }
@@ -3158,11 +3190,23 @@ pk4="$(
   export EMULATOR_FLOW=99-pick EMULATOR_ARTIFACTS="$r4/pk" EMULATOR_PACKAGE=com.example
   # shellcheck disable=SC1091
   source tool/emulator/lib/common.sh
+  # Frozen picker clock. A wall-clock tick between the deadline and this
+  # stub used to print left=29 instead of left=30.
+  EMULATOR_NOW_S=1000
   wait_out_district_loader() { :; }
   ui_dump() { return 0; }
+  # sheet_search_pick and ui_find used to run here, between the deadline
+  # and seek_option, and a wall-clock tick made left=29 (runs
+  # 42717632241 and 42718876928).
+  sheet_search_pick() { return 1; }
+  ui_find() { return 1; }
   n=0
-  seek_option() { n=$((n + 1)); echo "SEEK $n fling=${SEEK_FLING_MS:-120} left=$(( $3 - SECONDS ))" >&2
-    if (( n == 1 )); then return 1; fi; UI_CX=1 UI_CY=2 UI_TEXT="Madurai  4"; return 0; }
+  seek_option() {
+    if [[ -n "${EMULATOR_SEEK_STUB_DELAY:-}" ]]; then command sleep "$EMULATOR_SEEK_STUB_DELAY"; fi
+    n=$((n + 1))
+    echo "SEEK $n fling=${SEEK_FLING_MS:-120} left=$(( $3 - $(emulator_now) ))" >&2
+    if (( n == 1 )); then return 1; fi; UI_CX=1 UI_CY=2 UI_TEXT="Madurai  4"; return 0;
+  }
   ui_tap() { :; }
   # Two-dump confirmation is tested on its own (round 4.3); here only the budget.
   stable_option_tap() { SELECTED_LABEL="$(chip_label "$UI_TEXT")"; }

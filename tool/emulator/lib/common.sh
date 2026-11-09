@@ -56,6 +56,18 @@ STEP_BUDGET_S="${EMULATOR_STEP_BUDGET_S:-150}"
 STEP_STARTED=$SECONDS
 STEP_TIMED_OUT=0
 step_reset() { STEP_STARTED=$SECONDS; STEP_TIMED_OUT=0; }
+
+# Whole seconds for the picker deadline. Production uses the shell clock.
+# A self-test sets EMULATOR_NOW_S to a frozen integer so a wall-clock tick
+# between "deadline = now + 30" and the seek stub cannot change the
+# remaining budget (runs 42717632241 and 42718876928: left=29 vs left=30).
+emulator_now() {
+  if [[ -n "${EMULATOR_NOW_S+x}" ]]; then
+    printf '%s\n' "$EMULATOR_NOW_S"
+  else
+    printf '%s\n' "$SECONDS"
+  fi
+}
 step_budget_ok() {
   if (( SECONDS - STEP_STARTED > STEP_BUDGET_S )); then
     if (( ! STEP_TIMED_OUT )); then
@@ -2127,7 +2139,7 @@ select_labeled() {
   fi
   local kind
   kind="$(printf '%s' "$_section" | tr '[:upper:]' '[:lower:]')"
-  started=$SECONDS
+  started=$(emulator_now)
   deadline=$((started + PICKER_GIVEUP_S))
   if [[ "$kind" =~ ^(state|district|deity)$ ]] && (( PICKER_LONG_GIVEUP_S > PICKER_GIVEUP_S )); then
     deadline=$((started + PICKER_LONG_GIVEUP_S))
@@ -2149,7 +2161,7 @@ select_labeled() {
     # "list stopped moving" (rc 1) on a slow (cold-booted, swiftshader)
     # emulator: 120ms flings were not taken as drags. One more walk with
     # slower flings while the deadline allows (run 41373837994: 17, 29).
-    if (( seek_rc == 1 )) && (( SECONDS + 8 < seek_deadline )); then
+    if (( seek_rc == 1 )) && (( $(emulator_now) + 8 < seek_deadline )); then
       echo "select_labeled: retrying the ${kind} walk with ${SEEK_RETRY_FLING_MS:-300}ms flings" >&2
       seek_rc=0
       SEEK_FLING_MS="${SEEK_RETRY_FLING_MS:-300}" seek_option "$kind" "$name_hint" "$seek_deadline" ${prefix_flag:+"$prefix_flag"} || seek_rc=$?
@@ -2179,15 +2191,15 @@ select_labeled() {
     fi
   fi
   for pass in 1 2; do
-    if (( SECONDS >= deadline )); then
-      echo "select_labeled: gave up looking for '${regex}' after $((SECONDS - started))s" >&2
+    if (( $(emulator_now) >= deadline )); then
+      echo "select_labeled: gave up looking for '${regex}' after $(( $(emulator_now) - started ))s" >&2
       return 1
     fi
     if [[ "$pass" -eq 2 ]]; then
       prev=""
       for i in $(seq 1 40); do
-        if (( SECONDS >= deadline )); then
-          echo "select_labeled: gave up looking for '${regex}' after $((SECONDS - started))s" >&2
+        if (( $(emulator_now) >= deadline )); then
+          echo "select_labeled: gave up looking for '${regex}' after $(( $(emulator_now) - started ))s" >&2
           return 1
         fi
         ui_dump || {
@@ -2212,8 +2224,8 @@ select_labeled() {
     prev=""
     stuck=0
     for i in $(seq 1 80); do
-      if (( SECONDS >= deadline )); then
-        echo "select_labeled: gave up looking for '${regex}' after $((SECONDS - started))s" >&2
+      if (( $(emulator_now) >= deadline )); then
+        echo "select_labeled: gave up looking for '${regex}' after $(( $(emulator_now) - started ))s" >&2
         return 1
       fi
       ui_dump || {
@@ -2289,7 +2301,7 @@ select_labeled() {
       sleep 0.3
     done
   done
-  echo "select_labeled: gave up looking for '${regex}' after $((SECONDS - started))s" >&2
+  echo "select_labeled: gave up looking for '${regex}' after $(( $(emulator_now) - started ))s" >&2
   return 1
 }
 
