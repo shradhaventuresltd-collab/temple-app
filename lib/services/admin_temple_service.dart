@@ -277,10 +277,29 @@ const kTempleFirestoreAllowedFields = {
   'tradition',
 };
 
+/// Keys the Admin SDK writes on `temples/{id}` that the app only reads:
+/// dress code (KAN-197) and timings verification (#125). `firestore.rules`
+/// lets them stay on a document through an admin merge save but rejects any
+/// client write that adds, changes, or deletes them, so [Temple.toFirestoreData]
+/// never includes them.
+const kTempleReadOnlyResearchFields = {
+  'dressCode',
+  'dressCodeSourceUrl',
+  'dressCodeSourceType',
+  'dressCodeVerified',
+  'timingsVerified',
+  'timingsSourceUrl',
+  'timingsSourceType',
+};
+
 void _assertNoDisallowedFirestoreKeys(Map<String, dynamic> stored) {
   final extra =
       stored.keys
-          .where((k) => !kTempleFirestoreAllowedFields.contains(k))
+          .where(
+            (k) =>
+                !kTempleFirestoreAllowedFields.contains(k) &&
+                !kTempleReadOnlyResearchFields.contains(k),
+          )
           .toList()
         ..sort();
   if (extra.isEmpty) return;
