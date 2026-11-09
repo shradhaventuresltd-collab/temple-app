@@ -205,8 +205,37 @@ Future<SeedResult> seedTempleData({
       existingImageUrl: already == null ? null : already['imageUrl'] as String?,
       existingImages: existingImages,
     );
-    data['imageUrl'] = honesty['imageUrl'];
-    data['images'] = honesty['images'];
+    // KAN-200: imageUrl/images are client-immutable on update. For existing
+    // temples, only send them when they equal the stored values; otherwise
+    // omit (do not invent Own licences or route a seed through
+    // setTemplePhotos — that is KAN-202 / an editor pass). Create still
+    // writes the honesty gallery.
+    if (isNew) {
+      data['imageUrl'] = honesty['imageUrl'];
+      data['images'] = honesty['images'];
+    } else {
+      final storedUrl = (already['imageUrl'] as String?)?.trim() ?? '';
+      final wantUrl = (honesty['imageUrl'] as String?)?.trim() ?? '';
+      final wantImages = [
+        for (final u in (honesty['images'] as List)) u.toString().trim(),
+      ];
+      final same =
+          wantUrl == storedUrl &&
+          wantImages.length == existingImages.length &&
+          [
+            for (var i = 0; i < wantImages.length; i++)
+              wantImages[i] == existingImages[i],
+          ].every((ok) => ok);
+      if (same) {
+        data['imageUrl'] = honesty['imageUrl'];
+        data['images'] = honesty['images'];
+      } else {
+        // toFirestoreData already set imageUrl; drop both so the merge
+        // leaves the stored mirror alone.
+        data.remove('imageUrl');
+        data.remove('images');
+      }
+    }
 
     // One _commitTemple batch per temple. Do not gather these into one
     // batch: a shard document can be written once per batch, and rules

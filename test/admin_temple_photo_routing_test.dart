@@ -61,6 +61,30 @@ void main() {
     expect((store.docs[_id]!['photos'] as List).length, 9);
   });
 
+  test('text save with 1 photo and extra images keeps the gallery', () async {
+    // Prod shape: 1 photos[] row + 3–4 images[] (arunachaleswarar, …).
+    final photo = _photo(0);
+    final images = [
+      photo.url,
+      'https://firebasestorage.googleapis.com/v0/b/app/o/extra1.jpg',
+      'https://firebasestorage.googleapis.com/v0/b/app/o/extra2.jpg',
+      'https://firebasestorage.googleapis.com/v0/b/app/o/extra3.jpg',
+    ];
+    final data = _temple([photo]).toFirestoreData(documentId: _id);
+    data['images'] = images;
+    data['imageUrl'] = photo.url;
+    final store = MemoryTempleWriteStore(docs: {_id: data});
+    await _service(store).updateTemple(
+      _temple([photo], story: 'Text only on 1+extras.'),
+    );
+    expect(store.photoCalls, isEmpty);
+    final doc = store.docs[_id]!;
+    expect(doc['story'], 'Text only on 1+extras.');
+    expect(doc['images'], images);
+    expect(doc['imageUrl'], photo.url);
+    expect((doc['photos'] as List).length, 1);
+  });
+
   test(
     'an edit of a temple saved without writePhotos does not call it',
     () async {
@@ -187,6 +211,51 @@ void main() {
     );
     expect(store.photoCalls, hasLength(1));
     expect((store.docs[_id]!['photos'] as List).length, 10);
+  });
+
+  test('photosForGalleryAppend refuses existing URLs without photos', () {
+    expect(
+      () => photosForGalleryAppend(
+        stored: {
+          'images': ['https://example.com/old.jpg'],
+          'photos': const [],
+        },
+        mergedImages: [
+          'https://example.com/old.jpg',
+          'https://example.com/new.jpg',
+        ],
+        newlyUploadedUrls: {'https://example.com/new.jpg'},
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (e) => e.message,
+          'message',
+          contains('Add licences for the existing photos'),
+        ),
+      ),
+    );
+    final ok = photosForGalleryAppend(
+      stored: {
+        'images': ['https://example.com/old.jpg'],
+        'photos': [
+          {
+            'url': 'https://example.com/old.jpg',
+            'licence': 'CC-BY-SA',
+            'order': 0,
+            'credit': 'Someone',
+          },
+        ],
+      },
+      mergedImages: [
+        'https://example.com/old.jpg',
+        'https://example.com/new.jpg',
+      ],
+      newlyUploadedUrls: {'https://example.com/new.jpg'},
+    );
+    expect(ok, hasLength(2));
+    expect(ok.first['licence'], 'CC-BY-SA');
+    expect(ok.last['licence'], 'Own');
+    expect(ok.last['order'], 1);
   });
 
   test('templeDataDeepEquals ignores map key order, not list order', () {
