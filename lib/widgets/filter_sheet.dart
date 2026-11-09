@@ -82,6 +82,7 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
   final TextEditingController _search = TextEditingController();
   final Map<String, GlobalKey> _anchors = {};
   String? _jumpId;
+  int _revealGen = 0;
   bool _dismissed = false;
   bool _pullArmed = false;
   double _pullDown = 0;
@@ -122,8 +123,9 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
   /// Scrolls until [id] is built. Deity rows are lazy, so an off-screen
   /// selection is not in the tree until the viewport reaches it.
   void _reveal(String id, {required double alignment, required int hops}) {
+    final gen = _revealGen;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
+      if (!mounted || gen != _revealGen) return;
       final target = _anchor(id).currentContext;
       if (target != null) {
         Scrollable.ensureVisible(
@@ -434,7 +436,15 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
         child: TextField(
           key: const Key('filter-sheet-search'),
           controller: _search,
-          onChanged: (_) => setState(() {}),
+          onChanged: (_) {
+            // A selected row's reveal walks the list by jumping a viewport
+            // at a time. Typing must stop that walk and show the matches,
+            // which sit at the top (run 42699042193: Shiva repeat landed on
+            // Durga–Ganesha with an empty search field).
+            _revealGen++;
+            if (_options.hasClients) _options.jumpTo(0);
+            setState(() {});
+          },
           style: GoogleFonts.poppins(fontSize: 14, color: colors.label),
           decoration: InputDecoration(
             isDense: true,

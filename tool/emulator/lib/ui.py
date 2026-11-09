@@ -304,6 +304,11 @@ def _sheet_rows(root: ET.Element) -> list[tuple[str, str, tuple[int, int, int, i
             if short.startswith(prefix):
                 kind, name = k, short[len(prefix):]
                 break
+        # Most-listed deity rows use filter-deity-top-<name>, not
+        # filter-option-deity-<name>. A head-of-list Shiva is invisible to
+        # the seek if only the letter id is recognised (run 42699042193).
+        if kind is None and short.startswith("filter-deity-top-"):
+            kind, name = "deity", short[len("filter-deity-top-"):]
         if kind is None:
             label = _flat(node.attrib.get("content-desc")) or _flat(node.attrib.get("text"))
             if label in _HEADERS and not short:

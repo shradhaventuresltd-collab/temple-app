@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/utils/deity_groups.dart';
@@ -151,69 +150,11 @@ class DirectoryFilterBar extends StatefulWidget {
 }
 
 class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
-  final ScrollController _chipScroll = ScrollController();
-
   /// True from the moment a chip asks for the sheet until that route pops.
   bool _opening = false;
   final GlobalKey _stateChip = GlobalKey();
   final GlobalKey _districtChip = GlobalKey();
   final GlobalKey _deityChip = GlobalKey();
-
-  @override
-  void initState() {
-    super.initState();
-    _scheduleReveal();
-  }
-
-  @override
-  void didUpdateWidget(DirectoryFilterBar oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.selectedState != widget.selectedState ||
-        oldWidget.selectedDeity != widget.selectedDeity ||
-        oldWidget.selectedDistrict != widget.selectedDistrict) {
-      _scheduleReveal();
-    }
-  }
-
-  @override
-  void dispose() {
-    _chipScroll.dispose();
-    super.dispose();
-  }
-
-  /// The rightmost selected chip stays on screen at 320dp.
-  ///
-  /// Only [_chipScroll] moves. [Scrollable.ensureVisible] would also scroll
-  /// every ancestor, including the drawer list that holds this bar.
-  void _scheduleReveal() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_chipScroll.hasClients) return;
-      final target = _chipToReveal()?.currentContext?.findRenderObject();
-      if (target is! RenderBox || !target.hasSize || !target.attached) return;
-      final viewport = RenderAbstractViewport.maybeOf(target);
-      if (viewport == null) return;
-      final position = _chipScroll.position;
-      final next = viewport
-          .getOffsetToReveal(target, 1)
-          .offset
-          .clamp(position.minScrollExtent, position.maxScrollExtent)
-          .toDouble();
-      if ((next - position.pixels).abs() < 0.5) return;
-      _chipScroll.animateTo(
-        next,
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-      );
-    });
-  }
-
-  GlobalKey? _chipToReveal() {
-    if (widget.selectedDeity != null) return _deityChip;
-    final district = widget.selectedDistrict;
-    if (district != null && district.isNotEmpty) return _districtChip;
-    if (widget.selectedState != null) return _stateChip;
-    return null;
-  }
 
   bool get _active =>
       widget.selectedState != null ||
@@ -354,21 +295,10 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ShaderMask(
-          blendMode: BlendMode.dstIn,
-          shaderCallback: (rect) {
-            return const LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [Colors.white, Colors.white, Colors.transparent],
-              stops: [0, 0.92, 1],
-            ).createShader(rect);
-          },
-          child: SingleChildScrollView(
-            controller: _chipScroll,
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
                 KeyedSubtree(
                   key: _stateChip,
                   child: _TriggerChip(
@@ -384,7 +314,6 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
                     onClear: () => widget.onChanged(null, selectedDeity, null),
                   ),
                 ),
-                const SizedBox(width: 8),
                 KeyedSubtree(
                   key: _districtChip,
                   child: _TriggerChip(
@@ -406,7 +335,6 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
                         widget.onChanged(selectedState, selectedDeity, null),
                   ),
                 ),
-                const SizedBox(width: 8),
                 KeyedSubtree(
                   key: _deityChip,
                   child: _TriggerChip(
@@ -425,9 +353,7 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
                         widget.onChanged(selectedState, null, selectedDistrict),
                   ),
                 ),
-              ],
-            ),
-          ),
+          ],
         ),
         Padding(
           padding: const EdgeInsets.only(top: 8, right: 4),

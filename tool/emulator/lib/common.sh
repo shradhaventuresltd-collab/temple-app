@@ -1737,6 +1737,13 @@ seek_option() {
       fi
     fi
     direction="$dir"
+    # A downward fling while the Any row is on screen pulls the sheet shut
+    # (run 42699042193, 30s2: Shiva seek, then no sheet). The name is not
+    # above the head of the list.
+    if [[ "$dir" == down ]] && ui_find --resource-id "filter-option-${kind}-any"; then
+      echo "seek_option: ${kind} '${name}' is not above the list head" >&2
+      return 2
+    fi
     current="$(dump_scroll_sig)" || return 1
     if [[ "$current" == "$prev" ]]; then
       same=$((same + 1))
@@ -2358,11 +2365,15 @@ scoped_pick() {
     # Only on what the flow applied (APPLIED, flow 29): flows without it
     # (17) keep the ee7ffbde picks from the visible chips.
     state) if [[ -n "$a_deity" || -n "$a_district" ]]; then echo '@first'; else echo '^Tamil Nadu( +[0-9]+)?$'; fi ;;
-    deity) if (( tn )); then echo "$TN_DEITY_PICK"; else echo "$ALL_INDIA_DEITY_PICK"; fi ;;
+    # A district facet hides Shiva (Madurai's four temples are not the
+    # all-Tamil-Nadu deity list). Searching Shiva there opened the keyboard
+    # and the next fling dismissed the sheet (run 42699042193, 30s2).
+    deity) if [[ -n "$a_district" ]]; then echo '@first'; elif (( tn )); then echo "$TN_DEITY_PICK"; else echo "$ALL_INDIA_DEITY_PICK"; fi ;;
     # Round 4.4.9i (Reviewer): any other applied filter (a non-Tamil Nadu
     # state, which the state @first pick can now choose, or a deity) can
     # hide the all-India head district; it is used only with none applied.
-    district) if (( tn )); then echo "$TN_DISTRICT_PICK"; elif (( deity_on )) || [[ -n "$a_state" ]]; then echo '@first'; else echo "$ALL_INDIA_DISTRICT_PICK"; fi ;;
+    # Shiva in Tamil Nadu does not offer Madurai (run 42699042193, 30s5).
+    district) if (( deity_on )); then echo '@first'; elif (( tn )); then echo "$TN_DISTRICT_PICK"; elif [[ -n "$a_state" ]]; then echo '@first'; else echo "$ALL_INDIA_DISTRICT_PICK"; fi ;;
     *) return 1 ;;
   esac
 }

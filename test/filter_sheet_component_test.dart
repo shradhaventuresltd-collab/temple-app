@@ -286,4 +286,80 @@ void main() {
       await tester.pumpAndSettle();
     }
   });
+
+  testWidgets('search jumps a long deity list back to the match', (
+    tester,
+  ) async {
+    final many = [
+      for (var i = 0; i < 40; i++)
+        filterTemple(
+          name: 'Temple $i',
+          state: 'Kerala',
+          city: 'City',
+          deity: 'Deity ${i.toString().padLeft(2, '0')}',
+        ),
+    ];
+    await pumpFilterBar(tester, temples: many, size: const Size(400, 800));
+    await openFilterChip(tester, 'deity');
+    await tester.drag(
+      find.byKey(const Key('filter-sheet-options')),
+      const Offset(0, -5000),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('filter-sheet-search')),
+      'Deity 0',
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('filter-deity-top-Deity 00')).hitTestable(),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('district apply on a phone still opens the deity sheet', (
+    tester,
+  ) async {
+    String? districtOf(temple) => temple.city as String;
+    await pumpFilterBar(
+      tester,
+      temples: temples,
+      districtOf: districtOf,
+      size: const Size(320, 640),
+    );
+    await tester.tap(find.byKey(const Key('filter-chip-district')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('filter-option-state-Tamil Nadu')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('filter-sheet-apply')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('filter-option-district-Madurai')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('filter-sheet-apply')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('filter-sheet')), findsNothing);
+    expect(find.byKey(const Key('filter-chip-deity')).hitTestable(), findsOneWidget);
+    await tester.tap(find.byKey(const Key('filter-chip-deity')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('filter-section-deity')), findsOneWidget);
+  });
+
+  testWidgets('a second Show tap does not close the district sheet', (
+    tester,
+  ) async {
+    String? districtOf(temple) => temple.city as String;
+    await pumpFilterBar(tester, temples: temples, districtOf: districtOf);
+    await tester.tap(find.byKey(const Key('filter-chip-district')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('filter-option-state-Tamil Nadu')));
+    await tester.pump();
+    final show = find.byKey(const Key('filter-sheet-apply'));
+    final center = tester.getCenter(show);
+    await tester.tapAt(center);
+    await tester.pump();
+    await tester.tapAt(center);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('filter-section-district')), findsOneWidget);
+    expect(find.text('Choose a state first'), findsNothing);
+  });
 }

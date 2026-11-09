@@ -859,13 +859,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(drawerScroll.offset, 80);
-    final chipScroller = tester.state<ScrollableState>(
-      find.descendant(
-        of: find.byType(DirectoryFilterBar),
-        matching: find.byType(Scrollable),
-      ),
+    expect(
+      find.byKey(const Key('filter-chip-state')).hitTestable(),
+      findsOneWidget,
     );
-    expect(chipScroller.position.pixels, greaterThan(0));
+    expect(
+      find.byKey(const Key('filter-chip-district')).hitTestable(),
+      findsOneWidget,
+    );
     expect(
       find.byKey(const Key('filter-chip-deity-clear')).hitTestable(),
       findsOneWidget,
@@ -1096,7 +1097,9 @@ void main() {
     expect(find.byKey(const Key('filter-sheet')), findsNothing);
   });
 
-  testWidgets('filter-clear sits outside the chip scroller', (tester) async {
+  testWidgets('filter-clear and every chip stay tappable at 320dp', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(320, 640);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -1136,17 +1139,11 @@ void main() {
 
     final clear = find.byKey(const Key('filter-clear'));
     expect(clear, findsOneWidget);
-    expect(
-      find.descendant(of: find.byType(SingleChildScrollView), matching: clear),
-      findsNothing,
-    );
-    final barScroll = find.descendant(
-      of: find.byType(DirectoryFilterBar),
-      matching: find.byType(Scrollable),
-    );
-    final position = tester.state<ScrollableState>(barScroll).position;
-    expect(position.maxScrollExtent, greaterThan(0));
     expect(clear.hitTestable(), findsOneWidget);
+    // 320dp used to scroll the deity chip off the row (run 42699042193,
+    // flow 21). Clear and every chip stay on screen.
+    expect(find.byKey(const Key('filter-chip-deity')).hitTestable(), findsOneWidget);
+    expect(find.byKey(const Key('filter-chip-state')).hitTestable(), findsOneWidget);
 
     await tester.tap(clear);
     await tester.pump();

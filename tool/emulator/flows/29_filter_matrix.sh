@@ -284,9 +284,20 @@ case "${FILTER_MATRIX_PART:-all}" in
     SEQ_ONLY="${FILTER_MATRIX_PART#seqs:}"
     ;;
   *:*)
+    # entry:chip or entry:chip:1|2. Each 24-cell matrix flow passed every
+    # cell and still died at 600s (run 42699042193 and 42700039403, 506-602s).
+    # Half 1 is select/pick-close/dismiss-empty; half 2 is the three closes.
     ENTRIES=("${FILTER_MATRIX_PART%%:*}")
-    if [[ "${FILTER_MATRIX_PART##*:}" != all ]]; then
-      MATRIX_CHIPS=("${FILTER_MATRIX_PART##*:}")
+    _matrix_rest="${FILTER_MATRIX_PART#*:}"
+    _matrix_chip="${_matrix_rest%%:*}"
+    _matrix_half="${_matrix_rest#*:}"
+    if [[ "$_matrix_chip" != all ]]; then
+      MATRIX_CHIPS=("$_matrix_chip")
+    fi
+    if [[ "$_matrix_half" == 1 ]]; then
+      ACTIONS=(select pick-close dismiss-empty)
+    elif [[ "$_matrix_half" == 2 ]]; then
+      ACTIONS=(back-empty outside-empty clear)
     fi
     RUN_SEQS=0
     ;;
@@ -303,7 +314,9 @@ case "${FILTER_MATRIX_PART:-all}" in
     RUN_SEQS=1
     ;;
 esac
-ACTIONS=(select pick-close dismiss-empty back-empty outside-empty clear)
+if [[ -z "${ACTIONS+x}" ]]; then
+  ACTIONS=(select pick-close dismiss-empty back-empty outside-empty clear)
+fi
 
 for entry in "${ENTRIES[@]}"; do
   # shellcheck disable=SC2034 # read by lib/common.sh chip lookups
