@@ -306,6 +306,8 @@ void main() {
     expect(doc.containsKey('location'), isFalse);
     expect(doc.keys.toSet(), isNot(equals({'images'})));
     expect(updated.images.length, 2);
+    expect(store.photoCalls, hasLength(1));
+    expect((store.photoCalls.single['photos'] as List).last['licence'], 'Own');
   });
 
   test('appendTempleImages fills sparse docs from the current Temple model',
@@ -313,7 +315,7 @@ void main() {
     final store = MemoryTempleWriteStore(
       docs: {
         'brihadeeswarar-temple': {
-          'images': ['https://picsum.photos/seed/brihadeeswarar/800/600'],
+          'images': ['https://example.com/brihadeeswarar.jpg'],
         },
       },
     );
@@ -337,9 +339,10 @@ void main() {
     expect(doc['name'], 'Brihadeeswarar Temple');
     expect(doc['address'], 'Thanjavur');
     expect(doc['images'], [
-      'https://picsum.photos/seed/brihadeeswarar/800/600',
+      'https://example.com/brihadeeswarar.jpg',
       'https://storage.googleapis.com/bucket/temples/brihadeeswarar-temple/1.jpg',
     ]);
+    expect(store.photoCalls, hasLength(1));
   });
 
   test('appendTempleImages skips duplicate URLs and sets cover if empty',
@@ -431,7 +434,7 @@ void main() {
     expect(store.docs['x']!['images'], isEmpty);
   });
 
-  test('appendTempleImages wraps Firestore permission-denied after Storage',
+  test('appendTempleImages reports photos saved when the text save fails',
       () async {
     final store = MemoryTempleWriteStore(
       docs: {
@@ -447,8 +450,8 @@ void main() {
       isDebug: true,
     );
 
-    expect(
-      () => service.appendTempleImages(
+    await expectLater(
+      service.appendTempleImages(
         _temple(id: 'new-shore-temple'),
         ['https://example.com/new.jpg'],
       ),
@@ -457,14 +460,17 @@ void main() {
           (e) => e.message,
           'message',
           allOf(
-            contains('Storage upload succeeded'),
+            contains('Photos saved; details/directory not updated, save again'),
             contains('Permission denied'),
-            contains('custom claim admin: true'),
-            contains('required fields'),
           ),
         ),
       ),
     );
+    expect(store.photoCalls, hasLength(1));
+    expect(store.docs['new-shore-temple']!['images'], [
+      'https://example.com/shore.jpg',
+      'https://example.com/new.jpg',
+    ]);
   });
 
   test('appendTempleImages is refused without admin claim', () async {

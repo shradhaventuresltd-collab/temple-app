@@ -44,9 +44,9 @@ void main() {
       contains("'CC-BY', 'CC-BY-SA', 'CC0', 'Own', 'Permission'"),
     );
     expect(firestoreRules, contains("!(licence in ['CC-BY', 'CC-BY-SA'])"));
-    // KAN-200: photos are client-immutable on update (setTemplePhotos
-    // callable writes them); create still checks them.
-    expect(firestoreRules, contains("'createdAt', 'photos',"));
+    // KAN-200: photos, imageUrl and images are client-immutable on update
+    // (setTemplePhotos callable writes them); create still checks photos.
+    expect(firestoreRules, contains("'createdAt', 'photos', 'imageUrl', 'images',"));
     expect(firestoreRules, contains('optionalValidPhotos(data) &&'));
     expect(firestoreRules, contains('optionalValidPhotos(data)'));
     expect(firestoreRules, contains('function isValidPhoto(photo)'));
