@@ -226,14 +226,17 @@ Future<SeedResult> seedTempleData({
             for (var i = 0; i < wantImages.length; i++)
               wantImages[i] == existingImages[i],
           ].every((ok) => ok);
+      // Only resend keys the stored doc already has (and only when equal).
+      // Missing keys stay omitted so we do not invent client-immutable fields.
+      data.remove('imageUrl');
+      data.remove('images');
       if (same) {
-        data['imageUrl'] = honesty['imageUrl'];
-        data['images'] = honesty['images'];
-      } else {
-        // toFirestoreData already set imageUrl; drop both so the merge
-        // leaves the stored mirror alone.
-        data.remove('imageUrl');
-        data.remove('images');
+        if (already.containsKey('imageUrl')) {
+          data['imageUrl'] = honesty['imageUrl'];
+        }
+        if (already.containsKey('images')) {
+          data['images'] = honesty['images'];
+        }
       }
     }
 

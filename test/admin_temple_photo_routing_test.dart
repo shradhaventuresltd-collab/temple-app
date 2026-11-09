@@ -213,6 +213,121 @@ void main() {
     expect((store.docs[_id]!['photos'] as List).length, 10);
   });
 
+  MemoryTempleWriteStore onePhotoFourImages() {
+    final photo = _photo(0);
+    final images = [
+      photo.url,
+      'https://firebasestorage.googleapis.com/v0/b/app/o/extra1.jpg',
+      'https://firebasestorage.googleapis.com/v0/b/app/o/extra2.jpg',
+      'https://firebasestorage.googleapis.com/v0/b/app/o/extra3.jpg',
+    ];
+    final data = _temple([photo]).toFirestoreData(documentId: _id);
+    data['images'] = images;
+    data['imageUrl'] = photo.url;
+    return MemoryTempleWriteStore(docs: {_id: data});
+  }
+
+  test('1 photo + 4 images: photo changes refused while legacy URLs uncovered',
+      () async {
+    final cases = <String, List<TemplePhoto> Function()>{
+      'add': () => [_photo(0), _photo(1)],
+      'delete': () => const [],
+      'reorder/cover': () => [
+        TemplePhoto(
+          url: 'https://firebasestorage.googleapis.com/v0/b/app/o/extra1.jpg',
+          credit: 'x',
+          licence: PhotoLicence.ccBySa,
+          order: 0,
+        ),
+      ],
+    };
+    for (final MapEntry(key: name, value: next) in cases.entries) {
+      final store = onePhotoFourImages();
+      await expectLater(
+        _service(store).updateTemple(_temple(next(), story: 'change $name')),
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            contains('Add licences for the existing photos in the editor first'),
+          ),
+        ),
+        reason: name,
+      );
+      expect(store.photoCalls, isEmpty, reason: name);
+      expect((store.docs[_id]!['images'] as List).length, 4, reason: name);
+    }
+  });
+
+  test('1 photo + 4 images: allowed once photos cover all legacy URLs', () async {
+    final store = onePhotoFourImages();
+    final images = store.docs[_id]!['images'] as List;
+    final covered = [
+      for (final (i, url) in images.indexed)
+        TemplePhoto(
+          url: url as String,
+          credit: 'Licensed $i',
+          licence: PhotoLicence.ccBySa,
+          order: i,
+          thumbUrl: 'https://firebasestorage.googleapis.com/v0/b/app/o/t$i.jpg',
+        ),
+    ];
+    await _service(store).updateTemple(_temple(covered, story: 'licensed.'));
+    expect(store.photoCalls, hasLength(1));
+    expect((store.photoCalls.single['photos'] as List).length, 4);
+    expect(store.docs[_id]!['images'], images);
+    expect(store.docs[_id]!['story'], 'licensed.');
+  });
+
+  test('assertNewPhotosCoverStoredImages allows full cover, refuses gaps', () {
+    final images = [
+      'https://example.com/a.jpg',
+      'https://example.com/b.jpg',
+    ];
+    final storedPhotos = [
+      {'url': 'https://example.com/a.jpg', 'licence': 'Own', 'order': 0},
+    ];
+    expect(
+      () => assertNewPhotosCoverStoredImages(
+        images,
+        [
+          {'url': 'https://example.com/a.jpg', 'licence': 'Own', 'order': 0},
+        ],
+        storedPhotos: storedPhotos,
+      ),
+      throwsA(isA<StateError>()),
+    );
+    assertNewPhotosCoverStoredImages(
+      images,
+      [
+        {
+          'url': 'https://example.com/a.jpg',
+          'licence': 'CC-BY',
+          'order': 0,
+          'credit': 'A',
+        },
+        {
+          'url': 'https://example.com/b.jpg',
+          'licence': 'CC-BY',
+          'order': 1,
+          'credit': 'B',
+        },
+      ],
+      storedPhotos: storedPhotos,
+    );
+    // Mirrored images: deleting a photo is allowed.
+    assertNewPhotosCoverStoredImages(
+      images,
+      [
+        {'url': 'https://example.com/a.jpg', 'licence': 'Own', 'order': 0},
+      ],
+      storedPhotos: [
+        {'url': 'https://example.com/a.jpg', 'licence': 'Own', 'order': 0},
+        {'url': 'https://example.com/b.jpg', 'licence': 'Own', 'order': 1},
+      ],
+    );
+  });
+
   test('photosForGalleryAppend refuses existing URLs without photos', () {
     expect(
       () => photosForGalleryAppend(
