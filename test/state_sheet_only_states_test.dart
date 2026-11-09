@@ -71,4 +71,82 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('filter-sheet-no-match')), findsOneWidget);
   });
+
+  testWidgets('state sheet region headers stay pinned', (tester) async {
+    const north = [
+      'Chandigarh',
+      'Delhi',
+      'Haryana',
+      'Himachal Pradesh',
+      'Jammu and Kashmir',
+      'Ladakh',
+      'Punjab',
+      'Uttar Pradesh',
+      'Uttarakhand',
+    ];
+    const south = [
+      'Andhra Pradesh',
+      'Karnataka',
+      'Kerala',
+      'Puducherry',
+      'Tamil Nadu',
+      'Telangana',
+    ];
+    final temples = [
+      for (var i = 0; i < north.length; i++)
+        filterTemple(
+          name: 'North $i',
+          state: north[i],
+          city: 'City $i',
+          deity: 'Shiva',
+        ),
+      for (var i = 0; i < south.length; i++)
+        filterTemple(
+          name: 'South $i',
+          state: south[i],
+          city: 'Town $i',
+          deity: 'Shiva',
+        ),
+    ];
+    await pumpFilterBar(
+      tester,
+      temples: temples,
+      size: const Size(400, 560),
+    );
+    await openFilterChip(tester, 'state');
+    final scrollable = find.descendant(
+      of: find.byKey(const Key('filter-sheet-options')),
+      matching: find.byType(Scrollable),
+    );
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('filter-option-state-Uttarakhand')),
+      40,
+      scrollable: scrollable,
+    );
+    await tester.pumpAndSettle();
+    final listTop = tester.getTopLeft(find.byKey(const Key('filter-sheet-options'))).dy;
+    expect(find.text('NORTH'), findsOneWidget);
+    final northDy = tester.getTopLeft(find.text('NORTH')).dy;
+    expect(northDy, inInclusiveRange(listTop, listTop + 16));
+    expect(
+      find.byKey(const Key('filter-option-state-Uttarakhand')).hitTestable(),
+      findsOneWidget,
+    );
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('filter-option-state-Telangana')),
+      80,
+      scrollable: scrollable,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('SOUTH'), findsOneWidget);
+    final southDy = tester.getTopLeft(find.text('SOUTH')).dy;
+    expect(southDy, inInclusiveRange(listTop, listTop + 16));
+    expect(tester.getTopLeft(find.text('NORTH')).dy, lessThan(listTop));
+    expect(
+      find.byKey(const Key('filter-option-state-Telangana')).hitTestable(),
+      findsOneWidget,
+    );
+  });
 }

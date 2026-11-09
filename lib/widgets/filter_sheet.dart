@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/widgets/filter_sheet_theme.dart';
 
@@ -398,21 +401,31 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
           anchor: _anchor(widget.any!.id),
           onTap: () => widget.onOption?.call(widget.any!),
         ),
-      for (final section in sections) ...[
-        if (section.title.isNotEmpty)
-          _InlineHeader(
-            key: _anchor(section.id),
-            title: section.title,
-            total: section.total,
-            colors: colors,
+      for (final section in sections)
+        if (section.title.isEmpty)
+          for (final option in section.options)
+            _OptionRow(
+              option: option,
+              anchor: _anchor(option.id),
+              onTap: () => widget.onOption?.call(option),
+            )
+        else
+          _StickySection(
+            header: _InlineHeader(
+              key: _anchor(section.id),
+              title: section.title,
+              total: section.total,
+              colors: colors,
+            ),
+            rows: [
+              for (final option in section.options)
+                _OptionRow(
+                  option: option,
+                  anchor: _anchor(option.id),
+                  onTap: () => widget.onOption?.call(option),
+                ),
+            ],
           ),
-        for (final option in section.options)
-          _OptionRow(
-            option: option,
-            anchor: _anchor(option.id),
-            onTap: () => widget.onOption?.call(option),
-          ),
-      ],
       if (_nothingMatches)
         const Padding(
           padding: EdgeInsets.fromLTRB(20, 24, 20, 12),
@@ -430,6 +443,181 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
         ),
       ),
     );
+  }
+}
+
+/// Pins [header] to the top of the sheet while this section is on screen.
+///
+/// One header widget is painted at the stuck offset, so region labels stay
+/// in the tree for search and for scrolling a selection back into view.
+class _StickySection extends StatefulWidget {
+  const _StickySection({required this.header, required this.rows});
+
+  final Widget header;
+  final List<Widget> rows;
+
+  @override
+  State<_StickySection> createState() => _StickySectionState();
+}
+
+class _StickySectionState extends State<_StickySection> {
+  ScrollPosition? _position;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _position = Scrollable.maybeOf(context)?.position;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _StickyHeader(
+      position: _position,
+      header: IgnorePointer(child: widget.header),
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: widget.rows,
+      ),
+    );
+  }
+}
+
+class _StickyHeader extends MultiChildRenderObjectWidget {
+  _StickyHeader({
+    required this.position,
+    required Widget header,
+    required Widget content,
+  }) : super(children: [header, content]);
+
+  final ScrollPosition? position;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) {
+    return _RenderStickyHeader(position: position);
+  }
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderStickyHeader renderObject) {
+    renderObject.position = position;
+  }
+}
+
+class _StickyParentData extends ContainerBoxParentData<RenderBox> {}
+
+class _RenderStickyHeader extends RenderBox
+    with
+        ContainerRenderObjectMixin<RenderBox, _StickyParentData>,
+        RenderBoxContainerDefaultsMixin<RenderBox, _StickyParentData> {
+  _RenderStickyHeader({ScrollPosition? position}) : _position = position;
+
+  ScrollPosition? _position;
+
+  ScrollPosition? get position => _position;
+
+  set position(ScrollPosition? value) {
+    if (_position == value) return;
+    if (attached) _position?.removeListener(_onScroll);
+    _position = value;
+    if (attached) _position?.addListener(_onScroll);
+    markNeedsPaint();
+  }
+
+  @override
+  void attach(PipelineOwner owner) {
+    super.attach(owner);
+    _position?.addListener(_onScroll);
+  }
+
+  @override
+  void detach() {
+    _position?.removeListener(_onScroll);
+    super.detach();
+  }
+
+  void _onScroll() {
+    markNeedsPaint();
+    markNeedsSemanticsUpdate();
+  }
+
+  @override
+  void setupParentData(RenderBox child) {
+    if (child.parentData is! _StickyParentData) {
+      child.parentData = _StickyParentData();
+    }
+  }
+
+  RenderBox get _header => firstChild!;
+
+  RenderBox get _content => childAfter(_header)!;
+
+  double _stuck(double headerHeight) {
+    final viewport = RenderAbstractViewport.maybeOf(this);
+    if (viewport is! RenderBox || !attached || !hasSize) return 0;
+    final dy = localToGlobal(Offset.zero, ancestor: viewport as RenderBox).dy;
+    if (dy >= 0) return 0;
+    final max = math.max(0.0, size.height - headerHeight);
+    return math.min(-dy, max);
+  }
+
+  @override
+  void performLayout() {
+    final header = _header;
+    final content = _content;
+    final width = constraints.maxWidth;
+    header.layout(
+      BoxConstraints(maxWidth: width),
+      parentUsesSize: true,
+    );
+    content.layout(
+      BoxConstraints(maxWidth: width),
+      parentUsesSize: true,
+    );
+    final height = header.size.height + content.size.height;
+    size = constraints.constrain(Size(width, height));
+    (header.parentData! as _StickyParentData).offset = Offset.zero;
+    (content.parentData! as _StickyParentData).offset = Offset(
+      0,
+      header.size.height,
+    );
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    final header = _header;
+    final content = _content;
+    final contentOffset = (content.parentData! as _StickyParentData).offset;
+    final stuck = _stuck(header.size.height);
+    context.pushClipRect(
+      needsCompositing,
+      offset,
+      Offset.zero & size,
+      (PaintingContext context, Offset offset) {
+        context.paintChild(content, offset + contentOffset);
+        context.paintChild(header, offset + Offset(0, stuck));
+      },
+    );
+  }
+
+  @override
+  void applyPaintTransform(RenderBox child, Matrix4 transform) {
+    if (child == firstChild) {
+      transform.translateByDouble(0, _stuck(child.size.height), 0, 1);
+      return;
+    }
+    final childOffset = (child.parentData! as _StickyParentData).offset;
+    transform.translateByDouble(childOffset.dx, childOffset.dy, 0, 1);
+  }
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
+    final header = _header;
+    final stuck = _stuck(header.size.height);
+    if (header.hitTest(result, position: position - Offset(0, stuck))) {
+      return true;
+    }
+    final content = _content;
+    final contentOffset = (content.parentData! as _StickyParentData).offset;
+    return content.hitTest(result, position: position - contentOffset);
   }
 }
 
@@ -456,6 +644,8 @@ class _InlineHeader extends StatelessWidget {
             Expanded(
               child: Text(
                 title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.poppins(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
