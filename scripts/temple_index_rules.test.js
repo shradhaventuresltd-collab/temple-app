@@ -25,6 +25,7 @@ import {
   increment,
   serverTimestamp,
   setDoc,
+  updateDoc,
   writeBatch,
   FieldPath,
 } from "firebase/firestore";
@@ -955,4 +956,192 @@ test("prod-shaped research docs with 0 or 1 photo stay under the expression limi
       setDoc(at(db, `temples/${id}`), { description: "Description edit." }, { merge: true }),
     );
   }
+});
+
+// ---------------------------------------------------------------------------
+// KAN-200: admin saves on temples with 2+ photos crossed the 1000-expression
+// limit. Photos are now checked only when a write changes them.
+// ---------------------------------------------------------------------------
+
+const MAX_GALLERY = 12; // kMaxTemplePhotos in lib/models/temple_photo.dart
+
+// Prod-shaped temple (shri-shantadurga-temple-kavlem, 9 photos with thumbUrl
+// and galleryUrl, all 7 research fields). Download tokens and contact details
+// in credits are replaced.
+const KAVLEM = JSON.parse(
+  readFileSync(resolve(repoRoot, "scripts/fixtures/kan200_shantadurga_kavlem.json"), "utf8"),
+);
+
+async function seedRaw(id, data) {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(at(context.firestore(), `temples/${id}`), data);
+  });
+}
+
+async function readRaw(id) {
+  let data;
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    data = (await getDoc(at(context.firestore(), `temples/${id}`))).data();
+  });
+  return data;
+}
+
+function kavlemDoc(photoCount = KAVLEM.photos.length) {
+  const photos = Array.from({ length: photoCount }, (_, i) =>
+    i < KAVLEM.photos.length
+      ? { ...KAVLEM.photos[i], order: i }
+      : { ...KAVLEM.photos[i % KAVLEM.photos.length], order: i, credit: `Extra ${i} · CC BY-SA 4.0` },
+  );
+  return {
+    ...KAVLEM,
+    createdAt: new Date(KAVLEM.createdAt),
+    photos,
+    images: photos.map((p) => p.url),
+    imageUrl: photos.length ? photos[0].url : "",
+  };
+}
+
+const RESEARCH_KEYS = Object.keys(RESEARCH_FIELDS);
+
+test("Deployer gate: admin description save on the 9-photo Kavlem doc is allowed", async () => {
+  const seeded = kavlemDoc();
+  assert.equal(seeded.photos.length, 9);
+  const id = seeded.id;
+  await seedRaw(id, seeded);
+  const db = adminDb("admin-uid");
+  const keep = Object.fromEntries(RESEARCH_KEYS.map((k) => [k, seeded[k]]));
+  await assertSucceeds(
+    setDoc(
+      at(db, `temples/${id}`),
+      { name: seeded.name, description: `${seeded.description} [KAN-200 probe]`, ...keep },
+      { merge: true },
+    ),
+  );
+  const saved = await readRaw(id);
+  assert.ok(saved.description.endsWith("[KAN-200 probe]"));
+  for (const k of RESEARCH_KEYS) assert.deepEqual(saved[k], seeded[k], k);
+  assert.deepEqual(saved.photos, seeded.photos);
+});
+
+test("non-photo admin saves pass at 0, 1, 2, 9 and max photos, with and without research fields", async () => {
+  const db = adminDb("admin-kan200-edit");
+  for (const n of [0, 1, 2, 9, MAX_GALLERY]) {
+    for (const research of [false, true]) {
+      const id = `kan200-edit-${n}-${research ? "r" : "plain"}`;
+      const seeded = { ...kavlemDoc(n), id };
+      if (!research) for (const k of RESEARCH_KEYS) delete seeded[k];
+      await seedRaw(id, seeded);
+      // The admin form sends the whole temple back with merge.
+      const { createdAt, ...full } = seeded;
+      await assertSucceeds(
+        setDoc(at(db, `temples/${id}`), { ...full, story: `Story ${n}.` }, { merge: true }),
+      );
+      // A single-field edit.
+      await assertSucceeds(
+        setDoc(at(db, `temples/${id}`), { description: `Description ${n}.` }, { merge: true }),
+      );
+      // updateDoc, as the deploy smoke test does.
+      await assertSucceeds(updateDoc(at(db, `temples/${id}`), { address: `Address ${n}` }));
+    }
+  }
+});
+
+test("photo-changing admin saves pass with 0 or 1 photo, with and without research fields", async () => {
+  const db = adminDb("admin-kan200-photos");
+  for (const research of [false, true]) {
+    const id = `kan200-photos-${research ? "r" : "plain"}`;
+    const seeded = { ...kavlemDoc(1), id };
+    if (!research) for (const k of RESEARCH_KEYS) delete seeded[k];
+    await seedRaw(id, seeded);
+    const edited = [{ ...seeded.photos[0], credit: "Edited credit · CC BY-SA 4.0" }];
+    await assertSucceeds(
+      setDoc(at(db, `temples/${id}`), { photos: edited, images: [edited[0].url], imageUrl: edited[0].url }, { merge: true }),
+    );
+    await assertSucceeds(
+      setDoc(at(db, `temples/${id}`), { photos: [], images: [], imageUrl: "" }, { merge: true }),
+    );
+  }
+});
+
+// Known limit, kept visible: a write that changes photos checks every slot.
+// With prod-shaped photos that crosses 1000 expressions from 2 photos up.
+// Fallback (Admin SDK callable) needs Satyavrat's call.
+for (const n of [2, 9, MAX_GALLERY]) {
+  test(`photo-changing admin save at ${n} photos`, { todo: "KAN-200: over the 1000-expression limit" }, async () => {
+    const id = `kan200-photos-${n}`;
+    const seeded = { ...kavlemDoc(n), id };
+    await seedRaw(id, seeded);
+    const photos = seeded.photos.map((p, i) => (i === n - 1 ? { ...p, credit: "Edited · CC BY-SA 4.0" } : p));
+    await assertSucceeds(
+      setDoc(at(adminDb("admin-kan200-todo"), `temples/${id}`), { photos }, { merge: true }),
+    );
+  });
+}
+
+test("malicious photo writes are still rejected", async () => {
+  const db = adminDb("admin-kan200-bad");
+  const id = "kan200-bad";
+  const base = kavlemDoc(1).photos[0];
+  const bad = {
+    "http url": { ...base, url: "http://example.com/a.jpg" },
+    "whitespace in url": { ...base, url: "https://example.com/a b.jpg" },
+    "url too long": { ...base, url: `https://example.com/${"a".repeat(2000)}` },
+    "url not a string": { ...base, url: ["https://example.com/a.jpg"] },
+    "unknown licence": { ...base, licence: "All rights reserved" },
+    "extra key": { ...base, uploader: "someone" },
+    "missing order": (({ order, ...rest }) => rest)(base),
+    "order 12": { ...base, order: 12 },
+    "order -1": { ...base, order: -1 },
+    "order float": { ...base, order: 0.5 },
+    "order string": { ...base, order: "0" },
+    "CC-BY without credit": (({ credit, ...rest }) => ({ ...rest, licence: "CC-BY" }))(base),
+    "CC-BY-SA empty credit": { ...base, credit: "" },
+    "credit too long": { ...base, credit: "c".repeat(201) },
+    "credit not a string": { ...base, credit: 7 },
+    "http thumbUrl": { ...base, thumbUrl: "http://example.com/t.jpg" },
+    "galleryUrl not a string": { ...base, galleryUrl: 42 },
+  };
+  for (const [name, photo] of Object.entries(bad)) {
+    await seedRaw(id, kavlemDoc(1));
+    await assertFails(setDoc(at(db, `temples/${id}`), { photos: [photo] }, { merge: true }), name);
+  }
+  await seedRaw(id, kavlemDoc(1));
+  await assertFails(setDoc(at(db, `temples/${id}`), { photos: ["https://example.com/a.jpg"] }, { merge: true }));
+  await assertFails(setDoc(at(db, `temples/${id}`), { photos: { 0: base } }, { merge: true }));
+  await assertFails(setDoc(at(db, `temples/${id}`), { photos: "https://example.com/a.jpg" }, { merge: true }));
+  const thirteen = Array.from({ length: 13 }, (_, i) => ({ ...base, order: Math.min(i, 11) }));
+  await assertFails(setDoc(at(db, `temples/${id}`), { photos: thirteen }, { merge: true }));
+  // A bad photo riding along with a text edit is still checked.
+  await assertFails(
+    setDoc(at(db, `temples/${id}`), { story: "Edit.", photos: [bad["http url"]] }, { merge: true }),
+  );
+  // A bad photo on a 9-photo doc is rejected (by rule or by the limit).
+  const nine = kavlemDoc(9);
+  await seedRaw(id, nine);
+  const tampered = nine.photos.map((p, i) => (i === 4 ? bad["extra key"] : p));
+  await assertFails(setDoc(at(db, `temples/${id}`), { photos: tampered }, { merge: true }));
+  // Non-admins still cannot write, with or without photos.
+  const anon = testEnv.unauthenticatedContext().firestore();
+  const user = testEnv.authenticatedContext("user-1").firestore();
+  for (const other of [anon, user]) {
+    await assertFails(setDoc(at(other, `temples/${id}`), { description: "x" }, { merge: true }));
+  }
+  // The good photo passes on the same doc (the rejects above are the rule).
+  await seedRaw(id, kavlemDoc(1));
+  await assertSucceeds(setDoc(at(db, `temples/${id}`), { photos: [base] }, { merge: true }));
+});
+
+test("new temple create still validates photos", async () => {
+  const db = adminDb("admin-kan200-create");
+  const good = kavlemDoc(1);
+  const { createdAt, ...create } = { ...good, id: "kan200-new" };
+  for (const k of RESEARCH_KEYS) delete create[k];
+  await assertSucceeds(setDoc(at(db, "temples/kan200-new"), create));
+  await assertFails(
+    setDoc(at(db, "temples/kan200-new-bad"), {
+      ...create,
+      id: "kan200-new-bad",
+      photos: [{ ...create.photos[0], url: "http://example.com/a.jpg" }],
+    }),
+  );
 });
