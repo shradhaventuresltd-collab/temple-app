@@ -33,7 +33,6 @@ Map<String, dynamic> _photoEntry(String url, int order) => {
       'credit': '',
     };
 
-
 void main() {
   test('Temple.fromMap reads address (and location fallback)', () {
     final fromAddress = Temple.fromMap('id-1', {

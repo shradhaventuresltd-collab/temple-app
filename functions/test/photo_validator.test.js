@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { BAD_PHOTOS, GOOD_PHOTOS, prodPhoto } from "./photo_cases.js";
-import { isPlaceholderHost, photoError, photoMirror, photosError } from "../src/photo_validator.js";
+import { isPlaceholderHost, photoError, photoMirror, photosError, uncoveredLegacyImagesError } from "../src/photo_validator.js";
 
 test("rules-accepted photos pass", () => {
   for (const [name, photo] of Object.entries(GOOD_PHOTOS)) {
@@ -76,4 +76,36 @@ test("UTF-16 emoji credit/url limits match rules size()", () => {
   assert.equal(url2001.length, 2001);
   assert.equal(photoError({ ...prodPhoto("t", 0), url: url2000, credit: "x" }), null);
   assert.match(photoError({ ...prodPhoto("t", 0), url: url2001, credit: "x" }), /over 2000/);
+});
+
+test("uncoveredLegacyImagesError refuses gaps and allows full cover", () => {
+  const images = [
+    "https://firebasestorage.googleapis.com/v0/b/app/o/p0.jpg",
+    "https://firebasestorage.googleapis.com/v0/b/app/o/extra1.jpg",
+    "https://firebasestorage.googleapis.com/v0/b/app/o/extra2.jpg",
+    "https://firebasestorage.googleapis.com/v0/b/app/o/extra3.jpg",
+  ];
+  const storedPhotos = [{ url: images[0] }];
+  const msg = "Add licences for the existing photos in the editor first";
+  assert.equal(
+    uncoveredLegacyImagesError(images, [{ url: images[0] }], storedPhotos),
+    msg,
+  );
+  assert.equal(uncoveredLegacyImagesError(images, [], storedPhotos), msg);
+  assert.equal(
+    uncoveredLegacyImagesError(
+      images,
+      images.map((url, i) => ({ url, order: i })),
+      storedPhotos,
+    ),
+    null,
+  );
+  // Mirrored photos (images == photo urls): delete/reorder is fine.
+  const mirrored = images.map((url) => ({ url }));
+  assert.equal(
+    uncoveredLegacyImagesError(images, [{ url: images[0] }], mirrored),
+    null,
+  );
+  assert.equal(uncoveredLegacyImagesError(undefined, []), null);
+  assert.equal(uncoveredLegacyImagesError([], [{ url: "https://x" }]), null);
 });
