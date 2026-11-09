@@ -140,63 +140,57 @@ service cloud.firestore {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
     }
 
-    function isPhotoLicence(value) {
-      return value in ['CC-BY', 'CC-BY-SA', 'CC0', 'Own', 'Permission'];
+    // KAN-200: photo checks are written for a low expression count (one
+    // keys() call, one size() and one regex per URL, credit read once).
+    // Same accepted set as before: a non-map photo or a non-string URL
+    // errors, and an error denies the write. A write that changes photos
+    // still checks every slot, so it fits the 1000-expression limit only
+    // with 0 or 1 photo; see KAN-200.
+    //
+    // An https URL of at most 2000 characters with no whitespace.
+    function photoUrlOk(value) {
+      return value.size() <= 2000 && value.matches('^https://[^\\s]+$');
     }
 
     // credit is required (non-empty, max 200) for CC-BY and CC-BY-SA.
     // For CC0, Own, and Permission it may be omitted or a string of at most 200.
-    function photoCreditOk(photo) {
-      let required = photo.licence == 'CC-BY' || photo.licence == 'CC-BY-SA';
-      let present = 'credit' in photo;
-      return required
-        ? present &&
-          photo.credit is string &&
-          photo.credit.size() > 0 &&
-          photo.credit.size() <= 200
-        : !present || (photo.credit is string && photo.credit.size() <= 200);
+    function photoCreditOk(credit, licence) {
+      return credit is string &&
+        credit.size() <= 200 &&
+        (credit.size() > 0 || !(licence in ['CC-BY', 'CC-BY-SA']));
     }
 
     function isValidPhoto(photo) {
-      return photo is map &&
-        photo.keys().hasAll(['url', 'licence', 'order']) &&
-        photo.keys().hasOnly(['url', 'credit', 'licence', 'order', 'thumbUrl', 'galleryUrl']) &&
-        httpsUrl(photo.url) &&
-        isPhotoLicence(photo.licence) &&
+      let keys = photo.keys();
+      return keys.hasAll(['url', 'licence', 'order']) &&
+        keys.hasOnly(['url', 'credit', 'licence', 'order', 'thumbUrl', 'galleryUrl']) &&
+        photoUrlOk(photo.url) &&
+        photo.licence in ['CC-BY', 'CC-BY-SA', 'CC0', 'Own', 'Permission'] &&
         photo.order is int &&
         photo.order >= 0 &&
         photo.order <= 11 &&
-        photoCreditOk(photo) &&
-        (!('thumbUrl' in photo) || (
-          photo.thumbUrl is string &&
-          photo.thumbUrl.size() <= 2000 &&
-          httpsUrl(photo.thumbUrl)
-        )) &&
-        (!('galleryUrl' in photo) || httpsUrl(photo.galleryUrl));
+        photoCreditOk(photo.get('credit', ''), photo.licence) &&
+        (!('thumbUrl' in photo) || photoUrlOk(photo.thumbUrl)) &&
+        (!('galleryUrl' in photo) || photoUrlOk(photo.galleryUrl));
     }
 
     // Rules have no loops. Check each of the 12 possible slots.
     function validPhotos(photos) {
+      let n = photos.size();
       return photos is list &&
-        photos.size() <= 12 &&
-        (photos.size() < 1 || isValidPhoto(photos[0])) &&
-        (photos.size() < 2 || isValidPhoto(photos[1])) &&
-        (photos.size() < 3 || isValidPhoto(photos[2])) &&
-        (photos.size() < 4 || isValidPhoto(photos[3])) &&
-        (photos.size() < 5 || isValidPhoto(photos[4])) &&
-        (photos.size() < 6 || isValidPhoto(photos[5])) &&
-        (photos.size() < 7 || isValidPhoto(photos[6])) &&
-        (photos.size() < 8 || isValidPhoto(photos[7])) &&
-        (photos.size() < 9 || isValidPhoto(photos[8])) &&
-        (photos.size() < 10 || isValidPhoto(photos[9])) &&
-        (photos.size() < 11 || isValidPhoto(photos[10])) &&
-        (photos.size() < 12 || isValidPhoto(photos[11]));
-    }
-
-    function httpsUrl(value) {
-      return value is string &&
-        value.size() <= 2000 &&
-        value.matches('^https://[^\\s]+$');
+        n <= 12 &&
+        (n < 1 || isValidPhoto(photos[0])) &&
+        (n < 2 || isValidPhoto(photos[1])) &&
+        (n < 3 || isValidPhoto(photos[2])) &&
+        (n < 4 || isValidPhoto(photos[3])) &&
+        (n < 5 || isValidPhoto(photos[4])) &&
+        (n < 6 || isValidPhoto(photos[5])) &&
+        (n < 7 || isValidPhoto(photos[6])) &&
+        (n < 8 || isValidPhoto(photos[7])) &&
+        (n < 9 || isValidPhoto(photos[8])) &&
+        (n < 10 || isValidPhoto(photos[9])) &&
+        (n < 11 || isValidPhoto(photos[10])) &&
+        (n < 12 || isValidPhoto(photos[11]));
     }
 
     // Placeholder hosts and their subdomains, on imageUrl and images[0] only.
@@ -375,7 +369,12 @@ service cloud.firestore {
         optionalTimings() &&
         optionalValidList('specialities', 20) &&
         optionalImageList(data) &&
-        optionalValidPhotos(data) &&
+        // KAN-200: photos are checked only when this write changes them. A
+        // stored list was checked when it was written, and checking 2+
+        // unchanged photos on every text save crossed the 1000-expression
+        // limit.
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['photos']) ||
+          optionalValidPhotos(data)) &&
         (!('latitude' in data) || validLatitude(data.latitude)) &&
         (!('longitude' in data) || validLongitude(data.longitude)) &&
         coordinatesOkOnUpdate(data);
