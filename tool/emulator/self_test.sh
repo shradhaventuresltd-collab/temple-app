@@ -859,7 +859,8 @@ flows=(
   03-force-update
   04-home
   05-search
-  06a-filters-single
+  06a1-filters-single
+  06a2-filters-single
   06b-filters-combined
   07-district
   08-list-detail
@@ -1222,6 +1223,39 @@ seek_out="$(python3 tool/emulator/lib/ui.py option-seek "$topxml" --kind deity -
 [[ "$seek_out" == tap\ * ]] || { echo "filter-deity-top-Shiva must be a deity seek target: $seek_out" >&2; exit 1; }
 rm -f "$topxml"
 echo "run990 dry-run: filter-deity-top-Shiva is tappable"
+run427=tool/emulator/testdata/run42710826857
+python3 - "$run427/30s2-state-clear.xml" <<'PY' || exit 1
+import pathlib, sys
+text = pathlib.Path(sys.argv[1]).read_text()
+assert "filter-option-state-any" not in text
+assert "filter-option-state-Himachal Pradesh" in text
+assert "filter-region-jump-north" in text
+print("run427 dump: state sheet is in North, Any state is off screen")
+PY
+run427_head="$(mktemp)"
+python3 - "$run427/30s2-state-clear.xml" "$run427_head" <<'PY'
+import pathlib, sys
+text = pathlib.Path(sys.argv[1]).read_text()
+node = '<node resource-id="filter-option-state-any" content-desc="Any state  4" bounds="[0,300][320,348]" />'
+text = text.replace('<hierarchy rotation="0">', '<hierarchy rotation="0">' + node, 1)
+pathlib.Path(sys.argv[2]).write_text(text)
+PY
+run427_out="$(
+  export EMULATOR_FLOW=self-test EMULATOR_ARTIFACTS=/tmp EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  n=0
+  ui_dump() { n=$((n + 1)); if (( n == 1 )); then cp "$run427/30s2-state-clear.xml" "$DUMP"; else cp "$run427_head" "$DUMP"; fi; }
+  ui_sheet_swipe() { echo "SWIPE $*"; return 0; }
+  ui_tap() { echo "CLEAR"; }
+  sleep() { :; }
+  adb_shell_capped() { return 0; }
+  ensure_list_head state
+)"
+grep -q '^SWIPE' <<<"$run427_out" && { echo "run427: clear/jump must reach Any state without a swipe: $run427_out" >&2; exit 1; }
+grep -q '^CLEAR' <<<"$run427_out" || { echo "run427: search field should be cleared on the North dump: $run427_out" >&2; exit 1; }
+rm -f "$run427_head"
+echo "run427 dry-run: Any state returns after search clear, no swipe"
 if ! awk '
   /open_browse\(\)/ { fn = 1 }
   fn && $0 ~ /scroll_drawer_until --text-regex/ { search = 1 }
@@ -1578,14 +1612,14 @@ fi
 # as "FAIL missing").
 unstarted_n="$(grep -c '^NOT RUN [^:]*: did not start$' "${summary_dir}/results.txt")"
 skipped_n="$(grep -c '^SKIPPED ' "${summary_dir}/results.txt")"
-if [[ "$unstarted_n" -ne 60 || "$skipped_n" -ne 3 ]] ||
+if [[ "$unstarted_n" -ne 61 || "$skipped_n" -ne 3 ]] ||
    ! grep -q '^SKIPPED 30d-near-me: ' "${summary_dir}/results.txt" ||
    grep -q '^FAIL ' "${summary_dir}/results.txt" ||
    ! grep -q '^SKIPPED 11-near-me: ' "${summary_dir}/results.txt" ||
    ! grep -q '^SKIPPED 23-near-me-settings-roundtrip: ' "${summary_dir}/results.txt" ||
-   ! grep -q '0 failed, 0 expected failures, 0 unexpected passes, 60 not run, 3 skipped' "${summary_dir}/fail.out" ||
+   ! grep -q '0 failed, 0 expected failures, 0 unexpected passes, 61 not run, 3 skipped' "${summary_dir}/fail.out" ||
    ! grep -q 'did not start' "${summary_dir}/fail.out"; then
-  echo "unstarted flows: 60 NOT RUN, 3 SKIPPED (11, 23, 30d), no FAIL, job not green" >&2
+  echo "unstarted flows: 61 NOT RUN, 3 SKIPPED (11, 23, 30d), no FAIL, job not green" >&2
   cat "${summary_dir}/fail.out" >&2
   exit 1
 fi
@@ -1628,8 +1662,8 @@ if ! EMULATOR_ARTIFACTS="$not_run_dir" EMULATOR_RESOLVE_OUTCOME=failure \
   exit 1
 fi
 not_run="$(grep -c '^NOT RUN ' "${not_run_dir}/results.txt")"
-if [[ "$not_run" -ne 60 ]] || [[ "$(grep -c '^SKIPPED ' "${not_run_dir}/results.txt")" -ne 3 ]]; then
-  echo "expected 60 NOT RUN and 3 SKIPPED lines, found ${not_run} NOT RUN" >&2
+if [[ "$not_run" -ne 61 ]] || [[ "$(grep -c '^SKIPPED ' "${not_run_dir}/results.txt")" -ne 3 ]]; then
+  echo "expected 61 NOT RUN and 3 SKIPPED lines, found ${not_run} NOT RUN" >&2
   exit 1
 fi
 if grep -q '^FAIL ' "${not_run_dir}/results.txt"; then
@@ -3378,14 +3412,15 @@ o="$( ( export EMULATOR_FLOW=x EMULATOR_ARTIFACTS="$r43/r5m"
   ui_tap() { echo TAPPED; }
   ui_dump; ui_find --resource-id filter-option-state-Bihar; stable_option_tap '^Bihar( +[0-9]+)?$' '^filter-option-state-' ) 2>&1)" && { echo "stable_option_tap: moved row must not be tapped: $o" >&2; exit 1; }
 grep -q TAPPED <<<"$o" && { echo "stable_option_tap tapped a moving row" >&2; exit 1; }
-grep -q '"06a-filters-single|tool/emulator/flows/06_filters.sh|single|12"' tool/emulator/plan.sh &&
+grep -q '"06a1-filters-single|tool/emulator/flows/06_filters.sh|single:1|12|400"' tool/emulator/plan.sh &&
+  grep -q '"06a2-filters-single|tool/emulator/flows/06_filters.sh|single:2|12|400"' tool/emulator/plan.sh &&
   grep -q '"06b-filters-combined|tool/emulator/flows/06_filters.sh|combined|12"' tool/emulator/plan.sh &&
   ! grep -q '"06-filters|' tool/emulator/plan.sh || { echo "plan.sh: 06 split into 06a single / 06b combined" >&2; exit 1; }
 f06=tool/emulator/flows/06_filters.sh
 grep -q "select_labeled '^(?!All districts)" "$f06" && { echo "flow 06: no name-less lookahead district pick" >&2; exit 1; }
 grep -q 'COMBINED_DISTRICT_PICK:-^Alappuzha' "$f06" && grep -q 'state_chip_is "$COMBINED_STATE"' "$f06" || { echo "flow 06: real district (Alappuzha) and the state-chip check" >&2; exit 1; }
 grep -q ': "${_section}"' tool/emulator/lib/common.sh && { echo "select_labeled must use its section" >&2; exit 1; }
-[[ "$(bash -c 'source tool/emulator/plan.sh; plan_cap_s 26-drawer-nav-stack; plan_cap_s 06a-filters-single; plan_need_s full 15')" == $'300\n600\n1829' ]] || { echo "plan: row caps 26=300, 06a=600, shard 15 = 1829s" >&2; exit 1; }
+[[ "$(bash -c 'source tool/emulator/plan.sh; plan_cap_s 26-drawer-nav-stack; plan_cap_s 06b-filters-combined; plan_cap_s 06a1-filters-single; plan_need_s full 12')" == $'300\n600\n400\n2089' ]] || { echo "plan: 26=300, 06b=600, 06a1=400, shard 12 = 2089s" >&2; exit 1; }
 # 6-8. Replays of run 41391038302 (testdata/run41391038302/replay_*.sh):
 # 27 waits for validation, re-taps Try again, flaps only after recover; 17c
 # clears "temple" before typing; 24 sends one fling and compares.
@@ -3509,7 +3544,7 @@ grep -q '^SNAPCFG full-1 SNAPSHOT_CONFIG mismatch' "$r43/art431c/results.txt" &&
 grep -q '^::warning::emulator full shard 1: snapshot boot, but the AVD config differs from the snapshot: SNAPSHOT_CONFIG mismatch: disk.dataPartition.size' "$r43/art431c.out" ||
   { echo "run_shard: mismatch on a snapshot boot prints ::warning:: (round 4.3.3): $(cat "$r43/art431c.out")" >&2; exit 1; }
 # (a)/(3): worst case counts the outer kill-after; avd-warmup runs beside build.
-[[ "$(plan_need_s full 12)" == 1839 && "$(plan_need_s full 15)" == 1829 && "$(plan_need_s full 11)" == 2129 && "$(plan_need_s full 10)" == 2129 && "$(plan_need_s full 1)" == 2129 ]] || { echo "plan_need_s: shard 12 1839s, 15 1829s, shards 1/10/11 2129s" >&2; exit 1; }
+[[ "$(plan_need_s full 12)" == 2089 && "$(plan_need_s full 15)" == 1829 && "$(plan_need_s full 11)" == 2129 && "$(plan_need_s full 10)" == 2129 && "$(plan_need_s full 1)" == 2129 ]] || { echo "plan_need_s: shard 12 2089s (06a1 06a2 06b 31), 15 1829s, shards 1/10/11 2129s" >&2; exit 1; }
 grep -q 'timeout --kill-after="$FLOW_OUTER_KILL_S"' tool/emulator/run_shard.sh || { echo "run_shard outer kill-after must be FLOW_OUTER_KILL_S" >&2; exit 1; }
 awk '/^  avd-warmup:/ { w = 1 } w && /needs:/ { print; exit }' "$workflow" | grep -qx '    needs: \[gate\]' || { echo "avd-warmup must need only the gate (parallel with build)" >&2; exit 1; }
 #R43_MORE
@@ -3932,7 +3967,7 @@ o="$(replay441 "$r44/mid.xml $r44/mid.xml $T44/17c_deity_select.xml" select_labe
   { echo "4.4.1 @first on a mid-list sheet: swipe down to the head, then tap 81 Yoginis: $o" >&2; exit 1; }
 # Never at the head: give up after FIRST_TOP_SWIPES, no tap.
 o="$(FIRST_TOP_SWIPES=3 replay441 "$r44/mid.xml" select_labeled '@first' DEITY)" && { echo "4.4.1 @first with no list head must fail: $o" >&2; exit 1; }
-[[ "$(grep -c '^SWIPE down$' <<<"$o")" == 3 ]] && ! grep -q '^TAP' <<<"$o" || { echo "4.4.1 @first gives up after 3 swipes, no tap: $o" >&2; exit 1; }
+[[ "$(grep -c '^SWIPE down$' <<<"$o")" == 3 ]] && ! grep -q 'tap in place' <<<"$o" || { echo "4.4.1 @first gives up after 3 fallback swipes, no option tap: $o" >&2; exit 1; }
 # 2. filter-kept needs filter-clear (and the applied labels): chips alone fail.
 fk() { ui_dump && filter_kept "$@"; }
 replay44 "$T44/seq1_filter_kept.xml" fk 'state=Tamil Nadu' 'deity=Shiva' >/dev/null || { echo "4.4.1 filter_kept on r6 seq1 (Tamil Nadu off-row, Shiva)" >&2; exit 1; }
@@ -4199,7 +4234,7 @@ grep -q 'caps: 30g1-filter-matrix-search-deity=450s 30g2-filter-matrix-search-de
   grep -qx '::group::Flow 30s2-filter-matrix-seq2 (cap 540s)' "$cp_dir/out" && ! grep -q 'cap 600s each' "$cp_dir/out" &&
   grep -qx '30g1-filter-matrix-search-deity 450' "$cp_dir/budgets" && grep -qx '30s2-filter-matrix-seq2 540' "$cp_dir/budgets" ||
   { echo "4.4.9b: shard 11 must log the row caps: $(head -3 "$cp_dir/out"; cat "$cp_dir/budgets")" >&2; exit 1; }
-for want in "30s3-filter-matrix-seq3 540 540" "06a-filters-single 600 600" "30s1-filter-matrix-seq1 900 600"; do
+for want in "30s3-filter-matrix-seq3 540 540" "06a1-filters-single 400 400" "30s1-filter-matrix-seq1 900 600"; do
   read -r fid fb fwant <<<"$want"; rm -rf "$cp_dir/a1"; mkdir -p "$cp_dir/a1"
   EMULATOR_FLOW_BUDGET="$fb" EMULATOR_ARTIFACTS="$cp_dir/a1" PATH="$cp_dir/bin:$PATH" EMULATOR_APK=/nonexistent \
     timeout 60 bash tool/emulator/run_one_flow.sh "$fid" "tool/emulator/flows/29_filter_matrix.sh" > "$cp_dir/one.out" 2>&1

@@ -344,6 +344,36 @@ void main() {
     expect(find.byKey(const Key('filter-section-deity')), findsOneWidget);
   });
 
+  testWidgets('Any state stays visible after the list scrolls', (
+    tester,
+  ) async {
+    final many = [
+      for (var i = 0; i < 24; i++)
+        filterTemple(
+          name: 'Temple $i',
+          state: 'State ${i.toString().padLeft(2, '0')}',
+          city: 'City',
+          deity: 'Shiva',
+        ),
+    ];
+    await pumpFilterBar(tester, temples: many, size: const Size(400, 800));
+    await openFilterChip(tester, 'state');
+    expect(
+      find.byKey(const Key('filter-option-state-any')).hitTestable(),
+      findsOneWidget,
+    );
+    await tester.drag(
+      find.byKey(const Key('filter-sheet-options')),
+      const Offset(0, -900),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('filter-option-state-any')).hitTestable(),
+      findsOneWidget,
+    );
+    expect(find.textContaining('State 2'), findsWidgets);
+  });
+
   testWidgets('a second Show tap does not close the district sheet', (
     tester,
   ) async {

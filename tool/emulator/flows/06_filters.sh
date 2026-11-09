@@ -8,7 +8,10 @@
 #   all       both (local runs)
 # Run 41391038302 hit the 600s cap with one flow doing both.
 FILTERS_PART="${FILTER_MATRIX_PART:-all}"
-case "$FILTERS_PART" in single|combined|all) ;; *) FILTERS_PART=all ;; esac
+case "$FILTERS_PART" in
+  single|single:1|single:2|combined|all) ;;
+  *) FILTERS_PART=all ;;
+esac
 if ! err="$(reach_browse)"; then
   fail_step browse "${err:-could not open the temple list}"
   return 0
@@ -209,7 +212,12 @@ exercise_filter() {
 }
 
 if [[ "$FILTERS_PART" != combined ]]; then
+# 06a was 566s of 600s (run 42710826857). single:1 is the state chip;
+# single:2 is deity, district, and the city absence check.
+if [[ "$FILTERS_PART" != single:2 ]]; then
 exercise_filter state '^Kerala( +[0-9]+)?$' State open_state state
+fi
+if [[ "$FILTERS_PART" != single:1 ]]; then
 # State was cleared above, so the deity and district lists are all-India:
 # first-screen targets under the 20s picker give-up (Shiva and Madurai sit
 # far down those lists and gave up at 20-21s in run 41306793034).
@@ -242,7 +250,8 @@ while read -r chip_id; do
   exercise_filter "$chip_id" '^(?!Any |All ).+[0-9]+$' "" opener_unknown "$chip_id"
 done < <(python3 "$UI_PY" resource-ids "$DUMP" --prefix filter-chip- || true)
 fi
-if [[ "$FILTERS_PART" == single ]]; then
+fi
+if [[ "$FILTERS_PART" == single || "$FILTERS_PART" == single:1 || "$FILTERS_PART" == single:2 ]]; then
   return 0
 fi
 # The combined part runs on its own (06b), so the single-chip part never set

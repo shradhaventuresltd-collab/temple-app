@@ -1569,7 +1569,53 @@ wait_out_district_loader() {
 # on that chip, are not that row.
 district_sheet_lists_rows() {
   wait_out_district_loader || return 1
-  ui_find --resource-id filter-option-district-any
+  ensure_list_head district
+}
+
+# Bring filter-option-KIND-any on screen. The row is pinned under the
+# search field, so a clear (which jumps the list to the top) is enough.
+# One short fallback pull remains for a sheet that is still mid-list.
+# Callers that need the head (select_labeled @first) use this, not their
+# own swipe loop.
+ensure_list_head() {
+  local kind="$1"
+  local any="filter-option-${kind}-any"
+  local n=0 value
+  ui_dump || return 1
+  if ui_find --resource-id "$any"; then
+    return 0
+  fi
+  if ui_find --resource-id filter-sheet-search; then
+    value="$(ui_field_value "$UI_TEXT")"
+    ui_tap || true
+    if [[ -n "$value" ]]; then
+      ui_clear_field "$value"
+    fi
+    sleep 0.3
+    ui_dump || return 1
+    if ui_find --resource-id "$any"; then
+      return 0
+    fi
+  fi
+  local deadline=$((SECONDS + ${HEAD_FALLBACK_S:-8}))
+  while ! ui_find --resource-id "$any"; do
+    if (( n >= ${FIRST_TOP_SWIPES:-6} || SECONDS >= deadline )); then
+      echo "select_labeled: ${kind} list head (-any) not reached after ${n} swipes" >&2
+      return 1
+    fi
+    if ! step_budget_ok; then
+      echo "select_labeled: ${kind} list head (-any) step timeout" >&2
+      return 1
+    fi
+    n=$((n + 1))
+    echo "select_labeled: ${kind} sheet not at the list head; fallback swipe (${n})" >&2
+    ui_sheet_swipe down 58 "${FIRST_TOP_SWIPE_PCT:-12}" || {
+      echo "select_labeled: swipe failed" >&2
+      return 1
+    }
+    sleep 0.3
+    ui_dump || return 1
+  done
 }
 
 # True when State, District, and Deity show their idle labels and no chip
@@ -2040,23 +2086,12 @@ select_labeled() {
   local _section="${2:-}"
   # Round 4.4: '@first' = the first real option on the opened sheet.
   # Round 4.4.1 (Manu): tap the dumped row itself, no re-seek. The sheet
-  # must be at the head of the list (the -any row on screen); if it is
-  # not, pull the list down until it is (at most FIRST_TOP_SWIPES).
+  # must be at the head of the list (the pinned -any row). ensure_list_head
+  # clears search (jump to top) and allows one short fallback pull.
   if [[ "$regex" == @first ]]; then
-    local _k _first _rid _n=0 _h _max
+    local _k _first _rid _h _max
     _k="$(printf '%s' "$_section" | tr '[:upper:]' '[:lower:]')"
-    ui_dump || { echo "select_labeled: dump failed on the ${_k} sheet" >&2; return 1; }
-    while ! ui_find --resource-id "filter-option-${_k}-any"; do
-      if (( _n >= ${FIRST_TOP_SWIPES:-6} )); then
-        echo "select_labeled: ${_k} list head (-any) not reached after ${_n} swipes" >&2
-        return 1
-      fi
-      _n=$((_n + 1))
-      echo "select_labeled: ${_k} sheet not at the list head; scrolling to the top (${_n})" >&2
-      ui_sheet_swipe down 58 "${FIRST_TOP_SWIPE_PCT:-12}" || { echo "select_labeled: swipe failed" >&2; return 1; }
-      sleep 0.3
-      ui_dump || { echo "select_labeled: dump failed on the ${_k} sheet" >&2; return 1; }
-    done
+    ensure_list_head "$_k" || return 1
     if ! { read -r _first; read -r _rid; } < <(first_real_option "$_k"); then
       echo "select_labeled: no real ${_k} option on the open sheet" >&2
       return 1

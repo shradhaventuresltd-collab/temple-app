@@ -385,10 +385,25 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
                                           (pinSearch ? searchHeight : 0) -
                                           jumpHeight >=
                                       96;
+                              final anyRow = _anyVisible && widget.any != null
+                                  ? _optionTile(widget.any!)
+                                  : null;
+                              // Any state / district / deity sits above a
+                              // long list. Once the sheet scrolls to a
+                              // region or a selected row, that head row is
+                              // off screen (run 42710826857: North states,
+                              // six pulls never reached Any state).
+                              final pinAny =
+                                  anyRow != null &&
+                                  constraints.maxHeight -
+                                          (pinSearch ? searchHeight : 0) -
+                                          (pinJumps ? jumpHeight : 0) >=
+                                      96;
                               return Column(
                                 children: [
                                   if (pinSearch) search,
                                   if (pinJumps) jumpRow,
+                                  if (pinAny) anyRow,
                                   Expanded(
                                     child: _body(
                                       colors,
@@ -399,6 +414,7 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
                                         if (jumpRow != null && !pinJumps)
                                           jumpRow,
                                       ],
+                                      includeAny: !pinAny,
                                     ),
                                   ),
                                 ],
@@ -496,6 +512,7 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
     FilterSheetColors colors,
     List<FilterSheetSection> sections, {
     List<Widget> leading = const [],
+    bool includeAny = true,
   }) {
     if (widget.loading) {
       return Column(
@@ -525,7 +542,7 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
     final query = _search.text.trim();
     final slivers = <Widget>[
       for (final item in leading) SliverToBoxAdapter(child: item),
-      if (_anyVisible && widget.any != null)
+      if (includeAny && _anyVisible && widget.any != null)
         SliverToBoxAdapter(child: _optionTile(widget.any!)),
       for (final section in sections) _sectionSliver(section, colors, extent),
       if (_nothingMatches)
