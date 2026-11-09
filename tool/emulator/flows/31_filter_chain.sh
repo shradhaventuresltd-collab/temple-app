@@ -22,7 +22,7 @@ chain_filters() {
   find_filter_chip filter-chip-district "" "Choose a district" || return 1
   ui_tap
   ui_wait 15 --text-regex "$FILTER_SHEET_TITLE_RX" || return 1
-  if ui_find --text "Choose a state first"; then
+  if ui_find --resource-id filter-choose-state-first; then
     finish_choose_state_first || return 1
   fi
   select_labeled '^Kottayam( +[0-9]+)?$' DISTRICT || return 1
@@ -39,6 +39,7 @@ chain_filters() {
   ui_dump && ui_find --resource-id filter-clear || return 1
   ui_tap
   sleep 1
+  filter_chips_idle || return 1
   pass_step "$where-clear-all"
 }
 
@@ -68,7 +69,10 @@ scroll_drawer_until --resource-id temple-list-search-field || {
 }
 ui_tap
 ui_type "temple"
-adb shell input keyevent 66
+adb_shell_capped 8 input keyevent 66 || {
+  fail_step search-enter "search submit"
+  return 0
+}
 sleep 2
 wait_browse_ready || { fail_step search-enter "results"; return 0; }
 pass_step search-enter

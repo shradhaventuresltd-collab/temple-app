@@ -116,7 +116,10 @@ void main() {
       'Jain and Buddhist sites are labelled by their own tradition, not Hindu darshan.',
     );
     expect(directoryDeityFilterNote(const ['Shiva'], count: 4), '4 deities');
-    expect(directoryFilterCount(temples, state: 'Kerala', deity: 'Shiva'), 1);
+    expect(
+      directoryMatchingTemples(temples, state: 'Kerala', deity: 'Shiva').length,
+      1,
+    );
     expect(
       directoryBrowseTitle(state: 'Kerala', deity: 'Shiva'),
       'Shiva · Kerala',
@@ -553,7 +556,10 @@ void main() {
       await tester.pump();
 
       await openDismissReopen(const Key('filter-chip-district'), () async {
-        await tester.drag(find.byKey(const Key('filter-sheet-options')), const Offset(0, 400));
+        await tester.drag(
+          find.byKey(const Key('filter-sheet-options')),
+          const Offset(0, 400),
+        );
       });
       await tester.tap(find.byKey(const Key('filter-option-state-Tamil Nadu')));
       await tester.pump();
@@ -569,7 +575,10 @@ void main() {
       await tester.pump();
 
       await openDismissReopen(const Key('filter-chip-deity'), () async {
-        await tester.drag(find.byKey(const Key('filter-sheet-options')), const Offset(0, 400));
+        await tester.drag(
+          find.byKey(const Key('filter-sheet-options')),
+          const Offset(0, 400),
+        );
       });
       await applyOption(const Key('filter-option-deity-Devi'));
       expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
@@ -580,7 +589,10 @@ void main() {
       await tester.pump();
 
       await openDismissReopen(const Key('filter-chip-state'), () async {
-        await tester.drag(find.byKey(const Key('filter-sheet-options')), const Offset(0, 400));
+        await tester.drag(
+          find.byKey(const Key('filter-sheet-options')),
+          const Offset(0, 400),
+        );
       });
       await applyOption(const Key('filter-option-state-Tamil Nadu'));
       expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
@@ -698,7 +710,10 @@ void main() {
         await tester.tap(find.byKey(const Key('filter-chip-district')));
         await tester.pumpAndSettle();
         expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
-        expect(find.byKey(const Key('filter-section-district')), findsOneWidget);
+        expect(
+          find.byKey(const Key('filter-section-district')),
+          findsOneWidget,
+        );
       }
 
       final optionList = find.descendant(
@@ -707,7 +722,10 @@ void main() {
       );
 
       await openDistrict();
-      await tester.drag(find.byKey(const Key('filter-sheet-title')), const Offset(0, 400));
+      await tester.drag(
+        find.byKey(const Key('filter-sheet-title')),
+        const Offset(0, 400),
+      );
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('filter-sheet')), findsNothing);
 
@@ -730,7 +748,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
 
-      await tester.drag(find.byKey(const Key('filter-sheet-title')), const Offset(0, 400));
+      await tester.drag(
+        find.byKey(const Key('filter-sheet-title')),
+        const Offset(0, 400),
+      );
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('filter-sheet')), findsNothing);
 
@@ -1014,7 +1035,10 @@ void main() {
     directoryOptionCensusCalls = 0;
     await pumpSheet(query: 'temple', rows: many);
     await tester.pump();
-    await tester.drag(find.byKey(const Key('filter-sheet-title')), const Offset(0, 40));
+    await tester.drag(
+      find.byKey(const Key('filter-sheet-title')),
+      const Offset(0, 40),
+    );
     await tester.pump();
     expect(find.byKey(const Key('filter-sheet-title')), findsOneWidget);
     expect(directoryOptionCensusCalls, 1);
@@ -1057,11 +1081,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
 
-    await tester.drag(find.byKey(const Key('filter-sheet-title')), const Offset(0, 60));
+    await tester.drag(
+      find.byKey(const Key('filter-sheet-title')),
+      const Offset(0, 60),
+    );
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
 
-    await tester.drag(find.byKey(const Key('filter-sheet-title')), const Offset(0, 80));
+    await tester.drag(
+      find.byKey(const Key('filter-sheet-title')),
+      const Offset(0, 80),
+    );
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('filter-sheet')), findsNothing);
   });

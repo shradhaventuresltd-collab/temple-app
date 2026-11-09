@@ -64,7 +64,8 @@ String directoryDeityFilterNote(Iterable<String> deities, {int? count}) {
   final joined = switch (present.length) {
     1 => present.single,
     2 => '${present[0]} and ${present[1]}',
-    _ => '${present.sublist(0, present.length - 1).join(', ')} and ${present.last}',
+    _ =>
+      '${present.sublist(0, present.length - 1).join(', ')} and ${present.last}',
   };
   return '$joined sites are labelled by their own tradition, not Hindu darshan.';
 }
@@ -165,21 +166,6 @@ String directoryEmptyFilterMessage({String? district}) {
     return 'Nothing in the loaded directory fits this state, district, and deity.';
   }
   return 'Nothing in the loaded directory fits this state and deity.';
-}
-
-/// How many loaded temples match this state, deity, and query together.
-int directoryFilterCount(
-  List<Temple> temples, {
-  String? state,
-  String? deity,
-  String query = '',
-}) {
-  return filterTemples(
-    temples,
-    state: state,
-    deity: deity,
-    query: query,
-  ).length;
 }
 
 /// Label for the sheet's apply action.

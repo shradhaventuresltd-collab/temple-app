@@ -311,6 +311,7 @@ for entry in "${ENTRIES[@]}"; do
     for action in "${ACTIONS[@]}"; do
       id="$entry-$chip-$action"
       APPLIED=()  # each cell starts from a fresh entry (scoped_pick reads APPLIED)
+      CHOOSE_STATE_APPLIED=""
       "enter_$entry" >/dev/null 2>&1
       status=$?
       if [[ "$status" -ne 0 ]]; then
@@ -343,6 +344,7 @@ for seq in "${SEQS[@]}"; do
   [[ -n "${SEQ_ONLY:-}" && "$n" != "$SEQ_ONLY" ]] && continue
   enter_home_browse >/dev/null 2>&1 || { fail_step "seq$n-enter" "browse not reached"; continue; }
   APPLIED=()
+  CHOOSE_STATE_APPLIED=""
   ok=1
   for st in $seq; do
     # Round 4.4.9g (run 41825986479 shard 9): no result line is written

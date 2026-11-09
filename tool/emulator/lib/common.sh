@@ -1536,6 +1536,37 @@ wait_out_district_loader() {
   return 1
 }
 
+# The district sheet is open only when the Any-district row is in the
+# hierarchy. The always-visible District chip, and the words "All districts"
+# on that chip, are not that row.
+district_sheet_lists_rows() {
+  wait_out_district_loader || return 1
+  ui_find --resource-id filter-option-district-any
+}
+
+# True when State, District, and Deity show their idle labels and no chip
+# still offers Clear. A selected chip keeps a "Clear … filter" node.
+filter_chips_idle() {
+  local id want label
+  ui_dump || return 1
+  for id in filter-chip-state filter-chip-district filter-chip-deity; do
+    case "$id" in
+      filter-chip-state) want="State" ;;
+      filter-chip-district) want="District" ;;
+      filter-chip-deity) want="Deity" ;;
+    esac
+    ui_find --resource-id "$id" || return 1
+    label="$(chip_label "$UI_TEXT")"
+    [[ "$label" == "$want" ]] || return 1
+  done
+  if ui_find --content-desc "Clear state filter" \
+    || ui_find --content-desc "Clear district filter" \
+    || ui_find --content-desc "Clear deity filter"; then
+    return 1
+  fi
+  return 0
+}
+
 # "^Shiva( +[0-9]+)?$" -> "Shiva". Empty when the pattern is not a label.
 option_name_from_regex() {
   python3 -c '
@@ -2156,7 +2187,7 @@ select_labeled() {
 # first"). Apply Tamil Nadu so the District sheet that follows is scoped.
 finish_choose_state_first() {
   ui_dump || return 1
-  if ! ui_find --text "Choose a state first"; then
+  if ! ui_find --resource-id filter-choose-state-first; then
     return 0
   fi
   select_labeled '^Tamil Nadu( +[0-9]+)?$' STATE || return 1

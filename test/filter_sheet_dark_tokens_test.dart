@@ -6,6 +6,9 @@ import 'filter_sheet_support.dart';
 
 void main() {
   test('filter sheet tokens clear 4.5:1', () {
+    expect(FilterSheetColors.light.accent, const Color(0xFFBF360C));
+    expect(FilterSheetColors.light.accentText, const Color(0xFFBF360C));
+    expect(FilterSheetColors.light.radio, const Color(0xFFE65100));
     for (final colors in [FilterSheetColors.light, FilterSheetColors.dark]) {
       expect(
         FilterSheetColors.contrast(colors.label, colors.sheetBackground),
@@ -39,6 +42,13 @@ void main() {
         FilterSheetColors.contrast(colors.radio, colors.sheetBackground),
         greaterThanOrEqualTo(3),
       );
+      if (colors == FilterSheetColors.dark) {
+        expect(colors.radio, const Color(0xFFFFB74D));
+        expect(
+          FilterSheetColors.contrast(colors.radio, colors.chipFill),
+          greaterThanOrEqualTo(4.5),
+        );
+      }
       expect(
         FilterSheetColors.contrast(colors.muted, colors.headerBand),
         greaterThanOrEqualTo(4.5),
@@ -55,11 +65,7 @@ void main() {
         deity: 'Shiva',
       ),
     ];
-    await pumpFilterBar(
-      tester,
-      temples: temples,
-      theme: darkFilterTheme(),
-    );
+    await pumpFilterBar(tester, temples: temples, theme: darkFilterTheme());
     await openFilterChip(tester, 'state');
     final material = tester.widget<Material>(
       find

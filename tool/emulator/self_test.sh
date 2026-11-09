@@ -1116,6 +1116,90 @@ if grep -q "text-regex '\\^DISTRICT\\$'" tool/emulator/flows/07_district.sh tool
   echo "flows 07 and 29 must use the new District sheet title, not DISTRICT" >&2
   exit 1
 fi
+if grep -q "text-regex '\\^(District|All districts)'" tool/emulator/flows/07_district.sh; then
+  echo "flow 07 must not treat the District chip label as an open sheet" >&2
+  exit 1
+fi
+if ! grep -q 'district_sheet_lists_rows' tool/emulator/flows/07_district.sh; then
+  echo "flow 07 must wait for filter-option-district-any" >&2
+  exit 1
+fi
+if [[ "$(grep -c 'CHOOSE_STATE_APPLIED=""' tool/emulator/flows/29_filter_matrix.sh)" -lt 2 ]]; then
+  echo "flow 29 must clear CHOOSE_STATE_APPLIED with each APPLIED reset" >&2
+  exit 1
+fi
+if grep -q 'adb shell input keyevent 66' tool/emulator/flows/31_filter_chain.sh; then
+  echo "flow 31 search submit must use adb_shell_capped" >&2
+  exit 1
+fi
+if ! grep -q 'adb_shell_capped 8 input keyevent 66' tool/emulator/flows/31_filter_chain.sh; then
+  echo "flow 31 must cap the search keyevent" >&2
+  exit 1
+fi
+if ! grep -q 'filter_chips_idle' tool/emulator/flows/31_filter_chain.sh; then
+  echo "flow 31 must assert chips reset after Clear all" >&2
+  exit 1
+fi
+if grep -q -- '--text "Choose a state first"' tool/emulator/lib/common.sh tool/emulator/flows/07_district.sh tool/emulator/flows/31_filter_chain.sh; then
+  echo "Choose a state first must be found by resource-id" >&2
+  exit 1
+fi
+# A dump that only has the District chip (even with the words "All districts")
+# must not pass sheet-lists-districts. The Any-district row must.
+nit_dir="$(mktemp -d)"
+cat > "$nit_dir/chip.xml" <<'XML'
+<hierarchy rotation="0">
+  <node text="District" resource-id="filter-chip-district" bounds="[10,20][180,70]" />
+  <node text="All districts" resource-id="filter-chip-district" bounds="[10,20][180,70]" />
+</hierarchy>
+XML
+cat > "$nit_dir/rows.xml" <<'XML'
+<hierarchy rotation="0">
+  <node text="District" resource-id="filter-chip-district" bounds="[10,20][180,70]" />
+  <node text="All districts" resource-id="filter-option-district-any" bounds="[20,400][400,480]" />
+</hierarchy>
+XML
+cat > "$nit_dir/idle.xml" <<'XML'
+<hierarchy rotation="0">
+  <node text="State" resource-id="filter-chip-state" bounds="[10,10][90,50]" />
+  <node text="District" resource-id="filter-chip-district" bounds="[100,10][200,50]" />
+  <node text="Deity" resource-id="filter-chip-deity" bounds="[210,10][280,50]" />
+</hierarchy>
+XML
+cat > "$nit_dir/stuck.xml" <<'XML'
+<hierarchy rotation="0">
+  <node text="State" resource-id="filter-chip-state" bounds="[10,10][90,50]" />
+  <node text="District" resource-id="filter-chip-district" bounds="[100,10][200,50]" />
+  <node text="Deity" resource-id="filter-chip-deity" bounds="[210,10][280,50]" />
+  <node text="" content-desc="Clear state filter" resource-id="filter-chip-state-clear" bounds="[70,10][110,50]" />
+</hierarchy>
+XML
+(
+  set -euo pipefail
+  export EMULATOR_FLOW=self-test EMULATOR_ARTIFACTS="$nit_dir" EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  ui_dump() { return 0; }
+  sleep() { :; }
+  DUMP="$nit_dir/chip.xml"
+  if district_sheet_lists_rows; then
+    echo "chip-only dump must not pass sheet-lists-districts" >&2
+    exit 1
+  fi
+  DUMP="$nit_dir/rows.xml"
+  district_sheet_lists_rows || {
+    echo "Any-district row must pass sheet-lists-districts" >&2
+    exit 1
+  }
+  DUMP="$nit_dir/idle.xml"
+  filter_chips_idle || { echo "idle chips must pass filter_chips_idle" >&2; exit 1; }
+  DUMP="$nit_dir/stuck.xml"
+  if filter_chips_idle; then
+    echo "a leftover Clear state filter must fail filter_chips_idle" >&2
+    exit 1
+  fi
+)
+rm -rf "$nit_dir"
 if ! grep -q 'adb_shell_capped 8 settings put secure show_ime_with_hard_keyboard' tool/emulator/run_one_flow.sh; then
   echo "IME settings should use the step cap" >&2
   exit 1

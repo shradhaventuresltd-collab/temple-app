@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 /// Light and dark colours for the filter bar and [FilterSheetScaffold].
 ///
 /// New filter widgets read these tokens. They do not pick their own colours.
-/// The filled action uses a deep orange so white label text stays at or
-/// above 4.5:1. Icons and the selected radio keep the brighter saffron.
+/// The filled action uses [buttonFill] so its label stays at or above
+/// 4.5:1. Dark text, outlines, and the selected radio use #FFB74D.
 @immutable
 class FilterSheetColors extends ThemeExtension<FilterSheetColors> {
   const FilterSheetColors({
@@ -36,7 +36,7 @@ class FilterSheetColors extends ThemeExtension<FilterSheetColors> {
   final Color accent;
 
   /// Text and outline accent. Dark is #FFB74D so it stays at or above 4.5:1
-  /// on the brown sheet and on chip fill. The filled button keeps [accent].
+  /// on the brown sheet and on chip fill. The filled button uses [buttonFill].
   final Color accentText;
 
   /// Filled "Show N temples" background. Dark is #FF9F2E with [onButton] #1A0F08.
@@ -80,7 +80,7 @@ class FilterSheetColors extends ThemeExtension<FilterSheetColors> {
     buttonFill: Color(0xFFFF9F2E),
     onButton: Color(0xFF1A0F08),
     onAccent: Color(0xFF1A0F08),
-    radio: Color(0xFFFF8F00),
+    radio: Color(0xFFFFB74D),
     searchFill: Color(0xFF2C211B),
     border: Color(0xFF5C463A),
     headerBand: Color(0xFF32241C),
