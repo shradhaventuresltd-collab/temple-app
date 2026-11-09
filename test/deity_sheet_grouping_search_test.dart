@@ -24,6 +24,34 @@ void main() {
     expect(deityGroupMatches('Shiva', null), isTrue);
   });
 
+  test('deity grouping cuts on parenthesis, em dash, and comma', () {
+    expect(deityGroupBase('Shiva — Gangadhareshwara'), 'Shiva');
+    expect(deityGroupBase('Shiva, Gangadhareshwara'), 'Shiva');
+    expect(deityGroupBase('Shiva (Gangadhareshwara)'), 'Shiva');
+    expect(deityGroupBase('Venkateswara'), 'Venkateswara');
+    expect(deityGroupBase('Shiva, Lord (form) — extra'), 'Shiva');
+    expect(deityGroupBase('Shiva (form), extra — more'), 'Shiva');
+    expect(deityGroupBase('Shiva — form, extra (more)'), 'Shiva');
+
+    final groups = groupDeityNames([
+      'Shiva — Gangadhareshwara',
+      '  SHIVA,  Gangadhareshwara  ',
+      'shiva (gangadhareshwara)',
+      '  shiva  ',
+      'Venkateswara',
+    ]);
+    expect(groups.map((group) => group.label), ['Shiva', 'Venkateswara']);
+    final shiva = groups.singleWhere((group) => group.label == 'Shiva');
+    expect(shiva.variants, hasLength(4));
+    expect(
+      deityGroupKey('SHIVA — GANGADHARESHWARA'),
+      deityGroupKey('  shiva, gangadhareshwara '),
+    );
+    expect(deityGroupMatches('Shiva — Gangadhareshwara', 'Shiva'), isTrue);
+    expect(deityGroupMatches('Shiva, Gangadhareshwara', 'shiva'), isTrue);
+    expect(deityGroupMatches('Venkateswara', 'Shiva'), isFalse);
+  });
+
   testWidgets('deity_sheet_grouping_search_test', (tester) async {
     final temples = [
       filterTemple(

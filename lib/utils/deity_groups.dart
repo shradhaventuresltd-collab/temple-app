@@ -1,21 +1,26 @@
 /// Groups listed deity strings by their main name (KAN-198).
 ///
-/// 'Shiva' and 'Shiva (Gangadhareshwara)' are one Shiva row. Case and
-/// extra whitespace do not split a group. The group is chosen on the
-/// client from names the directory already loaded. Nothing here reads
-/// Firestore.
+/// 'Shiva', 'Shiva (Gangadhareshwara)', 'Shiva — Gangadhareshwara', and
+/// 'Shiva, Gangadhareshwara' are one Shiva row. The cut is the earliest of
+/// '(', ' —', and ','. Case and extra whitespace do not split a group.
+/// The group is chosen on the client from names the directory already
+/// loaded. Nothing here reads Firestore.
 library;
 
 import 'package:temple_app/utils/detail_honesty.dart';
 
 final RegExp _whitespace = RegExp(r'\s+');
 
-/// Text before a parenthetical, with the edges and inner whitespace folded.
+/// Text before the earliest of '(', ' —', or ',', with edges folded.
 String deityGroupBase(String raw) {
   var text = raw.trim().replaceAll(_whitespace, ' ');
-  final paren = text.indexOf('(');
-  if (paren >= 0) text = text.substring(0, paren).trim();
-  return text.replaceAll(_whitespace, ' ');
+  var cut = text.length;
+  for (final mark in ['(', ' —', ',']) {
+    final at = text.indexOf(mark);
+    if (at >= 0 && at < cut) cut = at;
+  }
+  if (cut < text.length) text = text.substring(0, cut);
+  return text.trim().replaceAll(_whitespace, ' ');
 }
 
 /// Stable identity for a deity group. Empty when [raw] has no name.
@@ -79,7 +84,7 @@ List<DeityGroup> groupDeityNames(Iterable<String> names) {
     final votes = bases[key] ??= <String, _BaseVote>{};
     final vote = votes[base] ??= _BaseVote();
     vote.count += 1;
-    if (!trimmed.contains('(')) vote.exact = true;
+    if (trimmed == base) vote.exact = true;
   }
 
   final groups = <DeityGroup>[];
