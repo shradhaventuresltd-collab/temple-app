@@ -45,7 +45,7 @@ open_chip() {
     deity) ui_dump && { ui_find --resource-id filter-chip-deity || ui_find --content-desc "Choose a deity"; } ;;
   esac || return 1
   ui_tap
-  ui_wait 20 --text-regex '^Filters$'
+  wait_filter_sheet 20
 }
 
 swipe_from_list() {
@@ -90,10 +90,15 @@ for entry in "${ENTRIES[@]}"; do
     # Deity: Shiva only from a Tamil Nadu-scoped list (scoped_pick); the
     # state was cleared above, so this is the all-India head pick: the
     # sheet's first real option (@first, round 4.4; Ahalya left the list).
-    pick="${PICK[$f]}"
-    if [[ "$f" == deity ]]; then pick="$(scoped_pick deity)" || pick="$ALL_INDIA_DEITY_PICK"; fi
-    if open_chip "$f" && select_labeled "$pick" "${SECTION[$f]}" && apply_sheet && chip_exact "$SELECTED_LABEL"; then
-      pass_step "$id-select"
+    if open_chip "$f"; then
+      if [[ "$f" == district ]]; then finish_choose_state_first || true; fi
+      pick="${PICK[$f]}"
+      if [[ "$f" == deity || "$f" == district ]]; then pick="$(scoped_pick "$f")" || pick="${PICK[$f]}"; fi
+      if select_labeled "$pick" "${SECTION[$f]}" && apply_sheet && chip_exact "$SELECTED_LABEL"; then
+        pass_step "$id-select"
+      else
+        fail_step "$id-select" "chip did not take the selection on this route"; recover_sheet; continue
+      fi
     else
       fail_step "$id-select" "chip did not take the selection on this route"; recover_sheet; continue
     fi
@@ -107,10 +112,19 @@ for entry in "${ENTRIES[@]}"; do
   # Empty-state Clear filters, from this entry. The chip-row Clear is a
   # different control. The search text must go. The State chip is checked
   # only when Kerala actually applied; a missed pick is not a failed clear.
+  # Choose-a-state-first may already have applied Tamil Nadu. That chip
+  # is not labelled State, and skipping the reset check is a failure.
   kerala_applied=0
-  if ui_dump && ui_find --resource-id filter-chip-state --text-regex '^State$'; then
+  state_label=""
+  if ui_dump && ui_find --resource-id filter-chip-state; then
+    state_label="$(printf '%s' "${UI_TEXT:-}" | tr -s '[:space:]' ' ' | sed 's/^ //;s/ $//')"
+  fi
+  if [[ -n "$state_label" && "$state_label" != State ]]; then
+    kerala_applied=1
+    CHOOSE_STATE_APPLIED=""
+  elif ui_dump && ui_find --resource-id filter-chip-state --text-regex '^State$'; then
     ui_tap
-    if ui_wait 12 --text-regex '^Filters$'; then
+    if wait_filter_sheet 12; then
       if select_labeled '^Kerala( +[0-9]+)?$' STATE && apply_sheet; then
         kerala_applied=1
       else
@@ -123,6 +137,16 @@ for entry in "${ENTRIES[@]}"; do
   # "... Temple" (temple_search.dart:640-641 reverse prefix, a pre-existing
   # app bug since #103, Jira KAN-193). ui_replace_field_text clears exactly
   # the current text, types, and reads the field back.
+  recover_sheet || true
+  local search_try
+  for search_try in 1 2 3; do
+    ui_dump || break
+    if ui_find --resource-id temple-list-search-field; then
+      break
+    fi
+    ui_fling down || break
+    sleep 0.4
+  done
   if ui_dump && ui_find --resource-id temple-list-search-field; then
     field_ok=1
     ui_replace_field_text "zzzqqq" temple-list-search-field || field_ok=0
@@ -136,7 +160,9 @@ for entry in "${ENTRIES[@]}"; do
       ui_dump
       if ui_find --text-contains "zzzqqq"; then
         fail_step "$entry-empty-clear" "search text kept"
-      elif [[ "$kerala_applied" == 1 ]] && ! ui_find --resource-id filter-chip-state --text-regex '^State$'; then
+      elif [[ "$kerala_applied" != 1 ]]; then
+        fail_step "$entry-empty-clear" "state chip check skipped"
+      elif ! ui_find --resource-id filter-chip-state --text-regex '^State$'; then
         fail_step "$entry-empty-clear" "state chip kept"
       else
         pass_step "$entry-empty-clear"

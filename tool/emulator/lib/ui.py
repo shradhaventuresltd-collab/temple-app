@@ -8,6 +8,7 @@ Coordinates come from the node's bounds. Callers tap those, not a fixed pixel.
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import sys
 import xml.etree.ElementTree as ET
@@ -303,6 +304,11 @@ def _sheet_rows(root: ET.Element) -> list[tuple[str, str, tuple[int, int, int, i
             if short.startswith(prefix):
                 kind, name = k, short[len(prefix):]
                 break
+        # Most-listed deity rows use filter-deity-top-<name>, not
+        # filter-option-deity-<name>. A head-of-list Shiva is invisible to
+        # the seek if only the letter id is recognised (run 42699042193).
+        if kind is None and short.startswith("filter-deity-top-"):
+            kind, name = "deity", short[len("filter-deity-top-"):]
         if kind is None:
             label = _flat(node.attrib.get("content-desc")) or _flat(node.attrib.get("text"))
             if label in _HEADERS and not short:
@@ -452,9 +458,18 @@ def cmd_option_seek(args: argparse.Namespace) -> int:
             k != args.kind and order.index(k) < mine and b[1] < min(mine_ys)
             for k, _n, b, _node in rows
         )
-        if target > _dart_key(hi):
+        if args.kind == "state" and _sheet_uses_regions(root):
+            regions = _state_regions()
+            target_key = _state_sort_key(args.name, regions)
+            hi_key = _state_sort_key(hi, regions)
+            lo_key = _state_sort_key(lo, regions)
+        else:
+            target_key = _dart_key(args.name)
+            hi_key = _dart_key(hi)
+            lo_key = _dart_key(lo)
+        if target_key > hi_key:
             print("absent" if later_below else f"up {reach(hi)}")
-        elif target < _dart_key(lo):
+        elif target_key < lo_key:
             print("absent" if earlier_above else f"down {reach(lo)}")
         else:
             print("absent")
@@ -482,6 +497,52 @@ def cmd_option_seek(args: argparse.Namespace) -> int:
         return 0
     print("none")
     return 0
+
+
+_REGION_RANK = {
+    "north": 0,
+    "south": 1,
+    "east": 2,
+    "northeast": 3,
+    "west": 4,
+    "central": 5,
+}
+
+
+def _regions_source() -> str:
+    path = os.path.normpath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "..", "lib", "utils", "india_regions.dart")
+    )
+    return open(path, encoding="utf-8").read()
+
+
+def _state_regions() -> dict[str, str]:
+    """Names from lib/utils/india_regions.dart, the KAN-198 catalog."""
+    text = _regions_source()
+    return dict(re.findall(r"\(name: '([^']+)', region: '([^']+)'\)", text))
+
+
+def _state_aliases() -> dict[str, str]:
+    """kIndiaStateAliases, so seek order matches indiaRegionOf."""
+    text = _regions_source()
+    start = text.find("kIndiaStateAliases = {")
+    end = text.find("};", start)
+    block = text[start:end]
+    return dict(re.findall(r"'([^']+)':\s*'([^']+)'", block))
+
+
+def _sheet_uses_regions(root: ET.Element) -> bool:
+    for node in _iter_nodes(root):
+        short = _resource_id(node).split("/")[-1]
+        if short.startswith("filter-region-"):
+            return True
+    return False
+
+
+def _state_sort_key(name: str, regions: dict[str, str]) -> tuple:
+    canonical = _state_aliases().get(name, name)
+    region = regions.get(canonical, regions.get(name))
+    return (_REGION_RANK.get(region, 6), _dart_key(name))
 
 
 def cmd_sheet_band(args: argparse.Namespace) -> int:

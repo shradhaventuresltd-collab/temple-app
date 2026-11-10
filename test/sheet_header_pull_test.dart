@@ -58,7 +58,7 @@ void main() {
   for (final moves in [0, 1, 2, 5, 20]) {
     testWidgets('header pull with $moves moves', (tester) async {
       await _open(tester);
-      final start = tester.getCenter(find.text('Filters'));
+      final start = tester.getCenter(find.byKey(const Key('filter-sheet-title')));
       const end = 614.0;
       final g = await tester.startGesture(start);
       for (var i = 1; i <= moves; i++) {
@@ -82,7 +82,7 @@ void main() {
     tester,
   ) async {
     await _open(tester);
-    final g = await tester.startGesture(tester.getCenter(find.text('Filters')));
+    final g = await tester.startGesture(tester.getCenter(find.byKey(const Key('filter-sheet-title'))));
     await g.moveBy(Offset.zero);
     await tester.pump();
     for (var i = 0; i < 4; i++) {
@@ -96,7 +96,7 @@ void main() {
 
   testWidgets('a real 72px drag closes the sheet', (tester) async {
     await _open(tester);
-    final g = await tester.startGesture(tester.getCenter(find.text('Filters')));
+    final g = await tester.startGesture(tester.getCenter(find.byKey(const Key('filter-sheet-title'))));
     await g.moveBy(Offset.zero);
     await g.moveBy(const Offset(0, 36));
     await g.moveBy(const Offset(0, 36));
@@ -107,7 +107,7 @@ void main() {
 
   testWidgets('a 71px drag leaves the sheet open', (tester) async {
     await _open(tester);
-    final g = await tester.startGesture(tester.getCenter(find.text('Filters')));
+    final g = await tester.startGesture(tester.getCenter(find.byKey(const Key('filter-sheet-title'))));
     await g.moveBy(const Offset(0, 71));
     await g.up();
     await tester.pumpAndSettle();
@@ -116,7 +116,7 @@ void main() {
 
   testWidgets('an upward move still disarms the pull', (tester) async {
     await _open(tester);
-    final g = await tester.startGesture(tester.getCenter(find.text('Filters')));
+    final g = await tester.startGesture(tester.getCenter(find.byKey(const Key('filter-sheet-title'))));
     await g.moveBy(const Offset(0, -5));
     await g.moveBy(const Offset(0, 120));
     await g.up();
@@ -130,7 +130,7 @@ void main() {
     tester,
   ) async {
     await _open(tester);
-    final g = await tester.startGesture(tester.getCenter(find.text('Filters')));
+    final g = await tester.startGesture(tester.getCenter(find.byKey(const Key('filter-sheet-title'))));
     for (var i = 0; i < 4; i++) {
       await g.moveBy(const Offset(50, 18));
       await tester.pump();

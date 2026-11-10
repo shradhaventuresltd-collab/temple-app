@@ -12,7 +12,13 @@ other_chip_opens() {
 }
 open_district() {
   ui_dump && ui_find --resource-id filter-chip-district || { scroll_chips_until --resource-id filter-chip-district || return 1; }
-  ui_tap; sleep 3; sheet_open
+  ui_tap
+  wait_filter_sheet 12 || return 1
+  if ui_dump && ui_find --resource-id filter-choose-state-first; then
+    finish_choose_state_first || return 1
+  fi
+  wait_out_district_loader || return 1
+  sheet_open
 }
 close_how() {
   case "$1" in
@@ -27,12 +33,12 @@ close_how() {
 reach_browse || { fail_step browse "could not reach list"; return 0; }
 for how in x back swipe outside apply; do
   for other in state deity; do
+    step_reset
     tag="district-select-${how}-then-${other}"
     open_district || { fail_step "$tag" "district sheet did not open"; recover_sheet; continue; }
-    # Option text is "Madurai  4", flattened to "Madurai 4". A middle dot
-    # never appears, so the old pattern scrolled until the flow timed out
-    # and Back left the list. Skip the All districts row, which also has a count.
-    select_labeled '^(?!All districts).+ [0-9]+$' DISTRICT
+    # The first real district. A lookahead over every counted row scrolled
+    # until the 600s cap (run 42689905451 died on outside-then-deity).
+    select_labeled @first DISTRICT
     close_how "$how"
     if sheet_open; then fail_step "$tag" "sheet still open after $how"; recover_sheet; continue; fi
     other_chip_opens "$other" && pass_step "$tag" || fail_step "$tag" "$other chip dead after district+$how"
@@ -40,7 +46,7 @@ for how in x back swipe outside apply; do
   done
 done
 # Fast double-tap on District while boundaries load (no _opening guard -> two sheets stacked?)
-ui_dump && ui_find --resource-id filter-chip-district && { adb shell input tap "$UI_CX" "$UI_CY"; adb shell input tap "$UI_CX" "$UI_CY"; sleep 4; }
+ui_dump && ui_find --resource-id filter-chip-district && { adb_shell_capped 8 input tap "$UI_CX" "$UI_CY"; adb_shell_capped 8 input tap "$UI_CX" "$UI_CY"; sleep 4; }
 ui_back; sleep 1
 sheet_open && fail_step district-double-tap "second sheet left after one back (stacked sheets)" || pass_step district-double-tap
 other_chip_opens deity && pass_step after-double-tap-deity || fail_step after-double-tap-deity "deity dead"

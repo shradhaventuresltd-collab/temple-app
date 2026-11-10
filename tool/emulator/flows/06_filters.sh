@@ -8,7 +8,10 @@
 #   all       both (local runs)
 # Run 41391038302 hit the 600s cap with one flow doing both.
 FILTERS_PART="${FILTER_MATRIX_PART:-all}"
-case "$FILTERS_PART" in single|combined|all) ;; *) FILTERS_PART=all ;; esac
+case "$FILTERS_PART" in
+  single|single:1|single:2|combined|all) ;;
+  *) FILTERS_PART=all ;;
+esac
 if ! err="$(reach_browse)"; then
   fail_step browse "${err:-could not open the temple list}"
   return 0
@@ -51,7 +54,7 @@ open_state() {
   fi
   find_filter_chip filter-chip-state "$rx" "Choose a state" || return 1
   ui_tap
-  ui_wait 12 --text-regex '^Filters$'
+  wait_filter_sheet 12
 }
 
 open_deity() {
@@ -61,23 +64,29 @@ open_deity() {
   fi
   find_filter_chip filter-chip-deity "$rx" "Choose a deity" || return 1
   ui_tap
-  ui_wait 12 --text-regex '^Filters$'
+  wait_filter_sheet 12
 }
 
 open_district() {
-  local rx='^All districts$'
+  local rx='^(All districts|District)$'
   if [[ -n "${DISTRICT_LABEL:-}" ]]; then
-    rx="^($(re_escape "$DISTRICT_LABEL")|All districts)$"
+    rx="^($(re_escape "$DISTRICT_LABEL")|All districts|District)$"
   fi
   find_filter_chip filter-chip-district "$rx" "Choose a district" || return 1
   ui_tap
-  ui_wait 20 --text-regex '^DISTRICT$' || ui_wait 8 --text-regex '^Filters$'
+  wait_filter_sheet 20 || return 1
+  # No state yet: the District chip opens State ("Choose a state first").
+  # Apply Tamil Nadu and stay on the District sheet that follows.
+  if ui_dump && ui_find --resource-id filter-choose-state-first; then
+    finish_choose_state_first || return 1
+  fi
+  wait_out_district_loader || return 1
 }
 
 open_by_id() {
   scroll_chips_until --resource-id "$1" || return 1
   ui_tap
-  ui_wait 12 --text-regex '^Filters$'
+  wait_filter_sheet 12
 }
 
 
@@ -181,7 +190,11 @@ exercise_filter() {
       fail_step "${key}-repeat-${n}" "could not open"
       continue
     fi
-    if ! select_labeled "$regex" "$(section_for "$key")"; then
+    local repeat_rx="$regex"
+    if [[ "$regex" == @first && -n "$picked" ]]; then
+      repeat_rx="^$(re_escape "$picked")( +[0-9]+)?$"
+    fi
+    if ! select_labeled "$repeat_rx" "$(section_for "$key")"; then
       fail_step "${key}-repeat-${n}" "option not found"
       recover_sheet
       continue
@@ -199,15 +212,20 @@ exercise_filter() {
 }
 
 if [[ "$FILTERS_PART" != combined ]]; then
+# 06a was 566s of 600s (run 42710826857). single:1 is the state chip;
+# single:2 is deity, district, and the city absence check.
+if [[ "$FILTERS_PART" != single:2 ]]; then
 exercise_filter state '^Kerala( +[0-9]+)?$' State open_state state
+fi
+if [[ "$FILTERS_PART" != single:1 ]]; then
 # State was cleared above, so the deity and district lists are all-India:
 # first-screen targets under the 20s picker give-up (Shiva and Madurai sit
 # far down those lists and gave up at 20-21s in run 41306793034).
 exercise_filter deity "$ALL_INDIA_DEITY_PICK" Deity open_deity deity
 
-if scroll_chips_until --resource-id filter-chip-district || scroll_chips_until --text-regex '^All districts$'; then
+if scroll_chips_until --resource-id filter-chip-district || scroll_chips_until --text-regex '^District$'; then
   pass_step district-chip-visible
-  exercise_filter district "$ALL_INDIA_DISTRICT_PICK" "All districts" open_district district
+  exercise_filter district "$TN_DISTRICT_PICK" "District" open_district district
 else
   pass_step district-chip-not-visible
 fi
@@ -232,7 +250,8 @@ while read -r chip_id; do
   exercise_filter "$chip_id" '^(?!Any |All ).+[0-9]+$' "" opener_unknown "$chip_id"
 done < <(python3 "$UI_PY" resource-ids "$DUMP" --prefix filter-chip- || true)
 fi
-if [[ "$FILTERS_PART" == single ]]; then
+fi
+if [[ "$FILTERS_PART" == single || "$FILTERS_PART" == single:1 || "$FILTERS_PART" == single:2 ]]; then
   return 0
 fi
 # The combined part runs on its own (06b), so the single-chip part never set
@@ -338,7 +357,7 @@ fi
 # Alappuzha is Kerala's first district (Ambalappuzha Sri Krishna, Vishnu).
 # After the apply the state chip must still show the applied state.
 COMBINED_DISTRICT_RX="${COMBINED_DISTRICT_PICK:-^Alappuzha( +[0-9]+)?$}"
-if scroll_chips_until --resource-id filter-chip-district || scroll_chips_until --text-regex '^All districts$'; then
+if scroll_chips_until --resource-id filter-chip-district || scroll_chips_until --text-regex '^District$'; then
   if open_district && select_labeled "$COMBINED_DISTRICT_RX" DISTRICT && apply_sheet; then
     COMBINED_DISTRICT="$SELECTED_LABEL"
     DISTRICT_LABEL="$SELECTED_LABEL"

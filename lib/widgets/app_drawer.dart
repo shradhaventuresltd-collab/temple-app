@@ -1221,21 +1221,6 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
                   onClearAll: _clearFiltersAndSearch,
                 ),
               ),
-            if ((query.isNotEmpty || filtersActive) && visible.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    '${visible.length} temple${visible.length == 1 ? '' : 's'}',
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: Colors.brown.shade500,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ),
             Expanded(
               child: _browseBody(visible, query, filtersActive: filtersActive),
             ),

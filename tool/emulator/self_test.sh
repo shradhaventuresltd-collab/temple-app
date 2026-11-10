@@ -779,7 +779,7 @@ for pth in "warm $e2e_warm" "retry $e2e_retry" "cold $e2e_cold" "cold_retry $e2e
 done
 (( e2e_retry <= 2640 )) || { echo "boot-retry end-to-end ${e2e_retry}s > 2640s (44.0 min)" >&2; exit 1; }
 echo "end-to-end worst (s): warm ${e2e_warm}, retry ${e2e_retry}, cold ${e2e_cold}, cold+retry ${e2e_cretry}, warm-up refused ${e2e_refused}, refused+retry ${e2e_rretry}, create failed+retry ${e2e_cfretry}; max shard ${e2e_max}"
-[[ "$e2e_warm $e2e_retry $e2e_cold $e2e_cretry $e2e_refused $e2e_rretry $e2e_cfretry $e2e_max" == "2493 2609 2543 2659 2533 2649 2685 2139" ]] || { echo "end-to-end table changed: $e2e_warm $e2e_retry $e2e_cold $e2e_cretry $e2e_refused $e2e_rretry $e2e_cfretry $e2e_max (update PR body)" >&2; exit 1; }
+[[ "$e2e_warm $e2e_retry $e2e_cold $e2e_cretry $e2e_refused $e2e_rretry $e2e_cfretry $e2e_max" == "2483 2599 2533 2649 2523 2639 2675 2129" ]] || { echo "end-to-end table changed: $e2e_warm $e2e_retry $e2e_cold $e2e_cretry $e2e_refused $e2e_rretry $e2e_cfretry $e2e_max (update PR body)" >&2; exit 1; }
 # Per-flow caps are not lowered to fit (Sanu): FLOW_CAP_S 600, 26/08 at 300.
 [[ "$(bash -c 'source tool/emulator/plan.sh; echo "$FLOW_CAP_S $(plan_cap_s 26-drawer-nav-stack) $(plan_cap_s 08-list-detail)"')" == "600 300 300" ]] || { echo "per-flow cap changed" >&2; exit 1; }
 # Round 4.4.4 (Satyavrat A): the model's create/warm-up terms follow the workflow.
@@ -859,7 +859,8 @@ flows=(
   03-force-update
   04-home
   05-search
-  06a-filters-single
+  06a1-filters-single
+  06a2-filters-single
   06b-filters-combined
   07-district
   08-list-detail
@@ -886,24 +887,37 @@ flows=(
   26-drawer-nav-stack
   27-offline-cold-start
   28-small-screen-rotation-overflow
-  29a-filter-matrix-home-state
-  29b-filter-matrix-home-district
-  29c-filter-matrix-home-deity
-  29d-filter-matrix-drawer-all-state
-  29e-filter-matrix-drawer-all-district
-  29f-filter-matrix-drawer-all-deity
-  30a-filter-matrix-drawer-bar-state
-  30b-filter-matrix-drawer-bar-district
-  30c-filter-matrix-drawer-bar-deity
-  30e-filter-matrix-search-state
-  30f-filter-matrix-search-district
-  30g-filter-matrix-search-deity
+  29a1-filter-matrix-home-state
+  29a2-filter-matrix-home-state
+  29b1-filter-matrix-home-district
+  29b2-filter-matrix-home-district
+  29c1-filter-matrix-home-deity
+  29c2-filter-matrix-home-deity
+  29d1-filter-matrix-drawer-all-state
+  29d2-filter-matrix-drawer-all-state
+  29e1-filter-matrix-drawer-all-district
+  29e2-filter-matrix-drawer-all-district
+  29f1-filter-matrix-drawer-all-deity
+  29f2-filter-matrix-drawer-all-deity
+  30a1-filter-matrix-drawer-bar-state
+  30a2-filter-matrix-drawer-bar-state
+  30b1-filter-matrix-drawer-bar-district
+  30b2-filter-matrix-drawer-bar-district
+  30c1-filter-matrix-drawer-bar-deity
+  30c2-filter-matrix-drawer-bar-deity
+  30e1-filter-matrix-search-state
+  30e2-filter-matrix-search-state
+  30f1-filter-matrix-search-district
+  30f2-filter-matrix-search-district
+  30g1-filter-matrix-search-deity
+  30g2-filter-matrix-search-deity
   30s1-filter-matrix-seq1
   30s2-filter-matrix-seq2
   30s3-filter-matrix-seq3
   30s4-filter-matrix-seq4
   30s5-filter-matrix-seq5
   30d-near-me
+  31-filter-chain
 )
 for flow in "${flows[@]}"; do
   if ! grep -q "\"${flow}|" tool/emulator/plan.sh; then
@@ -1038,6 +1052,242 @@ if ! grep -q "text-regex '\\^Licences\\$'" tool/emulator/flows/13_licences.sh; t
   echo "Licences has no trailing count; its anchor should stay" >&2
   exit 1
 fi
+if grep -q 'ui_wait_scrolled 15 --text-regex' tool/emulator/flows/13_licences.sh; then
+  echo "flow 13 must scroll the drawer, not fling the whole screen" >&2
+  exit 1
+fi
+if ! grep -q 'ui_wait 15 --text-contains "District boundaries"' tool/emulator/flows/13_licences.sh; then
+  echo "flow 13 must see the Licences screen before open-licences passes" >&2
+  exit 1
+fi
+# Run 42681684346 shard 8: the Licences tile is on screen and the drawer
+# stays open, so a tap alone must not pass open-licences.
+lic13=tool/emulator/testdata/run42681684346
+lic_dir="$(mktemp -d)"
+eval "$(sed -n '/^open_licences_screen()/,/^}/p' tool/emulator/flows/13_licences.sh)"
+run_open_licences() {
+  local dump="$1"
+  local out="$2"
+  (
+    set -euo pipefail
+    export EMULATOR_FLOW=13-licences EMULATOR_ARTIFACTS="$out" EMULATOR_PACKAGE=com.example
+    # shellcheck disable=SC1091
+    source tool/emulator/lib/common.sh
+    ui_dump() { return 0; }
+    ui_tap() { echo TAP >> "$out/log"; return 0; }
+    ui_screen_size() { echo 320 640; }
+    ui_back() { return 0; }
+    step_shot() { :; }
+    save_step_dump() { :; }
+    dismiss_blockers() { return 0; }
+    scroll_drawer_top() { echo TOP >> "$out/log"; return 0; }
+    sleep() { echo SLEEP >> "$out/log"; }
+    ui_wait() {
+      local timeout="$1"
+      shift
+      echo "WAIT $timeout $*" >> "$out/log"
+      ui_find "$@"
+    }
+    # shellcheck disable=SC1091
+    eval "$(sed -n '/^open_licences_screen()/,/^}/p' tool/emulator/flows/13_licences.sh)"
+    DUMP="$dump"
+    if open_licences_screen; then
+      pass_step open-licences
+    else
+      fail_step open-licences "Licences tile tap did not open the Licences screen"
+    fi
+  )
+}
+rm -rf "$lic_dir/fail" "$lic_dir/pass"
+mkdir -p "$lic_dir/fail" "$lic_dir/pass"
+run_open_licences "$lic13/licences-drawer-open.xml" "$lic_dir/fail"
+if ! grep -q 'FAIL 13-licences: open-licences: Licences tile tap did not open the Licences screen' "$lic_dir/fail/results.txt"; then
+  echo "a drawer that stays open must fail open-licences" >&2
+  cat "$lic_dir/fail/results.txt" "$lic_dir/fail/log" >&2
+  exit 1
+fi
+if ! grep -q 'WAIT 15 --text-contains District boundaries' "$lic_dir/fail/log"; then
+  echo "open-licences must wait for District boundaries" >&2
+  cat "$lic_dir/fail/log" >&2
+  exit 1
+fi
+taps="$(grep -c '^TAP$' "$lic_dir/fail/log" || true)"
+if [[ "$taps" -ne 2 ]]; then
+  echo "a no-op Licences tap must be retried once, got ${taps}" >&2
+  cat "$lic_dir/fail/log" >&2
+  exit 1
+fi
+run_open_licences "$lic13/licences-screen.xml" "$lic_dir/pass"
+if ! grep -q 'PASS 13-licences: open-licences' "$lic_dir/pass/results.txt"; then
+  echo "a Licences screen must pass open-licences" >&2
+  cat "$lic_dir/pass/results.txt" "$lic_dir/pass/log" >&2
+  exit 1
+fi
+echo "flow 13 dry-run drawer: $(grep open-licences "$lic_dir/fail/results.txt")"
+echo "flow 13 dry-run screen: $(grep open-licences "$lic_dir/pass/results.txt")"
+echo "flow 13 dry-run log: $(tr '\n' ' ' < "$lic_dir/fail/log")"
+rm -rf "$lic_dir"
+# Run 42689905451. No-state District leaves Tamil Nadu applied and the
+# sheet gone. 06a is still on Choose a state first. Vishnu is not in the
+# visible head; Devi is a filter-deity-top row. Repeat-2 is sitting on Murugan.
+run899=tool/emulator/testdata/run42689905451
+python3 - "$run899" <<'PY' || { echo "run 42689905451 dump shape" >&2; exit 1; }
+import sys
+from pathlib import Path
+from xml.etree import ElementTree as ET
+root = Path(sys.argv[1])
+def load(name):
+    raw = (root / name).read_text(encoding="utf-8", errors="replace")
+    return ET.fromstring(raw[raw.find("<"):])
+def ids(tree):
+    return {n.attrib.get("resource-id") or "" for n in tree.iter("node")}
+no_sheet = load("07-no-district-sheet.xml")
+no_ids = ids(no_sheet)
+assert "filter-sheet" not in no_ids
+assert any((n.attrib.get("content-desc") or "") == "Tamil Nadu" and (n.attrib.get("resource-id") or "") == "filter-chip-state" for n in no_sheet.iter("node"))
+assert any((n.attrib.get("content-desc") or "") == "District" and (n.attrib.get("resource-id") or "") == "filter-chip-district" for n in no_sheet.iter("node"))
+state_gate = ids(load("06a-district-still-state.xml"))
+assert "filter-choose-state-first" in state_gate and "filter-sheet-title-state" in state_gate
+assert not any(i.startswith("filter-option-district-") for i in state_gate)
+vishnu = ids(load("06b-vishnu.xml"))
+assert "filter-deity-top-Devi" in vishnu
+assert "filter-deity-top-Vishnu" not in vishnu and "filter-option-deity-Vishnu" not in vishnu
+repeat = ids(load("06a-deity-repeat-2.xml"))
+assert "filter-option-deity-Murugan" in repeat
+print("run899 dumps: TN applied with no sheet; district pick still on State; Vishnu not in the head; Murugan is on screen")
+PY
+if ! grep -q 'filter-sheet-title-district' tool/emulator/lib/common.sh; then
+  echo "apply_sheet must not tap Show on the District sheet that follows State" >&2
+  exit 1
+fi
+if ! grep -q 'finish_choose_state_first' tool/emulator/flows/06_filters.sh || ! grep -q 'TN_DISTRICT_PICK' tool/emulator/flows/06_filters.sh; then
+  echo "06 district pick must apply Tamil Nadu and then choose Madurai" >&2
+  exit 1
+fi
+if ! grep -q 'select_labeled @first DISTRICT' tool/emulator/flows/21_district_close_then_other_chip.sh || ! grep -q 'step_reset' tool/emulator/flows/21_district_close_then_other_chip.sh; then
+  echo "flow 21 must pick @first under a step budget" >&2
+  exit 1
+fi
+(
+  set -euo pipefail
+  export EMULATOR_FLOW=self-test EMULATOR_ARTIFACTS=/tmp EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  ui_dump() { return 0; }
+  ui_tap() { return 0; }
+  ui_type() { echo "TYPED $*"; return 0; }
+  sleep() { :; }
+  adb_shell_capped() { return 0; }
+  DUMP="$run899/06b-vishnu.xml"
+  sheet_search_pick deity Devi '^Devi( +[0-9]+)?$'
+  [[ "$SELECTED_LABEL" == Devi ]] || { echo "top-row deity pick got ${SELECTED_LABEL}" >&2; exit 1; }
+  DUMP="$run899/06a-deity-repeat-2.xml"
+  sheet_search_pick deity Murugan '^Murugan( +[0-9]+)?$'
+  [[ "$SELECTED_LABEL" == Murugan ]] || { echo "repeat pick got ${SELECTED_LABEL}" >&2; exit 1; }
+  echo "run899 dry-run: Devi via filter-deity-top; Murugan via filter-option"
+)
+run990=tool/emulator/testdata/run42699042193
+# Run 42699042193: Shiva repeat is the letter list at Durga–Ganesha, not the
+# Shiva row. 30s5's Shiva-scoped district sheet has no Madurai id. Flow 21's
+# dump has no deity chip (it was scrolled off the 320px row).
+python3 - "$run990" <<'PY' || exit 1
+import pathlib, sys
+root = pathlib.Path(sys.argv[1])
+repeat = (root / "06a-deity-repeat-2.xml").read_text()
+assert "filter-option-deity-Shiva" not in repeat and "filter-deity-top-Shiva" not in repeat
+assert "filter-option-deity-Durga" in repeat
+district = (root / "30s5-district-select.xml").read_text()
+assert "filter-option-district-Madurai" not in district
+assert "filter-sheet-title-district" in district
+deity = (root / "21-deity-chip.xml").read_text()
+assert "filter-chip-deity" not in deity
+assert "filter-chip-district" in deity
+print("run990 dumps: Shiva not on the repeat screen; Madurai absent under Shiva; deity chip off the 320px row")
+PY
+(
+  set -euo pipefail
+  export EMULATOR_FLOW=self-test EMULATOR_ARTIFACTS=/tmp EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  ui_dump() { return 0; }
+  DUMP="$run990/30s2-deity-pick-close.xml"
+  declare -A APPLIED=([state]="Tamil Nadu" [deity]="Shiva")
+  [[ "$(scoped_pick district)" == @first ]]
+  APPLIED=([state]="Tamil Nadu" [district]="Madurai")
+  [[ "$(scoped_pick deity)" == @first ]]
+  echo "run990 dry-run: Shiva-scoped district and Madurai-scoped deity are @first"
+)
+topxml="$(mktemp)"
+printf '%s\n' '<hierarchy><node resource-id="filter-deity-top-Shiva" content-desc="Shiva  12" bounds="[16,300][300,348]" /></hierarchy>' > "$topxml"
+seek_out="$(python3 tool/emulator/lib/ui.py option-seek "$topxml" --kind deity --name Shiva --order deity --min-top 0 --max-top 600)"
+[[ "$seek_out" == tap\ * ]] || { echo "filter-deity-top-Shiva must be a deity seek target: $seek_out" >&2; exit 1; }
+rm -f "$topxml"
+echo "run990 dry-run: filter-deity-top-Shiva is tappable"
+run427=tool/emulator/testdata/run42710826857
+python3 - "$run427/30s2-state-clear.xml" <<'PY' || exit 1
+import pathlib, sys
+text = pathlib.Path(sys.argv[1]).read_text()
+assert "filter-option-state-any" not in text
+assert "filter-option-state-Himachal Pradesh" in text
+assert "filter-region-jump-north" in text
+print("run427 dump: state sheet is in North, Any state is off screen")
+PY
+run427_head="$(mktemp)"
+python3 - "$run427/30s2-state-clear.xml" "$run427_head" <<'PY'
+import pathlib, sys
+text = pathlib.Path(sys.argv[1]).read_text()
+node = '<node resource-id="filter-option-state-any" content-desc="Any state  4" bounds="[0,300][320,348]" />'
+text = text.replace('<hierarchy rotation="0">', '<hierarchy rotation="0">' + node, 1)
+pathlib.Path(sys.argv[2]).write_text(text)
+PY
+run427_out="$(
+  export EMULATOR_FLOW=self-test EMULATOR_ARTIFACTS=/tmp EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  n=0
+  ui_dump() { n=$((n + 1)); if (( n == 1 )); then cp "$run427/30s2-state-clear.xml" "$DUMP"; else cp "$run427_head" "$DUMP"; fi; }
+  ui_sheet_swipe() { echo "SWIPE $*"; return 0; }
+  ui_tap() { echo "CLEAR"; }
+  sleep() { :; }
+  adb_shell_capped() { return 0; }
+  ensure_list_head state
+)"
+grep -q '^SWIPE' <<<"$run427_out" && { echo "run427: clear/jump must reach Any state without a swipe: $run427_out" >&2; exit 1; }
+grep -q '^CLEAR' <<<"$run427_out" || { echo "run427: search field should be cleared on the North dump: $run427_out" >&2; exit 1; }
+rm -f "$run427_head"
+echo "run427 dry-run: Any state returns after search clear, no swipe"
+# Short sheet: Any is not pinned, so clearing an empty search leaves the
+# North window in place. One bounded fallback swipe then reaches the head.
+run427_short_head="$(mktemp)"
+python3 - "$run427/30s2-state-clear.xml" "$run427_short_head" <<'PY'
+import pathlib, sys
+text = pathlib.Path(sys.argv[1]).read_text()
+node = '<node resource-id="filter-option-state-any" content-desc="Any state  4" bounds="[0,300][320,348]" />'
+text = text.replace('<hierarchy rotation="0">', '<hierarchy rotation="0">' + node, 1)
+pathlib.Path(sys.argv[2]).write_text(text)
+PY
+run427_short="$(
+  export EMULATOR_FLOW=self-test EMULATOR_ARTIFACTS=/tmp EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  n=0
+  ui_dump() {
+    n=$((n + 1))
+    if (( n <= 2 )); then cp "$run427/30s2-state-clear.xml" "$DUMP"
+    else cp "$run427_short_head" "$DUMP"; fi
+  }
+  ui_sheet_swipe() { echo "SWIPE $*"; return 0; }
+  ui_tap() { echo "CLEAR"; }
+  sleep() { :; }
+  adb_shell_capped() { return 0; }
+  ensure_list_head state
+)"
+[[ "$(grep -c '^SWIPE ' <<<"$run427_short")" == 1 ]] || {
+  echo "run427 short sheet: one fallback swipe must reach Any state: $run427_short" >&2
+  exit 1
+}
+rm -f "$run427_short_head"
+echo "run427 dry-run: unpinned short sheet reaches Any state in one fallback swipe"
 if ! awk '
   /open_browse\(\)/ { fn = 1 }
   fn && $0 ~ /scroll_drawer_until --text-regex/ { search = 1 }
@@ -1099,6 +1349,234 @@ if ! grep -q 'kerala_applied' tool/emulator/flows/17_entry_matrix.sh; then
   echo "flow 17 should check the State reset only after Kerala applies" >&2
   exit 1
 fi
+if grep -q 'pick="\$ALL_INDIA_DEITY_PICK"' tool/emulator/flows/17_entry_matrix.sh; then
+  echo "flow 17 district fallback must be the chip's own pick, not a deity name" >&2
+  exit 1
+fi
+if ! grep -q 'pick="\${PICK\[\$f\]}"' tool/emulator/flows/17_entry_matrix.sh; then
+  echo "flow 17 must fall back to PICK[\$f] when scoped_pick fails" >&2
+  exit 1
+fi
+if ! grep -q 'state chip check skipped' tool/emulator/flows/17_entry_matrix.sh; then
+  echo "flow 17 must fail when the state-chip reset check is skipped" >&2
+  exit 1
+fi
+if grep -q "text-regex '\\^DISTRICT\\$'" tool/emulator/flows/07_district.sh tool/emulator/flows/29_filter_matrix.sh; then
+  echo "flows 07 and 29 must use the new District sheet title, not DISTRICT" >&2
+  exit 1
+fi
+if grep -q "text-regex '\\^(District|All districts)'" tool/emulator/flows/07_district.sh; then
+  echo "flow 07 must not treat the District chip label as an open sheet" >&2
+  exit 1
+fi
+if ! grep -q 'district_sheet_lists_rows' tool/emulator/flows/07_district.sh; then
+  echo "flow 07 must wait for filter-option-district-any" >&2
+  exit 1
+fi
+if [[ "$(grep -c 'CHOOSE_STATE_APPLIED=""' tool/emulator/flows/29_filter_matrix.sh)" -lt 2 ]]; then
+  echo "flow 29 must clear CHOOSE_STATE_APPLIED with each APPLIED reset" >&2
+  exit 1
+fi
+if grep -q 'adb shell input keyevent 66' tool/emulator/flows/31_filter_chain.sh; then
+  echo "flow 31 search submit must use adb_shell_capped" >&2
+  exit 1
+fi
+if ! grep -q 'adb_shell_capped 8 input keyevent 66' tool/emulator/flows/31_filter_chain.sh; then
+  echo "flow 31 must cap the search keyevent" >&2
+  exit 1
+fi
+if ! grep -q 'filter_chips_idle' tool/emulator/flows/31_filter_chain.sh; then
+  echo "flow 31 must assert chips reset after Clear all" >&2
+  exit 1
+fi
+if grep -q -- '--text "Choose a state first"' tool/emulator/lib/common.sh tool/emulator/flows/07_district.sh tool/emulator/flows/31_filter_chain.sh; then
+  echo "Choose a state first must be found by resource-id" >&2
+  exit 1
+fi
+# A dump that only has the District chip (even with the words "All districts")
+# must not pass sheet-lists-districts. The Any-district row must.
+nit_dir="$(mktemp -d)"
+cat > "$nit_dir/chip.xml" <<'XML'
+<hierarchy rotation="0">
+  <node text="District" resource-id="filter-chip-district" bounds="[10,20][180,70]" />
+  <node text="All districts" resource-id="filter-chip-district" bounds="[10,20][180,70]" />
+</hierarchy>
+XML
+cat > "$nit_dir/rows.xml" <<'XML'
+<hierarchy rotation="0">
+  <node text="District" resource-id="filter-chip-district" bounds="[10,20][180,70]" />
+  <node text="All districts" resource-id="filter-option-district-any" bounds="[20,400][400,480]" />
+</hierarchy>
+XML
+cat > "$nit_dir/idle.xml" <<'XML'
+<hierarchy rotation="0">
+  <node text="State" resource-id="filter-chip-state" bounds="[10,10][90,50]" />
+  <node text="District" resource-id="filter-chip-district" bounds="[100,10][200,50]" />
+  <node text="Deity" resource-id="filter-chip-deity" bounds="[210,10][280,50]" />
+</hierarchy>
+XML
+cat > "$nit_dir/stuck.xml" <<'XML'
+<hierarchy rotation="0">
+  <node text="State" resource-id="filter-chip-state" bounds="[10,10][90,50]" />
+  <node text="District" resource-id="filter-chip-district" bounds="[100,10][200,50]" />
+  <node text="Deity" resource-id="filter-chip-deity" bounds="[210,10][280,50]" />
+  <node text="" content-desc="Clear state filter" resource-id="filter-chip-state-clear" bounds="[70,10][110,50]" />
+</hierarchy>
+XML
+(
+  set -euo pipefail
+  export EMULATOR_FLOW=self-test EMULATOR_ARTIFACTS="$nit_dir" EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  ui_dump() { return 0; }
+  sleep() { :; }
+  DUMP="$nit_dir/chip.xml"
+  if district_sheet_lists_rows; then
+    echo "chip-only dump must not pass sheet-lists-districts" >&2
+    exit 1
+  fi
+  DUMP="$nit_dir/rows.xml"
+  district_sheet_lists_rows || {
+    echo "Any-district row must pass sheet-lists-districts" >&2
+    exit 1
+  }
+  DUMP="$nit_dir/idle.xml"
+  filter_chips_idle || { echo "idle chips must pass filter_chips_idle" >&2; exit 1; }
+  DUMP="$nit_dir/stuck.xml"
+  if filter_chips_idle; then
+    echo "a leftover Clear state filter must fail filter_chips_idle" >&2
+    exit 1
+  fi
+)
+rm -rf "$nit_dir"
+# Run 42675181050 shard 6: the sheet was open, but the title was not a text
+# node. These waits must take the title id, sheet_open, or Close filters,
+# and each names a timeout.
+for sheet_wait in \
+  'tool/emulator/flows/06_filters.sh:wait_filter_sheet 12' \
+  'tool/emulator/flows/07_district.sh:wait_filter_sheet 20' \
+  'tool/emulator/flows/17_entry_matrix.sh:wait_filter_sheet 20' \
+  'tool/emulator/flows/29_filter_matrix.sh:wait_filter_sheet 20' \
+  'tool/emulator/flows/31_filter_chain.sh:wait_filter_sheet 15'
+do
+  file="${sheet_wait%%:*}"
+  needle="${sheet_wait#*:}"
+  if ! grep -q "$needle" "$file"; then
+    echo "sheet-open wait missing: $file should call $needle" >&2
+    exit 1
+  fi
+  if grep -q 'ui_wait .*FILTER_SHEET_TITLE_RX' "$file"; then
+    echo "$file still waits only on the title text regex" >&2
+    exit 1
+  fi
+done
+shard6=tool/emulator/testdata/run42675181050
+(
+  set -euo pipefail
+  export EMULATOR_FLOW=self-test EMULATOR_ARTIFACTS="$shard6" EMULATOR_PACKAGE=com.shradhaventures.temple
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  ui_dump() { return 0; }
+  sleep() { :; }
+  DUMP="$shard6/sheet-open-merged.xml"
+  if ui_find --text-regex "$FILTER_SHEET_TITLE_RX"; then
+    echo "shard 6 merged dump must not match the title text regex" >&2
+    exit 1
+  fi
+  ui_find --content-desc "Close filters" || { echo "shard 6 dump has no Close filters" >&2; exit 1; }
+  ui_find --resource-id filter-choose-state-first || { echo "shard 6 dump missing filter-choose-state-first" >&2; exit 1; }
+  ui_find --resource-id filter-option-state-any || { echo "shard 6 dump missing filter-option-state-any" >&2; exit 1; }
+  if ui_find --resource-id filter-option-district-any; then
+    echo "shard 6 state sheet must not already show a district row" >&2
+    exit 1
+  fi
+  sheet_open || { echo "shard 6 merged sheet must count as open" >&2; exit 1; }
+  wait_filter_sheet 2 || { echo "wait_filter_sheet must accept the shard 6 sheet" >&2; exit 1; }
+  DUMP="$shard6/chip-bar.xml"
+  ui_find --resource-id filter-chip-state || { echo "bar dump missing filter-chip-state" >&2; exit 1; }
+  ui_find --resource-id filter-chip-district || { echo "bar dump missing filter-chip-district" >&2; exit 1; }
+  ui_find --resource-id filter-chip-deity || { echo "bar dump missing filter-chip-deity" >&2; exit 1; }
+  if sheet_open; then
+    echo "idle State/District/Deity chips must not count as an open sheet" >&2
+    exit 1
+  fi
+  DUMP="$shard6/title-node.xml"
+  ui_find --resource-id filter-sheet-title-state --content-desc "State" || {
+    echo "title id must be its own node labelled State" >&2
+    exit 1
+  }
+  sheet_open || { echo "a separate title node must open the sheet" >&2; exit 1; }
+  echo "shard6 dry-run: merged sheet opens via Close filters; chips do not; title id is its own node"
+)
+# Run 42681684346. Outside tap at y=40 is above the sheet (top 141).
+# Kerala is further down this separate state sheet ("up near"), not absent
+# in a district section. Landscape Apply is not in the tree.
+run4268=tool/emulator/testdata/run42681684346
+seek_kerala="$(python3 tool/emulator/lib/ui.py option-seek "$run4268/outside-empty.xml" --kind state --name Kerala --order state --min-top 150 --max-top 530)"
+[[ "$seek_kerala" == "up near" ]] || { echo "Kerala on the separate state sheet should be up near, got ${seek_kerala}" >&2; exit 1; }
+python3 - "$run4268/outside-empty.xml" "$run4268/land-apply.xml" <<'PY' || { echo "run 42681684346 dump shape" >&2; exit 1; }
+import sys
+from xml.etree import ElementTree as ET
+def load(path):
+    raw = open(path, encoding="utf-8", errors="replace").read()
+    return ET.fromstring(raw[raw.find("<"):])
+out = load(sys.argv[1])
+sheet = next(n for n in out.iter("node") if n.attrib.get("resource-id") == "filter-sheet")
+top = int(sheet.attrib["bounds"].split("][")[0].split(",")[1])
+assert top > 40, top
+assert any(n.attrib.get("resource-id") == "filter-option-state-Delhi" for n in out.iter("node"))
+land = load(sys.argv[2])
+descs = [n.attrib.get("content-desc") or "" for n in land.iter("node")]
+assert not any(d.startswith("Show ") for d in descs), descs
+print(f"run4268 dry-run: sheet top {top} > 40; Kerala up near; landscape has no Show button")
+PY
+if grep -q 'exercise_filter district .* "All districts"' tool/emulator/flows/06_filters.sh; then
+  echo "06 district idle label is District, not All districts" >&2
+  exit 1
+fi
+if ! grep -q 'exercise_filter district .* "District"' tool/emulator/flows/06_filters.sh; then
+  echo "06 must expect the idle district chip to read District" >&2
+  exit 1
+fi
+if ! grep -q "identifier: 'filter-sheet-search'" lib/widgets/filter_sheet.dart; then
+  echo "the sheet search field needs resource-id filter-sheet-search" >&2
+  exit 1
+fi
+if ! grep -q 'step_reset' tool/emulator/flows/29_filter_matrix.sh; then
+  echo "29 matrix cells must start a step budget" >&2
+  exit 1
+fi
+(
+  set -euo pipefail
+  export EMULATOR_FLOW=self-test EMULATOR_ARTIFACTS=/tmp EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  ui_dump() { return 0; }
+  ui_tap() { return 0; }
+  ui_type() { echo "TYPED $*"; return 0; }
+  sleep() { :; }
+  adb_shell_capped() { return 0; }
+  DUMP="$run4268/outside-empty.xml"
+  # The real dump has no search id yet. Adding the id and Kerala row is the
+  # post-fix shape of this same sheet.
+  python3 - "$DUMP" /tmp/run4268-with-search.xml <<'PY'
+import sys
+raw = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+extra = (
+    '<node text="" resource-id="filter-sheet-search" class="android.widget.EditText" '
+    'content-desc="Search state" bounds="[16,230][304,280]" />'
+    '<node text="" resource-id="filter-option-state-Kerala" class="android.widget.Button" '
+    'content-desc="Kerala  40" bounds="[0,300][320,348]" />'
+)
+raw = raw.replace("</hierarchy>", extra + "</hierarchy>")
+open(sys.argv[2], "w", encoding="utf-8").write(raw)
+PY
+  DUMP=/tmp/run4268-with-search.xml
+  sheet_search_pick state Kerala '^Kerala( +[0-9]+)?$'
+  [[ "$SELECTED_LABEL" == Kerala ]] || { echo "search pick label ${SELECTED_LABEL}" >&2; exit 1; }
+  echo "run4268 dry-run: sheet search taps filter-option-state-Kerala"
+)
+rm -f /tmp/run4268-with-search.xml
 if ! grep -q 'adb_shell_capped 8 settings put secure show_ime_with_hard_keyboard' tool/emulator/run_one_flow.sh; then
   echo "IME settings should use the step cap" >&2
   exit 1
@@ -1166,14 +1644,14 @@ fi
 # as "FAIL missing").
 unstarted_n="$(grep -c '^NOT RUN [^:]*: did not start$' "${summary_dir}/results.txt")"
 skipped_n="$(grep -c '^SKIPPED ' "${summary_dir}/results.txt")"
-if [[ "$unstarted_n" -ne 47 || "$skipped_n" -ne 3 ]] ||
+if [[ "$unstarted_n" -ne 61 || "$skipped_n" -ne 3 ]] ||
    ! grep -q '^SKIPPED 30d-near-me: ' "${summary_dir}/results.txt" ||
    grep -q '^FAIL ' "${summary_dir}/results.txt" ||
    ! grep -q '^SKIPPED 11-near-me: ' "${summary_dir}/results.txt" ||
    ! grep -q '^SKIPPED 23-near-me-settings-roundtrip: ' "${summary_dir}/results.txt" ||
-   ! grep -q '0 failed, 0 expected failures, 0 unexpected passes, 47 not run, 3 skipped' "${summary_dir}/fail.out" ||
+   ! grep -q '0 failed, 0 expected failures, 0 unexpected passes, 61 not run, 3 skipped' "${summary_dir}/fail.out" ||
    ! grep -q 'did not start' "${summary_dir}/fail.out"; then
-  echo "unstarted flows: 47 NOT RUN, 3 SKIPPED (11, 23, 30d), no FAIL, job not green" >&2
+  echo "unstarted flows: 61 NOT RUN, 3 SKIPPED (11, 23, 30d), no FAIL, job not green" >&2
   cat "${summary_dir}/fail.out" >&2
   exit 1
 fi
@@ -1216,8 +1694,8 @@ if ! EMULATOR_ARTIFACTS="$not_run_dir" EMULATOR_RESOLVE_OUTCOME=failure \
   exit 1
 fi
 not_run="$(grep -c '^NOT RUN ' "${not_run_dir}/results.txt")"
-if [[ "$not_run" -ne 47 ]] || [[ "$(grep -c '^SKIPPED ' "${not_run_dir}/results.txt")" -ne 3 ]]; then
-  echo "expected 47 NOT RUN and 3 SKIPPED lines, found ${not_run} NOT RUN" >&2
+if [[ "$not_run" -ne 61 ]] || [[ "$(grep -c '^SKIPPED ' "${not_run_dir}/results.txt")" -ne 3 ]]; then
+  echo "expected 61 NOT RUN and 3 SKIPPED lines, found ${not_run} NOT RUN" >&2
   exit 1
 fi
 if grep -q '^FAIL ' "${not_run_dir}/results.txt"; then
@@ -1545,19 +2023,25 @@ done
 # Round 4 (run 41373837994: 17/29/30 at the 600s cap): 17 in parts a/b,
 # the filter matrix one entry x chip per flow, every cell covered once.
 if [[ "$(plan_flows all | awk '$2 ~ /17_entry_matrix.sh$/ { print $3 }' | sort | paste -sd' ')" != "drawer_all drawer_search home_button list_drawer_all" ||
-      "$(plan_flows all | awk '$1 == "29a-filter-matrix-home-state" { print $3 }')" != home_browse:state ||
+      "$(plan_flows all | awk '$1 == "29a1-filter-matrix-home-state" { print $3 }')" != home_browse:state:1 ||
       "$(plan_flows all | awk '$1 ~ /^30s[1-5]-filter-matrix-seq[1-5]$/ { print $3 }' | paste -sd' ')" != "seqs:1 seqs:2 seqs:3 seqs:4 seqs:5" ]]; then
   echo "flow 17 must run one entry per flow (17a-17d) and the matrix entry:chip parts" >&2
   exit 1
 fi
 want_cells="$(for e in home_browse drawer_all drawer_bar search; do for c in state district deity; do echo "$e:$c"; done; done | sort)"
-got_cells="$(plan_flows all | awk '$2 ~ /29_filter_matrix.sh$/ && $3 ~ /:/ && $3 !~ /^(near_me|seqs):/ { print $3 }' | sort)"
+got_cells="$(plan_flows all | awk '$2 ~ /29_filter_matrix.sh$/ && $3 ~ /:/ && $3 !~ /^(near_me|seqs):/ { print $3 }' | sed -E 's/:[12]$//' | sort -u)"
 # The near-me cells are a planned-skip row (30d), never silently dropped.
 if [[ "$(plan_flows all | awk '$1 == "30d-near-me" { print $3 }')" != near_me:all ]] || ! (unset EMULATOR_SKIP_FLOWS; plan_is_skipped 30d-near-me); then
   echo "30d-near-me must be a planned-skip row running near_me:all" >&2; exit 1
 fi
 if [[ "$want_cells" != "$got_cells" ]]; then
   echo "filter matrix parts must cover every entry x chip exactly once: ${got_cells}" >&2
+  exit 1
+fi
+halves="$(plan_flows all | awk '$2 ~ /29_filter_matrix.sh$/ && $3 ~ /:[12]$/ && $3 !~ /^seqs:/ { print $3 }' | sort)"
+want_halves="$(for e in home_browse drawer_all drawer_bar search; do for c in state district deity; do echo "$e:$c:1"; echo "$e:$c:2"; done; done | sort)"
+if [[ "$halves" != "$want_halves" ]]; then
+  echo "each matrix cell must be two flows (:1 select/pick-close/dismiss, :2 back/outside/clear): ${halves}" >&2
   exit 1
 fi
 for n in $(seq 1 "$SHARD_COUNT"); do
@@ -1604,7 +2088,7 @@ if bash tool/emulator/run_shard.sh full >/dev/null 2>&1; then
   exit 1
 fi
 dry="$(EMULATOR_SHARD_DRY_RUN=1 EMULATOR_ARTIFACTS="$(mktemp -d)" bash tool/emulator/run_shard.sh full 2)"
-if ! grep -qx 'PLAN 29b-filter-matrix-home-district tool/emulator/flows/29_filter_matrix.sh home_browse:district' <<<"$dry" ||
+if ! grep -qx 'PLAN 29b1-filter-matrix-home-district tool/emulator/flows/29_filter_matrix.sh home_browse:district:1' <<<"$dry" ||
    [[ "$(grep -c '^PLAN ' <<<"$dry")" -ne "$(plan_ids full 2 | wc -l)" ]]; then
   echo "run_shard.sh dry run should list shard 2 with its matrix part" >&2
   echo "$dry" >&2
@@ -2326,7 +2810,7 @@ for id in $(bash -c 'source tool/emulator/plan.sh; plan_ids full 11'); do
 done
 rc=0; g="$(EMULATOR_GATE_MODE=strict EMULATOR_SHARD_RESULTS="${ms}/shards" EMULATOR_ARTIFACTS="$ms" GITHUB_STEP_SUMMARY=/dev/null \
   bash tool/emulator/release_gate.sh full "$gate_sha" build 2>&1)" || rc=$?
-if [[ "$rc" != 1 || "$g" != *"4 NOT RUN (no result: 19-rotation-state 20-empty-and-back 30s1-filter-matrix-seq1 30s2-filter-matrix-seq2)"* ||
+if [[ "$rc" != 1 || "$g" != *"4 NOT RUN (no result: 30g1-filter-matrix-search-deity 30g2-filter-matrix-search-deity 30s2-filter-matrix-seq2 19-rotation-state)"* ||
       "$g" != *"missing shard artifacts: 11 (need 15)"* ]]; then
   echo "strict gate must refuse a run with shard 11 missing (4 silent NOT RUN + missing artifact): rc=${rc} ${g}" >&2; exit 1
 fi
@@ -2706,10 +3190,23 @@ pk4="$(
   export EMULATOR_FLOW=99-pick EMULATOR_ARTIFACTS="$r4/pk" EMULATOR_PACKAGE=com.example
   # shellcheck disable=SC1091
   source tool/emulator/lib/common.sh
+  # Frozen picker clock. A wall-clock tick between the deadline and this
+  # stub used to print left=29 instead of left=30.
+  EMULATOR_NOW_S=1000
   wait_out_district_loader() { :; }
+  ui_dump() { return 0; }
+  # sheet_search_pick and ui_find used to run here, between the deadline
+  # and seek_option, and a wall-clock tick made left=29 (runs
+  # 42717632241 and 42718876928).
+  sheet_search_pick() { return 1; }
+  ui_find() { return 1; }
   n=0
-  seek_option() { n=$((n + 1)); echo "SEEK $n fling=${SEEK_FLING_MS:-120} left=$(( $3 - SECONDS ))" >&2
-    if (( n == 1 )); then return 1; fi; UI_CX=1 UI_CY=2 UI_TEXT="Madurai  4"; return 0; }
+  seek_option() {
+    if [[ -n "${EMULATOR_SEEK_STUB_DELAY:-}" ]]; then command sleep "$EMULATOR_SEEK_STUB_DELAY"; fi
+    n=$((n + 1))
+    echo "SEEK $n fling=${SEEK_FLING_MS:-120} left=$(( $3 - $(emulator_now) ))" >&2
+    if (( n == 1 )); then return 1; fi; UI_CX=1 UI_CY=2 UI_TEXT="Madurai  4"; return 0;
+  }
   ui_tap() { :; }
   # Two-dump confirmation is tested on its own (round 4.3); here only the budget.
   stable_option_tap() { SELECTED_LABEL="$(chip_label "$UI_TEXT")"; }
@@ -2893,12 +3390,25 @@ sp() { ( export EMULATOR_FLOW=99-sp EMULATOR_ARTIFACTS="$r43/sp" EMULATOR_PACKAG
   source tool/emulator/lib/common.sh
   ui_dump() { printf '<hierarchy><node text="" resource-id="filter-chip-state" content-desc="%s" bounds="[0,100][120,140]" /></hierarchy>' "$SP_STATE" > "$DUMP"; }
   scoped_pick "$1" ); }
+[[ "$(CHOOSE_STATE_APPLIED='Tamil Nadu' SP_STATE='State' sp deity)" == '^Shiva( +[0-9]+)?$' && "$(CHOOSE_STATE_APPLIED='Tamil Nadu' SP_STATE='State' sp district)" == '^Madurai( +[0-9]+)?$' ]] || { echo "scoped_pick: Tamil Nadu recorded by choose-a-state-first scopes deity and district" >&2; exit 1; }
+python3 - <<'PY'
+import importlib.util
+spec = importlib.util.spec_from_file_location("ui", "tool/emulator/lib/ui.py")
+ui = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(ui)
+regions = ui._state_regions()
+alias = ui._state_sort_key("Andaman and Nicobar Islands", regions)
+canonical = ui._state_sort_key("Andaman & Nicobar Islands", regions)
+assert alias[0] == canonical[0] == 1, (alias, canonical)
+assert ui._state_sort_key("Atlantis", regions)[0] == 6
+PY
 [[ "$(SP_STATE='Tamil Nadu' sp deity)" == '^Shiva( +[0-9]+)?$' && "$(SP_STATE='State' sp deity)" == '@first' &&
    "$(SP_STATE='Tamil Nadu' sp district)" == '^Madurai( +[0-9]+)?$' && "$(SP_STATE='Kerala' sp district)" == '^24 Paraganas North( +[0-9]+)?$' &&
    "$(SP_STATE='State' sp state)" == '^Tamil Nadu( +[0-9]+)?$' ]] || { echo "scoped_pick: Shiva/Madurai only when Tamil Nadu is the state" >&2; exit 1; }
 # Round 4.4.9e (run 41781519101 30s5): with a deity on the chip bar the
 # district list is faceted, so the district pick is @first (real dump);
-# no deity -> the all-India head district; Tamil Nadu still wins.
+# no deity -> the all-India head district. A deity wins over Tamil Nadu:
+# Shiva in Tamil Nadu does not list Madurai (run 42699042193, 30s5).
 spd() { ( export EMULATOR_FLOW=99-spd EMULATOR_ARTIFACTS="$r43/spd" EMULATOR_PACKAGE=com.example
   # shellcheck disable=SC1091
   source tool/emulator/lib/common.sh
@@ -2907,7 +3417,7 @@ spd() { ( export EMULATOR_FLOW=99-spd EMULATOR_ARTIFACTS="$r43/spd" EMULATOR_PAC
 [[ "$(SPD_FILE=tool/emulator/testdata/run41781519101/browse_deity_applied.xml spd district)" == '@first' &&
    "$(SP_STATE='State' SP_DEITY='Deity' spd district)" == '^24 Paraganas North( +[0-9]+)?$' &&
    "$(SP_STATE='State' SP_DEITY='Shiva' spd district)" == '@first' &&
-   "$(SP_STATE='Tamil Nadu' SP_DEITY='Shiva' spd district)" == '^Madurai( +[0-9]+)?$' &&
+   "$(SP_STATE='Tamil Nadu' SP_DEITY='Shiva' spd district)" == '@first' &&
    "$(SP_STATE='State' SP_DEITY='Shiva' spd deity)" == '@first' ]] || { echo "4.4.9e scoped_pick: district must be @first when a deity is applied" >&2; exit 1; }
 echo "4.4.9e: district pick is @first under an applied deity (real 41781519101 dump)"
 if grep -n 'select_labeled "\${PICK\[' tool/emulator/flows/29_filter_matrix.sh tool/emulator/flows/17_entry_matrix.sh; then
@@ -2946,14 +3456,15 @@ o="$( ( export EMULATOR_FLOW=x EMULATOR_ARTIFACTS="$r43/r5m"
   ui_tap() { echo TAPPED; }
   ui_dump; ui_find --resource-id filter-option-state-Bihar; stable_option_tap '^Bihar( +[0-9]+)?$' '^filter-option-state-' ) 2>&1)" && { echo "stable_option_tap: moved row must not be tapped: $o" >&2; exit 1; }
 grep -q TAPPED <<<"$o" && { echo "stable_option_tap tapped a moving row" >&2; exit 1; }
-grep -q '"06a-filters-single|tool/emulator/flows/06_filters.sh|single|12"' tool/emulator/plan.sh &&
+grep -q '"06a1-filters-single|tool/emulator/flows/06_filters.sh|single:1|12|400"' tool/emulator/plan.sh &&
+  grep -q '"06a2-filters-single|tool/emulator/flows/06_filters.sh|single:2|12|400"' tool/emulator/plan.sh &&
   grep -q '"06b-filters-combined|tool/emulator/flows/06_filters.sh|combined|12"' tool/emulator/plan.sh &&
   ! grep -q '"06-filters|' tool/emulator/plan.sh || { echo "plan.sh: 06 split into 06a single / 06b combined" >&2; exit 1; }
 f06=tool/emulator/flows/06_filters.sh
 grep -q "select_labeled '^(?!All districts)" "$f06" && { echo "flow 06: no name-less lookahead district pick" >&2; exit 1; }
 grep -q 'COMBINED_DISTRICT_PICK:-^Alappuzha' "$f06" && grep -q 'state_chip_is "$COMBINED_STATE"' "$f06" || { echo "flow 06: real district (Alappuzha) and the state-chip check" >&2; exit 1; }
 grep -q ': "${_section}"' tool/emulator/lib/common.sh && { echo "select_labeled must use its section" >&2; exit 1; }
-[[ "$(bash -c 'source tool/emulator/plan.sh; plan_cap_s 26-drawer-nav-stack; plan_cap_s 06a-filters-single; plan_need_s full 15')" == $'300\n600\n2069' ]] || { echo "plan: row caps 26=300, 06a=600, shard 15 = 2099s (26, 08, 30s3, 30s4; round 4.4.8)" >&2; exit 1; }
+[[ "$(bash -c 'source tool/emulator/plan.sh; plan_cap_s 26-drawer-nav-stack; plan_cap_s 06b-filters-combined; plan_cap_s 06a1-filters-single; plan_need_s full 12')" == $'300\n600\n400\n2089' ]] || { echo "plan: 26=300, 06b=600, 06a1=400, shard 12 = 2089s" >&2; exit 1; }
 # 6-8. Replays of run 41391038302 (testdata/run41391038302/replay_*.sh):
 # 27 waits for validation, re-taps Try again, flaps only after recover; 17c
 # clears "temple" before typing; 24 sends one fling and compares.
@@ -3077,7 +3588,7 @@ grep -q '^SNAPCFG full-1 SNAPSHOT_CONFIG mismatch' "$r43/art431c/results.txt" &&
 grep -q '^::warning::emulator full shard 1: snapshot boot, but the AVD config differs from the snapshot: SNAPSHOT_CONFIG mismatch: disk.dataPartition.size' "$r43/art431c.out" ||
   { echo "run_shard: mismatch on a snapshot boot prints ::warning:: (round 4.3.3): $(cat "$r43/art431c.out")" >&2; exit 1; }
 # (a)/(3): worst case counts the outer kill-after; avd-warmup runs beside build.
-[[ "$(plan_need_s full 12)" == 1489 && "$(plan_need_s full 15)" == 2069 && "$(plan_need_s full 11)" == 2069 && "$(plan_need_s full 9)" == 2129 && "$(plan_need_s full 1)" == 2139 ]] || { echo "plan_need_s: shard 12 1509s, 11 and 15 2099s, 9 2159s, others 2164s (boot 150 + getprop budget 4 + keyevent 5 + getprop 5 + ready 22 + unlock 8 + animations 5, outer kill-after 10)" >&2; exit 1; }
+[[ "$(plan_need_s full 12)" == 2089 && "$(plan_need_s full 15)" == 1829 && "$(plan_need_s full 11)" == 2129 && "$(plan_need_s full 10)" == 2129 && "$(plan_need_s full 1)" == 2129 ]] || { echo "plan_need_s: shard 12 2089s (06a1 06a2 06b 31), 15 1829s, shards 1/10/11 2129s" >&2; exit 1; }
 grep -q 'timeout --kill-after="$FLOW_OUTER_KILL_S"' tool/emulator/run_shard.sh || { echo "run_shard outer kill-after must be FLOW_OUTER_KILL_S" >&2; exit 1; }
 awk '/^  avd-warmup:/ { w = 1 } w && /needs:/ { print; exit }' "$workflow" | grep -qx '    needs: \[gate\]' || { echo "avd-warmup must need only the gate (parallel with build)" >&2; exit 1; }
 #R43_MORE
@@ -3500,7 +4011,7 @@ o="$(replay441 "$r44/mid.xml $r44/mid.xml $T44/17c_deity_select.xml" select_labe
   { echo "4.4.1 @first on a mid-list sheet: swipe down to the head, then tap 81 Yoginis: $o" >&2; exit 1; }
 # Never at the head: give up after FIRST_TOP_SWIPES, no tap.
 o="$(FIRST_TOP_SWIPES=3 replay441 "$r44/mid.xml" select_labeled '@first' DEITY)" && { echo "4.4.1 @first with no list head must fail: $o" >&2; exit 1; }
-[[ "$(grep -c '^SWIPE down$' <<<"$o")" == 3 ]] && ! grep -q '^TAP' <<<"$o" || { echo "4.4.1 @first gives up after 3 swipes, no tap: $o" >&2; exit 1; }
+[[ "$(grep -c '^SWIPE down$' <<<"$o")" == 3 ]] && ! grep -q 'tap in place' <<<"$o" || { echo "4.4.1 @first gives up after 3 fallback swipes, no option tap: $o" >&2; exit 1; }
 # 2. filter-kept needs filter-clear (and the applied labels): chips alone fail.
 fk() { ui_dump && filter_kept "$@"; }
 replay44 "$T44/seq1_filter_kept.xml" fk 'state=Tamil Nadu' 'deity=Shiva' >/dev/null || { echo "4.4.1 filter_kept on r6 seq1 (Tamil Nadu off-row, Shiva)" >&2; exit 1; }
@@ -3763,11 +4274,11 @@ cp_dir="$(mktemp -d)"; mk_ready_adb "$cp_dir/bin" 1
 printf '#!/bin/sh\necho "$1 $EMULATOR_FLOW_BUDGET" >> "$CP_LOG"\n' > "$cp_dir/runner.sh"; chmod +x "$cp_dir/runner.sh"
 CP_LOG="$cp_dir/budgets" PATH="$cp_dir/bin:$PATH" EMULATOR_FLOW_RUNNER="$cp_dir/runner.sh" EMULATOR_ARTIFACTS="$cp_dir/art" \
   bash tool/emulator/run_shard.sh full 11 > "$cp_dir/out" 2>&1
-grep -q 'caps: 19-rotation-state=300s 20-empty-and-back=300s 30s1-filter-matrix-seq1=540s 30s2-filter-matrix-seq2=540s, worst case 2069s' "$cp_dir/out" &&
-  grep -qx '::group::Flow 30s1-filter-matrix-seq1 (cap 540s)' "$cp_dir/out" && ! grep -q 'cap 600s each' "$cp_dir/out" &&
-  grep -qx '30s1-filter-matrix-seq1 540' "$cp_dir/budgets" && grep -qx '30s2-filter-matrix-seq2 540' "$cp_dir/budgets" ||
-  { echo "4.4.9b: shard 11 must log and pass the 540s cap of 30s1/30s2: $(head -3 "$cp_dir/out"; cat "$cp_dir/budgets")" >&2; exit 1; }
-for want in "30s3-filter-matrix-seq3 540 540" "06a-filters-single 600 600" "30s1-filter-matrix-seq1 900 600"; do
+grep -q 'caps: 30g1-filter-matrix-search-deity=450s 30g2-filter-matrix-search-deity=450s 30s2-filter-matrix-seq2=540s 19-rotation-state=300s, worst case 2129s' "$cp_dir/out" &&
+  grep -qx '::group::Flow 30s2-filter-matrix-seq2 (cap 540s)' "$cp_dir/out" && ! grep -q 'cap 600s each' "$cp_dir/out" &&
+  grep -qx '30g1-filter-matrix-search-deity 450' "$cp_dir/budgets" && grep -qx '30s2-filter-matrix-seq2 540' "$cp_dir/budgets" ||
+  { echo "4.4.9b: shard 11 must log the row caps: $(head -3 "$cp_dir/out"; cat "$cp_dir/budgets")" >&2; exit 1; }
+for want in "30s3-filter-matrix-seq3 540 540" "06a1-filters-single 400 400" "30s1-filter-matrix-seq1 900 600"; do
   read -r fid fb fwant <<<"$want"; rm -rf "$cp_dir/a1"; mkdir -p "$cp_dir/a1"
   EMULATOR_FLOW_BUDGET="$fb" EMULATOR_ARTIFACTS="$cp_dir/a1" PATH="$cp_dir/bin:$PATH" EMULATOR_APK=/nonexistent \
     timeout 60 bash tool/emulator/run_one_flow.sh "$fid" "tool/emulator/flows/29_filter_matrix.sh" > "$cp_dir/one.out" 2>&1

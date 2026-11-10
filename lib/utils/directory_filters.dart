@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/utils/deity_groups.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
 import 'package:temple_app/utils/temple_search.dart';
 
@@ -44,22 +45,29 @@ String directoryDeityChipLabel(String deity) {
   return '$deity · $tradition';
 }
 
-/// Note under the deity section when [deities] includes a non-Hindu label.
-String? directoryDeityFilterNote(Iterable<String> deities) {
+/// Subtitle for the Deity sheet.
+///
+/// With no Jain, Buddhist, or Sikh name this is "N deities". Otherwise it
+/// names those traditions, for example "Jain and Buddhist sites are labelled
+/// by their own tradition, not Hindu darshan."
+String directoryDeityFilterNote(Iterable<String> deities, {int? count}) {
   const order = ['Jain', 'Buddhist', 'Sikh'];
   final present = [
     for (final label in order)
       if (deities.any((deity) => listedDeityTraditionLabel(deity) == label))
         label,
   ];
-  if (present.isEmpty) return null;
+  if (present.isEmpty) {
+    final total = count ?? deities.length;
+    return '$total deities';
+  }
   final joined = switch (present.length) {
     1 => present.single,
     2 => '${present[0]} and ${present[1]}',
     _ =>
-      '${present.sublist(0, present.length - 1).join(', ')}, and ${present.last}',
+      '${present.sublist(0, present.length - 1).join(', ')} and ${present.last}',
   };
-  return '$joined labels are the listed tradition, not Hindu darshan filters.';
+  return '$joined sites are labelled by their own tradition, not Hindu darshan.';
 }
 
 /// District name for one loaded temple, or null when it is not resolved.
@@ -128,12 +136,10 @@ List<Temple> directoryMatchingTemples(
   String query = '',
   TempleDistrictName? districtOf,
 }) {
-  final matched = filterTemples(
-    temples,
-    state: state,
-    deity: deity,
-    query: query,
-  );
+  final matched = [
+    for (final temple in filterTemples(temples, state: state, query: query))
+      if (deityGroupMatches(temple.deity, deity)) temple,
+  ];
   if (district == null || district.trim().isEmpty) return matched;
   if (districtOf == null) return const [];
   final wanted = district.trim();
@@ -160,21 +166,6 @@ String directoryEmptyFilterMessage({String? district}) {
     return 'Nothing in the loaded directory fits this state, district, and deity.';
   }
   return 'Nothing in the loaded directory fits this state and deity.';
-}
-
-/// How many loaded temples match this state, deity, and query together.
-int directoryFilterCount(
-  List<Temple> temples, {
-  String? state,
-  String? deity,
-  String query = '',
-}) {
-  return filterTemples(
-    temples,
-    state: state,
-    deity: deity,
-    query: query,
-  ).length;
 }
 
 /// Label for the sheet's apply action.
@@ -246,6 +237,11 @@ DirectoryOptionCensus directoryOptionCensus(
   final wanted = district?.trim() ?? '';
   final wantedState = state?.trim() ?? '';
   final wantedDeity = deity?.trim() ?? '';
+  final wantedDeityKey = wantedDeity.isEmpty ? '' : deityGroupKey(wantedDeity);
+  final deityLabelOf = {
+    for (final group in groupDeityNames(temples.map((temple) => temple.deity)))
+      group.key: group.label,
+  };
   final useDistrict = wanted.isNotEmpty;
   final districtsInState = <String, Set<String>>{};
   if (useDistrict && districtOf != null) {
@@ -274,7 +270,8 @@ DirectoryOptionCensus directoryOptionCensus(
         ? ''
         : (districtOf(temple)?.trim() ?? '');
     final stateOk = wantedState.isEmpty || templeState == wantedState;
-    final deityOk = wantedDeity.isEmpty || templeDeity == wantedDeity;
+    final deityOk =
+        wantedDeityKey.isEmpty || deityGroupKey(templeDeity) == wantedDeityKey;
     final districtOk =
         !useDistrict || (districtOf != null && templeDistrict == wanted);
 
@@ -292,7 +289,11 @@ DirectoryOptionCensus directoryOptionCensus(
       }
     }
     if (stateOk && districtOk && templeDeity.isNotEmpty) {
-      deityCounts[templeDeity] = (deityCounts[templeDeity] ?? 0) + 1;
+      final deityLabel =
+          deityLabelOf[deityGroupKey(templeDeity)] ?? templeDeity.trim();
+      if (deityLabel.isNotEmpty) {
+        deityCounts[deityLabel] = (deityCounts[deityLabel] ?? 0) + 1;
+      }
     }
     if (stateOk && deityOk && templeDistrict.isNotEmpty) {
       districtCounts[templeDistrict] =

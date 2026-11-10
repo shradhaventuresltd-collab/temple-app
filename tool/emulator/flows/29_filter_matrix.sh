@@ -117,13 +117,14 @@ chip_present() {
 open_chip() {
   chip_present "$1" || return 1
   ui_tap
-  ui_wait 20 --text-regex '^Filters$' || return 1
+  wait_filter_sheet 20 || return 1
   # The district sheet opens with a loader. Names can take several seconds
-  # on the first load, so wait for the section before picking a district.
+  # on the first load. filter-district-loading is a resource-id, not title text.
   if [[ "$1" == district ]]; then
     ui_dump || return 1
-    if ui_find --resource-id filter-district-loading; then
-      ui_wait 10 --text-regex '^DISTRICT$' || return 1
+    if ui_find --resource-id filter-district-loading \
+      || ui_find --text-contains "Loading districts"; then
+      wait_out_district_loader || return 1
     fi
   fi
 }
@@ -137,17 +138,27 @@ close_x() {
 # Madurai only when the state chip already shows Tamil Nadu, otherwise the
 # head-of-list all-India picks. PICK keeps the Tamil Nadu targets.
 do_action() {
-  local chip="$1" action="$2" pick
-  pick="$(scoped_pick "$chip")" || pick="${PICK[$chip]}"
-  local rc=0
+  local chip="$1" action="$2" pick rc=0
   case "$action" in
-    select) open_chip "$chip" && select_labeled "$pick" "${SECTION[$chip]}" && apply_sheet || rc=1 ;;
-    pick-close) open_chip "$chip" && select_labeled "$pick" "${SECTION[$chip]}" && close_x || rc=1 ;;
-    dismiss-empty) open_chip "$chip" && dismiss_sheet_swipe || rc=1 ;;
-    back-empty) open_chip "$chip" && { ui_back; sleep 1; ! sheet_open; } || rc=1 ;;
-    outside-empty) open_chip "$chip" && dismiss_sheet_outside || rc=1 ;;
-    clear) open_chip "$chip" && select_labeled "$pick" "${SECTION[$chip]}" && apply_sheet && clear_named "$chip" || rc=1 ;;
+    select|pick-close|clear)
+      open_chip "$chip" || rc=1
+      if (( rc == 0 )) && [[ "$chip" == district ]] && declare -F finish_choose_state_first >/dev/null; then
+        finish_choose_state_first || rc=1
+      fi
+      if (( rc == 0 )); then pick="$(scoped_pick "$chip")" || pick="${PICK[$chip]}"; fi
+      ;;
+    *) pick="${PICK[$chip]}" ;;
   esac
+  if (( rc == 0 )); then
+    case "$action" in
+      select) select_labeled "$pick" "${SECTION[$chip]}" && apply_sheet || rc=1 ;;
+      pick-close) select_labeled "$pick" "${SECTION[$chip]}" && close_x || rc=1 ;;
+      dismiss-empty) open_chip "$chip" && dismiss_sheet_swipe || rc=1 ;;
+      back-empty) open_chip "$chip" && { ui_back; sleep 1; ! sheet_open; } || rc=1 ;;
+      outside-empty) open_chip "$chip" && dismiss_sheet_outside || rc=1 ;;
+      clear) select_labeled "$pick" "${SECTION[$chip]}" && apply_sheet && clear_named "$chip" || rc=1 ;;
+    esac
+  fi
   # Round 4.4.1: what should still be applied, for seqN-filter-kept. A
   # state change resets the district, so district is only known until then.
   if (( rc == 0 )); then
@@ -244,7 +255,7 @@ probe_others() {
     if [[ "$other" == district ]]; then
       wait_s=10
     fi
-    if ui_wait "$wait_s" --text-regex '^Filters$'; then
+    if wait_filter_sheet "$wait_s"; then
       pass_step "$id-then-$other"; ui_back; sleep 1; recover_sheet
     else
       fail_step "$id-then-$other" "tap on ${other} chip did nothing after ${id}"
@@ -273,9 +284,20 @@ case "${FILTER_MATRIX_PART:-all}" in
     SEQ_ONLY="${FILTER_MATRIX_PART#seqs:}"
     ;;
   *:*)
+    # entry:chip or entry:chip:1|2. Each 24-cell matrix flow passed every
+    # cell and still died at 600s (run 42699042193 and 42700039403, 506-602s).
+    # Half 1 is select/pick-close/dismiss-empty; half 2 is the three closes.
     ENTRIES=("${FILTER_MATRIX_PART%%:*}")
-    if [[ "${FILTER_MATRIX_PART##*:}" != all ]]; then
-      MATRIX_CHIPS=("${FILTER_MATRIX_PART##*:}")
+    _matrix_rest="${FILTER_MATRIX_PART#*:}"
+    _matrix_chip="${_matrix_rest%%:*}"
+    _matrix_half="${_matrix_rest#*:}"
+    if [[ "$_matrix_chip" != all ]]; then
+      MATRIX_CHIPS=("$_matrix_chip")
+    fi
+    if [[ "$_matrix_half" == 1 ]]; then
+      ACTIONS=(select pick-close dismiss-empty)
+    elif [[ "$_matrix_half" == 2 ]]; then
+      ACTIONS=(back-empty outside-empty clear)
     fi
     RUN_SEQS=0
     ;;
@@ -292,7 +314,9 @@ case "${FILTER_MATRIX_PART:-all}" in
     RUN_SEQS=1
     ;;
 esac
-ACTIONS=(select pick-close dismiss-empty back-empty outside-empty clear)
+if [[ -z "${ACTIONS+x}" ]]; then
+  ACTIONS=(select pick-close dismiss-empty back-empty outside-empty clear)
+fi
 
 for entry in "${ENTRIES[@]}"; do
   # shellcheck disable=SC2034 # read by lib/common.sh chip lookups
@@ -300,7 +324,9 @@ for entry in "${ENTRIES[@]}"; do
   for chip in "${MATRIX_CHIPS[@]}"; do
     for action in "${ACTIONS[@]}"; do
       id="$entry-$chip-$action"
+      step_reset
       APPLIED=()  # each cell starts from a fresh entry (scoped_pick reads APPLIED)
+      CHOOSE_STATE_APPLIED=""
       "enter_$entry" >/dev/null 2>&1
       status=$?
       if [[ "$status" -ne 0 ]]; then
@@ -333,6 +359,7 @@ for seq in "${SEQS[@]}"; do
   [[ -n "${SEQ_ONLY:-}" && "$n" != "$SEQ_ONLY" ]] && continue
   enter_home_browse >/dev/null 2>&1 || { fail_step "seq$n-enter" "browse not reached"; continue; }
   APPLIED=()
+  CHOOSE_STATE_APPLIED=""
   ok=1
   for st in $seq; do
     # Round 4.4.9g (run 41825986479 shard 9): no result line is written

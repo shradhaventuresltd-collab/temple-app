@@ -56,6 +56,18 @@ STEP_BUDGET_S="${EMULATOR_STEP_BUDGET_S:-150}"
 STEP_STARTED=$SECONDS
 STEP_TIMED_OUT=0
 step_reset() { STEP_STARTED=$SECONDS; STEP_TIMED_OUT=0; }
+
+# Whole seconds for the picker deadline. Production uses the shell clock.
+# A self-test sets EMULATOR_NOW_S to a frozen integer so a wall-clock tick
+# between "deadline = now + 30" and the seek stub cannot change the
+# remaining budget (runs 42717632241 and 42718876928: left=29 vs left=30).
+emulator_now() {
+  if [[ -n "${EMULATOR_NOW_S+x}" ]]; then
+    printf '%s\n' "$EMULATOR_NOW_S"
+  else
+    printf '%s\n' "$SECONDS"
+  fi
+}
 step_budget_ok() {
   if (( SECONDS - STEP_STARTED > STEP_BUDGET_S )); then
     if (( ! STEP_TIMED_OUT )); then
@@ -869,14 +881,46 @@ clean_install() {
   install_apk
 }
 
+FILTER_SHEET_TITLE_RX='^(Filters|State|District|Deity|City|Sort from state)$'
+# Titles that are also idle chip labels. A content-desc of "State" is the
+# chip, not proof the sheet is open (run 42675181050 bar dump).
+FILTER_SHEET_TITLE_ID_RX='^filter-sheet-title-(state|district|deity|city|filters|sort-from-state)$'
+
 sheet_open() {
   ui_dump || return 1
-  # Prefer the title so a dismiss swipe starts on the sheet, not the close icon.
-  if ui_find --text-regex '^Filters$' || ui_find --content-desc-regex '^Filters$'; then
+  # The title's own resource-id. Chips never use this id.
+  if ui_find --resource-id-regex "$FILTER_SHEET_TITLE_ID_RX"; then
     return 0
   fi
-  ui_find --content-desc "Close filters" && return 0
-  ui_find --text-regex '^Show [0-9]+ temples?$'
+  # Run 42675181050: the sheet was open, Close filters was on screen, and
+  # the title text had been merged away.
+  if ui_find --content-desc "Close filters"; then
+    return 0
+  fi
+  # Older sheets titled "Filters" / "City" / "Sort from state" in
+  # content-desc. State, District, and Deity are also the idle chip
+  # labels, and ui_find --text-regex reads content-desc, so those three
+  # words do not count as an open sheet.
+  if ui_find --content-desc-regex '^(Filters|City|Sort from state)$'; then
+    return 0
+  fi
+  ui_find --content-desc-regex '^Show [0-9]+ temples?$' \
+    || ui_find --text-regex '^Show [0-9]+ temples?$'
+}
+
+# Wait until the filter sheet is up. [timeout] seconds is required.
+# Succeeds on the title id, sheet_open, or the Close filters button.
+wait_filter_sheet() {
+  local timeout="${1:?wait_filter_sheet needs a timeout in seconds}"
+  local start="$SECONDS"
+  while (( SECONDS - start < timeout )); do
+    if sheet_open || { ui_dump && ui_find --content-desc "Close filters"; }; then
+      return 0
+    fi
+    sleep 1
+  done
+  echo "wait_filter_sheet: timed out after ${timeout}s" >&2
+  return 1
 }
 
 # Close a sheet that would block the next step. Does not press back on Home.
@@ -899,7 +943,7 @@ dismiss_blockers() {
     sleep 1
     return 0
   fi
-  if ui_find --text-regex '^Filters$' || ui_find --content-desc-regex '^Filters$' || ui_find --text-regex '^Show [0-9]+ temples?$'; then
+  if ui_find --text-regex "$FILTER_SHEET_TITLE_RX" || ui_find --content-desc-regex "$FILTER_SHEET_TITLE_RX" || ui_find --text-regex '^Show [0-9]+ temples?$'; then
     ui_back
     sleep 1
     return 0
@@ -961,7 +1005,7 @@ dismiss_sheet_from_handle() {
   local start_x=$((width / 2))
   local start_y=$((height * 24 / 100))
   local max_title=$((height * 36 / 100))
-  if ui_find --text-regex '^Filters$' --max-top "$max_title" || ui_find --content-desc-regex '^Filters$' --max-top "$max_title"; then
+  if ui_find --text-regex "$FILTER_SHEET_TITLE_RX" --max-top "$max_title" || ui_find --content-desc-regex "$FILTER_SHEET_TITLE_RX" --max-top "$max_title"; then
     local node_h=$((UI_Y2 - UI_Y1))
     if (( node_h > 0 && node_h < height / 6 && UI_CY < max_title )); then
       start_x=$UI_CX
@@ -980,7 +1024,7 @@ dismiss_sheet_swipe() {
   # The sheet title can land a moment after the chip tap. Flows 06 and 17
   # otherwise report "sheet was not open" while Filters is still animating in.
   if ! sheet_open; then
-    ui_wait 3 --text-regex '^Filters$' || true
+    wait_filter_sheet 3 || true
   fi
   if ! sheet_open; then
     echo "sheet was not open"
@@ -1003,7 +1047,7 @@ dismiss_sheet_swipe() {
 dismiss_sheet_outside() {
   local target_y
   if ! sheet_open; then
-    ui_wait 3 --text-regex '^Filters$' || true
+    wait_filter_sheet 3 || true
   fi
   if ! sheet_open; then
     echo "sheet was not open"
@@ -1532,6 +1576,83 @@ wait_out_district_loader() {
   return 1
 }
 
+# The district sheet is open only when the Any-district row is in the
+# hierarchy. The always-visible District chip, and the words "All districts"
+# on that chip, are not that row.
+district_sheet_lists_rows() {
+  wait_out_district_loader || return 1
+  ensure_list_head district
+}
+
+# Bring filter-option-KIND-any on screen. The row is pinned under the
+# search field, so a clear (which jumps the list to the top) is enough.
+# One short fallback pull remains for a sheet that is still mid-list.
+# Callers that need the head (select_labeled @first) use this, not their
+# own swipe loop.
+ensure_list_head() {
+  local kind="$1"
+  local any="filter-option-${kind}-any"
+  local n=0 value
+  ui_dump || return 1
+  if ui_find --resource-id "$any"; then
+    return 0
+  fi
+  if ui_find --resource-id filter-sheet-search; then
+    value="$(ui_field_value "$UI_TEXT")"
+    ui_tap || true
+    if [[ -n "$value" ]]; then
+      ui_clear_field "$value"
+    fi
+    sleep 0.3
+    ui_dump || return 1
+    if ui_find --resource-id "$any"; then
+      return 0
+    fi
+  fi
+  local deadline=$((SECONDS + ${HEAD_FALLBACK_S:-8}))
+  while ! ui_find --resource-id "$any"; do
+    if (( n >= ${FIRST_TOP_SWIPES:-6} || SECONDS >= deadline )); then
+      echo "select_labeled: ${kind} list head (-any) not reached after ${n} swipes" >&2
+      return 1
+    fi
+    if ! step_budget_ok; then
+      echo "select_labeled: ${kind} list head (-any) step timeout" >&2
+      return 1
+    fi
+    n=$((n + 1))
+    echo "select_labeled: ${kind} sheet not at the list head; fallback swipe (${n})" >&2
+    ui_sheet_swipe down 58 "${FIRST_TOP_SWIPE_PCT:-12}" || {
+      echo "select_labeled: swipe failed" >&2
+      return 1
+    }
+    sleep 0.3
+    ui_dump || return 1
+  done
+}
+
+# True when State, District, and Deity show their idle labels and no chip
+# still offers Clear. A selected chip keeps a "Clear … filter" node.
+filter_chips_idle() {
+  local id want label
+  ui_dump || return 1
+  for id in filter-chip-state filter-chip-district filter-chip-deity; do
+    case "$id" in
+      filter-chip-state) want="State" ;;
+      filter-chip-district) want="District" ;;
+      filter-chip-deity) want="Deity" ;;
+    esac
+    ui_find --resource-id "$id" || return 1
+    label="$(chip_label "$UI_TEXT")"
+    [[ "$label" == "$want" ]] || return 1
+  done
+  if ui_find --content-desc "Clear state filter" \
+    || ui_find --content-desc "Clear district filter" \
+    || ui_find --content-desc "Clear deity filter"; then
+    return 1
+  fi
+  return 0
+}
+
 # "^Shiva( +[0-9]+)?$" -> "Shiva". Empty when the pattern is not a label.
 option_name_from_regex() {
   python3 -c '
@@ -1621,7 +1742,14 @@ seek_option() {
   # The first dump is the sheet as it opened: scrolled to the top, so the
   # first visible section is the head of the order.
   if kinds="$(python3 "$UI_PY" sheet-kinds "$DUMP")"; then
-    order="$(printf '%s state district deity' "$kinds" | tr ' ' '\n' | awk 'NF && !seen[$0]++' | paste -sd, -)"
+    # One kind means this is a separate State, District, or Deity sheet.
+    # Do not append the other kinds: a name past the last visible row is
+    # further down this sheet, not absent in a section that is not open.
+    if [[ "$kinds" != *" "* ]]; then
+      order="$kinds"
+    else
+      order="$(printf '%s state district deity' "$kinds" | tr ' ' '\n' | awk 'NF && !seen[$0]++' | paste -sd, -)"
+    fi
   else
     echo "seek_option: no picker section on screen (is the sheet open?)" >&2
     return 1
@@ -1667,6 +1795,13 @@ seek_option() {
       fi
     fi
     direction="$dir"
+    # A downward fling while the Any row is on screen pulls the sheet shut
+    # (run 42699042193, 30s2: Shiva seek, then no sheet). The name is not
+    # above the head of the list.
+    if [[ "$dir" == down ]] && ui_find --resource-id "filter-option-${kind}-any"; then
+      echo "seek_option: ${kind} '${name}' is not above the list head" >&2
+      return 2
+    fi
     current="$(dump_scroll_sig)" || return 1
     if [[ "$current" == "$prev" ]]; then
       same=$((same + 1))
@@ -1900,10 +2035,22 @@ first_real_option() {
 import re, sys
 s = open(sys.argv[1], encoding="utf-8", errors="replace").read()
 kind = sys.argv[2]
+prefixes = (f"filter-option-{kind}-",)
+if kind == "deity":
+    # KAN-198 Most listed rows sit above A-Z and use this id.
+    prefixes = (f"filter-deity-top-", f"filter-option-{kind}-")
 for node in re.finditer(r"<node [^>]*>", s):
     n = node.group(0)
     rid = re.search(r'resource-id="([^"]*)"', n)
-    if not rid or not rid.group(1).startswith(f"filter-option-{kind}-") or rid.group(1) == f"filter-option-{kind}-any":
+    if not rid:
+        continue
+    short = rid.group(1)
+    matched = False
+    for prefix in prefixes:
+        if short.startswith(prefix) and not short.endswith("-any"):
+            matched = True
+            break
+    if not matched:
         continue
     desc = re.search(r'content-desc="([^"]*)"', n)
     text = re.search(r' text="([^"]*)"', n)
@@ -1912,10 +2059,38 @@ for node in re.finditer(r"<node [^>]*>", s):
     label = re.sub(r"\s+[0-9]+$", "", label)
     if label:
         print(label)
-        print(rid.group(1))
+        print(short)
         raise SystemExit(0)
 raise SystemExit(1)
 PY
+}
+
+# Type NAME into filter-sheet-search and tap filter-option-KIND-NAME.
+# 0 tapped, 1 no search field (caller scrolls), 2 field used but no row.
+sheet_search_pick() {
+  local kind="$1" name="$2" regex="$3"
+  local id="filter-option-${kind}-${name}" i
+  ui_dump || return 1
+  if ! ui_find --resource-id filter-sheet-search; then
+    return 1
+  fi
+  ui_tap || return 1
+  sleep 0.3
+  ui_type "$name" || return 1
+  sleep 0.8
+  ui_dump || return 1
+  local alt
+  for alt in "$id" "filter-${kind}-top-${name}"; do
+    if ui_find --resource-id "$alt"; then
+      if stable_option_tap "$regex" "^$(re_escape "$alt")\$"; then
+        return 0
+      fi
+    fi
+  done
+  for ((i = 0; i < ${#name}; i++)); do
+    adb_shell_capped 8 input keyevent 67 >/dev/null 2>&1 || true
+  done
+  return 2
 }
 
 select_labeled() {
@@ -1923,23 +2098,12 @@ select_labeled() {
   local _section="${2:-}"
   # Round 4.4: '@first' = the first real option on the opened sheet.
   # Round 4.4.1 (Manu): tap the dumped row itself, no re-seek. The sheet
-  # must be at the head of the list (the -any row on screen); if it is
-  # not, pull the list down until it is (at most FIRST_TOP_SWIPES).
+  # must be at the head of the list (the pinned -any row). ensure_list_head
+  # clears search (jump to top) and allows one short fallback pull.
   if [[ "$regex" == @first ]]; then
-    local _k _first _rid _n=0 _h _max
+    local _k _first _rid _h _max
     _k="$(printf '%s' "$_section" | tr '[:upper:]' '[:lower:]')"
-    ui_dump || { echo "select_labeled: dump failed on the ${_k} sheet" >&2; return 1; }
-    while ! ui_find --resource-id "filter-option-${_k}-any"; do
-      if (( _n >= ${FIRST_TOP_SWIPES:-6} )); then
-        echo "select_labeled: ${_k} list head (-any) not reached after ${_n} swipes" >&2
-        return 1
-      fi
-      _n=$((_n + 1))
-      echo "select_labeled: ${_k} sheet not at the list head; scrolling to the top (${_n})" >&2
-      ui_sheet_swipe down 58 "${FIRST_TOP_SWIPE_PCT:-12}" || { echo "select_labeled: swipe failed" >&2; return 1; }
-      sleep 0.3
-      ui_dump || { echo "select_labeled: dump failed on the ${_k} sheet" >&2; return 1; }
-    done
+    ensure_list_head "$_k" || return 1
     if ! { read -r _first; read -r _rid; } < <(first_real_option "$_k"); then
       echo "select_labeled: no real ${_k} option on the open sheet" >&2
       return 1
@@ -1975,12 +2139,17 @@ select_labeled() {
   fi
   local kind
   kind="$(printf '%s' "$_section" | tr '[:upper:]' '[:lower:]')"
-  started=$SECONDS
+  started=$(emulator_now)
   deadline=$((started + PICKER_GIVEUP_S))
   if [[ "$kind" =~ ^(state|district|deity)$ ]] && (( PICKER_LONG_GIVEUP_S > PICKER_GIVEUP_S )); then
     deadline=$((started + PICKER_LONG_GIVEUP_S))
   fi
   if [[ -n "$name_hint" && "$kind" =~ ^(state|district|deity)$ ]]; then
+    # The sheet search jumps to the row. Scrolling a state list one
+    # "near" drag at a time is what pushed 29a to 575s and 29d to 566s.
+    if sheet_search_pick "$kind" "$name_hint" "$regex"; then
+      return 0
+    fi
     local seek_rc=0
     # '^Vishnu' (no $) takes the first Vishnu... option; '^Shiva( +N)?$' only Shiva.
     local prefix_flag=""
@@ -1992,7 +2161,7 @@ select_labeled() {
     # "list stopped moving" (rc 1) on a slow (cold-booted, swiftshader)
     # emulator: 120ms flings were not taken as drags. One more walk with
     # slower flings while the deadline allows (run 41373837994: 17, 29).
-    if (( seek_rc == 1 )) && (( SECONDS + 8 < seek_deadline )); then
+    if (( seek_rc == 1 )) && (( $(emulator_now) + 8 < seek_deadline )); then
       echo "select_labeled: retrying the ${kind} walk with ${SEEK_RETRY_FLING_MS:-300}ms flings" >&2
       seek_rc=0
       SEEK_FLING_MS="${SEEK_RETRY_FLING_MS:-300}" seek_option "$kind" "$name_hint" "$seek_deadline" ${prefix_flag:+"$prefix_flag"} || seek_rc=$?
@@ -2022,15 +2191,15 @@ select_labeled() {
     fi
   fi
   for pass in 1 2; do
-    if (( SECONDS >= deadline )); then
-      echo "select_labeled: gave up looking for '${regex}' after $((SECONDS - started))s" >&2
+    if (( $(emulator_now) >= deadline )); then
+      echo "select_labeled: gave up looking for '${regex}' after $(( $(emulator_now) - started ))s" >&2
       return 1
     fi
     if [[ "$pass" -eq 2 ]]; then
       prev=""
       for i in $(seq 1 40); do
-        if (( SECONDS >= deadline )); then
-          echo "select_labeled: gave up looking for '${regex}' after $((SECONDS - started))s" >&2
+        if (( $(emulator_now) >= deadline )); then
+          echo "select_labeled: gave up looking for '${regex}' after $(( $(emulator_now) - started ))s" >&2
           return 1
         fi
         ui_dump || {
@@ -2055,8 +2224,8 @@ select_labeled() {
     prev=""
     stuck=0
     for i in $(seq 1 80); do
-      if (( SECONDS >= deadline )); then
-        echo "select_labeled: gave up looking for '${regex}' after $((SECONDS - started))s" >&2
+      if (( $(emulator_now) >= deadline )); then
+        echo "select_labeled: gave up looking for '${regex}' after $(( $(emulator_now) - started ))s" >&2
         return 1
       fi
       ui_dump || {
@@ -2132,14 +2301,46 @@ select_labeled() {
       sleep 0.3
     done
   done
-  echo "select_labeled: gave up looking for '${regex}' after $((SECONDS - started))s" >&2
+  echo "select_labeled: gave up looking for '${regex}' after $(( $(emulator_now) - started ))s" >&2
   return 1
 }
 
+# KAN-198: District with no state opens the State sheet ("Choose a state
+# first"). Apply Tamil Nadu so the District sheet that follows is scoped.
+finish_choose_state_first() {
+  ui_dump || return 1
+  if ! ui_find --resource-id filter-choose-state-first; then
+    return 0
+  fi
+  select_labeled '^Tamil Nadu( +[0-9]+)?$' STATE || return 1
+  apply_sheet || return 1
+  # The District sheet opens next and covers the chip bar. Remember Tamil
+  # Nadu so later picks stay scoped to it (flow 29's APPLIED map).
+  CHOOSE_STATE_APPLIED="Tamil Nadu"
+  if declare -p APPLIED >/dev/null 2>&1; then
+    APPLIED[state]="Tamil Nadu"
+    unset 'APPLIED[district]'
+  fi
+}
+
 apply_sheet() {
-  local height attempt
+  local height attempt title_id
   read -r _ height < <(ui_screen_size) || return 1
+  title_id=""
+  ui_dump || true
+  if ui_find --resource-id filter-sheet-title-state; then
+    title_id=state
+  elif ui_find --resource-id filter-sheet-title-district; then
+    title_id=district
+  elif ui_find --resource-id filter-sheet-title-deity; then
+    title_id=deity
+  fi
   for attempt in 1 2; do
+    # Choose-a-state-first opens the District sheet itself. A second tap
+    # on Show would apply Any district and close it (run 42689905451).
+    if [[ "$title_id" == state ]] && ui_dump && ui_find --resource-id filter-sheet-title-district; then
+      return 0
+    fi
     # The result button is pinned to the bottom of the sheet. Prefer that
     # node so a higher label is not tapped and the sheet left open.
     if ! ui_wait 8 --text-regex '^Show [0-9]+ temples?$' --prefer lower; then
@@ -2152,6 +2353,9 @@ apply_sheet() {
     fi
     ui_tap
     sleep 1
+    if [[ "$title_id" == state ]] && ui_dump && ui_find --resource-id filter-sheet-title-district; then
+      return 0
+    fi
     if ! sheet_open; then
       return 0
     fi
@@ -2188,6 +2392,8 @@ scoped_pick() {
   ui_dump || true
   if [[ -n "$a_state" ]]; then
     st="$a_state"
+  elif [[ -n "${CHOOSE_STATE_APPLIED:-}" ]]; then
+    st="$CHOOSE_STATE_APPLIED"
   elif ui_find --resource-id filter-chip-state; then
     st="${UI_TEXT:-}"
   fi
@@ -2206,11 +2412,15 @@ scoped_pick() {
     # Only on what the flow applied (APPLIED, flow 29): flows without it
     # (17) keep the ee7ffbde picks from the visible chips.
     state) if [[ -n "$a_deity" || -n "$a_district" ]]; then echo '@first'; else echo '^Tamil Nadu( +[0-9]+)?$'; fi ;;
-    deity) if (( tn )); then echo "$TN_DEITY_PICK"; else echo "$ALL_INDIA_DEITY_PICK"; fi ;;
+    # A district facet hides Shiva (Madurai's four temples are not the
+    # all-Tamil-Nadu deity list). Searching Shiva there opened the keyboard
+    # and the next fling dismissed the sheet (run 42699042193, 30s2).
+    deity) if [[ -n "$a_district" ]]; then echo '@first'; elif (( tn )); then echo "$TN_DEITY_PICK"; else echo "$ALL_INDIA_DEITY_PICK"; fi ;;
     # Round 4.4.9i (Reviewer): any other applied filter (a non-Tamil Nadu
     # state, which the state @first pick can now choose, or a deity) can
     # hide the all-India head district; it is used only with none applied.
-    district) if (( tn )); then echo "$TN_DISTRICT_PICK"; elif (( deity_on )) || [[ -n "$a_state" ]]; then echo '@first'; else echo "$ALL_INDIA_DISTRICT_PICK"; fi ;;
+    # Shiva in Tamil Nadu does not offer Madurai (run 42699042193, 30s5).
+    district) if (( deity_on )); then echo '@first'; elif (( tn )); then echo "$TN_DISTRICT_PICK"; elif [[ -n "$a_state" ]]; then echo '@first'; else echo "$ALL_INDIA_DISTRICT_PICK"; fi ;;
     *) return 1 ;;
   esac
 }
@@ -2227,11 +2437,13 @@ clear_named() {
   if ui_dump && ui_find --content-desc "Clear ${which} filter"; then
     ui_tap
     sleep 1
+    if [[ "$which" == state ]]; then CHOOSE_STATE_APPLIED=""; fi
     return 0
   fi
   if ui_dump && ui_find --text-regex '^Clear$' --prefer upper; then
     ui_tap
     sleep 1
+    if [[ "$which" == state ]]; then CHOOSE_STATE_APPLIED=""; fi
     return 0
   fi
   return 1

@@ -140,12 +140,14 @@ SHARD_COUNT=15
 # animations 5 = 200s; round 4.4.6: + boot getprop budget 4, unlock 8 =
 # 199s; round 4.4.9: readiness 12s (before BOOT) = 189s:
 # round 4.4.9b: per flow cap + 15 + 25 reset + 10 = cap + 50:
-# shard 12: 189 + 2 x (600 + 50) = 1489s = 24.82 min;
-# shard 15: 189 + 2 x (300 + 50) + 2 x (540 + 50) = 2069s (round 4.4.8:
-#   26, 08, 30s3, 30s4); shard 11: 189 + 2 x 350 + 2 x 590 = 2069s;
-#   shard 9: 189 + 650 + 2 x 350 + 590 = 2129s;
-# every other shard: 189 + 3 x 650 = 2139s = 35.65 min. All <= 39 min,
-# step timeout 42 (self_test checks every shard against 39 min).
+# Round 4.4.10: each 29/30 matrix cell is two flows (cap 450). The 600s
+# cell flows passed every step and still died at 601-602s (runs
+# 42699042193 and 42700039403; the siblings were 419-574s). Short flows
+# whose measured time is under half the new cap drop a 5th field so the
+# worst shard stays 2129s and every plan_e2e_s path stays under 2700s.
+# shard 12: 189 + 2 x (400 + 50) + (600 + 50) + (300 + 50) = 2089s
+# (06a1, 06a2, 06b, 31). Worst shard 2129s (1-5, 9-11, 13, 14).
+# All <= 39 min (2340s). Worst plan_e2e_s path 2675s <= 2700s.
 # shellcheck disable=SC2034 # read by self_test.sh (sources this file)
 SHARD_WORST_MAX_S=$((39 * 60))
 
@@ -182,56 +184,70 @@ DEFAULT_NA_STEPS=""
 # entry x one chip per flow (FILTER_MATRIX_PART=<entry>:<chip>, "seqs" for
 # the 3+ step sequences). Planned skips (11, 23, 30d) cost nothing.
 PLAN_ROWS=(
-  "17a-entry-matrix-home-button|tool/emulator/flows/17_entry_matrix.sh|home_button|1"
-  "29a-filter-matrix-home-state|tool/emulator/flows/29_filter_matrix.sh|home_browse:state|1"
-  "01-first-launch|tool/emulator/flows/01_first_launch.sh||1"
-  "17b-entry-matrix-drawer-all|tool/emulator/flows/17_entry_matrix.sh|drawer_all|2"
-  "29b-filter-matrix-home-district|tool/emulator/flows/29_filter_matrix.sh|home_browse:district|2"
-  "02-policy-gate|tool/emulator/flows/02_policy_gate.sh||2"
-  "17c-entry-matrix-drawer-search|tool/emulator/flows/17_entry_matrix.sh|drawer_search|3"
-  "29c-filter-matrix-home-deity|tool/emulator/flows/29_filter_matrix.sh|home_browse:deity|3"
-  "03-force-update|tool/emulator/flows/03_force_update.sh||3"
+  "17a-entry-matrix-home-button|tool/emulator/flows/17_entry_matrix.sh|home_button|1|540"
+  "29a1-filter-matrix-home-state|tool/emulator/flows/29_filter_matrix.sh|home_browse:state:1|1|450"
+  "29a2-filter-matrix-home-state|tool/emulator/flows/29_filter_matrix.sh|home_browse:state:2|1|450"
+  "01-first-launch|tool/emulator/flows/01_first_launch.sh||1|300"
+  "17b-entry-matrix-drawer-all|tool/emulator/flows/17_entry_matrix.sh|drawer_all|2|540"
+  "29b1-filter-matrix-home-district|tool/emulator/flows/29_filter_matrix.sh|home_browse:district:1|2|450"
+  "29b2-filter-matrix-home-district|tool/emulator/flows/29_filter_matrix.sh|home_browse:district:2|2|450"
+  "02-policy-gate|tool/emulator/flows/02_policy_gate.sh||2|300"
+  "17c-entry-matrix-drawer-search|tool/emulator/flows/17_entry_matrix.sh|drawer_search|3|540"
+  "29c1-filter-matrix-home-deity|tool/emulator/flows/29_filter_matrix.sh|home_browse:deity:1|3|450"
+  "29c2-filter-matrix-home-deity|tool/emulator/flows/29_filter_matrix.sh|home_browse:deity:2|3|450"
+  "03-force-update|tool/emulator/flows/03_force_update.sh||3|300"
   "11-near-me|tool/emulator/flows/11_near_me.sh||3"
-  "17d-entry-matrix-list-drawer-all|tool/emulator/flows/17_entry_matrix.sh|list_drawer_all|4"
-  "29d-filter-matrix-drawer-all-state|tool/emulator/flows/29_filter_matrix.sh|drawer_all:state|4"
-  "04-home|tool/emulator/flows/04_home.sh||4"
-  "29e-filter-matrix-drawer-all-district|tool/emulator/flows/29_filter_matrix.sh|drawer_all:district|5"
-  "29f-filter-matrix-drawer-all-deity|tool/emulator/flows/29_filter_matrix.sh|drawer_all:deity|5"
-  "05-search|tool/emulator/flows/05_search.sh||5"
-  "30a-filter-matrix-drawer-bar-state|tool/emulator/flows/29_filter_matrix.sh|drawer_bar:state|6"
-  "30b-filter-matrix-drawer-bar-district|tool/emulator/flows/29_filter_matrix.sh|drawer_bar:district|6"
-  "07-district|tool/emulator/flows/07_district.sh||6"
+  "17d-entry-matrix-list-drawer-all|tool/emulator/flows/17_entry_matrix.sh|list_drawer_all|4|540"
+  "29d1-filter-matrix-drawer-all-state|tool/emulator/flows/29_filter_matrix.sh|drawer_all:state:1|4|450"
+  "29d2-filter-matrix-drawer-all-state|tool/emulator/flows/29_filter_matrix.sh|drawer_all:state:2|4|450"
+  "04-home|tool/emulator/flows/04_home.sh||4|300"
+  "29e1-filter-matrix-drawer-all-district|tool/emulator/flows/29_filter_matrix.sh|drawer_all:district:1|5|450"
+  "29e2-filter-matrix-drawer-all-district|tool/emulator/flows/29_filter_matrix.sh|drawer_all:district:2|5|450"
+  "22-filter-combos-reset|tool/emulator/flows/22_filter_combos_reset.sh||5|540"
+  "05-search|tool/emulator/flows/05_search.sh||5|300"
+  "30a1-filter-matrix-drawer-bar-state|tool/emulator/flows/29_filter_matrix.sh|drawer_bar:state:1|6|450"
+  "30a2-filter-matrix-drawer-bar-state|tool/emulator/flows/29_filter_matrix.sh|drawer_bar:state:2|6|450"
+  "27-offline-cold-start|tool/emulator/flows/27_offline_cold_start.sh||6|450"
+  "07-district|tool/emulator/flows/07_district.sh||6|300"
   "23-near-me-settings-roundtrip|tool/emulator/flows/23_near_me_settings_roundtrip.sh||6"
-  "30c-filter-matrix-drawer-bar-deity|tool/emulator/flows/29_filter_matrix.sh|drawer_bar:deity|7"
-  "14-back-relaunch|tool/emulator/flows/14_back_relaunch.sh||7"
-  "12-ads|tool/emulator/flows/12_ads.sh||7"
-  "30e-filter-matrix-search-state|tool/emulator/flows/29_filter_matrix.sh|search:state|8"
-  "27-offline-cold-start|tool/emulator/flows/27_offline_cold_start.sh||8"
-  "13-licences|tool/emulator/flows/13_licences.sh||8"
-  "30f-filter-matrix-search-district|tool/emulator/flows/29_filter_matrix.sh|search:district|9"
-  "24-gallery-autoadvance-viewer|tool/emulator/flows/24_gallery_autoadvance_viewer.sh||9|300"
-  "15-offline|tool/emulator/flows/15_offline.sh||9|300"
+  "30b1-filter-matrix-drawer-bar-district|tool/emulator/flows/29_filter_matrix.sh|drawer_bar:district:1|7|450"
+  "30b2-filter-matrix-drawer-bar-district|tool/emulator/flows/29_filter_matrix.sh|drawer_bar:district:2|7|450"
+  "14-back-relaunch|tool/emulator/flows/14_back_relaunch.sh||7|450"
+  "12-ads|tool/emulator/flows/12_ads.sh||7|300"
+  "30c1-filter-matrix-drawer-bar-deity|tool/emulator/flows/29_filter_matrix.sh|drawer_bar:deity:1|8|450"
+  "30c2-filter-matrix-drawer-bar-deity|tool/emulator/flows/29_filter_matrix.sh|drawer_bar:deity:2|8|450"
+  "13-licences|tool/emulator/flows/13_licences.sh||8|300"
+  "09-photos|tool/emulator/flows/09_photos.sh||8|300"
+  "30e1-filter-matrix-search-state|tool/emulator/flows/29_filter_matrix.sh|search:state:1|9|450"
+  "30e2-filter-matrix-search-state|tool/emulator/flows/29_filter_matrix.sh|search:state:2|9|450"
   "30s5-filter-matrix-seq5|tool/emulator/flows/29_filter_matrix.sh|seqs:5|9|540"
-  "30g-filter-matrix-search-deity|tool/emulator/flows/29_filter_matrix.sh|search:deity|10"
-  "18-home-reselect|tool/emulator/flows/18_home_reselect.sh||10"
-  "16-home-browse|tool/emulator/flows/16_home_browse.sh||10"
-  "19-rotation-state|tool/emulator/flows/19_rotation_state.sh||11|300"
-  "20-empty-and-back|tool/emulator/flows/20_empty_and_back.sh||11|300"
-  "30s1-filter-matrix-seq1|tool/emulator/flows/29_filter_matrix.sh|seqs:1|11|540"
+  "15-offline|tool/emulator/flows/15_offline.sh||9|300"
+  "30f1-filter-matrix-search-district|tool/emulator/flows/29_filter_matrix.sh|search:district:1|10|450"
+  "30f2-filter-matrix-search-district|tool/emulator/flows/29_filter_matrix.sh|search:district:2|10|450"
+  "30s1-filter-matrix-seq1|tool/emulator/flows/29_filter_matrix.sh|seqs:1|10|540"
+  "18-home-reselect|tool/emulator/flows/18_home_reselect.sh||10|300"
+  "30g1-filter-matrix-search-deity|tool/emulator/flows/29_filter_matrix.sh|search:deity:1|11|450"
+  "30g2-filter-matrix-search-deity|tool/emulator/flows/29_filter_matrix.sh|search:deity:2|11|450"
   "30s2-filter-matrix-seq2|tool/emulator/flows/29_filter_matrix.sh|seqs:2|11|540"
-  "06a-filters-single|tool/emulator/flows/06_filters.sh|single|12"
+  "19-rotation-state|tool/emulator/flows/19_rotation_state.sh||11|300"
+  "06a1-filters-single|tool/emulator/flows/06_filters.sh|single:1|12|400"
+  "06a2-filters-single|tool/emulator/flows/06_filters.sh|single:2|12|400"
   "06b-filters-combined|tool/emulator/flows/06_filters.sh|combined|12"
-  "26-drawer-nav-stack|tool/emulator/flows/26_drawer_nav_stack.sh||15|300"
-  "08-list-detail|tool/emulator/flows/08_list_detail.sh||15|300"
-  "30s3-filter-matrix-seq3|tool/emulator/flows/29_filter_matrix.sh|seqs:3|15|540"
-  "30s4-filter-matrix-seq4|tool/emulator/flows/29_filter_matrix.sh|seqs:4|15|540"
+  "31-filter-chain|tool/emulator/flows/31_filter_chain.sh||12|300"
   "21-district-close-then-other-chip|tool/emulator/flows/21_district_close_then_other_chip.sh||13"
-  "25-directions-edge|tool/emulator/flows/25_directions_edge.sh||13"
-  "09-photos|tool/emulator/flows/09_photos.sh||13"
-  "22-filter-combos-reset|tool/emulator/flows/22_filter_combos_reset.sh||14"
-  "10-directions|tool/emulator/flows/10_directions.sh||14"
-  "28-small-screen-rotation-overflow|tool/emulator/flows/28_small_screen_rotation_overflow.sh||14"
-  "30d-near-me|tool/emulator/flows/29_filter_matrix.sh|near_me:all|14"
+  "30s4-filter-matrix-seq4|tool/emulator/flows/29_filter_matrix.sh|seqs:4|13|540"
+  "08-list-detail|tool/emulator/flows/08_list_detail.sh||13|300"
+  "25-directions-edge|tool/emulator/flows/25_directions_edge.sh||13|300"
+  "29f1-filter-matrix-drawer-all-deity|tool/emulator/flows/29_filter_matrix.sh|drawer_all:deity:1|14|440"
+  "29f2-filter-matrix-drawer-all-deity|tool/emulator/flows/29_filter_matrix.sh|drawer_all:deity:2|14|440"
+  "16-home-browse|tool/emulator/flows/16_home_browse.sh||14|270"
+  "28-small-screen-rotation-overflow|tool/emulator/flows/28_small_screen_rotation_overflow.sh||14|270"
+  "20-empty-and-back|tool/emulator/flows/20_empty_and_back.sh||14|270"
+  "26-drawer-nav-stack|tool/emulator/flows/26_drawer_nav_stack.sh||15|300"
+  "24-gallery-autoadvance-viewer|tool/emulator/flows/24_gallery_autoadvance_viewer.sh||15|300"
+  "30s3-filter-matrix-seq3|tool/emulator/flows/29_filter_matrix.sh|seqs:3|15|540"
+  "10-directions|tool/emulator/flows/10_directions.sh||15|300"
+  "30d-near-me|tool/emulator/flows/29_filter_matrix.sh|near_me:all|15"
 )
 
 plan_skip_list() {

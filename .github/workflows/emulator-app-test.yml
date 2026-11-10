@@ -18,7 +18,7 @@ name: emulator-app-test
 # Picker give-up: PICKER_LONG_GIVEUP_S=45 for state/district/deity pickers (others 20s);
 # per-step budget EMULATOR_STEP_BUDGET_S=150; 15 shards (SHARD_COUNT in plan.sh). The shard limit is
 # time, not a flow count: boot + pre/post-BOOT work (189s) + per active flow (cap + 15 + 25 + 10s) <= 39 min
-# (self_test, plan_need_s); today 2139s = 35.65 min max (shard 12: 1489s, shards 11/15: 2069s, shard 9: 2129s), step timeout 42.
+# (self_test, plan_need_s); today 2129s max (shards 10, 11, 13), shard 12 1839s, step timeout 42. The 2700s figure is plan_e2e_s (create-failed retry), not the shard step.
 # Job 68 >= 20 setup/post + 211s dead first attempt (30 start + 150 boot + 4 getprop budget +
 # 5 keyevent + 22s pre-BOOT watchdog incl. 12s readiness, round 4.4.9) + 2 boot check + 42 boot
 # retry; end to end <= 45 min on every path (warm, retry, cold, cold + retry, warm-up refused,
@@ -579,8 +579,8 @@ jobs:
       # boot retry), BOOT, then unlock (8s, 2 tries) + animations (5s)
       # = 189s, then each flow capped at its
       # cap + 15s kill-after + 25s reset + 10s outer kill. smoke: 6 flows ->
-      # 70 min worst case; full shards (15): max 2139s = 35.65 min (shard
-      # 12: 1489s, 11/15: 2069s, 9: 2129s), step timeout 42. run_shard.sh exits 0;
+      # 70 min worst case; full shards (15): max 2129s (shards 10, 11, 13;
+      # shard 12: 1839s), step timeout 42. run_shard.sh exits 0;
       # the summary step decides pass/fail. !cancelled() skips only on a
       # real cancellation.
       - name: Run emulator flows
