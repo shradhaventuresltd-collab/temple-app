@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:temple_app/config/build_flags.dart';
+import 'package:temple_app/models/photo_licence.dart';
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/services/seed_service.dart';
 import 'package:temple_app/services/temple_write_store.dart';
@@ -35,12 +37,11 @@ abstract class AdminTempleApi {
 
   Future<AdminDeleteResult> deleteTemple(String id);
 
-  /// After Storage upload: merge [imageUrls] into `images` and write a
-  /// **full** temple payload (not an images-only `update` / `arrayUnion`).
-  ///
-  /// Firestore rules validate `request.resource.data` on every update, so a
-  /// partial images write is denied when the existing doc is missing required
-  /// fields. Returns the temple as persisted.
+  /// After Storage upload: merge [imageUrls] into the gallery through the
+  /// [setTemplePhotos] callable (KAN-200), then refresh text fields and the
+  /// temple_index entry. Create still writes photos directly; after create,
+  /// gallery edits must go through setTemplePhotos — imageUrl / images are
+  /// client-immutable on update. Returns the temple as persisted.
   Future<Temple> appendTempleImages(Temple temple, List<String> imageUrls);
 }
 
@@ -139,16 +140,67 @@ class AdminTempleService implements AdminTempleApi {
       );
     }
 
-    await _store.set(
-      id,
-      _payload(temple, id),
-      isNew: false,
-      previous: previous,
-    );
+    final payload = _payload(temple, id);
+    var stored = previous;
+    final photos = payload['photos'];
+    // KAN-200: a photo change (add, reorder, delete, cover) goes through the
+    // admin callable. The direct save below then sends the same photos /
+    // imageUrl / images the callable stored, so Firestore sees no photo or
+    // mirror change, and it refreshes the text fields and the temple_index
+    // entry. Text-only edits skip the callable. After create, gallery edits
+    // must use setTemplePhotos (imageUrl / images are client-immutable).
+    // When photos are unchanged, omit imageUrl/images: writePhotos rebuilds
+    // images from photos[], which drops extra gallery URLs on 1-photo prod
+    // temples (arunachaleswarar, brihadeeswarar, …).
+    var photosSaved = false;
+    if (photos is List && !templeDataDeepEquals(photos, previous['photos'])) {
+      final list = [
+        for (final p in photos) Map<String, dynamic>.from(p as Map),
+      ];
+      // KAN-200 C6: refuse before the callable if the new photos[] would
+      // drop stored images[] URLs that have no photos entry (legacy gallery).
+      assertNewPhotosCoverStoredImages(
+        previous['images'],
+        list,
+        storedPhotos: previous['photos'],
+      );
+      try {
+        await _store.setPhotos(id, list);
+      } catch (e) {
+        // The server may already have committed when the client times out.
+        throw StateError(
+          'Photos may not have been saved; retry. '
+          '${adminWriteErrorMessage(e)}',
+        );
+      }
+      photosSaved = true;
+      stored = {
+        ...previous,
+        'photos': list,
+        'imageUrl': payload['imageUrl'],
+        'images': payload['images'],
+      };
+    } else {
+      payload.remove('imageUrl');
+      payload.remove('images');
+    }
+
+    try {
+      await _store.set(id, payload, isNew: false, previous: stored);
+    } catch (e) {
+      if (photosSaved) {
+        throw StateError(
+          'Photos saved; details/directory not updated, save again. '
+          '${adminWriteErrorMessage(e)}',
+        );
+      }
+      rethrow;
+    }
   }
 
-  /// Storage has already succeeded. Merge URLs, then `set(merge: true)` the
-  /// complete temple map rules expect — never `arrayUnion` on `images` alone.
+  /// Storage has already succeeded. Merge URLs through setTemplePhotos, then
+  /// refresh text fields and temple_index. Never `arrayUnion` on `images`
+  /// alone — imageUrl / images are client-immutable on update (KAN-200).
   @override
   Future<Temple> appendTempleImages(
     Temple temple,
@@ -169,29 +221,62 @@ class AdminTempleService implements AdminTempleApi {
       throw StateError('No image URLs to save.');
     }
 
-    final stored = await _store.get(id);
-    if (stored == null) {
+    final previous = await _store.get(id);
+    if (previous == null) {
       throw StateError(
         'Temple was not found. It may have already been deleted.',
       );
     }
 
-    _assertNoDisallowedFirestoreKeys(stored);
+    _assertNoDisallowedFirestoreKeys(previous);
 
-    final current = coalesceTemple(Temple.fromMap(id, stored), temple);
+    final current = coalesceTemple(Temple.fromMap(id, previous), temple);
     final updated = templeWithAppendedImages(current, urls);
-    final payload = _payload(updated, id);
+    final photoMaps = photosForGalleryAppend(
+      stored: previous,
+      mergedImages: updated.images,
+      newlyUploadedUrls: urls.toSet(),
+    );
+    final mirror = deriveTemplePhotoMirror([
+      for (final m in photoMaps) TemplePhoto.fromJson(m),
+    ]);
+    final withPhotos = updated.copyWith(
+      photos: mirror.photos,
+      imageUrl: mirror.imageUrl,
+      images: mirror.images,
+      writePhotos: true,
+    );
+    final payload = _payload(withPhotos, id);
     assertTemplePayloadValidForRules(payload);
+    // Normalised photos from the mirror (order === index), not the raw maps.
+    final normalisedPhotos = [
+      for (final p in payload['photos'] as List)
+        Map<String, dynamic>.from(p as Map),
+    ];
 
+    try {
+      await _store.setPhotos(id, normalisedPhotos);
+    } catch (e) {
+      throw StateError(
+        'Photos may not have been saved; retry. '
+        '${adminWriteErrorMessage(e)}',
+      );
+    }
+    final stored = {
+      ...previous,
+      'photos': normalisedPhotos,
+      'imageUrl': payload['imageUrl'],
+      'images': payload['images'],
+    };
     try {
       await _store.set(id, payload, isNew: false, previous: stored);
     } catch (e) {
       throw StateError(
-        'Storage upload succeeded, but Firestore could not save the image '
-        'list. ${adminWriteErrorMessage(e)}',
+        'Photos saved; details/directory not updated, save again. '
+        '${adminWriteErrorMessage(e)}',
       );
     }
-    return updated;
+    return withPhotos;
   }
 
   /// Deletes the Firestore document after removing known Storage objects
@@ -277,10 +362,29 @@ const kTempleFirestoreAllowedFields = {
   'tradition',
 };
 
+/// Keys the Admin SDK writes on `temples/{id}` that the app only reads:
+/// dress code (KAN-197) and timings verification (#125). `firestore.rules`
+/// lets them stay on a document through an admin merge save but rejects any
+/// client write that adds, changes, or deletes them, so [Temple.toFirestoreData]
+/// never includes them.
+const kTempleReadOnlyResearchFields = {
+  'dressCode',
+  'dressCodeSourceUrl',
+  'dressCodeSourceType',
+  'dressCodeVerified',
+  'timingsVerified',
+  'timingsSourceUrl',
+  'timingsSourceType',
+};
+
 void _assertNoDisallowedFirestoreKeys(Map<String, dynamic> stored) {
   final extra =
       stored.keys
-          .where((k) => !kTempleFirestoreAllowedFields.contains(k))
+          .where(
+            (k) =>
+                !kTempleFirestoreAllowedFields.contains(k) &&
+                !kTempleReadOnlyResearchFields.contains(k),
+          )
           .toList()
         ..sort();
   if (extra.isEmpty) return;
@@ -294,6 +398,98 @@ void _assertNoDisallowedFirestoreKeys(Map<String, dynamic> stored) {
 double? _preferCoordinate(double? current, double? stored) {
   if (current == null || current == 0) return stored;
   return current;
+}
+
+/// Throws when [newPhotos] would drop a legacy [images] URL — one with no
+/// entry in the *stored* [photos] — that the new list also omits. Delete /
+/// reorder of mirrored photo URLs is allowed. The editor path that adds
+/// licensed photos entries covering those legacy URLs passes. Message
+/// matches the callable / photosForGalleryAppend refuse.
+void assertNewPhotosCoverStoredImages(
+  Object? storedImages,
+  List<Map<String, dynamic>> newPhotos, {
+  Object? storedPhotos,
+}) {
+  final inStoredPhotos = <String>{
+    if (storedPhotos is List)
+      for (final p in storedPhotos)
+        if (p is Map &&
+            p['url'] is String &&
+            (p['url'] as String).trim().isNotEmpty)
+          (p['url'] as String).trim(),
+  };
+  final covered = <String>{
+    for (final p in newPhotos)
+      if (p['url'] is String && (p['url'] as String).trim().isNotEmpty)
+        (p['url'] as String).trim(),
+  };
+  if (storedImages is! List) return;
+  for (final item in storedImages) {
+    if (item == null) continue;
+    final url = item.toString().trim();
+    if (url.isEmpty) continue;
+    if (inStoredPhotos.contains(url)) continue;
+    if (!covered.contains(url)) {
+      throw StateError(
+        'Add licences for the existing photos in the editor first',
+      );
+    }
+  }
+}
+
+/// Builds the photos list for [AdminTempleService.appendTempleImages].
+///
+/// Keeps credit/licence/thumbs for URLs already in `photos`. Only URLs in
+/// [newlyUploadedUrls] may be added as Own-licence entries. An existing
+/// gallery URL with no `photos` entry is refused — inventing Own would
+/// erase Wikimedia attribution on legacy temples (KAN-200 / C5).
+List<Map<String, dynamic>> photosForGalleryAppend({
+  required Map<String, dynamic> stored,
+  required List<String> mergedImages,
+  required Set<String> newlyUploadedUrls,
+}) {
+  if (mergedImages.length > kMaxTemplePhotos) {
+    throw StateError('A temple can have at most $kMaxTemplePhotos photos.');
+  }
+  final byUrl = <String, Map<String, dynamic>>{};
+  final raw = stored['photos'];
+  if (raw is List) {
+    for (final item in raw) {
+      if (item is! Map) continue;
+      final map = Map<String, dynamic>.from(item);
+      final url = map['url'];
+      if (url is String && url.trim().isNotEmpty) {
+        byUrl[url.trim()] = map;
+      }
+    }
+  }
+  final storedImageUrls = <String>{
+    for (final item in (stored['images'] is List ? stored['images'] as List : const []))
+      if (item != null && item.toString().trim().isNotEmpty) item.toString().trim(),
+  };
+  return [
+    for (var i = 0; i < mergedImages.length; i++)
+      () {
+        final url = mergedImages[i];
+        final prev = byUrl[url];
+        if (prev != null) {
+          return {...prev, 'order': i};
+        }
+        // Existing gallery URL with no photos[] row: never invent Own
+        // (Wikimedia credit would be lost). Only brand-new uploads may be Own.
+        if (storedImageUrls.contains(url) || !newlyUploadedUrls.contains(url)) {
+          throw StateError(
+            'Add licences for the existing photos in the editor first',
+          );
+        }
+        return {
+          'url': url,
+          'licence': PhotoLicence.own.wireValue,
+          'order': i,
+          'credit': '',
+        };
+      }(),
+  ];
 }
 
 /// Builds the temple that will be written after an image upload.
@@ -515,4 +711,27 @@ String adminWriteErrorMessage(Object error) {
   }
   if (text.isEmpty) return 'Write failed.';
   return text;
+}
+
+/// Deep equality for Firestore-shaped values (maps, lists, scalars).
+/// Map key order does not matter; list order does. Ints and doubles that
+/// are numerically equal compare equal, as Firestore stores them.
+bool templeDataDeepEquals(Object? a, Object? b) {
+  if (a is Map && b is Map) {
+    if (a.length != b.length) return false;
+    for (final key in a.keys) {
+      if (!b.containsKey(key)) return false;
+      if (!templeDataDeepEquals(a[key], b[key])) return false;
+    }
+    return true;
+  }
+  if (a is List && b is List) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (!templeDataDeepEquals(a[i], b[i])) return false;
+    }
+    return true;
+  }
+  if (a is num && b is num) return a == b;
+  return a == b;
 }

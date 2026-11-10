@@ -26,6 +26,13 @@ Temple _temple({
   );
 }
 
+Map<String, dynamic> _photoEntry(String url, int order) => {
+      'url': url,
+      'licence': 'Own',
+      'order': order,
+      'credit': '',
+    };
+
 void main() {
   test('Temple.fromMap reads address (and location fallback)', () {
     final fromAddress = Temple.fromMap('id-1', {
@@ -269,7 +276,9 @@ void main() {
         'new-shore-temple': {
           'name': 'Old name',
           'createdAt': 'kept',
+          'imageUrl': 'https://example.com/shore.jpg',
           'images': ['https://example.com/shore.jpg'],
+          'photos': [_photoEntry('https://example.com/shore.jpg', 0)],
         },
       },
     );
@@ -306,6 +315,8 @@ void main() {
     expect(doc.containsKey('location'), isFalse);
     expect(doc.keys.toSet(), isNot(equals({'images'})));
     expect(updated.images.length, 2);
+    expect(store.photoCalls, hasLength(1));
+    expect((store.photoCalls.single['photos'] as List).last['licence'], 'Own');
   });
 
   test('appendTempleImages fills sparse docs from the current Temple model',
@@ -313,7 +324,9 @@ void main() {
     final store = MemoryTempleWriteStore(
       docs: {
         'brihadeeswarar-temple': {
-          'images': ['https://picsum.photos/seed/brihadeeswarar/800/600'],
+          'imageUrl': 'https://example.com/brihadeeswarar.jpg',
+          'images': ['https://example.com/brihadeeswarar.jpg'],
+          'photos': [_photoEntry('https://example.com/brihadeeswarar.jpg', 0)],
         },
       },
     );
@@ -337,9 +350,10 @@ void main() {
     expect(doc['name'], 'Brihadeeswarar Temple');
     expect(doc['address'], 'Thanjavur');
     expect(doc['images'], [
-      'https://picsum.photos/seed/brihadeeswarar/800/600',
+      'https://example.com/brihadeeswarar.jpg',
       'https://storage.googleapis.com/bucket/temples/brihadeeswarar-temple/1.jpg',
     ]);
+    expect(store.photoCalls, hasLength(1));
   });
 
   test('appendTempleImages skips duplicate URLs and sets cover if empty',
@@ -347,7 +361,9 @@ void main() {
     final store = MemoryTempleWriteStore(
       docs: {
         'new-shore-temple': {
+          'imageUrl': 'https://example.com/shore.jpg',
           'images': ['https://example.com/shore.jpg'],
+          'photos': [_photoEntry('https://example.com/shore.jpg', 0)],
         },
       },
     );
@@ -360,7 +376,6 @@ void main() {
     final updated = await service.appendTempleImages(
       _temple(id: 'new-shore-temple').copyWith(imageUrl: ''),
       [
-        'https://example.com/shore.jpg',
         'https://example.com/added.jpg',
       ],
     );
@@ -370,6 +385,42 @@ void main() {
       'https://example.com/added.jpg',
     ]);
     expect(updated.imageUrl, 'https://example.com/shore.jpg');
+  });
+
+  test('appendTempleImages refuses legacy images without photos licences',
+      () async {
+    final store = MemoryTempleWriteStore(
+      docs: {
+        'legacy-temple': {
+          'name': 'Legacy',
+          'images': [
+            'https://upload.wikimedia.org/wikipedia/commons/a.jpg',
+            'https://upload.wikimedia.org/wikipedia/commons/b.jpg',
+          ],
+          'imageUrl':
+              'https://upload.wikimedia.org/wikipedia/commons/a.jpg',
+        },
+      },
+    );
+    final service = AdminTempleService(
+      store: store,
+      isAdmin: () async => true,
+      isDebug: true,
+    );
+    await expectLater(
+      service.appendTempleImages(
+        _temple(id: 'legacy-temple'),
+        ['https://example.com/new-upload.jpg'],
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (e) => e.message,
+          'message',
+          contains('Add licences for the existing photos in the editor first'),
+        ),
+      ),
+    );
+    expect(store.photoCalls, isEmpty);
   });
 
   test('appendTempleImages refuses extra Firestore keys with a clear error',
@@ -406,7 +457,7 @@ void main() {
   test('appendTempleImages client-validates empty required fields', () async {
     final store = MemoryTempleWriteStore(
       docs: {
-        'x': {'images': <String>[]},
+        'x': {'images': <String>[], 'imageUrl': ''},
       },
     );
     final service = AdminTempleService(
@@ -415,9 +466,12 @@ void main() {
       isDebug: true,
     );
 
-    expect(
-      () => service.appendTempleImages(
-        _temple(id: 'x', name: '   ', location: ''),
+    await expectLater(
+      service.appendTempleImages(
+        _temple(id: 'x', name: '   ', location: '').copyWith(
+          images: const [],
+          imageUrl: '',
+        ),
         ['https://example.com/new.jpg'],
       ),
       throwsA(
@@ -429,13 +483,18 @@ void main() {
       ),
     );
     expect(store.docs['x']!['images'], isEmpty);
+    expect(store.photoCalls, isEmpty);
   });
 
-  test('appendTempleImages wraps Firestore permission-denied after Storage',
+  test('appendTempleImages reports photos saved when the text save fails',
       () async {
     final store = MemoryTempleWriteStore(
       docs: {
-        'new-shore-temple': {'name': 'New Shore Temple'},
+        'new-shore-temple': {
+          'name': 'New Shore Temple',
+          'images': <String>[],
+          'imageUrl': '',
+        },
       },
     )..setError = FirebaseException(
         plugin: 'cloud_firestore',
@@ -447,9 +506,9 @@ void main() {
       isDebug: true,
     );
 
-    expect(
-      () => service.appendTempleImages(
-        _temple(id: 'new-shore-temple'),
+    await expectLater(
+      service.appendTempleImages(
+        _temple(id: 'new-shore-temple').copyWith(images: const [], imageUrl: ''),
         ['https://example.com/new.jpg'],
       ),
       throwsA(
@@ -457,14 +516,16 @@ void main() {
           (e) => e.message,
           'message',
           allOf(
-            contains('Storage upload succeeded'),
+            contains('Photos saved; details/directory not updated, save again'),
             contains('Permission denied'),
-            contains('custom claim admin: true'),
-            contains('required fields'),
           ),
         ),
       ),
     );
+    expect(store.photoCalls, hasLength(1));
+    expect(store.docs['new-shore-temple']!['images'], [
+      'https://example.com/new.jpg',
+    ]);
   });
 
   test('appendTempleImages is refused without admin claim', () async {

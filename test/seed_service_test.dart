@@ -251,6 +251,88 @@ void main() {
     expect(store.lastIndexFieldPaths, contains('meta/temple_index'));
   });
 
+  test('seed update omits imageUrl/images when honesty would change them', () async {
+    // Empty live gallery + Commons pack would change imageUrl/images; with
+    // client-immutable mirrors the seed must skip those fields (KAN-200 C5).
+    final existingId = templeDocumentId(sampleTemples.first.name);
+    final store = MemoryTempleWriteStore(
+      docs: {
+        existingId: {
+          'id': existingId,
+          'name': sampleTemples.first.name,
+          'state': sampleTemples.first.state,
+          'city': sampleTemples.first.city,
+          'deity': sampleTemples.first.deity,
+          'imageUrl': '',
+          'images': <String>[],
+          'description': 'old',
+          'story': 'old',
+          'address': 'old',
+          'timings': 'old',
+          'specialities': <String>[],
+          'latitude': 1.0,
+          'longitude': 2.0,
+          'createdAt': 'kept',
+        },
+      },
+    );
+    await seedTempleData(
+      store: store,
+      existingDocs: {
+        existingId: Map<String, dynamic>.from(store.docs[existingId]!),
+      },
+      isAdmin: () async => true,
+    );
+    final doc = store.docs[existingId]!;
+    expect(doc['imageUrl'], '');
+    expect(doc['images'], isEmpty);
+    expect(doc['createdAt'], 'kept');
+    // Text fields still refresh from sample data.
+    expect(doc['name'], sampleTemples.first.name);
+  });
+
+  test('seed omits imageUrl/images when stored doc lacks those keys', () async {
+    // Anjengo is photo-pending: empty honesty equals empty stored values, so
+    // "same" is true — but without keys on the stored doc we must still omit
+    // (do not invent client-immutable fields the doc never had).
+    final pending = sampleTemples.firstWhere(
+      (t) => t.name == 'Anjengo Sree Durga Devi Temple',
+    );
+    expect(pending.imageUrl, isEmpty);
+    expect(pending.images, isEmpty);
+    final existingId = templeDocumentId(pending.name);
+    final store = MemoryTempleWriteStore(
+      docs: {
+        existingId: {
+          'id': existingId,
+          'name': pending.name,
+          'state': pending.state,
+          'city': pending.city,
+          'deity': pending.deity,
+          'description': 'old',
+          'story': 'old',
+          'address': 'old',
+          'timings': 'old',
+          'specialities': <String>[],
+          'latitude': 1.0,
+          'longitude': 2.0,
+          'createdAt': 'kept',
+        },
+      },
+    );
+    await seedTempleData(
+      store: store,
+      existingDocs: {
+        existingId: Map<String, dynamic>.from(store.docs[existingId]!),
+      },
+      isAdmin: () async => true,
+    );
+    final doc = store.docs[existingId]!;
+    expect(doc.containsKey('imageUrl'), isFalse);
+    expect(doc.containsKey('images'), isFalse);
+    expect(doc['createdAt'], 'kept');
+  });
+
   test('Cheluvanarayana Seed id differs from the Melukote pack folder', () {
     expect(
       templeDocumentId('Cheluvanarayana Swamy Temple'),

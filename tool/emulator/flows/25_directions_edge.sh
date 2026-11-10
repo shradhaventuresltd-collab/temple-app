@@ -7,22 +7,34 @@ if ! ui_dump || ! ui_find --resource-id temple-browse-card; then
   fail_step open-card "no temple card"
   return 0
 fi
-ui_tap; sleep 3
+ui_tap
+# Land on detail before seeking Directions. Flinging the browse list never
+# finds get-directions-button (#138 shard 13 fail dump was still All Temples).
+if ! ui_wait_scrolled 25 --text-contains "How to Reach" &&
+   ! ui_wait_scrolled 10 --resource-id detail-dress-code &&
+   ! ui_wait_scrolled 10 --resource-id get-directions-button &&
+   ! ui_wait_scrolled 10 --text-contains "Listed focus"; then
+  fail_step directions "detail did not open after tapping a temple card"
+  return 0
+fi
 directions_found=0
 # Round 4.4.9g (run 41825986479 shard 13): the button came into view with
 # the 3rd fling, but the loop never looked after its last fling. Look after
-# every fling: 4 looks, 3 flings.
-for i in 1 2 3 4; do
+# every fling.
+# #138 shard 13 (KAN-197 dress-code above How to Reach / Get Directions):
+# 3 flings left the button below the fold on a cold detail open; flow 10's
+# ui_wait_scrolled still finds it. Bound the seek at 8 flings / 9 looks.
+for i in 1 2 3 4 5 6 7 8 9; do
   ui_dump || true
   if ui_find --resource-id get-directions-button || ui_find --text-regex 'Get Directions'; then
     directions_found=1
     break
   fi
-  (( i < 4 )) || break
+  (( i < 9 )) || break
   ui_fling up || { echo "directions: fling timed out" >&2; break; }
 done
 if [[ "$directions_found" -ne 1 ]]; then
-  fail_step directions "Get Directions not in view after 3 flings"
+  fail_step directions "Get Directions not in view after 8 flings"
   return 0
 fi
 # Count Maps STARTs in a logcat window opened just before the taps.

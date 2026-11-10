@@ -25,6 +25,7 @@ import {
   increment,
   serverTimestamp,
   setDoc,
+  updateDoc,
   writeBatch,
   FieldPath,
 } from "firebase/firestore";
@@ -563,11 +564,13 @@ test("placeholder hosts and their subdomains fail on imageUrl and images[0], and
     "https://www.shutterstock.com/image-photo/temple",
     "https://www.shutterstock.com:443/image-photo/temple",
   ];
-  for (const url of passes) {
+  // A fresh doc per URL: photos are client-immutable on update (KAN-200),
+  // so each case is a create.
+  for (const [i, url] of passes.entries()) {
     await assertSucceeds(
       setDoc(
-        at(db, "temples/real-cover"),
-        templePayload("real-cover", {
+        at(db, `temples/real-cover-${i}`),
+        templePayload(`real-cover-${i}`, {
           imageUrl: url,
           images: [url],
           photos: [{ url, licence: "CC0", order: 0 }],
@@ -804,4 +807,496 @@ test("a batch against an existing meta doc increments and keeps sibling shards",
   assert.equal(meta.data().indexVersion, 4);
   assert.ok(meta.data().shards.bihar);
   assert.ok(meta.data().shards["tamil-nadu"]);
+});
+
+// KAN-197: dress-code and timings research fields are written by the Admin
+// SDK (rules bypassed). The app never writes them (Temple.toFirestoreData
+// leaves them out), so an admin save is a merge that must keep them, and a
+// client write must not add, change, or remove them.
+const RESEARCH_FIELDS = {
+  dressCode: "Men: dhoti. Women: saree.",
+  dressCodeSourceUrl: "https://example.org/dress",
+  dressCodeSourceType: "secondary",
+  dressCodeVerified: false,
+  timingsVerified: false,
+  timingsSourceUrl: "https://example.org/timings",
+  timingsSourceType: "official",
+};
+
+async function seedResearchTemple(id, extra = RESEARCH_FIELDS) {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(at(context.firestore(), `temples/${id}`), {
+      ...templePayload(id),
+      ...extra,
+    });
+  });
+}
+
+test("an admin merge save keeps dress-code and timings research fields", async () => {
+  const id = "research-temple";
+  await seedResearchTemple(id);
+  const db = adminDb("admin-research");
+  await assertSucceeds(
+    setDoc(
+      at(db, `temples/${id}`),
+      { ...templePayload(id), story: "Edited story." },
+      { merge: true },
+    ),
+  );
+  const saved = (await getDoc(at(db, `temples/${id}`))).data();
+  assert.equal(saved.story, "Edited story.");
+  for (const [key, value] of Object.entries(RESEARCH_FIELDS)) {
+    assert.deepEqual(saved[key], value, key);
+  }
+});
+
+test("a client write cannot add, change, or delete research fields", async () => {
+  const id = "research-locked";
+  await seedResearchTemple(id);
+  await seedResearchTemple("research-none", {});
+  const db = adminDb("admin-research-locked");
+  await assertFails(
+    setDoc(at(db, `temples/${id}`), { dressCodeVerified: true }, { merge: true }),
+  );
+  await assertFails(
+    setDoc(at(db, `temples/${id}`), { dressCode: "Anything." }, { merge: true }),
+  );
+  await assertFails(
+    setDoc(at(db, `temples/${id}`), { timingsVerified: true }, { merge: true }),
+  );
+  await assertFails(
+    setDoc(at(db, `temples/${id}`), { dressCodeSourceUrl: deleteField() }, { merge: true }),
+  );
+  await assertFails(
+    setDoc(
+      at(db, "temples/research-none"),
+      { dressCode: "Added by a client." },
+      { merge: true },
+    ),
+  );
+  await assertFails(
+    setDoc(
+      at(db, "temples/research-new"),
+      templePayload("research-new", { dressCode: "On create." }),
+    ),
+  );
+  await assertSucceeds(
+    setDoc(at(db, "temples/research-none"), { story: "Plain edit." }, { merge: true }),
+  );
+});
+
+// Shapes seen in prod (Nov 9, 2026): dress-code apply wrote strings,
+// official|secondary and bools; #125 wrote timings fields the same way.
+const PROD_SHAPED = [
+  RESEARCH_FIELDS,
+  { ...RESEARCH_FIELDS, dressCodeSourceType: "official", dressCodeVerified: true },
+  { timingsVerified: true, timingsSourceUrl: "https://example.org/t", timingsSourceType: "official" },
+  { dressCode: "Modest clothing.", dressCodeSourceUrl: "https://example.org/d", dressCodeSourceType: "secondary", dressCodeVerified: false },
+  {},
+];
+
+test("prod-shaped research docs pass an admin merge save", async () => {
+  const db = adminDb("admin-research-types-ok");
+  for (const [i, extra] of PROD_SHAPED.entries()) {
+    const id = `research-ok-${i}`;
+    await seedResearchTemple(id, extra);
+    await assertSucceeds(
+      setDoc(at(db, `temples/${id}`), { ...templePayload(id), story: `Edit ${i}.` }, { merge: true }),
+    );
+  }
+});
+
+test("a client cannot retype research fields (still immutable)", async () => {
+  const id = "research-immutable-types";
+  await seedResearchTemple(id);
+  const db = adminDb("admin-research-immutable");
+  await assertFails(
+    setDoc(at(db, `temples/${id}`), { dressCodeVerified: "true" }, { merge: true }),
+  );
+  await assertFails(
+    setDoc(at(db, `temples/${id}`), { dressCodeSourceType: "official" }, { merge: true }),
+  );
+});
+
+// Budget: a prod-shaped research doc (all 7 research fields, Firebase
+// Storage download URLs, credit, thumbUrl and galleryUrl) with 0 or 1 photo
+// saves under the 1000-expression limit. Docs with 2 or more photos are
+// KAN-200.
+function prodShapedPhoto(id, i) {
+  const dl = (size) =>
+    `https://firebasestorage.googleapis.com/v0/b/app/o/temples%2F${id}%2Fphoto_${i}_${size}.jpg?alt=media&token=00000000-0000-4000-8000-00000000000${i}`;
+  return {
+    url: dl("full"),
+    credit: `Contributor ${i} · CC BY-SA 3.0`,
+    licence: "CC-BY-SA",
+    order: i,
+    thumbUrl: dl("480"),
+    galleryUrl: dl("1080"),
+  };
+}
+
+test("prod-shaped research docs with 0 or 1 photo stay under the expression limit", async () => {
+  const db = adminDb("admin-research-budget");
+  for (const n of [0, 1]) {
+    const id = `research-budget-${n}`;
+    const photos = Array.from({ length: n }, (_, i) => prodShapedPhoto(id, i));
+    const shaped = {
+      photos,
+      images: photos.map((p) => p.url),
+      imageUrl: photos.length ? photos[0].url : "",
+    };
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(at(context.firestore(), `temples/${id}`), {
+        ...templePayload(id, shaped),
+        ...RESEARCH_FIELDS,
+      });
+    });
+    await assertSucceeds(
+      setDoc(at(db, `temples/${id}`), { ...templePayload(id, shaped), story: "Edit." }, { merge: true }),
+    );
+    await assertSucceeds(
+      setDoc(at(db, `temples/${id}`), { description: "Description edit." }, { merge: true }),
+    );
+  }
+});
+
+// ---------------------------------------------------------------------------
+// KAN-200: admin saves on temples with 2+ photos crossed the 1000-expression
+// limit. Photos, imageUrl and images are client-immutable on update; the
+// setTemplePhotos callable (functions/) writes them. Non-photo saves never
+// check stored photos.
+// ---------------------------------------------------------------------------
+
+const MAX_GALLERY = 12; // kMaxTemplePhotos in lib/models/temple_photo.dart
+
+// Prod-shaped temple (shri-shantadurga-temple-kavlem, 9 photos with thumbUrl
+// and galleryUrl, all 7 research fields). Download tokens and contact details
+// in credits are replaced.
+const KAVLEM = JSON.parse(
+  readFileSync(resolve(repoRoot, "scripts/fixtures/kan200_shantadurga_kavlem.json"), "utf8"),
+);
+
+async function seedRaw(id, data) {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(at(context.firestore(), `temples/${id}`), data);
+  });
+}
+
+async function readRaw(id) {
+  let data;
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    data = (await getDoc(at(context.firestore(), `temples/${id}`))).data();
+  });
+  return data;
+}
+
+function kavlemDoc(photoCount = KAVLEM.photos.length) {
+  const photos = Array.from({ length: photoCount }, (_, i) =>
+    i < KAVLEM.photos.length
+      ? { ...KAVLEM.photos[i], order: i }
+      : { ...KAVLEM.photos[i % KAVLEM.photos.length], order: i, credit: `Extra ${i} · CC BY-SA 4.0` },
+  );
+  return {
+    ...KAVLEM,
+    createdAt: new Date(KAVLEM.createdAt),
+    photos,
+    images: photos.map((p) => p.url),
+    imageUrl: photos.length ? photos[0].url : "",
+  };
+}
+
+const RESEARCH_KEYS = Object.keys(RESEARCH_FIELDS);
+
+test("Deployer gate: admin description save on the 9-photo Kavlem doc is allowed", async () => {
+  const seeded = kavlemDoc();
+  assert.equal(seeded.photos.length, 9);
+  const id = seeded.id;
+  await seedRaw(id, seeded);
+  const db = adminDb("admin-uid");
+  const keep = Object.fromEntries(RESEARCH_KEYS.map((k) => [k, seeded[k]]));
+  await assertSucceeds(
+    setDoc(
+      at(db, `temples/${id}`),
+      { name: seeded.name, description: `${seeded.description} [KAN-200 probe]`, ...keep },
+      { merge: true },
+    ),
+  );
+  const saved = await readRaw(id);
+  assert.ok(saved.description.endsWith("[KAN-200 probe]"));
+  for (const k of RESEARCH_KEYS) assert.deepEqual(saved[k], seeded[k], k);
+  assert.deepEqual(saved.photos, seeded.photos);
+});
+
+test("non-photo admin saves pass at 0, 1, 2, 9 and max photos, with and without research fields", async () => {
+  const db = adminDb("admin-kan200-edit");
+  for (const n of [0, 1, 2, 9, MAX_GALLERY]) {
+    for (const research of [false, true]) {
+      const id = `kan200-edit-${n}-${research ? "r" : "plain"}`;
+      const seeded = { ...kavlemDoc(n), id };
+      if (!research) for (const k of RESEARCH_KEYS) delete seeded[k];
+      await seedRaw(id, seeded);
+      // The admin form sends the whole temple back with merge.
+      const { createdAt, ...full } = seeded;
+      await assertSucceeds(
+        setDoc(at(db, `temples/${id}`), { ...full, story: `Story ${n}.` }, { merge: true }),
+      );
+      // A single-field edit.
+      await assertSucceeds(
+        setDoc(at(db, `temples/${id}`), { description: `Description ${n}.` }, { merge: true }),
+      );
+      // updateDoc, as the deploy smoke test does.
+      await assertSucceeds(updateDoc(at(db, `temples/${id}`), { address: `Address ${n}` }));
+    }
+  }
+});
+
+test("client photo changes are denied at 0, 1, 2, 9 and max photos, with and without research fields", async () => {
+  const db = adminDb("admin-kan200-photos");
+  for (const n of [0, 1, 2, 9, MAX_GALLERY]) {
+    for (const research of [false, true]) {
+      const id = `kan200-photos-${n}-${research ? "r" : "plain"}`;
+      const seeded = { ...kavlemDoc(n), id };
+      if (!research) for (const k of RESEARCH_KEYS) delete seeded[k];
+      const p = seeded.photos;
+      const renumber = (list) => list.map((x, i) => ({ ...x, order: i }));
+      const extra = { ...KAVLEM.photos[0], order: n, credit: "Added · CC BY-SA 4.0" };
+      const variants = {
+        add: n < MAX_GALLERY ? [...p, extra] : null,
+        "delete last": n > 0 ? p.slice(0, -1) : null,
+        "delete first": n > 1 ? renumber(p.slice(1)) : null,
+        reorder: n > 1 ? renumber(p.slice().reverse()) : null,
+        "cover change": n > 1 ? renumber([p[n - 1], ...p.slice(0, -1)]) : null,
+        "credit edit": n > 0 ? p.map((x, i) => (i === 0 ? { ...x, credit: "Edited · CC BY-SA 4.0" } : x)) : null,
+        clear: n > 0 ? [] : null,
+      };
+      await seedRaw(id, seeded);
+      for (const [name, photos] of Object.entries(variants)) {
+        if (photos === null) continue;
+        await assertFails(setDoc(at(db, `temples/${id}`), { photos }, { merge: true }), `${name} ${n}`);
+        // Same with a text edit and the mirror alongside.
+        await assertFails(
+          setDoc(
+            at(db, `temples/${id}`),
+            { story: "Edit.", photos, images: photos.map((x) => x.url), imageUrl: photos[0]?.url ?? "" },
+            { merge: true },
+          ),
+          `${name} ${n} with text`,
+        );
+      }
+      if (n > 0) {
+        await assertFails(setDoc(at(db, `temples/${id}`), { photos: deleteField() }, { merge: true }));
+        await assertFails(updateDoc(at(db, `temples/${id}`), { photos: [] }));
+      }
+      // Resending the stored photos unchanged is a non-photo save.
+      await assertSucceeds(
+        setDoc(at(db, `temples/${id}`), { story: "Resend.", photos: p }, { merge: true }),
+      );
+      assert.deepEqual((await readRaw(id)).photos, p);
+    }
+  }
+});
+
+test("text save with 1 photo and extra images is allowed when mirror unchanged", async () => {
+  // Prod shape (arunachaleswarar, brihadeeswarar, …): 1 photos[] + 3–4 images[].
+  const db = adminDb("admin-kan200-1plus");
+  const photo = { ...KAVLEM.photos[0], order: 0 };
+  const images = [
+    photo.url,
+    "https://example.com/extra-1.jpg",
+    "https://example.com/extra-2.jpg",
+    "https://example.com/extra-3.jpg",
+  ];
+  const id = "kan200-1photo-extras";
+  const seeded = {
+    ...kavlemDoc(1),
+    id,
+    photos: [photo],
+    images,
+    imageUrl: photo.url,
+  };
+  await seedRaw(id, seeded);
+  // Admin text save that resends photos but must not rebuild images from photos.
+  await assertSucceeds(
+    setDoc(
+      at(db, `temples/${id}`),
+      { story: "Text only.", photos: [photo] },
+      { merge: true },
+    ),
+  );
+  const after = await readRaw(id);
+  assert.equal(after.story, "Text only.");
+  assert.deepEqual(after.images, images);
+  assert.equal(after.imageUrl, photo.url);
+  // Changing images while leaving photos alone is still denied.
+  await assertFails(
+    setDoc(
+      at(db, `temples/${id}`),
+      { images: [photo.url], imageUrl: photo.url },
+      { merge: true },
+    ),
+  );
+});
+
+test("client imageUrl and images changes are denied (mirror lock)", async () => {
+  const db = adminDb("admin-kan200-mirror");
+  for (const n of [0, 1, 2, 9, MAX_GALLERY]) {
+    const id = `kan200-mirror-${n}`;
+    const seeded = { ...kavlemDoc(n), id };
+    await seedRaw(id, seeded);
+    await assertFails(
+      setDoc(at(db, `temples/${id}`), { imageUrl: "https://example.com/other.jpg" }, { merge: true }),
+      `imageUrl ${n}`,
+    );
+    await assertFails(
+      setDoc(at(db, `temples/${id}`), { images: ["https://example.com/other.jpg"] }, { merge: true }),
+      `images ${n}`,
+    );
+    await assertFails(
+      setDoc(
+        at(db, `temples/${id}`),
+        { imageUrl: "https://example.com/other.jpg", images: ["https://example.com/other.jpg"] },
+        { merge: true },
+      ),
+      `both ${n}`,
+    );
+    if (n > 0) {
+      await assertFails(setDoc(at(db, `temples/${id}`), { images: deleteField() }, { merge: true }));
+      await assertFails(setDoc(at(db, `temples/${id}`), { imageUrl: deleteField() }, { merge: true }));
+    }
+    // Resending the stored mirror unchanged is a non-photo save.
+    await assertSucceeds(
+      setDoc(
+        at(db, `temples/${id}`),
+        { story: "Mirror ok.", imageUrl: seeded.imageUrl, images: seeded.images, photos: seeded.photos },
+        { merge: true },
+      ),
+    );
+  }
+});
+
+test("a temple without a photos field cannot gain one from a client", async () => {
+  const db = adminDb("admin-kan200-nophotos");
+  const { photos, ...legacy } = templePayload("kan200-legacy");
+  await seedRaw("kan200-legacy", legacy);
+  await assertFails(setDoc(at(db, "temples/kan200-legacy"), { photos: [] }, { merge: true }));
+  await assertFails(setDoc(at(db, "temples/kan200-legacy"), { photos }, { merge: true }));
+  await assertSucceeds(setDoc(at(db, "temples/kan200-legacy"), { story: "Edit." }, { merge: true }));
+});
+
+test("malicious photo writes are still rejected", async () => {
+  const db = adminDb("admin-kan200-bad");
+  const id = "kan200-bad";
+  const base = kavlemDoc(1).photos[0];
+  const bad = {
+    "http url": { ...base, url: "http://example.com/a.jpg" },
+    "whitespace in url": { ...base, url: "https://example.com/a b.jpg" },
+    "url too long": { ...base, url: `https://example.com/${"a".repeat(2000)}` },
+    "url not a string": { ...base, url: ["https://example.com/a.jpg"] },
+    "unknown licence": { ...base, licence: "All rights reserved" },
+    "extra key": { ...base, uploader: "someone" },
+    "missing order": (({ order, ...rest }) => rest)(base),
+    "order 12": { ...base, order: 12 },
+    "order -1": { ...base, order: -1 },
+    "order float": { ...base, order: 0.5 },
+    "order string": { ...base, order: "0" },
+    "CC-BY without credit": (({ credit, ...rest }) => ({ ...rest, licence: "CC-BY" }))(base),
+    "CC-BY-SA empty credit": { ...base, credit: "" },
+    "credit too long": { ...base, credit: "c".repeat(201) },
+    "credit not a string": { ...base, credit: 7 },
+    "http thumbUrl": { ...base, thumbUrl: "http://example.com/t.jpg" },
+    "galleryUrl not a string": { ...base, galleryUrl: 42 },
+  };
+  for (const [name, photo] of Object.entries(bad)) {
+    await seedRaw(id, kavlemDoc(1));
+    await assertFails(setDoc(at(db, `temples/${id}`), { photos: [photo] }, { merge: true }), name);
+  }
+  await seedRaw(id, kavlemDoc(1));
+  await assertFails(setDoc(at(db, `temples/${id}`), { photos: ["https://example.com/a.jpg"] }, { merge: true }));
+  await assertFails(setDoc(at(db, `temples/${id}`), { photos: { 0: base } }, { merge: true }));
+  await assertFails(setDoc(at(db, `temples/${id}`), { photos: "https://example.com/a.jpg" }, { merge: true }));
+  const thirteen = Array.from({ length: 13 }, (_, i) => ({ ...base, order: Math.min(i, 11) }));
+  await assertFails(setDoc(at(db, `temples/${id}`), { photos: thirteen }, { merge: true }));
+  // A bad photo riding along with a text edit is still checked.
+  await assertFails(
+    setDoc(at(db, `temples/${id}`), { story: "Edit.", photos: [bad["http url"]] }, { merge: true }),
+  );
+  // A bad photo on a 9-photo doc is rejected.
+  const nine = kavlemDoc(9);
+  await seedRaw(id, nine);
+  const tampered = nine.photos.map((p, i) => (i === 4 ? bad["extra key"] : p));
+  await assertFails(setDoc(at(db, `temples/${id}`), { photos: tampered }, { merge: true }));
+  // Non-admins still cannot write, with or without photos.
+  const anon = testEnv.unauthenticatedContext().firestore();
+  const user = testEnv.authenticatedContext("user-1").firestore();
+  for (const other of [anon, user]) {
+    await assertFails(setDoc(at(other, `temples/${id}`), { description: "x" }, { merge: true }));
+  }
+  // Photos are client-immutable now; the same bad photos are refused at
+  // create (see the parity test) and by the callable validator.
+});
+
+test("new temple create still validates photos", async () => {
+  const db = adminDb("admin-kan200-create");
+  const good = kavlemDoc(1);
+  const { createdAt, ...create } = { ...good, id: "kan200-new" };
+  for (const k of RESEARCH_KEYS) delete create[k];
+  await assertSucceeds(setDoc(at(db, "temples/kan200-new"), create));
+  await assertFails(
+    setDoc(at(db, "temples/kan200-new-bad"), {
+      ...create,
+      id: "kan200-new-bad",
+      photos: [{ ...create.photos[0], url: "http://example.com/a.jpg" }],
+    }),
+  );
+});
+
+// One set of photo cases for the rules and the callable validator
+// (functions/src/photo_validator.js). Create still checks photos in full.
+test("create accepts and refuses the same photos as the setTemplePhotos validator", async () => {
+  const db = adminDb("admin-kan200-parity");
+  const { GOOD_PHOTOS, BAD_PHOTOS } = await import("../functions/test/photo_cases.js");
+  const { photoError } = await import("../functions/src/photo_validator.js");
+  let i = 0;
+  for (const [name, photo] of Object.entries(GOOD_PHOTOS)) {
+    assert.equal(photoError(photo), null, `validator: ${name}`);
+    const id = `parity-good-${i++}`;
+    await assertSucceeds(
+      setDoc(at(db, `temples/${id}`), templePayload(id, { photos: [photo], images: [photo.url], imageUrl: photo.url })),
+      name,
+    );
+  }
+  for (const [name, photo] of Object.entries(BAD_PHOTOS)) {
+    assert.notEqual(photoError(photo), null, `validator: ${name}`);
+    const id = `parity-bad-${i++}`;
+    if (Array.isArray(photo)) {
+      // Firestore cannot store a list inside a list; the SDK refuses it
+      // before the rules run.
+      await assert.rejects(
+        async () => setDoc(at(db, `temples/${id}`), templePayload(id, { photos: [photo] })),
+        /Nested arrays are not supported/,
+        name,
+      );
+      continue;
+    }
+    await assertFails(setDoc(at(db, `temples/${id}`), templePayload(id, { photos: [photo] })), name);
+  }
+});
+
+// The 12-photo cap itself, not the expression limit: 13 minimal photos are
+// refused by `n <= 12` before any photo is checked, so the error is a plain
+// rule denial. Without the cap, the same create is refused only by the
+// limit, and this test fails.
+test("create with 13 photos is refused by the 12-photo cap, not the expression limit", async () => {
+  const db = adminDb("admin-kan200-cap");
+  const photo = (i) => ({ url: `https://e.co/${i}.jpg`, licence: "CC0", order: Math.min(i, 11) });
+  const thirteen = Array.from({ length: 13 }, (_, i) => photo(i));
+  let err;
+  try {
+    await setDoc(at(db, "temples/cap-13"), templePayload("cap-13", { photos: thirteen }));
+  } catch (e) {
+    err = e;
+  }
+  assert.ok(err, "13 photos must be refused");
+  assert.match(String(err.message), /PERMISSION_DENIED/);
+  assert.doesNotMatch(String(err.message), /maximum of 1000 expressions/);
 });
