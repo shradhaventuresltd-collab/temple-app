@@ -3061,6 +3061,8 @@ echo "4.4.9f flow 24: '2 / 5' PASS, '6 / 5' and '7 / 5' FAIL, '1 / 1' NA"
 # Round 4.4.9g (run 41825986479 shard 13): Get Directions came into view
 # with the 3rd fling; the loop must look once more after its last fling.
 # Real dumps: 3 looks without the button, the 4th with it.
+# #138: KAN-197 dress-code raised the cold-open seek; budget is 8 flings /
+# 9 looks (still finds the 3rd-fling case; never-in-view exhausts at 8).
 f25=tool/emulator/flows/25_directions_edge.sh
 fx25=tool/emulator/testdata/run41825986479
 # shellcheck disable=SC2016,SC2034,SC2154,SC2178,SC2329 # stubs and eval of the flow block
@@ -3081,8 +3083,18 @@ o25="$( ( export EMULATOR_FLOW=25-directions-edge EMULATOR_ARTIFACTS="$r4/f25b" 
   flings=0; ui_fling() { flings=$((flings + 1)); }
   eval "$(sed -n '/^directions_found=0$/,/^done$/p' "$f25")"
   echo "found=$directions_found flings=$flings looks=$n25" ) 2>/dev/null )"
-[[ "$o25" == "found=0 flings=3 looks=4" ]] || { echo "4.4.9g flow 25: never in view -> not found after 3 flings, no 4th fling: $o25" >&2; exit 1; }
-echo "4.4.9g flow 25: a look after the last fling finds Get Directions (real 41825986479 dumps)"
+[[ "$o25" == "found=0 flings=8 looks=9" ]] || { echo "4.4.9g flow 25: never in view -> not found after 8 flings, no 9th fling: $o25" >&2; exit 1; }
+# shellcheck disable=SC2016,SC2034,SC2154,SC2178,SC2329 # stubs and eval of the flow block
+o25="$( ( export EMULATOR_FLOW=25-directions-edge EMULATOR_ARTIFACTS="$r4/f25c" EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  n25=0
+  ui_dump() { n25=$((n25 + 1)); if (( n25 <= 7 )); then cp "$fx25/detail_no_directions.xml" "$DUMP"; else cp "$fx25/detail_directions_in_view.xml" "$DUMP"; fi; }
+  flings=0; ui_fling() { flings=$((flings + 1)); }
+  eval "$(sed -n '/^directions_found=0$/,/^done$/p' "$f25")"
+  echo "found=$directions_found flings=$flings looks=$n25" ) 2>/dev/null )"
+[[ "$o25" == "found=1 flings=7 looks=8" ]] || { echo "4.4.9g flow 25: button on the 7th fling must be found within the 8-fling budget: $o25" >&2; exit 1; }
+echo "4.4.9g flow 25: a look after the last fling finds Get Directions (real 41825986479 dumps; 8-fling budget)"
 # Round 4.4.9g (run 41825986479 shard 9): each sequence action gets its own
 # step budget (the 150s clock ran across install + Home + 3 actions).
 f29=tool/emulator/flows/29_filter_matrix.sh

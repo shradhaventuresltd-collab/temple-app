@@ -624,4 +624,23 @@ void main() {
       expect(find.byKey(_chip), findsOneWidget);
     });
   });
+
+  // #138: dress-code sits above How to Reach / Get Directions. The button
+  // must stay in the tree and be bringable into view (harness seek budget).
+  group('Get Directions stays reachable with dress code', () {
+    testWidgets('ensureVisible reaches get-directions-button', (t) async {
+      await t.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: TempleDetailBody(temple: _temple())),
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(find.byKey(_section), findsOneWidget);
+      final button = find.byKey(const Key('get-directions-button'));
+      await t.ensureVisible(button);
+      await t.pumpAndSettle();
+      expect(button, findsOneWidget);
+      expect(find.text('Get Directions'), findsOneWidget);
+    });
+  });
 }
