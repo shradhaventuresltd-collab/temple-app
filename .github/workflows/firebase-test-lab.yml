@@ -1,0 +1,66 @@
+name: firebase-test-lab
+
+# One physical-device Robo matrix for the Play release APK.
+# The app checkout is main, at 5d215d8 or a later descendant.
+# No ENABLE_ADMIN_TOOLS, DEMO_BUILD, or DEMO_APP_ID_SUFFIX.
+# Package stays com.shradhaventures.temple.
+#
+# Push to cursor/test-lab-physical-50ef starts the only intended run.
+# workflow_dispatch works after this file is on the default branch.
+# This workflow does not listen for pull_request, so opening a PR
+# does not start a second matrix. Do not push this branch again.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - cursor/test-lab-physical-50ef
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firebase-test-lab-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test-lab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout main app sources
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: main
+          path: app
+
+      - name: Checkout this workflow's harness
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.sha }}
+          path: harness
+
+      - name: Preflight Test Lab credentials
+        env:
+          FIREBASE_APP_DISTRIBUTION_SA_JSON: ${{ secrets.FIREBASE_APP_DISTRIBUTION_SA_JSON }}
+          APP_DIR: app
+          HARNESS_DIR: harness
+        run: bash harness/scripts/ci/run_firebase_test_lab.sh preflight
+
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version: '3.47.7'
+          cache: false
+
+      - name: Build release APK and run one Test Lab matrix
+        env:
+          FIREBASE_APP_DISTRIBUTION_SA_JSON: ${{ secrets.FIREBASE_APP_DISTRIBUTION_SA_JSON }}
+          GH_TOKEN: ${{ github.token }}
+          APP_DIR: app
+          HARNESS_DIR: harness
+        run: bash harness/scripts/ci/run_firebase_test_lab.sh run
