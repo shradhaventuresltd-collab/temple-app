@@ -62,7 +62,7 @@ export function loadSampleTemples(path = SAMPLE_DATA_PATH) {
 
 function templeFromFields(fields, id) {
   const photos = fields.photos?.value ?? [];
-  return {
+  const temple = {
     id,
     name: req(fields, "name"),
     state: req(fields, "state"),
@@ -79,6 +79,8 @@ function templeFromFields(fields, id) {
     longitude: req(fields, "longitude"),
     photos,
   };
+  if (fields.tradition) temple.tradition = fields.tradition.value;
+  return temple;
 }
 
 function req(fields, key) {
@@ -312,9 +314,14 @@ function dartTemple(temple) {
     `${pad}state: ${dartQuote(temple.state)},`,
     `${pad}city: ${dartQuote(temple.city)},`,
     `${pad}deity: ${dartQuote(temple.deity)},`,
+  ];
+  if (temple.tradition) {
+    lines.push(`${pad}tradition: ${dartQuote(temple.tradition)},`);
+  }
+  lines.push(
     `${pad}imageUrl: ${dartQuote(temple.imageUrl)},`,
     `${pad}images: ${dartStringList(temple.images, pad)},`,
-  ];
+  );
   if (temple.photos && temple.photos.length > 0) {
     lines.push(`${pad}photos: ${dartPhotos(temple.photos, pad)},`);
   }
@@ -336,6 +343,7 @@ const COMPARE_KEYS = [
   "state",
   "city",
   "deity",
+  "tradition",
   "imageUrl",
   "images",
   "description",
