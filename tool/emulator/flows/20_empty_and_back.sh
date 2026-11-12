@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Flow 20. Empty states and back stacks: no-match search, then
-# list->drawer->All Temples (stack depth), one back to Home.
+# list->drawer->All places (stack depth), one back to Home.
 # Two backs after the query leave the launcher (screenshot 02_). The IME
 # consumes the first, and the second finishes the activity. Hide the
 # keyboard only while it is up, and stay on the list to open the drawer.
@@ -13,7 +13,7 @@ ui_tap
 ui_type "zzzzqqq"
 adb shell input keyevent 66
 sleep 2
-if ui_dump && ui_find --text-contains "No temples"; then
+if ui_dump && ui_find --text-contains "No places"; then
   pass_step empty-search
 else
   fail_step empty-search "no empty state"
@@ -28,17 +28,17 @@ if ! ui_dump || ! ui_find --content-desc "Open navigation menu"; then
 fi
 ui_tap
 sleep 1
-if ! scroll_drawer_until --text-regex '^All Temples'; then
-  fail_step drawer-list-replaces "All Temples was not in the drawer"
+if ! scroll_drawer_until --text-regex '^All places'; then
+  fail_step drawer-list-replaces "All places was not in the drawer"
   return 0
 fi
 ui_tap
 sleep 2
-# All Temples from a list returns to Home, so one back shows the collage button.
+# All places from a list returns to Home, so one back shows the collage button.
 ui_back
 sleep 1
 if ui_dump && ui_find --resource-id home-browse-temples; then
   pass_step drawer-list-replaces
 else
-  fail_step drawer-list-replaces "drawer All Temples pushed a second list"
+  fail_step drawer-list-replaces "drawer All places pushed a second list"
 fi

@@ -30,7 +30,7 @@ void main() {
     String? districtOf(temple) => temple.city as String;
     await pumpFilterBar(tester, temples: temples, districtOf: districtOf);
 
-    expect(find.text('3 temples'), findsOneWidget);
+    expect(find.text('3 places'), findsOneWidget);
     await openFilterChip(tester, 'state');
     await chooseAndApply(tester, const Key('filter-option-state-Tamil Nadu'));
     await openFilterChip(tester, 'district');
@@ -41,14 +41,14 @@ void main() {
     expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
     expect(find.text('Shore Temple'), findsNothing);
     expect(find.text('Vaikom Mahadeva Temple'), findsNothing);
-    expect(find.text('1 temple'), findsOneWidget);
+    expect(find.text('1 place'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('filter-clear')));
     await tester.pumpAndSettle();
     expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
     expect(find.text('Shore Temple'), findsOneWidget);
     expect(find.text('Vaikom Mahadeva Temple'), findsOneWidget);
-    expect(find.text('3 temples'), findsOneWidget);
+    expect(find.text('3 places'), findsOneWidget);
     expect(find.byKey(const Key('filter-clear')), findsNothing);
     expect(find.text('State'), findsWidgets);
     expect(find.text('District'), findsWidgets);

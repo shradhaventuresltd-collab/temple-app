@@ -686,7 +686,7 @@ scroll_drawer_until() {
   return 1
 }
 
-# Pull the drawer list back to its top. A failed All Temples search flings
+# Pull the drawer list back to its top. A failed All places search flings
 # this list until Home is off screen; the next Home tap then times out.
 scroll_drawer_top() {
   local i width height x
@@ -1109,30 +1109,30 @@ open_browse() {
       ui_tap
       return 0
     fi
-    if ui_dump && ui_find --text-regex '^Browse .*Temples?$'; then
+    if ui_dump && ui_find --text-regex '^Browse .*Places?$'; then
       ui_tap
       return 0
     fi
     ui_fling up || true
     sleep 1
   done
-  # Fall back to the drawer entry. The All Temples tile's content-desc is
-  # "All Temples\n<count>", which flattens to "All Temples 992". A trailing
+  # Fall back to the drawer entry. The All places tile's content-desc is
+  # "All places\n<count>", which flattens to "All places 992". A trailing
   # $ never matches that node. Home and Licences have no trailing count, so
   # their $ anchors stay. Option chips are one text ("Shiva  12"); pickers
   # allow that suffix. Trigger chips (State, All districts, Deity) and
-  # "Show N temples" / "Browse N Temples" are a single line, so their $ stays.
+  # "Show N places" / "Browse N places" are a single line, so their $ stays.
   # A miss used to fling until Home left the tree. The next '^Home$' wait
   # then timed out and the && skipped both taps (flow 18's double-tap).
   if ui_dump && ui_find --content-desc "Open navigation menu"; then
     ui_tap
     sleep 1
-    if scroll_drawer_until --text-regex '^All Temples'; then
+    if scroll_drawer_until --text-regex '^All places'; then
       ui_tap
       return 0
     fi
     scroll_drawer_top || true
-    if ui_dump && ui_find --text-regex '^All Temples'; then
+    if ui_dump && ui_find --text-regex '^All places'; then
       ui_tap
       return 0
     fi
@@ -1477,7 +1477,7 @@ chip_scroll_dir() {
   [[ "$want" == filter-chip-* && -s "${DUMP:-}" ]] || return 0
   python3 - "$DUMP" "$want" <<'PY'
 import re, sys
-order = ["filter-chip-state", "filter-chip-district", "filter-chip-city", "filter-chip-deity"]
+order = ["filter-chip-state", "filter-chip-district", "filter-chip-city", "filter-chip-deity", "filter-chip-tradition"]
 want = sys.argv[2]
 if want not in order:
     sys.exit(0)
@@ -1635,11 +1635,12 @@ ensure_list_head() {
 filter_chips_idle() {
   local id want label
   ui_dump || return 1
-  for id in filter-chip-state filter-chip-district filter-chip-deity; do
+  for id in filter-chip-state filter-chip-district filter-chip-deity filter-chip-tradition; do
     case "$id" in
       filter-chip-state) want="State" ;;
       filter-chip-district) want="District" ;;
       filter-chip-deity) want="Deity" ;;
+      filter-chip-tradition) want="Tradition" ;;
     esac
     ui_find --resource-id "$id" || return 1
     label="$(chip_label "$UI_TEXT")"
@@ -1647,7 +1648,8 @@ filter_chips_idle() {
   done
   if ui_find --content-desc "Clear state filter" \
     || ui_find --content-desc "Clear district filter" \
-    || ui_find --content-desc "Clear deity filter"; then
+    || ui_find --content-desc "Clear deity filter" \
+    || ui_find --content-desc "Clear tradition filter"; then
     return 1
   fi
   return 0
@@ -2344,11 +2346,11 @@ apply_sheet() {
     # The result button is pinned to the bottom of the sheet. Prefer that
     # node so a higher label is not tapped and the sheet left open.
     if ! ui_wait 8 --text-regex '^Show [0-9]+ temples?$' --prefer lower; then
-      echo "apply_sheet: Show N temples was not found" >&2
+      echo "apply_sheet: Show N places was not found" >&2
       return 1
     fi
     if (( UI_CY < height * 68 / 100 )); then
-      echo "apply_sheet: Show N temples was not in the bottom band" >&2
+      echo "apply_sheet: Show N places was not in the bottom band" >&2
       return 1
     fi
     ui_tap

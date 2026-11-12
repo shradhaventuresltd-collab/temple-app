@@ -40,10 +40,12 @@ String? listedDeityTraditionLabel(String deity) {
 
 /// Display label from a stored or indexed tradition field, then the deity text.
 String? listedTempleTraditionLabel(Temple temple) {
-  final stored = templeTraditionLabel(
-    temple.tradition ?? temple.indexTradition,
-  );
-  return stored ?? listedDeityTraditionLabel(temple.deity);
+  return switch (directoryTraditionKey(temple)) {
+    'jain' => 'Jain',
+    'buddhist' => 'Buddhist',
+    'sikh' => 'Sikh',
+    _ => null,
+  };
 }
 
 /// Jain, Buddhist, or Sikh for an exact `jain` / `buddhist` / `sikh` value.
@@ -68,6 +70,57 @@ DeityTraditionOf traditionOfLoadedTemples(Iterable<Temple> temples) {
     byKey[key] ??= label;
   }
   return (name) => byKey[deityGroupKey(name)];
+}
+
+/// Filter / census key: `jain`, `buddhist`, `sikh`, or [directoryTraditionHindu].
+const directoryTraditionHindu = 'hindu';
+
+/// Display order for Tradition sheet options that are present in the directory.
+const directoryTraditionOrder = ['hindu', 'sikh', 'jain', 'buddhist'];
+
+/// Stored, indexed, or deity-inferred tradition key for chips and census.
+String directoryTraditionKey(Temple temple) {
+  final stored =
+      templeTraditionField(temple.indexTradition) ??
+      templeTraditionField(temple.tradition);
+  if (stored != null) return stored;
+  return switch (traditionFromDeityText(temple.deity)) {
+    SiteTradition.jain => 'jain',
+    SiteTradition.buddhist => 'buddhist',
+    SiteTradition.sikh => 'sikh',
+    SiteTradition.unspecified => directoryTraditionHindu,
+  };
+}
+
+/// Chip and sheet label for a [directoryTraditionKey] value.
+String directoryTraditionChipLabel(String key) {
+  return switch (key) {
+    'jain' => 'Jain',
+    'buddhist' => 'Buddhist',
+    'sikh' => 'Sikh',
+    'hindu' => 'Hindu',
+    _ => key,
+  };
+}
+
+/// True when [selected] is empty or the listing's tradition key matches it.
+bool traditionMatches(Temple temple, String? selected) {
+  if (selected == null || selected.trim().isEmpty) return true;
+  return directoryTraditionKey(temple) == selected.trim();
+}
+
+/// Tradition keys present on the loaded listings, in [directoryTraditionOrder].
+List<String> directoryTraditionsFrom(Iterable<Temple> temples) {
+  final present = {for (final temple in temples) directoryTraditionKey(temple)};
+  return [
+    for (final key in directoryTraditionOrder)
+      if (present.contains(key)) key,
+  ];
+}
+
+/// Count line for the filter bar and related copy.
+String directoryPlaceCountLabel(int count) {
+  return count == 1 ? '1 place' : '$count places';
 }
 
 /// Chip text for a selected deity, with a tradition suffix when one applies.
@@ -171,12 +224,15 @@ List<Temple> directoryMatchingTemples(
   String? state,
   String? deity,
   String? district,
+  String? tradition,
   String query = '',
   TempleDistrictName? districtOf,
 }) {
   final matched = [
     for (final temple in filterTemples(temples, state: state, query: query))
-      if (deityGroupMatches(temple.deity, deity)) temple,
+      if (deityGroupMatches(temple.deity, deity) &&
+          traditionMatches(temple, tradition))
+        temple,
   ];
   if (district == null || district.trim().isEmpty) return matched;
   if (districtOf == null) return const [];
@@ -188,28 +244,44 @@ List<Temple> directoryMatchingTemples(
 }
 
 /// App-bar title for a browse list constrained by these chips.
-String directoryBrowseTitle({String? state, String? deity, String? district}) {
+String directoryBrowseTitle({
+  String? state,
+  String? deity,
+  String? district,
+  String? tradition,
+}) {
   final parts = <String>[
     if (deity != null && deity.isNotEmpty) deity,
     if (district != null && district.isNotEmpty) district,
     if (state != null && state.isNotEmpty) state,
   ];
-  if (parts.isEmpty) return 'All Temples';
+  if (parts.isEmpty) return 'All places';
   return parts.join(' · ');
 }
 
 /// Empty-state copy. Mentions district only when that chip is constraining.
-String directoryEmptyFilterMessage({String? district}) {
-  if (district != null && district.isNotEmpty) {
-    return 'Nothing in the loaded directory fits this state, district, and deity.';
-  }
-  return 'Nothing in the loaded directory fits this state and deity.';
+String directoryEmptyFilterMessage({String? district, String? tradition}) {
+  return 'Nothing in the loaded directory fits these filters.';
+}
+
+/// True when [deity] still has at least one listing under [tradition].
+bool directoryDeityFitsTradition(
+  Iterable<Temple> temples, {
+  required String? deity,
+  required String? tradition,
+}) {
+  if (deity == null || deity.isEmpty) return true;
+  if (tradition == null || tradition.isEmpty) return true;
+  return temples.any(
+    (temple) =>
+        deityGroupMatches(temple.deity, deity) &&
+        traditionMatches(temple, tradition),
+  );
 }
 
 /// Label for the sheet's apply action.
 String directoryFilterResultLabel(int count) {
-  final noun = count == 1 ? 'temple' : 'temples';
-  return 'Show $count $noun';
+  return 'Show ${directoryPlaceCountLabel(count)}';
 }
 
 /// Counts for every option in the filter sheet, from one walk of [temples].
@@ -227,28 +299,36 @@ class DirectoryOptionCensus {
     required this.deityCounts,
     required this.anyDistrict,
     required this.districtCounts,
+    required this.anyTradition,
+    required this.traditionCounts,
   });
 
-  /// Temples matching the draft state, deity, district, and query together.
+  /// Temples matching the draft state, deity, district, tradition, and query together.
   final int matched;
 
-  /// Temples matching the draft deity, district, and query, any state.
+  /// Temples matching the draft deity, district, tradition, and query, any state.
   final int anyState;
   final Map<String, int> stateCounts;
 
-  /// Temples matching the draft state, district, and query, any deity.
+  /// Temples matching the draft state, district, tradition, and query, any deity.
   final int anyDeity;
   final Map<String, int> deityCounts;
 
-  /// Temples matching the draft state, deity, and query, any district.
+  /// Temples matching the draft state, deity, tradition, and query, any district.
   final int anyDistrict;
   final Map<String, int> districtCounts;
+
+  /// Temples matching the draft state, deity, district, and query, any tradition.
+  final int anyTradition;
+  final Map<String, int> traditionCounts;
 
   int stateCount(String state) => stateCounts[state] ?? 0;
 
   int deityCount(String deity) => deityCounts[deity] ?? 0;
 
   int districtCount(String district) => districtCounts[district] ?? 0;
+
+  int traditionCount(String tradition) => traditionCounts[tradition] ?? 0;
 }
 
 /// How many times [directoryOptionCensus] has run.
@@ -268,6 +348,7 @@ DirectoryOptionCensus directoryOptionCensus(
   String? state,
   String? deity,
   String? district,
+  String? tradition,
   String query = '',
   TempleDistrictName? districtOf,
 }) {
@@ -275,6 +356,7 @@ DirectoryOptionCensus directoryOptionCensus(
   final wanted = district?.trim() ?? '';
   final wantedState = state?.trim() ?? '';
   final wantedDeity = deity?.trim() ?? '';
+  final wantedTradition = tradition?.trim() ?? '';
   final wantedDeityKey = wantedDeity.isEmpty ? '' : deityGroupKey(wantedDeity);
   final deityLabelOf = {
     for (final group in groupDeityNames(temples.map((temple) => temple.deity)))
@@ -295,10 +377,12 @@ DirectoryOptionCensus directoryOptionCensus(
   final stateCounts = <String, int>{};
   final deityCounts = <String, int>{};
   final districtCounts = <String, int>{};
+  final traditionCounts = <String, int>{};
   var matched = 0;
   var anyState = 0;
   var anyDeity = 0;
   var anyDistrict = 0;
+  var anyTradition = 0;
 
   for (final temple in temples) {
     if (!templeMatchesQuery(temple, query)) continue;
@@ -307,18 +391,22 @@ DirectoryOptionCensus directoryOptionCensus(
     final templeDistrict = districtOf == null
         ? ''
         : (districtOf(temple)?.trim() ?? '');
+    final templeTradition = directoryTraditionKey(temple);
     final stateOk = wantedState.isEmpty || templeState == wantedState;
     final deityOk =
         wantedDeityKey.isEmpty || deityGroupKey(templeDeity) == wantedDeityKey;
     final districtOk =
         !useDistrict || (districtOf != null && templeDistrict == wanted);
+    final traditionOk =
+        wantedTradition.isEmpty || templeTradition == wantedTradition;
 
-    if (deityOk && districtOk) anyState++;
-    if (stateOk && districtOk) anyDeity++;
-    if (stateOk && deityOk) anyDistrict++;
-    if (stateOk && deityOk && districtOk) matched++;
+    if (deityOk && districtOk && traditionOk) anyState++;
+    if (stateOk && districtOk && traditionOk) anyDeity++;
+    if (stateOk && deityOk && traditionOk) anyDistrict++;
+    if (stateOk && deityOk && districtOk) anyTradition++;
+    if (stateOk && deityOk && districtOk && traditionOk) matched++;
 
-    if (deityOk && templeState.isNotEmpty) {
+    if (deityOk && traditionOk && templeState.isNotEmpty) {
       final keepsDistrict =
           useDistrict &&
           (districtsInState[templeState]?.contains(wanted) ?? false);
@@ -326,16 +414,23 @@ DirectoryOptionCensus directoryOptionCensus(
         stateCounts[templeState] = (stateCounts[templeState] ?? 0) + 1;
       }
     }
-    if (stateOk && districtOk && templeDeity.isNotEmpty) {
+    if (stateOk && districtOk && traditionOk && templeDeity.isNotEmpty) {
       final deityLabel =
           deityLabelOf[deityGroupKey(templeDeity)] ?? templeDeity.trim();
       if (deityLabel.isNotEmpty) {
         deityCounts[deityLabel] = (deityCounts[deityLabel] ?? 0) + 1;
       }
     }
-    if (stateOk && deityOk && templeDistrict.isNotEmpty) {
+    if (stateOk && deityOk && traditionOk && templeDistrict.isNotEmpty) {
       districtCounts[templeDistrict] =
           (districtCounts[templeDistrict] ?? 0) + 1;
+    }
+    // Tradition options ignore the deity chip so a tradition that would
+    // drop a stale deity stays visible (KAN-203). Any-tradition still
+    // respects deity, because that row means "clear Tradition only".
+    if (stateOk && districtOk) {
+      traditionCounts[templeTradition] =
+          (traditionCounts[templeTradition] ?? 0) + 1;
     }
   }
 
@@ -347,5 +442,7 @@ DirectoryOptionCensus directoryOptionCensus(
     deityCounts: deityCounts,
     anyDistrict: anyDistrict,
     districtCounts: districtCounts,
+    anyTradition: anyTradition,
+    traditionCounts: traditionCounts,
   );
 }

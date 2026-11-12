@@ -46,7 +46,7 @@ void main() {
         ),
       ),
     );
-    expect(find.text('Could not load temples'), findsOneWidget);
+    expect(find.text('Could not load places'), findsOneWidget);
     await tester.tap(find.byKey(const Key('browse-load-failed-retry')));
     expect(retries, 1);
   });
@@ -69,13 +69,13 @@ void main() {
       const MaterialApp(
         home: TempleListScreen(
           temples: [],
-          title: 'All Temples',
+          title: 'All places',
           loadFailed: true,
         ),
       ),
     );
     await tester.pump();
-    expect(find.text('Could not load temples'), findsOneWidget);
+    expect(find.text('Could not load places'), findsOneWidget);
     expect(find.byKey(const Key('browse-load-failed-retry')), findsOneWidget);
 
     // Home's reconnect reload (or Retry) publishes the directory.
@@ -83,7 +83,7 @@ void main() {
     TempleService.revision.value = TempleService.revision.value + 1;
     await tester.pump();
 
-    expect(find.text('Could not load temples'), findsNothing);
+    expect(find.text('Could not load places'), findsNothing);
     expect(find.text('Vaikom Mahadeva Temple'), findsWidgets);
     expect(find.byType(DirectoryFilterBar), findsOneWidget);
   });

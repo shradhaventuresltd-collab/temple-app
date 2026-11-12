@@ -24,15 +24,15 @@ void main() {
   ];
 
   for (final url in bad) {
-    testWidgets('url=$url: Confirm with the temple, no link', (t) async {
+    testWidgets('url=$url: Confirm with the place, no link', (t) async {
       final l = installLauncher(FakeLauncher());
       await pumpDetail(t, dressTemple(url: url));
       expect(find.byKey(kDressChip), findsOneWidget);
       expect(find.byKey(kDressLink), findsNothing);
       expect(find.text('View source'), findsNothing);
-      expect(find.text('Confirm with the temple.'), findsOneWidget);
+      expect(find.text('Confirm with the place.'), findsOneWidget);
       await t.ensureVisible(find.byKey(kDressChip));
-      await t.tap(find.text('Confirm with the temple.'));
+      await t.tap(find.text('Confirm with the place.'));
       await t.pumpAndSettle();
       expect(l.launches, 0);
     });
@@ -44,7 +44,7 @@ void main() {
     expect(
       find.bySemanticsLabel(
         'Dress code unverified. Check before visiting. '
-        'Confirm with the temple.',
+        'Confirm with the place.',
       ),
       findsOneWidget,
     );
@@ -63,6 +63,6 @@ void main() {
     await pumpDetail(t, dressTemple(url: null, verified: true));
     expect(find.byKey(kDressSection), findsOneWidget);
     expect(find.byKey(kDressChip), findsNothing);
-    expect(find.text('Confirm with the temple.'), findsNothing);
+    expect(find.text('Confirm with the place.'), findsNothing);
   });
 }

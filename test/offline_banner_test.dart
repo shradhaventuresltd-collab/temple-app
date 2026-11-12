@@ -111,7 +111,7 @@ void main() {
 
     expect(find.text(OfflineBanner.offlineMessage), findsOneWidget);
     expect(find.textContaining('saved on this device'), findsNothing);
-    expect(find.text('Could not load temples.'), findsOneWidget);
+    expect(find.text('Could not load places.'), findsOneWidget);
     expect(find.text('Retry'), findsOneWidget);
     expect(find.textContaining('0 temples'), findsNothing);
   });
@@ -131,19 +131,19 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(calls, 1);
-    expect(find.text('1 temples across India'), findsOneWidget);
+    expect(find.text('1 places across India'), findsOneWidget);
     expect(find.byKey(const Key('offline-banner')), findsNothing);
 
     DirectoryLink.offline.value = true;
     await tester.pump();
     expect(find.text(OfflineBanner.message), findsOneWidget);
-    expect(find.text('1 temples across India'), findsOneWidget);
+    expect(find.text('1 places across India'), findsOneWidget);
 
     DirectoryReconnect.notify();
     await tester.pump();
     await tester.pumpAndSettle();
     expect(calls, 2);
-    expect(find.text('1 temples across India'), findsOneWidget);
+    expect(find.text('1 places across India'), findsOneWidget);
   });
 }
 

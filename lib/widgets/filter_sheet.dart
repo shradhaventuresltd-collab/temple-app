@@ -385,7 +385,8 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
                                           (pinSearch ? searchHeight : 0) -
                                           jumpHeight >=
                                       96;
-                              final chrome = (pinSearch ? searchHeight : 0) +
+                              final chrome =
+                                  (pinSearch ? searchHeight : 0) +
                                   (pinJumps ? jumpHeight : 0);
                               final room = constraints.maxHeight - chrome;
                               // A full 48px row needs 96px left so the list
@@ -394,8 +395,11 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
                               // then hides Any state (run 42710826857).
                               // Pin a 32px row there instead.
                               final pinAnyFull =
-                                  _anyVisible && widget.any != null && room >= 96;
-                              final pinAnyCompact = _anyVisible &&
+                                  _anyVisible &&
+                                  widget.any != null &&
+                                  room >= 96;
+                              final pinAnyCompact =
+                                  _anyVisible &&
                                   widget.any != null &&
                                   !pinAnyFull &&
                                   room >= 32;
@@ -430,7 +434,7 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
                         if (widget.mode == FilterSheetMode.apply)
                           _Footer(
                             colors: colors,
-                            resultLabel: widget.resultLabel ?? 'Show temples',
+                            resultLabel: widget.resultLabel ?? 'Show places',
                             clearEnabled: widget.clearEnabled,
                             onClear: widget.onClear,
                             onApply: widget.onApply,

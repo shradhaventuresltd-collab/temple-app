@@ -18,7 +18,7 @@ open_nm() {
     sleep 0.2
   done
   for i in $(seq 1 12); do
-    if ui_dump && ui_find --text-contains "Temples near me"; then
+    if ui_dump && ui_find --text-contains "Places near me"; then
       if (( UI_CY > 48 && UI_CY < height - 48 )); then
         ui_tap
         sleep 2

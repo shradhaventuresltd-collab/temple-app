@@ -591,7 +591,7 @@ void main() {
       await t.tap(
         find.descendant(
           of: find.byType(Drawer),
-          matching: find.text('All Temples'),
+          matching: find.text('All places'),
         ),
       );
       await t.pumpAndSettle();
@@ -608,7 +608,7 @@ void main() {
       await t.tap(
         find.descendant(
           of: find.byType(Drawer),
-          matching: find.text('All Temples'),
+          matching: find.text('All places'),
         ),
       );
       await t.pumpAndSettle();

@@ -31,7 +31,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('All Temples'), findsNothing);
+    expect(find.text('All places'), findsNothing);
     expect(find.byType(TempleBrowseList), findsOneWidget);
 
     await openFilterChip(tester, 'state');

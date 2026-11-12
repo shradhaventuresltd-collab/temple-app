@@ -11,6 +11,7 @@ Temple filterTemple({
   required String state,
   required String city,
   required String deity,
+  String? tradition,
   double latitude = 9.9,
   double longitude = 78.1,
 }) {
@@ -27,6 +28,7 @@ Temple filterTemple({
     specialities: const [],
     latitude: latitude,
     longitude: longitude,
+    tradition: tradition,
   );
 }
 
@@ -49,6 +51,7 @@ Future<void> pumpFilterBar(
   String? initialState,
   String? initialDeity,
   String? initialDistrict,
+  String? initialTradition,
   Size size = const Size(800, 1600),
   ThemeData? theme,
   TextScaler textScaler = TextScaler.noScaling,
@@ -58,6 +61,7 @@ Future<void> pumpFilterBar(
   String? state = initialState;
   String? deity = initialDeity;
   String? district = initialDistrict;
+  String? tradition = initialTradition;
   await tester.pumpWidget(
     MaterialApp(
       theme: theme,
@@ -75,6 +79,7 @@ Future<void> pumpFilterBar(
               state: state,
               deity: deity,
               district: district,
+              tradition: tradition,
               districtOf: districtOf,
             );
             return Column(
@@ -84,15 +89,18 @@ Future<void> pumpFilterBar(
                   selectedState: state,
                   selectedDeity: deity,
                   selectedDistrict: district,
+                  selectedTradition: tradition,
                   districtOf: districtOf,
                   prepareDistricts: prepareDistricts,
-                  onChanged: (nextState, nextDeity, nextDistrict) {
-                    setState(() {
-                      state = nextState;
-                      deity = nextDeity;
-                      district = nextDistrict;
-                    });
-                  },
+                  onChanged:
+                      (nextState, nextDeity, nextDistrict, nextTradition) {
+                        setState(() {
+                          state = nextState;
+                          deity = nextDeity;
+                          district = nextDistrict;
+                          tradition = nextTradition;
+                        });
+                      },
                 ),
                 Expanded(
                   child: ListView(

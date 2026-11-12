@@ -103,7 +103,7 @@ void main() {
             selectedDistrict: district,
             districtOf: lookup,
             prepareDistricts: prepare,
-            onChanged: (_, _, _) {},
+            onChanged: (_, _, _, _) {},
           ),
         ),
       ),
@@ -229,7 +229,7 @@ void main() {
                       loads += 1;
                       return districtOf;
                     },
-                    onChanged: (nextState, nextDeity, nextDistrict) {
+                    onChanged: (nextState, nextDeity, nextDistrict, nextTradition) {
                       setState(() {
                         state = nextState;
                         deity = nextDeity;
@@ -280,7 +280,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('filter-option-district-Madurai')));
     await tester.pump();
-    expect(find.text('Show 1 temple'), findsOneWidget);
+    expect(find.text('Show 1 place'), findsOneWidget);
     await tester.tap(find.byKey(const Key('filter-sheet-apply')));
     await tester.pumpAndSettle();
 
@@ -341,7 +341,7 @@ void main() {
                     selectedDistrict: district,
                     query: 'vaikom',
                     districtOf: districtOf,
-                    onChanged: (_, _, nextDistrict) {
+                    onChanged: (_, _, nextDistrict, _) {
                       setState(() => district = nextDistrict);
                     },
                   ),
@@ -362,7 +362,7 @@ void main() {
 
     expect(
       find.text(
-        'Nothing in the loaded directory fits this state, district, and deity.',
+        'Nothing in the loaded directory fits these filters.',
       ),
       findsOneWidget,
     );
@@ -370,7 +370,7 @@ void main() {
     await tester.pump();
     expect(
       find.text(
-        'Nothing in the loaded directory fits this state, district, and deity.',
+        'Nothing in the loaded directory fits these filters.',
       ),
       findsNothing,
     );
@@ -476,7 +476,7 @@ void main() {
               selectedDistrict: null,
               query: '',
               districtOf: bundledDistrictLookup(),
-              onChanged: (_, _, _) {},
+              onChanged: (_, _, _, _) {},
             ),
           ),
         ),
@@ -528,7 +528,7 @@ void main() {
               selectedDistrict: null,
               query: '',
               districtOf: bundledDistrictLookup(),
-              onChanged: (_, _, _) {},
+              onChanged: (_, _, _, _) {},
             ),
           ),
         ),

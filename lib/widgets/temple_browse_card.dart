@@ -7,6 +7,8 @@ import 'package:temple_app/screens/temple_detail_screen.dart';
 import 'package:temple_app/services/analytics_routes.dart';
 import 'package:temple_app/services/client_cache.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
+import 'package:temple_app/utils/directory_filters.dart';
+import 'package:temple_app/widgets/place_type_icon.dart';
 import 'package:temple_app/widgets/temple_image_placeholder.dart';
 
 /// City and state line for a browse card. Omits a dangling comma.
@@ -99,20 +101,17 @@ class TempleBrowseCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SizedBox(
-                        width: double.infinity,
-                        child: Text(
-                          temple.name,
-                          key: const Key('browse-temple-name'),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          softWrap: true,
-                          style: GoogleFonts.lora(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            color: saffron,
-                            height: 1.25,
-                          ),
+                      Text(
+                        temple.name,
+                        key: const Key('browse-temple-name'),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        softWrap: true,
+                        style: GoogleFonts.lora(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: saffron,
+                          height: 1.25,
                         ),
                       ),
                       if (place.isNotEmpty) ...[
@@ -147,7 +146,14 @@ class TempleBrowseCard extends StatelessWidget {
                         const SizedBox(height: 10),
                         LayoutBuilder(
                           builder: (context, constraints) {
-                            Widget chip(String label, {Color? background}) {
+                            final traditionLabel = listedTempleTraditionLabel(
+                              temple,
+                            );
+                            Widget chip(
+                              String label, {
+                              Color? background,
+                              Widget? leading,
+                            }) {
                               return ConstrainedBox(
                                 constraints: BoxConstraints(
                                   maxWidth: constraints.maxWidth,
@@ -156,6 +162,7 @@ class TempleBrowseCard extends StatelessWidget {
                                   label: label,
                                   background:
                                       background ?? const Color(0xFFFFF9E3),
+                                  leading: leading,
                                 ),
                               );
                             }
@@ -171,6 +178,15 @@ class TempleBrowseCard extends StatelessWidget {
                                     background: label == 'Heritage visit'
                                         ? const Color(0xFFFFF3D8)
                                         : const Color(0xFFFFF9E3),
+                                    leading: label == traditionLabel
+                                        ? PlaceTypeIcon(
+                                            key: const Key(
+                                              'browse-place-type-icon',
+                                            ),
+                                            temple: temple,
+                                            size: 24,
+                                          )
+                                        : null,
                                   ),
                               ],
                             );
@@ -291,10 +307,12 @@ class _BrowseChip extends StatelessWidget {
   const _BrowseChip({
     required this.label,
     this.background = const Color(0xFFFFF9E3),
+    this.leading,
   });
 
   final String label;
   final Color background;
+  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
@@ -306,15 +324,23 @@ class _BrowseChip extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        child: Text(
-          label,
-          softWrap: true,
-          style: GoogleFonts.poppins(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF6D4C41),
-            height: 1.2,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (leading != null) ...[leading!, const SizedBox(width: 6)],
+            Flexible(
+              child: Text(
+                label,
+                softWrap: true,
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF6D4C41),
+                  height: 1.2,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

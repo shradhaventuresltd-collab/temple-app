@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Flow 11. Temples near me with coarse location granted, then revoked.
+# Flow 11. Places near me with coarse location granted, then revoked.
 launch_app
 if ! accept_policy_if_shown; then
   fail_step launch "policy gate or home did not appear"
@@ -38,7 +38,7 @@ open_near_me() {
     sleep 0.2
   done
   for i in $(seq 1 12); do
-    if ui_dump && ui_find --text-contains "Temples near me"; then
+    if ui_dump && ui_find --text-contains "Places near me"; then
       if (( UI_CY > 48 && UI_CY < height - 48 )); then
         ui_tap
         sleep 1
@@ -79,7 +79,7 @@ dismiss_permission_dialog() {
 }
 
 if ! open_near_me; then
-  fail_step open-granted "could not scroll to Temples near me"
+  fail_step open-granted "could not scroll to Places near me"
   return 0
 fi
 # near_me_destination already accepts Sort by distance, Location is off,
@@ -88,7 +88,7 @@ fi
 if near_me_destination; then
   pass_step open-granted
 else
-  fail_step open-granted "Temples near me did not open after navigation"
+  fail_step open-granted "Places near me did not open after navigation"
   return 0
 fi
 if ui_dump && ui_find --text-contains "Sort by distance"; then
@@ -160,7 +160,7 @@ if ! wait_for_home; then
   return 0
 fi
 if ! open_near_me; then
-  fail_step open-denied "Temples near me was not shown"
+  fail_step open-denied "Places near me was not shown"
   return 0
 fi
 if ui_wait 12 --text-contains "Sort by distance"; then

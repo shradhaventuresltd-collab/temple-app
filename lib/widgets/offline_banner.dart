@@ -19,7 +19,7 @@ class OfflineBanner extends StatelessWidget {
   static const offlineMessage = "You're offline";
 
   static const message =
-      "You're offline. Showing temples saved on this device.";
+      "You're offline. Showing places saved on this device.";
 
   static String textFor(int savedTempleCount) =>
       savedTempleCount > 0 ? message : offlineMessage;

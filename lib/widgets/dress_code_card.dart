@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/utils/place_sources.dart';
+import 'package:temple_app/widgets/source_attribution_footer.dart';
 import 'package:temple_app/widgets/unverified_source_notice.dart';
 
-/// "Source: …" footer for `dressCodeSourceType`, or null when there is none.
-String? dressCodeSourceFooter(String? sourceType) => switch (sourceType) {
-  'official' => 'Source: temple website',
-  'secondary' => 'Source: secondary source',
-  _ => null,
-};
+/// Visible dress-code footer line for [temple] (KAN-203 §2.5).
+String dressCodeSourceFooter(Temple temple) =>
+    placeSourceFooterLayout(dressCodeSourcesOf(temple)).text;
 
 /// KAN-197 dress-code card on the temple detail page (Ux SPEC.md section 8).
 ///
@@ -42,7 +41,6 @@ class _DressCodeCardState extends State<DressCodeCard> {
     final temple = widget.temple;
     final tokens = DetailUxTokens.of(context);
     final text = temple.dressCode?.trim() ?? '';
-    final footer = dressCodeSourceFooter(temple.dressCodeSourceType);
     final bodyStyle = GoogleFonts.poppins(
       fontSize: 14,
       fontWeight: FontWeight.w500,
@@ -83,7 +81,7 @@ class _DressCodeCardState extends State<DressCodeCard> {
                 id: 'dress-code',
                 subject: 'Dress code',
                 lead: 'Rules may have changed.',
-                noLinkText: 'Confirm with the temple.',
+                noLinkText: 'Confirm with the place.',
                 sourceUri: temple.dressCodeSourceUri,
               ),
             ],
@@ -142,18 +140,8 @@ class _DressCodeCardState extends State<DressCodeCard> {
                 );
               },
             ),
-            if (footer != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                footer,
-                key: const Key('detail-dress-code-source'),
-                style: GoogleFonts.poppins(
-                  fontSize: 11.5,
-                  height: 1.4,
-                  color: tokens.muted,
-                ),
-              ),
-            ],
+            const SizedBox(height: 8),
+            SourceAttributionFooter(sources: dressCodeSourcesOf(temple)),
           ],
         ),
       ),

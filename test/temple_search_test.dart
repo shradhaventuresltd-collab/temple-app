@@ -608,7 +608,7 @@ void main() {
         isNot(contains('Meenakshi Amman Temple')),
       );
       expect(templeMatchesQuery(hindu, 'sikh'), isFalse);
-      expect(templeMatchesQuery(gurdwara, 'gurdwara'), isFalse);
+      expect(templeMatchesQuery(gurdwara, 'gurdwara'), isTrue);
       expect(
         filterTemples(listed, query: 'granth').single.name,
         'Harmandir Sahib',

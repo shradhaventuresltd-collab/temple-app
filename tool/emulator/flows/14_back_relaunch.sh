@@ -111,14 +111,14 @@ open_near() {
     launch_app
     wait_for_home || return 1
   fi
-  ui_wait_scrolled 20 --text-contains "Temples near me" || return 1
+  ui_wait_scrolled 20 --text-contains "Places near me" || return 1
   ui_tap
   sleep 1
   # Not now is enough for the back-stack check. The sheet must not stay up.
   if ui_wait 8 --text-contains "Sort by distance"; then
     dismiss_location_consent "Not now" || true
   fi
-  ui_wait 15 --text-contains "Temples near me"
+  ui_wait 15 --text-contains "Places near me"
 }
 
 open_licences() {
@@ -137,5 +137,5 @@ open_licences() {
 
 check_child list "State" open_list
 check_child detail "How to Reach" open_detail
-check_child near-me "Temples near me" open_near
+check_child near-me "Places near me" open_near
 check_child licences "District boundaries" open_licences

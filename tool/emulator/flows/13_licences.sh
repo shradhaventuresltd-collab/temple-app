@@ -2,7 +2,7 @@
 # Flow 13. Drawer Licences screen shows the district-boundary credit.
 
 # Open Licences from the drawer. A tap that leaves the drawer up is not a pass.
-# Mirrors open_browse's All Temples path: drawer-local scroll, then one
+# Mirrors open_browse's All places path: drawer-local scroll, then one
 # top-of-drawer retry. The screen is open only when "District boundaries"
 # appears. Each wait is bounded (8 drawer swipes, then ui_wait 15).
 open_licences_screen() {

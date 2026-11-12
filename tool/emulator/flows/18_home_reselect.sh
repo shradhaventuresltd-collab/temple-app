@@ -42,7 +42,7 @@ if open_browse && wait_browse_ready; then
   collage_top_visible && pass_step list-home-icon-top || fail_step list-home-icon-top "returned Home mid-page"
 fi
 # C: double tap the Home tile must not pop past Home / exit.
-# The All Temples search flings this list. Put Home back on screen before
+# The All places search flings this list. Put Home back on screen before
 # the wait, or the && skips both taps.
 ui_dump && ui_find --content-desc "Open navigation menu" && ui_tap && sleep 1
 scroll_drawer_top || true

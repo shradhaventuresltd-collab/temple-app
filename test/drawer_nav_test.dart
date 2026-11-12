@@ -38,7 +38,7 @@ void main() {
       await tester.tap(
         find.descendant(
           of: find.byType(Drawer),
-          matching: find.text('All Temples'),
+          matching: find.text('All places'),
         ),
       );
       await tester.pumpAndSettle();
@@ -60,7 +60,7 @@ void main() {
     await tester.pumpAndSettle();
     final allTemples = find.descendant(
       of: find.byType(Drawer),
-      matching: find.text('All Temples'),
+      matching: find.text('All places'),
     );
     await _doubleTap(tester, allTemples);
 
@@ -109,7 +109,7 @@ void main() {
 
     final allTemples = find.descendant(
       of: find.byType(Drawer),
-      matching: find.text('All Temples'),
+      matching: find.text('All places'),
     );
     final tile = find.ancestor(of: allTemples, matching: find.byType(ListTile));
     expect(tester.widget<ListTile>(tile).onTap, isNotNull);
@@ -126,7 +126,7 @@ void main() {
       await tester.tap(
         find.descendant(
           of: find.byType(Drawer),
-          matching: find.text('All Temples'),
+          matching: find.text('All places'),
         ),
       );
       await tester.pump();

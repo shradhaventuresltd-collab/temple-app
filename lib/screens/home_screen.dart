@@ -276,7 +276,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           namedAnalyticsRoute<void>(
             name: AnalyticsScreens.templeList,
             builder: (_) =>
-                TempleListScreen(temples: allTemples, title: 'All Temples'),
+                TempleListScreen(temples: allTemples, title: 'All places'),
           ),
         );
       },
@@ -456,7 +456,7 @@ class _HomeLoadingBody extends StatelessWidget {
             const CircularProgressIndicator(color: _saffron),
             const SizedBox(height: 16),
             Text(
-              'Loading temples…',
+              'Loading places…',
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 color: Colors.brown.shade700,
@@ -502,7 +502,7 @@ class _HomeErrorBody extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'Could not load temples.',
+              'Could not load places.',
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 color: Colors.brown.shade700,
@@ -547,7 +547,7 @@ class _HomeEmptyBody extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'No temples available yet.',
+              'No places available yet.',
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 color: Colors.brown.shade700,
@@ -634,8 +634,10 @@ class _BrowseTemplesCta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = templeCount == 0
-        ? 'Browse temples'
-        : 'Browse $templeCount Temple${templeCount == 1 ? '' : 's'}';
+        ? 'Browse places'
+        : templeCount == 1
+        ? 'Browse 1 place'
+        : 'Browse $templeCount places';
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 20, 14, 0),
@@ -643,7 +645,7 @@ class _BrowseTemplesCta extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Open the directory for temple cards, search, and filters. '
+            'Open the directory for place cards, search, and filters. '
             'You can also use the menu (☰).',
             style: GoogleFonts.poppins(
               fontSize: 13,
@@ -657,7 +659,7 @@ class _BrowseTemplesCta extends StatelessWidget {
             child: ElevatedButton.icon(
               key: const Key('home-browse-temples'),
               onPressed: onPressed,
-              icon: const Icon(Icons.temple_hindu_rounded),
+              icon: const Icon(Icons.account_balance_rounded),
               label: Text(label),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _saffron,

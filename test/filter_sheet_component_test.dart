@@ -43,7 +43,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('filter-option-state-Kerala')));
     await tester.pump();
-    expect(find.text('Show 1 temple'), findsOneWidget);
+    expect(find.text('Show 1 place'), findsOneWidget);
     expect(
       find.byKey(const Key('filter-sheet-apply')).hitTestable(),
       findsOneWidget,
@@ -59,7 +59,7 @@ void main() {
       find.byKey(const Key('filter-sheet-apply')).hitTestable(),
       findsOneWidget,
     );
-    expect(find.text('Show 1 temple'), findsOneWidget);
+    expect(find.text('Show 1 place'), findsOneWidget);
   });
 
   testWidgets('instant mode commits on tap and has no apply footer', (

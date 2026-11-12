@@ -75,7 +75,7 @@ void main() {
     await tester.pump(templeSearchDebounce);
     expect(find.text('Meenakshi Amman Temple'), findsNothing);
     expect(find.text('Vaikom Mahadeva Temple'), findsOneWidget);
-    expect(find.text('1 temple'), findsOneWidget);
+    expect(find.text('1 place'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Clear search'));
     await tester.pump();
@@ -110,13 +110,13 @@ void main() {
     );
     await tester.pump(templeSearchDebounce);
 
-    expect(find.text('No temples match "zzzz-not-a-temple".'), findsOneWidget);
+    expect(find.text('No places match "zzzz-not-a-temple".'), findsOneWidget);
 
     await tester.tap(find.text('Clear search'));
     await tester.pump();
 
     expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
-    expect(find.text('No temples match "zzzz-not-a-temple".'), findsNothing);
+    expect(find.text('No places match "zzzz-not-a-temple".'), findsNothing);
   });
 
   testWidgets('initial query is applied before the first frame settles', (
@@ -136,7 +136,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Loading temples'), findsOneWidget);
+    expect(find.text('Loading places'), findsOneWidget);
     expect(find.text('Fetching the directory.'), findsOneWidget);
     expect(find.textContaining('Seed'), findsNothing);
     expect(find.textContaining('Admin'), findsNothing);
@@ -147,7 +147,7 @@ void main() {
       ),
     );
 
-    expect(find.text('No temples to browse'), findsOneWidget);
+    expect(find.text('No places to browse'), findsOneWidget);
     expect(find.text('Nothing is listed in this view yet.'), findsOneWidget);
     expect(find.textContaining('Seed'), findsNothing);
   });

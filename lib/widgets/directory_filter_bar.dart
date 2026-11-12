@@ -7,16 +7,18 @@ import 'package:temple_app/utils/deity_groups.dart';
 import 'package:temple_app/utils/directory_filters.dart';
 import 'package:temple_app/utils/india_regions.dart';
 import 'package:temple_app/widgets/filter_sheet.dart';
+import 'package:temple_app/widgets/place_type_icon.dart';
 
 /// State, district, and deity chosen in a filter sheet.
 typedef DirectoryFilterSelection = ({
   String? state,
   String? deity,
   String? district,
+  String? tradition,
 });
 
 /// Which filter the sheet opens on. Each value is its own sheet.
-enum DirectoryFilterSection { state, district, deity }
+enum DirectoryFilterSection { state, district, deity, tradition }
 
 /// Opens one filter sheet.
 ///
@@ -30,6 +32,7 @@ Future<DirectoryFilterSelection?> showDirectoryFilterSheet({
   required String? selectedState,
   required String? selectedDeity,
   String? selectedDistrict,
+  String? selectedTradition,
   String query = '',
   TempleDistrictName? districtOf,
   Future<TempleDistrictName?>? districtLookup,
@@ -37,6 +40,7 @@ Future<DirectoryFilterSelection?> showDirectoryFilterSheet({
   DirectoryFilterSection section = DirectoryFilterSection.state,
   bool chooseStateFirst = false,
   void Function(DirectoryFilterSelection selection)? onLiveChange,
+  FilterSheetMode mode = FilterSheetMode.apply,
 }) {
   final colors = FilterSheetColors.of(context);
   return showModalBottomSheet<DirectoryFilterSelection>(
@@ -56,6 +60,7 @@ Future<DirectoryFilterSelection?> showDirectoryFilterSheet({
         initialState: selectedState,
         initialDeity: selectedDeity,
         initialDistrict: selectedDistrict,
+        initialTradition: selectedTradition,
         query: query,
         districtOf: districtOf,
         districtLookup: districtLookup,
@@ -63,6 +68,7 @@ Future<DirectoryFilterSelection?> showDirectoryFilterSheet({
         initialSection: section,
         chooseStateFirst: chooseStateFirst,
         onLiveChange: onLiveChange,
+        mode: mode,
       );
     },
   );
@@ -78,6 +84,7 @@ class DirectoryFilterSheetProbe extends StatelessWidget {
     this.selectedState,
     this.selectedDeity,
     this.selectedDistrict,
+    this.selectedTradition,
     this.districtOf,
     this.section = DirectoryFilterSection.state,
   });
@@ -87,6 +94,7 @@ class DirectoryFilterSheetProbe extends StatelessWidget {
   final String? selectedState;
   final String? selectedDeity;
   final String? selectedDistrict;
+  final String? selectedTradition;
   final TempleDistrictName? districtOf;
   final DirectoryFilterSection section;
 
@@ -98,6 +106,7 @@ class DirectoryFilterSheetProbe extends StatelessWidget {
       initialState: selectedState,
       initialDeity: selectedDeity,
       initialDistrict: selectedDistrict,
+      initialTradition: selectedTradition,
       query: query,
       districtOf: districtOf,
       districtLookup: null,
@@ -105,6 +114,7 @@ class DirectoryFilterSheetProbe extends StatelessWidget {
       initialSection: section,
       chooseStateFirst: false,
       onLiveChange: null,
+      mode: FilterSheetMode.apply,
     );
   }
 }
@@ -120,6 +130,7 @@ class DirectoryFilterBar extends StatefulWidget {
     required this.selectedDeity,
     required this.onChanged,
     this.selectedDistrict,
+    this.selectedTradition,
     this.query = '',
     this.districtOf,
     this.prepareDistricts,
@@ -131,6 +142,7 @@ class DirectoryFilterBar extends StatefulWidget {
   final String? selectedState;
   final String? selectedDeity;
   final String? selectedDistrict;
+  final String? selectedTradition;
   final String query;
   final TempleDistrictName? districtOf;
 
@@ -138,8 +150,14 @@ class DirectoryFilterBar extends StatefulWidget {
   final Future<TempleDistrictName?> Function()? prepareDistricts;
   final VoidCallback? onDistrictsLoaded;
 
-  /// Called with the new triple. Any value may be null (that chip is cleared).
-  final void Function(String? state, String? deity, String? district) onChanged;
+  /// Called with the new selection. Any value may be null (that chip is cleared).
+  final void Function(
+    String? state,
+    String? deity,
+    String? district,
+    String? tradition,
+  )
+  onChanged;
 
   /// Bar Clear all. When set, a cleared triple is not also reported through
   /// [onChanged], so the caller can drop the search text with the filters.
@@ -155,11 +173,15 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
   final GlobalKey _stateChip = GlobalKey();
   final GlobalKey _districtChip = GlobalKey();
   final GlobalKey _deityChip = GlobalKey();
+  final GlobalKey _traditionChip = GlobalKey();
 
   bool get _active =>
       widget.selectedState != null ||
       widget.selectedDeity != null ||
-      (widget.selectedDistrict != null && widget.selectedDistrict!.isNotEmpty);
+      (widget.selectedDistrict != null &&
+          widget.selectedDistrict!.isNotEmpty) ||
+      (widget.selectedTradition != null &&
+          widget.selectedTradition!.isNotEmpty);
 
   bool get _districtNeedsState =>
       widget.selectedState == null || widget.selectedState!.isEmpty;
@@ -176,7 +198,12 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
           chooseStateFirst: true,
         );
         if (!mounted || chosen == null) return;
-        widget.onChanged(chosen.state, chosen.deity, chosen.district);
+        widget.onChanged(
+          chosen.state,
+          chosen.deity,
+          chosen.district,
+          chosen.tradition,
+        );
         if (chosen.state == null || chosen.state!.isEmpty) return;
         // The apply tap is still finishing. Opening the district sheet on
         // that same pointer dismisses it (run 42689905451: Tamil Nadu is
@@ -193,7 +220,12 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
         );
         if (!mounted) return;
         if (district != null) {
-          widget.onChanged(district.state, district.deity, district.district);
+          widget.onChanged(
+            district.state,
+            district.deity,
+            district.district,
+            district.tradition,
+          );
         }
         return;
       }
@@ -203,7 +235,12 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
       final result = await _present(section: section, districtLookup: pending);
       if (!mounted) return;
       if (result != null) {
-        widget.onChanged(result.state, result.deity, result.district);
+        widget.onChanged(
+          result.state,
+          result.deity,
+          result.district,
+          result.tradition,
+        );
       }
     } catch (error, stack) {
       debugPrint('Filter sheet did not open: $error\n$stack');
@@ -228,6 +265,7 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
       selectedState: state ?? widget.selectedState,
       selectedDeity: deity ?? widget.selectedDeity,
       selectedDistrict: district ?? widget.selectedDistrict,
+      selectedTradition: widget.selectedTradition,
       query: widget.query,
       districtOf: widget.districtOf,
       districtLookup: districtLookup,
@@ -235,7 +273,12 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
       section: section,
       chooseStateFirst: chooseStateFirst,
       onLiveChange: (selection) {
-        widget.onChanged(selection.state, selection.deity, selection.district);
+        widget.onChanged(
+          selection.state,
+          selection.deity,
+          selection.district,
+          selection.tradition,
+        );
       },
     );
   }
@@ -284,11 +327,13 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
     final selectedState = widget.selectedState;
     final selectedDeity = widget.selectedDeity;
     final selectedDistrict = widget.selectedDistrict;
+    final selectedTradition = widget.selectedTradition;
     final matched = directoryMatchingTemples(
       widget.temples,
       state: selectedState,
       deity: selectedDeity,
       district: selectedDistrict,
+      tradition: selectedTradition,
       query: widget.query,
       districtOf: widget.districtOf,
     ).length;
@@ -311,7 +356,12 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
                 openTooltip: 'Choose a state',
                 clearTooltip: 'Clear state filter',
                 onOpen: () => _openSheet(DirectoryFilterSection.state),
-                onClear: () => widget.onChanged(null, selectedDeity, null),
+                onClear: () => widget.onChanged(
+                  null,
+                  selectedDeity,
+                  null,
+                  selectedTradition,
+                ),
               ),
             ),
             KeyedSubtree(
@@ -331,8 +381,12 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
                     : 'Choose a district',
                 clearTooltip: 'Clear district filter',
                 onOpen: () => _openSheet(DirectoryFilterSection.district),
-                onClear: () =>
-                    widget.onChanged(selectedState, selectedDeity, null),
+                onClear: () => widget.onChanged(
+                  selectedState,
+                  selectedDeity,
+                  null,
+                  selectedTradition,
+                ),
               ),
             ),
             KeyedSubtree(
@@ -354,8 +408,41 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
                 openTooltip: 'Choose a deity',
                 clearTooltip: 'Clear deity filter',
                 onOpen: () => _openSheet(DirectoryFilterSection.deity),
-                onClear: () =>
-                    widget.onChanged(selectedState, null, selectedDistrict),
+                onClear: () => widget.onChanged(
+                  selectedState,
+                  null,
+                  selectedDistrict,
+                  selectedTradition,
+                ),
+              ),
+            ),
+            KeyedSubtree(
+              key: _traditionChip,
+              child: _TriggerChip(
+                chipKey: const Key('filter-chip-tradition'),
+                semanticsId: 'filter-chip-tradition',
+                clearKey: const Key('filter-chip-tradition-clear'),
+                icon: Icons.account_balance_outlined,
+                leading: selectedTradition == null || selectedTradition.isEmpty
+                    ? const TraditionArchIcon(size: 16)
+                    : PlaceTypeIcon.forKey(
+                        traditionKey: selectedTradition,
+                        size: 16,
+                      ),
+                label: selectedTradition == null || selectedTradition.isEmpty
+                    ? 'Tradition'
+                    : directoryTraditionChipLabel(selectedTradition),
+                selected:
+                    selectedTradition != null && selectedTradition.isNotEmpty,
+                openTooltip: 'Choose a tradition',
+                clearTooltip: 'Clear tradition filter',
+                onOpen: () => _openSheet(DirectoryFilterSection.tradition),
+                onClear: () => widget.onChanged(
+                  selectedState,
+                  selectedDeity,
+                  selectedDistrict,
+                  null,
+                ),
               ),
             ),
           ],
@@ -366,7 +453,7 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
             children: [
               Expanded(
                 child: Text(
-                  matched == 1 ? '1 temple' : '$matched temples',
+                  directoryPlaceCountLabel(matched),
                   key: const Key('filter-match-count'),
                   style: GoogleFonts.poppins(
                     fontSize: 14,
@@ -383,7 +470,7 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
                     key: const Key('filter-clear'),
                     onPressed:
                         widget.onClearAll ??
-                        () => widget.onChanged(null, null, null),
+                        () => widget.onChanged(null, null, null, null),
                     child: Text(
                       'Clear all',
                       style: GoogleFonts.poppins(
@@ -409,6 +496,7 @@ class _DirectoryFilterSheet extends StatefulWidget {
     required this.initialState,
     required this.initialDeity,
     required this.initialDistrict,
+    required this.initialTradition,
     required this.query,
     required this.districtOf,
     required this.districtLookup,
@@ -416,12 +504,14 @@ class _DirectoryFilterSheet extends StatefulWidget {
     required this.initialSection,
     required this.chooseStateFirst,
     required this.onLiveChange,
+    this.mode = FilterSheetMode.apply,
   });
 
   final List<Temple> temples;
   final String? initialState;
   final String? initialDeity;
   final String? initialDistrict;
+  final String? initialTradition;
   final String query;
   final TempleDistrictName? districtOf;
   final Future<TempleDistrictName?>? districtLookup;
@@ -429,6 +519,7 @@ class _DirectoryFilterSheet extends StatefulWidget {
   final DirectoryFilterSection initialSection;
   final bool chooseStateFirst;
   final void Function(DirectoryFilterSelection selection)? onLiveChange;
+  final FilterSheetMode mode;
 
   @override
   State<_DirectoryFilterSheet> createState() => _DirectoryFilterSheetState();
@@ -436,9 +527,11 @@ class _DirectoryFilterSheet extends StatefulWidget {
 
 class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
   bool _changingState = false;
+  bool _changingTradition = false;
   String? _state;
   String? _deity;
   String? _district;
+  String? _tradition;
   TempleDistrictName? _resolvedDistrictOf;
   bool _districtsLoading = false;
   bool _districtError = false;
@@ -453,6 +546,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
     _state = widget.initialState;
     _deity = widget.initialDeity;
     _district = widget.initialDistrict;
+    _tradition = widget.initialTradition;
     _resolvedDistrictOf = widget.districtOf;
     final pending = widget.districtLookup;
     if (widget.initialSection == DirectoryFilterSection.district &&
@@ -501,7 +595,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
 
   DirectoryOptionCensus _readCensus() {
     final key =
-        '${_state ?? ''}\u0000${_deity ?? ''}\u0000${_district ?? ''}\u0000${identityHashCode(_resolvedDistrictOf)}\u0000${widget.query}\u0000${identityHashCode(widget.temples)}';
+        '${_state ?? ''}\u0000${_deity ?? ''}\u0000${_district ?? ''}\u0000${_tradition ?? ''}\u0000${identityHashCode(_resolvedDistrictOf)}\u0000${widget.query}\u0000${identityHashCode(widget.temples)}';
     final cached = _census;
     if (cached != null && _censusKey == key) return cached;
     final next = directoryOptionCensus(
@@ -509,6 +603,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
       state: _state,
       deity: _deity,
       district: _district,
+      tradition: _tradition,
       query: widget.query,
       districtOf: _resolvedDistrictOf,
     );
@@ -519,8 +614,12 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
 
   bool _showChoice(int count, bool selected) => selected || count > 0;
 
-  DirectoryFilterSelection get _selection =>
-      (state: _state, deity: _deity, district: _district);
+  DirectoryFilterSelection get _selection => (
+    state: _state,
+    deity: _deity,
+    district: _district,
+    tradition: _tradition,
+  );
 
   void _chooseState(String? state) {
     final changed = state != _state;
@@ -556,6 +655,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
       selectedState: _state,
       selectedDeity: _deity,
       selectedDistrict: _district,
+      selectedTradition: _tradition,
       query: widget.query,
       districtOf: _resolvedDistrictOf,
       section: DirectoryFilterSection.state,
@@ -569,6 +669,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
     setState(() {
       _state = next.state;
       _deity = next.deity;
+      _tradition = next.tradition;
       if (next.state == null ||
           next.state!.isEmpty ||
           (_district != null && !names.contains(_district))) {
@@ -578,6 +679,43 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
     widget.onLiveChange?.call(_selection);
     if ((_state == null || _state!.isEmpty) && mounted) {
       Navigator.of(context).pop(_selection);
+    }
+  }
+
+  Future<void> _changeTradition() async {
+    if (_changingTradition) return;
+    _changingTradition = true;
+    try {
+      final next = await showDirectoryFilterSheet(
+        context: context,
+        temples: widget.temples,
+        selectedState: _state,
+        selectedDeity: _deity,
+        selectedDistrict: _district,
+        selectedTradition: _tradition,
+        query: widget.query,
+        districtOf: widget.districtOf,
+        section: DirectoryFilterSection.tradition,
+        mode: widget.mode,
+      );
+      if (!mounted || next == null) return;
+      var deity = next.deity;
+      if (!directoryDeityFitsTradition(
+        widget.temples,
+        deity: deity,
+        tradition: next.tradition,
+      )) {
+        deity = null;
+      }
+      setState(() {
+        _state = next.state;
+        _tradition = next.tradition;
+        _deity = deity;
+        _district = next.district;
+      });
+      widget.onLiveChange?.call(_selection);
+    } finally {
+      _changingTradition = false;
     }
   }
 
@@ -591,6 +729,8 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
           _district = null;
         case DirectoryFilterSection.deity:
           _deity = null;
+        case DirectoryFilterSection.tradition:
+          _tradition = null;
       }
     });
   }
@@ -601,6 +741,8 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
       DirectoryFilterSection.district =>
         _district != null && _district!.isNotEmpty,
       DirectoryFilterSection.deity => _deity != null,
+      DirectoryFilterSection.tradition =>
+        _tradition != null && _tradition!.isNotEmpty,
     };
   }
 
@@ -612,6 +754,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
       DirectoryFilterSection.state => _stateSheet(census, colors),
       DirectoryFilterSection.district => _districtSheet(census, colors),
       DirectoryFilterSection.deity => _deitySheet(census, colors),
+      DirectoryFilterSection.tradition => _traditionSheet(census, colors),
     };
   }
 
@@ -651,9 +794,9 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
           FilterSheetJump(
             id: 'filter-region-jump-$id',
             label:
-                indiaStateSectionTitle(id == 'east' ? 'east' : id)
-                    .substring(0, 1)
-                    .toUpperCase() +
+                indiaStateSectionTitle(
+                  id == 'east' ? 'east' : id,
+                ).substring(0, 1).toUpperCase() +
                 indiaStateSectionTitle(id).substring(1).toLowerCase(),
             sectionId: sections.any((section) => section.id == id)
                 ? id
@@ -663,7 +806,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
     final stateSubtitle = Text(
       widget.chooseStateFirst
           ? 'Choose a state first'
-          : '${names.length} states & UTs with temples',
+          : '${names.length} states & UTs with places',
       key: widget.chooseStateFirst
           ? const Key('filter-choose-state-first')
           : const Key('filter-state-count'),
@@ -876,14 +1019,42 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
       count: visible.length,
       traditionLabels: traditions,
     );
+    final traditionOn = _tradition != null && _tradition!.isNotEmpty;
     return FilterSheetScaffold(
       title: 'Deity',
       sectionKey: const Key('filter-section-deity'),
-      subtitle: Text(
-        note,
-        key: traditions.isEmpty ? null : const Key('filter-deity-note'),
-        style: GoogleFonts.poppins(fontSize: 13, color: colors.muted),
-      ),
+      subtitle: traditionOn
+          ? Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  'In ${directoryTraditionChipLabel(_tradition!)} places · ',
+                  style: GoogleFonts.poppins(fontSize: 13, color: colors.muted),
+                ),
+                TextButton(
+                  key: const Key('filter-change-tradition'),
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(48, 48),
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  onPressed: _changeTradition,
+                  child: Text(
+                    'Change tradition',
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: colors.accentText,
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : Text(
+              note,
+              key: traditions.isEmpty ? null : const Key('filter-deity-note'),
+              style: GoogleFonts.poppins(fontSize: 13, color: colors.muted),
+            ),
       searchHint: 'Search deity (e.g. Murugan)',
       forceSearch: true,
       any: FilterSheetOption(
@@ -904,6 +1075,79 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
       onApply: () => Navigator.pop(context, _selection),
     );
   }
+
+  Widget _traditionSheet(
+    DirectoryOptionCensus census,
+    FilterSheetColors colors,
+  ) {
+    final names = [
+      for (final key in directoryTraditionsFrom(widget.temples))
+        if (_showChoice(census.traditionCount(key), _tradition == key)) key,
+    ];
+    final options = [
+      for (final key in names)
+        FilterSheetOption(
+          id: 'filter-option-tradition-$key',
+          label: directoryTraditionChipLabel(key),
+          count: census.traditionCount(key),
+          value: key,
+          selected: _tradition == key,
+        ),
+    ];
+    final extraLabels = [
+      for (final key in directoryTraditionsFrom(widget.temples))
+        if (key != directoryTraditionHindu) directoryTraditionChipLabel(key),
+    ];
+    final note = extraLabels.isEmpty
+        ? directoryPlaceCountLabel(census.anyTradition)
+        : directoryDeityFilterNote(const [], traditionLabels: extraLabels);
+    return FilterSheetScaffold(
+      title: 'Tradition',
+      sectionKey: const Key('filter-section-tradition'),
+      subtitle: Text(
+        note,
+        key: const Key('filter-tradition-note'),
+        style: GoogleFonts.poppins(fontSize: 13, color: colors.muted),
+      ),
+      searchHint: 'Search tradition',
+      any: FilterSheetOption(
+        id: 'filter-option-tradition-any',
+        label: 'Any tradition',
+        count: census.anyTradition,
+        value: '',
+        selected: _tradition == null || _tradition!.isEmpty,
+      ),
+      sections: [
+        FilterSheetSection(id: 'traditions', title: '', options: options),
+      ],
+      resultLabel: directoryFilterResultLabel(census.matched),
+      clearEnabled: _clearEnabled,
+      onClear: _clearDraft,
+      scrollToId: _tradition == null || _tradition!.isEmpty
+          ? null
+          : 'filter-option-tradition-$_tradition',
+      mode: widget.mode,
+      onOption: (option) {
+        final next = option.value.isEmpty ? null : option.value;
+        var deity = _deity;
+        if (!directoryDeityFitsTradition(
+          widget.temples,
+          deity: deity,
+          tradition: next,
+        )) {
+          deity = null;
+        }
+        setState(() {
+          _tradition = next;
+          _deity = deity;
+        });
+        if (widget.mode == FilterSheetMode.instant) {
+          Navigator.pop(context, _selection);
+        }
+      },
+      onApply: () => Navigator.pop(context, _selection),
+    );
+  }
 }
 
 class _TriggerChip extends StatelessWidget {
@@ -912,6 +1156,7 @@ class _TriggerChip extends StatelessWidget {
     this.semanticsId,
     required this.clearKey,
     required this.icon,
+    this.leading,
     required this.label,
     required this.selected,
     required this.openTooltip,
@@ -924,6 +1169,7 @@ class _TriggerChip extends StatelessWidget {
   final String? semanticsId;
   final Key clearKey;
   final IconData icon;
+  final Widget? leading;
   final String label;
   final bool selected;
   final String openTooltip;
@@ -961,7 +1207,12 @@ class _TriggerChip extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(icon, size: 16, color: colors.radio),
+                        IconTheme(
+                          data: IconThemeData(color: colors.radio, size: 16),
+                          child:
+                              leading ??
+                              Icon(icon, size: 16, color: colors.radio),
+                        ),
                         const SizedBox(width: 6),
                         ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 180),

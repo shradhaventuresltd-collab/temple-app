@@ -12,7 +12,10 @@ import 'package:temple_app/near_me/near_me_session.dart';
 import 'package:temple_app/near_me/nearby_temples.dart';
 import 'package:temple_app/screens/temple_detail_screen.dart';
 import 'package:temple_app/services/analytics_routes.dart';
+import 'package:temple_app/utils/directory_filters.dart';
 import 'package:temple_app/utils/india_regions.dart';
+import 'package:temple_app/widgets/directory_filter_bar.dart';
+import 'package:temple_app/widgets/place_type_icon.dart';
 import 'package:temple_app/widgets/filter_sheet.dart';
 import 'package:temple_app/widgets/temple_browse_card.dart';
 
@@ -47,6 +50,7 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
 
   late final NearMeSession _session;
   bool _sheetOpen = false;
+  String? _tradition;
 
   @override
   void initState() {
@@ -297,8 +301,61 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
     return _results(heading: NearMeCopy.sortedFrom(label), shrinkWrap: true);
   }
 
-  Widget _results({required String heading, bool shrinkWrap = false}) {
+  List<NearbyTemple> get _visibleRows {
     final rows = _session.rows;
+    if (_tradition == null || _tradition!.isEmpty) return rows;
+    return [
+      for (final row in rows)
+        if (traditionMatches(row.temple, _tradition)) row,
+    ];
+  }
+
+  bool get _showNearMeTraditionChip {
+    final temples = [for (final row in _session.rows) row.temple];
+    if (temples.isEmpty) return false;
+    return directoryTraditionsFrom(temples).isNotEmpty;
+  }
+
+  Future<void> _pickTradition() async {
+    if (_sheetOpen) return;
+    _sheetOpen = true;
+    try {
+      final temples = [for (final row in _session.rows) row.temple];
+      final next = await showDirectoryFilterSheet(
+        context: context,
+        temples: temples,
+        selectedState: null,
+        selectedDeity: null,
+        selectedTradition: _tradition,
+        section: DirectoryFilterSection.tradition,
+        mode: FilterSheetMode.instant,
+      );
+      if (!mounted || next == null) return;
+      setState(() => _tradition = next.tradition);
+    } finally {
+      _sheetOpen = false;
+    }
+  }
+
+  Widget _nearMeTraditionChip() {
+    final selected = _tradition != null && _tradition!.isNotEmpty;
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: ActionChip(
+        key: const Key('near-me-tradition-chip'),
+        avatar: selected
+            ? PlaceTypeIcon.forKey(traditionKey: _tradition, size: 16)
+            : const TraditionArchIcon(size: 16),
+        label: Text(
+          selected ? directoryTraditionChipLabel(_tradition!) : 'Tradition',
+        ),
+        onPressed: _pickTradition,
+      ),
+    );
+  }
+
+  Widget _results({required String heading, bool shrinkWrap = false}) {
+    final rows = _visibleRows;
     final children = <Widget>[
       Text(
         heading,
@@ -329,6 +386,10 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
         ),
       ],
       const SizedBox(height: 8),
+      if (_showNearMeTraditionChip) ...[
+        _nearMeTraditionChip(),
+        const SizedBox(height: 8),
+      ],
       if (rows.isEmpty)
         Text(
           NearMeCopy.noMapPoints,
@@ -462,7 +523,7 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
       sectionKey: const Key('filter-section-state'),
       searchHint: 'Search state',
       subtitle: Text(
-        'Tap a state to sort temples by distance from it',
+        'Tap a state to sort places by distance from it',
         style: GoogleFonts.poppins(
           fontSize: 13,
           color: FilterSheetColors.of(context).muted,
@@ -511,7 +572,8 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
                 label: city,
                 count: _count(
                   (temple) =>
-                      temple.state.trim() == state && temple.city.trim() == city,
+                      temple.state.trim() == state &&
+                      temple.city.trim() == city,
                 ),
                 value: city,
                 selected: _session.anchorCity == city,
@@ -556,7 +618,9 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
       any: FilterSheetOption(
         id: 'near-me-district-option-any',
         label: NearMeCopy.anyDistrict,
-        count: _count((temple) => state == null || temple.state.trim() == state),
+        count: _count(
+          (temple) => state == null || temple.state.trim() == state,
+        ),
         value: '',
         selected: _session.anchorDistrict == null,
       ),

@@ -111,7 +111,7 @@ card_fixture="$(mktemp)"
 cat > "$card_fixture" <<'EOF'
 <?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
 <hierarchy rotation="0">
-  <node text="" content-desc="All Temples" resource-id="" class="android.view.View" package="com.example" clickable="true" bounds="[0,40][200,100]" />
+  <node text="" content-desc="All places" resource-id="" class="android.view.View" package="com.example" clickable="true" bounds="[0,40][200,100]" />
   <node text="" content-desc="Meenakshi Amman
 Temple
 Madurai" resource-id="temple-browse-card" class="android.view.View" package="com.example" clickable="true" bounds="[16,400][300,560]" />
@@ -132,27 +132,27 @@ if python3 tool/emulator/lib/ui.py find "$card_fixture" --resource-id temple-bro
   echo "a multi-line card label should not have to end with Temple" >&2
   exit 1
 fi
-if python3 tool/emulator/lib/ui.py find "$card_fixture" --resource-id temple-browse-card --text-contains "All Temples" >/dev/null; then
-  echo "app bar All Temples should not match a temple card" >&2
+if python3 tool/emulator/lib/ui.py find "$card_fixture" --resource-id temple-browse-card --text-contains "All places" >/dev/null; then
+  echo "app bar All places should not match a temple card" >&2
   exit 1
 fi
 all_temples="$(mktemp)"
 cat > "$all_temples" <<'EOF'
 <?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
 <hierarchy rotation="0">
-  <node text="" content-desc="All Temples
+  <node text="" content-desc="All places
 992" resource-id="" class="android.view.View" package="com.example" clickable="true" bounds="[16,180][400,260]" />
   <node text="Home" content-desc="Home" resource-id="" class="android.view.View" package="com.example" clickable="true" bounds="[16,80][400,160]" />
 </hierarchy>
 EOF
-if python3 tool/emulator/lib/ui.py find "$all_temples" --text-regex '^All Temples$' >/dev/null; then
-  echo "All Temples with a count must not match a trailing anchor" >&2
+if python3 tool/emulator/lib/ui.py find "$all_temples" --text-regex '^All places$' >/dev/null; then
+  echo "All places with a count must not match a trailing anchor" >&2
   exit 1
 fi
-counted="$(python3 tool/emulator/lib/ui.py find "$all_temples" --text-regex '^All Temples')"
+counted="$(python3 tool/emulator/lib/ui.py find "$all_temples" --text-regex '^All places')"
 case "$counted" in
-  "208 220 16 180 400 260 All Temples 992") ;;
-  *) echo "All Temples count match was: ${counted}" >&2; exit 1 ;;
+  "208 220 16 180 400 260 All places 992") ;;
+  *) echo "All places count match was: ${counted}" >&2; exit 1 ;;
 esac
 rm -f "$all_temples"
 rm -f "$card_fixture"
@@ -1021,27 +1021,27 @@ if ! grep -q 'log_installed_version' tool/emulator/run_one_flow.sh; then
   echo "each run should log the installed versionCode" >&2
   exit 1
 fi
-if ! grep -q "text-regex '\\^All Temples'" tool/emulator/lib/common.sh; then
-  echo "open_browse should match All Temples without a trailing anchor" >&2
+if ! grep -q "text-regex '\\^All places'" tool/emulator/lib/common.sh; then
+  echo "open_browse should match All places without a trailing anchor" >&2
   exit 1
 fi
-if grep -q "text-regex '\\^All Temples\\$'" tool/emulator/lib/common.sh; then
-  echo "open_browse must not require All Temples to be the whole content-desc" >&2
+if grep -q "text-regex '\\^All places\\$'" tool/emulator/lib/common.sh; then
+  echo "open_browse must not require All places to be the whole content-desc" >&2
   exit 1
 fi
 if ! grep -q 'scroll_drawer_top' tool/emulator/lib/common.sh; then
-  echo "a missed All Temples search should scroll the drawer back to the top" >&2
+  echo "a missed All places search should scroll the drawer back to the top" >&2
   exit 1
 fi
 # Content-desc audit. A trailing $ fails when that node's content-desc is
 # "label\n<extra>" (flattened to "label extra").
-# - All Temples is the only drawer tile with a trailing count.
+# - All places is the only drawer tile with a trailing count.
 # - Home and Licences have no count, so '^Home$' and '^Licences$' stay.
 # - State / Deity / All districts are one Text. Option chips are "Name  N"
 #   and the pickers allow "( +[0-9]+)?$". Show/Browse labels are one line.
-if grep -n -E "text-regex ['\"]\\^All Temples\\$" \
+if grep -n -E "text-regex ['\"]\\^All places\\$" \
   tool/emulator/lib/common.sh tool/emulator/flows/*.sh; then
-  echo "a trailing \$ does not match All Temples content-desc" >&2
+  echo "a trailing \$ does not match All places content-desc" >&2
   exit 1
 fi
 if ! grep -q "text-regex '\\^Home\\$'" tool/emulator/flows/18_home_reselect.sh; then
@@ -1292,12 +1292,12 @@ if ! awk '
   /open_browse\(\)/ { fn = 1 }
   fn && $0 ~ /scroll_drawer_until --text-regex/ { search = 1 }
   fn && search && $0 ~ /scroll_drawer_top/ { reset = 1 }
-  fn && reset && $0 ~ /ui_find --text-regex '\''\^All Temples'\''/ { retry = 1 }
+  fn && reset && $0 ~ /ui_find --text-regex '\''\^All places'\''/ { retry = 1 }
   fn && retry && $0 ~ /ui_back/ { closed = 1 }
   fn && $0 ~ /^}/ { exit }
   END { exit !(search && reset && retry && closed) }
 ' tool/emulator/lib/common.sh; then
-  echo "open_browse must reset the drawer, retry All Temples, and close it" >&2
+  echo "open_browse must reset the drawer, retry All places, and close it" >&2
   exit 1
 fi
 if ! awk '
@@ -1413,6 +1413,7 @@ cat > "$nit_dir/idle.xml" <<'XML'
   <node text="State" resource-id="filter-chip-state" bounds="[10,10][90,50]" />
   <node text="District" resource-id="filter-chip-district" bounds="[100,10][200,50]" />
   <node text="Deity" resource-id="filter-chip-deity" bounds="[210,10][280,50]" />
+  <node text="Tradition" resource-id="filter-chip-tradition" bounds="[290,10][400,50]" />
 </hierarchy>
 XML
 cat > "$nit_dir/stuck.xml" <<'XML'
@@ -1420,6 +1421,7 @@ cat > "$nit_dir/stuck.xml" <<'XML'
   <node text="State" resource-id="filter-chip-state" bounds="[10,10][90,50]" />
   <node text="District" resource-id="filter-chip-district" bounds="[100,10][200,50]" />
   <node text="Deity" resource-id="filter-chip-deity" bounds="[210,10][280,50]" />
+  <node text="Tradition" resource-id="filter-chip-tradition" bounds="[290,10][400,50]" />
   <node text="" content-desc="Clear state filter" resource-id="filter-chip-state-clear" bounds="[70,10][110,50]" />
 </hierarchy>
 XML
@@ -1846,7 +1848,7 @@ skip_dir="$(mktemp -d)"
 rm -rf "$skip_dir"
 
 # open_browse fallback, without a device. The home-button loop is skipped.
-# A hit taps All Temples and leaves the drawer alone. A miss scrolls back
+# A hit taps All places and leaves the drawer alone. A miss scrolls back
 # to the top, looks once more, then closes so the next Home wait can run.
 browse_dir="$(mktemp -d)"
 (
@@ -1867,7 +1869,7 @@ browse_dir="$(mktemp -d)"
       *home-browse-temples*) return 1 ;;
       *Browse*) return 1 ;;
       *"Open navigation menu"*) return 0 ;;
-      *"All Temples"*)
+      *"All places"*)
         if [[ "${ALL_TEMPLES_VISIBLE:-}" == 1 ]]; then
           return 0
         fi
@@ -1879,11 +1881,11 @@ browse_dir="$(mktemp -d)"
   scroll_drawer_until() {
     echo "UNTIL $*" >> "$browse_dir/log"
     case "$*" in
-      *"All Temples$"*)
-        echo "anchored All Temples pattern must not be used" >&2
+      *"All places$"*)
+        echo "anchored All places pattern must not be used" >&2
         return 2
         ;;
-      *"All Temples"*) ;;
+      *"All places"*) ;;
       *)
         echo "unexpected drawer search: $*" >&2
         return 2
@@ -1898,10 +1900,10 @@ browse_dir="$(mktemp -d)"
   : > "$browse_dir/log"
   DRAWER_SEARCH_HITS=1
   open_browse
-  grep -qx 'UNTIL --text-regex ^All Temples' "$browse_dir/log"
+  grep -qx 'UNTIL --text-regex ^All places' "$browse_dir/log"
   grep -qx 'TAP' "$browse_dir/log"
   if grep -qx 'TOP' "$browse_dir/log" || grep -qx 'BACK' "$browse_dir/log"; then
-    echo "a found All Temples tile should not reset or close the drawer" >&2
+    echo "a found All places tile should not reset or close the drawer" >&2
     exit 1
   fi
 
@@ -1913,7 +1915,7 @@ browse_dir="$(mktemp -d)"
   grep -qx 'TOP' "$browse_dir/log"
   grep -qx 'TAP' "$browse_dir/log"
   if grep -qx 'BACK' "$browse_dir/log"; then
-    echo "the retry should tap All Temples instead of closing the drawer" >&2
+    echo "the retry should tap All places instead of closing the drawer" >&2
     exit 1
   fi
 
@@ -1921,11 +1923,11 @@ browse_dir="$(mktemp -d)"
   DRAWER_SEARCH_HITS=0
   ALL_TEMPLES_VISIBLE=0
   if open_browse 2>"$browse_dir/err"; then
-    echo "a drawer with no All Temples tile should fail" >&2
+    echo "a drawer with no All places tile should fail" >&2
     exit 1
   fi
   awk '
-    $0 == "UNTIL --text-regex ^All Temples" { until = 1 }
+    $0 == "UNTIL --text-regex ^All places" { until = 1 }
     until && $0 == "TOP" { top = 1 }
     top && $0 == "BACK" { back = 1 }
     END { exit !(until && top && back) }
@@ -2915,7 +2917,7 @@ if ! bash tool/emulator/boot_log_check.sh --results "$r4/none" | grep -q '^boot:
 fi
 # 3. Drawer FILTERS row at y 478 of 640: invisible to the 70% chip band,
 # found with CHIP_MAX_TOP_PCT=95; flow 29 sets 95 for drawer_bar and waits
-# for a non-zero "All Temples" count (the sheet offered "Any state 0").
+# for a non-zero "All places" count (the sheet offered "Any state 0").
 : > "$r4/log"
 if (R4_SEQ=drawer_bar_chips.xml lib4 scroll_chips_until --resource-id filter-chip-district) >/dev/null 2>&1; then
   echo "scroll_chips_until: drawer row is below the default 70% band (precondition)" >&2; exit 1
@@ -2927,12 +2929,12 @@ if ! (R4_SEQ=drawer_bar_chips.xml CHIP_MAX_TOP_PCT=95 lib4 scroll_chips_until --
 fi
 f29=tool/emulator/flows/29_filter_matrix.sh
 if ! sed -n '/^enter_drawer_bar() {/,/^}/p' "$f29" | grep -q 'CHIP_MAX_TOP_PCT=95' ||
-   ! sed -n '/^enter_drawer_bar() {/,/^}/p' "$f29" | grep -Fq -- "--content-desc-regex '^All Temples\\s+[1-9][0-9]*\$'"; then
-  echo "flow 29 drawer_bar: CHIP_MAX_TOP_PCT=95 and wait for a non-zero All Temples count" >&2; exit 1
+   ! sed -n '/^enter_drawer_bar() {/,/^}/p' "$f29" | grep -Fq -- "--content-desc-regex '^All places\\s+[1-9][0-9]*\$'"; then
+  echo "flow 29 drawer_bar: CHIP_MAX_TOP_PCT=95 and wait for a non-zero All places count" >&2; exit 1
 fi
-if ! python3 tool/emulator/lib/ui.py find "$fx4/drawer_bar_chips.xml" --content-desc-regex '^All Temples\s+[1-9][0-9]*$' >/dev/null ||
-   python3 tool/emulator/lib/ui.py find "$fx4/drawer_sheet_zero_temples.xml" --content-desc-regex '^All Temples\s+[1-9][0-9]*$' >/dev/null; then
-  echo "All Temples count regex: 992 matches, the zero-temple sheet does not" >&2; exit 1
+if ! python3 tool/emulator/lib/ui.py find "$fx4/drawer_bar_chips.xml" --content-desc-regex '^All places\s+[1-9][0-9]*$' >/dev/null ||
+   python3 tool/emulator/lib/ui.py find "$fx4/drawer_sheet_zero_temples.xml" --content-desc-regex '^All places\s+[1-9][0-9]*$' >/dev/null; then
+  echo "All places count regex: 992 matches, the zero-place sheet does not" >&2; exit 1
 fi
 # 4. State chip off the LEFT edge (22 after detail back, 29 re-tap): the
 # scroll must reach the left side (swipe left-to-right) within 8 tries.
