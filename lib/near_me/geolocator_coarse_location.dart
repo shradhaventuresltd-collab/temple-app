@@ -28,16 +28,31 @@ CoarsePermission coarsePermissionFrom(LocationPermission permission) {
 /// Background updates stay off. The position stream is not used.
 class GeolocatorCoarseLocation implements CoarseLocationClient {
   @override
-  Future<bool> isServiceEnabled() => Geolocator.isLocationServiceEnabled();
+  Future<bool> isServiceEnabled() async {
+    try {
+      return await Geolocator.isLocationServiceEnabled();
+    } catch (_) {
+      // No provider, missing plugin, or a platform error.
+      return false;
+    }
+  }
 
   @override
   Future<CoarsePermission> checkPermission() async {
-    return coarsePermissionFrom(await Geolocator.checkPermission());
+    try {
+      return coarsePermissionFrom(await Geolocator.checkPermission());
+    } catch (_) {
+      return CoarsePermission.denied;
+    }
   }
 
   @override
   Future<CoarsePermission> requestPermission() async {
-    return coarsePermissionFrom(await Geolocator.requestPermission());
+    try {
+      return coarsePermissionFrom(await Geolocator.requestPermission());
+    } catch (_) {
+      return CoarsePermission.denied;
+    }
   }
 
   @override
@@ -78,12 +93,16 @@ class GeolocatorCoarseLocation implements CoarseLocationClient {
 
   @override
   Future<void> openAppSettings() async {
-    await Geolocator.openAppSettings();
+    try {
+      await Geolocator.openAppSettings();
+    } catch (_) {}
   }
 
   @override
   Future<void> openLocationSettings() async {
-    await Geolocator.openLocationSettings();
+    try {
+      await Geolocator.openLocationSettings();
+    } catch (_) {}
   }
 }
 
