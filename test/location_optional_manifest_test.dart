@@ -29,7 +29,19 @@ void main() {
       ),
       isFalse,
     );
-    expect(manifest, contains('android.permission.ACCESS_FINE_LOCATION'));
-    expect(manifest, contains('tools:node="remove"'));
+
+    // ACCESS_FINE_LOCATION and tools:node="remove" must be on the same
+    // uses-permission element, not merely somewhere in the file.
+    final usesPermissions = RegExp(
+      r'<uses-permission\b[^>]*/\s*>',
+      dotAll: true,
+    ).allMatches(manifest).map((match) => match.group(0)!).toList();
+    final fineLocation = [
+      for (final element in usesPermissions)
+        if (element.contains('android.permission.ACCESS_FINE_LOCATION'))
+          element,
+    ];
+    expect(fineLocation, hasLength(1));
+    expect(fineLocation.single, contains('tools:node="remove"'));
   });
 }
