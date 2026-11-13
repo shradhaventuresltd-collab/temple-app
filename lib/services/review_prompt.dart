@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:temple_app/services/app_analytics.dart';
 
 /// Positive moments that may ask for a Play review.
 enum ReviewTrigger {
@@ -14,6 +17,13 @@ enum ReviewTrigger {
   /// Get Directions opened Maps and the user came back to the app.
   directions,
 }
+
+/// `review_requested` trigger values: session3, directions, save.
+String reviewTriggerAnalyticsName(ReviewTrigger trigger) => switch (trigger) {
+  ReviewTrigger.session => 'session${ReviewPrompter.sessionMilestone}',
+  ReviewTrigger.directions => 'directions',
+  ReviewTrigger.save => 'save',
+};
 
 /// Google Play In-App Review. Tests pass a fake.
 abstract class ReviewClient {
@@ -41,11 +51,18 @@ abstract class ReviewPromptStore {
   Future<DateTime?> readLastPrompt();
 
   Future<void> writeLastPrompt(DateTime at);
+
+  /// The session-milestone ask was held back (soft-update banner on the
+  /// same Home open) and is still owed on a later open.
+  Future<bool> readSessionDeferred();
+
+  Future<void> writeSessionDeferred(bool deferred);
 }
 
 abstract final class ReviewPromptKeys {
   static const String sessionCount = 'review_prompt_session_count';
   static const String lastPromptMs = 'review_prompt_last_ms';
+  static const String sessionDeferred = 'review_prompt_session_deferred';
 }
 
 class SharedPreferencesReviewPromptStore implements ReviewPromptStore {
@@ -83,14 +100,35 @@ class SharedPreferencesReviewPromptStore implements ReviewPromptStore {
       at.toUtc().millisecondsSinceEpoch,
     );
   }
+
+  @override
+  Future<bool> readSessionDeferred() async {
+    final prefs = await _preferences();
+    return prefs.getBool(ReviewPromptKeys.sessionDeferred) ?? false;
+  }
+
+  @override
+  Future<void> writeSessionDeferred(bool deferred) async {
+    final prefs = await _preferences();
+    if (deferred) {
+      await prefs.setBool(ReviewPromptKeys.sessionDeferred, true);
+    } else {
+      await prefs.remove(ReviewPromptKeys.sessionDeferred);
+    }
+  }
 }
 
 /// In-memory store for tests.
 class MemoryReviewPromptStore implements ReviewPromptStore {
-  MemoryReviewPromptStore({this.sessionCount = 0, this.lastPrompt});
+  MemoryReviewPromptStore({
+    this.sessionCount = 0,
+    this.lastPrompt,
+    this.sessionDeferred = false,
+  });
 
   int sessionCount;
   DateTime? lastPrompt;
+  bool sessionDeferred;
 
   @override
   Future<int> readSessionCount() async => sessionCount;
@@ -107,6 +145,14 @@ class MemoryReviewPromptStore implements ReviewPromptStore {
   Future<void> writeLastPrompt(DateTime at) async {
     lastPrompt = at;
   }
+
+  @override
+  Future<bool> readSessionDeferred() async => sessionDeferred;
+
+  @override
+  Future<void> writeSessionDeferred(bool deferred) async {
+    sessionDeferred = deferred;
+  }
 }
 
 /// Asks for a Play review after a positive moment.
@@ -116,6 +162,9 @@ class MemoryReviewPromptStore implements ReviewPromptStore {
 /// * [ReviewTrigger.save] and [ReviewTrigger.directions] fire from the
 ///   second session on.
 /// * At most one request per [cooldown], whatever the trigger.
+/// * Not on a Home open that shows the soft-update banner: the session ask
+///   is deferred, not spent, and runs on the next open.
+/// * Logs `review_requested` (trigger only) when Play is actually asked.
 /// * Fails silently: every error is caught and logged in debug, nothing is
 ///   shown, and callers never await it on a UI path.
 ///
@@ -127,16 +176,19 @@ class ReviewPrompter {
     ReviewClient? client,
     ReviewPromptStore? store,
     DateTime Function()? now,
+    AppAnalytics? analytics,
     this.enabled = true,
   }) : _client = client ?? const InAppReviewClient(),
        _store = store ?? SharedPreferencesReviewPromptStore(),
-       _now = now ?? DateTime.now;
+       _now = now ?? DateTime.now,
+       _analytics = analytics;
 
   /// Off: every call returns false without touching storage or Play.
   ReviewPrompter.disabled()
     : _client = const InAppReviewClient(),
       _store = MemoryReviewPromptStore(),
       _now = DateTime.now,
+      _analytics = null,
       enabled = false;
 
   static const Duration cooldown = Duration(days: 30);
@@ -156,6 +208,9 @@ class ReviewPrompter {
   final ReviewClient _client;
   final ReviewPromptStore _store;
   final DateTime Function() _now;
+
+  /// Null uses [AppAnalytics.instance] at call time.
+  final AppAnalytics? _analytics;
   final bool enabled;
 
   bool _sessionCounted = false;
@@ -164,19 +219,40 @@ class ReviewPrompter {
 
   /// Counts this launch once per process, then checks the session trigger.
   /// Returns true only when a review was requested.
-  Future<bool> onSessionStart() async {
+  ///
+  /// [softUpdateShown] resolves to whether this Home open shows the
+  /// soft-update banner. When it does, the session ask is deferred to the
+  /// next open instead of being spent.
+  Future<bool> onSessionStart({Future<bool>? softUpdateShown}) async {
     if (!enabled || _sessionCounted) return false;
     _sessionCounted = true;
+    var wasDeferred = false;
     try {
       final count = await _store.readSessionCount() + 1;
       _sessionCount = count;
       await _store.writeSessionCount(count);
-      if (count != sessionMilestone) return false;
+      if (count > sessionMilestone) {
+        wasDeferred = await _store.readSessionDeferred();
+      }
+      if (count != sessionMilestone && !wasDeferred) return false;
+      if (softUpdateShown != null && await _shown(softUpdateShown)) {
+        if (!wasDeferred) await _store.writeSessionDeferred(true);
+        return false;
+      }
+      if (wasDeferred) await _store.writeSessionDeferred(false);
     } catch (e, st) {
       debugPrint('Review prompt session count failed: $e\n$st');
       return false;
     }
     return _maybeRequest(ReviewTrigger.session);
+  }
+
+  static Future<bool> _shown(Future<bool> decision) async {
+    try {
+      return await decision;
+    } catch (_) {
+      return false;
+    }
   }
 
   /// A save or a completed directions hand-off. Returns true only when a
@@ -203,6 +279,11 @@ class ReviewPrompter {
       }
       if (!await _client.isAvailable()) return false;
       await _store.writeLastPrompt(now);
+      unawaited(
+        (_analytics ?? AppAnalytics.instance).logReviewRequested(
+          reviewTriggerAnalyticsName(trigger),
+        ),
+      );
       await _client.requestReview();
       return true;
     } catch (e, st) {

@@ -408,6 +408,7 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
     if (_sharing) return;
     _sharing = true;
     try {
+      unawaited(AppAnalytics.instance.logSharePlace(temple.id));
       final sharer = widget.sharer ?? TempleSharer.instance;
       await sharer.shareText(templeShareText(temple), subject: temple.name);
     } catch (e, st) {

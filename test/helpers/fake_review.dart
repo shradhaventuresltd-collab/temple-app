@@ -43,6 +43,13 @@ class ThrowingReviewPromptStore implements ReviewPromptStore {
 
   @override
   Future<void> writeSessionCount(int count) => throw StateError('prefs write');
+
+  @override
+  Future<bool> readSessionDeferred() => throw StateError('prefs read');
+
+  @override
+  Future<void> writeSessionDeferred(bool deferred) =>
+      throw StateError('prefs write');
 }
 
 class FakeTempleSharer extends TempleSharer {
