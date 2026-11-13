@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:temple_app/services/app_update.dart';
 import 'package:temple_app/services/installed_build.dart';
+import 'package:temple_app/services/store_platform.dart';
 import 'package:temple_app/services/update_nudge_store.dart';
 
 void main() {
@@ -64,7 +65,8 @@ void main() {
 
   test('market failure falls back to the https listing', () async {
     final opened = <Uri>[];
-    final ok = await openPlayStoreListing(
+    final ok = await openStoreListing(
+      platform: StorePlatform.android,
       packageName: 'com.shradhaventures.temple.demo',
       launch: (uri) async {
         opened.add(uri);
@@ -76,6 +78,118 @@ void main() {
     expect(
       opened.last.queryParameters['id'],
       'com.shradhaventures.temple.demo',
+    );
+  });
+
+  test('iOS opens the App Store and then the https listing', () async {
+    final opened = <Uri>[];
+    final ok = await openStoreListing(
+      platform: StorePlatform.ios,
+      packageName: 'com.shradhaventures.temple',
+      appStoreId: '1234567890',
+      launch: (uri) async {
+        opened.add(uri);
+        return uri.scheme == 'https';
+      },
+    );
+    expect(ok, isTrue);
+    expect(opened, [
+      Uri.parse('itms-apps://apps.apple.com/app/id1234567890'),
+      Uri.parse('https://apps.apple.com/app/id1234567890'),
+    ]);
+  });
+
+  test('an itms success does not also open https', () async {
+    final opened = <Uri>[];
+    final ok = await openStoreListing(
+      platform: StorePlatform.ios,
+      packageName: 'com.shradhaventures.temple',
+      appStoreId: '1234567890',
+      launch: (uri) async {
+        opened.add(uri);
+        return true;
+      },
+    );
+    expect(ok, isTrue);
+    expect(opened, [Uri.parse('itms-apps://apps.apple.com/app/id1234567890')]);
+  });
+
+  test('an unset App Store id does not open Play on iOS', () async {
+    final opened = <Uri>[];
+    Future<bool> launch(Uri uri) async {
+      opened.add(uri);
+      return true;
+    }
+
+    expect(kAppStoreId, kAppStoreIdPlaceholder);
+    expect(appStoreIdIsSet(kAppStoreId), isFalse);
+    expect(
+      await openStoreListing(
+        platform: StorePlatform.ios,
+        packageName: 'com.shradhaventures.temple',
+        launch: launch,
+      ),
+      isFalse,
+    );
+    expect(
+      await openStoreListing(
+        platform: StorePlatform.ios,
+        packageName: 'com.shradhaventures.temple',
+        appStoreId: '',
+        launch: launch,
+      ),
+      isFalse,
+    );
+    expect(
+      await openStoreListing(
+        platform: StorePlatform.ios,
+        packageName: 'com.shradhaventures.temple',
+        appStoreId: 'APP_STORE_ID',
+        launch: launch,
+      ),
+      isFalse,
+    );
+    expect(opened, isEmpty);
+  });
+
+  test('update copy names the store for each platform', () {
+    expect(storeListingName(StorePlatform.android), 'Play Store');
+    expect(storeListingName(StorePlatform.ios), 'App Store');
+    expect(
+      forceUpdateBody(StorePlatform.android),
+      'This version of Temple Directory India is no longer supported. '
+      'Install the latest version from the Play Store to continue.',
+    );
+    expect(
+      forceUpdateBody(StorePlatform.ios),
+      'This version of Temple Directory India is no longer supported. '
+      'Install the latest version from the App Store to continue.',
+    );
+    expect(
+      forceUpdateButtonLabel(StorePlatform.android),
+      'Update on Play Store',
+    );
+    expect(forceUpdateButtonLabel(StorePlatform.ios), 'Update on App Store');
+    expect(
+      forceUpdateOpenFailed(StorePlatform.android),
+      'Could not open the Play Store.',
+    );
+    expect(
+      forceUpdateOpenFailed(StorePlatform.ios),
+      'Could not open the App Store.',
+    );
+    expect(
+      softUpdateMessage(StorePlatform.android),
+      'A newer version is ready on the Play Store.',
+    );
+    expect(
+      softUpdateMessage(StorePlatform.ios),
+      'A newer version is ready on the App Store.',
+    );
+    expect(forceUpdateBody(StorePlatform.ios), isNot(contains('Play Store')));
+    expect(
+      softUpdateMessage(StorePlatform.android),
+      isNot(contains('App Store')),
     );
   });
 

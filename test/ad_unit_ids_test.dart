@@ -75,6 +75,18 @@ void main() {
         ),
         kGoogleTestInterstitialAndroid,
       );
+      expect(
+        bannerAdUnitIdFor(releaseMode: false, demoBuild: false, android: false),
+        kGoogleTestBannerIos,
+      );
+      expect(
+        interstitialAdUnitIdFor(
+          releaseMode: false,
+          demoBuild: false,
+          android: false,
+        ),
+        kGoogleTestInterstitialIos,
+      );
     });
   });
 
@@ -84,13 +96,47 @@ void main() {
       expect(admobApplicationIdFor(demoBuild: false), kProductionAndroidAppId);
     });
 
+    test('iOS xcconfig resolves Debug to the test id and Release to prod', () {
+      final info = File('ios/Runner/Info.plist').readAsStringSync();
+      final debug = _xcconfigValue('ios/Flutter/Debug.xcconfig', 'GAD_APP_ID');
+      final release = _xcconfigValue(
+        'ios/Flutter/Release.xcconfig',
+        'GAD_APP_ID',
+      );
+      expect(info, contains(r'$(GAD_APP_ID)'));
+      expect(info, isNot(contains(kGoogleTestIosAppId)));
+      expect(info, isNot(contains(kProductionIosAppId)));
+      expect(debug, kGoogleTestIosAppId);
+      expect(release, kProductionIosAppId);
+      expect(debug, isNot(release));
+      final demoConfigs = Directory('ios')
+          .listSync(recursive: true)
+          .whereType<File>()
+          .where(
+            (file) =>
+                file.path.endsWith('.xcconfig') &&
+                file.path.toLowerCase().contains('demo'),
+          );
+      expect(demoConfigs, isEmpty);
+    });
+
     test('Android Gradle placeholder uses the same app ids', () {
       final gradle = File('android/app/build.gradle.kts').readAsStringSync();
-      final manifest = File('android/app/src/main/AndroidManifest.xml')
-          .readAsStringSync();
+      final manifest = File(
+        'android/app/src/main/AndroidManifest.xml',
+      ).readAsStringSync();
       expect(manifest, contains(r'${admobAppId}'));
       expect(gradle, contains(kGoogleTestAppId));
       expect(gradle, contains(kProductionAndroidAppId));
     });
   });
+}
+
+String _xcconfigValue(String path, String key) {
+  final match = RegExp(
+    '^$key\\s*=\\s*(\\S+)',
+    multiLine: true,
+  ).firstMatch(File(path).readAsStringSync());
+  expect(match, isNotNull, reason: '$path has no $key');
+  return match!.group(1)!;
 }

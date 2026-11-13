@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:temple_app/services/ad_consent.dart';
 import 'package:temple_app/services/ad_helper.dart';
+import 'package:temple_app/services/store_platform.dart';
 import 'package:temple_app/widgets/app_drawer.dart';
 
 void main() {
@@ -89,16 +91,11 @@ void main() {
         params.consentDebugSettings?.debugGeography,
         DebugGeography.debugGeographyEea,
       );
-      expect(
-        params.consentDebugSettings?.testIdentifiers,
-        ['hashed-device'],
-      );
+      expect(params.consentDebugSettings?.testIdentifiers, ['hashed-device']);
     });
 
     test('blank debug settings stay off the request', () {
-      final params = buildConsentRequestParameters(
-        releaseMode: false,
-      );
+      final params = buildConsentRequestParameters(releaseMode: false);
       expect(params.consentDebugSettings, isNull);
     });
   });
@@ -120,97 +117,105 @@ void main() {
       expect(consent.isReady, isTrue);
     });
 
-    test('info-update failure still initializes with non-personalized ads',
-        () async {
-      final order = <String>[];
-      final consent = AdConsentController();
-      await AdHelper.initializeAds(
-        client: _FakeUmpClient(
-          onCall: order.add,
-          infoError: Exception('offline'),
-        ),
-        consent: consent,
-        initializeMobileAds: () async {
-          order.add('init');
-        },
-        consentParameters: ConsentRequestParameters(),
-      );
-      expect(order, ['info', 'init']);
-      expect(consent.mode, AdConsentMode.nonPersonalized);
-      expect(adRequestForMode(consent.mode).nonPersonalizedAds, isTrue);
-    });
+    test(
+      'info-update failure still initializes with non-personalized ads',
+      () async {
+        final order = <String>[];
+        final consent = AdConsentController();
+        await AdHelper.initializeAds(
+          client: _FakeUmpClient(
+            onCall: order.add,
+            infoError: Exception('offline'),
+          ),
+          consent: consent,
+          initializeMobileAds: () async {
+            order.add('init');
+          },
+          consentParameters: ConsentRequestParameters(),
+        );
+        expect(order, ['info', 'init']);
+        expect(consent.mode, AdConsentMode.nonPersonalized);
+        expect(adRequestForMode(consent.mode).nonPersonalizedAds, isTrue);
+      },
+    );
 
-    test('dismissed required form initializes ads but does not request them',
-        () async {
-      final consent = AdConsentController();
-      var initialized = false;
-      await AdHelper.initializeAds(
-        client: _FakeUmpClient(
-          status: ConsentStatus.required,
-          canRequest: false,
+    test(
+      'dismissed required form initializes ads but does not request them',
+      () async {
+        final consent = AdConsentController();
+        var initialized = false;
+        await AdHelper.initializeAds(
+          client: _FakeUmpClient(
+            status: ConsentStatus.required,
+            canRequest: false,
+            privacyOptions: true,
+          ),
+          consent: consent,
+          initializeMobileAds: () async {
+            initialized = true;
+          },
+          consentParameters: ConsentRequestParameters(),
+        );
+        expect(initialized, isTrue);
+        expect(consent.mode, AdConsentMode.adsDisabled);
+        expect(consent.privacyOptionsRequired, isTrue);
+        expect(consentAllowsAdRequest(consent.mode), isFalse);
+      },
+    );
+
+    test(
+      'form timeout falls back to non-personalized then applies a late choice',
+      () async {
+        final formGate = Completer<FormError?>();
+        final consent = AdConsentController();
+        final client = _FakeUmpClient(
+          formGate: formGate,
+          status: ConsentStatus.obtained,
+          canRequest: true,
           privacyOptions: true,
-        ),
-        consent: consent,
-        initializeMobileAds: () async {
-          initialized = true;
-        },
-        consentParameters: ConsentRequestParameters(),
-      );
-      expect(initialized, isTrue);
-      expect(consent.mode, AdConsentMode.adsDisabled);
-      expect(consent.privacyOptionsRequired, isTrue);
-      expect(consentAllowsAdRequest(consent.mode), isFalse);
-    });
+        );
+        await AdHelper.initializeAds(
+          client: client,
+          consent: consent,
+          consentFormTimeout: const Duration(milliseconds: 30),
+          initializeMobileAds: () async {},
+          consentParameters: ConsentRequestParameters(),
+        );
+        expect(consent.mode, AdConsentMode.nonPersonalized);
 
-    test('form timeout falls back to non-personalized then applies a late choice',
-        () async {
-      final formGate = Completer<FormError?>();
-      final consent = AdConsentController();
-      final client = _FakeUmpClient(
-        formGate: formGate,
-        status: ConsentStatus.obtained,
-        canRequest: true,
-        privacyOptions: true,
-      );
-      await AdHelper.initializeAds(
-        client: client,
-        consent: consent,
-        consentFormTimeout: const Duration(milliseconds: 30),
-        initializeMobileAds: () async {},
-        consentParameters: ConsentRequestParameters(),
-      );
-      expect(consent.mode, AdConsentMode.nonPersonalized);
+        formGate.complete(null);
+        await Future<void>.delayed(const Duration(milliseconds: 20));
 
-      formGate.complete(null);
-      await Future<void>.delayed(const Duration(milliseconds: 20));
+        expect(consent.mode, AdConsentMode.umpHonored);
+        expect(consent.privacyOptionsRequired, isTrue);
+        expect(adRequestForMode(consent.mode).nonPersonalizedAds, isNot(true));
+      },
+    );
 
-      expect(consent.mode, AdConsentMode.umpHonored);
-      expect(consent.privacyOptionsRequired, isTrue);
-      expect(adRequestForMode(consent.mode).nonPersonalizedAds, isNot(true));
-    });
-
-    test('a form that finishes during ads init is not overwritten by the timeout',
-        () async {
-      final formGate = Completer<FormError?>();
-      final consent = AdConsentController();
-      final client = _FakeUmpClient(
-        formGate: formGate,
-        status: ConsentStatus.obtained,
-        canRequest: true,
-      );
-      await AdHelper.initializeAds(
-        client: client,
-        consent: consent,
-        consentFormTimeout: const Duration(milliseconds: 20),
-        initializeMobileAds: () async {
-          formGate.complete(null);
-          await Future<void>.delayed(const Duration(milliseconds: 30));
-        },
-        consentParameters: ConsentRequestParameters(),
-      );
-      expect(consent.mode, AdConsentMode.umpHonored);
-      expect(consent.isReady, isTrue);
-    });
+    test(
+      'a form that finishes during ads init is not overwritten by the timeout',
+      () async {
+        final formGate = Completer<FormError?>();
+        final consent = AdConsentController();
+        final client = _FakeUmpClient(
+          formGate: formGate,
+          status: ConsentStatus.obtained,
+          canRequest: true,
+        );
+        await AdHelper.initializeAds(
+          client: client,
+          consent: consent,
+          consentFormTimeout: const Duration(milliseconds: 20),
+          initializeMobileAds: () async {
+            formGate.complete(null);
+            await Future<void>.delayed(const Duration(milliseconds: 30));
+          },
+          consentParameters: ConsentRequestParameters(),
+        );
+        expect(consent.mode, AdConsentMode.umpHonored);
+        expect(consent.isReady, isTrue);
+      },
+    );
 
     test('privacy options form refreshes the stored decision', () async {
       final consent = AdConsentController();
@@ -249,7 +254,9 @@ void main() {
     });
   });
 
-  testWidgets('ad privacy tile is hidden until UMP requires it', (tester) async {
+  testWidgets('ad privacy tile is hidden until UMP requires it', (
+    tester,
+  ) async {
     final consent = AdConsentController();
     var opened = 0;
     await tester.pumpWidget(
@@ -278,6 +285,92 @@ void main() {
     await tester.tap(find.text('Ad privacy choices'));
     await tester.pump();
     expect(opened, 1);
+  });
+
+  group('ad requests by platform', () {
+    test('iOS requests are non-personalized for every consent mode', () {
+      for (final mode in AdConsentMode.values) {
+        expect(
+          adRequestFor(
+            mode: mode,
+            platform: StorePlatform.ios,
+          ).nonPersonalizedAds,
+          isTrue,
+          reason: mode.name,
+        );
+      }
+    });
+
+    test('Android requests keep the consent-mode mapping', () {
+      for (final mode in AdConsentMode.values) {
+        final shared = adRequestFor(
+          mode: mode,
+          platform: StorePlatform.android,
+        );
+        final android = adRequestForMode(mode);
+        expect(shared.nonPersonalizedAds, android.nonPersonalizedAds);
+      }
+      expect(
+        adRequestFor(
+          mode: AdConsentMode.personalized,
+          platform: StorePlatform.android,
+        ).nonPersonalizedAds,
+        isNot(true),
+      );
+      expect(
+        adRequestFor(
+          mode: AdConsentMode.umpHonored,
+          platform: StorePlatform.android,
+        ).nonPersonalizedAds,
+        isNot(true),
+      );
+      expect(
+        adRequestFor(
+          mode: AdConsentMode.nonPersonalized,
+          platform: StorePlatform.android,
+        ).nonPersonalizedAds,
+        isTrue,
+      );
+    });
+
+    test('AdHelper.adRequest follows the target platform', () {
+      final previousMode = AdConsentController.instance.mode;
+      final previousPlatform = debugDefaultTargetPlatformOverride;
+      AdConsentController.instance.mode = AdConsentMode.personalized;
+      addTearDown(() {
+        AdConsentController.instance.mode = previousMode;
+        debugDefaultTargetPlatformOverride = previousPlatform;
+      });
+
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      expect(AdHelper.adRequest.nonPersonalizedAds, isTrue);
+
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      expect(AdHelper.adRequest.nonPersonalizedAds, isNot(true));
+    });
+
+    test('banner and interstitial use the shared request', () {
+      final banner = File(
+        'lib/widgets/banner_ad_widget.dart',
+      ).readAsStringSync();
+      final interstitial = File(
+        'lib/services/interstitial_ad_manager.dart',
+      ).readAsStringSync();
+      expect(banner, contains('request: AdHelper.adRequest'));
+      expect(interstitial, contains('request: AdHelper.adRequest'));
+      expect(banner, isNot(contains('AdRequest(')));
+      expect(interstitial, isNot(contains('AdRequest(')));
+
+      final constructors = <String>[];
+      for (final entity in Directory('lib').listSync(recursive: true)) {
+        if (entity is! File || !entity.path.endsWith('.dart')) continue;
+        final source = entity.readAsStringSync();
+        if (RegExp(r'(?<!\w)AdRequest\(').hasMatch(source)) {
+          constructors.add(entity.path.replaceAll('\\', '/'));
+        }
+      }
+      expect(constructors, ['lib/services/ad_consent.dart']);
+    });
   });
 }
 

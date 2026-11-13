@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:temple_app/services/store_platform.dart';
 
 /// How ad requests should behave after one UMP pass.
 ///
@@ -106,6 +107,20 @@ AdRequest adRequestForMode(AdConsentMode mode) {
     case AdConsentMode.umpHonored:
       return const AdRequest();
   }
+}
+
+/// The only [AdRequest] factory callers should use.
+///
+/// iOS has no ATT prompt, so every iOS request sets `nonPersonalizedAds`.
+/// Android keeps the consent-mode mapping in [adRequestForMode].
+AdRequest adRequestFor({
+  required AdConsentMode mode,
+  required StorePlatform platform,
+}) {
+  if (platform == StorePlatform.ios) {
+    return adRequestForMode(AdConsentMode.nonPersonalized);
+  }
+  return adRequestForMode(mode);
 }
 
 /// Debug geography for `flutter run --dart-define=UMP_DEBUG_GEOGRAPHY=EEA`.

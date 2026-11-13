@@ -1,27 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/services/app_update.dart';
+import 'package:temple_app/services/store_platform.dart';
 
 /// Full-screen block when the installed build is below `min_supported_build`.
 ///
-/// The only forward action opens the Play listing. System back leaves the app.
+/// The only forward action opens the store listing. System back leaves the app.
 class ForceUpdateScreen extends StatefulWidget {
   const ForceUpdateScreen({
     super.key,
     required this.packageName,
     required this.launch,
     this.onExit,
+    this.storePlatform = StorePlatform.android,
+    this.appStoreId = kAppStoreId,
   });
 
   final String packageName;
   final Future<bool> Function(Uri url) launch;
   final VoidCallback? onExit;
+  final StorePlatform storePlatform;
+  final String appStoreId;
 
   static const String title = 'Update required';
+
+  /// Android copy. The screen shows [bodyFor].
   static const String body =
       'This version of Temple Directory India is no longer supported. '
       'Install the latest version from the Play Store to continue.';
   static const String buttonLabel = 'Update on Play Store';
+
+  static String bodyFor(StorePlatform platform) => forceUpdateBody(platform);
+
+  static String buttonLabelFor(StorePlatform platform) =>
+      forceUpdateButtonLabel(platform);
 
   @override
   State<ForceUpdateScreen> createState() => _ForceUpdateScreenState();
@@ -37,15 +49,17 @@ class _ForceUpdateScreenState extends State<ForceUpdateScreen> {
   Future<void> _openStore() async {
     if (_opening) return;
     setState(() => _opening = true);
-    final opened = await openPlayStoreListing(
+    final opened = await openStoreListing(
+      platform: widget.storePlatform,
       packageName: widget.packageName,
       launch: widget.launch,
+      appStoreId: widget.appStoreId,
     );
     if (!mounted) return;
     setState(() => _opening = false);
     if (!opened) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open the Play Store.')),
+        SnackBar(content: Text(forceUpdateOpenFailed(widget.storePlatform))),
       );
     }
   }
@@ -84,7 +98,7 @@ class _ForceUpdateScreenState extends State<ForceUpdateScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  ForceUpdateScreen.body,
+                  ForceUpdateScreen.bodyFor(widget.storePlatform),
                   style: GoogleFonts.poppins(
                     fontSize: 16,
                     height: 1.45,
@@ -102,7 +116,9 @@ class _ForceUpdateScreenState extends State<ForceUpdateScreen> {
                       minimumSize: const Size.fromHeight(48),
                     ),
                     onPressed: _opening ? null : _openStore,
-                    child: Text(ForceUpdateScreen.buttonLabel),
+                    child: Text(
+                      ForceUpdateScreen.buttonLabelFor(widget.storePlatform),
+                    ),
                   ),
                 ),
                 const Spacer(flex: 2),

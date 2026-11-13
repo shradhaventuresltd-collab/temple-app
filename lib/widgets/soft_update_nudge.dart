@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:temple_app/services/app_update.dart';
+import 'package:temple_app/services/store_platform.dart';
 
 /// Dismissible prompt when the build is below `recommended_build`.
 ///
@@ -9,12 +11,18 @@ class SoftUpdateNudgeBanner extends StatelessWidget {
     super.key,
     required this.onUpdate,
     required this.onDismiss,
+    this.storePlatform = StorePlatform.android,
   });
 
   final VoidCallback onUpdate;
   final VoidCallback onDismiss;
+  final StorePlatform storePlatform;
 
+  /// Android copy. The banner shows [messageFor].
   static const String message = 'A newer version is ready on the Play Store.';
+
+  static String messageFor(StorePlatform platform) =>
+      softUpdateMessage(platform);
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +41,7 @@ class SoftUpdateNudgeBanner extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                message,
+                messageFor(storePlatform),
                 style: GoogleFonts.poppins(
                   color: const Color(0xFF0A2540),
                   fontSize: 13,

@@ -13,6 +13,7 @@ import 'package:temple_app/screens/temples_near_me_screen.dart';
 import 'package:temple_app/services/analytics_routes.dart';
 import 'package:temple_app/services/admin_auth.dart';
 import 'package:temple_app/services/app_update.dart';
+import 'package:temple_app/services/store_platform.dart';
 import 'package:temple_app/services/index_resume.dart';
 import 'package:temple_app/services/temple_service.dart';
 import 'package:temple_app/widgets/app_drawer.dart';
@@ -42,7 +43,8 @@ class HomeScreen extends StatefulWidget {
     this.refreshTemples,
     this.lastIndexCheck,
     this.now,
-    this.openPlayStore,
+    this.openStoreListing,
+    this.storePlatform = StorePlatform.android,
     this.appliedContentVersion,
     this.remoteContentVersion,
   });
@@ -80,8 +82,11 @@ class HomeScreen extends StatefulWidget {
   /// Clock for the 15-minute resume window and the soft-update day.
   final DateTime Function()? now;
 
-  /// Opens the Play listing. Null hides the update action's effect.
-  final Future<bool> Function()? openPlayStore;
+  /// Opens the store listing. Null hides the update action's effect.
+  final Future<bool> Function()? openStoreListing;
+
+  /// Android names the Play Store. iOS names the App Store.
+  final StorePlatform storePlatform;
 
   /// Last `content_version` this device applied. Null skips no reads.
   final int? Function()? appliedContentVersion;
@@ -159,12 +164,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _openSoftUpdate() async {
-    final open = widget.openPlayStore;
+    final open = widget.openStoreListing;
     if (open == null) return;
     try {
       await open();
     } catch (e, st) {
-      debugPrint('Play Store launch failed: $e\n$st');
+      debugPrint('Store listing launch failed: $e\n$st');
     }
   }
 
@@ -342,6 +347,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             MaintenanceMessageBanner(message: widget.maintenanceMessage.trim()),
           if (_showSoftUpdate)
             SoftUpdateNudgeBanner(
+              storePlatform: widget.storePlatform,
               onUpdate: () => unawaited(_openSoftUpdate()),
               onDismiss: () => setState(() => _showSoftUpdate = false),
             ),

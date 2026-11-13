@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:temple_app/services/store_platform.dart';
 
 /// Remote Config parameter names. Deployer owns the console template.
 ///
@@ -11,6 +12,11 @@ abstract final class RemoteConfigKeys {
   static const String maintenanceMessage = 'maintenance_message';
   static const String minSupportedBuild = 'min_supported_build';
   static const String recommendedBuild = 'recommended_build';
+
+  /// iOS floors. They do not fall back to the shared keys. An unset iOS
+  /// key stays at 1, so a raised Android floor cannot block iOS.
+  static const String minSupportedBuildIos = 'min_supported_build_ios';
+  static const String recommendedBuildIos = 'recommended_build_ios';
   static const String contentVersion = 'content_version';
   static const String adsEnabled = 'ff_ads_enabled';
   static const String newFilters = 'ff_new_filters';
@@ -23,6 +29,8 @@ abstract final class RemoteConfigKeys {
     maintenanceMessage: '',
     minSupportedBuild: 1,
     recommendedBuild: 1,
+    minSupportedBuildIos: 1,
+    recommendedBuildIos: 1,
     contentVersion: 0,
     adsEnabled: true,
     newFilters: false,
@@ -141,12 +149,16 @@ class AppConfigController extends ChangeNotifier {
   AppConfigController({
     this.client,
     AppConfig? initial,
+    this.storePlatform = StorePlatform.android,
     this.minimumFetchInterval = kRemoteConfigMinimumFetchInterval,
     this.fetchTimeout = const Duration(minutes: 1),
     this.localActivateTimeout = const Duration(seconds: 2),
   }) : snapshot = initial ?? AppConfig.defaults;
 
   final RemoteConfigClient? client;
+
+  /// Android reads the shared build keys. iOS reads the `*_ios` keys.
+  final StorePlatform storePlatform;
 
   /// Release interval is one hour. See [remoteConfigMinimumFetchInterval].
   final Duration minimumFetchInterval;
@@ -163,11 +175,20 @@ class AppConfigController extends ChangeNotifier {
   AppConfig snapshot;
 
   AppConfig _read(RemoteConfigClient remote) {
+    final ios = storePlatform == StorePlatform.ios;
     return AppConfig(
       killSwitch: remote.getBool(RemoteConfigKeys.killSwitch),
       maintenanceMessage: remote.getString(RemoteConfigKeys.maintenanceMessage),
-      minSupportedBuild: remote.getInt(RemoteConfigKeys.minSupportedBuild),
-      recommendedBuild: remote.getInt(RemoteConfigKeys.recommendedBuild),
+      minSupportedBuild: remote.getInt(
+        ios
+            ? RemoteConfigKeys.minSupportedBuildIos
+            : RemoteConfigKeys.minSupportedBuild,
+      ),
+      recommendedBuild: remote.getInt(
+        ios
+            ? RemoteConfigKeys.recommendedBuildIos
+            : RemoteConfigKeys.recommendedBuild,
+      ),
       contentVersion: remote.getInt(RemoteConfigKeys.contentVersion),
       adsEnabled: remote.getBool(RemoteConfigKeys.adsEnabled),
       newFiltersEnabled: remote.getBool(RemoteConfigKeys.newFilters),
