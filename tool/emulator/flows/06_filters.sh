@@ -195,7 +195,18 @@ exercise_filter deity '^Shiva( +[0-9]+)?$' Deity open_deity deity
 
 if scroll_chips_until --resource-id filter-chip-district || scroll_chips_until --text-regex '^All districts$'; then
   pass_step district-chip-visible
-  exercise_filter district '^Madurai( +[0-9]+)?$' "All districts" open_district district
+  # Madurai is a Tamil Nadu district. After the state/deity exercises
+  # are cleared the sheet draft is Any state, and the all-India district
+  # list lets the picker overshoot M into V-Y and then STATE
+  # (run 41269171081). Put Tamil Nadu in the draft first, same as 29b's
+  # state:select prefix, and do not look for Madurai without it.
+  if open_state && select_labeled '^Tamil Nadu( +[0-9]+)?$' STATE && apply_sheet; then
+    exercise_filter district '^Madurai( +[0-9]+)?$' "All districts" open_district district
+    clear_named state || true
+  else
+    fail_step district-select "could not apply Tamil Nadu before picking Madurai"
+    recover_sheet
+  fi
 else
   pass_step district-chip-not-visible
 fi
@@ -265,8 +276,14 @@ if [[ "$DEITY_SELECT_OK" -ne 1 || -z "$DEITY_LABEL" ]]; then
   skip_if_failed combined-deity "deity-select did not apply a deity" \
     deity-open deity-reopen deity-select
 else
-  if open_deity && select_labeled "^$(re_escape "$DEITY_LABEL")( +[0-9]+)?$" DEITY && apply_sheet && chip_exact "$DEITY_LABEL"; then
-    COMBINED_DEITY="$DEITY_LABEL"
+  # After a state is applied the sheet often lists "Shiva (Name)  N"
+  # and no plain "Shiva  N" (run 41269171081 combined-deity under Kerala).
+  # No trailing $ so select_labeled seeks with --prefix and accepts those
+  # count labels. The chip is asserted with the label that was actually
+  # tapped, not the earlier all-India "Shiva".
+  combined_deity_rx="^$(re_escape "$DEITY_LABEL")( \(.+\))?( +[0-9]+)?"
+  if open_deity && select_labeled "$combined_deity_rx" DEITY && apply_sheet && chip_exact "$SELECTED_LABEL"; then
+    COMBINED_DEITY="$SELECTED_LABEL"
     pass_step combined-deity
   else
     fail_step combined-deity "could not apply ${DEITY_LABEL}"

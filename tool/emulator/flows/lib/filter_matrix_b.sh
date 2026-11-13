@@ -198,6 +198,9 @@ apply() { apply_sheet || err "Show N temples did not apply and close"; }
 # After apply the chip carries "Clear <chip> filter" and the drawer shows
 # its "Browse N Temples" summary button.
 assert_applied() {
+  # With two filters applied the State chip sits off the left of the row
+  # (run 41269171081 flows 22 and 29k). Scroll it into view first.
+  find_chip "$1" || true
   ui_wait 8 --content-desc "Clear $1 filter" || err "$1 chip shows no applied value after Show N temples" || return 1
 }
 assert_not_applied() {
@@ -332,8 +335,20 @@ matrix_main() {
     printf 'SKIPPED %s: %s: %s\n' "$FLOW" near_me-state-select \
       "near me has no directory filter bar (out of scope)" | tee -a "$RESULTS"
   else
-    for action in "${ACTIONS[@]}"; do
-      matrix_case "$MATRIX_ENTRY-$MATRIX_CHIP-$action" "$MATRIX_CHIP:$action"
+    # District is hidden / all-India until a State is in the draft.
+    # 29b prefixes state:select; 30b must do the same (run 41269171081:
+    # Madurai was searched with Any state and the picker overshot into STATE).
+    local actions=("${ACTIONS[@]}")
+    if [[ -n "${MATRIX_ACTIONS:-}" ]]; then
+      # shellcheck disable=SC2206
+      actions=($MATRIX_ACTIONS)
+    fi
+    for action in "${actions[@]}"; do
+      if [[ "$MATRIX_CHIP" == district ]]; then
+        matrix_case "$MATRIX_ENTRY-district-$action" state:select "district:$action"
+      else
+        matrix_case "$MATRIX_ENTRY-$MATRIX_CHIP-$action" "$MATRIX_CHIP:$action"
+      fi
     done
   fi
   force_stop_app

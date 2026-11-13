@@ -172,7 +172,26 @@ close_x() {
 }
 
 pick() {
-  select_labeled "${PICK[$1]}" "${SECTION[$1]}" || err "could not pick ${PICK[$1]} in $1 list"
+  local chip="$1"
+  if select_labeled "${PICK[$chip]}" "${SECTION[$chip]}"; then
+    return 0
+  fi
+  # 29j seq1 (run 41269171081): state + district pick-close left the
+  # sheet closed, then deity:select missed exact Shiva even though the
+  # same pick passes in 29a/29c. Wait for the sheet and retry once with
+  # a bounded seek, only when time remains in the case budget.
+  if [[ "$chip" == deity ]] && { (( STEP_DEADLINE == 0 || STEP_DEADLINE - SECONDS >= 20 )); }; then
+    echo "matrix: retrying deity pick once (wait for sheet, bounded seek)" >&2
+    if ! sheet_open; then
+      open_chip deity || err "could not pick ${PICK[$chip]} in $chip list" || return 1
+    fi
+    ui_wait 8 --text-regex '^DEITY$' || ui_wait 8 --resource-id-regex '^filter-option-deity-' || true
+    if SELECT_MAX="${SELECT_RETRY_MAX:-40}" SEEK_MAX_MOVES="${SEEK_RETRY_MAX_MOVES:-24}" \
+      select_labeled "${PICK[deity]}" DEITY; then
+      return 0
+    fi
+  fi
+  err "could not pick ${PICK[$chip]} in $chip list"
 }
 
 back_close() {
@@ -208,6 +227,9 @@ do_action() {
 }
 
 assert_applied() {
+  # With two filters applied the State chip sits off the left of the row
+  # (run 41269171081 flows 22 and 29k). Scroll it into view first.
+  find_chip "$1" || true
   ui_wait 8 --content-desc "Clear $1 filter" || err "$1 chip shows no applied value after Show N temples" || return 1
 }
 
@@ -334,7 +356,14 @@ matrix_main() {
     done
     PICK[deity]='^Shiva( +[0-9]+)?$'
   else
-    for action in "${ACTIONS[@]}"; do
+    # MATRIX_ACTIONS splits a chip slice across flows (29h / 29m) when
+    # all six actions would not finish under the 1140s budget.
+    local actions=("${ACTIONS[@]}")
+    if [[ -n "${MATRIX_ACTIONS:-}" ]]; then
+      # shellcheck disable=SC2206
+      actions=($MATRIX_ACTIONS)
+    fi
+    for action in "${actions[@]}"; do
       if [[ "$MATRIX_CHIP" == district ]]; then
         matrix_case "$MATRIX_ENTRY-district-$action" state:select "district:$action"
       else

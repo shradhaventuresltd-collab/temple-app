@@ -1737,6 +1737,22 @@ chip_exact() {
   find_filter_chip "" "^$(re_escape "$label")$"
 }
 
+# True when the last dump shows a gallery index "k / N" with N >= 2 and
+# 1 <= k <= N. Auto-advance may already have moved off 1/N.
+gallery_index_is_multi() {
+  [[ -s "$DUMP" ]] || return 1
+  python3 - "$DUMP" <<'PY'
+import re, sys
+raw = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+vals = re.findall(r'(?:text|content-desc)="(\d+) / (\d+)"', raw)
+for k, n in vals:
+    k, n = int(k), int(n)
+    if n >= 2 and 1 <= k <= n:
+        raise SystemExit(0)
+raise SystemExit(1)
+PY
+}
+
 recover_sheet() {
   if sheet_open; then
     ui_back

@@ -294,6 +294,7 @@ flows=(
   29j-sequences
   29k-sequences
   29l-sequences
+  29m-search-district-rest
   30a-drawer-bar-state
   30b-drawer-bar-district
   30c-drawer-bar-deity
@@ -569,11 +570,13 @@ for lib in tool/emulator/flows/lib/filter_matrix.sh tool/emulator/flows/lib/filt
   fi
   pass
 done
-if ! grep -q 'state:select "district:\$action"' tool/emulator/flows/lib/filter_matrix.sh; then
-  echo "flow 29 district cases must start with state:select" >&2
-  exit 1
-fi
-pass
+for lib in tool/emulator/flows/lib/filter_matrix.sh tool/emulator/flows/lib/filter_matrix_b.sh; do
+  if ! grep -q 'state:select "district:\$action"' "$lib"; then
+    echo "${lib}: district cases must start with state:select (run 41269171081 30b)" >&2
+    exit 1
+  fi
+  pass
+done
 if ! grep -q 'wait_out_district_loader' tool/emulator/flows/lib/filter_matrix.sh; then
   echo "flow 29 should wait out the district loader" >&2
   exit 1
@@ -1822,6 +1825,162 @@ for lib in filter_matrix filter_matrix_b; do
   pass
   rm -rf "$bud_dir"
 done
+
+# ---- Run 41269171081 (dry run 5) script-gap regressions ----
+# 22 / 29k: scroll the chip row before asserting an applied State chip.
+if ! awk '
+  /Filter, open a temple, come back/ {f=1}
+  f && /find_filter_chip filter-chip-state/ {found=1}
+  f && /search \+ filters/ {exit}
+  END {exit !found}
+' tool/emulator/flows/22_filter_combos_reset.sh; then
+  echo "flow 22 must scroll the chip row before asserting the State chip" >&2
+  exit 1
+fi
+pass
+for lib in tool/emulator/flows/lib/filter_matrix.sh tool/emulator/flows/lib/filter_matrix_b.sh; do
+  if ! awk '
+    $0 ~ /^assert_applied\(\)/ {f=1}
+    f && $0 ~ /^[a-zA-Z_][a-zA-Z0-9_]*\(\)/ && $0 !~ /^assert_applied\(\)/ {exit}
+    f && /find_chip/ {found=1}
+    f && /Clear \$1 filter/ {clear=1}
+    END {exit !(found && clear)}
+  ' "$lib"; then
+    echo "${lib}: assert_applied must scroll (find_chip) before Clear-filter" >&2
+    exit 1
+  fi
+  pass
+done
+
+# 06: Tamil Nadu must be in the draft before Madurai is sought.
+python3 - <<'PY06'
+from pathlib import Path
+text = Path("tool/emulator/flows/06_filters.sh").read_text()
+tn = text.find("select_labeled '^Tamil Nadu")
+mad = text.find("exercise_filter district '^Madurai")
+if not (0 <= tn < mad):
+    raise SystemExit("06 must apply Tamil Nadu before looking for Madurai")
+if "combined_deity_rx=" not in text:
+    raise SystemExit("06 combined-deity must use a wider Shiva regex")
+assign = [line for line in text.splitlines() if "combined_deity_rx=" in line]
+if not assign:
+    raise SystemExit("06 combined-deity regex assignment missing")
+line = assign[0]
+if "+)?$\"" in line or "?$\"" in line:
+    raise SystemExit(f"06 combined-deity regex must not be exact-only: {line}")
+if r"( \(.+\))" not in line and r"( \\(.+\\))" not in line:
+    raise SystemExit(f"06 combined-deity regex must accept Shiva (Name) labels: {line}")
+PY06
+pass
+
+# 24: accept any k / N (auto-advance may already be on 2/5).
+if ! grep -q 'gallery_index_is_multi' tool/emulator/flows/24_gallery_autoadvance_viewer.sh; then
+  echo "flow 24 must accept any k / N via gallery_index_is_multi" >&2
+  exit 1
+fi
+pass
+if ! grep -q '^gallery_index_is_multi()' tool/emulator/lib/common.sh; then
+  echo "common.sh must define gallery_index_is_multi" >&2
+  exit 1
+fi
+pass
+gal_dir="$(mktemp -d)"
+# shellcheck disable=SC2030,SC2031
+(
+  set -uo pipefail
+  export EMULATOR_FLOW=24-gal EMULATOR_ARTIFACTS="$gal_dir" EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  write_dump() {
+    printf '<hierarchy><node text="" content-desc="%s" bounds="[262,37][292,56]" /></hierarchy>\n' "$1" > "$DUMP"
+  }
+  write_dump '2 / 5'
+  gallery_index_is_multi || { echo "gallery_index_is_multi must accept 2 / 5" >&2; exit 1; }
+  write_dump '1 / 5'
+  gallery_index_is_multi || { echo "gallery_index_is_multi must accept 1 / 5" >&2; exit 1; }
+  write_dump '1 / 1'
+  gallery_index_is_multi && { echo "gallery_index_is_multi must reject 1 / 1" >&2; exit 1; }
+  write_dump '0 / 5'
+  gallery_index_is_multi && { echo "gallery_index_is_multi must reject 0 / 5" >&2; exit 1; }
+  write_dump '6 / 5'
+  gallery_index_is_multi && { echo "gallery_index_is_multi must reject 6 / 5" >&2; exit 1; }
+  true
+)
+pass
+rm -rf "$gal_dir"
+
+# 29h / 29m: six search-district actions split, no overlap, all present.
+h_actions="$(sed -n 's/^MATRIX_ACTIONS="\(.*\)"$/\1/p' tool/emulator/flows/29h_search_district.sh)"
+m_actions="$(sed -n 's/^MATRIX_ACTIONS="\(.*\)"$/\1/p' tool/emulator/flows/29m_search_district_rest.sh)"
+[[ "$h_actions" == "select pick-close dismiss-empty" ]] \
+  || { echo "29h MATRIX_ACTIONS='$h_actions'" >&2; exit 1; }
+pass
+[[ "$m_actions" == "back-empty outside-empty clear" ]] \
+  || { echo "29m MATRIX_ACTIONS='$m_actions'" >&2; exit 1; }
+pass
+[[ "$h_actions $m_actions" == "select pick-close dismiss-empty back-empty outside-empty clear" ]] \
+  || { echo "29h+29m must cover the six matrix actions once each" >&2; exit 1; }
+pass
+# Three district cases fit the 1140s budget with margin
+# (40s install + 3 * 205s CASE_NEED = 655).
+(( 40 + 3 * 205 < 1140 )) || { echo "29h/29m 3-case split no longer fits 1140s" >&2; exit 1; }
+pass
+
+# 29j seq1: pick() retries a missed deity once after waiting for the sheet,
+# with a bounded seek.
+if ! awk '
+  $0 ~ /^pick\(\)/ {f=1}
+  f && $0 ~ /^[a-zA-Z_][a-zA-Z0-9_]*\(\)/ && $0 !~ /^pick\(\)/ {exit}
+  f && /retrying deity pick once/ {retry=1}
+  f && /SEEK_MAX_MOVES=/ {bounded=1}
+  f && /ui_wait 8 --text-regex '\''\^DEITY\$'\''/ {wait=1}
+  END {exit !(retry && bounded && wait)}
+' tool/emulator/flows/lib/filter_matrix.sh; then
+  echo "filter_matrix.sh pick() must retry deity once with bounded seek and wait for the sheet" >&2
+  exit 1
+fi
+pass
+pick_dir="$(mktemp -d)"
+# shellcheck disable=SC2030,SC2031
+(
+  set -uo pipefail
+  export EMULATOR_FLOW=29j-retry EMULATOR_ARTIFACTS="$pick_dir" EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  # shellcheck disable=SC1091
+  source tool/emulator/flows/lib/filter_matrix.sh
+  STEP_DEADLINE=0
+  : > "$pick_dir/calls"
+  select_labeled() { echo "$*" >> "$pick_dir/calls"; [[ "$(wc -l < "$pick_dir/calls" | tr -d ' ')" -ge 2 ]]; }
+  sheet_open() { return 0; }
+  ui_wait() { echo "ui_wait $*" >> "$pick_dir/wait"; return 0; }
+  open_chip() { echo "open_chip $*" >> "$pick_dir/wait"; return 0; }
+  pick deity
+  [[ "$(wc -l < "$pick_dir/calls" | tr -d ' ')" -eq 2 ]] \
+    || { echo "pick deity must retry once, calls=$(cat "$pick_dir/calls")" >&2; exit 1; }
+  grep -q 'DEITY' "$pick_dir/wait" \
+    || { echo "retry must wait for the DEITY section" >&2; exit 1; }
+)
+pass
+rm -rf "$pick_dir"
+
+# Prefix seek on a "Shiva (Name)" count label (06 combined-deity).
+shiva_form="$(mktemp)"
+cat > "$shiva_form" <<'XML'
+<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<hierarchy rotation="0"><node index="0" text="" class="android.widget.FrameLayout" bounds="[0,0][320,640]"><node text="" content-desc="Filters" bounds="[48,167][264,198]" /><node text="" content-desc="DEITY" resource-id="filter-section-deity" bounds="[16,200][80,220]" /><node text="" resource-id="filter-option-deity-Shiva (Gangadhareshwara)" content-desc="Shiva (Gangadhareshwara)  1" class="android.widget.Button" clickable="true" bounds="[16,260][280,300]" /><node text="" resource-id="filter-option-deity-Vishnu" content-desc="Vishnu  4" class="android.widget.Button" clickable="true" bounds="[16,310][140,350]" /></node></hierarchy>
+XML
+out="$(r4_pick "$shiva_form" deity '^Shiva( \(.+\))?( +[0-9]+)?')"
+[[ "$out" == "0|Shiva (Gangadhareshwara)"*"1|"* ]] \
+  || { echo "combined-deity regex must pick Shiva (Name) count labels: $out" >&2; exit 1; }
+pass
+# Exact all-India regex still refuses a named form (29j seq1 keeps Shiva).
+out="$(r4_pick "$shiva_form" deity '^Shiva( +[0-9]+)?$')"
+IFS='|' read -r rc tapped err <<<"$out"
+[[ "$rc" != 0 && -z "$tapped" ]] \
+  || { echo "exact Shiva regex must not tap a named form: $out" >&2; exit 1; }
+pass
+rm -f "$shiva_form"
 
 PASS="$(wc -l < "$PASS_FILE" | tr -d ' ')"
 rm -f "$PASS_FILE"

@@ -60,8 +60,10 @@ if [[ "$district_ok" -eq 1 && "$state_ok" -eq 1 ]]; then
     sleep 2
     ui_back
     sleep 1
-    ui_dump
-    if ui_find --resource-id filter-chip-state --text-regex '^Tamil Nadu'; then
+    # The State chip is scrolled off the left once Deity is also applied
+    # (run 41269171081: title "Shiva · Tamil Nadu", dump has no
+    # filter-chip-state). Scroll the chip row before asserting it.
+    if find_filter_chip filter-chip-state '^Tamil Nadu' ""; then
       pass_step filter-survives-detail
     else
       fail_step filter-survives-detail "state chip changed after detail back"

@@ -9,7 +9,14 @@ if ! ui_dump || ! ui_find --resource-id temple-browse-card; then
   return 0
 fi
 ui_tap; sleep 3
-ui_dump; ui_find --text-regex '^1 / [2-9]' && pass_step multi-photo || { skip_step multi-photo "single photo temple"; }
+# Auto-advance may already have moved off 1/N (run 41269171081: 2 / 5).
+# Accept any k / N with N >= 2 and 1 <= k <= N.
+ui_dump
+if gallery_index_is_multi; then
+  pass_step multi-photo
+else
+  skip_step multi-photo "single photo temple"
+fi
 for i in 1 2 3 4 5 6; do ui_fling left; sleep 0.3; done
 for i in 1 2 3 4 5 6; do ui_fling right; sleep 0.3; done; step_shot swipe-burst
 ui_dump; ui_find --text-regex '^1 / ' && pass_step swipe-burst-index || fail_step swipe-burst-index "index/counter desync"
