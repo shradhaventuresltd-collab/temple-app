@@ -38,8 +38,8 @@ service cloud.firestore {
     //     Absent means a Hindu listing. Null and any other string are rejected.
     //   - pinPrecision: optional string, exactly approx.
     //     Absent means an exact pin. Null and any other string are rejected.
-    //   - pinOrigin: optional string, exactly osm, wikidata, official,
-    //     google_maps, village_centroid, or manual.
+    //   - pinOrigin: optional string, exactly osm, wikidata, wikipedia,
+    //     official, google_maps, village_centroid, or manual.
     //     Required on the same write when pinPrecision is approx.
     //   - createdAt: timestamp (optional, immutable after creation)
     //
@@ -130,6 +130,7 @@ service cloud.firestore {
       return !('pinOrigin' in data) ||
         data.pinOrigin == 'osm' ||
         data.pinOrigin == 'wikidata' ||
+        data.pinOrigin == 'wikipedia' ||
         data.pinOrigin == 'official' ||
         data.pinOrigin == 'google_maps' ||
         data.pinOrigin == 'village_centroid' ||

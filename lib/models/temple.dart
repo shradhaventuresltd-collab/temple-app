@@ -348,6 +348,7 @@ String? pinOriginField(dynamic value) {
   return switch (value) {
     'osm' ||
     'wikidata' ||
+    'wikipedia' ||
     'official' ||
     'google_maps' ||
     'village_centroid' ||

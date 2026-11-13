@@ -389,6 +389,19 @@ test("optional pin_precision is approx with origin, omitted when exact, and reje
   assert.equal(entry.pinPrecision, "approx");
   assert.equal(Object.hasOwn(entry, "pinOrigin"), false);
 
+  const fromWikipedia = validateStateBatch(
+    batch([
+      temple({
+        pin_precision: "approx",
+        pin_origin: "wikipedia",
+      }),
+    ]),
+    [],
+  );
+  assert.equal(fromWikipedia.ok, true, fromWikipedia.errors.join("\n"));
+  assert.equal(fromWikipedia.temples[0].pinOrigin, "wikipedia");
+  assert.equal(firestoreWritePayload(fromWikipedia.temples[0], null).pinOrigin, "wikipedia");
+
   const missingOrigin = validateStateBatch(
     batch([temple({ pin_precision: "approx" })]),
     [],
@@ -409,12 +422,12 @@ test("optional pin_precision is approx with origin, omitted when exact, and reje
   }
 
   const badOrigin = validateStateBatch(
-    batch([temple({ pin_precision: "approx", pin_origin: "wikipedia" })]),
+    batch([temple({ pin_precision: "approx", pin_origin: "britannica" })]),
     [],
   );
   assert.equal(badOrigin.ok, false);
   assert.ok(
-    badOrigin.errors.some((error) => error.includes("pin_origin must be osm, wikidata, official")),
+    badOrigin.errors.some((error) => error.includes("pin_origin must be osm, wikidata, wikipedia, official")),
     badOrigin.errors.join("\n"),
   );
 

@@ -10,8 +10,8 @@
  * Hindu listing. deity remains required even for those traditions. An
  * optional research `pin_precision` of exactly `approx` is stored as
  * `pinPrecision`; omit it, or set `exact`, for an exact pin. An
- * optional research `pin_origin` (osm, wikidata, official, google_maps,
- * village_centroid, or manual) is stored as `pinOrigin` and is required
+ * optional research `pin_origin` (osm, wikidata, wikipedia, official,
+ * google_maps, village_centroid, or manual) is stored as `pinOrigin` and is required
  * when `pin_precision` is approx. An
  * optional research `address` (trimmed, max 500 UTF-16 code units,
  * matching firestore.rules string.size()) is stored as that address; if
@@ -44,6 +44,7 @@ export const PIN_PRECISION_APPROX = "approx";
 export const PIN_ORIGIN_VALUES = Object.freeze([
   "osm",
   "wikidata",
+  "wikipedia",
   "official",
   "google_maps",
   "village_centroid",
@@ -927,7 +928,7 @@ export function readOptionalPinFields(raw, label, errors) {
         pinOrigin = null;
       } else if (!PIN_ORIGIN_VALUE_SET.has(value)) {
         errors.push(
-          `${label}.pin_origin must be osm, wikidata, official, google_maps, village_centroid, or manual.`,
+          `${label}.pin_origin must be osm, wikidata, wikipedia, official, google_maps, village_centroid, or manual.`,
         );
       } else {
         pinOrigin = value;
@@ -936,7 +937,7 @@ export function readOptionalPinFields(raw, label, errors) {
   }
   if (pinPrecision === PIN_PRECISION_APPROX && !pinOrigin) {
     errors.push(
-      `${label}.pin_precision=approx requires pin_origin (osm|wikidata|official|google_maps|village_centroid|manual).`,
+      `${label}.pin_precision=approx requires pin_origin (osm|wikidata|wikipedia|official|google_maps|village_centroid|manual).`,
     );
   }
   return { pinPrecision, pinOrigin };

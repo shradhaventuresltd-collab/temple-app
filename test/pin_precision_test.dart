@@ -75,7 +75,7 @@ void main() {
     test('fromMap ignores illegal enum values', () {
       final t = Temple.fromMap(
         'example-temple',
-        _doc(pinPrecision: 'exact', pinOrigin: 'wikipedia'),
+        _doc(pinPrecision: 'exact', pinOrigin: 'britannica'),
       );
       expect(t.pinPrecision, isNull);
       expect(t.pinOrigin, isNull);
@@ -84,7 +84,8 @@ void main() {
       expect(pinPrecisionField(1), isNull);
       expect(pinOriginField('osm'), 'osm');
       expect(pinOriginField('google_maps'), 'google_maps');
-      expect(pinOriginField('wikipedia'), isNull);
+      expect(pinOriginField('wikipedia'), 'wikipedia');
+      expect(pinOriginField('britannica'), isNull);
     });
 
     test('toFirestoreData writes only when set, and CMS allow-list accepts them', () {
