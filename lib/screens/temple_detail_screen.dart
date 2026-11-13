@@ -10,6 +10,7 @@ import 'package:temple_app/services/client_cache.dart';
 import 'package:temple_app/widgets/offline_banner.dart';
 import 'package:temple_app/widgets/dress_code_card.dart';
 import 'package:temple_app/widgets/unverified_source_notice.dart';
+import 'package:temple_app/l10n/pin_precision_strings.dart';
 import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/services/temple_service.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
@@ -862,6 +863,22 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
                                 ),
                               ],
                             ),
+                            if (temple.hasApproximatePin) ...[
+                              const SizedBox(height: 10),
+                              Semantics(
+                                identifier: 'detail-approximate-location',
+                                child: Text(
+                                  PinPrecisionStrings.approximateLocation,
+                                  key: const Key('detail-approximate-location'),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.brown.shade700,
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ),
+                            ],
                             if (directionsUrl != null) ...[
                               const SizedBox(height: 14),
                               SizedBox(

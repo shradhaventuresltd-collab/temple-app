@@ -360,6 +360,8 @@ const kTempleFirestoreAllowedFields = {
   'longitude',
   'createdAt',
   'tradition',
+  'pinPrecision',
+  'pinOrigin',
 };
 
 /// Keys the Admin SDK writes on `temples/{id}` that the app only reads:

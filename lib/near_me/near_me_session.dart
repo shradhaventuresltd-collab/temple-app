@@ -101,14 +101,25 @@ class NearMeSession extends ChangeNotifier {
       }
       handedToLocate = true;
       await _locate(requestIfDenied: false, holdsBusy: true);
+    } catch (_) {
+      // A missing provider or plugin error must not escape to the UI.
+      if (!handedToLocate) _fail(NearMePhase.serviceOff);
     } finally {
       if (!handedToLocate) _busy = false;
     }
   }
 
-  Future<void> openAppSettings() => _location.openAppSettings();
+  Future<void> openAppSettings() async {
+    try {
+      await _location.openAppSettings();
+    } catch (_) {}
+  }
 
-  Future<void> openLocationSettings() => _location.openLocationSettings();
+  Future<void> openLocationSettings() async {
+    try {
+      await _location.openLocationSettings();
+    } catch (_) {}
+  }
 
   /// User closed the rationale. The place picker is the list from here.
   void declineRationale() {
@@ -144,7 +155,14 @@ class NearMeSession extends ChangeNotifier {
     phase = NearMePhase.locating;
     _notify();
     try {
-      if (!await _location.isServiceEnabled()) {
+      bool serviceOn;
+      try {
+        serviceOn = await _location.isServiceEnabled();
+      } catch (_) {
+        _fail(NearMePhase.serviceOff);
+        return;
+      }
+      if (!serviceOn) {
         _fail(NearMePhase.serviceOff);
         return;
       }

@@ -480,7 +480,10 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
               ),
             ),
       trailing: Text(
-        NearMeCopy.distanceLabel(row.distanceKm),
+        NearMeCopy.distanceLabel(
+          row.distanceKm,
+          approximate: row.temple.hasApproximatePin,
+        ),
         key: Key('near-me-km-$id'),
         style: GoogleFonts.poppins(
           fontSize: 13,

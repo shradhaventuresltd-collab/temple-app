@@ -342,6 +342,102 @@ const List<Temple> sampleTemples = [
   assert.equal(parsed[0].temple.deity, "Guru Granth Sahib");
 });
 
+test("optional pin_precision is approx with origin, omitted when exact, and rejected when inconsistent", () => {
+  const exact = validateStateBatch(batch([temple()]), []);
+  assert.equal(exact.ok, true, exact.errors.join("\n"));
+  assert.equal(Object.hasOwn(exact.temples[0], "pinPrecision"), false);
+  assert.equal(Object.hasOwn(exact.temples[0], "pinOrigin"), false);
+  assert.equal(Object.hasOwn(firestoreWritePayload(exact.temples[0], null), "pinPrecision"), false);
+  assert.equal(Object.hasOwn(firestoreWritePayload(exact.temples[0], null), "pinOrigin"), false);
+
+  const blank = validateStateBatch(
+    batch([temple({ pin_precision: "   ", pin_origin: "   " })]),
+    [],
+  );
+  assert.equal(blank.ok, true, blank.errors.join("\n"));
+  assert.equal(Object.hasOwn(blank.temples[0], "pinPrecision"), false);
+
+  const labelledExact = validateStateBatch(
+    batch([temple({ pin_precision: "exact", pin_origin: "osm" })]),
+    [],
+  );
+  assert.equal(labelledExact.ok, true, labelledExact.errors.join("\n"));
+  assert.equal(Object.hasOwn(labelledExact.temples[0], "pinPrecision"), false);
+  assert.equal(labelledExact.temples[0].pinOrigin, "osm");
+  const exactPayload = firestoreWritePayload(labelledExact.temples[0], null);
+  assert.equal(Object.hasOwn(exactPayload, "pinPrecision"), false);
+  assert.equal(exactPayload.pinOrigin, "osm");
+
+  const approx = validateStateBatch(
+    batch([
+      temple({
+        pin_precision: "approx",
+        pin_origin: "village_centroid",
+      }),
+    ]),
+    [],
+  );
+  assert.equal(approx.ok, true, approx.errors.join("\n"));
+  assert.equal(approx.temples[0].pinPrecision, "approx");
+  assert.equal(approx.temples[0].pinOrigin, "village_centroid");
+  const payload = firestoreWritePayload(approx.temples[0], null);
+  assert.equal(payload.pinPrecision, "approx");
+  assert.equal(payload.pinOrigin, "village_centroid");
+  assert.match(formatSummary(approx.summary), /pinPrecision: approx/);
+  assert.match(formatSummary(approx.summary), /pinOrigin: village_centroid/);
+  const entry = entryFromTemple({ ...payload, id: "example-temple" });
+  assert.equal(entry.pinPrecision, "approx");
+  assert.equal(Object.hasOwn(entry, "pinOrigin"), false);
+
+  const fromWikipedia = validateStateBatch(
+    batch([
+      temple({
+        pin_precision: "approx",
+        pin_origin: "wikipedia",
+      }),
+    ]),
+    [],
+  );
+  assert.equal(fromWikipedia.ok, true, fromWikipedia.errors.join("\n"));
+  assert.equal(fromWikipedia.temples[0].pinOrigin, "wikipedia");
+  assert.equal(firestoreWritePayload(fromWikipedia.temples[0], null).pinOrigin, "wikipedia");
+
+  const missingOrigin = validateStateBatch(
+    batch([temple({ pin_precision: "approx" })]),
+    [],
+  );
+  assert.equal(missingOrigin.ok, false);
+  assert.ok(
+    missingOrigin.errors.some((error) => error.includes("pin_precision=approx requires pin_origin")),
+    missingOrigin.errors.join("\n"),
+  );
+
+  for (const value of ["Approximate", "fuzzy", "1km"]) {
+    const result = validateStateBatch(batch([temple({ pin_precision: value, pin_origin: "osm" })]), []);
+    assert.equal(result.ok, false, value);
+    assert.ok(
+      result.errors.some((error) => error.includes("pin_precision must be exact or approx")),
+      `${value}: ${result.errors.join("\n")}`,
+    );
+  }
+
+  const badOrigin = validateStateBatch(
+    batch([temple({ pin_precision: "approx", pin_origin: "britannica" })]),
+    [],
+  );
+  assert.equal(badOrigin.ok, false);
+  assert.ok(
+    badOrigin.errors.some((error) => error.includes("pin_origin must be osm, wikidata, wikipedia, official")),
+    badOrigin.errors.join("\n"),
+  );
+
+  const hinduExact = validateStateBatch(batch([temple()]), []);
+  assert.equal(
+    Object.hasOwn(entryFromTemple({ ...firestoreWritePayload(hinduExact.temples[0], null), id: "example-temple" }), "pinPrecision"),
+    false,
+  );
+});
+
 test("validator rejects placeholder image URLs and ignores sources and Stockholm", () => {
 
   const urls = [

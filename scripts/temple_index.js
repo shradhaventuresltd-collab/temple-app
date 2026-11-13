@@ -1064,6 +1064,7 @@ export function entryFromTemple(data) {
     entry.hidden = data.hidden;
   }
   if (caption) entry.coverCaption = caption;
+  if (data?.pinPrecision === "approx") entry.pinPrecision = "approx";
   return entry;
 }
 
@@ -1214,6 +1215,7 @@ export function estimateShardBytes(entryCount = MAX_ENTRIES) {
     coverCaption: 19,
     tradition: "unspecified".length,
     framing: "monument".length,
+    pinPrecision: "approx".length,
   };
   let entry = 32;
   for (const [name, len] of Object.entries(strings)) {

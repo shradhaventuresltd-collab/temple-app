@@ -50,6 +50,17 @@ void main() {
     expect(session.phase, NearMePhase.denied);
   });
 
+  test('onAppResumed maps a plugin throw to serviceOff', () async {
+    final location = FakeCoarseLocation(
+      serviceError: Exception('No location provider'),
+    );
+    final session = NearMeSession(temples: const [], location: location);
+    session.phase = NearMePhase.denied;
+    await session.onAppResumed();
+    expect(session.phase, NearMePhase.serviceOff);
+    session.dispose();
+  });
+
   testWidgets('Home opens the rationale before any location request', (
     tester,
   ) async {
@@ -100,6 +111,38 @@ void main() {
       _rowNames(tester).indexOf('Meenakshi Amman Temple'),
       lessThan(_rowNames(tester).indexOf('Somnath Temple')),
     );
+  });
+
+  testWidgets('an approximate pin shows places copy and a ~x km label', (
+    tester,
+  ) async {
+    final location = FakeCoarseLocation(
+      permission: CoarsePermission.denied,
+      afterRequest: CoarsePermission.granted,
+      fix: const CoarseFix(latitude: 9.9195, longitude: 78.1193),
+    );
+    await _pumpNearMe(
+      tester,
+      location: location,
+      temples: [
+        _temple(
+          id: 'meenakshi',
+          name: 'Meenakshi Amman Temple',
+          state: 'Tamil Nadu',
+          city: 'Madurai',
+          lat: 9.9195,
+          lng: 78.1193,
+          pinPrecision: 'approx',
+          pinOrigin: 'osm',
+        ),
+      ],
+    );
+    await _continue(tester);
+    expect(find.text('Places near me'), findsOneWidget);
+    expect(find.text('Temples near me'), findsNothing);
+    expect(find.text(NearMeCopy.nearestHeading), findsOneWidget);
+    expect(find.text('~0.0 km'), findsOneWidget);
+    expect(find.text('0.0 km'), findsNothing);
   });
 
   testWidgets('a denial offers a state or city sort and can retry', (
@@ -209,6 +252,41 @@ void main() {
     expect(find.text(NearMeCopy.nearestHeading), findsOneWidget);
     expect(_rowNames(tester).first, 'Somnath Temple');
   });
+
+  testWidgets(
+    'a missing location provider shows a message and does not crash',
+    (tester) async {
+      final location = FakeCoarseLocation(
+        serviceError: Exception('No location provider'),
+      );
+      await _pumpNearMe(tester, location: location);
+      await _continue(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(find.text(NearMeCopy.serviceOffBody), findsOneWidget);
+      expect(find.byKey(const Key('near-me-retry')), findsOneWidget);
+      expect(find.byKey(const Key('near-me-state')), findsOneWidget);
+      expect(find.byType(TemplesNearMeScreen), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'a plugin throw while reading a fix shows a message and does not crash',
+    (tester) async {
+      final location = FakeCoarseLocation(
+        permission: CoarsePermission.granted,
+        fixError: Exception('MissingPluginException'),
+      );
+      await _pumpNearMe(tester, location: location);
+      await _continue(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(find.text(NearMeCopy.timedOutBody), findsOneWidget);
+      expect(find.byKey(const Key('near-me-retry')), findsOneWidget);
+      expect(find.byKey(const Key('near-me-state')), findsOneWidget);
+      expect(find.byType(TemplesNearMeScreen), findsOneWidget);
+    },
+  );
 
   testWidgets('a timeout shows the fallback and a retry', (tester) async {
     final location = FakeCoarseLocation(
@@ -470,6 +548,8 @@ Temple _temple({
   required String city,
   required double lat,
   required double lng,
+  String? pinPrecision,
+  String? pinOrigin,
 }) {
   return Temple(
     id: id,
@@ -485,6 +565,8 @@ Temple _temple({
     specialities: const [],
     latitude: lat,
     longitude: lng,
+    pinPrecision: pinPrecision,
+    pinOrigin: pinOrigin,
   );
 }
 
@@ -533,6 +615,8 @@ class FakeCoarseLocation implements CoarseLocationClient {
     this.fix = const CoarseFix(latitude: 0, longitude: 0),
     this.lastKnown,
     this.failure,
+    this.serviceError,
+    this.fixError,
   });
 
   bool serviceEnabled;
@@ -541,6 +625,8 @@ class FakeCoarseLocation implements CoarseLocationClient {
   CoarseFix fix;
   CoarseFix? lastKnown;
   LocationFailure? failure;
+  Object? serviceError;
+  Object? fixError;
   int requests = 0;
   int fixes = 0;
   int lastKnownReads = 0;
@@ -548,7 +634,11 @@ class FakeCoarseLocation implements CoarseLocationClient {
   int locationSettings = 0;
 
   @override
-  Future<bool> isServiceEnabled() async => serviceEnabled;
+  Future<bool> isServiceEnabled() async {
+    final error = serviceError;
+    if (error != null) throw error;
+    return serviceEnabled;
+  }
 
   @override
   Future<CoarsePermission> checkPermission() async => permission;
@@ -573,6 +663,8 @@ class FakeCoarseLocation implements CoarseLocationClient {
     fixes += 1;
     final failure = this.failure;
     if (failure != null) throw failure;
+    final error = fixError;
+    if (error != null) throw error;
     return fix;
   }
 

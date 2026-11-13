@@ -121,6 +121,18 @@ void main() {
     );
   });
 
+  test('Near me copy says places and shows ~x km for an approximate pin', () {
+    expect(NearMeCopy.title, 'Places near me');
+    expect(NearMeCopy.rationaleBody, contains('sort places by distance'));
+    expect(NearMeCopy.locating, 'Finding places near you…');
+    expect(NearMeCopy.nearestHeading, 'Nearest places');
+    expect(NearMeCopy.noTraditionMatch('Sikh'), 'No Sikh places in that area.');
+    expect(NearMeCopy.distanceLabel(3.2), '3.2 km');
+    expect(NearMeCopy.distanceLabel(3.2, approximate: true), '~3.2 km');
+    expect(NearMeCopy.distanceLabel(12.6, approximate: true), '~13 km');
+    expect(NearMeCopy.title.contains('Temple'), isFalse);
+  });
+
   test('§2.5 footer patterns', () {
     final wiki = Uri.parse('https://en.wikipedia.org/wiki/X');
     final osm = Uri.parse('https://www.openstreetmap.org/');
