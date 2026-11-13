@@ -766,24 +766,53 @@ bool _festivalPujaTitle(String text, int pujaStart) {
 /// "Jain temple", or a word such as Chaturbhuji, does not add a chip.
 /// Resolution is field → index → deity → Hindu. This fallback is the deity
 /// step. [DetailHonesty.of] goes through [templeTraditionKey].
+///
+/// The lead clause decides first: the text before the first '(', ' —',
+/// ',' or ';'. A lead that names a Hindu deity or says "Hindu" is a Hindu
+/// listing even when it or later words mention another tradition, so
+/// "Shiva, Vishnu and Tirthankaras" (Badami), "Shiva, with historic
+/// Vishnu and Jain associations" and "Hindu and Buddhist images" stay
+/// Hindu (mixed sites take a stored tradition field if they need one).
+/// A tradition named in the lead
+/// wins over one named later ("Sikh gurdwara - … (Baba Buddha)" is Sikh).
+/// Otherwise the whole text is read, so "Adinatha — Jain" and
+/// "Mahavira (Jain Tirthankara)" are Jain. Bare names such as "Mahavir" are
+/// not matched: in Hindi that is also a name of Hanuman.
 abstract final class _DeityTraditionPatterns {
   static final jain = RegExp(r'\b(jain|tirthankaras?)\b');
   static final buddhist = RegExp(r'\b(buddha|buddhist)\b');
   static final sikh = RegExp(r'\b(sikh|gurdwara|gurudwara|guru nanak)\b');
+
+  /// "Hindu" or a principal Hindu deity as a whole word in the lead clause.
+  static final hinduLead = RegExp(
+    r'\b(hindu|shiva|siva|shiv|mahadev|vishnu|krishna|rama|ram|narayana|'
+    r'venkateswara|balaji|jagannath|narasimha|devi|durga|kali|parvati|'
+    r'lakshmi|saraswati|ganesha|ganesh|ganapati|vinayaka|hanuman|murugan|'
+    r'subramanya|kartikeya|ayyappa|surya|brahma)\b',
+  );
+
+  static final leadCut = RegExp(r'\(|\s[—–]|,|;');
 }
 
-SiteTradition traditionFromDeityText(String deity) {
-  final lower = deity.toLowerCase();
-  if (_DeityTraditionPatterns.jain.hasMatch(lower)) {
-    return SiteTradition.jain;
-  }
+SiteTradition? _traditionNamedIn(String lower) {
+  if (_DeityTraditionPatterns.jain.hasMatch(lower)) return SiteTradition.jain;
   if (_DeityTraditionPatterns.buddhist.hasMatch(lower)) {
     return SiteTradition.buddhist;
   }
-  if (_DeityTraditionPatterns.sikh.hasMatch(lower)) {
-    return SiteTradition.sikh;
+  if (_DeityTraditionPatterns.sikh.hasMatch(lower)) return SiteTradition.sikh;
+  return null;
+}
+
+SiteTradition traditionFromDeityText(String deity) {
+  final lower = deity.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
+  final cut = _DeityTraditionPatterns.leadCut.firstMatch(lower);
+  final lead = cut == null ? lower : lower.substring(0, cut.start);
+  if (_DeityTraditionPatterns.hinduLead.hasMatch(lead)) {
+    return SiteTradition.unspecified;
   }
-  return SiteTradition.unspecified;
+  final inLead = _traditionNamedIn(lead);
+  if (inLead != null) return inLead;
+  return _traditionNamedIn(lower) ?? SiteTradition.unspecified;
 }
 
 bool _anyAffirmative(String text, List<String> phrases) {

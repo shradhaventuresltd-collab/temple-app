@@ -61,14 +61,21 @@ String? templeTraditionLabel(String? value) {
 
 /// Lookup used when grouping loaded temples, so a stored tradition labels
 /// a deity such as "Guru Granth Sahib" even when the text has no Sikh words.
+///
+/// A deity group is labelled only when every listing in it has that same
+/// tradition. One Jain listing in the Shiva group must not turn the row
+/// into "Shiva · Jain"; a mixed group gets no label.
 DeityTraditionOf traditionOfLoadedTemples(Iterable<Temple> temples) {
-  final byKey = <String, String>{};
+  final byKey = <String, String?>{};
   for (final temple in temples) {
-    final label = listedTempleTraditionLabel(temple);
-    if (label == null) continue;
     final key = deityGroupKey(temple.deity);
     if (key.isEmpty) continue;
-    byKey[key] ??= label;
+    final label = listedTempleTraditionLabel(temple);
+    if (!byKey.containsKey(key)) {
+      byKey[key] = label;
+    } else if (byKey[key] != label) {
+      byKey[key] = null;
+    }
   }
   return (name) => byKey[deityGroupKey(name)];
 }
