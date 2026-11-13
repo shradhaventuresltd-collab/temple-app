@@ -1,0 +1,1419 @@
+{
+  "@@locale": "en",
+  "commonRetryButton": "Retry",
+  "@commonRetryButton": {
+    "description": "Button that loads the directory again."
+  },
+  "commonTryAgainButton": "Try again",
+  "@commonTryAgainButton": {
+    "description": "Button that repeats a failed action."
+  },
+  "commonContinueButton": "Continue",
+  "@commonContinueButton": {
+    "description": "Button that continues after a short explanation."
+  },
+  "commonNotNowButton": "Not now",
+  "@commonNotNowButton": {
+    "description": "Button that dismisses an optional prompt."
+  },
+  "commonUpdateButton": "Update",
+  "@commonUpdateButton": {
+    "description": "Button that opens the store to update the app."
+  },
+  "commonClearButton": "Clear",
+  "@commonClearButton": {
+    "description": "Button that clears the current filter draft."
+  },
+  "commonHomeLabel": "Home",
+  "@commonHomeLabel": {
+    "description": "Navigation label for the home screen."
+  },
+  "commonSearchLabel": "Search",
+  "@commonSearchLabel": {
+    "description": "Short label for search."
+  },
+  "commonLicencesLabel": "Licences",
+  "@commonLicencesLabel": {
+    "description": "Navigation label for the licences screen."
+  },
+  "commonSomethingWentWrongMessage": "Something went wrong",
+  "@commonSomethingWentWrongMessage": {
+    "description": "Generic failure shown when a sheet cannot render."
+  },
+  "commonClearFiltersButton": "Clear filters",
+  "@commonClearFiltersButton": {
+    "description": "Button that clears active directory filters."
+  },
+  "commonClearSearchButton": "Clear search",
+  "@commonClearSearchButton": {
+    "description": "Button that clears the search text."
+  },
+  "commonShowMoreButton": "Show more",
+  "@commonShowMoreButton": {
+    "description": "Expands a collapsed block of text."
+  },
+  "commonShowLessButton": "Show less",
+  "@commonShowLessButton": {
+    "description": "Collapses an expanded block of text."
+  },
+  "appTitle": "Temple Directory India",
+  "@appTitle": {
+    "description": "Task-switcher name of the app."
+  },
+  "appNameShort": "Temple Directory",
+  "@appNameShort": {
+    "description": "Short name in the app bar and drawer."
+  },
+  "appNameCountry": "India",
+  "@appNameCountry": {
+    "description": "Second line under the drawer title."
+  },
+  "releaseErrorFallbackLabel": "Error",
+  "@releaseErrorFallbackLabel": {
+    "description": "Fallback word when an error has no message."
+  },
+  "homeBrowseButtonLabel": "{count, plural, =0{Browse places} =1{Browse 1 place} other{Browse {count} places}}",
+  "@homeBrowseButtonLabel": {
+    "description": "Home button that opens the directory. Zero uses the uncounted label.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "drawerBrowseButtonLabel": "{count, plural, =1{Browse 1 place} other{Browse {count} places}}",
+  "@drawerBrowseButtonLabel": {
+    "description": "Drawer button for the filtered list. Zero stays counted.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeBrowseHint": "Open the directory for place cards, search, and filters. You can also use the menu (☰).",
+  "@homeBrowseHint": {
+    "description": "Hint under the home title explaining how to open the directory."
+  },
+  "homeHeritageContinuesLabel": "Heritage reading continues below",
+  "@homeHeritageContinuesLabel": {
+    "description": "Caption that the heritage essay continues below the buttons."
+  },
+  "homeHeritageTitle": "Temple Heritage of India",
+  "@homeHeritageTitle": {
+    "description": "Heading of the heritage essay section. The essay body is not translated."
+  },
+  "homeHeritageSubtitle": "A comprehensive exploration of India's sacred architectural legacy",
+  "@homeHeritageSubtitle": {
+    "description": "Subtitle under the heritage essay heading."
+  },
+  "homeLoadingTitle": "Loading places…",
+  "@homeLoadingTitle": {
+    "description": "Title while the directory is loading on home."
+  },
+  "homeLoadingMessage": "Preparing the directory. This usually takes a moment.",
+  "@homeLoadingMessage": {
+    "description": "Subtitle while the directory is loading."
+  },
+  "homeLoadFailedTitle": "Could not load places.",
+  "@homeLoadFailedTitle": {
+    "description": "Title when the home directory fails to load."
+  },
+  "homeLoadFailedMessage": "Check your connection and try again.",
+  "@homeLoadFailedMessage": {
+    "description": "Hint under a failed home load."
+  },
+  "homeEmptyTitle": "No places available yet.",
+  "@homeEmptyTitle": {
+    "description": "Title when the directory loads with no places."
+  },
+  "homeEmptyMessage": "The directory came back empty. Tap Retry, or try again later.",
+  "@homeEmptyMessage": {
+    "description": "Hint when the loaded directory is empty."
+  },
+  "homeDirectoryCountLabel": "{count, plural, =0{No places loaded yet} =1{1 place across India} other{{count} places across India}}",
+  "@homeDirectoryCountLabel": {
+    "description": "Hero line for how many places are loaded.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeDiscoverLabel": "Discover",
+  "@homeDiscoverLabel": {
+    "description": "Small word above the hero title."
+  },
+  "homeHeroTitle": "India's Sacred Places",
+  "@homeHeroTitle": {
+    "description": "Hero title on the home mosaic."
+  },
+  "homeMosaicPlacePhotoLabel": "Place photo",
+  "@homeMosaicPlacePhotoLabel": {
+    "description": "Spoken label for a mosaic photo tile."
+  },
+  "drawerAboutDirectoryBlurb": "{count, plural, =0{Explore famous places across Tamil Nadu, Kerala, Karnataka, Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, Jammu and Kashmir, Maharashtra, Rajasthan, West Bengal, Madhya Pradesh, Bihar, and Himachal Pradesh. Discover histories, legends, timings and specialities — all in one curated directory.} =1{Explore 1 famous place across Tamil Nadu, Kerala, Karnataka, Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, Jammu and Kashmir, Maharashtra, Rajasthan, West Bengal, Madhya Pradesh, Bihar, and Himachal Pradesh. Discover histories, legends, timings and specialities — all in one curated directory.} other{Explore {count} famous places across Tamil Nadu, Kerala, Karnataka, Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, Jammu and Kashmir, Maharashtra, Rajasthan, West Bengal, Madhya Pradesh, Bihar, and Himachal Pradesh. Discover histories, legends, timings and specialities — all in one curated directory.}}",
+  "@drawerAboutDirectoryBlurb": {
+    "description": "Drawer about text. The place list is part of the sentence, not a joined fragment.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "drawerAllPlacesLabel": "All places",
+  "@drawerAllPlacesLabel": {
+    "description": "Drawer row that opens every loaded place."
+  },
+  "drawerSearchSectionLabel": "SEARCH",
+  "@drawerSearchSectionLabel": {
+    "description": "Section heading above the drawer search field."
+  },
+  "drawerFiltersSectionLabel": "FILTERS",
+  "@drawerFiltersSectionLabel": {
+    "description": "Section heading above the drawer filters."
+  },
+  "drawerAboutSectionLabel": "ABOUT",
+  "@drawerAboutSectionLabel": {
+    "description": "Section heading above the about blurb."
+  },
+  "drawerFiltersErrorMessage": "Could not load filters. Check your connection.",
+  "@drawerFiltersErrorMessage": {
+    "description": "Shown when drawer filters cannot load."
+  },
+  "drawerFiltersLoadingLabel": "Loading filters",
+  "@drawerFiltersLoadingLabel": {
+    "description": "Spoken label while drawer filters load."
+  },
+  "drawerClearSearchAndFiltersButton": "Clear search and filters",
+  "@drawerClearSearchAndFiltersButton": {
+    "description": "Clears both the drawer search and the filters."
+  },
+  "drawerClearAllFiltersButton": "Clear All Filters",
+  "@drawerClearAllFiltersButton": {
+    "description": "Clears every drawer filter."
+  },
+  "drawerSearchDirectoryButton": "Search directory",
+  "@drawerSearchDirectoryButton": {
+    "description": "Drawer action when the search box is still empty."
+  },
+  "drawerNoMatchingPlacesLabel": "No matching places",
+  "@drawerNoMatchingPlacesLabel": {
+    "description": "Drawer action when the search matches nothing."
+  },
+  "drawerViewMatchCountLabel": "{count, plural, =1{View 1 match} other{View {count} matches}}",
+  "@drawerViewMatchCountLabel": {
+    "description": "Drawer action that opens the search matches.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "drawerSearchBrowseTitle": "Search",
+  "@drawerSearchBrowseTitle": {
+    "description": "Browse title when only a search is active."
+  },
+  "drawerSearchHint": "Name, city, state, deity, or address",
+  "@drawerSearchHint": {
+    "description": "Hint in the drawer search field."
+  },
+  "drawerClearSearchTooltip": "Clear search",
+  "@drawerClearSearchTooltip": {
+    "description": "Tooltip on the button that clears the drawer search."
+  },
+  "drawerLoadingPlacesTitle": "Loading places",
+  "@drawerLoadingPlacesTitle": {
+    "description": "Title while a browse list is loading."
+  },
+  "drawerLoadingPlacesMessage": "Fetching the directory.",
+  "@drawerLoadingPlacesMessage": {
+    "description": "Message under the browse loading title."
+  },
+  "drawerLoadFailedTitle": "Could not load places",
+  "@drawerLoadFailedTitle": {
+    "description": "Title when a browse list fails to load."
+  },
+  "drawerLoadFailedRetryMessage": "The directory did not load. Check your connection and try again.",
+  "@drawerLoadFailedRetryMessage": {
+    "description": "Failure message when retry is available."
+  },
+  "drawerLoadFailedNoRetryMessage": "The directory did not load. Go back and try again.",
+  "@drawerLoadFailedNoRetryMessage": {
+    "description": "Failure message when retry is not available."
+  },
+  "drawerRetryFailedMessage": "Still could not load places. Check your connection and try again.",
+  "@drawerRetryFailedMessage": {
+    "description": "Snack bar when a saved-list retry still fails."
+  },
+  "drawerAdPrivacyChoicesLabel": "Ad privacy choices",
+  "@drawerAdPrivacyChoicesLabel": {
+    "description": "Drawer row that opens ad privacy options."
+  },
+  "directoryEmptyFiltersAndQueryMessage": "No places match these filters and \"{query}\".",
+  "@directoryEmptyFiltersAndQueryMessage": {
+    "description": "Empty browse list when filters and a search are both set.",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "directoryEmptyFiltersMessage": "No places match these filters.",
+  "@directoryEmptyFiltersMessage": {
+    "description": "Empty browse list when only filters are set. District and tradition stay in the filter, not this sentence."
+  },
+  "directoryEmptyQueryMessage": "No places match \"{query}\".",
+  "@directoryEmptyQueryMessage": {
+    "description": "Empty browse list when only a search is set.",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "directoryEmptyBrowseMessage": "No places to browse",
+  "@directoryEmptyBrowseMessage": {
+    "description": "Empty browse list with no search and no filters."
+  },
+  "directoryEmptyFiltersHint": "Clear the filters or the search. The list is the directory already loaded.",
+  "@directoryEmptyFiltersHint": {
+    "description": "Hint under an empty filtered list that also has a search."
+  },
+  "directoryEmptyQueryHint": "Try a name, city, state, deity, or address.",
+  "@directoryEmptyQueryHint": {
+    "description": "Hint under an empty search."
+  },
+  "directoryEmptyBrowseHint": "Nothing is listed in this view yet.",
+  "@directoryEmptyBrowseHint": {
+    "description": "Hint when the current view has nothing listed."
+  },
+  "directoryTitleAllPlaces": "All places",
+  "@directoryTitleAllPlaces": {
+    "description": "Browse title when no tradition is selected."
+  },
+  "directoryTitleHinduPlaces": "Hindu places",
+  "@directoryTitleHinduPlaces": {
+    "description": "Browse title for the Hindu tradition filter."
+  },
+  "directoryTitleSikhPlaces": "Sikh places",
+  "@directoryTitleSikhPlaces": {
+    "description": "Browse title for the Sikh tradition filter."
+  },
+  "directoryTitleJainPlaces": "Jain places",
+  "@directoryTitleJainPlaces": {
+    "description": "Browse title for the Jain tradition filter."
+  },
+  "directoryTitleBuddhistPlaces": "Buddhist places",
+  "@directoryTitleBuddhistPlaces": {
+    "description": "Browse title for the Buddhist tradition filter."
+  },
+  "directoryPlaceCountLabel": "{count, plural, =1{1 place} other{{count} places}}",
+  "@directoryPlaceCountLabel": {
+    "description": "Short count of places. Zero stays in the plural form.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "directoryFilterResultLabel": "{count, plural, =1{Show 1 place} other{Show {count} places}}",
+  "@directoryFilterResultLabel": {
+    "description": "Apply button on the filter sheet. Zero stays counted.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "directoryEmptyFilterMessage": "Nothing in the loaded directory fits these filters.",
+  "@directoryEmptyFilterMessage": {
+    "description": "Sentence when the loaded directory does not fit the filters."
+  },
+  "directoryDeityCountLabel": "{count, plural, other{{count} deities}}",
+  "@directoryDeityCountLabel": {
+    "description": "Deity sheet note when no Jain, Buddhist, or Sikh names are present. Always the plural form.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "directoryDeityNoteJain": "Jain sites are labelled by their own tradition, not Hindu darshan.",
+  "@directoryDeityNoteJain": {
+    "description": "Deity sheet note when only Jain names are labelled."
+  },
+  "directoryDeityNoteBuddhist": "Buddhist sites are labelled by their own tradition, not Hindu darshan.",
+  "@directoryDeityNoteBuddhist": {
+    "description": "Deity sheet note when only Buddhist names are labelled."
+  },
+  "directoryDeityNoteSikh": "Sikh sites are labelled by their own tradition, not Hindu darshan.",
+  "@directoryDeityNoteSikh": {
+    "description": "Deity sheet note when only Sikh names are labelled."
+  },
+  "directoryDeityNoteJainAndBuddhist": "Jain and Buddhist sites are labelled by their own tradition, not Hindu darshan.",
+  "@directoryDeityNoteJainAndBuddhist": {
+    "description": "Deity sheet note for Jain and Buddhist names."
+  },
+  "directoryDeityNoteJainAndSikh": "Jain and Sikh sites are labelled by their own tradition, not Hindu darshan.",
+  "@directoryDeityNoteJainAndSikh": {
+    "description": "Deity sheet note for Jain and Sikh names."
+  },
+  "directoryDeityNoteBuddhistAndSikh": "Buddhist and Sikh sites are labelled by their own tradition, not Hindu darshan.",
+  "@directoryDeityNoteBuddhistAndSikh": {
+    "description": "Deity sheet note for Buddhist and Sikh names."
+  },
+  "directoryDeityNoteJainBuddhistAndSikh": "Jain, Buddhist and Sikh sites are labelled by their own tradition, not Hindu darshan.",
+  "@directoryDeityNoteJainBuddhistAndSikh": {
+    "description": "Deity sheet note for Jain, Buddhist, and Sikh names."
+  },
+  "directoryDeityWithTradition": "{deity} · {tradition, select, jain{Jain} buddhist{Buddhist} sikh{Sikh} hindu{Hindu} other{{deity}}}",
+  "@directoryDeityWithTradition": {
+    "description": "Deity chip. The deity name stays canonical; only the tradition word is translated.",
+    "placeholders": {
+      "deity": {
+        "type": "String"
+      },
+      "tradition": {
+        "type": "String"
+      }
+    }
+  },
+  "traditionHindu": "Hindu",
+  "@traditionHindu": {
+    "description": "Display label for the Hindu tradition. The stored value stays hindu."
+  },
+  "traditionJain": "Jain",
+  "@traditionJain": {
+    "description": "Display label for the Jain tradition. The stored value stays jain."
+  },
+  "traditionBuddhist": "Buddhist",
+  "@traditionBuddhist": {
+    "description": "Display label for the Buddhist tradition. The stored value stays buddhist."
+  },
+  "traditionSikh": "Sikh",
+  "@traditionSikh": {
+    "description": "Display label for the Sikh tradition. The stored value stays sikh."
+  },
+  "placeTypeTempleLabel": "Temple",
+  "@placeTypeTempleLabel": {
+    "description": "Spoken label for the Hindu place icon."
+  },
+  "placeTypeGurdwaraLabel": "Gurdwara",
+  "@placeTypeGurdwaraLabel": {
+    "description": "Spoken label for the Sikh place icon."
+  },
+  "placeTypeDerasarLabel": "Derasar",
+  "@placeTypeDerasarLabel": {
+    "description": "Spoken label for the Jain place icon."
+  },
+  "placeTypeBuddhistTempleLabel": "Buddhist temple",
+  "@placeTypeBuddhistTempleLabel": {
+    "description": "Spoken label for the Buddhist place icon."
+  },
+  "filterSheetStateTitle": "State",
+  "@filterSheetStateTitle": {
+    "description": "Title of the state filter sheet."
+  },
+  "filterSheetDistrictTitle": "District",
+  "@filterSheetDistrictTitle": {
+    "description": "Title of the district filter sheet."
+  },
+  "filterSheetDeityTitle": "Deity",
+  "@filterSheetDeityTitle": {
+    "description": "Title of the deity filter sheet."
+  },
+  "filterSheetTraditionTitle": "Tradition",
+  "@filterSheetTraditionTitle": {
+    "description": "Title of the tradition filter sheet."
+  },
+  "filterChipStateLabel": "State",
+  "@filterChipStateLabel": {
+    "description": "State chip when no state is chosen."
+  },
+  "filterChipDistrictLabel": "District",
+  "@filterChipDistrictLabel": {
+    "description": "District chip when no district is chosen."
+  },
+  "filterChipDeityLabel": "Deity",
+  "@filterChipDeityLabel": {
+    "description": "Deity chip when no deity is chosen."
+  },
+  "filterChipTraditionLabel": "Tradition",
+  "@filterChipTraditionLabel": {
+    "description": "Tradition chip when no tradition is chosen."
+  },
+  "filterChipChooseStateTooltip": "Choose a state",
+  "@filterChipChooseStateTooltip": {
+    "description": "Tooltip that opens the state sheet."
+  },
+  "filterChipClearStateTooltip": "Clear state filter",
+  "@filterChipClearStateTooltip": {
+    "description": "Tooltip that clears the state filter."
+  },
+  "filterChipChooseDistrictTooltip": "Choose a district",
+  "@filterChipChooseDistrictTooltip": {
+    "description": "Tooltip that opens the district sheet."
+  },
+  "filterChipChooseStateFirstTooltip": "Choose a state first",
+  "@filterChipChooseStateFirstTooltip": {
+    "description": "Tooltip when a district needs a state first."
+  },
+  "filterChipClearDistrictTooltip": "Clear district filter",
+  "@filterChipClearDistrictTooltip": {
+    "description": "Tooltip that clears the district filter."
+  },
+  "filterChipChooseDeityTooltip": "Choose a deity",
+  "@filterChipChooseDeityTooltip": {
+    "description": "Tooltip that opens the deity sheet."
+  },
+  "filterChipClearDeityTooltip": "Clear deity filter",
+  "@filterChipClearDeityTooltip": {
+    "description": "Tooltip that clears the deity filter."
+  },
+  "filterChipChooseTraditionTooltip": "Choose a tradition",
+  "@filterChipChooseTraditionTooltip": {
+    "description": "Tooltip that opens the tradition sheet."
+  },
+  "filterChipClearTraditionTooltip": "Clear tradition filter",
+  "@filterChipClearTraditionTooltip": {
+    "description": "Tooltip that clears the tradition filter."
+  },
+  "filterBarClearAllButton": "Clear all",
+  "@filterBarClearAllButton": {
+    "description": "Button that clears every chip."
+  },
+  "filterSheetSearchHint": "Search",
+  "@filterSheetSearchHint": {
+    "description": "Default hint in a filter sheet search field."
+  },
+  "filterSheetSearchStateHint": "Search state",
+  "@filterSheetSearchStateHint": {
+    "description": "Hint in the state sheet search."
+  },
+  "filterSheetSearchDistrictHint": "Search district",
+  "@filterSheetSearchDistrictHint": {
+    "description": "Hint in the district sheet search."
+  },
+  "filterSheetSearchDeityHint": "Search deity (e.g. Murugan)",
+  "@filterSheetSearchDeityHint": {
+    "description": "Hint in the deity sheet search."
+  },
+  "filterSheetSearchTraditionHint": "Search tradition",
+  "@filterSheetSearchTraditionHint": {
+    "description": "Hint in the tradition sheet search."
+  },
+  "filterSheetAnyStateLabel": "Any state",
+  "@filterSheetAnyStateLabel": {
+    "description": "Row that clears the state choice."
+  },
+  "filterSheetAnyDeityLabel": "Any deity",
+  "@filterSheetAnyDeityLabel": {
+    "description": "Row that clears the deity choice."
+  },
+  "filterSheetAnyTraditionLabel": "Any tradition",
+  "@filterSheetAnyTraditionLabel": {
+    "description": "Row that clears the tradition choice."
+  },
+  "filterSheetChooseStateFirstMessage": "Choose a state first",
+  "@filterSheetChooseStateFirstMessage": {
+    "description": "State sheet subtitle before a state is required."
+  },
+  "filterSheetStateCountLabel": "{count, plural, other{{count} states & UTs with places}}",
+  "@filterSheetStateCountLabel": {
+    "description": "Subtitle counting states and union territories that have places. The wording stays plural for 1.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filterSheetUnionTerritoryBadge": "UT",
+  "@filterSheetUnionTerritoryBadge": {
+    "description": "Short badge on a union territory row."
+  },
+  "filterSheetRegionNorthHeading": "NORTH",
+  "@filterSheetRegionNorthHeading": {
+    "description": "Small-caps section heading for northern states."
+  },
+  "filterSheetRegionSouthHeading": "SOUTH",
+  "@filterSheetRegionSouthHeading": {
+    "description": "Small-caps section heading for southern states."
+  },
+  "filterSheetRegionEastHeading": "EAST",
+  "@filterSheetRegionEastHeading": {
+    "description": "Small-caps section heading for eastern states."
+  },
+  "filterSheetRegionNortheastHeading": "NORTHEAST",
+  "@filterSheetRegionNortheastHeading": {
+    "description": "Small-caps section heading for northeastern states."
+  },
+  "filterSheetRegionWestHeading": "WEST",
+  "@filterSheetRegionWestHeading": {
+    "description": "Small-caps section heading for western states."
+  },
+  "filterSheetRegionCentralHeading": "CENTRAL",
+  "@filterSheetRegionCentralHeading": {
+    "description": "Small-caps section heading for central states."
+  },
+  "filterSheetRegionOtherHeading": "OTHER",
+  "@filterSheetRegionOtherHeading": {
+    "description": "Small-caps section heading for uncatalogued names."
+  },
+  "filterSheetRegionNorthJump": "North",
+  "@filterSheetRegionNorthJump": {
+    "description": "Jump chip for the north section. Not produced by changing the heading's case."
+  },
+  "filterSheetRegionSouthJump": "South",
+  "@filterSheetRegionSouthJump": {
+    "description": "Jump chip for the south section."
+  },
+  "filterSheetRegionEastJump": "East",
+  "@filterSheetRegionEastJump": {
+    "description": "Jump chip for the east section."
+  },
+  "filterSheetRegionWestJump": "West",
+  "@filterSheetRegionWestJump": {
+    "description": "Jump chip for the west section."
+  },
+  "filterSheetRegionCentralJump": "Central",
+  "@filterSheetRegionCentralJump": {
+    "description": "Jump chip for the central section."
+  },
+  "filterSheetAllDistrictsLabel": "All districts",
+  "@filterSheetAllDistrictsLabel": {
+    "description": "Row that clears the district when no state is chosen."
+  },
+  "filterSheetAllDistrictsInStateLabel": "All districts in {state}",
+  "@filterSheetAllDistrictsInStateLabel": {
+    "description": "Row that clears the district inside one state. The state name is a placeholder.",
+    "placeholders": {
+      "state": {
+        "type": "String"
+      }
+    }
+  },
+  "filterSheetInStateLabel": "In {state} · ",
+  "@filterSheetInStateLabel": {
+    "description": "Prefix before the change-state button. The state name is a placeholder.",
+    "placeholders": {
+      "state": {
+        "type": "String"
+      }
+    }
+  },
+  "filterSheetChangeStateButton": "Change state",
+  "@filterSheetChangeStateButton": {
+    "description": "Button that leaves the district sheet for the state sheet."
+  },
+  "filterSheetDistrictsLoadError": "Districts could not be loaded",
+  "@filterSheetDistrictsLoadError": {
+    "description": "Error when district boundaries fail to load."
+  },
+  "filterSheetMostListedHeading": "MOST LISTED",
+  "@filterSheetMostListedHeading": {
+    "description": "Heading above the most common deities."
+  },
+  "filterSheetDeityTraditionScope": "{tradition, select, sikh{In Sikh places · } jain{In Jain places · } buddhist{In Buddhist places · } hindu{In Hindu places · } other{In places · }}",
+  "@filterSheetDeityTraditionScope": {
+    "description": "Line before the change-tradition button. One complete phrase per tradition.",
+    "placeholders": {
+      "tradition": {
+        "type": "String"
+      }
+    }
+  },
+  "filterSheetChangeTraditionButton": "Change tradition",
+  "@filterSheetChangeTraditionButton": {
+    "description": "Button that leaves the deity sheet for the tradition sheet."
+  },
+  "filterSheetCloseTooltip": "Close filters",
+  "@filterSheetCloseTooltip": {
+    "description": "Tooltip on the button that closes the filter sheet."
+  },
+  "filterSheetNoMatchMessage": "No match for ‘{query}’",
+  "@filterSheetNoMatchMessage": {
+    "description": "Shown when the sheet search matches no row. Uses curly quotes.",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "filterSheetShowPlacesFallback": "Show places",
+  "@filterSheetShowPlacesFallback": {
+    "description": "Apply label before a count is ready."
+  },
+  "filterSheetLoadingDistrictsLabel": "Loading districts",
+  "@filterSheetLoadingDistrictsLabel": {
+    "description": "Spoken label while district rows are loading."
+  },
+  "nearMeTitle": "Places near me",
+  "@nearMeTitle": {
+    "description": "Screen title for places sorted by distance."
+  },
+  "nearMeRationaleTitle": "Sort by distance",
+  "@nearMeRationaleTitle": {
+    "description": "Title of the approximate-location explanation."
+  },
+  "nearMeRationaleBody": "Used once on your phone to sort places by distance. Never stored or sent.",
+  "@nearMeRationaleBody": {
+    "description": "Body of the approximate-location explanation. Same wording as the iOS permission string."
+  },
+  "nearMeLocatingMessage": "Finding places near you…",
+  "@nearMeLocatingMessage": {
+    "description": "Status while a location fix is in progress."
+  },
+  "nearMeNearestHeading": "Nearest places",
+  "@nearMeNearestHeading": {
+    "description": "Heading when results use the device location."
+  },
+  "nearMeLastKnownNote": "Using last known location",
+  "@nearMeLastKnownNote": {
+    "description": "Note that the list used a cached fix."
+  },
+  "nearMeDeniedBody": "Location is off for this app. Pick a state or city and the list is sorted from there.",
+  "@nearMeDeniedBody": {
+    "description": "Explanation when location permission is denied."
+  },
+  "nearMeDeniedForeverBody": "Location stays off until you allow approximate location in settings. You can still pick a state or city.",
+  "@nearMeDeniedForeverBody": {
+    "description": "Explanation when location permission is permanently denied."
+  },
+  "nearMeOpenSettingsButton": "Open settings",
+  "@nearMeOpenSettingsButton": {
+    "description": "Button that opens app settings."
+  },
+  "nearMeEnableLocationButton": "Enable location",
+  "@nearMeEnableLocationButton": {
+    "description": "Button that asks for location permission."
+  },
+  "nearMeServiceOffBody": "Location is turned off on this phone. Turn it on and try again, or pick a state or city.",
+  "@nearMeServiceOffBody": {
+    "description": "Explanation when the device location service is off."
+  },
+  "nearMeOpenLocationSettingsButton": "Open location settings",
+  "@nearMeOpenLocationSettingsButton": {
+    "description": "Button that opens the system location settings."
+  },
+  "nearMeTimedOutBody": "Could not read a location in time. Try again, or pick a state or city.",
+  "@nearMeTimedOutBody": {
+    "description": "Explanation when a location fix times out."
+  },
+  "nearMeDeclinedBody": "Pick a state or city to sort the list.",
+  "@nearMeDeclinedBody": {
+    "description": "Explanation after the person skips location."
+  },
+  "nearMeUseLocationButton": "Use approximate location",
+  "@nearMeUseLocationButton": {
+    "description": "Button that starts an approximate location fix."
+  },
+  "nearMeChooseStateLabel": "Choose a state",
+  "@nearMeChooseStateLabel": {
+    "description": "State picker when none is chosen."
+  },
+  "nearMeChooseCityLabel": "Choose a city",
+  "@nearMeChooseCityLabel": {
+    "description": "City picker when none is chosen."
+  },
+  "nearMeChooseDistrictLabel": "Choose a district",
+  "@nearMeChooseDistrictLabel": {
+    "description": "District picker when none is chosen."
+  },
+  "nearMeAnyCityLabel": "Any city",
+  "@nearMeAnyCityLabel": {
+    "description": "Row that clears the city anchor."
+  },
+  "nearMeAnyDistrictLabel": "Any district",
+  "@nearMeAnyDistrictLabel": {
+    "description": "Row that clears the district anchor."
+  },
+  "nearMeNoMapPointsMessage": "None of these listings have a map point.",
+  "@nearMeNoMapPointsMessage": {
+    "description": "Empty state when listed places have no coordinates."
+  },
+  "nearMeNoAnchorMatchMessage": "None of the listings in that area have a map point.",
+  "@nearMeNoAnchorMatchMessage": {
+    "description": "Empty state when the chosen area has no coordinates."
+  },
+  "nearMeNoTraditionPlacesMessage": "{tradition, select, sikh{No Sikh places in that area.} jain{No Jain places in that area.} buddhist{No Buddhist places in that area.} hindu{No Hindu places in that area.} other{No places in that area.}}",
+  "@nearMeNoTraditionPlacesMessage": {
+    "description": "Empty state after a tradition chip. The tradition is selected, not concatenated.",
+    "placeholders": {
+      "tradition": {
+        "type": "String"
+      }
+    }
+  },
+  "nearMeSortedFromLabel": "Sorted from {place}",
+  "@nearMeSortedFromLabel": {
+    "description": "Heading when results are sorted from a chosen place. The place name is a placeholder.",
+    "placeholders": {
+      "place": {
+        "type": "String"
+      }
+    }
+  },
+  "nearMeDistanceLabel": "{kind, select, tenth{{tenths} km} other{{whole} km}}",
+  "@nearMeDistanceLabel": {
+    "description": "Distance in kilometres. Under 10 km uses one decimal; 10 km and over uses a whole number.",
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      },
+      "tenths": {
+        "type": "double",
+        "format": "decimalPatternDigits",
+        "optionalParameters": {
+          "decimalDigits": 1
+        }
+      },
+      "whole": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "nearMeApproximateDistanceLabel": "{kind, select, tenth{~{tenths} km} other{~{whole} km}}",
+  "@nearMeApproximateDistanceLabel": {
+    "description": "Approximate distance. Same rounding as the exact distance, with a tilde.",
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      },
+      "tenths": {
+        "type": "double",
+        "format": "decimalPatternDigits",
+        "optionalParameters": {
+          "decimalDigits": 1
+        }
+      },
+      "whole": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "nearMeInPlaceLabel": "In {place}",
+  "@nearMeInPlaceLabel": {
+    "description": "Subtitle that names the state a city or district list belongs to.",
+    "placeholders": {
+      "place": {
+        "type": "String"
+      }
+    }
+  },
+  "nearMeSortFromStateTitle": "Sort from state",
+  "@nearMeSortFromStateTitle": {
+    "description": "Title of the near-me state picker."
+  },
+  "nearMeSortFromStateHint": "Tap a state to sort places by distance from it",
+  "@nearMeSortFromStateHint": {
+    "description": "Hint under the near-me state picker title."
+  },
+  "nearMeCityTitle": "City",
+  "@nearMeCityTitle": {
+    "description": "Title of the near-me city picker."
+  },
+  "nearMeSearchCityHint": "Search city",
+  "@nearMeSearchCityHint": {
+    "description": "Hint in the near-me city search."
+  },
+  "nearMeDistrictTitle": "District",
+  "@nearMeDistrictTitle": {
+    "description": "Title of the near-me district picker."
+  },
+  "nearMeSearchDistrictHint": "Search district",
+  "@nearMeSearchDistrictHint": {
+    "description": "Hint in the near-me district search."
+  },
+  "templeDetailApproximateLocationLabel": "Approximate location",
+  "@templeDetailApproximateLocationLabel": {
+    "description": "Notice that the pin is approximate."
+  },
+  "templeDetailLoadFailedMessage": "Could not load this temple.",
+  "@templeDetailLoadFailedMessage": {
+    "description": "Shown when a temple detail read fails."
+  },
+  "templeDetailDirectionsUnavailableMessage": "Couldn't open directions on this device.",
+  "@templeDetailDirectionsUnavailableMessage": {
+    "description": "Snack bar when directions cannot open."
+  },
+  "templeDetailGalleryPositionLabel": "{current} / {total}",
+  "@templeDetailGalleryPositionLabel": {
+    "description": "Gallery page indicator.",
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "templeBrowsePlaceLabel": "{city}, {state}",
+  "@templeBrowsePlaceLabel": {
+    "description": "City and state line on a card. City stays as stored; state may be a display name.",
+    "placeholders": {
+      "city": {
+        "type": "String"
+      },
+      "state": {
+        "type": "String"
+      }
+    }
+  },
+  "templeDetailListedFocusLabel": "Listed focus: {deity}",
+  "@templeDetailListedFocusLabel": {
+    "description": "Line under the framing note. The deity name is not translated.",
+    "placeholders": {
+      "deity": {
+        "type": "String"
+      }
+    }
+  },
+  "templeDetailCacheHint": "This page may be out of date.",
+  "@templeDetailCacheHint": {
+    "description": "Shown when the detail page was read from cache."
+  },
+  "templeDetailLocationTitle": "Location",
+  "@templeDetailLocationTitle": {
+    "description": "Heading for the address card."
+  },
+  "templeDetailNotListedMessage": "Not listed in this entry.",
+  "@templeDetailNotListedMessage": {
+    "description": "Shown when a detail field has no text."
+  },
+  "templeDetailCoordinatesTitle": "Coordinates",
+  "@templeDetailCoordinatesTitle": {
+    "description": "Heading for the coordinate card."
+  },
+  "templeDetailCoordinatesValue": "{latitude}° N, {longitude}° E",
+  "@templeDetailCoordinatesValue": {
+    "description": "Formatted coordinates. Numbers are already fixed to four decimals.",
+    "placeholders": {
+      "latitude": {
+        "type": "String"
+      },
+      "longitude": {
+        "type": "String"
+      }
+    }
+  },
+  "templeDetailHowToReachTitle": "How to Reach",
+  "@templeDetailHowToReachTitle": {
+    "description": "Heading above the directions card."
+  },
+  "templeDetailGetDirectionsButton": "Get Directions",
+  "@templeDetailGetDirectionsButton": {
+    "description": "Button that opens maps."
+  },
+  "templeDetailAboutTitle": "About",
+  "@templeDetailAboutTitle": {
+    "description": "Heading above the description."
+  },
+  "templeDetailSpecialitiesTitle": "Specialities",
+  "@templeDetailSpecialitiesTitle": {
+    "description": "Heading above the speciality chips."
+  },
+  "templeDetailTimingsTitle": "Timings",
+  "@templeDetailTimingsTitle": {
+    "description": "Heading for worship hours."
+  },
+  "templeDetailVisitingHoursTitle": "Visiting hours",
+  "@templeDetailVisitingHoursTitle": {
+    "description": "Heading for monument visiting hours."
+  },
+  "templeDetailHeritageVisitLabel": "Heritage visit",
+  "@templeDetailHeritageVisitLabel": {
+    "description": "Chip for a monument or archaeological site."
+  },
+  "templeDetailLivingTempleLabel": "Living temple",
+  "@templeDetailLivingTempleLabel": {
+    "description": "Chip for a living temple when no tradition chip is shown."
+  },
+  "templeDetailAboutThisPlaceTitle": "About this place",
+  "@templeDetailAboutThisPlaceTitle": {
+    "description": "Story heading when a tradition chip already frames the site."
+  },
+  "templeDetailStoryTitle": "Temple story",
+  "@templeDetailStoryTitle": {
+    "description": "Story heading for a living temple."
+  },
+  "templeDetailSiteHistoryTitle": "Site history",
+  "@templeDetailSiteHistoryTitle": {
+    "description": "Story heading for a monument visit."
+  },
+  "templeDetailBackgroundTitle": "Background",
+  "@templeDetailBackgroundTitle": {
+    "description": "Story heading when framing is neutral."
+  },
+  "templeDetailPhotoPendingTitle": "Photo pending",
+  "@templeDetailPhotoPendingTitle": {
+    "description": "Title on a placeholder when no verified photo exists."
+  },
+  "templeDetailPhotoPendingCaption": "No verified photograph is on file.",
+  "@templeDetailPhotoPendingCaption": {
+    "description": "Caption under the photo-pending title."
+  },
+  "templeDetailPhotoPendingSemantics": "Photo pending. No verified photograph is on file.",
+  "@templeDetailPhotoPendingSemantics": {
+    "description": "Spoken label for the photo placeholder."
+  },
+  "templeDetailDressCodeTitle": "Dress code",
+  "@templeDetailDressCodeTitle": {
+    "description": "Heading of the dress-code card."
+  },
+  "templeDetailDressCodeChangedLead": "Rules may have changed.",
+  "@templeDetailDressCodeChangedLead": {
+    "description": "Lead sentence when dress-code rules may have changed."
+  },
+  "templeDetailDressCodeConfirmMessage": "Confirm with the place.",
+  "@templeDetailDressCodeConfirmMessage": {
+    "description": "Dress-code note when there is no source link."
+  },
+  "templeDetailTimingsChangedLead": "Timings may have changed.",
+  "@templeDetailTimingsChangedLead": {
+    "description": "Lead sentence when published hours may have changed."
+  },
+  "templeDetailTimingsChangedConfirmMessage": "Timings may have changed. Confirm with the place.",
+  "@templeDetailTimingsChangedConfirmMessage": {
+    "description": "Timings note when there is no source link."
+  },
+  "templeDetailUnverifiedTitle": "Unverified, check before visiting",
+  "@templeDetailUnverifiedTitle": {
+    "description": "Shared caution heading."
+  },
+  "templeDetailViewSourceLabel": "View source",
+  "@templeDetailViewSourceLabel": {
+    "description": "Link text that opens a source."
+  },
+  "templeDetailViewSourceSemantics": "View source, opens browser",
+  "@templeDetailViewSourceSemantics": {
+    "description": "Spoken label for the source link."
+  },
+  "templeDetailSourceLinkFailedMessage": "Couldn't open the source link.",
+  "@templeDetailSourceLinkFailedMessage": {
+    "description": "Snack bar when a source link does not open."
+  },
+  "templeDetailUnverifiedSemantics": "{subject} unverified. Check before visiting. {detail}",
+  "@templeDetailUnverifiedSemantics": {
+    "description": "Spoken caution. Subject and detail are already translated.",
+    "placeholders": {
+      "subject": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "templeDetailFramingLivingNote": "Notes describe continuing worship at a living temple. The hours below are published text from the listing.",
+  "@templeDetailFramingLivingNote": {
+    "description": "Framing note for a living temple with no tradition chip."
+  },
+  "templeDetailFramingJainLivingNote": "Jain pilgrimage site. Notes describe continuing observance. The hours below are published text from the listing.",
+  "@templeDetailFramingJainLivingNote": {
+    "description": "Framing note for a Jain living site."
+  },
+  "templeDetailFramingBuddhistLivingNote": "Buddhist pilgrimage site. Notes describe continuing observance. The hours below are published text from the listing.",
+  "@templeDetailFramingBuddhistLivingNote": {
+    "description": "Framing note for a Buddhist living site."
+  },
+  "templeDetailFramingSikhLivingNote": "Sikh site. Notes describe continuing observance. The hours below are published text from the listing.",
+  "@templeDetailFramingSikhLivingNote": {
+    "description": "Framing note for a Sikh living site."
+  },
+  "templeDetailFramingMonumentNote": "Heritage visit. The hours below are visitor access for a monument or archaeological site.",
+  "@templeDetailFramingMonumentNote": {
+    "description": "Framing note for a monument with no tradition chip."
+  },
+  "templeDetailFramingJainMonumentNote": "Jain pilgrimage site. Heritage visit. The hours below are visitor access for a monument or archaeological site.",
+  "@templeDetailFramingJainMonumentNote": {
+    "description": "Framing note for a Jain monument."
+  },
+  "templeDetailFramingBuddhistMonumentNote": "Buddhist pilgrimage site. Heritage visit. The hours below are visitor access for a monument or archaeological site.",
+  "@templeDetailFramingBuddhistMonumentNote": {
+    "description": "Framing note for a Buddhist monument."
+  },
+  "templeDetailFramingSikhMonumentNote": "Sikh site. Heritage visit. The hours below are visitor access for a monument or archaeological site.",
+  "@templeDetailFramingSikhMonumentNote": {
+    "description": "Framing note for a Sikh monument."
+  },
+  "templeDetailFramingNeutralNote": "These notes do not say clearly whether worship continues or this is only a monument visit.",
+  "@templeDetailFramingNeutralNote": {
+    "description": "Framing note when worship versus monument is unclear."
+  },
+  "templeDetailFramingJainNeutralNote": "Jain pilgrimage site. These notes do not say clearly whether worship continues or this is only a monument visit.",
+  "@templeDetailFramingJainNeutralNote": {
+    "description": "Framing note for an unclear Jain site."
+  },
+  "templeDetailFramingBuddhistNeutralNote": "Buddhist pilgrimage site. These notes do not say clearly whether worship continues or this is only a monument visit.",
+  "@templeDetailFramingBuddhistNeutralNote": {
+    "description": "Framing note for an unclear Buddhist site."
+  },
+  "templeDetailFramingSikhNeutralNote": "Sikh site. These notes do not say clearly whether worship continues or this is only a monument visit.",
+  "@templeDetailFramingSikhNeutralNote": {
+    "description": "Framing note for an unclear Sikh site."
+  },
+  "templeDetailTimingsMissingMessage": "No visiting hours are published in this listing. Confirm locally. Nothing here is an always-open clock.",
+  "@templeDetailTimingsMissingMessage": {
+    "description": "Caveat when no visiting hours are published."
+  },
+  "templeDetailTimingsSeasonalMultiMessage": "Provisional / seasonal. Several visiting windows or a limited season are described. This is not a single always-open clock. Confirm before you travel.",
+  "@templeDetailTimingsSeasonalMultiMessage": {
+    "description": "Caveat for several seasonal visiting windows."
+  },
+  "templeDetailTimingsSeasonalMessage": "Provisional / seasonal. These notes describe season-dependent access. This is not a single always-open clock. Confirm before you travel.",
+  "@templeDetailTimingsSeasonalMessage": {
+    "description": "Caveat for season-dependent access."
+  },
+  "templeDetailTimingsMultiWindowMessage": "Provisional. More than one visiting window is listed, or the notes disagree. This is not a single always-open clock. Confirm the day's board.",
+  "@templeDetailTimingsMultiWindowMessage": {
+    "description": "Caveat when more than one visiting window is listed."
+  },
+  "templeDetailTimingsProvisionalMessage": "Provisional. Published hours here are thin or incomplete. This is not a fixed always-open clock. Confirm locally.",
+  "@templeDetailTimingsProvisionalMessage": {
+    "description": "Caveat when published hours are thin."
+  },
+  "policyGateAcceptButton": "Accept & continue",
+  "@policyGateAcceptButton": {
+    "description": "Accept button on the terms gate."
+  },
+  "policyGateAcceptHint": "Agrees to the Terms of Service and Privacy Policy",
+  "@policyGateAcceptHint": {
+    "description": "Spoken hint for the accept button."
+  },
+  "policyGateTermsLabel": "Terms of Service",
+  "@policyGateTermsLabel": {
+    "description": "Link label for the terms of service."
+  },
+  "policyGateUpdateTermsLabel": "Terms",
+  "@policyGateUpdateTermsLabel": {
+    "description": "Shorter terms link after a policy update."
+  },
+  "policyGatePrivacyLabel": "Privacy Policy",
+  "@policyGatePrivacyLabel": {
+    "description": "Link label for the privacy policy."
+  },
+  "policyGateLinkHint": "Opens in the app",
+  "@policyGateLinkHint": {
+    "description": "Spoken hint that a policy link opens in the app."
+  },
+  "policyGateFirstLaunchTitle": "Before you begin",
+  "@policyGateFirstLaunchTitle": {
+    "description": "Title the first time terms are shown."
+  },
+  "policyGateFirstLaunchBody": "To use the app, please review and accept our {terms} and {privacy}.",
+  "@policyGateFirstLaunchBody": {
+    "description": "First-launch terms sentence. {terms} and {privacy} are the link labels.",
+    "placeholders": {
+      "terms": {
+        "type": "String"
+      },
+      "privacy": {
+        "type": "String"
+      }
+    }
+  },
+  "policyGateUpdateTitle": "We've updated our terms",
+  "@policyGateUpdateTitle": {
+    "description": "Title after the terms change."
+  },
+  "policyGateUpdateBody": "Please review and accept the updated {terms} and {privacy} to continue.",
+  "@policyGateUpdateBody": {
+    "description": "Updated-terms sentence. {terms} and {privacy} are the link labels.",
+    "placeholders": {
+      "terms": {
+        "type": "String"
+      },
+      "privacy": {
+        "type": "String"
+      }
+    }
+  },
+  "policyGateSaveFailedMessage": "Could not save your acceptance on this device. Please try again.",
+  "@policyGateSaveFailedMessage": {
+    "description": "Snack bar when acceptance cannot be stored."
+  },
+  "policyGateLinkFailedMessage": "Could not open that link.",
+  "@policyGateLinkFailedMessage": {
+    "description": "Snack bar when a policy link does not open."
+  },
+  "forceUpdateTitle": "Update required",
+  "@forceUpdateTitle": {
+    "description": "Title of the required-update screen."
+  },
+  "forceUpdateBody": "This version of Temple Directory India is no longer supported. Install the latest version from the Play Store to continue.",
+  "@forceUpdateBody": {
+    "description": "Body of the required-update screen."
+  },
+  "forceUpdateButton": "Update on Play Store",
+  "@forceUpdateButton": {
+    "description": "Button that opens the Play listing from the required-update screen."
+  },
+  "forceUpdateOpenFailedMessage": "Could not open the Play Store.",
+  "@forceUpdateOpenFailedMessage": {
+    "description": "Snack bar when the Play Store does not open."
+  },
+  "maintenanceTitle": "We'll be back soon",
+  "@maintenanceTitle": {
+    "description": "Title of the maintenance screen."
+  },
+  "maintenanceFallbackMessage": "Temple Directory is temporarily unavailable. Please try again later.",
+  "@maintenanceFallbackMessage": {
+    "description": "Shown when Remote Config has no maintenance message."
+  },
+  "softUpdateMessage": "A newer version is ready on the Play Store.",
+  "@softUpdateMessage": {
+    "description": "Banner when a newer build is recommended."
+  },
+  "offlineBannerOfflineMessage": "You're offline",
+  "@offlineBannerOfflineMessage": {
+    "description": "Banner when the device is offline and nothing is cached."
+  },
+  "offlineBannerSavedMessage": "You're offline. Showing places saved on this device.",
+  "@offlineBannerSavedMessage": {
+    "description": "Banner when offline and a saved directory is on screen."
+  },
+  "savedListOfflineMessage": "Offline, showing saved list",
+  "@savedListOfflineMessage": {
+    "description": "Banner when the saved list is showing and the device is offline."
+  },
+  "savedListOnlineMessage": "Showing saved list",
+  "@savedListOnlineMessage": {
+    "description": "Banner when the on-screen list came from cache."
+  },
+  "licencesDistrictBoundariesTitle": "District boundaries",
+  "@licencesDistrictBoundariesTitle": {
+    "description": "Heading on the licences screen."
+  },
+  "licencesBharatlasLinkLabel": "Bharatlas LGD Districts",
+  "@licencesBharatlasLinkLabel": {
+    "description": "Link text for the district dataset. The name is a proper name."
+  },
+  "licencesCcByLinkLabel": "CC BY 4.0",
+  "@licencesCcByLinkLabel": {
+    "description": "Link text for the CC BY 4.0 licence."
+  },
+  "licencesDatasetNote": "Dataset {version}, updated {updated}, fetched {fetched}. The polygons in this app were simplified.",
+  "@licencesDatasetNote": {
+    "description": "Sentence around the dataset version and dates. The values are legal constants.",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "updated": {
+        "type": "String"
+      },
+      "fetched": {
+        "type": "String"
+      }
+    }
+  },
+  "placeSourceOfficialWebsiteLabel": "Official temple website",
+  "@placeSourceOfficialWebsiteLabel": {
+    "description": "Label for an official temple website in the source footer."
+  },
+  "placeSourceCompiledMessage": "Compiled from public sources",
+  "@placeSourceCompiledMessage": {
+    "description": "Footer when a dress-code card has no source URL."
+  },
+  "placeSourceSinglePrefix": "Source: ",
+  "@placeSourceSinglePrefix": {
+    "description": "Prefix before one source name, including the trailing space."
+  },
+  "placeSourceManyPrefix": "Sources: ",
+  "@placeSourceManyPrefix": {
+    "description": "Prefix before several source names, including the trailing space."
+  },
+  "placeSourceMoreLabel": "+{count} more",
+  "@placeSourceMoreLabel": {
+    "description": "Overflow chip after the named sources.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "placeSourceFooterLabel": "{extra, plural, =0{{named, plural, =1{Source: {names}} other{Sources: {names}}}} other{Sources: {names} +{extra} more}}",
+  "@placeSourceFooterLabel": {
+    "description": "Full source line. {extra} is how many names are hidden.",
+    "placeholders": {
+      "extra": {
+        "type": "int"
+      },
+      "named": {
+        "type": "int"
+      },
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "directoryOfflineSampleMessage": "Could not load places. Showing the offline sample.",
+  "@directoryOfflineSampleMessage": {
+    "description": "Banner when the whole directory fell back to the bundled sample."
+  },
+  "directoryOfflineSampleStatesMessage": "Could not load places in {states}. Showing the offline sample.",
+  "@directoryOfflineSampleStatesMessage": {
+    "description": "Banner when some states fell back to the bundled sample.",
+    "placeholders": {
+      "states": {
+        "type": "String"
+      }
+    }
+  },
+  "directoryUnavailableStatesMessage": "Could not load places in {states}.",
+  "@directoryUnavailableStatesMessage": {
+    "description": "Banner when a state shard could not be read.",
+    "placeholders": {
+      "states": {
+        "type": "String"
+      }
+    }
+  },
+  "filterStateAndamanNicobar": "Andaman & Nicobar Islands",
+  "@filterStateAndamanNicobar": {
+    "description": "Display name for the canonical state Andaman & Nicobar Islands. Filters keep the English value."
+  },
+  "filterStateAndhraPradesh": "Andhra Pradesh",
+  "@filterStateAndhraPradesh": {
+    "description": "Display name for the canonical state Andhra Pradesh. Filters keep the English value."
+  },
+  "filterStateArunachalPradesh": "Arunachal Pradesh",
+  "@filterStateArunachalPradesh": {
+    "description": "Display name for the canonical state Arunachal Pradesh. Filters keep the English value."
+  },
+  "filterStateAssam": "Assam",
+  "@filterStateAssam": {
+    "description": "Display name for the canonical state Assam. Filters keep the English value."
+  },
+  "filterStateBihar": "Bihar",
+  "@filterStateBihar": {
+    "description": "Display name for the canonical state Bihar. Filters keep the English value."
+  },
+  "filterStateChandigarh": "Chandigarh",
+  "@filterStateChandigarh": {
+    "description": "Display name for the canonical state Chandigarh. Filters keep the English value."
+  },
+  "filterStateChhattisgarh": "Chhattisgarh",
+  "@filterStateChhattisgarh": {
+    "description": "Display name for the canonical state Chhattisgarh. Filters keep the English value."
+  },
+  "filterStateDadra": "Dadra and Nagar Haveli and Daman and Diu",
+  "@filterStateDadra": {
+    "description": "Display name for the canonical state Dadra and Nagar Haveli and Daman and Diu. Filters keep the English value."
+  },
+  "filterStateDelhi": "Delhi",
+  "@filterStateDelhi": {
+    "description": "Display name for the canonical state Delhi. Filters keep the English value."
+  },
+  "filterStateGoa": "Goa",
+  "@filterStateGoa": {
+    "description": "Display name for the canonical state Goa. Filters keep the English value."
+  },
+  "filterStateGujarat": "Gujarat",
+  "@filterStateGujarat": {
+    "description": "Display name for the canonical state Gujarat. Filters keep the English value."
+  },
+  "filterStateHaryana": "Haryana",
+  "@filterStateHaryana": {
+    "description": "Display name for the canonical state Haryana. Filters keep the English value."
+  },
+  "filterStateHimachalPradesh": "Himachal Pradesh",
+  "@filterStateHimachalPradesh": {
+    "description": "Display name for the canonical state Himachal Pradesh. Filters keep the English value."
+  },
+  "filterStateJammuKashmir": "Jammu and Kashmir",
+  "@filterStateJammuKashmir": {
+    "description": "Display name for the canonical state Jammu and Kashmir. Filters keep the English value."
+  },
+  "filterStateJharkhand": "Jharkhand",
+  "@filterStateJharkhand": {
+    "description": "Display name for the canonical state Jharkhand. Filters keep the English value."
+  },
+  "filterStateKarnataka": "Karnataka",
+  "@filterStateKarnataka": {
+    "description": "Display name for the canonical state Karnataka. Filters keep the English value."
+  },
+  "filterStateKerala": "Kerala",
+  "@filterStateKerala": {
+    "description": "Display name for the canonical state Kerala. Filters keep the English value."
+  },
+  "filterStateLadakh": "Ladakh",
+  "@filterStateLadakh": {
+    "description": "Display name for the canonical state Ladakh. Filters keep the English value."
+  },
+  "filterStateLakshadweep": "Lakshadweep",
+  "@filterStateLakshadweep": {
+    "description": "Display name for the canonical state Lakshadweep. Filters keep the English value."
+  },
+  "filterStateMadhyaPradesh": "Madhya Pradesh",
+  "@filterStateMadhyaPradesh": {
+    "description": "Display name for the canonical state Madhya Pradesh. Filters keep the English value."
+  },
+  "filterStateMaharashtra": "Maharashtra",
+  "@filterStateMaharashtra": {
+    "description": "Display name for the canonical state Maharashtra. Filters keep the English value."
+  },
+  "filterStateManipur": "Manipur",
+  "@filterStateManipur": {
+    "description": "Display name for the canonical state Manipur. Filters keep the English value."
+  },
+  "filterStateMeghalaya": "Meghalaya",
+  "@filterStateMeghalaya": {
+    "description": "Display name for the canonical state Meghalaya. Filters keep the English value."
+  },
+  "filterStateMizoram": "Mizoram",
+  "@filterStateMizoram": {
+    "description": "Display name for the canonical state Mizoram. Filters keep the English value."
+  },
+  "filterStateNagaland": "Nagaland",
+  "@filterStateNagaland": {
+    "description": "Display name for the canonical state Nagaland. Filters keep the English value."
+  },
+  "filterStateOdisha": "Odisha",
+  "@filterStateOdisha": {
+    "description": "Display name for the canonical state Odisha. Filters keep the English value."
+  },
+  "filterStatePuducherry": "Puducherry",
+  "@filterStatePuducherry": {
+    "description": "Display name for the canonical state Puducherry. Filters keep the English value."
+  },
+  "filterStatePunjab": "Punjab",
+  "@filterStatePunjab": {
+    "description": "Display name for the canonical state Punjab. Filters keep the English value."
+  },
+  "filterStateRajasthan": "Rajasthan",
+  "@filterStateRajasthan": {
+    "description": "Display name for the canonical state Rajasthan. Filters keep the English value."
+  },
+  "filterStateSikkim": "Sikkim",
+  "@filterStateSikkim": {
+    "description": "Display name for the canonical state Sikkim. Filters keep the English value."
+  },
+  "filterStateTamilNadu": "Tamil Nadu",
+  "@filterStateTamilNadu": {
+    "description": "Display name for the canonical state Tamil Nadu. Filters keep the English value."
+  },
+  "filterStateTelangana": "Telangana",
+  "@filterStateTelangana": {
+    "description": "Display name for the canonical state Telangana. Filters keep the English value."
+  },
+  "filterStateTripura": "Tripura",
+  "@filterStateTripura": {
+    "description": "Display name for the canonical state Tripura. Filters keep the English value."
+  },
+  "filterStateUttarPradesh": "Uttar Pradesh",
+  "@filterStateUttarPradesh": {
+    "description": "Display name for the canonical state Uttar Pradesh. Filters keep the English value."
+  },
+  "filterStateUttarakhand": "Uttarakhand",
+  "@filterStateUttarakhand": {
+    "description": "Display name for the canonical state Uttarakhand. Filters keep the English value."
+  },
+  "filterStateWestBengal": "West Bengal",
+  "@filterStateWestBengal": {
+    "description": "Display name for the canonical state West Bengal. Filters keep the English value."
+  }
+}

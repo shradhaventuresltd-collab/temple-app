@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/widgets/cover_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
@@ -12,28 +13,15 @@ import 'package:temple_app/widgets/temple_image_placeholder.dart';
 /// Home hero subtitle for the directory size.
 ///
 /// Uses the loaded temple list length — never a hardcoded 150/180.
-String homeDirectoryCountLabel(int templeCount) {
-  if (templeCount <= 0) {
-    return 'No places loaded yet';
-  }
-  if (templeCount == 1) return '1 place across India';
-  return '$templeCount places across India';
+String homeDirectoryCountLabel(int templeCount, {AppLocalizations? l10n}) {
+  final count = templeCount < 0 ? 0 : templeCount;
+  return (l10n ?? L10nLookup.english).homeDirectoryCountLabel(count);
 }
 
 /// Drawer About blurb with a live directory size.
-String drawerAboutDirectoryBlurb(int templeCount) {
-  final lead = switch (templeCount) {
-    <= 0 => 'Explore famous places across ',
-    1 => 'Explore 1 famous place across ',
-    _ => 'Explore $templeCount famous places across ',
-  };
-  return '$lead'
-      'Tamil Nadu, Kerala, Karnataka, '
-      'Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, '
-      'Jammu and Kashmir, Maharashtra, Rajasthan, West Bengal, '
-      'Madhya Pradesh, Bihar, and Himachal Pradesh. '
-      'Discover histories, legends, timings and specialities — '
-      'all in one curated directory.';
+String drawerAboutDirectoryBlurb(int templeCount, {AppLocalizations? l10n}) {
+  final count = templeCount < 0 ? 0 : templeCount;
+  return (l10n ?? L10nLookup.english).drawerAboutDirectoryBlurb(count);
 }
 
 /// One mosaic cell's cover, resolved the same way as a browse card.
@@ -298,7 +286,7 @@ class _MosaicCopy extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Discover',
+          context.l10n.homeDiscoverLabel,
           style: GoogleFonts.lora(
             fontSize: 36,
             fontWeight: FontWeight.w700,
@@ -310,7 +298,7 @@ class _MosaicCopy extends StatelessWidget {
           ),
         ),
         Text(
-          "India's Sacred Places",
+          context.l10n.homeHeroTitle,
           style: GoogleFonts.lora(
             fontSize: 28,
             fontWeight: FontWeight.w400,
@@ -323,7 +311,7 @@ class _MosaicCopy extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          homeDirectoryCountLabel(templeCount),
+          homeDirectoryCountLabel(templeCount, l10n: context.l10n),
           style: GoogleFonts.poppins(
             fontSize: 13,
             color: Colors.white70,

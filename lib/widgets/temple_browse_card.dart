@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:temple_app/l10n/app_locale.dart';
+import 'package:temple_app/l10n/display_labels.dart';
 import 'package:temple_app/widgets/cover_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
@@ -12,12 +14,14 @@ import 'package:temple_app/widgets/place_type_icon.dart';
 import 'package:temple_app/widgets/temple_image_placeholder.dart';
 
 /// City and state line for a browse card. Omits a dangling comma.
-String templeBrowsePlaceLabel(Temple temple) {
+String templeBrowsePlaceLabel(Temple temple, {AppLocalizations? l10n}) {
+  final strings = l10n ?? L10nLookup.english;
   final city = temple.city.trim();
   final state = temple.state.trim();
-  if (city.isEmpty) return state;
+  if (city.isEmpty && state.isEmpty) return '';
+  if (city.isEmpty) return stateDisplayLabel(strings, state);
   if (state.isEmpty) return city;
-  return '$city, $state';
+  return strings.templeBrowsePlaceLabel(city, stateDisplayLabel(strings, state));
 }
 
 /// Labels that keep a browse card from reading as living Hindu darshan.
@@ -26,13 +30,18 @@ String templeBrowsePlaceLabel(Temple temple) {
 /// sites add [DetailHonesty.traditionLabel]. Monument / ASI sites add
 /// [DetailHonesty.framingLabel] only when that label is a heritage visit.
 /// "Living temple" is not repeated on the card.
-List<String> templeBrowseHonestyLabels(Temple temple) {
+List<String> templeBrowseHonestyLabels(
+  Temple temple, {
+  AppLocalizations? l10n,
+}) {
+  final strings = l10n ?? L10nLookup.english;
   final honesty = DetailHonesty.of(temple);
   return [
-    if (honesty.traditionLabel != null) honesty.traditionLabel!,
+    if (honesty.traditionLabelOf(strings) != null)
+      honesty.traditionLabelOf(strings)!,
     if (honesty.framing == SiteFraming.monumentVisit &&
-        honesty.framingLabel != null)
-      honesty.framingLabel!,
+        honesty.framingLabelOf(strings) != null)
+      honesty.framingLabelOf(strings)!,
   ];
 }
 
@@ -56,9 +65,10 @@ class TempleBrowseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final place = templeBrowsePlaceLabel(temple);
+    final strings = context.l10n;
+    final place = templeBrowsePlaceLabel(temple, l10n: strings);
     final deity = temple.deity.trim();
-    final honestyLabels = templeBrowseHonestyLabels(temple);
+    final honestyLabels = templeBrowseHonestyLabels(temple, l10n: strings);
 
     return Semantics(
       identifier: 'temple-browse-card',
@@ -149,9 +159,13 @@ class TempleBrowseCard extends StatelessWidget {
                         const SizedBox(height: 10),
                         LayoutBuilder(
                           builder: (context, constraints) {
-                            final traditionLabel = listedTempleTraditionLabel(
-                              temple,
-                            );
+                            final traditionKey = listedTempleTraditionLabel(temple);
+                            final traditionLabel = switch (traditionKey) {
+                              'Jain' => strings.traditionJain,
+                              'Buddhist' => strings.traditionBuddhist,
+                              'Sikh' => strings.traditionSikh,
+                              _ => null,
+                            };
                             Widget chip(
                               String label, {
                               Color? background,
@@ -178,7 +192,9 @@ class TempleBrowseCard extends StatelessWidget {
                                 for (final label in honestyLabels)
                                   chip(
                                     label,
-                                    background: label == 'Heritage visit'
+                                    background:
+                                        label ==
+                                            strings.templeDetailHeritageVisitLabel
                                         ? const Color(0xFFFFF3D8)
                                         : const Color(0xFFFFF9E3),
                                     leading: label == traditionLabel

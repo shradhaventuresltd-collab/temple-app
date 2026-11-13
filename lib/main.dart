@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/bundled_fonts.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/config/build_flags.dart';
 import 'package:temple_app/config/emulator_app_test.dart';
 import 'package:temple_app/config/policy_config.dart';
@@ -486,7 +487,12 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       navigatorObservers: [_analyticsObserver],
+      onGenerateTitle: (context) => context.l10n.appTitle,
+      // l10n-allow: task-switcher fallback before a locale is resolved.
       title: 'Temple Directory India',
+      localeResolutionCallback: AppLocale.resolve,
+      localizationsDelegates: AppLocale.localizationsDelegates,
+      supportedLocales: AppLocale.supportedLocales,
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(

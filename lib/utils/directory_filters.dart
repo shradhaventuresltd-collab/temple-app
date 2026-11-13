@@ -1,9 +1,13 @@
 import 'package:flutter/foundation.dart';
+import 'package:temple_app/l10n/app_locale.dart';
+import 'package:temple_app/l10n/display_labels.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/utils/deity_groups.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
 import 'package:temple_app/utils/temple_search.dart';
 import 'package:temple_app/utils/tradition_synonyms.dart';
+
+AppLocalizations _copy(AppLocalizations? l10n) => l10n ?? L10nLookup.english;
 
 /// States present on the loaded temples, sorted. Not a hard-coded catalog.
 List<String> directoryStatesFrom(Iterable<Temple> temples) {
@@ -85,14 +89,10 @@ const directoryTraditionOrder = ['hindu', 'sikh', 'jain', 'buddhist'];
 String directoryTraditionKey(Temple temple) => templeTraditionKey(temple);
 
 /// Chip and sheet label for a [directoryTraditionKey] value.
-String directoryTraditionChipLabel(String key) {
-  return switch (key) {
-    'jain' => 'Jain',
-    'buddhist' => 'Buddhist',
-    'sikh' => 'Sikh',
-    'hindu' => 'Hindu',
-    _ => key,
-  };
+///
+/// The stored key stays English. [l10n] supplies the display word.
+String directoryTraditionChipLabel(String key, {AppLocalizations? l10n}) {
+  return traditionDisplayLabel(_copy(l10n), key);
 }
 
 /// True when [selected] is empty or the listing's tradition key matches it.
@@ -111,15 +111,29 @@ List<String> directoryTraditionsFrom(Iterable<Temple> temples) {
 }
 
 /// Count line for the filter bar and related copy.
-String directoryPlaceCountLabel(int count) {
-  return count == 1 ? '1 place' : '$count places';
+String directoryPlaceCountLabel(int count, {AppLocalizations? l10n}) {
+  return _copy(l10n).directoryPlaceCountLabel(count);
 }
 
 /// Chip text for a selected deity, with a tradition suffix when one applies.
-String directoryDeityChipLabel(String deity, {String? tradition}) {
+///
+/// [deity] stays the canonical name. The tradition word is display-only.
+String directoryDeityChipLabel(
+  String deity, {
+  String? tradition,
+  AppLocalizations? l10n,
+}) {
   final label = tradition ?? listedDeityTraditionLabel(deity);
   if (label == null) return deity;
-  return '$deity · $label';
+  final key = switch (label) {
+    'Jain' => 'jain',
+    'Buddhist' => 'buddhist',
+    'Sikh' => 'sikh',
+    'Hindu' => 'hindu',
+    _ => null,
+  };
+  if (key == null) return deity;
+  return _copy(l10n).directoryDeityWithTradition(deity, key);
 }
 
 /// Subtitle for the Deity sheet.
@@ -131,6 +145,7 @@ String directoryDeityFilterNote(
   Iterable<String> deities, {
   int? count,
   Iterable<String> traditionLabels = const [],
+  AppLocalizations? l10n,
 }) {
   const order = ['Jain', 'Buddhist', 'Sikh'];
   final extra = traditionLabels.toSet();
@@ -140,17 +155,20 @@ String directoryDeityFilterNote(
           deities.any((deity) => listedDeityTraditionLabel(deity) == label))
         label,
   ];
+  final strings = _copy(l10n);
   if (present.isEmpty) {
     final total = count ?? deities.length;
-    return '$total deities';
+    return strings.directoryDeityCountLabel(total);
   }
-  final joined = switch (present.length) {
-    1 => present.single,
-    2 => '${present[0]} and ${present[1]}',
-    _ =>
-      '${present.sublist(0, present.length - 1).join(', ')} and ${present.last}',
+  return switch (present.join('|')) {
+    'Jain' => strings.directoryDeityNoteJain,
+    'Buddhist' => strings.directoryDeityNoteBuddhist,
+    'Sikh' => strings.directoryDeityNoteSikh,
+    'Jain|Buddhist' => strings.directoryDeityNoteJainAndBuddhist,
+    'Jain|Sikh' => strings.directoryDeityNoteJainAndSikh,
+    'Buddhist|Sikh' => strings.directoryDeityNoteBuddhistAndSikh,
+    _ => strings.directoryDeityNoteJainBuddhistAndSikh,
   };
-  return '$joined sites are labelled by their own tradition, not Hindu darshan.';
 }
 
 /// District name for one loaded temple, or null when it is not resolved.
@@ -235,49 +253,53 @@ List<Temple> directoryMatchingTemples(
   ];
 }
 
-/// l10n keys for tradition-only list titles. Built from the picker labels.
-const directoryTitleAllPlaces = 'All places';
-const directoryTitleHinduPlaces = 'Hindu places';
-const directoryTitleSikhPlaces = 'Sikh places';
-const directoryTitleJainPlaces = 'Jain places';
-const directoryTitleBuddhistPlaces = 'Buddhist places';
-
 /// Title when the only constraint is a selected tradition.
-String directoryTraditionPlacesTitle(String key) {
+String directoryTraditionPlacesTitle(String key, {AppLocalizations? l10n}) {
+  final strings = _copy(l10n);
   final trimmed = key.trim();
   return switch (trimmed) {
-    '' || 'all' => directoryTitleAllPlaces,
-    'hindu' => directoryTitleHinduPlaces,
-    'sikh' => directoryTitleSikhPlaces,
-    'jain' => directoryTitleJainPlaces,
-    'buddhist' => directoryTitleBuddhistPlaces,
-    _ => directoryTitleAllPlaces,
+    '' || 'all' => strings.directoryTitleAllPlaces,
+    'hindu' => strings.directoryTitleHinduPlaces,
+    'sikh' => strings.directoryTitleSikhPlaces,
+    'jain' => strings.directoryTitleJainPlaces,
+    'buddhist' => strings.directoryTitleBuddhistPlaces,
+    _ => strings.directoryTitleAllPlaces,
   };
 }
 
 /// App-bar title for a browse list constrained by these chips.
+///
+/// Deity, district, and state stay the canonical stored names. A
+/// tradition-only title uses its own message.
 String directoryBrowseTitle({
   String? state,
   String? deity,
   String? district,
   String? tradition,
+  AppLocalizations? l10n,
 }) {
+  final strings = _copy(l10n);
   final parts = <String>[
     if (deity != null && deity.isNotEmpty) deity,
-    if (district != null && district.isNotEmpty) district,
-    if (state != null && state.isNotEmpty) state,
+    if (district != null && district.isNotEmpty)
+      districtDisplayLabel(strings, district),
+    if (state != null && state.isNotEmpty) stateDisplayLabel(strings, state),
   ];
   final traditionKey = tradition?.trim() ?? '';
   if (parts.isEmpty) {
-    if (traditionKey.isEmpty) return directoryTitleAllPlaces;
-    return directoryTraditionPlacesTitle(traditionKey);
+    if (traditionKey.isEmpty) return strings.directoryTitleAllPlaces;
+    return directoryTraditionPlacesTitle(traditionKey, l10n: strings);
   }
   return parts.join(' · ');
 }
 
 /// Empty-state copy. Mentions district only when that chip is constraining.
-String directoryEmptyFilterMessage({String? district, String? tradition}) {
-  return 'Nothing in the loaded directory fits these filters.';
+String directoryEmptyFilterMessage({
+  String? district,
+  String? tradition,
+  AppLocalizations? l10n,
+}) {
+  return _copy(l10n).directoryEmptyFilterMessage;
 }
 
 /// True when [deity] still has at least one listing under [tradition].
@@ -296,8 +318,8 @@ bool directoryDeityFitsTradition(
 }
 
 /// Label for the sheet's apply action.
-String directoryFilterResultLabel(int count) {
-  return 'Show ${directoryPlaceCountLabel(count)}';
+String directoryFilterResultLabel(int count, {AppLocalizations? l10n}) {
+  return _copy(l10n).directoryFilterResultLabel(count);
 }
 
 /// Counts for every option in the filter sheet, from one walk of [temples].

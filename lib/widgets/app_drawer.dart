@@ -4,6 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/district/district_lookup.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/home_scroll.dart';
 import 'package:temple_app/screens/licences_screen.dart';
@@ -226,7 +227,7 @@ class _AppDrawerState extends State<AppDrawer> {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      'Temple Directory',
+                      context.l10n.appNameShort,
                       style: GoogleFonts.lora(
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
@@ -235,7 +236,7 @@ class _AppDrawerState extends State<AppDrawer> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'India',
+                      context.l10n.appNameCountry,
                       style: GoogleFonts.poppins(
                         fontSize: 13,
                         color: Colors.white70,
@@ -248,7 +249,7 @@ class _AppDrawerState extends State<AppDrawer> {
 
               // ── Home ──
               _DrawerNavTile(
-                label: 'Home',
+                label: context.l10n.commonHomeLabel,
                 icon: Icons.home_rounded,
                 absorbDrawerDrag: _navBusy,
                 onTap: () => _goHome(context),
@@ -258,14 +259,14 @@ class _AppDrawerState extends State<AppDrawer> {
 
               // ── All places ──
               _DrawerNavTile(
-                label: 'All places',
+                label: context.l10n.drawerAllPlacesLabel,
                 icon: Icons.temple_hindu_rounded,
                 count: all.length,
                 absorbDrawerDrag: _navBusy,
                 onTap: () => _navigateToList(
                   context,
                   all,
-                  'All places',
+                  context.l10n.directoryTitleAllPlaces,
                   directory: snapshot,
                 ),
               ),
@@ -273,7 +274,7 @@ class _AppDrawerState extends State<AppDrawer> {
               const Divider(height: 20, indent: 18, endIndent: 18),
 
               // ── Search (combines with the state / deity chips below) ──
-              _SectionHeader(label: 'SEARCH'),
+              _SectionHeader(label: context.l10n.drawerSearchSectionLabel),
               Padding(
                 padding: const EdgeInsets.fromLTRB(18, 0, 18, 4),
                 child: _DirectorySearchField(
@@ -314,7 +315,7 @@ class _AppDrawerState extends State<AppDrawer> {
                 ),
 
               // ── State + deity chips (sheet). Same control as the browse list. ──
-              _SectionHeader(label: 'FILTERS'),
+              _SectionHeader(label: context.l10n.drawerFiltersSectionLabel),
               // The sheet captures the temple list when it opens. Opening it
               // before the directory arrives showed "Any state 0" and
               // "Show 0 temples" for the life of that sheet (run 40463875634).
@@ -329,7 +330,7 @@ class _AppDrawerState extends State<AppDrawer> {
                         child: Semantics(
                           identifier: 'drawer-filters-error',
                           child: Text(
-                            'Could not load filters. Check your connection.',
+                            context.l10n.drawerFiltersErrorMessage,
                             style: GoogleFonts.poppins(fontSize: 13),
                           ),
                         ),
@@ -340,7 +341,7 @@ class _AppDrawerState extends State<AppDrawer> {
                         child: TextButton(
                           key: const Key('drawer-filters-retry'),
                           onPressed: _retryTemples,
-                          child: const Text('Try again'),
+                          child: Text(context.l10n.commonTryAgainButton),
                         ),
                       ),
                     ],
@@ -349,7 +350,7 @@ class _AppDrawerState extends State<AppDrawer> {
               else if (!snapshot.hasData)
                 Semantics(
                   identifier: 'drawer-filters-loading',
-                  label: 'Loading filters',
+                  label: context.l10n.drawerFiltersLoadingLabel,
                   child: const Padding(
                     key: Key('drawer-filters-loading'),
                     padding: EdgeInsets.fromLTRB(18, 8, 18, 12),
@@ -453,9 +454,7 @@ class _AppDrawerState extends State<AppDrawer> {
                             _openBrowse(context, all, directory: snapshot),
                         icon: const Icon(Icons.search_rounded),
                         label: Text(
-                          filtered.length == 1
-                              ? 'Browse 1 place'
-                              : 'Browse ${filtered.length} places',
+                          context.l10n.drawerBrowseButtonLabel(filtered.length),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _saffron,
@@ -475,8 +474,8 @@ class _AppDrawerState extends State<AppDrawer> {
                         onPressed: _clearFiltersAndSearch,
                         child: Text(
                           _hasDraft
-                              ? 'Clear search and filters'
-                              : 'Clear All Filters',
+                              ? context.l10n.drawerClearSearchAndFiltersButton
+                              : context.l10n.drawerClearAllFiltersButton,
                           style: GoogleFonts.poppins(
                             fontSize: 13,
                             color: _deepSaffron,
@@ -491,11 +490,11 @@ class _AppDrawerState extends State<AppDrawer> {
               const Divider(height: 24, indent: 18, endIndent: 18),
 
               // ── About ──
-              _SectionHeader(label: 'ABOUT'),
+              _SectionHeader(label: context.l10n.drawerAboutSectionLabel),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: Text(
-                  drawerAboutDirectoryBlurb(all.length),
+                  drawerAboutDirectoryBlurb(all.length, l10n: context.l10n),
                   style: GoogleFonts.poppins(
                     fontSize: 13,
                     color: Colors.brown.shade600,
@@ -506,7 +505,7 @@ class _AppDrawerState extends State<AppDrawer> {
               const SizedBox(height: 8),
               _DrawerNavTile(
                 key: const Key('drawer-licences'),
-                label: 'Licences',
+                label: context.l10n.commonLicencesLabel,
                 icon: Icons.article_outlined,
                 absorbDrawerDrag: _navBusy,
                 onTap: () => _openLicences(context),
@@ -539,7 +538,7 @@ class _AppDrawerState extends State<AppDrawer> {
     if (_selectedState != null) parts.add(_selectedState!);
     final query = _appliedQuery.trim();
     if (query.isNotEmpty) parts.add('"$query"');
-    if (parts.isEmpty) return 'All places';
+    if (parts.isEmpty) return context.l10n.directoryTitleAllPlaces;
     return parts.join(' · ');
   }
 
@@ -548,20 +547,22 @@ class _AppDrawerState extends State<AppDrawer> {
         _selectedDeity == null &&
         (_selectedDistrict == null || _selectedDistrict!.isEmpty) &&
         (_selectedTradition == null || _selectedTradition!.isEmpty)) {
-      return 'Search';
+      return context.l10n.drawerSearchBrowseTitle;
     }
     return directoryBrowseTitle(
       state: _selectedState,
       deity: _selectedDeity,
       district: _selectedDistrict,
       tradition: _selectedTradition,
+      l10n: context.l10n,
     );
   }
 
   String _matchButtonLabel(int count) {
-    if (_appliedQuery.trim().isEmpty) return 'Search directory';
-    if (count == 0) return 'No matching places';
-    return 'View $count match${count == 1 ? '' : 'es'}';
+    final l10n = context.l10n;
+    if (_appliedQuery.trim().isEmpty) return l10n.drawerSearchDirectoryButton;
+    if (count == 0) return l10n.drawerNoMatchingPlacesLabel;
+    return l10n.drawerViewMatchCountLabel(count);
   }
 
   void _openBrowse(
@@ -843,10 +844,10 @@ class _TempleListScreenState extends State<TempleListScreen> {
       ScaffoldMessenger.maybeOf(context)
         ?..hideCurrentSnackBar()
         ..showSnackBar(
-          const SnackBar(
+          SnackBar(
             key: Key('temple-list-retry-failed'),
             content: Text(
-              'Still could not load places. Check your connection and try again.',
+              context.l10n.drawerRetryFailedMessage,
             ),
           ),
         );
@@ -867,12 +868,13 @@ class _TempleListScreenState extends State<TempleListScreen> {
         (district == null || district.isEmpty) &&
         (tradition == null || tradition.isEmpty);
     final next = unconstrained && widget.initialQuery.trim().isNotEmpty
-        ? 'Search'
+        ? context.l10n.drawerSearchBrowseTitle
         : directoryBrowseTitle(
             state: state,
             deity: deity,
             district: district,
             tradition: tradition,
+            l10n: context.l10n,
           );
     if (next == _title) return;
     setState(() => _title = next);
@@ -931,7 +933,7 @@ class _TempleListScreenState extends State<TempleListScreen> {
             button: true,
             child: IconButton(
               icon: const Icon(Icons.home_rounded),
-              tooltip: 'Home',
+              tooltip: context.l10n.commonHomeLabel,
               onPressed: () {
                 Navigator.popUntil(context, (route) => route.isFirst);
                 unawaited(HomeScroll.animateToTop());
@@ -1309,19 +1311,19 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
     required bool filtersActive,
   }) {
     if (widget.isLoading) {
-      return const _BrowseMessage(
+      return _BrowseMessage(
         progress: true,
-        title: 'Loading places',
-        message: 'Fetching the directory.',
+        title: context.l10n.drawerLoadingPlacesTitle,
+        message: context.l10n.drawerLoadingPlacesMessage,
       );
     }
     if (widget.loadFailed) {
       return _BrowseMessage(
         icon: Icons.cloud_off_rounded,
-        title: 'Could not load places',
+        title: context.l10n.drawerLoadFailedTitle,
         message: widget.onRetry == null
-            ? 'The directory did not load. Go back and try again.'
-            : 'The directory did not load. Check your connection and try again.',
+            ? context.l10n.drawerLoadFailedNoRetryMessage
+            : context.l10n.drawerLoadFailedRetryMessage,
         onRetry: widget.onRetry,
       );
     }
@@ -1381,7 +1383,7 @@ class _DirectorySearchField extends StatelessWidget {
         enableSuggestions: false,
         style: GoogleFonts.poppins(fontSize: 14, color: Colors.brown.shade800),
         decoration: InputDecoration(
-          hintText: 'Name, city, state, deity, or address',
+          hintText: context.l10n.drawerSearchHint,
           hintStyle: GoogleFonts.poppins(
             fontSize: 13,
             color: Colors.brown.shade300,
@@ -1392,7 +1394,7 @@ class _DirectorySearchField extends StatelessWidget {
           ),
           suffixIcon: showClear
               ? IconButton(
-                  tooltip: 'Clear search',
+                  tooltip: context.l10n.drawerClearSearchTooltip,
                   onPressed: onClear,
                   icon: Icon(Icons.close_rounded, color: Colors.brown.shade400),
                 )
@@ -1434,20 +1436,21 @@ class _SearchEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final searching = query.isNotEmpty;
+    final l10n = context.l10n;
     final title = filtersActive && searching
-        ? 'No places match these filters and "$query".'
+        ? l10n.directoryEmptyFiltersAndQueryMessage(query)
         : filtersActive
-        ? 'No places match these filters.'
+        ? l10n.directoryEmptyFiltersMessage
         : searching
-        ? 'No places match "$query".'
-        : 'No places to browse';
+        ? l10n.directoryEmptyQueryMessage(query)
+        : l10n.directoryEmptyBrowseMessage;
     final message = filtersActive && searching
-        ? 'Clear the filters or the search. The list is the directory already loaded.'
+        ? l10n.directoryEmptyFiltersHint
         : filtersActive
-        ? directoryEmptyFilterMessage(district: district)
+        ? directoryEmptyFilterMessage(district: district, l10n: l10n)
         : searching
-        ? 'Try a name, city, state, deity, or address.'
-        : 'Nothing is listed in this view yet.';
+        ? l10n.directoryEmptyQueryHint
+        : l10n.directoryEmptyBrowseHint;
     final icon = filtersActive
         ? Icons.filter_alt_off_rounded
         : searching
@@ -1492,13 +1495,13 @@ class _SearchEmptyState extends StatelessWidget {
                       child: TextButton(
                         key: const Key('filter-empty-clear'),
                         onPressed: onClearFilters,
-                        child: const Text('Clear filters'),
+                        child: Text(context.l10n.commonClearFiltersButton),
                       ),
                     ),
                   if (onClearSearch != null)
                     TextButton(
                       onPressed: onClearSearch,
-                      child: const Text('Clear search'),
+                      child: Text(context.l10n.commonClearSearchButton),
                     ),
                 ],
               ),
@@ -1563,7 +1566,7 @@ class _BrowseMessage extends StatelessWidget {
                 child: TextButton(
                   key: const Key('browse-load-failed-retry'),
                   onPressed: onRetry,
-                  child: const Text('Try again'),
+                  child: Text(context.l10n.commonTryAgainButton),
                 ),
               ),
             ],
@@ -1599,7 +1602,7 @@ class AdPrivacyChoicesTile extends StatelessWidget {
           return const SizedBox.shrink();
         }
         return _DrawerNavTile(
-          label: 'Ad privacy choices',
+          label: context.l10n.drawerAdPrivacyChoicesLabel,
           icon: Icons.privacy_tip_outlined,
           onTap: () {
             final navigator = Navigator.maybeOf(context);
