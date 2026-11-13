@@ -6,12 +6,16 @@ import 'package:temple_app/services/temple_share.dart';
 const _play =
     'https://play.google.com/store/apps/details?id=com.shradhaventures.temple';
 
-Temple _temple({String city = 'Madurai', String state = 'Tamil Nadu'}) {
+Temple _temple({
+  String name = 'Kadri Manjunath Temple',
+  String city = 'Mangaluru',
+  String state = 'Karnataka',
+}) {
   return Temple(
-    name: 'Meenakshi Amman Temple',
+    name: name,
     state: state,
     city: city,
-    deity: 'Devi',
+    deity: 'Shiva',
     imageUrl: '',
     description: '',
     story: '',
@@ -24,57 +28,84 @@ Temple _temple({String city = 'Madurai', String state = 'Tamil Nadu'}) {
 void main() {
   test('ARB-named constants', () {
     expect(ShareStrings.templeDetailShareButtonLabel, 'Share');
-    expect(ShareStrings.templeDetailShareTooltip, 'Share this place');
+    expect(ShareStrings.templeDetailShareOnWhatsAppLabel, 'Share on WhatsApp');
+    expect(
+      ShareStrings.templeDetailShareTooltip,
+      "Shares this place's name and an app link",
+    );
+    expect(
+      ShareStrings.templeDetailShareUnavailable,
+      "Couldn't open sharing on this device.",
+    );
   });
 
   test('Play link is the production listing, no deep link', () {
     expect(kTempleSharePlayUrl, _play);
   });
 
-  test('full: name, town and state, then the Play link', () {
+  test('full: the spec example, three lines', () {
     expect(
-      ShareStrings.templeDetailShareText(
-        'Meenakshi Amman Temple',
-        'Madurai',
-        'Tamil Nadu',
-        _play,
-      ),
-      'Meenakshi Amman Temple\n'
-      'Madurai, Tamil Nadu\n'
-      '\n'
-      "Explore India's sacred places on Temple Directory India:\n"
-      '$_play',
+      templeShareText(_temple()),
+      'Kadri Manjunath Temple\n'
+      'Mangaluru, Karnataka\n'
+      'Found on Temple Directory India: $_play',
     );
   });
 
-  test('missing town: state only, no leading comma', () {
+  test('missing town: state only, no stray comma', () {
     final text = templeShareText(_temple(city: '  '));
-    expect(text.split('\n')[1], 'Tamil Nadu');
-    expect(text, isNot(contains(', Tamil Nadu')));
-    expect(text, isNot(contains(',,')));
+    expect(text.split('\n'), [
+      'Kadri Manjunath Temple',
+      'Karnataka',
+      'Found on Temple Directory India: $_play',
+    ]);
+    expect(text, isNot(contains(', Karnataka')));
+  });
+
+  test('town equal to state is left out', () {
+    expect(
+      templeShareText(_temple(city: 'delhi', state: 'Delhi')).split('\n')[1],
+      'Delhi',
+    );
   });
 
   test('missing state: town only, no trailing comma', () {
     final text = templeShareText(_temple(state: ''));
-    expect(text.split('\n')[1], 'Madurai');
-    expect(text, isNot(contains('Madurai,')));
+    expect(text.split('\n')[1], 'Mangaluru');
+    expect(text, isNot(contains('Mangaluru,')));
   });
 
-  test('missing town and state: no place line and no comma', () {
+  test('missing town and state: no place line, no comma before the link', () {
     final text = templeShareText(_temple(city: '', state: ''));
-    expect(text.split('\n').take(2).toList(), ['Meenakshi Amman Temple', '']);
-    expect(text, isNot(contains(',')));
-    expect(text, endsWith(_play));
+    expect(text.split('\n'), [
+      'Kadri Manjunath Temple',
+      'Found on Temple Directory India: $_play',
+    ]);
+    expect(text.split(_play).first, isNot(contains(',')));
   });
 
   test('padding is trimmed and the URL is left untouched', () {
     final text = ShareStrings.templeDetailShareText(
-      '  Golden Temple ',
+      '  Harmandir Sahib ',
       ' Amritsar ',
       ' Punjab',
       _play,
     );
-    expect(text, startsWith('Golden Temple\nAmritsar, Punjab\n'));
-    expect(text.split('\n').last, _play);
+    expect(text, startsWith('Harmandir Sahib\nAmritsar, Punjab\n'));
+    expect(text, endsWith(_play));
+  });
+
+  test('neutral text for every tradition: no darshan, timings or claims', () {
+    for (final name in [
+      'Harmandir Sahib',
+      'Dilwara Temples',
+      'Mahabodhi Temple',
+      'Meenakshi Amman Temple',
+    ]) {
+      final text = templeShareText(_temple(name: name)).toLowerCase();
+      for (final word in ['darshan', 'puja', 'open now', 'timings', 'rating']) {
+        expect(text, isNot(contains(word)), reason: '$name: $word');
+      }
+    }
   });
 }

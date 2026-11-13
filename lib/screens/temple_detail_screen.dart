@@ -13,6 +13,7 @@ import 'package:temple_app/widgets/offline_banner.dart';
 import 'package:temple_app/widgets/dress_code_card.dart';
 import 'package:temple_app/widgets/unverified_source_notice.dart';
 import 'package:temple_app/l10n/pin_precision_strings.dart';
+import 'package:temple_app/l10n/share_strings.dart';
 import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/services/temple_service.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
@@ -198,6 +199,8 @@ class TempleDetailBody extends StatefulWidget {
     required this.temple,
     this.fromCache = false,
     this.sharer,
+    this.whatsApp,
+    this.directToWhatsApp,
     this.reviewPrompter,
   });
 
@@ -205,6 +208,12 @@ class TempleDetailBody extends StatefulWidget {
 
   /// Share sheet. Null uses [TempleSharer.instance]. Tests pass a fake.
   final TempleSharer? sharer;
+
+  /// Direct WhatsApp hand-off. Null uses [WhatsAppLauncher.instance].
+  final WhatsAppLauncher? whatsApp;
+
+  /// Null follows [kShareDirectToWhatsApp]. Tests set it to cover both.
+  final bool? directToWhatsApp;
 
   /// Review prompt after Get Directions. Null uses
   /// [ReviewPrompter.instance]. Tests pass a fake.
@@ -260,6 +269,7 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
     WidgetsBinding.instance.addObserver(this);
     _pageController = PageController();
     _startAutoAdvance();
+    if (_directToWhatsApp) _whatsAppCheck = _checkWhatsApp();
   }
 
   @override
@@ -399,23 +409,88 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
   ReviewPrompter get _reviewPrompter =>
       widget.reviewPrompter ?? ReviewPrompter.instance;
 
+  bool get _directToWhatsApp =>
+      widget.directToWhatsApp ?? kShareDirectToWhatsApp;
+
+  WhatsAppLauncher get _whatsApp =>
+      widget.whatsApp ?? WhatsAppLauncher.instance;
+
+  /// Decided once per detail open so the label does not flicker back.
+  /// Null until the check finishes (label "Share" meanwhile).
+  bool? _whatsAppInstalled;
+  Future<bool>? _whatsAppCheck;
+
+  Future<bool> _checkWhatsApp() async {
+    var installed = false;
+    try {
+      installed = await _whatsApp.isInstalled();
+    } catch (e) {
+      debugPrint('WhatsApp check failed: $e');
+    }
+    if (mounted && _whatsAppInstalled == null) {
+      setState(() => _whatsAppInstalled = installed);
+    }
+    return _whatsAppInstalled ?? installed;
+  }
+
   var _sharing = false;
 
-  /// System share sheet with name, town and state, and the Play link.
-  /// A second tap while the sheet is opening is ignored. Errors are logged
-  /// and nothing is shown.
+  /// Share button. One share at a time: taps while WhatsApp or the sheet is
+  /// opening are ignored. WhatsApp (when on and installed), then wa.me, then
+  /// the system share sheet, then a SnackBar. Never throws.
   Future<void> _shareTemple() async {
     if (_sharing) return;
     _sharing = true;
     try {
+      final text = templeShareText(temple);
+      var target = ShareTarget.system;
+      if (_directToWhatsApp) {
+        final installed =
+            _whatsAppInstalled ?? await (_whatsAppCheck ??= _checkWhatsApp());
+        if (installed) target = ShareTarget.whatsapp;
+      }
       unawaited(AppAnalytics.instance.logSharePlace(temple.id));
-      final sharer = widget.sharer ?? TempleSharer.instance;
-      await sharer.shareText(templeShareText(temple), subject: temple.name);
-    } catch (e, st) {
-      debugPrint('Share failed: $e\n$st');
+      if (target == ShareTarget.whatsapp && await _openWhatsApp(text)) return;
+      if (await _openShareSheet(text)) return;
+      if (mounted) _showShareUnavailable();
     } finally {
       _sharing = false;
     }
+  }
+
+  Future<bool> _openWhatsApp(String text) async {
+    try {
+      return await _whatsApp.open(text);
+    } catch (e, st) {
+      debugPrint('WhatsApp share failed: $e\n$st');
+      return false;
+    }
+  }
+
+  Future<bool> _openShareSheet(String text) async {
+    try {
+      final sharer = widget.sharer ?? TempleSharer.instance;
+      return await sharer.shareText(text, subject: temple.name);
+    } catch (e, st) {
+      debugPrint('Share sheet failed: $e\n$st');
+      return false;
+    }
+  }
+
+  void _showShareUnavailable() {
+    ScaffoldMessenger.maybeOf(context)
+      ?..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          key: const Key('detail-share-unavailable'),
+          content: Text(
+            ShareStrings.templeDetailShareUnavailable,
+            style: GoogleFonts.poppins(),
+          ),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   Future<void> _openGoogleMaps() async {
@@ -587,25 +662,16 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
                       ),
                     ),
 
-                    // Share + Home buttons — top right
+                    // Home button — top right
                     Positioned(
                       top: topPadding + 8,
                       right: hasMultiple ? 100 : 16,
-                      child: Row(
-                        children: [
-                          TempleShareButton(onPressed: _shareTemple),
-                          const SizedBox(width: 8),
-                          _CircleIconButton(
-                            icon: Icons.home_rounded,
-                            onTap: () {
-                              Navigator.popUntil(
-                                context,
-                                (route) => route.isFirst,
-                              );
-                              unawaited(HomeScroll.animateToTop());
-                            },
-                          ),
-                        ],
+                      child: _CircleIconButton(
+                        icon: Icons.home_rounded,
+                        onTap: () {
+                          Navigator.popUntil(context, (route) => route.isFirst);
+                          unawaited(HomeScroll.animateToTop());
+                        },
                       ),
                     ),
 
@@ -966,6 +1032,15 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
                                 ),
                               ),
                             ],
+                            // Secondary to Get Directions; shown with or
+                            // without a usable pin (SHARE-SPEC.md).
+                            SizedBox(height: directionsUrl != null ? 10 : 14),
+                            TempleShareButton(
+                              onPressed: _shareTemple,
+                              whatsApp:
+                                  _directToWhatsApp &&
+                                  (_whatsAppInstalled ?? false),
+                            ),
                           ],
                         ),
                       ),

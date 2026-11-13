@@ -53,23 +53,63 @@ class ThrowingReviewPromptStore implements ReviewPromptStore {
 }
 
 class FakeTempleSharer extends TempleSharer {
-  FakeTempleSharer({this.error, this.hold});
+  FakeTempleSharer({this.error, this.hold, this.opens = true});
 
   Object? error;
 
   /// When set, each share waits on it, like a share sheet that is open.
   Future<void>? hold;
 
+  /// False: the sheet reports it could not open.
+  bool opens;
+
   final List<String> texts = [];
   final List<String?> subjects = [];
 
   @override
-  Future<void> shareText(String text, {String? subject}) async {
+  Future<bool> shareText(String text, {String? subject}) async {
     texts.add(text);
     subjects.add(subject);
     final pending = hold;
     if (pending != null) await pending;
     final failure = error;
     if (failure != null) throw failure;
+    return opens;
+  }
+}
+
+class FakeWhatsAppLauncher extends WhatsAppLauncher {
+  FakeWhatsAppLauncher({
+    this.installed = true,
+    this.opens = true,
+    this.checkError,
+    this.openError,
+    this.hold,
+  });
+
+  bool installed;
+  bool opens;
+  Object? checkError;
+  Object? openError;
+  Future<void>? hold;
+  int checks = 0;
+  final List<String> texts = [];
+
+  @override
+  Future<bool> isInstalled() async {
+    checks += 1;
+    final error = checkError;
+    if (error != null) throw error;
+    return installed;
+  }
+
+  @override
+  Future<bool> open(String text) async {
+    texts.add(text);
+    final pending = hold;
+    if (pending != null) await pending;
+    final error = openError;
+    if (error != null) throw error;
+    return opens;
   }
 }

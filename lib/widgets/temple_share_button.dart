@@ -1,39 +1,87 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/l10n/share_strings.dart';
 
-/// Share action on the detail photo header.
+/// Share button in the detail page's How to Reach card (Ux SHARE-SPEC.md).
 ///
-/// Placeholder styling until Ux's spec lands: it matches the round
-/// back/menu/home buttons beside it. Restyle here only; the detail screen
-/// just places it and passes [onPressed].
+/// Secondary to Get Directions: full width, outlined, 50 dp tall, radius
+/// 12, #E65100 border/icon/label on white, 1.5 dp border, Poppins 15 w600,
+/// 8% pressed overlay. A generic outline share glyph, never the WhatsApp
+/// logo. Dark tokens apply only if a dark theme ships.
 class TempleShareButton extends StatelessWidget {
-  const TempleShareButton({super.key, required this.onPressed});
+  const TempleShareButton({
+    super.key,
+    required this.onPressed,
+    this.whatsApp = false,
+  });
 
   final VoidCallback onPressed;
 
-  static const double size = 38;
+  /// "Share on WhatsApp" instead of "Share".
+  final bool whatsApp;
+
+  static const Color accent = Color(0xFFE65100);
+  static const Color fill = Colors.white;
+  static const Color darkAccent = Color(0xFFFFB74D);
+  static const Color darkFill = Color(0xFF1C1410);
+  static const double minHeight = 50;
+
+  String get label => whatsApp
+      ? ShareStrings.templeDetailShareOnWhatsAppLabel
+      : ShareStrings.templeDetailShareButtonLabel;
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      identifier: 'detail-share-button',
-      label: ShareStrings.templeDetailShareButtonLabel,
-      button: true,
-      excludeSemantics: true,
-      child: IconButton(
-        key: const Key('detail-share-button'),
-        tooltip: ShareStrings.templeDetailShareTooltip,
-        onPressed: onPressed,
-        icon: const Icon(Icons.share),
-        iconSize: 22,
-        padding: EdgeInsets.zero,
-        style: IconButton.styleFrom(
-          backgroundColor: Colors.black45,
-          foregroundColor: Colors.white,
-          fixedSize: const Size.square(size),
-          minimumSize: const Size.square(size),
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          side: const BorderSide(color: Colors.white24),
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final color = dark ? darkAccent : accent;
+    return SizedBox(
+      width: double.infinity,
+      child: Semantics(
+        identifier: 'detail-share-button',
+        label: label,
+        hint: ShareStrings.templeDetailShareTooltip,
+        button: true,
+        enabled: true,
+        focusable: true,
+        onTap: onPressed,
+        excludeSemantics: true,
+        child: Tooltip(
+          message: ShareStrings.templeDetailShareTooltip,
+          excludeFromSemantics: true,
+          child: OutlinedButton.icon(
+            key: const Key('detail-share-button'),
+            onPressed: onPressed,
+            icon: Icon(Icons.share_outlined, color: color, size: 22),
+            label: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                color: color,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            style:
+                OutlinedButton.styleFrom(
+                  backgroundColor: dark ? darkFill : fill,
+                  foregroundColor: color,
+                  minimumSize: const Size.fromHeight(minHeight),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 14,
+                    horizontal: 16,
+                  ),
+                  side: BorderSide(color: color, width: 1.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ).copyWith(
+                  // styleFrom's overlayColor uses 10% when pressed; Ux wants 8%.
+                  overlayColor: WidgetStatePropertyAll(
+                    color.withValues(alpha: 0.08),
+                  ),
+                ),
+          ),
         ),
       ),
     );

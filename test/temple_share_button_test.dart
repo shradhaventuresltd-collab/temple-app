@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -13,9 +11,6 @@ import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 import 'helpers/fake_review.dart';
-
-const _play =
-    'https://play.google.com/store/apps/details?id=com.shradhaventures.temple';
 
 Temple _temple({String city = 'Madurai', String state = 'Tamil Nadu'}) {
   return Temple(
@@ -91,99 +86,82 @@ void main() {
 
   final share = find.byKey(const Key('detail-share-button'));
 
-  group('share button', () {
-    testWidgets('is on the photo header with the share icon and a tooltip', (
+  group('share button look and placement (SHARE-SPEC.md)', () {
+    testWidgets('sits under Get Directions in How to Reach, not the header', (
       tester,
     ) async {
       await pumpDetail(tester);
-      expect(share, findsOneWidget);
-      final button = tester.widget<IconButton>(share);
-      expect(button.tooltip, ShareStrings.templeDetailShareTooltip);
+      await tester.ensureVisible(share);
+      await tester.pumpAndSettle();
+      final directions = tester.getRect(
+        find.byKey(const Key('get-directions-button')),
+      );
+      final button = tester.getRect(share);
+      expect(button.top - directions.bottom, closeTo(10, 0.5));
+      expect(button.width, closeTo(directions.width, 0.5));
+      expect(button.height, greaterThanOrEqualTo(TempleShareButton.minHeight));
+      expect(find.byIcon(Icons.share), findsNothing, reason: 'old header icon');
+      expect(find.byIcon(Icons.share_outlined), findsOneWidget);
       expect(
-        find.descendant(of: share, matching: find.byIcon(Icons.share)),
-        findsOneWidget,
+        tester.getRect(find.text('About')).top,
+        greaterThan(button.bottom),
       );
-      expect(find.bySemanticsLabel('Share'), findsOneWidget);
-      await tester.longPress(share);
-      await tester.pumpAndSettle();
-      expect(find.text('Share this place'), findsOneWidget);
     });
 
-    testWidgets('tap shares name, town and state, and the Play link', (
+    testWidgets('outlined, #E65100, 1.5 border, radius 12, Poppins 15 w600', (
       tester,
     ) async {
-      final sharer = FakeTempleSharer();
-      await pumpDetail(tester, sharer: sharer);
-      await tester.tap(share);
-      await tester.pump();
-      expect(sharer.texts, [
-        'Meenakshi Amman Temple\n'
-            'Madurai, Tamil Nadu\n'
-            '\n'
-            "Explore India's sacred places on Temple Directory India:\n"
-            '$_play',
-      ]);
-      expect(sharer.subjects, ['Meenakshi Amman Temple']);
-      expect(sharer.texts.single, isNot(contains('temple-app://')));
-    });
-
-    testWidgets('missing town shares the state with no dangling comma', (
-      tester,
-    ) async {
-      final sharer = FakeTempleSharer();
-      await pumpDetail(
-        tester,
-        sharer: sharer,
-        temple: _temple(city: ''),
-      );
-      await tester.tap(share);
-      await tester.pump();
-      expect(sharer.texts.single.split('\n')[1], 'Tamil Nadu');
-    });
-
-    testWidgets('double tap while the sheet is opening shares once', (
-      tester,
-    ) async {
-      final sheet = Completer<void>();
-      final sharer = FakeTempleSharer(hold: sheet.future);
-      await pumpDetail(tester, sharer: sharer);
-      await tester.tap(share);
-      await tester.pump(const Duration(milliseconds: 40));
-      await tester.tap(share);
-      await tester.pump();
-      expect(sharer.texts, hasLength(1));
-
-      // Sheet dismissed: the next tap opens it again.
-      sheet.complete();
-      await tester.pump();
-      sharer.hold = null;
-      await tester.tap(share);
-      await tester.pump();
-      expect(sharer.texts, hasLength(2));
-    });
-
-    testWidgets('a share failure is silent and the button still works', (
-      tester,
-    ) async {
-      final sharer = FakeTempleSharer(error: Exception('no share target'));
-      await pumpDetail(tester, sharer: sharer);
-      await tester.tap(share);
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
-      expect(find.byType(SnackBar), findsNothing);
-      sharer.error = null;
-      await tester.tap(share);
-      await tester.pump();
-      expect(sharer.texts, hasLength(2));
-    });
-
-    testWidgets('sits left of Home at the same size', (tester) async {
       await pumpDetail(tester);
-      expect(find.byIcon(Icons.home_rounded), findsOneWidget);
-      final shareBox = tester.getRect(share);
-      final homeBox = tester.getRect(find.byIcon(Icons.home_rounded));
-      expect(shareBox.right, lessThanOrEqualTo(homeBox.left));
-      expect(shareBox.height, TempleShareButton.size);
+      final button = tester.widget<OutlinedButton>(share);
+      final style = button.style!;
+      final side = style.side!.resolve({})!;
+      expect(side.color, const Color(0xFFE65100));
+      expect(side.width, 1.5);
+      final shape = style.shape!.resolve({})! as RoundedRectangleBorder;
+      expect(shape.borderRadius, BorderRadius.circular(12));
+      expect(style.backgroundColor!.resolve({}), Colors.white);
+      expect(
+        style.overlayColor!.resolve({WidgetState.pressed}),
+        const Color(0xFFE65100).withValues(alpha: 0.08),
+      );
+      final label = tester.widget<Text>(
+        find.descendant(of: share, matching: find.text('Share')),
+      );
+      expect(label.style!.fontSize, 15);
+      expect(label.style!.fontWeight, FontWeight.w600);
+      expect(label.style!.color, const Color(0xFFE65100));
+    });
+
+    testWidgets('semantics: label, hint, button', (tester) async {
+      final handle = tester.ensureSemantics();
+      await pumpDetail(tester);
+      await tester.ensureVisible(share);
+      await tester.pumpAndSettle();
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Share').first),
+        matchesSemantics(
+          label: 'Share',
+          hint: ShareStrings.templeDetailShareTooltip,
+          isButton: true,
+          hasTapAction: true,
+          isEnabled: true,
+          hasEnabledState: true,
+          isFocusable: true,
+        ),
+      );
+      handle.dispose();
+    });
+
+    testWidgets('dark theme uses the dark tokens', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(brightness: Brightness.dark),
+          home: Scaffold(body: TempleShareButton(onPressed: () {})),
+        ),
+      );
+      final style = tester.widget<OutlinedButton>(share).style!;
+      expect(style.side!.resolve({})!.color, TempleShareButton.darkAccent);
+      expect(style.backgroundColor!.resolve({}), TempleShareButton.darkFill);
     });
   });
 

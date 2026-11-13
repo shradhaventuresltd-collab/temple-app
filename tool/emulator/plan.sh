@@ -147,7 +147,8 @@ SHARD_COUNT=15
 # worst shard stays 2129s and every plan_e2e_s path stays under 2700s.
 # shard 12: 189 + 2 x (400 + 50) + (600 + 50) + (300 + 50) = 2089s
 # (06a1, 06a2, 06b, 31). Worst shard 2129s (1-5, 9-11, 13, 14).
-# All <= 39 min (2340s). Worst plan_e2e_s path 2675s <= 2700s.
+# All <= 39 min (2340s). Worst plan_e2e_s path 2675s <= 2700s (r2: 2690s,
+# worst shard 15 at 2144s; see the PR 148 r2 note below).
 # shellcheck disable=SC2034 # read by self_test.sh (sources this file)
 SHARD_WORST_MAX_S=$((39 * 60))
 
@@ -183,6 +184,12 @@ DEFAULT_NA_STEPS=""
 # 17 is split per entry point (17a-17d), and the filter matrix runs one
 # entry x one chip per flow (FILTER_MATRIX_PART=<entry>:<chip>, "seqs" for
 # the 3+ step sequences). Planned skips (11, 23, 30d) cost nothing.
+# PR 148 r2: 32 (share entry points, SHARE-SPEC.md) joins shard 15, the
+# shard with the most room, at a 265s cap: >= 2 x 125 + 12 (two bounded
+# installs + services wait), and no other cap is lowered (Sanu). Shard 15 is
+# 189 + (300 + 300 + 540 + 300 + 265) + 5 x 50 = 2144s, the new worst shard;
+# create failed+retry is 2690s, exactly the 2700 - 10 margin. Any further
+# flow needs a 16th shard (workflow matrix).
 PLAN_ROWS=(
   "17a-entry-matrix-home-button|tool/emulator/flows/17_entry_matrix.sh|home_button|1|540"
   "29a1-filter-matrix-home-state|tool/emulator/flows/29_filter_matrix.sh|home_browse:state:1|1|450"
@@ -248,6 +255,7 @@ PLAN_ROWS=(
   "30s3-filter-matrix-seq3|tool/emulator/flows/29_filter_matrix.sh|seqs:3|15|540"
   "10-directions|tool/emulator/flows/10_directions.sh||15|300"
   "30d-near-me|tool/emulator/flows/29_filter_matrix.sh|near_me:all|15"
+  "32-share-entry-points|tool/emulator/flows/32_share_entry_points.sh||15|265"
 )
 
 plan_skip_list() {
