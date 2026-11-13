@@ -481,6 +481,7 @@ Map<String, dynamic> templeIndexEntryFromMap(
   final source = firstVerifiedGalleryUrl(data);
   final caption = _indexCoverCaption(temple.photos, source, cover);
   if (caption != null) entry['coverCaption'] = caption;
+  if (temple.pinPrecision == 'approx') entry['pinPrecision'] = 'approx';
   return entry;
 }
 
@@ -533,6 +534,7 @@ Temple templeFromIndexEntry(Map<String, dynamic> entry) {
         ? 'neutral'
         : _text(entry['framing']),
     coverCaption: caption.isEmpty ? null : caption,
+    pinPrecision: pinPrecisionField(entry['pinPrecision']),
   );
 }
 

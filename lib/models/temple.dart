@@ -28,6 +28,8 @@ class Temple {
     this.dressCodeSourceUrl,
     this.dressCodeSourceType,
     this.dressCodeVerified,
+    this.pinPrecision,
+    this.pinOrigin,
   }) : _timings = timings;
 
   final String id;
@@ -114,6 +116,18 @@ class Temple {
   /// True only when the doc explicitly says the dress code is not verified.
   bool get dressCodeUnverified => dressCodeVerified == false;
 
+  /// Optional `temples/{id}.pinPrecision`. Exactly `approx`, else null.
+  ///
+  /// Null (missing) means an exact pin, the same pattern as [tradition].
+  final String? pinPrecision;
+
+  /// Optional `temples/{id}.pinOrigin`. See [pinOriginField].
+  final String? pinOrigin;
+
+  /// True when the stored pin is marked approximate and coordinates exist.
+  bool get hasApproximatePin =>
+      pinPrecision == 'approx' && hasCoordinates;
+
   /// [dressCodeSourceUrl] when it is an absolute http(s) URL, else null.
   Uri? get dressCodeSourceUri => httpSourceUri(dressCodeSourceUrl);
 
@@ -179,6 +193,8 @@ class Temple {
       dressCodeVerified: data['dressCodeVerified'] is bool
           ? data['dressCodeVerified'] as bool
           : null,
+      pinPrecision: pinPrecisionField(data['pinPrecision']),
+      pinOrigin: pinOriginField(data['pinOrigin']),
       latitude: _coordinatePair(data).lat,
       longitude: _coordinatePair(data).lng,
     );
@@ -216,6 +232,8 @@ class Temple {
       'timings': _timings,
       'specialities': specialities,
       if (tradition != null) 'tradition': tradition,
+      if (pinPrecision != null) 'pinPrecision': pinPrecision,
+      if (pinOrigin != null) 'pinOrigin': pinOrigin,
     };
     if (includeImages) {
       data['images'] = gallery;
@@ -253,6 +271,8 @@ class Temple {
     String? dressCodeSourceUrl,
     String? dressCodeSourceType,
     bool? dressCodeVerified,
+    String? pinPrecision,
+    String? pinOrigin,
   }) {
     return Temple(
       id: id ?? this.id,
@@ -281,6 +301,8 @@ class Temple {
       dressCodeSourceUrl: dressCodeSourceUrl ?? this.dressCodeSourceUrl,
       dressCodeSourceType: dressCodeSourceType ?? this.dressCodeSourceType,
       dressCodeVerified: dressCodeVerified ?? this.dressCodeVerified,
+      pinPrecision: pinPrecision ?? this.pinPrecision,
+      pinOrigin: pinOrigin ?? this.pinOrigin,
     );
   }
 
@@ -310,6 +332,27 @@ String? templeTraditionField(dynamic value) {
   if (value is! String) return null;
   return switch (value) {
     'jain' || 'buddhist' || 'sikh' => value,
+    _ => null,
+  };
+}
+
+/// `approx` from a temple document or index entry. Anything else is absent.
+String? pinPrecisionField(dynamic value) {
+  if (value is! String) return null;
+  return value == 'approx' ? value : null;
+}
+
+/// Allowed `pinOrigin` values from a temple document. Anything else is absent.
+String? pinOriginField(dynamic value) {
+  if (value is! String) return null;
+  return switch (value) {
+    'osm' ||
+    'wikidata' ||
+    'official' ||
+    'google_maps' ||
+    'village_centroid' ||
+    'manual' =>
+      value,
     _ => null,
   };
 }
