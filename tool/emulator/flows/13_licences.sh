@@ -1,5 +1,32 @@
 #!/usr/bin/env bash
 # Flow 13. Drawer Licences screen shows the district-boundary credit.
+
+# Open Licences from the drawer. A tap that leaves the drawer up is not a pass.
+# Mirrors open_browse's All Temples path: drawer-local scroll, then one
+# top-of-drawer retry. The screen is open only when "District boundaries"
+# appears. Each wait is bounded (8 drawer swipes, then ui_wait 15).
+open_licences_screen() {
+  local attempt
+  for attempt in 1 2; do
+    if ! scroll_drawer_until --text-regex '^Licences$'; then
+      scroll_drawer_top || true
+      if ! ui_dump || ! ui_find --text-regex '^Licences$'; then
+        return 1
+      fi
+    fi
+    ui_tap || return 1
+    if ui_wait 15 --text-contains "District boundaries"; then
+      return 0
+    fi
+    if (( attempt == 2 )); then
+      return 1
+    fi
+    # One retry after a short settle. absorbDrawerDrag can swallow the first tap.
+    sleep 1
+  done
+  return 1
+}
+
 launch_app
 if ! accept_policy_if_shown || ! wait_for_home; then
   fail_step home "home did not appear"
@@ -18,11 +45,10 @@ if [[ "$opened" -eq 0 ]]; then
   sleep 1
 fi
 
-if ui_wait_scrolled 15 --text-regex '^Licences$'; then
-  ui_tap
+if open_licences_screen; then
   pass_step open-licences
 else
-  fail_step open-licences "Licences was not in the drawer"
+  fail_step open-licences "Licences tile tap did not open the Licences screen"
   return 0
 fi
 

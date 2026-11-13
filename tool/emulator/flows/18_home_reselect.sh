@@ -1,22 +1,36 @@
 #!/usr/bin/env bash
 # Flow 18. "Home" while already on Home, and returning Home from deep stacks.
 # Expect the photo collage (top of Home) to be visible afterwards.
+# "At the top" is relative: Discover's top edge where Home first showed it
+# (HOME_TOP_Y). The old absolute UI_Y1 < 500 could never see a scroll on
+# 320x640, where Home overflows by only the Browse button and Discover sits
+# at y 357 (run 41373837994). Scrolled = Discover moved up by more than
+# 8 px, or left the screen.
+HOME_TOP_Y=""
 collage_top_visible() {
   ui_dump || return 1
-  ui_find --content-desc "Discover" && (( UI_Y1 < 500 ))
+  ui_find --content-desc "Discover" || return 1
+  [[ -n "$HOME_TOP_Y" ]] && (( UI_Y1 >= HOME_TOP_Y - 8 ))
 }
 launch_app; accept_policy_if_shown || { fail_step home "home did not appear"; return 0; }
 wait_for_home || { fail_step home "home did not appear"; return 0; }
 pass_step home
-# Run 40698852836: four flings right after Home appeared left Discover at
-# y=357; the collage photos were still arriving. Fling until it moves.
-scrolled=0
-for i in 1 2 3 4 5 6 7 8; do
-  ui_fling up; sleep 0.5
-  if ! collage_top_visible; then scrolled=1; break; fi
-  sleep 1
-done
-[[ "$scrolled" -eq 1 ]] && pass_step scrolled || fail_step scrolled "could not scroll Home down after 8 flings"
+# Home first shows "Loading temples..." and only then the collage. Run
+# 41373837994 flung during the loader (screenshot 01_home), the collage was
+# then laid out at the top, and "scrolled" failed. Fling only once the
+# collage is on screen.
+# "scrolled" is recorded exactly once.
+if ! ui_wait 45 --content-desc "Discover"; then
+  fail_step scrolled "Home collage never appeared (still loading?)"
+else
+  HOME_TOP_Y="$UI_Y1"
+  for i in 1 2 3 4; do ui_fling up; sleep 0.5; done
+  if collage_top_visible; then
+    fail_step scrolled "could not scroll Home down (Discover still at y ${UI_Y1}, top ${HOME_TOP_Y})"
+  else
+    pass_step scrolled
+  fi
+fi
 # A: drawer Home tile while on Home
 ui_dump && ui_find --content-desc "Open navigation menu" && ui_tap && sleep 1
 ui_wait 10 --text-regex '^Home$' && ui_tap && sleep 1

@@ -22,6 +22,12 @@ class Temple {
     this.indexTradition,
     this.indexFraming,
     this.coverCaption,
+    this.timingsVerified,
+    this.timingsSourceUrl,
+    this.dressCode,
+    this.dressCodeSourceUrl,
+    this.dressCodeSourceType,
+    this.dressCodeVerified,
   }) : _timings = timings;
 
   final String id;
@@ -71,6 +77,46 @@ class Temple {
   /// the card then reads [photos].
   final String? coverCaption;
 
+  /// Optional `temples/{id}.timingsVerified`. Read-only in the app; never
+  /// written by [toFirestoreData]. Null (missing) is treated like verified so
+  /// older docs without the field show no "unverified" label.
+  final bool? timingsVerified;
+
+  /// Optional `temples/{id}.timingsSourceUrl`. Read-only in the app.
+  final String? timingsSourceUrl;
+
+  /// True only when the doc explicitly says the timings are not verified.
+  bool get timingsUnverified => timingsVerified == false;
+
+  /// [timingsSourceUrl] when it is an absolute http(s) URL, else null.
+  Uri? get timingsSourceUri => httpSourceUri(timingsSourceUrl);
+
+  /// Optional `temples/{id}.dressCode` (KAN-197). Read-only in the app;
+  /// never written by [toFirestoreData] and not in the directory index, so
+  /// an admin edit (merge write) keeps it and index reads stay small.
+  final String? dressCode;
+
+  /// Optional `temples/{id}.dressCodeSourceUrl`. Read-only in the app.
+  final String? dressCodeSourceUrl;
+
+  /// Optional `temples/{id}.dressCodeSourceType`: `official` or `secondary`.
+  /// Any other value reads as null.
+  final String? dressCodeSourceType;
+
+  /// Optional `temples/{id}.dressCodeVerified`. Null (missing) is treated
+  /// like verified, the same as [timingsVerified].
+  final bool? dressCodeVerified;
+
+  /// True when [dressCode] has visible text. The detail screen shows the
+  /// Dress code section only then.
+  bool get hasDressCode => (dressCode?.trim() ?? '').isNotEmpty;
+
+  /// True only when the doc explicitly says the dress code is not verified.
+  bool get dressCodeUnverified => dressCodeVerified == false;
+
+  /// [dressCodeSourceUrl] when it is an absolute http(s) URL, else null.
+  Uri? get dressCodeSourceUri => httpSourceUri(dressCodeSourceUrl);
+
   bool get isIndexSummary => indexTradition != null && indexFraming != null;
 
   /// Null when the listing has no coordinates. (0, 0) is that missing pair,
@@ -115,6 +161,24 @@ class Temple {
       images: _stringList(data['images']),
       photos: _photoList(data['photos']),
       tradition: templeTraditionField(data['tradition']),
+      timingsVerified: data['timingsVerified'] is bool
+          ? data['timingsVerified'] as bool
+          : null,
+      timingsSourceUrl: data['timingsSourceUrl'] is String
+          ? data['timingsSourceUrl'] as String
+          : null,
+      dressCode: data['dressCode'] is String
+          ? data['dressCode'] as String
+          : null,
+      dressCodeSourceUrl: data['dressCodeSourceUrl'] is String
+          ? data['dressCodeSourceUrl'] as String
+          : null,
+      dressCodeSourceType: dressCodeSourceTypeField(
+        data['dressCodeSourceType'],
+      ),
+      dressCodeVerified: data['dressCodeVerified'] is bool
+          ? data['dressCodeVerified'] as bool
+          : null,
       latitude: _coordinatePair(data).lat,
       longitude: _coordinatePair(data).lng,
     );
@@ -183,6 +247,12 @@ class Temple {
     String? coverCaption,
     double? latitude,
     double? longitude,
+    bool? timingsVerified,
+    String? timingsSourceUrl,
+    String? dressCode,
+    String? dressCodeSourceUrl,
+    String? dressCodeSourceType,
+    bool? dressCodeVerified,
   }) {
     return Temple(
       id: id ?? this.id,
@@ -205,6 +275,12 @@ class Temple {
       coverCaption: coverCaption ?? this.coverCaption,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
+      timingsVerified: timingsVerified ?? this.timingsVerified,
+      timingsSourceUrl: timingsSourceUrl ?? this.timingsSourceUrl,
+      dressCode: dressCode ?? this.dressCode,
+      dressCodeSourceUrl: dressCodeSourceUrl ?? this.dressCodeSourceUrl,
+      dressCodeSourceType: dressCodeSourceType ?? this.dressCodeSourceType,
+      dressCodeVerified: dressCodeVerified ?? this.dressCodeVerified,
     );
   }
 
@@ -236,6 +312,27 @@ String? templeTraditionField(dynamic value) {
     'jain' || 'buddhist' || 'sikh' => value,
     _ => null,
   };
+}
+
+/// `official` or `secondary` from a temple document. Anything else is absent.
+String? dressCodeSourceTypeField(dynamic value) {
+  if (value is! String) return null;
+  return switch (value) {
+    'official' || 'secondary' => value,
+    _ => null,
+  };
+}
+
+/// [raw] when it is an absolute http(s) URL with a host, else null.
+Uri? httpSourceUri(String? raw) {
+  final text = raw?.trim() ?? '';
+  if (text.isEmpty) return null;
+  final uri = Uri.tryParse(text);
+  if (uri == null || !(uri.scheme == 'http' || uri.scheme == 'https')) {
+    return null;
+  }
+  if (uri.host.isEmpty) return null;
+  return uri;
 }
 
 /// Missing numbers, non-finite numbers, and the (0, 0) placeholder are null.

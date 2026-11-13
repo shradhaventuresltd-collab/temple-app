@@ -1,0 +1,181 @@
+#!/usr/bin/env bash
+# Flow 17. Every entry into the temple list x every filter control.
+# Entry points: home-button, drawer-all, drawer-search, list-drawer-all (stacked list).
+# Controls per entry: state/deity/district open, select+apply, chip shows value,
+# clear via chip x, swipe-dismiss from header AND from the option list, double tap.
+# Sourced by run_one_flow.sh like flows 01-15 (needs lib/common.sh).
+
+open_drawer() {
+  ui_dump && ui_find --content-desc "Open navigation menu" || return 1
+  ui_tap; sleep 1
+}
+
+enter_home_button() { reach_browse; }
+
+enter_drawer_all() {
+  launch_app; accept_policy_if_shown || return 1; wait_for_home || return 1
+  open_drawer || return 1
+  ui_wait_scrolled 15 --text-regex '^All Temples' || return 1
+  ui_tap; wait_browse_ready
+}
+
+enter_drawer_search() {
+  launch_app; accept_policy_if_shown || return 1; wait_for_home || return 1
+  open_drawer || return 1
+  # The field is under the drawer header. A dump taken at the top does not
+  # contain temple-list-search-field (screenshot 39_).
+  scroll_drawer_until --resource-id temple-list-search-field || return 1
+  ui_tap; ui_type "temple"; adb shell input keyevent 66; sleep 2
+  wait_browse_ready
+}
+
+enter_list_drawer_all() {
+  enter_home_button || return 1
+  open_drawer || return 1
+  ui_wait_scrolled 15 --text-regex '^All Temples' || return 1
+  ui_tap; wait_browse_ready
+}
+
+# Deity uses resource-id filter-chip-deity. The tooltip still matches a
+# selected chip whose visible label is the deity name.
+open_chip() {
+  case "$1" in
+    state) ui_dump && { ui_find --resource-id filter-chip-state || ui_find --content-desc "Choose a state"; } ;;
+    district) ui_dump && { ui_find --resource-id filter-chip-district || ui_find --content-desc "Choose a district"; } ;;
+    deity) ui_dump && { ui_find --resource-id filter-chip-deity || ui_find --content-desc "Choose a deity"; } ;;
+  esac || return 1
+  ui_tap
+  wait_filter_sheet 20
+}
+
+swipe_from_list() {
+  local width height
+  read -r width height < <(ui_screen_size) || return 1
+  # Pull the option list down from its top (list at min extent): _pullToDismiss path.
+  adb_shell_capped 8 input swipe $((width / 2)) $((height * 45 / 100)) $((width / 2)) $((height * 95 / 100)) 120 || {
+    echo "swipe_from_list: swipe timed out" >&2
+    return 1
+  }
+  sleep 1
+  ! sheet_open
+}
+
+declare -A PICK=( [state]='^Kerala( +[0-9]+)?$' [deity]='^Shiva( +[0-9]+)?$' [district]='^Agra( +[0-9]+)?$' )
+declare -A SECTION=( [state]=STATE [deity]=DEITY [district]=DISTRICT )
+
+# Run 41373837994: two entries took the whole 600s cap, and a two-entry
+# part a then took 597 of 600s. One entry point per flow (plan.sh 17a-17d):
+# FILTER_MATRIX_PART=<entry>; "all"/unset runs every entry (local runs).
+# PR 124 wrappers 17a/17b set ENTRY_MATRIX_ENTRIES when the part is unset.
+case "${FILTER_MATRIX_PART:-all}" in
+  home_button|drawer_all|drawer_search|list_drawer_all) ENTRIES=("${FILTER_MATRIX_PART}") ;;
+  *) ENTRIES=(home_button drawer_all drawer_search list_drawer_all) ;;
+esac
+if [[ -n "${ENTRY_MATRIX_ENTRIES:-}" && -z "${FILTER_MATRIX_PART:-}" ]]; then
+  read -ra ENTRIES <<<"${ENTRY_MATRIX_ENTRIES}"
+fi
+for entry in "${ENTRIES[@]}"; do
+  if ! err="$(enter_$entry)"; then
+    fail_step "$entry-enter" "${err:-could not reach the list}"; continue
+  fi
+  pass_step "$entry-enter"
+  for f in state deity district; do
+    id="$entry-$f"
+    if ! open_chip "$f"; then
+      if [[ $f == district ]] && chip_bar_only_district_missing; then
+        xfail_known "$id-open" KAN-190 "district chip hidden while the rest of the chip bar is on screen" district_chip_reappears
+        continue
+      fi
+      fail_step "$id-open" "chip did not open the sheet"; continue
+    fi
+    pass_step "$id-open"
+    if err="$(dismiss_sheet_swipe 2>&1)"; then pass_step "$id-swipe-header"; else fail_step "$id-swipe-header" "$err"; recover_sheet; fi
+    open_chip "$f" && { if swipe_from_list; then pass_step "$id-swipe-list"; else fail_step "$id-swipe-list" "sheet stayed open"; recover_sheet; fi; }
+    # Deity: Shiva only from a Tamil Nadu-scoped list (scoped_pick); the
+    # state was cleared above, so this is the all-India head pick: the
+    # sheet's first real option (@first, round 4.4; Ahalya left the list).
+    if open_chip "$f"; then
+      if [[ "$f" == district ]]; then finish_choose_state_first || true; fi
+      pick="${PICK[$f]}"
+      if [[ "$f" == deity || "$f" == district ]]; then pick="$(scoped_pick "$f")" || pick="${PICK[$f]}"; fi
+      if select_labeled "$pick" "${SECTION[$f]}" && apply_sheet && chip_exact "$SELECTED_LABEL"; then
+        pass_step "$id-select"
+      else
+        fail_step "$id-select" "chip did not take the selection on this route"; recover_sheet; continue
+      fi
+    else
+      fail_step "$id-select" "chip did not take the selection on this route"; recover_sheet; continue
+    fi
+    # Re-open a chip that now shows a value (deity has no id: tooltip only).
+    if open_chip "$f"; then pass_step "$id-reopen-selected"; ui_back; sleep 1; else fail_step "$id-reopen-selected" "selected chip did not reopen"; fi
+    if clear_named "$f"; then pass_step "$id-clear"; else fail_step "$id-clear" "chip x did not clear"; fi
+    # Double tap: must open exactly one sheet, one back closes it.
+    open_chip "$f" >/dev/null 2>&1 && { adb_shell_capped 8 input tap "$UI_CX" "$UI_CY"; sleep 1; ui_back; sleep 1;
+      if sheet_open; then fail_step "$id-double-tap" "two sheets stacked"; recover_sheet; else pass_step "$id-double-tap"; fi; }
+  done
+  # Empty-state Clear filters, from this entry. The chip-row Clear is a
+  # different control. The search text must go. The State chip is checked
+  # only when Kerala actually applied; a missed pick is not a failed clear.
+  # Choose-a-state-first may already have applied Tamil Nadu. That chip
+  # is not labelled State, and skipping the reset check is a failure.
+  kerala_applied=0
+  state_label=""
+  if ui_dump && ui_find --resource-id filter-chip-state; then
+    state_label="$(printf '%s' "${UI_TEXT:-}" | tr -s '[:space:]' ' ' | sed 's/^ //;s/ $//')"
+  fi
+  if [[ -n "$state_label" && "$state_label" != State ]]; then
+    kerala_applied=1
+    CHOOSE_STATE_APPLIED=""
+  elif ui_dump && ui_find --resource-id filter-chip-state --text-regex '^State$'; then
+    ui_tap
+    if wait_filter_sheet 12; then
+      if select_labeled '^Kerala( +[0-9]+)?$' STATE && apply_sheet; then
+        kerala_applied=1
+      else
+        recover_sheet || true
+      fi
+    fi
+  fi
+  # Clear the field first (round 4.3): on drawer_search it already holds
+  # "temple", and typing appended "templezzzqqq", which still matches every
+  # "... Temple" (temple_search.dart:640-641 reverse prefix, a pre-existing
+  # app bug since #103, Jira KAN-193). ui_replace_field_text clears exactly
+  # the current text, types, and reads the field back.
+  recover_sheet || true
+  local search_try
+  for search_try in 1 2 3; do
+    ui_dump || break
+    if ui_find --resource-id temple-list-search-field; then
+      break
+    fi
+    ui_fling down || break
+    sleep 0.4
+  done
+  if ui_dump && ui_find --resource-id temple-list-search-field; then
+    field_ok=1
+    ui_replace_field_text "zzzqqq" temple-list-search-field || field_ok=0
+    adb_shell_capped 8 input keyevent 66 || true
+    sleep 2
+    if (( ! field_ok )); then
+      fail_step "$entry-empty-clear" "search field reads '${UI_FIELD_ACTUAL:-?}', not 'zzzqqq'"
+    elif ui_dump && ui_find --resource-id filter-empty-clear; then
+      ui_tap
+      sleep 1
+      ui_dump
+      if ui_find --text-contains "zzzqqq"; then
+        fail_step "$entry-empty-clear" "search text kept"
+      elif [[ "$kerala_applied" != 1 ]]; then
+        fail_step "$entry-empty-clear" "state chip check skipped"
+      elif ! ui_find --resource-id filter-chip-state --text-regex '^State$'; then
+        fail_step "$entry-empty-clear" "state chip kept"
+      else
+        pass_step "$entry-empty-clear"
+      fi
+    else
+      fail_step "$entry-empty-clear" "Clear filters was not shown"
+    fi
+  else
+    fail_step "$entry-empty-clear" "search field missing"
+  fi
+  force_stop_app
+done

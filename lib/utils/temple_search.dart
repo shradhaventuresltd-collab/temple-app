@@ -8,7 +8,8 @@ const Duration templeSearchDebounce = Duration(milliseconds: 300);
 ///
 /// An empty or whitespace-only query matches every temple. Otherwise the query
 /// is trimmed, lowercased, and split on whitespace. Each word must occur in
-/// the name, deity, city, state, or address ([Temple.location]) after
+/// the name, deity, city, state, address ([Temple.location]), or a stored
+/// or indexed tradition (`jain`, `buddhist`, `sikh`) after
 /// [foldTempleSearchText]. Story and description are not searched. Matching
 /// uses the temples already loaded in memory, so a keystroke does not read
 /// Firestore.
@@ -327,6 +328,21 @@ List<String> _queryWords(String query) {
   return words;
 }
 
+/// Canonical English tradition tokens, only from a stored or index field.
+///
+/// Deity text is already searched. This lets "sikh" find a gurdwara whose
+/// deity is "Guru Granth Sahib". Name, description, and specialities are
+/// not scanned, matching DetailHonesty.
+List<String> _traditionSearchText(Temple temple) {
+  final value =
+      templeTraditionField(temple.tradition) ??
+      templeTraditionField(temple.indexTradition);
+  if (value == null) return const [];
+  return [value];
+}
+
+String _nonEmpty(String value) => value.trim();
+
 final Expando<_TempleIndex> _indexes = Expando<_TempleIndex>();
 
 _TempleIndex _indexFor(Temple temple) {
@@ -382,6 +398,7 @@ class _TempleIndex {
       temple.state,
       temple.deity,
       temple.location,
+      ..._traditionSearchText(temple),
     ];
     final plainFields = <String>[];
     for (final field in fields) {
@@ -393,7 +410,9 @@ class _TempleIndex {
       temple,
       plainFields.join(' '),
       _FieldText.build(temple.name),
-      _FieldText.build(temple.deity),
+      _FieldText.build(
+        [_nonEmpty(temple.deity), ..._traditionSearchText(temple)].join(' '),
+      ),
       _FieldText.build(temple.city),
       _FieldText.build(temple.state),
       _FieldText.build(temple.location),

@@ -8,6 +8,7 @@ Coordinates come from the node's bounds. Callers tap those, not a fixed pixel.
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import sys
 import xml.etree.ElementTree as ET
@@ -272,54 +273,6 @@ def cmd_resource_ids(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_chip_bar(args: argparse.Namespace) -> int:
-    """Print the chip scroller's usable span: left right cy signature.
-
-    The scroller is the row of filter-chip-* nodes. filter-clear is pinned
-    outside it (#123), so the span stops at its left edge. A swipe that
-    starts on that button, or past the drawer's edge, never scrolls the
-    row, and in the drawer it closes the drawer instead.
-    The signature lists each visible chip id with its x1, so a caller can
-    tell whether a swipe actually moved the row.
-    """
-    try:
-        root = _load(args.dump)
-    except (ET.ParseError, OSError, ValueError) as exc:
-        print(f"dump unreadable: {exc}", file=sys.stderr)
-        return 1
-    chips = []
-    pinned = None
-    for node in _iter_nodes(root):
-        short = _resource_id(node).split("/")[-1]
-        box = _bounds(node.attrib.get("bounds", ""))
-        if box is None:
-            continue
-        if args.max_top is not None and box[1] > args.max_top:
-            continue
-        if short == "filter-clear":
-            pinned = box
-        elif short.startswith("filter-chip-"):
-            chips.append((short, box))
-    if not chips:
-        return 1
-    # The row is the band of the first chip. Ignore chips on other rows.
-    _, first = chips[0]
-    cy = (first[1] + first[3]) // 2
-    row = [(n, b) for n, b in chips if b[1] <= cy <= b[3]]
-    left = min(b[0] for _, b in row)
-    right = max(b[2] for _, b in row)
-    if pinned is not None and pinned[1] <= cy <= pinned[3] and pinned[0] > left:
-        right = min(right, pinned[0])
-    # Stay off both edges so the finger lands on the scroller itself.
-    left += 6
-    right -= 6
-    if right - left < 24:
-        return 1
-    sig = ",".join(f"{n}@{b[0]}" for n, b in row)
-    print(f"{left} {right} {cy} {sig}")
-    return 0
-
-
 _KINDS = ("state", "district", "deity")
 _HEADERS = {"STATE": "state", "DISTRICT": "district", "DEITY": "deity"}
 
@@ -351,6 +304,11 @@ def _sheet_rows(root: ET.Element) -> list[tuple[str, str, tuple[int, int, int, i
             if short.startswith(prefix):
                 kind, name = k, short[len(prefix):]
                 break
+        # Most-listed deity rows use filter-deity-top-<name>, not
+        # filter-option-deity-<name>. A head-of-list Shiva is invisible to
+        # the seek if only the letter id is recognised (run 42699042193).
+        if kind is None and short.startswith("filter-deity-top-"):
+            kind, name = "deity", short[len("filter-deity-top-"):]
         if kind is None:
             label = _flat(node.attrib.get("content-desc")) or _flat(node.attrib.get("text"))
             if label in _HEADERS and not short:
@@ -436,6 +394,14 @@ def cmd_option_seek(args: argparse.Namespace) -> int:
             continue
         if name == args.name or (args.prefix and name.startswith(args.name)):
             x1, y1, x2, y2 = box
+            # A row clipped to a sliver at the scroller edge (run
+            # 41373837994: Madurai at [16,568][112,569], 1 px) is not
+            # tappable: step it fully into view first.
+            if y2 - y1 < 12:
+                lo = args.min_top if args.min_top is not None else 0
+                hi = args.max_top if args.max_top is not None else y1
+                print("up near" if y1 >= (lo + hi) / 2 else "down near")
+                return 0
             if args.min_top is not None and y1 < args.min_top:
                 print("down near")
                 return 0
@@ -492,9 +458,18 @@ def cmd_option_seek(args: argparse.Namespace) -> int:
             k != args.kind and order.index(k) < mine and b[1] < min(mine_ys)
             for k, _n, b, _node in rows
         )
-        if target > _dart_key(hi):
+        if args.kind == "state" and _sheet_uses_regions(root):
+            regions = _state_regions()
+            target_key = _state_sort_key(args.name, regions)
+            hi_key = _state_sort_key(hi, regions)
+            lo_key = _state_sort_key(lo, regions)
+        else:
+            target_key = _dart_key(args.name)
+            hi_key = _dart_key(hi)
+            lo_key = _dart_key(lo)
+        if target_key > hi_key:
             print("absent" if later_below else f"up {reach(hi)}")
-        elif target < _dart_key(lo):
+        elif target_key < lo_key:
             print("absent" if earlier_above else f"down {reach(lo)}")
         else:
             print("absent")
@@ -521,6 +496,144 @@ def cmd_option_seek(args: argparse.Namespace) -> int:
         print("up near")
         return 0
     print("none")
+    return 0
+
+
+_REGION_RANK = {
+    "north": 0,
+    "south": 1,
+    "east": 2,
+    "northeast": 3,
+    "west": 4,
+    "central": 5,
+}
+
+
+def _regions_source() -> str:
+    path = os.path.normpath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "..", "lib", "utils", "india_regions.dart")
+    )
+    return open(path, encoding="utf-8").read()
+
+
+def _state_regions() -> dict[str, str]:
+    """Names from lib/utils/india_regions.dart, the KAN-198 catalog."""
+    text = _regions_source()
+    return dict(re.findall(r"\(name: '([^']+)', region: '([^']+)'\)", text))
+
+
+def _state_aliases() -> dict[str, str]:
+    """kIndiaStateAliases, so seek order matches indiaRegionOf."""
+    text = _regions_source()
+    start = text.find("kIndiaStateAliases = {")
+    end = text.find("};", start)
+    block = text[start:end]
+    return dict(re.findall(r"'([^']+)':\s*'([^']+)'", block))
+
+
+def _sheet_uses_regions(root: ET.Element) -> bool:
+    for node in _iter_nodes(root):
+        short = _resource_id(node).split("/")[-1]
+        if short.startswith("filter-region-"):
+            return True
+    return False
+
+
+def _state_sort_key(name: str, regions: dict[str, str]) -> tuple:
+    canonical = _state_aliases().get(name, name)
+    region = regions.get(canonical, regions.get(name))
+    return (_REGION_RANK.get(region, 6), _dart_key(name))
+
+
+def cmd_sheet_band(args: argparse.Namespace) -> int:
+    """Print "TOP BOTTOM" of the filter sheet's option scroller.
+
+    Every seek drag must start inside it. Above it is the sheet header
+    (title, blurb), where a downward pull dismisses the sheet and no drag
+    scrolls the list (_DirectoryFilterSheet._onPointerDown). The 320x640
+    AVD puts the scroller at y 251-569 (39%-89%); seek_option's old fixed
+    32% start (y 204) was on the blurb, so every downward fling after an
+    overshoot was a no-op and the walk ended "list stopped moving before
+    district 'Madurai'" (run 41269171081: 06, 30b x3; Shiva in 06, 29j).
+    The scroller is the smallest scrollable node that holds a picker row.
+    """
+    try:
+        root = _load(args.dump)
+    except (ET.ParseError, OSError, ValueError) as exc:
+        print(f"dump unreadable: {exc}", file=sys.stderr)
+        return 1
+    rows = _sheet_rows(root)
+    if not rows:
+        return 1
+    best = None
+    for node in _iter_nodes(root):
+        if node.attrib.get("scrollable") != "true":
+            continue
+        box = _bounds(node.attrib.get("bounds", ""))
+        if box is None:
+            continue
+        holds = any(
+            box[1] <= r[2][1] and r[2][3] <= box[3] for r in rows
+        )
+        if holds and (best is None or (box[3] - box[1]) < (best[3] - best[1])):
+            best = box
+    if best is None:
+        return 1
+    print(f"{best[1]} {best[3]}")
+    return 0
+
+
+def cmd_chip_bar(args: argparse.Namespace) -> int:
+    """Print "LEFT TOP RIGHT BOTTOM" of the filter chip bar's scroll area.
+
+    The bar is the smallest horizontally scrollable node that holds a
+    filter-chip-* node. The pinned Clear button (filter-clear) sits outside
+    the scroller, at its right end; if it overlaps, RIGHT stops at its left
+    edge. On the 320x640 AVD with a state applied the bar is 14-248 and
+    Clear is 248-312 (run 41314245431, 22 deity-scoped). The old fixed 80%
+    swipe start (x 256) landed on Clear, so no swipe scrolled the bar and
+    the Deity chip stayed off-screen right for all 8 tries.
+    """
+    try:
+        root = _load(args.dump)
+    except (ET.ParseError, OSError, ValueError) as exc:
+        print(f"dump unreadable: {exc}", file=sys.stderr)
+        return 1
+    chips = []
+    clears = []
+    for node in _iter_nodes(root):
+        rid = _resource_id(node)
+        box = _bounds(node.attrib.get("bounds", ""))
+        if box is None:
+            continue
+        if args.max_top is not None and box[1] > args.max_top:
+            continue
+        if rid.startswith("filter-chip-"):
+            chips.append(box)
+        elif rid == "filter-clear":
+            clears.append(box)
+    if not chips:
+        return 1
+    best = None
+    for node in _iter_nodes(root):
+        if node.attrib.get("scrollable") != "true":
+            continue
+        box = _bounds(node.attrib.get("bounds", ""))
+        if box is None or (box[2] - box[0]) <= (box[3] - box[1]):
+            continue
+        holds = any(box[0] <= c[0] < box[2] and box[1] <= c[1] and c[3] <= box[3] for c in chips)
+        if holds and (best is None or (box[2] - box[0]) * (box[3] - box[1]) < (best[2] - best[0]) * (best[3] - best[1])):
+            best = box
+    if best is None:
+        return 1
+    left, top, right, bottom = best
+    for c in clears:
+        overlaps_y = c[1] < bottom and top < c[3]
+        if overlaps_y and left < c[0] < right:
+            right = c[0]
+    if right - left < 40:
+        return 1
+    print(f"{left} {top} {right} {bottom}")
     return 0
 
 
@@ -551,10 +664,9 @@ def _parser() -> argparse.ArgumentParser:
     ids.add_argument("--prefix", default="")
     ids.set_defaults(func=cmd_resource_ids)
 
-    bar = sub.add_parser("chip-bar")
-    bar.add_argument("dump")
-    bar.add_argument("--max-top", type=int)
-    bar.set_defaults(func=cmd_chip_bar)
+    bright = sub.add_parser("bright")
+    bright.add_argument("path")
+    bright.set_defaults(func=cmd_bright)
 
     seek = sub.add_parser("option-seek")
     seek.add_argument("dump")
@@ -570,9 +682,14 @@ def _parser() -> argparse.ArgumentParser:
     kinds.add_argument("dump")
     kinds.set_defaults(func=cmd_sheet_kinds)
 
-    bright = sub.add_parser("bright")
-    bright.add_argument("path")
-    bright.set_defaults(func=cmd_bright)
+    band = sub.add_parser("sheet-band")
+    band.add_argument("dump")
+    band.set_defaults(func=cmd_sheet_band)
+
+    bar = sub.add_parser("chip-bar")
+    bar.add_argument("dump")
+    bar.add_argument("--max-top", type=int)
+    bar.set_defaults(func=cmd_chip_bar)
     return parser
 
 

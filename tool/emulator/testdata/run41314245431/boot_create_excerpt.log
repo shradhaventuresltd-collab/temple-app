@@ -1,0 +1,3 @@
+2026-11-01T14:08:32.1171470Z INFO         | Loading snapshot 'default_boot'...
+2026-11-01T14:08:32.1363286Z WARNING      | Device 'cache' does not have the requested snapshot 'default_boot'
+2026-11-01T14:09:04.7931869Z INFO         | Saving snapshot 'default_boot' took 2249 ms

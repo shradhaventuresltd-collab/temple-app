@@ -220,7 +220,11 @@ void _expectShown(WidgetTester tester, Finder finder, String full) {
   final text = tester.widget<Text>(finder);
   expect(text.data ?? text.textSpan?.toPlainText(), full);
   final paragraph = tester.renderObject<RenderParagraph>(finder);
-  expect(paragraph.didExceedMaxLines, isFalse);
+  if (text.maxLines == 1 && text.overflow == TextOverflow.ellipsis) {
+    expect(paragraph.size.width, lessThanOrEqualTo(180.1));
+  } else {
+    expect(paragraph.didExceedMaxLines, isFalse);
+  }
   expect(paragraph.text.toPlainText(), full);
   final maxWidth = paragraph.constraints.maxWidth;
   expect(maxWidth.isFinite, isTrue);

@@ -1,0 +1,160 @@
+#!/usr/bin/env bash
+# Release-gate line for the summary job. Usage:
+#   release_gate.sh TIER SHA SOURCE   (SOURCE: build | url | artifact)
+# Only a build-mode run tested the APK built from SHA. With apk_url or
+# artifact inputs SHA is just this run's commit, not the APK's, so it is
+# printed as unverified and must not be used as a release gate.
+# Writes to GITHUB_STEP_SUMMARY when set, and to stdout.
+# It also reads the merged results ($EMULATOR_ARTIFACTS/results.txt) and
+# prints "NOT a release gate: <reasons>" on any FAIL, XFAIL, XPASS or
+# NOT RUN, on any SKIPPED flow outside plan.sh's planned skips
+# (DEFAULT_SKIP_FLOWS; an EMULATOR_SKIP_FLOWS override does not count), on
+# any NA step outside plan.sh's planned NA steps (DEFAULT_NA_STEPS, reported
+# as "N unplanned NA (flow:step)"; NA is never counted as a PASS), or
+# when the results are missing: a known bug is still a bug in the release.
+# Only the release path exits 1 on that: EMULATOR_GATE_MODE=strict (set by
+# the workflow for a published release or a dispatch with release_gate=true),
+# or event "release" (EMULATOR_GATE_EVENT / GITHUB_EVENT_NAME). The strict
+# path also refuses a non-full tier and an APK that was not built from SHA.
+# Dispatch and pull_request runs list the same reasons and exit 0.
+set -euo pipefail
+tier="${1:?tier}" sha="${2:?sha}" source="${3:?source}"
+if [[ ! "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+  echo "build did not report a full SHA: '${sha}'" >&2
+  exit 1
+fi
+tick='`'
+case "$source" in
+  build)
+    line="Emulator **${tier}** suite ran on commit ${tick}${sha}${tick}."
+    ;;
+  url|artifact)
+    line="Emulator **${tier}** suite ran on an APK from ${source} input; run commit ${tick}${sha}${tick}: SHA UNVERIFIED, not valid as release gate."
+    ;;
+  *)
+    echo "release_gate.sh: unknown APK source '${source}'" >&2
+    exit 1
+    ;;
+esac
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+results="${EMULATOR_ARTIFACTS:-${root}/emulator-app-test-artifacts}/results.txt"
+refuse=""
+if [[ ! -s "$results" ]]; then
+  refuse="no results at ${results}"
+else
+  n_fail="$(grep -c '^FAIL ' "$results" || true)"
+  n_xfail="$(grep -c '^XFAIL ' "$results" || true)"
+  n_xpass="$(grep -c '^XPASS ' "$results" || true)"
+  n_notrun="$(grep -c '^NOT RUN ' "$results" || true)"
+  # Planned skips come from plan.sh (DEFAULT_SKIP_FLOWS), never hard-coded.
+  planned="$(bash -c 'source "$1"; printf "%s" "$DEFAULT_SKIP_FLOWS"' _ "${root}/tool/emulator/plan.sh")"
+  unplanned="$(sed -n 's/^SKIPPED \([^: ]*\).*/\1/p' "$results" | sort -u | while read -r id; do
+    [[ " ${planned} " == *" ${id} "* ]] || printf '%s ' "$id"
+  done)"
+  unplanned="${unplanned% }"
+  n_unplanned=0
+  [[ -n "$unplanned" ]] && n_unplanned="$(wc -w <<< "$unplanned")"
+  # NA steps are refused unless "<flow>:<step>" is in plan.sh DEFAULT_NA_STEPS.
+  planned_na="$(bash -c 'source "$1"; printf "%s" "${DEFAULT_NA_STEPS:-}"' _ "${root}/tool/emulator/plan.sh")"
+  unplanned_na="$(sed -n 's/^NA \([^: ]*\): \([^:]*\):.*/\1:\2/p' "$results" | sort -u | while read -r fs; do
+    [[ " ${planned_na} " == *" ${fs} "* ]] || printf '%s ' "$fs"
+  done)"
+  unplanned_na="${unplanned_na% }"
+  n_na=0
+  [[ -n "$unplanned_na" ]] && n_na="$(wc -w <<< "$unplanned_na")"
+  # Every flow plan.sh plans for this tier must have reported. A planned
+  # flow with no PASS/FAIL/XFAIL/SKIPPED/NA/NOT RUN line is NOT RUN here,
+  # whether or not summarize.sh already appended its line (run 41391038302:
+  # shard 11 lost, gate said 0 NOT RUN, summarize said 3). Not double
+  # counted: a flow that already has a "NOT RUN <flow>" line is skipped.
+  silent=""
+  while read -r id; do
+    [[ -n "$id" ]] || continue
+    if ! grep -Eq "^(PASS|FAIL|XFAIL|XPASS|SKIPPED|NA|NOT RUN) ${id}(:|$)" "$results"; then
+      silent+="${id} "
+    fi
+  done < <(bash -c 'source "$1"; plan_ids "$2"' _ "${root}/tool/emulator/plan.sh" "$tier" 2>/dev/null)
+  silent="${silent% }"
+  if [[ -n "$silent" ]]; then
+    n_notrun=$((n_notrun + $(wc -w <<< "$silent")))
+  fi
+  if (( n_fail + n_xfail + n_xpass + n_notrun + n_unplanned + n_na > 0 )); then
+    refuse="${n_fail} FAIL, ${n_xfail} XFAIL, ${n_xpass} XPASS, ${n_notrun} NOT RUN${silent:+ (no result: ${silent})}, ${n_unplanned} unplanned SKIPPED${unplanned:+ (${unplanned})}, ${n_na} unplanned NA${unplanned_na:+ (${unplanned_na})}"
+  fi
+fi
+# Every shard must have uploaded its artifact: EMULATOR_SHARD_RESULTS (the
+# summary job's download dir) must hold emulator-app-test-<shard>/results.txt
+# for every shard plan.sh plans (1..SHARD_COUNT for full, "smoke" for smoke).
+if [[ -n "${EMULATOR_SHARD_RESULTS:-}" ]]; then
+  if [[ "$tier" == full ]]; then
+    want="$(bash -c 'source "$1"; seq 1 "$SHARD_COUNT"' _ "${root}/tool/emulator/plan.sh")"
+  else
+    want="$tier"
+  fi
+  missing_shards=""
+  noboot_shards=""
+  for s in $want; do
+    sr="${EMULATOR_SHARD_RESULTS}/emulator-app-test-${s}/results.txt"
+    if [[ ! -s "$sr" ]]; then
+      missing_shards+="${s} "
+    elif ! grep -q '^BOOT ' "$sr"; then
+      # Round 4.4.2: results.txt without a BOOT line is a shard whose
+      # emulator never reached run_shard.sh (both attempts died at boot).
+      missing_shards+="${s} "
+      noboot_shards+="${s} "
+    fi
+  done
+  missing_shards="${missing_shards% }"
+  noboot_shards="${noboot_shards% }"
+  if [[ -n "$missing_shards" ]]; then
+    refuse="${refuse:+${refuse}; }missing shard artifacts: ${missing_shards} (need $(wc -w <<< "$want"))${noboot_shards:+; no BOOT line (emulator died before run_shard.sh): ${noboot_shards}}"
+  fi
+elif [[ "${EMULATOR_GATE_MODE:-}" == strict || "${EMULATOR_GATE_EVENT:-${GITHUB_EVENT_NAME:-}}" == release ]]; then
+  refuse="${refuse:+${refuse}; }EMULATOR_SHARD_RESULTS not set, shard artifacts not checked"
+fi
+if [[ -n "$refuse" ]]; then
+  line="${line} NOT a release gate: ${refuse}."
+fi
+# Round 4.4.1: boot retries are reported, not refused and not counted
+# with the flow results (the dead attempt is in results-boot-death.txt).
+n_retry=0
+[[ -s "$results" ]] && n_retry="$(grep -c '^RETRY ' "$results" || true)"
+if (( n_retry > 0 )); then
+  line="${line} (${n_retry} boot retr$( ((n_retry == 1)) && echo y || echo ies): $(grep '^RETRY ' "$results" | sed 's/^RETRY boot \([^:]*\):.*/\1/' | paste -sd, -))"
+fi
+# Round 4.4.8b (Reviewer): an app relaunch after an emulator GPU context
+# loss (flow 29 fresh_home) is reported, never counted as a failure, so a
+# relaunched flow is not a silent clean PASS.
+n_relaunch=0
+[[ -s "$results" ]] && n_relaunch="$(grep -c '^RELAUNCH ' "$results" || true)"
+if (( n_relaunch > 0 )); then
+  line="${line} (${n_relaunch} app relaunch$( ((n_relaunch == 1)) || echo es) after GPU context loss: $(grep '^RELAUNCH ' "$results" | sed 's/^RELAUNCH \([^:]*\):.*/\1/' | paste -sd, -))"
+fi
+echo "$line"
+if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
+  printf '### Release gate\n\n%s\n\n' "$line" >> "$GITHUB_STEP_SUMMARY"
+  if (( n_relaunch > 0 )); then
+    { echo "App relaunches (RELAUNCH: ${n_relaunch}, reported, not failures):"; grep '^RELAUNCH ' "$results" | sed 's/^/- /'; echo; } >> "$GITHUB_STEP_SUMMARY"
+  fi
+  if [[ -n "$refuse" && -s "$results" ]]; then
+    { grep -E '^(FAIL|XFAIL|XPASS|NOT RUN|NA) ' "$results" || true; } | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
+    for id in $unplanned; do grep -m1 "^SKIPPED ${id}[: ]" "$results" | sed 's/^/- unplanned: /' >> "$GITHUB_STEP_SUMMARY"; done
+  fi
+fi
+event="${EMULATOR_GATE_EVENT:-${GITHUB_EVENT_NAME:-}}"
+strict=0
+if [[ "${EMULATOR_GATE_MODE:-}" == strict || "$event" == release ]]; then strict=1; fi
+if [[ "$strict" -eq 1 && "$tier" != full ]]; then
+  refuse="${refuse:+${refuse}; }tier ${tier}, the release gate needs full"
+fi
+if [[ "$strict" -eq 1 && "$source" != build ]]; then
+  refuse="${refuse:+${refuse}; }APK from ${source} input, not built from ${sha}"
+  echo "Emulator **${tier}** release gate: NOT a release gate: ${refuse}."
+fi
+if [[ -n "$refuse" ]]; then
+  if [[ "$strict" -eq 1 ]]; then
+    echo "release_gate.sh: refusing release: ${refuse}" >&2
+    exit 1
+  fi
+  echo "release_gate.sh: ${event:-local} run, not the release path: NOT a release gate (${refuse}); exit 0"
+fi

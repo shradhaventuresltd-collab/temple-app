@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/utils/deity_groups.dart';
 import 'package:temple_app/utils/directory_filters.dart';
 import 'package:temple_app/widgets/app_drawer.dart';
 import 'package:temple_app/widgets/directory_filter_bar.dart';
@@ -18,6 +19,8 @@ void main() {
     required String state,
     required String city,
     required String deity,
+    String? tradition,
+    String? indexTradition,
   }) {
     return Temple(
       name: name,
@@ -32,6 +35,8 @@ void main() {
       specialities: const [],
       latitude: 0,
       longitude: 0,
+      tradition: tradition,
+      indexTradition: indexTradition,
     );
   }
 
@@ -109,13 +114,17 @@ void main() {
     expect(directoryDeityChipLabel('Buddha'), 'Buddha · Buddhist');
     expect(
       directoryDeityFilterNote(directoryDeitiesFrom(temples)),
-      'Jain labels are the listed tradition, not Hindu darshan filters.',
+      'Jain sites are labelled by their own tradition, not Hindu darshan.',
     );
     expect(
       directoryDeityFilterNote(directoryDeitiesFrom(withGoa)),
-      'Jain and Buddhist labels are the listed tradition, not Hindu darshan filters.',
+      'Jain and Buddhist sites are labelled by their own tradition, not Hindu darshan.',
     );
-    expect(directoryFilterCount(temples, state: 'Kerala', deity: 'Shiva'), 1);
+    expect(directoryDeityFilterNote(const ['Shiva'], count: 4), '4 deities');
+    expect(
+      directoryMatchingTemples(temples, state: 'Kerala', deity: 'Shiva').length,
+      1,
+    );
     expect(
       directoryBrowseTitle(state: 'Kerala', deity: 'Shiva'),
       'Shiva · Kerala',
@@ -130,24 +139,27 @@ void main() {
     expect(find.text('Vaikom Mahadeva Temple'), findsOneWidget);
     expect(find.text('Dilwara Temples'), findsOneWidget);
 
-    await openSheet(tester);
+    await tester.tap(find.byKey(const Key('filter-chip-state')));
+    await tester.pumpAndSettle();
     expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
-    expect(find.text('Filters'), findsOneWidget);
-    expect(find.byKey(const Key('filter-deity-note')), findsOneWidget);
-    expect(find.textContaining('Hindu darshan'), findsOneWidget);
-    expect(
-      find.textContaining('Jain Tirthankaras · Jain', findRichText: true),
-      findsOneWidget,
-    );
-    expect(find.textContaining('Buddha'), findsNothing);
+    expect(find.byKey(const Key('filter-sheet-title')), findsOneWidget);
+    expect(find.byKey(const Key('filter-option-district-any')), findsNothing);
+    expect(find.byKey(const Key('filter-option-deity-any')), findsNothing);
     expect(find.text('Goa'), findsNothing);
     expect(find.text('Himachal Pradesh'), findsNothing);
-    expect(find.text('District'), findsNothing);
-    expect(find.text('Festival'), findsNothing);
-    expect(find.text('ASI'), findsNothing);
 
     await tester.tap(find.byKey(const Key('filter-option-state-Kerala')));
     await tester.pump();
+    await tester.tap(find.byKey(const Key('filter-sheet-apply')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('filter-chip-deity')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('filter-section-deity')), findsOneWidget);
+    expect(find.byKey(const Key('filter-option-deity-Shiva')), findsOneWidget);
+    expect(find.textContaining('Buddha'), findsNothing);
+    expect(find.byKey(const Key('filter-option-state-any')), findsNothing);
+
     await tester.tap(find.byKey(const Key('filter-option-deity-Shiva')));
     await tester.pump();
     expect(find.text('Show 1 temple'), findsOneWidget);
@@ -359,7 +371,115 @@ void main() {
     expect(find.text('Meenakshi Amman Temple'), findsNothing);
     expect(find.text('Jain'), findsOneWidget);
     expect(find.textContaining('Jain Tirthankaras · Jain'), findsOneWidget);
-    expect(find.textContaining('darshan'), findsNothing);
+    await tester.ensureVisible(find.byKey(const Key('filter-chip-deity')));
+    await tester.tap(find.byKey(const Key('filter-chip-deity')));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        'Jain sites are labelled by their own tradition, not Hindu darshan.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  test(
+    'a stored Sikh or Jain tradition labels a deity with no tradition words',
+    () {
+      final listed = [
+        temple(
+          name: 'Harmandir Sahib',
+          state: 'Punjab',
+          city: 'Amritsar',
+          deity: 'Guru Granth Sahib',
+          tradition: 'sikh',
+        ),
+        temple(
+          name: 'Dilwara Temples',
+          state: 'Rajasthan',
+          city: 'Mount Abu',
+          deity: 'Rishabhanatha',
+          tradition: 'jain',
+        ),
+        temple(
+          name: 'Meenakshi Amman Temple',
+          state: 'Tamil Nadu',
+          city: 'Madurai',
+          deity: 'Devi',
+        ),
+      ];
+      expect(listedDeityTraditionLabel('Guru Granth Sahib'), isNull);
+      expect(listedTempleTraditionLabel(listed[0]), 'Sikh');
+      expect(listedTempleTraditionLabel(listed[1]), 'Jain');
+      expect(listedTempleTraditionLabel(listed[2]), isNull);
+      expect(
+        directoryDeityChipLabel(
+          'Guru Granth Sahib',
+          tradition: listedTempleTraditionLabel(listed[0]),
+        ),
+        'Guru Granth Sahib · Sikh',
+      );
+      expect(
+        directoryDeityFilterNote(
+          listed.map((temple) => temple.deity),
+          traditionLabels: listed
+              .map(listedTempleTraditionLabel)
+              .whereType<String>(),
+        ),
+        'Jain and Sikh sites are labelled by their own tradition, not Hindu darshan.',
+      );
+      final groups = groupDeityNames(
+        listed.map((temple) => temple.deity),
+        traditionOf: traditionOfLoadedTemples(listed),
+      );
+      final byLabel = {
+        for (final group in groups) group.label: group.tradition,
+      };
+      expect(byLabel['Guru Granth Sahib'], 'Sikh');
+      expect(byLabel['Rishabhanatha'], 'Jain');
+      expect(byLabel['Devi'], isNull);
+      expect(
+        directoryMatchingTemples(
+          listed,
+          deity: 'Guru Granth Sahib',
+        ).single.name,
+        'Harmandir Sahib',
+      );
+      expect(
+        directoryMatchingTemples(listed, deity: 'Rishabhanatha').single.name,
+        'Dilwara Temples',
+      );
+    },
+  );
+
+  testWidgets('a gurdwara with stored tradition shows a Sikh deity badge', (
+    tester,
+  ) async {
+    final listed = [
+      temple(
+        name: 'Harmandir Sahib',
+        state: 'Punjab',
+        city: 'Amritsar',
+        deity: 'Guru Granth Sahib',
+        tradition: 'sikh',
+      ),
+    ];
+    await pumpList(
+      tester,
+      directory: listed,
+      initialDeity: 'Guru Granth Sahib',
+    );
+    expect(find.text('Harmandir Sahib'), findsOneWidget);
+    expect(find.textContaining('Guru Granth Sahib · Sikh'), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('filter-chip-deity')));
+    await tester.tap(find.byKey(const Key('filter-chip-deity')));
+    await tester.pumpAndSettle();
+    expect(find.text('Sikh'), findsWidgets);
+    expect(
+      find.text(
+        'Sikh sites are labelled by their own tradition, not Hindu darshan.',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('deity chip opens the deity list and state chip opens states', (
@@ -405,7 +525,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.byKey(const Key('filter-option-deity-Deity 00')).hitTestable(),
+      find.byKey(const Key('filter-deity-top-Deity 00')).hitTestable(),
       findsOneWidget,
     );
     expect(
@@ -541,8 +661,16 @@ void main() {
       await tester.pump();
 
       await openDismissReopen(const Key('filter-chip-district'), () async {
-        await tester.drag(find.byType(ListView), const Offset(0, 400));
+        await tester.drag(
+          find.byKey(const Key('filter-sheet-options')),
+          const Offset(0, 400),
+        );
       });
+      await tester.tap(find.byKey(const Key('filter-option-state-Tamil Nadu')));
+      await tester.pump();
+      await tester.ensureVisible(find.byKey(const Key('filter-sheet-apply')));
+      await tester.tap(find.byKey(const Key('filter-sheet-apply')));
+      await tester.pumpAndSettle();
       await applyOption(const Key('filter-option-district-Madurai'));
       expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
       expect(find.text('Vaikom Mahadeva Temple'), findsNothing);
@@ -552,7 +680,10 @@ void main() {
       await tester.pump();
 
       await openDismissReopen(const Key('filter-chip-deity'), () async {
-        await tester.drag(find.byType(ListView), const Offset(0, 400));
+        await tester.drag(
+          find.byKey(const Key('filter-sheet-options')),
+          const Offset(0, 400),
+        );
       });
       await applyOption(const Key('filter-option-deity-Devi'));
       expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
@@ -563,7 +694,10 @@ void main() {
       await tester.pump();
 
       await openDismissReopen(const Key('filter-chip-state'), () async {
-        await tester.drag(find.byType(ListView), const Offset(0, 400));
+        await tester.drag(
+          find.byKey(const Key('filter-sheet-options')),
+          const Offset(0, 400),
+        );
       });
       await applyOption(const Key('filter-option-state-Tamil Nadu'));
       expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
@@ -603,7 +737,14 @@ void main() {
 
     await tester.tap(find.byKey(const Key('filter-chip-deity')));
     await tester.pumpAndSettle();
-    await tester.drag(find.byType(ListView), const Offset(0, -320));
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('filter-option-deity-Deity 20')),
+      300,
+      scrollable: find.descendant(
+        of: find.byKey(const Key('filter-sheet-options')),
+        matching: find.byType(Scrollable),
+      ),
+    );
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
     expect(
@@ -611,10 +752,7 @@ void main() {
       findsOneWidget,
     );
 
-    final optionList = find.descendant(
-      of: find.byKey(const Key('filter-sheet')),
-      matching: find.byType(ListView),
-    );
+    final optionList = find.byKey(const Key('filter-sheet-options'));
     final scrollable = tester.state<ScrollableState>(
       find.descendant(of: optionList, matching: find.byType(Scrollable)),
     );
@@ -627,7 +765,7 @@ void main() {
     }
     expect(scrollable.position.pixels, 0);
     expect(
-      find.byKey(const Key('filter-option-deity-Deity 00')).hitTestable(),
+      find.byKey(const Key('filter-deity-top-Deity 00')).hitTestable(),
       findsOneWidget,
     );
   });
@@ -664,7 +802,7 @@ void main() {
           home: Scaffold(
             body: DirectoryFilterBar(
               temples: many,
-              selectedState: null,
+              selectedState: 'Tamil Nadu',
               selectedDeity: null,
               districtOf: districtOf,
               onChanged: (_, _, _) {},
@@ -677,16 +815,22 @@ void main() {
         await tester.tap(find.byKey(const Key('filter-chip-district')));
         await tester.pumpAndSettle();
         expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
-        expect(find.text('DISTRICT'), findsOneWidget);
+        expect(
+          find.byKey(const Key('filter-section-district')),
+          findsOneWidget,
+        );
       }
 
       final optionList = find.descendant(
         of: find.byKey(const Key('filter-sheet')),
-        matching: find.byType(ListView),
+        matching: find.byKey(const Key('filter-sheet-options')),
       );
 
       await openDistrict();
-      await tester.drag(find.text('Filters'), const Offset(0, 400));
+      await tester.drag(
+        find.byKey(const Key('filter-sheet-title')),
+        const Offset(0, 400),
+      );
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('filter-sheet')), findsNothing);
 
@@ -709,7 +853,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
 
-      await tester.drag(find.text('Filters'), const Offset(0, 400));
+      await tester.drag(
+        find.byKey(const Key('filter-sheet-title')),
+        const Offset(0, 400),
+      );
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('filter-sheet')), findsNothing);
 
@@ -817,13 +964,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(drawerScroll.offset, 80);
-    final chipScroller = tester.state<ScrollableState>(
-      find.descendant(
-        of: find.byType(DirectoryFilterBar),
-        matching: find.byType(Scrollable),
-      ),
+    expect(
+      find.byKey(const Key('filter-chip-state')).hitTestable(),
+      findsOneWidget,
     );
-    expect(chipScroller.position.pixels, greaterThan(0));
+    expect(
+      find.byKey(const Key('filter-chip-district')).hitTestable(),
+      findsOneWidget,
+    );
     expect(
       find.byKey(const Key('filter-chip-deity-clear')).hitTestable(),
       findsOneWidget,
@@ -993,9 +1141,12 @@ void main() {
     directoryOptionCensusCalls = 0;
     await pumpSheet(query: 'temple', rows: many);
     await tester.pump();
-    await tester.drag(find.text('Filters'), const Offset(0, 40));
+    await tester.drag(
+      find.byKey(const Key('filter-sheet-title')),
+      const Offset(0, 40),
+    );
     await tester.pump();
-    expect(find.text('Filters'), findsOneWidget);
+    expect(find.byKey(const Key('filter-sheet-title')), findsOneWidget);
     expect(directoryOptionCensusCalls, 1);
 
     await tester.tap(find.byKey(const Key('filter-option-state-Kerala')));
@@ -1036,16 +1187,24 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
 
-    await tester.drag(find.text('Filters'), const Offset(0, 60));
+    await tester.drag(
+      find.byKey(const Key('filter-sheet-title')),
+      const Offset(0, 60),
+    );
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('filter-sheet')), findsOneWidget);
 
-    await tester.drag(find.text('Filters'), const Offset(0, 80));
+    await tester.drag(
+      find.byKey(const Key('filter-sheet-title')),
+      const Offset(0, 80),
+    );
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('filter-sheet')), findsNothing);
   });
 
-  testWidgets('filter-clear sits outside the chip scroller', (tester) async {
+  testWidgets('filter-clear and every chip stay tappable at 320dp', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(320, 640);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -1085,17 +1244,17 @@ void main() {
 
     final clear = find.byKey(const Key('filter-clear'));
     expect(clear, findsOneWidget);
-    expect(
-      find.descendant(of: find.byType(SingleChildScrollView), matching: clear),
-      findsNothing,
-    );
-    final barScroll = find.descendant(
-      of: find.byType(DirectoryFilterBar),
-      matching: find.byType(Scrollable),
-    );
-    final position = tester.state<ScrollableState>(barScroll).position;
-    expect(position.maxScrollExtent, greaterThan(0));
     expect(clear.hitTestable(), findsOneWidget);
+    // 320dp used to scroll the deity chip off the row (run 42699042193,
+    // flow 21). Clear and every chip stay on screen.
+    expect(
+      find.byKey(const Key('filter-chip-deity')).hitTestable(),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('filter-chip-state')).hitTestable(),
+      findsOneWidget,
+    );
 
     await tester.tap(clear);
     await tester.pump();
@@ -1118,7 +1277,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byKey(const Key('filter-chip-district')),
-        matching: find.text('All districts'),
+        matching: find.text('District'),
       ),
       findsOneWidget,
     );

@@ -1,0 +1,35 @@
+name: ios-build
+
+# macOS minutes bill at 10x; do not dispatch without Sanu's OK.
+# Manual only. No push, pull_request, or schedule trigger.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ios:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version: '3.47.7'
+          cache: true
+
+      - name: flutter pub get
+        run: flutter pub get
+
+      # Flutter installs pods. Do not call CocoaPods directly.
+      - name: pod install via flutter
+        run: flutter build ios --config-only
+
+      - name: debug device build
+        run: flutter build ios --no-codesign --debug
+
+      - name: simulator build
+        run: flutter build ios --simulator

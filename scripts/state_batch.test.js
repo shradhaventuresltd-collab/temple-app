@@ -14,12 +14,16 @@ import {
   planSeedCommits,
 } from "./seed_state_batch.js";
 import {
+  ADDRESS_MAX_UTF16,
   STATE_BOUNDS,
   canonicalPhotoPackPath,
   distanceKm,
+  formatSummary,
   hasVerifiedGallery,
+  resolveTempleAddress,
   validateStateBatch,
 } from "./state_batch.js";
+import { entryFromTemple } from "./temple_index.js";
 import { loadSampleTemples, mergeTemplesIntoSource, parseSampleTemples } from "./temple_seed.js";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
@@ -139,7 +143,207 @@ test("story, location, and id are forbidden; sources, photo_pack, and review are
   assert.equal(withClock.temples[0].timings, "6:00 AM–8:00 PM.");
 });
 
+test("optional address is trimmed, stored, rejected when too long, and shown in dry-run", () => {
+  const missing = validateStateBatch(batch([temple()]), []);
+  assert.equal(missing.ok, true, missing.errors.join("\n"));
+  assert.equal(missing.temples[0].location, "Patna, Bihar");
+  assert.equal(firestoreWritePayload(missing.temples[0], null).address, "Patna, Bihar");
+  assert.equal(resolveTempleAddress(missing.temples[0]), "Patna, Bihar");
+  assert.match(formatSummary(missing.summary), /new example-temple address: Patna, Bihar/);
+
+  const present = validateStateBatch(
+    batch([temple({ address: "  Mahavir Mandir Road, Patna  " })]),
+    [],
+  );
+  assert.equal(present.ok, true, present.errors.join("\n"));
+  assert.equal(present.temples[0].location, "Mahavir Mandir Road, Patna");
+  assert.equal(
+    firestoreWritePayload(present.temples[0], null).address,
+    "Mahavir Mandir Road, Patna",
+  );
+  assert.match(
+    formatSummary(present.summary),
+    /new example-temple address: Mahavir Mandir Road, Patna/,
+  );
+
+  const blank = validateStateBatch(batch([temple({ address: "   \t  " })]), []);
+  assert.equal(blank.ok, true, blank.errors.join("\n"));
+  assert.equal(blank.temples[0].location, "Patna, Bihar");
+  assert.equal(firestoreWritePayload(blank.temples[0], null).address, "Patna, Bihar");
+
+  const tooLong = validateStateBatch(
+    batch([temple({ address: "a".repeat(ADDRESS_MAX_UTF16 + 1) })]),
+    [],
+  );
+  assert.equal(tooLong.ok, false);
+  assert.ok(
+    tooLong.errors.some(
+      (error) =>
+        error.includes("address") &&
+        error.includes("501") &&
+        error.includes("UTF-16"),
+    ),
+    tooLong.errors.join("\n"),
+  );
+
+  const emojiOver = validateStateBatch(
+    batch([temple({ address: `${"a".repeat(ADDRESS_MAX_UTF16 - 1)}\u{1F600}` })]),
+    [],
+  );
+  assert.equal("\u{1F600}".length, 2);
+  assert.equal(emojiOver.ok, false);
+  assert.ok(
+    emojiOver.errors.some((error) => error.includes("501") && error.includes("UTF-16")),
+    emojiOver.errors.join("\n"),
+  );
+
+  const emojiOk = validateStateBatch(
+    batch([temple({ address: `${"a".repeat(ADDRESS_MAX_UTF16 - 2)}\u{1F600}` })]),
+    [],
+  );
+  assert.equal(emojiOk.ok, true, emojiOk.errors.join("\n"));
+  assert.equal(emojiOk.temples[0].location.length, ADDRESS_MAX_UTF16);
+  assert.equal(
+    firestoreWritePayload(emojiOk.temples[0], null).address.length,
+    ADDRESS_MAX_UTF16,
+  );
+
+  const notString = validateStateBatch(batch([temple({ address: 12 })]), []);
+  assert.equal(notString.ok, false);
+  assert.ok(
+    notString.errors.some((error) => error.includes("address must be a string")),
+    notString.errors.join("\n"),
+  );
+
+  const dir = mkdtempSync(join(tmpdir(), "state-batch-address-"));
+  const sample = join(dir, "sample.dart");
+  const file = join(dir, "bihar.json");
+  writeFileSync(
+    sample,
+    `import 'package:temple_app/models/temple.dart';
+
+const List<Temple> sampleTemples = [
+];
+`,
+  );
+  writeFileSync(
+    file,
+    JSON.stringify(batch([temple({ address: "  Mahavir Mandir Road, Patna  " })])),
+  );
+  const dry = spawnSync(
+    process.execPath,
+    [join(here, "seed_state_batch.js"), file, "--sample", sample],
+    { encoding: "utf8" },
+  );
+  assert.equal(dry.status, 0, dry.stderr);
+  assert.match(dry.stdout, /Mode: dry-run/);
+  assert.match(dry.stdout, /new example-temple address: Mahavir Mandir Road, Patna/);
+  assert.match(readFileSync(sample, "utf8"), /sampleTemples = \[\s*\];/);
+});
+
+test("optional tradition is jain, buddhist, or sikh, written through, and omitted for Hindu listings", () => {
+  const hindu = validateStateBatch(batch([temple()]), []);
+  assert.equal(hindu.ok, true, hindu.errors.join("\n"));
+  assert.equal(Object.hasOwn(hindu.temples[0], "tradition"), false);
+  assert.equal(Object.hasOwn(firestoreWritePayload(hindu.temples[0], null), "tradition"), false);
+
+  const blank = validateStateBatch(batch([temple({ tradition: "   " })]), []);
+  assert.equal(blank.ok, true, blank.errors.join("\n"));
+  assert.equal(Object.hasOwn(blank.temples[0], "tradition"), false);
+
+  for (const tradition of ["jain", "buddhist", "sikh"]) {
+    const result = validateStateBatch(batch([temple({ tradition })]), []);
+    assert.equal(result.ok, true, `${tradition}: ${result.errors.join("\n")}`);
+    assert.equal(result.temples[0].tradition, tradition);
+    const payload = firestoreWritePayload(result.temples[0], null);
+    assert.equal(payload.tradition, tradition);
+    assert.match(formatSummary(result.summary), new RegExp(`tradition: ${tradition}`));
+  }
+
+  const gurdwara = validateStateBatch(
+    batch([
+      temple({
+        slug: "harmandir-sahib",
+        name: "Harmandir Sahib",
+        deity: "Guru Granth Sahib",
+        tradition: "sikh",
+        description:
+          "Harmandir Sahib is the principal Sikh gurdwara in Amritsar. Pilgrims visit the sanctum around the clock.",
+      }),
+    ]),
+    [],
+  );
+  assert.equal(gurdwara.ok, true, gurdwara.errors.join("\n"));
+  const gurdwaraPayload = firestoreWritePayload(gurdwara.temples[0], null);
+  assert.equal(gurdwaraPayload.tradition, "sikh");
+  assert.equal(gurdwaraPayload.deity, "Guru Granth Sahib");
+  assert.equal(entryFromTemple({ ...gurdwaraPayload, id: "harmandir-sahib" }).tradition, "sikh");
+
+  const derasar = validateStateBatch(
+    batch([
+      temple({
+        slug: "dilwara-temples",
+        name: "Dilwara Temples",
+        deity: "Rishabhanatha",
+        tradition: "jain",
+        description:
+          "The Dilwara Temples are a Jain derasar complex at Mount Abu. Marble carving covers the sanctum halls.",
+      }),
+    ]),
+    [],
+  );
+  assert.equal(derasar.ok, true, derasar.errors.join("\n"));
+  assert.equal(firestoreWritePayload(derasar.temples[0], null).tradition, "jain");
+  assert.equal(
+    entryFromTemple({ ...firestoreWritePayload(derasar.temples[0], null), id: "dilwara-temples" }).tradition,
+    "jain",
+  );
+
+  for (const tradition of ["hindu", "Jain", "Sikh", "unspecified", "Buddhist "]) {
+    const result = validateStateBatch(batch([temple({ tradition })]), []);
+    assert.equal(result.ok, false, tradition);
+    assert.ok(
+      result.errors.some((error) => error.includes("tradition must be jain, buddhist, or sikh")),
+      `${tradition}: ${result.errors.join("\n")}`,
+    );
+  }
+
+  const notString = validateStateBatch(batch([temple({ tradition: 1 })]), []);
+  assert.equal(notString.ok, false);
+  assert.ok(notString.errors.some((error) => error.includes("tradition must be a string")));
+
+  const noDeity = temple({ tradition: "sikh" });
+  delete noDeity.deity;
+  const missingDeity = validateStateBatch(batch([noDeity]), []);
+  assert.equal(missingDeity.ok, false);
+  assert.ok(
+    missingDeity.errors.some((error) => error.includes("deity")),
+    missingDeity.errors.join("\n"),
+  );
+
+  const dir = mkdtempSync(join(tmpdir(), "state-batch-tradition-"));
+  const sample = join(dir, "sample.dart");
+  writeFileSync(
+    sample,
+    `import 'package:temple_app/models/temple.dart';
+
+const List<Temple> sampleTemples = [
+];
+`,
+  );
+  const seeded = mergeTemplesIntoSource(
+    readFileSync(sample, "utf8"),
+    gurdwara.temples,
+  );
+  assert.match(seeded, /deity: 'Guru Granth Sahib',/);
+  assert.match(seeded, /tradition: 'sikh',/);
+  const parsed = parseSampleTemples(seeded);
+  assert.equal(parsed[0].temple.tradition, "sikh");
+  assert.equal(parsed[0].temple.deity, "Guru Granth Sahib");
+});
+
 test("validator rejects placeholder image URLs and ignores sources and Stockholm", () => {
+
   const urls = [
     "https://picsum.photos/seed/example/800/600",
     "https://placehold.co/800x600",
@@ -1086,7 +1290,7 @@ const List<Temple> sampleTemples = [
   );
   assert.equal(dry.status, 0, dry.stderr);
   assert.match(dry.stdout, /Mode: dry-run/);
-  assert.match(dry.stdout, /new example-temple/);
+  assert.match(dry.stdout, /new example-temple address: Patna, Bihar/);
   assert.match(readFileSync(sample, "utf8"), /sampleTemples = \[\s*\];/);
 
   const ci = spawnSync(

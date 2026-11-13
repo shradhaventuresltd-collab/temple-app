@@ -8,6 +8,8 @@ import 'package:temple_app/screens/home_scroll.dart';
 import 'package:temple_app/services/app_analytics.dart';
 import 'package:temple_app/services/client_cache.dart';
 import 'package:temple_app/widgets/offline_banner.dart';
+import 'package:temple_app/widgets/dress_code_card.dart';
+import 'package:temple_app/widgets/unverified_source_notice.dart';
 import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/services/temple_service.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
@@ -108,6 +110,12 @@ class TempleDetailScreen extends StatefulWidget {
   /// document passed in is shown as-is.
   final Future<TempleDetailLoad> Function(String id)? loadTemple;
 
+  /// Test hook: used when [loadTemple] is null, before [TempleService].
+  /// Lets entry-point tests (Browse, Search, Near Me, drawer) open the real
+  /// screen without Firestore.
+  @visibleForTesting
+  static Future<TempleDetailLoad> Function(String id)? debugLoadTemple;
+
   @override
   State<TempleDetailScreen> createState() => _TempleDetailScreenState();
 }
@@ -125,7 +133,10 @@ class _TempleDetailScreenState extends State<TempleDetailScreen> {
     final id = widget.temple.id.trim();
     if (!widget.temple.isIndexSummary || id.isEmpty) return;
     _loading = true;
-    final load = widget.loadTemple ?? TempleService().getTemple;
+    final load =
+        widget.loadTemple ??
+        TempleDetailScreen.debugLoadTemple ??
+        TempleService().getTemple;
     unawaited(_fetch(load, id));
   }
 
@@ -412,6 +423,21 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
           behavior: SnackBarBehavior.floating,
         ),
       );
+  }
+
+  Widget? _timingsLeading(String? caveat) {
+    final unverified =
+        temple.timingsUnverified && temple.timings.trim().isNotEmpty;
+    if (caveat == null && !unverified) return null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (unverified)
+          TimingsUnverifiedChip(sourceUri: temple.timingsSourceUri),
+        if (unverified && caveat != null) const SizedBox(height: 8),
+        if (caveat != null) _TimingsCaveat(text: caveat),
+      ],
+    );
   }
 
   @override
@@ -777,10 +803,12 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
                             ? 'Not listed in this entry.'
                             : temple.timings,
                         contentKey: const Key('detail-timings-body'),
-                        leading: caveat == null
-                            ? null
-                            : _TimingsCaveat(text: caveat),
+                        leading: _timingsLeading(caveat),
                       ),
+                      if (temple.hasDressCode) ...[
+                        const SizedBox(height: 12),
+                        DressCodeCard(temple: temple),
+                      ],
                       if (temple.hasCoordinates) ...[
                         const SizedBox(height: 12),
                         _InfoCard(
@@ -1247,5 +1275,25 @@ class _RequestFullSizeState extends State<_RequestFullSize> {
   @override
   Widget build(BuildContext context) {
     return const TempleImagePlaceholder(expand: true);
+  }
+}
+
+/// Timings caution block. One shared widget with the dress-code block
+/// ([UnverifiedSourceNotice], KAN-197 AC2); Key and Semantics ids stay
+/// `timings-unverified-chip` and `timings-source-link`.
+class TimingsUnverifiedChip extends StatelessWidget {
+  const TimingsUnverifiedChip({super.key, this.sourceUri});
+
+  final Uri? sourceUri;
+
+  @override
+  Widget build(BuildContext context) {
+    return UnverifiedSourceNotice(
+      id: 'timings',
+      subject: 'Timings',
+      lead: 'Timings may have changed.',
+      noLinkText: 'Timings may have changed. Confirm with the temple.',
+      sourceUri: sourceUri,
+    );
   }
 }

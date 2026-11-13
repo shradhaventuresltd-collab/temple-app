@@ -1,0 +1,7 @@
+<hierarchy rotation="0">
+  <node text="" resource-id="filter-sheet" class="android.view.View" content-desc="" bounds="[0,141][320,640]">
+    <node text="" resource-id="filter-sheet-title-state" class="android.view.View" content-desc="State" bounds="[20,163][200,211]" />
+    <node text="" class="android.widget.Button" content-desc="Close filters" bounds="[264,163][312,211]" />
+    <node text="" resource-id="filter-option-state-any" class="android.widget.Button" content-desc="Any state  992" bounds="[0,338][320,386]" />
+  </node>
+</hierarchy>

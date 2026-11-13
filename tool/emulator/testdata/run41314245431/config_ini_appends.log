@@ -1,0 +1,2 @@
+2026-11-01T14:08:29.2617799Z Do you wish to create a custom hardware profile? [no] [command]/usr/bin/sh -c \printf 'hw.cpu.ncore=4\ndisk.dataPartition.size=2048M\n' >> /home/runner/.android/avd/emulator-app-test-30.avd/config.ini
+2026-11-01T14:09:20.2733358Z [command]/usr/bin/sh -c \printf 'hw.cpu.ncore=4\ndisk.dataPartition.size=2048M\n' >> /home/runner/.android/avd/emulator-app-test-30.avd/config.ini

@@ -46,7 +46,7 @@ class _AppDrawerState extends State<AppDrawer> {
   String? _selectedDeity;
   String? _selectedDistrict;
 
-  late final Future<List<Temple>> _templesFuture;
+  late Future<List<Temple>> _templesFuture;
   final TextEditingController _searchController = TextEditingController();
   Timer? _searchDebounce;
   String _appliedQuery = '';
@@ -74,9 +74,19 @@ class _AppDrawerState extends State<AppDrawer> {
   @override
   void initState() {
     super.initState();
+    _loadTemples();
+  }
+
+  void _loadTemples() {
     _templesFuture =
         widget.templesLoader?.call() ?? TempleService().getTemples();
     warmDirectoryDistricts(_templesFuture);
+  }
+
+  /// A failed directory load left "Loading filters" up for the life of the
+  /// drawer. Try again runs the load once more.
+  void _retryTemples() {
+    setState(_loadTemples);
   }
 
   @override
@@ -118,7 +128,14 @@ class _AppDrawerState extends State<AppDrawer> {
   }
 
   Future<void> _reportSearch(String query) async {
-    final temples = await _templesFuture;
+    // A failed directory load (KAN-195) must not turn a search into an
+    // uncaught error; skip the analytics report instead.
+    final List<Temple> temples;
+    try {
+      temples = await _templesFuture;
+    } catch (_) {
+      return;
+    }
     if (!mounted) return;
     final matches = directoryMatchingTemples(
       temples,
@@ -294,7 +311,35 @@ class _AppDrawerState extends State<AppDrawer> {
               // The sheet captures the temple list when it opens. Opening it
               // before the directory arrives showed "Any state 0" and
               // "Show 0 temples" for the life of that sheet (run 40463875634).
-              if (!snapshot.hasData)
+              if (snapshot.hasError &&
+                  snapshot.connectionState == ConnectionState.done)
+                Padding(
+                  key: const Key('drawer-filters-error'),
+                  padding: const EdgeInsets.fromLTRB(18, 4, 8, 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Semantics(
+                          identifier: 'drawer-filters-error',
+                          child: Text(
+                            'Could not load filters. Check your connection.',
+                            style: GoogleFonts.poppins(fontSize: 13),
+                          ),
+                        ),
+                      ),
+                      Semantics(
+                        identifier: 'drawer-filters-retry',
+                        button: true,
+                        child: TextButton(
+                          key: const Key('drawer-filters-retry'),
+                          onPressed: _retryTemples,
+                          child: const Text('Try again'),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else if (!snapshot.hasData)
                 Semantics(
                   identifier: 'drawer-filters-loading',
                   label: 'Loading filters',
@@ -698,10 +743,14 @@ class TempleListScreen extends StatefulWidget {
     this.deityFilter,
     this.districtFilter,
     this.loadFailed = false,
+    @visibleForTesting this.retryLoader,
   });
 
   final List<Temple> temples;
   final String title;
+
+  /// Test seam for "Try again". Defaults to [TempleService.loadDirectory].
+  final Future<List<Temple>> Function()? retryLoader;
 
   /// Query already chosen in the drawer. The list applies it on top of [temples].
   final String initialQuery;
@@ -752,13 +801,32 @@ class _TempleListScreenState extends State<TempleListScreen> {
     setState(() => _shown = rows);
   }
 
+  /// True while a retry load is in flight, so a double tap starts one load.
+  bool _retrying = false;
+
   Future<void> _retrySavedList() async {
+    if (_retrying) return;
+    _retrying = true;
     try {
-      final rows = await TempleService().loadDirectory();
+      final load = widget.retryLoader ?? TempleService().loadDirectory;
+      final rows = await load();
       if (!mounted) return;
       setState(() => _shown = rows);
     } catch (e, st) {
       debugPrint('Saved list retry failed: $e\n$st');
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)
+        ?..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            key: Key('temple-list-retry-failed'),
+            content: Text(
+              'Still could not load temples. Check your connection and try again.',
+            ),
+          ),
+        );
+    } finally {
+      _retrying = false;
     }
   }
 
@@ -1153,21 +1221,6 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
                   onClearAll: _clearFiltersAndSearch,
                 ),
               ),
-            if ((query.isNotEmpty || filtersActive) && visible.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    '${visible.length} temple${visible.length == 1 ? '' : 's'}',
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: Colors.brown.shade500,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ),
             Expanded(
               child: _browseBody(visible, query, filtersActive: filtersActive),
             ),
@@ -1439,10 +1492,14 @@ class _BrowseMessage extends StatelessWidget {
             ),
             if (onRetry != null) ...[
               const SizedBox(height: 12),
-              TextButton(
-                key: const Key('browse-load-failed-retry'),
-                onPressed: onRetry,
-                child: const Text('Try again'),
+              Semantics(
+                identifier: 'temple-list-try-again',
+                button: true,
+                child: TextButton(
+                  key: const Key('browse-load-failed-retry'),
+                  onPressed: onRetry,
+                  child: const Text('Try again'),
+                ),
               ),
             ],
           ],

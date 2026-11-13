@@ -11,42 +11,38 @@ fi
 export EMULATOR_FLOW="$1"
 export EMULATOR_FLOW_SCRIPT="$2"
 export EMULATOR_FLOW_SOURCED=1
+# Round 4.4.8b: harness adb calls keep real exit codes (adb_shim/adb).
+export ADB_SHIM_HARNESS=1
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-cd "$ROOT"
+cd "$ROOT" || exit 1
 # shellcheck disable=SC1091
 source "${ROOT}/tool/emulator/lib/common.sh"
+# shellcheck source=SCRIPTDIR/plan.sh
+source "${ROOT}/tool/emulator/plan.sh"
 
 # The GitHub step timeout kills this process, so the failure line below
 # the flow never runs. timeout returns 124 to this parent instead.
-# Boot is allowed EMULATOR_BOOT_TIMEOUT (600s) and happens before this
-# script, inside the same job step. The flow budget stays 1140s. The step
-# cap is 30 minutes: 600s boot + 1140s flow + 15s kill-after + about a
-# minute to record FAIL. 30 flows cannot all spend 30 minutes inside the
-# 180-minute job; that job limit stays the backstop for a streak of hangs.
-FLOW_BUDGET=1140
-
-# Location-dependent flows (11, 23, 30d) are skipped in emulator runs
-# (Sanu, 2026-10-30): they need a location fix and Settings round-trips.
-# They report SKIPPED, a separate count that is neither a pass nor an
-# expected failure. Override with EMULATOR_SKIP_FLOWS="" to run them.
-EMULATOR_SKIP_FLOWS="${EMULATOR_SKIP_FLOWS-11-near-me 23-near-me-settings-roundtrip 30d-near-me}"
-skip_flows=" ${EMULATOR_SKIP_FLOWS//,/ } "
-if [[ "$skip_flows" == *" ${FLOW} "* ]]; then
-  if [[ "${EMULATOR_FLOW_TIMED:-}" != 1 ]]; then
-    case "$FLOW" in
-      11-near-me) skip_reason="location-dependent: needs a GPS fix and the permission dialog" ;;
-      23-near-me-settings-roundtrip) skip_reason="location-dependent: location service and permission round-trips through Settings" ;;
-      30d-near-me) skip_reason="location-dependent: near me screen has no directory filter bar and needs a location fix" ;;
-      *) skip_reason="listed in EMULATOR_SKIP_FLOWS" ;;
-    esac
-    printf 'SKIPPED %s: %s\n' "$FLOW" "$skip_reason" | tee -a "$RESULTS"
-  fi
-  exit 0
+# Each flow is capped at 600s (Confluence 12353537, option A). The
+# emulator boots once per job before the first flow (run_shard.sh), so the
+# cap covers the flow alone. The shard step timeout is sized in plan.sh
+# from this cap, the kill-after, and the per-flow reset overhead.
+FLOW_BUDGET=600
+# plan.sh may lower one flow's cap (row field 5, passed by run_shard.sh as
+# EMULATOR_FLOW_BUDGET); it never raises it above 600.
+if [[ "${EMULATOR_FLOW_BUDGET:-}" =~ ^[0-9]+$ ]] && (( EMULATOR_FLOW_BUDGET > 0 && EMULATOR_FLOW_BUDGET < FLOW_BUDGET )); then
+  FLOW_BUDGET="$EMULATOR_FLOW_BUDGET"
 fi
-
 if [[ "${EMULATOR_FLOW_TIMED:-}" != 1 ]]; then
+  if plan_is_skipped "$FLOW"; then
+    printf 'SKIPPED %s: location-dependent, skipped on the emulator (EMULATOR_SKIP_FLOWS)\n' "$FLOW" >> "$RESULTS"
+    echo "SKIPPED ${FLOW}"
+    exit 0
+  fi
   printf 'START %s\n' "$FLOW" >> "$RESULTS"
+  # Round 4.4.9b: the effective cap of this flow, as applied below.
+  printf 'CAP %s %ss\n' "$FLOW" "$FLOW_BUDGET" >> "$RESULTS"
+  echo "flow ${FLOW}: budget ${FLOW_BUDGET}s"
   set +e
   EMULATOR_FLOW_TIMED=1 timeout --kill-after=15 "$FLOW_BUDGET" bash "$0" "$@"
   flow_rc=$?
@@ -65,11 +61,7 @@ if [[ "${EMULATOR_FLOW_TIMED:-}" != 1 ]]; then
   exit 0
 fi
 
-# timeout just started this process. matrix_main runs later, after the APK
-# install, so the 1140s budget is counted from here rather than from SECONDS
-# at the first case.
-export FLOW_START_EPOCH="$(date +%s)"
-
+# shellcheck disable=SC2329 # invoked by the EXIT trap
 cleanup() {
   screenrecord_stop || true
   dump_logcat || true
@@ -83,7 +75,16 @@ fi
 
 screenrecord_start
 
-if ! install_apk; then
+# run_shard.sh boots one emulator for many flows and sets
+# EMULATOR_REUSE_INSTALL=1. The APK is installed by the first flow; later
+# flows put the device back to defaults and clear app data (pm clear)
+# instead of reinstalling. A standalone run still reinstalls.
+if [[ "${EMULATOR_REUSE_INSTALL:-}" == 1 ]] && app_installed; then
+  reset_device_state
+  if ! clear_app_data; then
+    exit 0
+  fi
+elif ! install_apk; then
   exit 0
 fi
 

@@ -10,6 +10,7 @@ import 'package:temple_app/district/district_lookup.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/home_screen.dart';
 import 'package:temple_app/services/temple_service.dart';
+import 'package:temple_app/utils/temple_search.dart';
 import 'package:temple_app/widgets/app_drawer.dart';
 import 'package:temple_app/widgets/directory_filter_bar.dart';
 
@@ -70,11 +71,11 @@ void main() {
     );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
-    expect(find.text('Filters'), findsOneWidget);
+    expect(find.byKey(const Key('filter-sheet-title')), findsOneWidget);
 
     // `adb shell input swipe` repeats the down point as its first move.
     final gesture = await tester.startGesture(
-      tester.getCenter(find.text('Filters')),
+      tester.getCenter(find.byKey(const Key('filter-sheet-title'))),
     );
     await gesture.moveBy(Offset.zero);
     await tester.pump();
@@ -84,7 +85,7 @@ void main() {
     }
     await gesture.up();
     await tester.pumpAndSettle();
-    expect(find.text('Filters'), findsNothing);
+    expect(find.byKey(const Key('filter-sheet-title')), findsNothing);
   });
 
   testWidgets('drawer filter chips wait for the directory', (tester) async {
@@ -110,6 +111,88 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.byKey(const Key('drawer-filters-loading')), findsNothing);
     expect(find.byKey(const Key('filter-chip-state')), findsOneWidget);
+  });
+
+  testWidgets('drawer filters: a failed load offers Try again, which reloads', (
+    tester,
+  ) async {
+    var calls = 0;
+    Completer<List<Temple>>? pending;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          drawer: AppDrawer(
+            templesLoader: () {
+              calls++;
+              if (calls == 1) return Future.error(Exception('offline'));
+              pending = Completer<List<Temple>>();
+              return pending!.future;
+            },
+          ),
+          body: const SizedBox.expand(),
+        ),
+      ),
+    );
+    final ScaffoldState scaffold = tester.firstState(find.byType(Scaffold));
+    scaffold.openDrawer();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.byKey(const Key('drawer-filters-error')), findsOneWidget);
+    expect(find.byKey(const Key('drawer-filters-loading')), findsNothing);
+    expect(find.byKey(const Key('filter-chip-state')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('drawer-filters-retry')));
+    await tester.pump();
+    expect(calls, 2);
+    // The retry is still loading: the loader shows, not the error.
+    expect(find.byKey(const Key('drawer-filters-loading')), findsOneWidget);
+    expect(find.byKey(const Key('drawer-filters-error')), findsNothing);
+
+    pending!.complete([_temple(), _temple(id: 't2', state: 'Kerala')]);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byKey(const Key('drawer-filters-error')), findsNothing);
+    expect(find.byKey(const Key('drawer-filters-loading')), findsNothing);
+    expect(find.byKey(const Key('filter-chip-state')), findsOneWidget);
+  });
+
+  testWidgets('drawer search after a failed load does not throw', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(480, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          drawer: AppDrawer(
+            templesLoader: () => Future.error(Exception('offline')),
+          ),
+          body: const SizedBox.expand(),
+        ),
+      ),
+    );
+    final ScaffoldState scaffold = tester.firstState(find.byType(Scaffold));
+    scaffold.openDrawer();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(
+      find.text('Could not load filters. Check your connection.'),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find
+          .descendant(
+            of: find.byType(AppDrawer),
+            matching: find.byType(EditableText),
+          )
+          .first,
+      'meenakshi',
+    );
+    await tester.pump(templeSearchDebounce + const Duration(milliseconds: 50));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('home warms districts when the directory loads, before a tap', (

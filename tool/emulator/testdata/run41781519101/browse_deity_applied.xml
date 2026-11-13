@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<!-- run 41781519101 shard 9, 30s5 after deity:select: chip-bar nodes only -->
+<hierarchy rotation="0">
+<node index="0" text="" resource-id="filter-chip-state" class="android.widget.Button" package="com.shradhaventures.temple" content-desc="State" checkable="false" checked="false" clickable="true" enabled="true" focusable="true" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[14,184][35,219]" />
+<node index="1" text="" resource-id="filter-chip-district" class="android.widget.Button" package="com.shradhaventures.temple" content-desc="All districts" checkable="false" checked="false" clickable="true" enabled="true" focusable="true" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[43,184][184,219]" />
+<node index="2" text="" resource-id="filter-chip-deity" class="android.widget.Button" package="com.shradhaventures.temple" content-desc="81 Yoginis; Gauri-Shankar (central shrine)" checkable="false" checked="false" clickable="true" enabled="true" focusable="true" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[192,174][248,228]" />
+<node index="3" text="" resource-id="filter-clear" class="android.widget.Button" package="com.shradhaventures.temple" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[248,177][312,225]" />
+</hierarchy>
