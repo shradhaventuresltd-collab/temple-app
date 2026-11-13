@@ -15,7 +15,7 @@ collage_top_visible() {
 launch_app; accept_policy_if_shown || { fail_step home "home did not appear"; return 0; }
 wait_for_home || { fail_step home "home did not appear"; return 0; }
 pass_step home
-# Home first shows "Loading temples..." and only then the collage. Run
+# Home first shows "Loading places..." and only then the collage. Run
 # 41373837994 flung during the loader (screenshot 01_home), the collage was
 # then laid out at the top, and "scrolled" failed. Fling only once the
 # collage is on screen.

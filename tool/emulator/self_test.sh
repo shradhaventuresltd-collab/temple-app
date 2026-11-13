@@ -1450,6 +1450,57 @@ XML
     exit 1
   fi
 )
+# Places apply copy: the sim and fixtures emit "Show N places". A stale
+# temples matcher must fail against that copy.
+cat > "$nit_dir/show_places.xml" <<'XML'
+<hierarchy rotation="0">
+  <node text="Tradition" resource-id="filter-sheet-title-tradition" bounds="[20,40][200,80]" />
+  <node text="Show 40 places" content-desc="Show 40 places" bounds="[96,579][304,627]" />
+</hierarchy>
+XML
+cat > "$nit_dir/show_temples.xml" <<'XML'
+<hierarchy rotation="0">
+  <node text="Show 40 temples" content-desc="Show 40 temples" bounds="[96,579][304,627]" />
+</hierarchy>
+XML
+(
+  set -euo pipefail
+  export EMULATOR_FLOW=self-test EMULATOR_ARTIFACTS="$nit_dir" EMULATOR_PACKAGE=com.example
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  ui_dump() { return 0; }
+  sleep() { :; }
+  DUMP="$nit_dir/show_places.xml"
+  ui_find --text-regex '^Show [0-9]+ places?$' || {
+    echo "Show 40 places must pass the apply-sheet places matcher" >&2
+    exit 1
+  }
+  if ui_find --text-regex '^Show [0-9]+ temples?$'; then
+    echo "a places fixture must not match a stale temples apply matcher" >&2
+    exit 1
+  fi
+  ui_find --resource-id-regex "$FILTER_SHEET_TITLE_ID_RX" || {
+    echo "Tradition title id must match FILTER_SHEET_TITLE_ID_RX" >&2
+    exit 1
+  }
+  ui_find --text-regex "$FILTER_SHEET_TITLE_RX" || {
+    echo "Tradition title must match FILTER_SHEET_TITLE_RX" >&2
+    exit 1
+  }
+  DUMP="$nit_dir/show_temples.xml"
+  if ui_find --text-regex '^Show [0-9]+ places?$'; then
+    echo "a stale Show 40 temples fixture must fail the places apply matcher" >&2
+    exit 1
+  fi
+)
+if grep -E "Show \[0-9\]\+ temples\?" tool/emulator/lib/common.sh tool/emulator/testdata/sim/sheet_sim.py; then
+  echo "common.sh / sheet_sim still contain a temples apply matcher or label" >&2
+  exit 1
+fi
+if ! grep -q 'Show 40 places' tool/emulator/testdata/sim/sheet_sim.py; then
+  echo "sheet_sim.py must emit Show 40 places" >&2
+  exit 1
+fi
 rm -rf "$nit_dir"
 # Run 42675181050 shard 6: the sheet was open, but the title was not a text
 # node. These waits must take the title id, sheet_open, or Close filters,

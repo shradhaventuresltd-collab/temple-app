@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # Flow 27 (bughunter). Cold start with network OFF after clearState (no
 # Firestore cache): expect bundled sample fallback or a retry UI, never an
-# infinite "Loading temples". Then network on -> retry recovers without relaunch.
+# infinite "Loading places". Then network on -> retry recovers without relaunch.
 # Also flaky: toggle network while list loads.
 clean_install 2>/dev/null || true
 network_off
 launch_app; accept_policy_if_shown; sleep 2
 wait_for_home && pass_step offline-home || fail_step offline-home "home never shown offline (Remote Config/Firestore blocking?)"
 open_browse; sleep 30; ui_dump
-ui_find --text-contains "Loading temples" && fail_step offline-list "still loading after 30s" || pass_step offline-list
+ui_find --text-contains "Loading places" && fail_step offline-list "still loading after 30s" || pass_step offline-list
 # Round 4.3 (run 41391038302): wait until Android validates the network,
 # then tap Try again and allow 60s, re-tapping every 15s (recover_browse).
 # The flaps run only after recover passed: flapping an in-flight retry

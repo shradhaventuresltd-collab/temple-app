@@ -22,7 +22,7 @@ fi
 if ui_wait_scrolled 20 --text-regex 'Browse .+Place'; then
   pass_step browse-button
 else
-  fail_step browse-button "Browse temples button was not shown"
+  fail_step browse-button "Browse places button was not shown"
 fi
 
 if ui_wait_scrolled 15 --text-contains "Places near me"; then

@@ -158,6 +158,43 @@ void main() {
     expect(find.text(UnverifiedSourceNotice.launchFailedText), findsOneWidget);
   });
 
+  testWidgets('ArgumentError from launchUrl shows the same snackbar', (
+    t,
+  ) async {
+    installLauncher(ArgumentErrorLauncher());
+    await pumpDetail(t, dressTemple(url: kWiki, type: 'secondary'));
+    await t.ensureVisible(find.byKey(kDressSource));
+    await t.tap(find.byKey(const Key('detail-dress-code-source-link-0')));
+    await t.pump();
+    expect(find.text(UnverifiedSourceNotice.launchFailedText), findsOneWidget);
+  });
+
+  testWidgets(
+    'a secondary source with a URL never shows Official temple website',
+    (t) async {
+      await pumpDetail(t, dressTemple(url: kWiki, type: 'secondary'));
+      await t.ensureVisible(find.byKey(kDressSource));
+      expect(find.text('Official temple website'), findsNothing);
+      expect(find.textContaining('Source:'), findsWidgets);
+      expect(find.text('en.wikipedia.org'), findsOneWidget);
+    },
+  );
+
+  test('a non-http URL is dropped from the footer sources', () {
+    expect(
+      parseHttpSourceUrls(
+        'javascript:alert(1) ftp://x.org/dress https://en.wikipedia.org/wiki/X',
+      ),
+      [Uri.parse('https://en.wikipedia.org/wiki/X')],
+    );
+    final temple = dressTemple(url: 'javascript:alert(1)', type: 'official');
+    expect(dressCodeSourcesOf(temple), isEmpty);
+    expect(
+      placeSourceFooterLayout(dressCodeSourcesOf(temple)).text,
+      compiledFromPublicSources,
+    );
+  });
+
   testWidgets('long domain at 200% font truncates without overflow', (t) async {
     const long = 'https://very.long.subdomain.chain.example.international/path';
     FlutterError.onError = (details) {

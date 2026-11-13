@@ -71,18 +71,38 @@ const traditionSynonymGroups = [
   ),
 ];
 
-/// Stored index field, then document field, then deity text. Hindu is null.
-String? traditionSearchKey(Temple temple) {
+/// Cached tradition key: stored document field, then the index flag, then
+/// deity text. Hindu is [directoryTraditionHinduValue].
+///
+/// One helper for directory chips, census, and search. The document field
+/// is preferred when both stored values are set (review #142).
+const directoryTraditionHinduValue = 'hindu';
+
+final Expando<String> _traditionKeyCache = Expando<String>();
+
+/// `jain`, `buddhist`, `sikh`, or `hindu` for [temple], computed once.
+String templeTraditionKey(Temple temple) {
+  final cached = _traditionKeyCache[temple];
+  if (cached != null) return cached;
   final stored =
-      templeTraditionField(temple.indexTradition) ??
-      templeTraditionField(temple.tradition);
-  if (stored != null) return stored;
-  return switch (traditionFromDeityText(temple.deity)) {
-    SiteTradition.jain => 'jain',
-    SiteTradition.buddhist => 'buddhist',
-    SiteTradition.sikh => 'sikh',
-    SiteTradition.unspecified => null,
-  };
+      templeTraditionField(temple.tradition) ??
+      templeTraditionField(temple.indexTradition);
+  final key =
+      stored ??
+      switch (traditionFromDeityText(temple.deity)) {
+        SiteTradition.jain => 'jain',
+        SiteTradition.buddhist => 'buddhist',
+        SiteTradition.sikh => 'sikh',
+        SiteTradition.unspecified => directoryTraditionHinduValue,
+      };
+  _traditionKeyCache[temple] = key;
+  return key;
+}
+
+/// Non-Hindu key for search expansion, or null for Hindu.
+String? traditionSearchKey(Temple temple) {
+  final key = templeTraditionKey(temple);
+  return key == directoryTraditionHinduValue ? null : key;
 }
 
 /// Strip Latin diacritics for synonym lookup only. Callers then apply

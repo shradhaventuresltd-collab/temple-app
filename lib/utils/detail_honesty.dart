@@ -750,15 +750,21 @@ bool _festivalPujaTitle(String text, int pujaStart) {
 /// "Jain temple", or a word such as Chaturbhuji, does not add a chip.
 /// [DetailHonesty.of] uses [Temple.indexTradition] when the index stored one,
 /// and otherwise the document [Temple.tradition] field before this fallback.
+abstract final class _DeityTraditionPatterns {
+  static final jain = RegExp(r'\b(jain|tirthankaras?)\b');
+  static final buddhist = RegExp(r'\b(buddha|buddhist)\b');
+  static final sikh = RegExp(r'\b(sikh|gurdwara|gurudwara|guru nanak)\b');
+}
+
 SiteTradition traditionFromDeityText(String deity) {
   final lower = deity.toLowerCase();
-  if (RegExp(r'\b(jain|tirthankaras?)\b').hasMatch(lower)) {
+  if (_DeityTraditionPatterns.jain.hasMatch(lower)) {
     return SiteTradition.jain;
   }
-  if (RegExp(r'\b(buddha|buddhist)\b').hasMatch(lower)) {
+  if (_DeityTraditionPatterns.buddhist.hasMatch(lower)) {
     return SiteTradition.buddhist;
   }
-  if (RegExp(r'\b(sikh|gurdwara|gurudwara|guru nanak)\b').hasMatch(lower)) {
+  if (_DeityTraditionPatterns.sikh.hasMatch(lower)) {
     return SiteTradition.sikh;
   }
   return SiteTradition.unspecified;

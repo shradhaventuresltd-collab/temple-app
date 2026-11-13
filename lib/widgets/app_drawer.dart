@@ -376,6 +376,7 @@ class _AppDrawerState extends State<AppDrawer> {
                       final previousState = _selectedState;
                       final previousDeity = _selectedDeity;
                       final previousDistrict = _selectedDistrict;
+                      final previousTradition = _selectedTradition;
                       setState(() {
                         _selectedState = state;
                         _selectedDeity = deity;
@@ -390,6 +391,8 @@ class _AppDrawerState extends State<AppDrawer> {
                           nextDeity: deity,
                           previousDistrict: previousDistrict,
                           nextDistrict: district,
+                          previousTradition: previousTradition,
+                          nextTradition: tradition,
                         ),
                       );
                     },
@@ -1170,6 +1173,7 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
     final previousState = _selectedState;
     final previousDeity = _selectedDeity;
     final previousDistrict = _selectedDistrict;
+    final previousTradition = _selectedTradition;
     setState(() {
       _showClear = false;
       _appliedQuery = '';
@@ -1187,6 +1191,8 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
         nextDeity: null,
         previousDistrict: previousDistrict,
         nextDistrict: null,
+        previousTradition: previousTradition,
+        nextTradition: null,
       ),
     );
   }
@@ -1200,6 +1206,7 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
     final previousState = _selectedState;
     final previousDeity = _selectedDeity;
     final previousDistrict = _selectedDistrict;
+    final previousTradition = _selectedTradition;
     setState(() {
       _selectedState = state;
       _selectedDeity = deity;
@@ -1215,6 +1222,8 @@ class _TempleBrowseListState extends State<TempleBrowseList> {
         nextDeity: deity,
         previousDistrict: previousDistrict,
         nextDistrict: district,
+        previousTradition: previousTradition,
+        nextTradition: tradition,
       ),
     );
   }

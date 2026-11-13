@@ -131,19 +131,19 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(calls, 1);
-    expect(find.text('1 places across India'), findsOneWidget);
+    expect(find.text('1 place across India'), findsOneWidget);
     expect(find.byKey(const Key('offline-banner')), findsNothing);
 
     DirectoryLink.offline.value = true;
     await tester.pump();
     expect(find.text(OfflineBanner.message), findsOneWidget);
-    expect(find.text('1 places across India'), findsOneWidget);
+    expect(find.text('1 place across India'), findsOneWidget);
 
     DirectoryReconnect.notify();
     await tester.pump();
     await tester.pumpAndSettle();
     expect(calls, 2);
-    expect(find.text('1 places across India'), findsOneWidget);
+    expect(find.text('1 place across India'), findsOneWidget);
   });
 }
 

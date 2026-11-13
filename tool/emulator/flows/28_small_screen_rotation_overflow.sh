@@ -26,7 +26,7 @@ fi
 step_shot small-list
 ui_dump && ui_find --resource-id filter-chip-state && ui_tap; sleep 1; step_shot small-sheet
 adb shell settings put system accelerometer_rotation 0; adb shell settings put system user_rotation 1; sleep 3
-step_shot land-sheet; ui_dump; ui_find --text-regex '^Show [0-9]+ temples?$' && pass_step land-apply-visible || fail_step land-apply-visible "Apply button off-screen in landscape sheet"
+step_shot land-sheet; ui_dump; ui_find --text-regex '^Show [0-9]+ places?$' && pass_step land-apply-visible || fail_step land-apply-visible "Apply button off-screen in landscape sheet"
 ui_back; adb shell settings put system user_rotation 0; sleep 2
 adb logcat -d | grep -i "overflowed by" && fail_step overflow "RenderFlex overflow logged" || pass_step overflow
 adb shell wm size reset; adb shell wm density reset; adb shell settings put system font_scale 1.0

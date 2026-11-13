@@ -76,7 +76,7 @@ enter_drawer_all() {
 }
 # Filters inside the drawer itself (the "District from drawer" bar).
 # The drawer sheet filters "the temples already loaded": opened before the
-# list loads it offers "Any state 0" and "Show 0 temples" (run 41373837994,
+# list loads it offers "Any state 0" and "Show 0 places" (run 41373837994,
 # 30 drawer_bar-state-select, first cell after boot). Wait for a non-zero
 # "All places" count first. The FILTERS row sits at ~75% of the height,
 # below the 70% chip band of the list screens: CHIP_MAX_TOP_PCT=95.

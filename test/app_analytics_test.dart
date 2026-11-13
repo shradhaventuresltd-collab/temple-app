@@ -120,6 +120,8 @@ void main() {
       nextDeity: 'Shiva',
       previousDistrict: 'Chennai',
       nextDistrict: 'Chennai',
+      previousTradition: null,
+      nextTradition: 'sikh',
     );
     await analytics.logFilterTransition(
       previousState: 'Tamil Nadu',
@@ -133,12 +135,14 @@ void main() {
     expect(client.events.map((event) => event.name), [
       'filter_used',
       'filter_used',
+      'filter_used',
     ]);
     expect(client.events[0].parameters, {
       'type': 'state',
       'value': 'Tamil Nadu',
     });
     expect(client.events[1].parameters, {'type': 'deity', 'value': 'Shiva'});
+    expect(client.events[2].parameters, {'type': 'tradition', 'value': 'sikh'});
   });
 
   test('temple events carry the id and near me carries nothing', () async {

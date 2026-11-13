@@ -110,6 +110,13 @@ class ThrowingLauncher extends FakeLauncher {
   }
 }
 
+class ArgumentErrorLauncher extends FakeLauncher {
+  @override
+  Future<bool> launchUrl(String url, LaunchOptions options) async {
+    throw ArgumentError('cannot launch $url');
+  }
+}
+
 /// Swaps the url_launcher platform for the test and restores it after.
 FakeLauncher installLauncher(FakeLauncher launcher) {
   final original = UrlLauncherPlatform.instance;

@@ -41,6 +41,7 @@ void main() {
 
   test('homeDirectoryCountLabel stays dynamic and honest when empty', () {
     expect(homeDirectoryCountLabel(0), 'No places loaded yet');
+    expect(homeDirectoryCountLabel(1), '1 place across India');
     expect(homeDirectoryCountLabel(150), '150 places across India');
     expect(homeDirectoryCountLabel(180), '180 places across India');
     expect(homeDirectoryCountLabel(181), '181 places across India');
@@ -49,6 +50,10 @@ void main() {
   test('drawerAboutDirectoryBlurb never hardcodes 150 or 180', () {
     final for180 = drawerAboutDirectoryBlurb(180);
     expect(for180, startsWith('Explore 180 famous places across '));
+    expect(
+      drawerAboutDirectoryBlurb(1),
+      startsWith('Explore 1 famous place across '),
+    );
     expect(for180, isNot(contains('Explore 150 ')));
 
     final for200 = drawerAboutDirectoryBlurb(200);

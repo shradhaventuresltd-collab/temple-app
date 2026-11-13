@@ -16,14 +16,17 @@ String homeDirectoryCountLabel(int templeCount) {
   if (templeCount <= 0) {
     return 'No places loaded yet';
   }
+  if (templeCount == 1) return '1 place across India';
   return '$templeCount places across India';
 }
 
 /// Drawer About blurb with a live directory size.
 String drawerAboutDirectoryBlurb(int templeCount) {
-  final lead = templeCount > 0
-      ? 'Explore $templeCount famous places across '
-      : 'Explore famous places across ';
+  final lead = switch (templeCount) {
+    <= 0 => 'Explore famous places across ',
+    1 => 'Explore 1 famous place across ',
+    _ => 'Explore $templeCount famous places across ',
+  };
   return '$lead'
       'Tamil Nadu, Kerala, Karnataka, '
       'Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, '

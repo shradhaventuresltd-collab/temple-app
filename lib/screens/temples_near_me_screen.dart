@@ -30,10 +30,14 @@ class TemplesNearMeScreen extends StatefulWidget {
     required this.temples,
     this.location,
     this.districtOf,
+    this.initialTradition,
   });
 
   final List<Temple> temples;
   final CoarseLocationClient? location;
+
+  /// Applied Tradition chip, used by tests for a selected 0-result state.
+  final String? initialTradition;
 
   /// Explicit names. Null means compute a district from the bundled boundaries.
   final TempleDistrictLookup? districtOf;
@@ -51,11 +55,20 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
   late final NearMeSession _session;
   bool _sheetOpen = false;
   String? _tradition;
+  List<NearbyTemple> _cachedSessionRows = const [];
+  List<Temple> _cachedRowTemples = const [];
+  List<NearbyTemple> _cachedVisibleRows = const [];
+  String? _cachedVisibleTradition;
+  bool _cachedHasNonHindu = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    final starting = widget.initialTradition?.trim();
+    if (starting != null && starting.isNotEmpty) {
+      _tradition = starting;
+    }
     _session = NearMeSession(
       temples: widget.temples,
       location: widget.location ?? GeolocatorCoarseLocation(),
@@ -301,26 +314,49 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
     return _results(heading: NearMeCopy.sortedFrom(label), shrinkWrap: true);
   }
 
-  List<NearbyTemple> get _visibleRows {
+  void _syncRowCache() {
     final rows = _session.rows;
-    if (_tradition == null || _tradition!.isEmpty) return rows;
-    return [
-      for (final row in rows)
-        if (traditionMatches(row.temple, _tradition)) row,
-    ];
+    var rowsChanged = false;
+    if (!identical(rows, _cachedSessionRows)) {
+      _cachedSessionRows = rows;
+      _cachedRowTemples = [for (final row in rows) row.temple];
+      _cachedHasNonHindu = _cachedRowTemples.any(
+        (temple) => directoryTraditionKey(temple) != directoryTraditionHindu,
+      );
+      rowsChanged = true;
+    }
+    // When rows first arrive, tradition is still null, so a null-only
+    // comparison would leave _cachedVisibleRows at its empty initial value.
+    if (rowsChanged || _cachedVisibleTradition != _tradition) {
+      _cachedVisibleTradition = _tradition;
+      if (_tradition == null || _tradition!.isEmpty) {
+        _cachedVisibleRows = rows;
+      } else {
+        _cachedVisibleRows = [
+          for (final row in rows)
+            if (traditionMatches(row.temple, _tradition)) row,
+        ];
+      }
+    }
+  }
+
+  List<NearbyTemple> get _visibleRows {
+    _syncRowCache();
+    return _cachedVisibleRows;
   }
 
   bool get _showNearMeTraditionChip {
-    final temples = [for (final row in _session.rows) row.temple];
-    if (temples.isEmpty) return false;
-    return directoryTraditionsFrom(temples).isNotEmpty;
+    _syncRowCache();
+    if (_tradition != null && _tradition!.isNotEmpty) return true;
+    return _cachedHasNonHindu;
   }
 
   Future<void> _pickTradition() async {
     if (_sheetOpen) return;
     _sheetOpen = true;
     try {
-      final temples = [for (final row in _session.rows) row.temple];
+      _syncRowCache();
+      final temples = _cachedRowTemples;
       final next = await showDirectoryFilterSheet(
         context: context,
         temples: temples,
@@ -392,7 +428,11 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
       ],
       if (rows.isEmpty)
         Text(
-          NearMeCopy.noMapPoints,
+          _tradition != null && _tradition!.isNotEmpty
+              ? NearMeCopy.noTraditionMatch(
+                  directoryTraditionChipLabel(_tradition!),
+                )
+              : NearMeCopy.noMapPoints,
           key: const Key('near-me-empty'),
           style: GoogleFonts.poppins(
             fontSize: 13,

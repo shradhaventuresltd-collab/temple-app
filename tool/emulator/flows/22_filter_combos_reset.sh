@@ -13,7 +13,7 @@
 # retries other finger heights, then gives up on its 20s cap (PICKER_GIVEUP_S). This flow fails
 # the step instead of scrolling again.
 reach_browse || { fail_step browse "no list"; return 0; }
-count() { ui_dump; ui_find --text-regex '^[0-9]+ temples?$' && echo "${UI_TEXT%% *}"; }
+count() { ui_dump; ui_find --text-regex '^[0-9]+ places?$' && echo "${UI_TEXT%% *}"; }
 
 # Scroll the chip into view, open the sheet, and walk the picker.
 # A miss hits select_labeled's cap and fails $step.

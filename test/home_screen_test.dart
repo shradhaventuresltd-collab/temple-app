@@ -55,7 +55,7 @@ void main() {
 
     expect(find.text('Temple Directory'), findsOneWidget);
     expect(find.text('Discover'), findsOneWidget);
-    expect(find.text('1 places across India'), findsOneWidget);
+    expect(find.text('1 place across India'), findsOneWidget);
     expect(find.byKey(const Key('home-browse-temples')), findsOneWidget);
     expect(find.text('Browse 1 place'), findsOneWidget);
 

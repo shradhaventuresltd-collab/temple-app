@@ -119,7 +119,7 @@ def main():
             else:
                 label = ("Any " + kind) if name == "any" else name
                 out.append(f'<node text="" resource-id="filter-option-{kind}-{name}" content-desc="{label}  3" bounds="[16,{top_c}][200,{bot_c}]" scrollable="false" />')
-        out.append('</node><node text="" resource-id="" content-desc="Show 40 temples" bounds="[96,579][304,627]" scrollable="false" /></node></hierarchy>')
+        out.append('</node><node text="" resource-id="" content-desc="Show 40 places" bounds="[96,579][304,627]" scrollable="false" /></node></hierarchy>')
         save(path, st)
         print("\n".join(out)); return
     if cmd == "swipe":

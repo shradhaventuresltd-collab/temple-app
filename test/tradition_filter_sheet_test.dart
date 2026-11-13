@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/near_me/coarse_location.dart';
+import 'package:temple_app/near_me/near_me_copy.dart';
 import 'package:temple_app/screens/temples_near_me_screen.dart';
 import 'package:temple_app/widgets/app_drawer.dart';
 
@@ -231,6 +232,73 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('Dilwara Temples'), findsOneWidget);
   });
+
+  testWidgets('Near Me hides the Tradition chip when every row is Hindu', (
+    t,
+  ) async {
+    useFilterSurface(t);
+    await t.pumpWidget(
+      MaterialApp(
+        home: TemplesNearMeScreen(
+          temples: [
+            filterTemple(
+              name: 'Meenakshi Amman Temple',
+              state: 'Tamil Nadu',
+              city: 'Madurai',
+              deity: 'Devi',
+            ),
+          ],
+          location: _DeniedLocation(),
+          districtOf: (temple) => temple.city,
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const Key('near-me-continue')));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const Key('near-me-state')));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const Key('near-me-state-option-Tamil Nadu')));
+    await t.pumpAndSettle();
+    expect(find.byKey(const Key('near-me-tradition-chip')), findsNothing);
+  });
+
+  testWidgets(
+    'Near Me shows tradition empty copy, not noMapPoints, when 0 rows match',
+    (t) async {
+      useFilterSurface(t);
+      await t.pumpWidget(
+        MaterialApp(
+          home: TemplesNearMeScreen(
+            temples: [
+              filterTemple(
+                name: 'Meenakshi Amman Temple',
+                state: 'Tamil Nadu',
+                city: 'Madurai',
+                deity: 'Devi',
+              ),
+            ],
+            location: _DeniedLocation(),
+            districtOf: (temple) => temple.city,
+            initialTradition: 'buddhist',
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const Key('near-me-continue')));
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const Key('near-me-state')));
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const Key('near-me-state-option-Tamil Nadu')));
+      await t.pumpAndSettle();
+      expect(find.byKey(const Key('near-me-tradition-chip')), findsOneWidget);
+      expect(
+        find.text(NearMeCopy.noTraditionMatch('Buddhist')),
+        findsOneWidget,
+      );
+      expect(find.text(NearMeCopy.noMapPoints), findsNothing);
+    },
+  );
 }
 
 int directoryOrderIndex(String label) {

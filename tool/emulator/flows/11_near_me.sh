@@ -60,8 +60,8 @@ open_near_me() {
 near_me_destination() {
   ui_dump || return 1
   ui_find --text-contains "Sort by distance" && return 0
-  ui_find --text-contains "Nearest temples" && return 0
-  ui_find --text-contains "Finding temples" && return 0
+  ui_find --text-contains "Nearest places" && return 0
+  ui_find --text-contains "Finding places" && return 0
   ui_find --text-contains "Location is off" && return 0
   ui_find --text-contains "Pick a state or city" && return 0
   return 1
@@ -98,7 +98,7 @@ dismiss_permission_dialog '^(Allow|While using the app)$' || true
 dismiss_location_consent Continue || true
 
 # Play services sometimes asks to turn location on again after the grant.
-# Accept that dialog. While the screen stays on "Finding temples", send
+# Accept that dialog. While the screen stays on "Finding places", send
 # another fix so the in-flight low-power request can see it.
 accept_fix_dialog() {
   ui_dump || return 1
@@ -118,11 +118,11 @@ granted_sorted=0
 granted_start="$SECONDS"
 while (( SECONDS - granted_start < 60 )); do
   push_emulator_geo
-  if ui_dump && { ui_find --text-contains "Nearest temples" || ui_find --text-regex '[0-9]+(\.[0-9]+)? km$'; }; then
+  if ui_dump && { ui_find --text-contains "Nearest places" || ui_find --text-regex '[0-9]+(\.[0-9]+)? km$'; }; then
     granted_sorted=1
     break
   fi
-  if ui_find --text-contains "Finding temples"; then
+  if ui_find --text-contains "Finding places"; then
     push_emulator_geo
     accept_fix_dialog || true
   fi

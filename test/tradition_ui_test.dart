@@ -101,7 +101,21 @@ void main() {
 
   test('places wording helpers', () {
     expect(directoryBrowseTitle(), 'All places');
+    expect(directoryBrowseTitle(tradition: null), 'All places');
+    expect(directoryBrowseTitle(tradition: ''), 'All places');
+    expect(directoryBrowseTitle(tradition: 'all'), directoryTitleAllPlaces);
+    expect(directoryBrowseTitle(tradition: 'sikh'), directoryTitleSikhPlaces);
+    expect(directoryBrowseTitle(tradition: 'jain'), directoryTitleJainPlaces);
+    expect(directoryBrowseTitle(tradition: 'hindu'), directoryTitleHinduPlaces);
+    expect(
+      directoryBrowseTitle(tradition: 'buddhist'),
+      directoryTitleBuddhistPlaces,
+    );
     expect(directoryBrowseTitle(tradition: 'sikh', state: 'Punjab'), 'Punjab');
+    expect(
+      directoryBrowseTitle(tradition: 'jain', deity: 'Rishabhanatha'),
+      'Rishabhanatha',
+    );
     expect(directoryPlaceCountLabel(0), '0 places');
     expect(directoryPlaceCountLabel(1), '1 place');
     expect(directoryPlaceCountLabel(3), '3 places');
@@ -184,7 +198,6 @@ void main() {
     expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
     expect(find.text('4 places'), findsOneWidget);
   });
-
 
   testWidgets('cards and detail show gurdwara and derasar type icons', (
     tester,

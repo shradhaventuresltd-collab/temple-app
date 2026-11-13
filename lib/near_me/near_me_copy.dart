@@ -34,6 +34,10 @@ abstract final class NearMeCopy {
   static const noMapPoints = 'None of these listings have a map point.';
   static const noAnchorMatch =
       'None of the listings in that area have a map point.';
+
+  /// Empty list after a tradition chip is applied, not a missing map point.
+  static String noTraditionMatch(String label) =>
+      'No $label places in that area.';
   static const kilometres = 'km';
 
   static String sortedFrom(String place) => 'Sorted from $place';

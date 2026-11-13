@@ -539,6 +539,8 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
   String? _censusKey;
   List<DeityGroup>? _deityGroups;
   int? _deityGroupsId;
+  List<String>? _traditionKeys;
+  int? _traditionKeysId;
 
   @override
   void initState() {
@@ -940,6 +942,16 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
     return next;
   }
 
+  List<String> _directoryTraditions() {
+    final id = identityHashCode(widget.temples);
+    final cached = _traditionKeys;
+    if (cached != null && _traditionKeysId == id) return cached;
+    final next = directoryTraditionsFrom(widget.temples);
+    _traditionKeys = next;
+    _traditionKeysId = id;
+    return next;
+  }
+
   Widget _deitySheet(DirectoryOptionCensus census, FilterSheetColors colors) {
     final groups = _deityGroupsForSheet();
     final visible = [
@@ -1080,9 +1092,12 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
     DirectoryOptionCensus census,
     FilterSheetColors colors,
   ) {
+    final present = _directoryTraditions();
     final names = [
-      for (final key in directoryTraditionsFrom(widget.temples))
-        if (_showChoice(census.traditionCount(key), _tradition == key)) key,
+      for (final key in directoryTraditionOrder)
+        if ((present.contains(key) || _tradition == key) &&
+            _showChoice(census.traditionCount(key), _tradition == key))
+          key,
     ];
     final options = [
       for (final key in names)
@@ -1095,7 +1110,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
         ),
     ];
     final extraLabels = [
-      for (final key in directoryTraditionsFrom(widget.temples))
+      for (final key in present)
         if (key != directoryTraditionHindu) directoryTraditionChipLabel(key),
     ];
     final note = extraLabels.isEmpty

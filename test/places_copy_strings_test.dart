@@ -70,7 +70,13 @@ void main() {
   });
 
   test('§2.1 browse and filter copy uses places, not temples', () {
-    expect(directoryBrowseTitle(), 'All places');
+    expect(directoryBrowseTitle(), directoryTitleAllPlaces);
+    expect(directoryBrowseTitle(tradition: 'sikh'), directoryTitleSikhPlaces);
+    expect(directoryBrowseTitle(tradition: ''), directoryTitleAllPlaces);
+    expect(
+      directoryBrowseTitle(tradition: 'jain', state: 'Rajasthan'),
+      'Rajasthan',
+    );
     expect(directoryPlaceCountLabel(0), '0 places');
     expect(directoryPlaceCountLabel(1), '1 place');
     expect(directoryPlaceCountLabel(2), '2 places');
@@ -79,6 +85,21 @@ void main() {
     expect(
       directoryEmptyFilterMessage(district: 'Madurai', tradition: 'jain'),
       'Nothing in the loaded directory fits these filters.',
+    );
+  });
+
+  test('§2.1 shard load error uses places', () {
+    expect(
+      File(
+        'lib/services/firestore_read_log.dart',
+      ).readAsStringSync().contains("Could not load places in"),
+      isTrue,
+    );
+    expect(
+      File(
+        'lib/services/firestore_read_log.dart',
+      ).readAsStringSync().contains("Could not load temples in"),
+      isFalse,
     );
   });
 

@@ -101,17 +101,20 @@ class TempleBrowseCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        temple.name,
-                        key: const Key('browse-temple-name'),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        softWrap: true,
-                        style: GoogleFonts.lora(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: saffron,
-                          height: 1.25,
+                      SizedBox(
+                        width: double.infinity,
+                        child: Text(
+                          temple.name,
+                          key: const Key('browse-temple-name'),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          softWrap: true,
+                          style: GoogleFonts.lora(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: saffron,
+                            height: 1.25,
+                          ),
                         ),
                       ),
                       if (place.isNotEmpty) ...[

@@ -3,6 +3,7 @@ import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/utils/deity_groups.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
 import 'package:temple_app/utils/temple_search.dart';
+import 'package:temple_app/utils/tradition_synonyms.dart';
 
 /// States present on the loaded temples, sorted. Not a hard-coded catalog.
 List<String> directoryStatesFrom(Iterable<Temple> temples) {
@@ -73,24 +74,15 @@ DeityTraditionOf traditionOfLoadedTemples(Iterable<Temple> temples) {
 }
 
 /// Filter / census key: `jain`, `buddhist`, `sikh`, or [directoryTraditionHindu].
-const directoryTraditionHindu = 'hindu';
+const directoryTraditionHindu = directoryTraditionHinduValue;
 
 /// Display order for Tradition sheet options that are present in the directory.
 const directoryTraditionOrder = ['hindu', 'sikh', 'jain', 'buddhist'];
 
 /// Stored, indexed, or deity-inferred tradition key for chips and census.
-String directoryTraditionKey(Temple temple) {
-  final stored =
-      templeTraditionField(temple.indexTradition) ??
-      templeTraditionField(temple.tradition);
-  if (stored != null) return stored;
-  return switch (traditionFromDeityText(temple.deity)) {
-    SiteTradition.jain => 'jain',
-    SiteTradition.buddhist => 'buddhist',
-    SiteTradition.sikh => 'sikh',
-    SiteTradition.unspecified => directoryTraditionHindu,
-  };
-}
+///
+/// Delegates to [templeTraditionKey] (document field, then index, then deity).
+String directoryTraditionKey(Temple temple) => templeTraditionKey(temple);
 
 /// Chip and sheet label for a [directoryTraditionKey] value.
 String directoryTraditionChipLabel(String key) {
@@ -243,6 +235,20 @@ List<Temple> directoryMatchingTemples(
   ];
 }
 
+/// l10n keys for tradition-only list titles. Built from the picker labels.
+const directoryTitleAllPlaces = 'All places';
+const directoryTitleHinduPlaces = 'Hindu places';
+const directoryTitleSikhPlaces = 'Sikh places';
+const directoryTitleJainPlaces = 'Jain places';
+const directoryTitleBuddhistPlaces = 'Buddhist places';
+
+/// Title when the only constraint is a selected tradition.
+String directoryTraditionPlacesTitle(String key) {
+  final trimmed = key.trim();
+  if (trimmed.isEmpty || trimmed == 'all') return directoryTitleAllPlaces;
+  return '${directoryTraditionChipLabel(trimmed)} places';
+}
+
 /// App-bar title for a browse list constrained by these chips.
 String directoryBrowseTitle({
   String? state,
@@ -255,7 +261,11 @@ String directoryBrowseTitle({
     if (district != null && district.isNotEmpty) district,
     if (state != null && state.isNotEmpty) state,
   ];
-  if (parts.isEmpty) return 'All places';
+  final traditionKey = tradition?.trim() ?? '';
+  if (parts.isEmpty) {
+    if (traditionKey.isEmpty) return directoryTitleAllPlaces;
+    return directoryTraditionPlacesTitle(traditionKey);
+  }
   return parts.join(' · ');
 }
 
@@ -384,8 +394,12 @@ DirectoryOptionCensus directoryOptionCensus(
   var anyDistrict = 0;
   var anyTradition = 0;
 
+  final prepared = PreparedTempleQuery.parse(query);
+  final traditionWithDeity = <String, int>{};
+  final traditionWithoutDeity = <String, int>{};
+
   for (final temple in temples) {
-    if (!templeMatchesQuery(temple, query)) continue;
+    if (!templeMatchesPrepared(temple, prepared)) continue;
     final templeState = temple.state.trim();
     final templeDeity = temple.deity.trim();
     final templeDistrict = districtOf == null
@@ -425,13 +439,30 @@ DirectoryOptionCensus directoryOptionCensus(
       districtCounts[templeDistrict] =
           (districtCounts[templeDistrict] ?? 0) + 1;
     }
-    // Tradition options ignore the deity chip so a tradition that would
-    // drop a stale deity stays visible (KAN-203). Any-tradition still
-    // respects deity, because that row means "clear Tradition only".
+    // Count with the current deity when it still fits that tradition.
+    // Count without it when applying the option would clear the deity.
+    // Any-tradition still respects deity (that row only clears Tradition).
     if (stateOk && districtOk) {
-      traditionCounts[templeTradition] =
-          (traditionCounts[templeTradition] ?? 0) + 1;
+      traditionWithoutDeity[templeTradition] =
+          (traditionWithoutDeity[templeTradition] ?? 0) + 1;
+      if (deityOk) {
+        traditionWithDeity[templeTradition] =
+            (traditionWithDeity[templeTradition] ?? 0) + 1;
+      }
     }
+  }
+
+  // Use the same "would this apply clear the deity?" predicate as the sheet.
+  for (final key in {
+    ...traditionWithoutDeity.keys,
+    ...traditionWithDeity.keys,
+  }) {
+    final keepsDeity =
+        wantedDeityKey.isEmpty ||
+        directoryDeityFitsTradition(temples, deity: deity, tradition: key);
+    traditionCounts[key] = keepsDeity
+        ? (traditionWithDeity[key] ?? 0)
+        : (traditionWithoutDeity[key] ?? 0);
   }
 
   return DirectoryOptionCensus(

@@ -33,7 +33,7 @@ class _SourceAttributionFooterState extends State<SourceAttributionFooter> {
     var opened = false;
     try {
       opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } on Exception {
+    } catch (_) {
       opened = false;
     } finally {
       _opening = false;

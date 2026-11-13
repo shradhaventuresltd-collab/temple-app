@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/utils/directory_filters.dart';
+import 'package:temple_app/utils/tradition_synonyms.dart';
 import 'package:temple_app/widgets/app_drawer.dart';
 
 import 'filter_sheet_support.dart';
@@ -65,25 +66,44 @@ Future<void> _pump(
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
 
-  test(
-    'indexTradition wins over the document field, then deity, then Hindu',
-    () {
-      expect(directoryTraditionKey(harmandir), 'sikh');
-      expect(
-        directoryTraditionKey(
-          filterTemple(
-            name: 'Local shrine',
-            state: 'Kerala',
-            city: 'Vaikom',
-            deity: 'Shiva',
-          ),
+  test('document field wins over indexTradition, then deity, then Hindu', () {
+    expect(directoryTraditionKey(harmandir), 'jain');
+    expect(templeTraditionKey(harmandir), directoryTraditionKey(harmandir));
+    expect(
+      directoryTraditionKey(
+        Temple(
+          name: 'Conflicting fields',
+          state: 'Punjab',
+          city: 'Amritsar',
+          deity: 'Guru Granth Sahib',
+          imageUrl: '',
+          description: '',
+          story: '',
+          location: 'Amritsar, Punjab',
+          timings: '',
+          specialities: const [],
+          latitude: 31.62,
+          longitude: 74.88,
+          tradition: 'jain',
+          indexTradition: 'sikh',
         ),
-        'hindu',
-      );
-      expect(directoryTraditionKey(dilwara), 'jain');
-      expect(directoryTraditionOrder, ['hindu', 'sikh', 'jain', 'buddhist']);
-    },
-  );
+      ),
+      'jain',
+    );
+    expect(
+      directoryTraditionKey(
+        filterTemple(
+          name: 'Local shrine',
+          state: 'Kerala',
+          city: 'Vaikom',
+          deity: 'Shiva',
+        ),
+      ),
+      'hindu',
+    );
+    expect(directoryTraditionKey(dilwara), 'jain');
+    expect(directoryTraditionOrder, ['hindu', 'sikh', 'jain', 'buddhist']);
+  });
 
   testWidgets('deity list is scoped by the selected tradition', (t) async {
     await _pump(t, tradition: 'jain');
@@ -139,7 +159,7 @@ void main() {
   test('Tradition + Deity + State census uses the same resolution', () {
     final matches = directoryMatchingTemples(
       listed,
-      tradition: 'sikh',
+      tradition: 'jain',
       state: 'Punjab',
       deity: 'Guru Granth Sahib',
     );

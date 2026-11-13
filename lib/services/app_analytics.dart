@@ -9,7 +9,7 @@ import 'package:temple_app/services/product_analytics_client.dart';
 /// GA4 string parameters are capped at 100 characters.
 const int _maxParameterLength = 100;
 
-const _filterTypes = {'state', 'deity', 'district'};
+const _filterTypes = {'state', 'deity', 'district', 'tradition'};
 
 /// Product analytics. The ad consent pass is not called from here and is
 /// not changed (KAN-69).
@@ -128,10 +128,13 @@ class AppAnalytics {
     required String? nextDeity,
     required String? previousDistrict,
     required String? nextDistrict,
+    String? previousTradition,
+    String? nextTradition,
   }) async {
     await _logFilterDelta('state', previousState, nextState);
     await _logFilterDelta('deity', previousDeity, nextDeity);
     await _logFilterDelta('district', previousDistrict, nextDistrict);
+    await _logFilterDelta('tradition', previousTradition, nextTradition);
   }
 
   Future<void> logTempleOpened(String templeId) {
