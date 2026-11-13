@@ -72,10 +72,10 @@ const traditionSynonymGroups = [
 ];
 
 /// Cached tradition key: stored document field, then the index flag, then
-/// deity text. Hindu is [directoryTraditionHinduValue].
+/// deity text, the same order as [resolvedSiteTradition]. Hindu is
+/// [directoryTraditionHinduValue].
 ///
-/// One helper for directory chips, census, and search. The document field
-/// is preferred when both stored values are set (review #142).
+/// One helper for directory chips, census, and search.
 const directoryTraditionHinduValue = 'hindu';
 
 final Expando<String> _traditionKeyCache = Expando<String>();
@@ -84,17 +84,12 @@ final Expando<String> _traditionKeyCache = Expando<String>();
 String templeTraditionKey(Temple temple) {
   final cached = _traditionKeyCache[temple];
   if (cached != null) return cached;
-  final stored =
-      templeTraditionField(temple.tradition) ??
-      templeTraditionField(temple.indexTradition);
-  final key =
-      stored ??
-      switch (traditionFromDeityText(temple.deity)) {
-        SiteTradition.jain => 'jain',
-        SiteTradition.buddhist => 'buddhist',
-        SiteTradition.sikh => 'sikh',
-        SiteTradition.unspecified => directoryTraditionHinduValue,
-      };
+  final key = switch (resolvedSiteTradition(temple)) {
+    SiteTradition.jain => 'jain',
+    SiteTradition.buddhist => 'buddhist',
+    SiteTradition.sikh => 'sikh',
+    SiteTradition.unspecified => directoryTraditionHinduValue,
+  };
   _traditionKeyCache[temple] = key;
   return key;
 }

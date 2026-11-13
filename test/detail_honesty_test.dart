@@ -965,6 +965,59 @@ void main() {
     },
   );
 
+  test(
+    'index sikh and document field jain resolve to jain in honesty and the directory',
+    () {
+      final temple = _draft(
+        name: 'Harmandir Sahib',
+        deity: 'Guru Granth Sahib',
+        description: 'A listed shrine.',
+        tradition: 'jain',
+        indexTradition: 'sikh',
+        timings: '',
+      );
+      final honesty = DetailHonesty.of(temple);
+      expect(honesty.tradition, SiteTradition.jain);
+      expect(honesty.traditionLabel, 'Jain');
+      expect(resolvedSiteTradition(temple), SiteTradition.jain);
+    },
+  );
+
+  testWidgets(
+    'detail shows Jain, not Sikh, when the document field disagrees with the index',
+    (tester) async {
+      final temple = _draft(
+        name: 'Harmandir Sahib',
+        deity: 'Guru Granth Sahib',
+        description: 'A listed shrine.',
+        tradition: 'jain',
+        indexTradition: 'sikh',
+        timings: '6:00 AM–8:00 PM daily.',
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: TempleDetailBody(temple: temple)),
+        ),
+      );
+      await tester.pump();
+      expect(find.byKey(const Key('detail-tradition-chip')), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('detail-tradition-chip')),
+          matching: find.text('Jain'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('detail-tradition-chip')),
+          matching: find.text('Sikh'),
+        ),
+        findsNothing,
+      );
+    },
+  );
+
   test('Chaturbhuji in the name or description does not add a Vishnu chip', () {
     final temple = _draft(
       name: 'Budheswar Shiv Temple',

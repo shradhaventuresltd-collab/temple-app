@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/utils/detail_honesty.dart';
 import 'package:temple_app/utils/directory_filters.dart';
 import 'package:temple_app/utils/tradition_synonyms.dart';
 import 'package:temple_app/widgets/app_drawer.dart';
@@ -69,6 +70,9 @@ void main() {
   test('document field wins over indexTradition, then deity, then Hindu', () {
     expect(directoryTraditionKey(harmandir), 'jain');
     expect(templeTraditionKey(harmandir), directoryTraditionKey(harmandir));
+    expect(resolvedSiteTradition(harmandir), SiteTradition.jain);
+    expect(DetailHonesty.of(harmandir).tradition, SiteTradition.jain);
+    expect(DetailHonesty.of(harmandir).traditionLabel, 'Jain');
     expect(
       directoryTraditionKey(
         Temple(

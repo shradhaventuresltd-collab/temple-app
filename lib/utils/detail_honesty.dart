@@ -35,9 +35,7 @@ class DetailHonesty {
 
   factory DetailHonesty.of(Temple temple) {
     final corpus = _corpus(temple);
-    final tradition = temple.indexTradition != null
-        ? _traditionFromIndex(temple.indexTradition!)
-        : _tradition(temple);
+    final tradition = resolvedSiteTradition(temple);
     final framing = temple.indexFraming != null
         ? _framingFromIndex(temple.indexFraming!)
         : _framing(temple, corpus, tradition);
@@ -549,13 +547,25 @@ bool isDisallowedImageUrl(String raw, {String? credit}) {
       isGoogleHostedPlacePhoto(raw);
 }
 
-SiteTradition _traditionFromIndex(String value) {
+SiteTradition _traditionFromStored(String? value) {
   return switch (value) {
     'jain' => SiteTradition.jain,
     'buddhist' => SiteTradition.buddhist,
     'sikh' => SiteTradition.sikh,
     _ => SiteTradition.unspecified,
   };
+}
+
+/// Stored document field, then the index flag, then deity text.
+///
+/// Name, description, and story are not read. [SiteTradition.unspecified]
+/// is the Hindu residual set for directory chips.
+SiteTradition resolvedSiteTradition(Temple temple) {
+  final fromField = _traditionFromStored(temple.tradition);
+  if (fromField != SiteTradition.unspecified) return fromField;
+  final fromIndex = _traditionFromStored(temple.indexTradition);
+  if (fromIndex != SiteTradition.unspecified) return fromIndex;
+  return traditionFromDeityText(temple.deity);
 }
 
 SiteFraming _framingFromIndex(String value) {
@@ -748,8 +758,8 @@ bool _festivalPujaTitle(String text, int pujaStart) {
 ///
 /// Name, description, story, and specialities are not read. A neighboring
 /// "Jain temple", or a word such as Chaturbhuji, does not add a chip.
-/// [DetailHonesty.of] uses [Temple.indexTradition] when the index stored one,
-/// and otherwise the document [Temple.tradition] field before this fallback.
+/// [resolvedSiteTradition] uses the document [Temple.tradition] field, then
+/// [Temple.indexTradition], then this fallback.
 abstract final class _DeityTraditionPatterns {
   static final jain = RegExp(r'\b(jain|tirthankaras?)\b');
   static final buddhist = RegExp(r'\b(buddha|buddhist)\b');
@@ -768,17 +778,6 @@ SiteTradition traditionFromDeityText(String deity) {
     return SiteTradition.sikh;
   }
   return SiteTradition.unspecified;
-}
-
-SiteTradition _tradition(Temple temple) {
-  final stored = switch (temple.tradition) {
-    'jain' => SiteTradition.jain,
-    'buddhist' => SiteTradition.buddhist,
-    'sikh' => SiteTradition.sikh,
-    _ => SiteTradition.unspecified,
-  };
-  if (stored != SiteTradition.unspecified) return stored;
-  return traditionFromDeityText(temple.deity);
 }
 
 bool _anyAffirmative(String text, List<String> phrases) {
