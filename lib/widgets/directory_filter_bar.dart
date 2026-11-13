@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:temple_app/l10n/app_locale.dart';
+import 'package:temple_app/l10n/display_labels.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/utils/deity_groups.dart';
@@ -351,10 +353,12 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
                 semanticsId: 'filter-chip-state',
                 clearKey: const Key('filter-chip-state-clear'),
                 icon: Icons.place_outlined,
-                label: selectedState ?? 'State',
+                label: selectedState == null
+                    ? context.l10n.filterChipStateLabel
+                    : stateDisplayLabel(context.l10n, selectedState),
                 selected: selectedState != null,
-                openTooltip: 'Choose a state',
-                clearTooltip: 'Clear state filter',
+                openTooltip: context.l10n.filterChipChooseStateTooltip,
+                clearTooltip: context.l10n.filterChipClearStateTooltip,
                 onOpen: () => _openSheet(DirectoryFilterSection.state),
                 onClear: () => widget.onChanged(
                   null,
@@ -372,14 +376,14 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
                 clearKey: const Key('filter-chip-district-clear'),
                 icon: Icons.account_balance_outlined,
                 label: selectedDistrict == null || selectedDistrict.isEmpty
-                    ? 'District'
-                    : selectedDistrict,
+                    ? context.l10n.filterChipDistrictLabel
+                    : districtDisplayLabel(context.l10n, selectedDistrict),
                 selected:
                     selectedDistrict != null && selectedDistrict.isNotEmpty,
                 openTooltip: _districtNeedsState
-                    ? 'Choose a state first'
-                    : 'Choose a district',
-                clearTooltip: 'Clear district filter',
+                    ? context.l10n.filterChipChooseStateFirstTooltip
+                    : context.l10n.filterChipChooseDistrictTooltip,
+                clearTooltip: context.l10n.filterChipClearDistrictTooltip,
                 onOpen: () => _openSheet(DirectoryFilterSection.district),
                 onClear: () => widget.onChanged(
                   selectedState,
@@ -397,16 +401,17 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
                 clearKey: const Key('filter-chip-deity-clear'),
                 icon: Icons.auto_awesome_outlined,
                 label: selectedDeity == null
-                    ? 'Deity'
+                    ? context.l10n.filterChipDeityLabel
                     : directoryDeityChipLabel(
                         selectedDeity,
                         tradition: traditionOfLoadedTemples(widget.temples)(
                           selectedDeity,
                         ),
+                        l10n: context.l10n,
                       ),
                 selected: selectedDeity != null,
-                openTooltip: 'Choose a deity',
-                clearTooltip: 'Clear deity filter',
+                openTooltip: context.l10n.filterChipChooseDeityTooltip,
+                clearTooltip: context.l10n.filterChipClearDeityTooltip,
                 onOpen: () => _openSheet(DirectoryFilterSection.deity),
                 onClear: () => widget.onChanged(
                   selectedState,
@@ -430,12 +435,15 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
                         size: 16,
                       ),
                 label: selectedTradition == null || selectedTradition.isEmpty
-                    ? 'Tradition'
-                    : directoryTraditionChipLabel(selectedTradition),
+                    ? context.l10n.filterChipTraditionLabel
+                    : directoryTraditionChipLabel(
+                        selectedTradition,
+                        l10n: context.l10n,
+                      ),
                 selected:
                     selectedTradition != null && selectedTradition.isNotEmpty,
-                openTooltip: 'Choose a tradition',
-                clearTooltip: 'Clear tradition filter',
+                openTooltip: context.l10n.filterChipChooseTraditionTooltip,
+                clearTooltip: context.l10n.filterChipClearTraditionTooltip,
                 onOpen: () => _openSheet(DirectoryFilterSection.tradition),
                 onClear: () => widget.onChanged(
                   selectedState,
@@ -453,7 +461,7 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
             children: [
               Expanded(
                 child: Text(
-                  directoryPlaceCountLabel(matched),
+                  directoryPlaceCountLabel(matched, l10n: context.l10n),
                   key: const Key('filter-match-count'),
                   style: GoogleFonts.poppins(
                     fontSize: 14,
@@ -472,7 +480,7 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
                         widget.onClearAll ??
                         () => widget.onChanged(null, null, null, null),
                     child: Text(
-                      'Clear all',
+                      context.l10n.filterBarClearAllButton,
                       style: GoogleFonts.poppins(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -770,7 +778,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
       for (final group in grouped)
         FilterSheetSection(
           id: group.id,
-          title: group.title,
+          title: indiaStateSectionTitleOf(context.l10n, group.id),
           total: group.states.fold<int>(
             0,
             (sum, state) => sum + census.stateCount(state),
@@ -779,11 +787,14 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
             for (final state in group.states)
               FilterSheetOption(
                 id: 'filter-option-state-$state',
-                label: state,
+                label: stateDisplayLabel(context.l10n, state),
+                searchText: state,
                 count: census.stateCount(state),
                 value: state,
                 selected: _state == state,
-                badge: indiaStateIsUnionTerritory(state) ? 'UT' : null,
+                badge: indiaStateIsUnionTerritory(state)
+                    ? context.l10n.filterSheetUnionTerritoryBadge
+                    : null,
               ),
           ],
         ),
@@ -795,11 +806,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
                 sections.any((section) => section.id == 'northeast')))
           FilterSheetJump(
             id: 'filter-region-jump-$id',
-            label:
-                indiaStateSectionTitle(
-                  id == 'east' ? 'east' : id,
-                ).substring(0, 1).toUpperCase() +
-                indiaStateSectionTitle(id).substring(1).toLowerCase(),
+            label: indiaStateJumpLabel(context.l10n, id),
             sectionId: sections.any((section) => section.id == id)
                 ? id
                 : 'northeast',
@@ -807,15 +814,15 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
     ];
     final stateSubtitle = Text(
       widget.chooseStateFirst
-          ? 'Choose a state first'
-          : '${names.length} states & UTs with places',
+          ? context.l10n.filterSheetChooseStateFirstMessage
+          : context.l10n.filterSheetStateCountLabel(names.length),
       key: widget.chooseStateFirst
           ? const Key('filter-choose-state-first')
           : const Key('filter-state-count'),
       style: GoogleFonts.poppins(fontSize: 13, color: colors.muted),
     );
     return FilterSheetScaffold(
-      title: 'State',
+      title: context.l10n.filterSheetStateTitle,
       sectionKey: const Key('filter-section-state'),
       subtitle: widget.chooseStateFirst
           ? Semantics(
@@ -824,18 +831,18 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
               child: stateSubtitle,
             )
           : stateSubtitle,
-      searchHint: 'Search state',
+      searchHint: context.l10n.filterSheetSearchStateHint,
       forceSearch: true,
       jumps: jumps,
       any: FilterSheetOption(
         id: 'filter-option-state-any',
-        label: 'Any state',
+        label: context.l10n.filterSheetAnyStateLabel,
         count: census.anyState,
         value: '',
         selected: _state == null,
       ),
       sections: sections,
-      resultLabel: directoryFilterResultLabel(census.matched),
+      resultLabel: directoryFilterResultLabel(census.matched, l10n: context.l10n),
       clearEnabled: _clearEnabled,
       onClear: _clearDraft,
       scrollToId: _state == null ? null : 'filter-option-state-$_state',
@@ -867,10 +874,12 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
           ),
     ];
     final anyLabel = state == null || state.isEmpty
-        ? 'All districts'
-        : 'All districts in $state';
+        ? context.l10n.filterSheetAllDistrictsLabel
+        : context.l10n.filterSheetAllDistrictsInStateLabel(
+            stateDisplayLabel(context.l10n, state),
+          );
     return FilterSheetScaffold(
-      title: 'District',
+      title: context.l10n.filterSheetDistrictTitle,
       sectionKey: const Key('filter-section-district'),
       subtitle: state == null || state.isEmpty
           ? null
@@ -878,7 +887,9 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Text(
-                  'In $state · ',
+                  context.l10n.filterSheetInStateLabel(
+                    stateDisplayLabel(context.l10n, state),
+                  ),
                   style: GoogleFonts.poppins(fontSize: 13, color: colors.muted),
                 ),
                 TextButton(
@@ -890,7 +901,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
                   ),
                   onPressed: _changeState,
                   child: Text(
-                    'Change state',
+                    context.l10n.filterSheetChangeStateButton,
                     style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -900,11 +911,11 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
                 ),
               ],
             ),
-      searchHint: 'Search district',
+      searchHint: context.l10n.filterSheetSearchDistrictHint,
       loading: _districtsLoading,
       loadingKey: const Key('filter-district-loading'),
       error: _districtError,
-      errorMessage: 'Districts could not be loaded',
+      errorMessage: context.l10n.filterSheetDistrictsLoadError,
       onRetry: widget.retryDistricts == null ? null : _retryDistricts,
       any: FilterSheetOption(
         id: 'filter-option-district-any',
@@ -916,7 +927,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
       sections: [
         FilterSheetSection(id: 'districts', title: '', options: options),
       ],
-      resultLabel: directoryFilterResultLabel(census.matched),
+      resultLabel: directoryFilterResultLabel(census.matched, l10n: context.l10n),
       clearEnabled: _clearEnabled,
       onClear: _clearDraft,
       scrollToId: _district == null || _district!.isEmpty
@@ -982,7 +993,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
       sections.add(
         FilterSheetSection(
           id: 'deity-most',
-          title: 'MOST LISTED',
+          title: context.l10n.filterSheetMostListedHeading,
           options: [
             for (final group in ranked.take(8))
               optionFor(group, id: 'filter-deity-top-${group.label}'),
@@ -1020,7 +1031,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
       );
     }
     final traditions = [
-      for (final label in ['Jain', 'Buddhist', 'Sikh'])
+      for (final label in ['Jain', 'Buddhist', 'Sikh']) // l10n-allow: canonical tradition keys
         if (visible.any((group) => group.tradition == label)) label,
     ];
     final note = directoryDeityFilterNote(
@@ -1029,18 +1040,19 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
         ...[for (final group in visible) ...group.variants],
       ],
       count: visible.length,
+      l10n: context.l10n,
       traditionLabels: traditions,
     );
     final traditionOn = _tradition != null && _tradition!.isNotEmpty;
     return FilterSheetScaffold(
-      title: 'Deity',
+      title: context.l10n.filterSheetDeityTitle,
       sectionKey: const Key('filter-section-deity'),
       subtitle: traditionOn
           ? Wrap(
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Text(
-                  'In ${directoryTraditionChipLabel(_tradition!)} places · ',
+                  context.l10n.filterSheetDeityTraditionScope(_tradition!),
                   style: GoogleFonts.poppins(fontSize: 13, color: colors.muted),
                 ),
                 TextButton(
@@ -1052,7 +1064,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
                   ),
                   onPressed: _changeTradition,
                   child: Text(
-                    'Change tradition',
+                    context.l10n.filterSheetChangeTraditionButton,
                     style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -1067,17 +1079,17 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
               key: traditions.isEmpty ? null : const Key('filter-deity-note'),
               style: GoogleFonts.poppins(fontSize: 13, color: colors.muted),
             ),
-      searchHint: 'Search deity (e.g. Murugan)',
+      searchHint: context.l10n.filterSheetSearchDeityHint,
       forceSearch: true,
       any: FilterSheetOption(
         id: 'filter-option-deity-any',
-        label: 'Any deity',
+        label: context.l10n.filterSheetAnyDeityLabel,
         count: census.anyDeity,
         value: '',
         selected: _deity == null,
       ),
       sections: sections,
-      resultLabel: directoryFilterResultLabel(census.matched),
+      resultLabel: directoryFilterResultLabel(census.matched, l10n: context.l10n),
       clearEnabled: _clearEnabled,
       onClear: _clearDraft,
       scrollToId: _deity == null ? null : 'filter-option-deity-$_deity',
@@ -1103,7 +1115,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
       for (final key in names)
         FilterSheetOption(
           id: 'filter-option-tradition-$key',
-          label: directoryTraditionChipLabel(key),
+          label: directoryTraditionChipLabel(key, l10n: context.l10n),
           count: census.traditionCount(key),
           value: key,
           selected: _tradition == key,
@@ -1114,20 +1126,24 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
         if (key != directoryTraditionHindu) directoryTraditionChipLabel(key),
     ];
     final note = extraLabels.isEmpty
-        ? directoryPlaceCountLabel(census.anyTradition)
-        : directoryDeityFilterNote(const [], traditionLabels: extraLabels);
+        ? directoryPlaceCountLabel(census.anyTradition, l10n: context.l10n)
+        : directoryDeityFilterNote(
+            const [],
+            traditionLabels: extraLabels,
+            l10n: context.l10n,
+          );
     return FilterSheetScaffold(
-      title: 'Tradition',
+      title: context.l10n.filterSheetTraditionTitle,
       sectionKey: const Key('filter-section-tradition'),
       subtitle: Text(
         note,
         key: const Key('filter-tradition-note'),
         style: GoogleFonts.poppins(fontSize: 13, color: colors.muted),
       ),
-      searchHint: 'Search tradition',
+      searchHint: context.l10n.filterSheetSearchTraditionHint,
       any: FilterSheetOption(
         id: 'filter-option-tradition-any',
-        label: 'Any tradition',
+        label: context.l10n.filterSheetAnyTraditionLabel,
         count: census.anyTradition,
         value: '',
         selected: _tradition == null || _tradition!.isEmpty,
@@ -1135,7 +1151,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
       sections: [
         FilterSheetSection(id: 'traditions', title: '', options: options),
       ],
-      resultLabel: directoryFilterResultLabel(census.matched),
+      resultLabel: directoryFilterResultLabel(census.matched, l10n: context.l10n),
       clearEnabled: _clearEnabled,
       onClear: _clearDraft,
       scrollToId: _tradition == null || _tradition!.isEmpty

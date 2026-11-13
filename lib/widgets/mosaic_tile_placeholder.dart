@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/widgets/place_type_icon.dart';
 
 /// Warm tile shown while a collage photo loads and when that load fails.
@@ -23,7 +24,7 @@ class MosaicTilePlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     final art = _TileArt(kind: kind);
     return Semantics(
-      label: 'Place photo',
+      label: context.l10n.homeMosaicPlacePhotoLabel,
       child: SizedBox.expand(child: _animate ? _ShimmerTile(child: art) : art),
     );
   }

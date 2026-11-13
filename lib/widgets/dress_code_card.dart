@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/utils/place_sources.dart';
@@ -66,7 +67,7 @@ class _DressCodeCardState extends State<DressCodeCard> {
             Semantics(
               header: true,
               child: Text(
-                'Dress code',
+                context.l10n.templeDetailDressCodeTitle,
                 key: const Key('detail-dress-code-heading'),
                 style: GoogleFonts.lora(
                   fontSize: 17,
@@ -79,9 +80,9 @@ class _DressCodeCardState extends State<DressCodeCard> {
               const SizedBox(height: 12),
               UnverifiedSourceNotice(
                 id: 'dress-code',
-                subject: 'Dress code',
-                lead: 'Rules may have changed.',
-                noLinkText: 'Confirm with the place.',
+                subject: context.l10n.templeDetailDressCodeTitle,
+                lead: context.l10n.templeDetailDressCodeChangedLead,
+                noLinkText: context.l10n.templeDetailDressCodeConfirmMessage,
                 sourceUri: temple.dressCodeSourceUri,
               ),
             ],
@@ -126,7 +127,9 @@ class _DressCodeCardState extends State<DressCodeCard> {
                               alignment: Alignment.centerLeft,
                               widthFactor: 1,
                               child: Text(
-                                _expanded ? 'Show less' : 'Show more',
+                                _expanded
+                                    ? context.l10n.commonShowLessButton
+                                    : context.l10n.commonShowMoreButton,
                                 style: bodyStyle.copyWith(
                                   color: tokens.accent,
                                   fontWeight: FontWeight.w600,

@@ -6,6 +6,7 @@ import 'package:temple_app/district/district_lookup.dart';
 import 'package:temple_app/config/build_flags.dart';
 import 'package:temple_app/data/heritage_content.dart';
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/near_me/near_me_copy.dart';
 import 'package:temple_app/screens/admin_screen.dart';
 import 'package:temple_app/screens/home_scroll.dart';
@@ -276,7 +277,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           namedAnalyticsRoute<void>(
             name: AnalyticsScreens.templeList,
             builder: (_) =>
-                TempleListScreen(temples: allTemples, title: 'All places'),
+                TempleListScreen(
+                  temples: allTemples,
+                  title: context.l10n.directoryTitleAllPlaces,
+                ),
           ),
         );
       },
@@ -318,7 +322,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         centerTitle: true,
         toolbarHeight: _titleBarHeight,
         title: Text(
-          'Temple Directory',
+          context.l10n.appNameShort,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           softWrap: true,
@@ -418,7 +422,7 @@ class _HomeAdminOverflowState extends State<_HomeAdminOverflow> {
                 _close();
                 widget.onOpenAdmin();
               },
-              child: const Text('Admin sign-in'),
+              child: const Text('Admin sign-in'), // l10n-allow: admin chrome
             ),
           ),
         );
@@ -456,7 +460,7 @@ class _HomeLoadingBody extends StatelessWidget {
             const CircularProgressIndicator(color: _saffron),
             const SizedBox(height: 16),
             Text(
-              'Loading places…',
+              context.l10n.homeLoadingTitle,
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 color: Colors.brown.shade700,
@@ -466,7 +470,7 @@ class _HomeLoadingBody extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Preparing the directory. This usually takes a moment.',
+              context.l10n.homeLoadingMessage,
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 color: Colors.brown.shade500,
@@ -502,7 +506,7 @@ class _HomeErrorBody extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'Could not load places.',
+              context.l10n.homeLoadFailedTitle,
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 color: Colors.brown.shade700,
@@ -511,7 +515,7 @@ class _HomeErrorBody extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              detail ?? 'Check your connection and try again.',
+              detail ?? context.l10n.homeLoadFailedMessage,
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 color: Colors.brown.shade500,
@@ -519,7 +523,7 @@ class _HomeErrorBody extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            TextButton(onPressed: onRetry, child: const Text('Retry')),
+            TextButton(onPressed: onRetry, child: Text(context.l10n.commonRetryButton)),
           ],
         ),
       ),
@@ -547,7 +551,7 @@ class _HomeEmptyBody extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'No places available yet.',
+              context.l10n.homeEmptyTitle,
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 color: Colors.brown.shade700,
@@ -556,7 +560,7 @@ class _HomeEmptyBody extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'The directory came back empty. Tap Retry, or try again later.',
+              context.l10n.homeEmptyMessage,
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 color: Colors.brown.shade500,
@@ -564,7 +568,7 @@ class _HomeEmptyBody extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            TextButton(onPressed: onRetry, child: const Text('Retry')),
+            TextButton(onPressed: onRetry, child: Text(context.l10n.commonRetryButton)),
           ],
         ),
       ),
@@ -633,11 +637,7 @@ class _BrowseTemplesCta extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = templeCount == 0
-        ? 'Browse places'
-        : templeCount == 1
-        ? 'Browse 1 place'
-        : 'Browse $templeCount places';
+    final label = context.l10n.homeBrowseButtonLabel(templeCount);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 20, 14, 0),
@@ -645,8 +645,7 @@ class _BrowseTemplesCta extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Open the directory for place cards, search, and filters. '
-            'You can also use the menu (☰).',
+            context.l10n.homeBrowseHint,
             style: GoogleFonts.poppins(
               fontSize: 13,
               height: 1.45,
@@ -679,7 +678,7 @@ class _BrowseTemplesCta extends StatelessWidget {
             key: const Key('home-near-me'),
             onPressed: onNearMe,
             icon: const Icon(Icons.near_me_outlined),
-            label: const Text(NearMeCopy.title),
+            label: Text(NearMeCopy.titleOf(context.l10n)),
             style: TextButton.styleFrom(
               foregroundColor: _deepSaffron,
               textStyle: GoogleFonts.poppins(
@@ -690,7 +689,7 @@ class _BrowseTemplesCta extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Heritage reading continues below',
+            context.l10n.homeHeritageContinuesLabel,
             textAlign: TextAlign.center,
             style: GoogleFonts.poppins(
               fontSize: 12,
@@ -739,7 +738,7 @@ class _HeritageWriteUp extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Temple Heritage of India',
+                  context.l10n.homeHeritageTitle,
                   style: GoogleFonts.lora(
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
@@ -751,7 +750,7 @@ class _HeritageWriteUp extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'A comprehensive exploration of India\'s sacred architectural legacy',
+            context.l10n.homeHeritageSubtitle,
             style: GoogleFonts.poppins(
               fontSize: 12.5,
               color: Colors.brown.shade500,

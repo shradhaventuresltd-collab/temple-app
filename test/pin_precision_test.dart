@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:temple_app/l10n/pin_precision_strings.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_index.dart';
 import 'package:temple_app/near_me/near_me_copy.dart';
@@ -145,7 +144,7 @@ void main() {
       expect(NearMeCopy.distanceLabel(12.6, approximate: true), '~13 km');
       expect(
         NearMeCopy.distanceLabel(3.2, approximate: true),
-        PinPrecisionStrings.approximateDistanceKm('3.2'),
+        '~3.2 km',
       );
     });
   });
@@ -165,7 +164,7 @@ void main() {
     );
     await t.pump();
     expect(find.byKey(const Key('detail-approximate-location')), findsOneWidget);
-    expect(find.text(PinPrecisionStrings.approximateLocation), findsOneWidget);
+    expect(find.text('Approximate location'), findsOneWidget);
   });
 
   testWidgets('detail screen hides the note for an exact pin', (t) async {

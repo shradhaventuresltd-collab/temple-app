@@ -90,6 +90,10 @@ fi
 
 log_installed_version
 
+# English UI for every flow. pm clear and a fresh install both drop prefs,
+# so this runs after either path and before the flow launches the app.
+pin_harness_locale_en
+
 # Keep the soft keyboard closed so `input text` is not rewritten by the IME.
 adb_shell_capped 8 settings put secure show_ime_with_hard_keyboard 0 >/dev/null 2>&1 || true
 adb_shell_capped 8 settings put secure spell_checker_enabled 0 >/dev/null 2>&1 || true

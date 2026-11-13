@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:temple_app/l10n/app_locale.dart';
+import 'package:temple_app/l10n/display_labels.dart';
 
 /// Count of Firestore document reads for one directory load.
 ///
@@ -38,20 +40,26 @@ class FirestoreReadLog {
   bool showingSavedList = false;
 
   /// Banner text when a state is missing or a sample is on screen.
-  String? get unavailableShardsMessage {
+  String? unavailableShardsMessageOf(AppLocalizations l10n) {
+    String names(List<String> states) =>
+        states.map((state) => stateDisplayLabel(l10n, state)).join(', ');
     final parts = <String>[];
     if (offlineSample) {
-      final where = sampleStates.isEmpty
-          ? 'places'
-          : 'places in ${sampleStates.join(', ')}';
-      parts.add('Could not load $where. Showing the offline sample.');
+      parts.add(
+        sampleStates.isEmpty
+            ? l10n.directoryOfflineSampleMessage
+            : l10n.directoryOfflineSampleStatesMessage(names(sampleStates)),
+      );
     }
     if (unavailableShards.isNotEmpty) {
-      parts.add('Could not load places in ${unavailableShards.join(', ')}.');
+      parts.add(l10n.directoryUnavailableStatesMessage(names(unavailableShards)));
     }
     if (parts.isEmpty) return null;
     return parts.join(' ');
   }
+
+  String? get unavailableShardsMessage =>
+      unavailableShardsMessageOf(L10nLookup.english);
 
   void startLoad() {
     serverReads = 0;

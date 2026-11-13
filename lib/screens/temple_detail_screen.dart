@@ -10,7 +10,7 @@ import 'package:temple_app/services/client_cache.dart';
 import 'package:temple_app/widgets/offline_banner.dart';
 import 'package:temple_app/widgets/dress_code_card.dart';
 import 'package:temple_app/widgets/unverified_source_notice.dart';
-import 'package:temple_app/l10n/pin_precision_strings.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/services/temple_service.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
@@ -178,7 +178,7 @@ class _TempleDetailScreenState extends State<TempleDetailScreen> {
           : _missing
           ? Center(
               child: Text(
-                'Could not load this temple.',
+                context.l10n.templeDetailLoadFailedMessage,
                 style: GoogleFonts.poppins(color: Colors.brown.shade700),
               ),
             )
@@ -371,8 +371,8 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
     _startAutoAdvance();
   }
 
-  static const String _directionsUnavailableMessage =
-      "Couldn't open directions on this device.";
+  String _directionsUnavailableMessage(BuildContext context) =>
+      context.l10n.templeDetailDirectionsUnavailableMessage;
 
   var _openingDirections = false;
 
@@ -417,7 +417,7 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
       ..showSnackBar(
         SnackBar(
           content: Text(
-            _directionsUnavailableMessage,
+            _directionsUnavailableMessage(context),
             style: GoogleFonts.poppins(),
           ),
           backgroundColor: Colors.red.shade700,
@@ -571,7 +571,10 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            '${_currentPage + 1} / ${gallery.length}',
+                            context.l10n.templeDetailGalleryPositionLabel(
+                              _currentPage + 1,
+                              gallery.length,
+                            ),
                             style: GoogleFonts.poppins(
                               color: Colors.white,
                               fontSize: 13,
@@ -711,18 +714,18 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
                           ),
                         ],
                       ),
-                      if (honesty.traditionLabel != null ||
-                          honesty.framingLabel != null) ...[
+                      if (honesty.traditionLabelOf(context.l10n) != null ||
+                          honesty.framingLabelOf(context.l10n) != null) ...[
                         const SizedBox(height: 12),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
                           children: [
-                            if (honesty.traditionLabel != null)
+                            if (honesty.traditionLabelOf(context.l10n) != null)
                               Chip(
                                 key: const Key('detail-tradition-chip'),
                                 label: Text(
-                                  honesty.traditionLabel!,
+                                  honesty.traditionLabelOf(context.l10n)!,
                                   style: GoogleFonts.poppins(
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -730,11 +733,11 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
                                 side: const BorderSide(color: _gold),
                                 backgroundColor: const Color(0xFFFFF9E3),
                               ),
-                            if (honesty.framingLabel != null)
+                            if (honesty.framingLabelOf(context.l10n) != null)
                               Chip(
                                 key: const Key('detail-framing-chip'),
                                 label: Text(
-                                  honesty.framingLabel!,
+                                  honesty.framingLabelOf(context.l10n)!,
                                   style: GoogleFonts.poppins(
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -747,7 +750,7 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
                       ],
                       const SizedBox(height: 10),
                       Text(
-                        honesty.framingNote,
+                        honesty.framingNoteOf(context.l10n),
                         key: const Key('detail-framing-note'),
                         style: GoogleFonts.poppins(
                           fontSize: 13.5,
@@ -758,7 +761,7 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
                       if (temple.deity.trim().isNotEmpty) ...[
                         const SizedBox(height: 6),
                         Text(
-                          'Listed focus: ${temple.deity}',
+                          context.l10n.templeDetailListedFocusLabel(temple.deity),
                           key: const Key('detail-listed-focus'),
                           style: GoogleFonts.poppins(
                             fontSize: 13,
@@ -779,7 +782,7 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
                     children: [
                       if (widget.fromCache) ...[
                         Text(
-                          'This page may be out of date.',
+                          context.l10n.templeDetailCacheHint,
                           key: const Key('detail-cache-hint'),
                           style: GoogleFonts.poppins(
                             fontSize: 13.5,
@@ -791,17 +794,17 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
                         const SizedBox(height: 12),
                       ],
                       _InfoCard(
-                        title: 'Location',
+                        title: context.l10n.templeDetailLocationTitle,
                         icon: Icons.location_on_rounded,
                         content: temple.location,
                       ),
                       const SizedBox(height: 12),
                       _InfoCard(
-                        title: honesty.timingsHeading,
+                        title: honesty.timingsHeadingOf(context.l10n),
                         titleKey: const Key('detail-timings-heading'),
                         icon: Icons.access_time_filled_rounded,
                         content: temple.timings.trim().isEmpty
-                            ? 'Not listed in this entry.'
+                            ? context.l10n.templeDetailNotListedMessage
                             : temple.timings,
                         contentKey: const Key('detail-timings-body'),
                         leading: _timingsLeading(caveat),
@@ -813,17 +816,19 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
                       if (temple.hasCoordinates) ...[
                         const SizedBox(height: 12),
                         _InfoCard(
-                          title: 'Coordinates',
+                          title: context.l10n.templeDetailCoordinatesTitle,
                           icon: Icons.explore_rounded,
-                          content:
-                              '${temple.latitude!.toStringAsFixed(4)}° N, ${temple.longitude!.toStringAsFixed(4)}° E',
+                          content: context.l10n.templeDetailCoordinatesValue(
+                            temple.latitude!.toStringAsFixed(4),
+                            temple.longitude!.toStringAsFixed(4),
+                          ),
                         ),
                       ],
 
                       // ── How to Reach ──
                       const SizedBox(height: 24),
                       Text(
-                        'How to Reach',
+                        context.l10n.templeDetailHowToReachTitle,
                         style: GoogleFonts.lora(
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
@@ -868,7 +873,7 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
                               Semantics(
                                 identifier: 'detail-approximate-location',
                                 child: Text(
-                                  PinPrecisionStrings.approximateLocation,
+                                  context.l10n.templeDetailApproximateLocationLabel,
                                   key: const Key('detail-approximate-location'),
                                   style: GoogleFonts.poppins(
                                     fontSize: 13,
@@ -893,7 +898,7 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
                                       color: Colors.white,
                                     ),
                                     label: Text(
-                                      'Get Directions',
+                                      context.l10n.templeDetailGetDirectionsButton,
                                       style: GoogleFonts.poppins(
                                         color: Colors.white,
                                         fontWeight: FontWeight.w600,
@@ -920,7 +925,7 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
                       // ── About ──
                       const SizedBox(height: 24),
                       Text(
-                        'About',
+                        context.l10n.templeDetailAboutTitle,
                         style: GoogleFonts.lora(
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
@@ -940,7 +945,7 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
                       // ── Temple Story ──
                       const SizedBox(height: 24),
                       Text(
-                        honesty.storyHeading,
+                        honesty.storyHeadingOf(context.l10n),
                         key: const Key('detail-story-heading'),
                         style: GoogleFonts.lora(
                           fontSize: 22,
@@ -961,7 +966,7 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
                       // ── Specialities ──
                       const SizedBox(height: 24),
                       Text(
-                        'Specialities',
+                        context.l10n.templeDetailSpecialitiesTitle,
                         style: GoogleFonts.lora(
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
@@ -1307,9 +1312,9 @@ class TimingsUnverifiedChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return UnverifiedSourceNotice(
       id: 'timings',
-      subject: 'Timings',
-      lead: 'Timings may have changed.',
-      noLinkText: 'Timings may have changed. Confirm with the place.',
+      subject: context.l10n.templeDetailTimingsTitle,
+      lead: context.l10n.templeDetailTimingsChangedLead,
+      noLinkText: context.l10n.templeDetailTimingsChangedConfirmMessage,
       sourceUri: sourceUri,
     );
   }
