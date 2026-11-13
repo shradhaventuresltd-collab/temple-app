@@ -94,6 +94,15 @@ void main() {
     expect(swift, isNot(contains('NSUserTrackingUsageDescription')));
   });
 
+  test('Swift Package Manager stays off so AdMob can see its webview pod', () {
+    // google_mobile_ads is CocoaPods-only and depends on the
+    // webview_flutter_wkwebview pod. With Swift Package Manager on, Flutter
+    // omits that plugin from the Podfile and pod install cannot resolve it.
+    final pubspec = File('pubspec.yaml').readAsStringSync();
+    expect(pubspec, contains('enable-swift-package-manager: false'));
+    expect(pubspec, contains('google_mobile_ads:'));
+  });
+
   test('ios-build is manual, on macOS, and is not dispatched here', () {
     final workflow = File('.github/workflows/ios-build.yml').readAsStringSync();
     expect(

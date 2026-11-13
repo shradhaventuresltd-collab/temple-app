@@ -96,6 +96,12 @@ flutter_native_splash:
 
 # The following section is specific to Flutter packages.
 flutter:
+  # google_mobile_ads is still a CocoaPod and depends on the
+  # webview_flutter_wkwebview pod. Flutter 3.47 turns Swift Package Manager
+  # on by default and then omits that plugin from CocoaPods, so pod install
+  # cannot resolve the dependency.
+  config:
+    enable-swift-package-manager: false
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
