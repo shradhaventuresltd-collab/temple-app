@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/district/district_lookup.dart';
 import 'package:temple_app/l10n/app_locale.dart';
+import 'package:temple_app/l10n/locale_controller.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/home_scroll.dart';
 import 'package:temple_app/screens/licences_screen.dart';
@@ -216,34 +217,38 @@ class _AppDrawerState extends State<AppDrawer> {
                     colors: [_deepSaffron, _saffron],
                   ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    const Icon(
-                      Icons.temple_hindu_rounded,
-                      size: 44,
-                      color: Colors.white,
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      context.l10n.appNameShort,
-                      style: GoogleFonts.lora(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.bottomLeft,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.temple_hindu_rounded,
+                        size: 44,
                         color: Colors.white,
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      context.l10n.appNameCountry,
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        color: Colors.white70,
-                        fontWeight: FontWeight.w500,
+                      const SizedBox(height: 10),
+                      Text(
+                        context.l10n.appNameShort,
+                        style: GoogleFonts.lora(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 2),
+                      Text(
+                        context.l10n.appNameCountry,
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          color: Colors.white70,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
 
@@ -503,6 +508,13 @@ class _AppDrawerState extends State<AppDrawer> {
                 ),
               ),
               const SizedBox(height: 8),
+              _DrawerNavTile(
+                key: const Key('drawer-language'),
+                label: context.l10n.drawerLanguageTitle,
+                icon: Icons.translate_rounded,
+                absorbDrawerDrag: _navBusy,
+                onTap: () => unawaited(showAppLanguagePicker(context)),
+              ),
               _DrawerNavTile(
                 key: const Key('drawer-licences'),
                 label: context.l10n.commonLicencesLabel,
@@ -846,9 +858,7 @@ class _TempleListScreenState extends State<TempleListScreen> {
         ..showSnackBar(
           SnackBar(
             key: Key('temple-list-retry-failed'),
-            content: Text(
-              context.l10n.drawerRetryFailedMessage,
-            ),
+            content: Text(context.l10n.drawerRetryFailedMessage),
           ),
         );
     } finally {

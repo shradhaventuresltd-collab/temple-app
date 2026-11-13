@@ -299,5 +299,16 @@
   "filterStateTripura": "త్రిపుర",
   "filterStateUttarPradesh": "ఉత్తరప్రదేశ్",
   "filterStateUttarakhand": "ఉత్తరాఖండ్",
-  "filterStateWestBengal": "పశ్చిమ బెంగాల్"
+  "filterStateWestBengal": "పశ్చిమ బెంగాల్",
+  "drawerLanguageTitle": "భాష",
+  "drawerLanguageSystemDefault": "సిస్టమ్ డిఫాల్ట్",
+  "languageEndonymEn": "English",
+  "languageEndonymHi": "हिन्दी",
+  "languageEndonymKn": "ಕನ್ನಡ",
+  "languageEndonymMl": "മലയാളം",
+  "languageEndonymTa": "தமிழ்",
+  "languageEndonymTe": "తెలుగు",
+  "languageEndonymMr": "मराठी",
+  "languageEndonymBn": "বাংলা",
+  "languageEndonymOr": "ଓଡ଼ିଆ"
 }

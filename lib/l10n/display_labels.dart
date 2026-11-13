@@ -89,6 +89,21 @@ String indiaStateJumpLabel(AppLocalizations l10n, String sectionId) {
   };
 }
 
+/// Endonym for a supported language code. The same script is used in every locale.
+String languageEndonym(AppLocalizations l10n, String languageCode) {
+  return switch (languageCode) {
+    'hi' => l10n.languageEndonymHi,
+    'kn' => l10n.languageEndonymKn,
+    'ml' => l10n.languageEndonymMl,
+    'ta' => l10n.languageEndonymTa,
+    'te' => l10n.languageEndonymTe,
+    'mr' => l10n.languageEndonymMr,
+    'bn' => l10n.languageEndonymBn,
+    'or' => l10n.languageEndonymOr,
+    _ => l10n.languageEndonymEn,
+  };
+}
+
 /// Map native digits from Marathi and Bengali number formats back to Latin.
 String latinDigits(String value) {
   const from = '०१२३४५६७८९০১২৩৪৫৬৭৮৯';

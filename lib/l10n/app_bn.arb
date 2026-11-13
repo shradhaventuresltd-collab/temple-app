@@ -299,5 +299,16 @@
   "filterStateTripura": "ত্রিপুরা",
   "filterStateUttarPradesh": "উত্তরপ্রদেশ",
   "filterStateUttarakhand": "উত্তরাখণ্ড",
-  "filterStateWestBengal": "পশ্চিমবঙ্গ"
+  "filterStateWestBengal": "পশ্চিমবঙ্গ",
+  "drawerLanguageTitle": "ভাষা",
+  "drawerLanguageSystemDefault": "সিস্টেম ডিফল্ট",
+  "languageEndonymEn": "English",
+  "languageEndonymHi": "हिन्दी",
+  "languageEndonymKn": "ಕನ್ನಡ",
+  "languageEndonymMl": "മലയാളം",
+  "languageEndonymTa": "தமிழ்",
+  "languageEndonymTe": "తెలుగు",
+  "languageEndonymMr": "मराठी",
+  "languageEndonymBn": "বাংলা",
+  "languageEndonymOr": "ଓଡ଼ିଆ"
 }

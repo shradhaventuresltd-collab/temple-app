@@ -117,10 +117,10 @@ abstract final class NearMeCopy {
   /// [label] is the English chip word (`Sikh`) or the stored key (`sikh`).
   static String noTraditionMatch(String label, {AppLocalizations? l10n}) {
     final key = switch (label) {
-      'Sikh' || 'sikh' => 'sikh',
-      'Jain' || 'jain' => 'jain',
-      'Buddhist' || 'buddhist' => 'buddhist',
-      'Hindu' || 'hindu' => 'hindu',
+      'Sikh' || 'sikh' => 'sikh', // l10n-allow: canonical tradition key
+      'Jain' || 'jain' => 'jain', // l10n-allow: canonical tradition key
+      'Buddhist' || 'buddhist' => 'buddhist', // l10n-allow: canonical tradition key
+      'Hindu' || 'hindu' => 'hindu', // l10n-allow: canonical tradition key
       _ => 'other',
     };
     return _copy(l10n).nearMeNoTraditionPlacesMessage(key);

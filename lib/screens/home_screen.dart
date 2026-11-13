@@ -422,7 +422,7 @@ class _HomeAdminOverflowState extends State<_HomeAdminOverflow> {
                 _close();
                 widget.onOpenAdmin();
               },
-              child: const Text('Admin sign-in'),
+              child: const Text('Admin sign-in'), // l10n-allow: admin chrome
             ),
           ),
         );

@@ -1031,7 +1031,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
       );
     }
     final traditions = [
-      for (final label in ['Jain', 'Buddhist', 'Sikh'])
+      for (final label in ['Jain', 'Buddhist', 'Sikh']) // l10n-allow: canonical tradition keys
         if (visible.any((group) => group.tradition == label)) label,
     ];
     final note = directoryDeityFilterNote(
