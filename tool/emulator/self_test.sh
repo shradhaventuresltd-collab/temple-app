@@ -2015,10 +2015,18 @@ while read -r _id script _part; do
   fi
 done < <(plan_flows all)
 for script in tool/emulator/flows/*.sh; do
-  if ! grep -q "|${script}|" tool/emulator/plan.sh; then
-    echo "plan.sh does not run ${script}" >&2
-    exit 1
+  if grep -q "|${script}|" tool/emulator/plan.sh; then
+    continue
   fi
+  # PR 124 slice wrappers (17a/17b, 29a-29m, 30a-30d) source the shared
+  # matrix/entry libs. plan.sh already runs the same cells under the
+  # 17a-d / 29a1 / 30f2 / 30sN ids, so adding the wrappers as extra rows
+  # would blow SHARD_WORST_MAX_S. They stay in the tree as entry points.
+  if grep -Eq 'lib/filter_matrix(_b)?\.sh|lib/entry_matrix\.sh' "$script"; then
+    continue
+  fi
+  echo "plan.sh does not run ${script}" >&2
+  exit 1
 done
 # Round 4 (run 41373837994: 17/29/30 at the 600s cap): 17 in parts a/b,
 # the filter matrix one entry x chip per flow, every cell covered once.
@@ -4352,4 +4360,41 @@ fi
 rm -rf "$ud"
 echo "4.4.9d install: retry then UPDATE_INCOMPATIBLE -> FAIL (2 installs); plain UPDATE_INCOMPATIBLE -> reinstall ok"
 echo "round 4.4.8 checks ok"
+
+# --- PR 124 r7: wrappers stay on the tree and drive main's KAN-198 matrix.
+echo "PR 124 r7: 29a-29m / 30a-30d wrappers + 29h/29m action split"
+for slice in 29a 29b 29c 29d 29e 29f 29g 29h 29i 29j 29k 29l 29m 30a 30b 30c 30d; do
+  matches=(tool/emulator/flows/${slice}_*.sh)
+  if [[ ! -f "${matches[0]}" ]]; then
+    echo "missing PR 124 wrapper tool/emulator/flows/${slice}_*.sh" >&2
+    exit 1
+  fi
+done
+if ! grep -q 'MATRIX_ACTIONS="select pick-close dismiss-empty"' tool/emulator/flows/29h_search_district.sh; then
+  echo "29h must keep the first three search x district actions" >&2; exit 1
+fi
+if ! grep -q 'MATRIX_ACTIONS="back-empty outside-empty clear"' tool/emulator/flows/29m_search_district_rest.sh; then
+  echo "29m must keep the last three search x district actions" >&2; exit 1
+fi
+if ! grep -q 'source ".*/29_filter_matrix.sh"' tool/emulator/flows/lib/filter_matrix.sh &&
+   ! grep -q 'source "${_matrix_dir}/../29_filter_matrix.sh"' tool/emulator/flows/lib/filter_matrix.sh; then
+  echo "filter_matrix.sh must source 29_filter_matrix.sh" >&2; exit 1
+fi
+if ! grep -q 'filter_matrix.sh' tool/emulator/flows/lib/filter_matrix_b.sh; then
+  echo "filter_matrix_b.sh must source filter_matrix.sh" >&2; exit 1
+fi
+# District cells still force "choose a state first" (r6 / 30b prefix).
+if ! grep -q 'finish_choose_state_first' tool/emulator/flows/29_filter_matrix.sh; then
+  echo "29_filter_matrix.sh must call finish_choose_state_first for district" >&2; exit 1
+fi
+# Chip-off-screen: find_filter_chip in chip_present (r6 / 22 / 29k).
+if ! grep -q 'find_filter_chip filter-chip-state' tool/emulator/flows/29_filter_matrix.sh; then
+  echo "29_filter_matrix.sh must scroll to chips via find_filter_chip" >&2; exit 1
+fi
+# CI plans the same cells as 29m under the 30f2 id (shard budget).
+if ! grep -q 'search:district:2' tool/emulator/plan.sh; then
+  echo "plan.sh must include search x district half 2 (30f2 / 29m)" >&2; exit 1
+fi
+echo "PR 124 r7 wrapper checks ok"
+
 echo "emulator self-test ok"

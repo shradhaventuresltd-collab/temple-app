@@ -66,10 +66,14 @@ declare -A SECTION=( [state]=STATE [deity]=DEITY [district]=DISTRICT )
 # Run 41373837994: two entries took the whole 600s cap, and a two-entry
 # part a then took 597 of 600s. One entry point per flow (plan.sh 17a-17d):
 # FILTER_MATRIX_PART=<entry>; "all"/unset runs every entry (local runs).
+# PR 124 wrappers 17a/17b set ENTRY_MATRIX_ENTRIES when the part is unset.
 case "${FILTER_MATRIX_PART:-all}" in
   home_button|drawer_all|drawer_search|list_drawer_all) ENTRIES=("${FILTER_MATRIX_PART}") ;;
   *) ENTRIES=(home_button drawer_all drawer_search list_drawer_all) ;;
 esac
+if [[ -n "${ENTRY_MATRIX_ENTRIES:-}" && -z "${FILTER_MATRIX_PART:-}" ]]; then
+  read -ra ENTRIES <<<"${ENTRY_MATRIX_ENTRIES}"
+fi
 for entry in "${ENTRIES[@]}"; do
   if ! err="$(enter_$entry)"; then
     fail_step "$entry-enter" "${err:-could not reach the list}"; continue

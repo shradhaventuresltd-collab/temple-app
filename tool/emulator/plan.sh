@@ -223,6 +223,8 @@ PLAN_ROWS=(
   "30s5-filter-matrix-seq5|tool/emulator/flows/29_filter_matrix.sh|seqs:5|9|540"
   "15-offline|tool/emulator/flows/15_offline.sh||9|300"
   "30f1-filter-matrix-search-district|tool/emulator/flows/29_filter_matrix.sh|search:district:1|10|450"
+  # PR 124 r6 named this half 29m-search-district-rest (29h + 29m split).
+  # The cells are the same; keep the 30f2 id so shard 10 stays within budget.
   "30f2-filter-matrix-search-district|tool/emulator/flows/29_filter_matrix.sh|search:district:2|10|450"
   "30s1-filter-matrix-seq1|tool/emulator/flows/29_filter_matrix.sh|seqs:1|10|540"
   "18-home-reselect|tool/emulator/flows/18_home_reselect.sh||10|300"
