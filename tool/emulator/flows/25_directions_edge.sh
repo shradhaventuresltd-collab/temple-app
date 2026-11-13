@@ -9,7 +9,7 @@ if ! ui_dump || ! ui_find --resource-id temple-browse-card; then
 fi
 ui_tap
 # Land on detail before seeking Directions. Flinging the browse list never
-# finds get-directions-button (#138 shard 13 fail dump was still All Temples).
+# finds get-directions-button (#138 shard 13 fail dump was still All places).
 if ! ui_wait_scrolled 25 --text-contains "How to Reach" &&
    ! ui_wait_scrolled 10 --resource-id detail-dress-code &&
    ! ui_wait_scrolled 10 --resource-id get-directions-button &&

@@ -162,7 +162,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('filter-option-deity-Shiva')));
     await tester.pump();
-    expect(find.text('Show 1 temple'), findsOneWidget);
+    expect(find.text('Show 1 place'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('filter-sheet-apply')));
     await tester.pumpAndSettle();
@@ -170,7 +170,7 @@ void main() {
     expect(find.text('Vaikom Mahadeva Temple'), findsOneWidget);
     expect(find.text('Meenakshi Amman Temple'), findsNothing);
     expect(find.text('Dilwara Temples'), findsNothing);
-    expect(find.text('1 temple'), findsOneWidget);
+    expect(find.text('1 place'), findsOneWidget);
     expect(find.text('Kottayam, Kerala'), findsOneWidget);
   });
 
@@ -215,7 +215,7 @@ void main() {
     await tester.tap(find.byKey(const Key('filter-sheet-apply')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Show 3 temples'), findsNothing);
+    expect(find.text('Show 3 places'), findsNothing);
     expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
     expect(find.text('Vaikom Mahadeva Temple'), findsOneWidget);
     expect(find.text('Dilwara Temples'), findsOneWidget);
@@ -226,9 +226,9 @@ void main() {
   ) async {
     await pumpList(tester, initialState: 'Tamil Nadu', initialDeity: 'Shiva');
 
-    expect(find.text('No temples match these filters.'), findsOneWidget);
+    expect(find.text('No places match these filters.'), findsOneWidget);
     expect(
-      find.text('Nothing in the loaded directory fits this state and deity.'),
+      find.text('Nothing in the loaded directory fits these filters.'),
       findsOneWidget,
     );
     expect(find.text('Meenakshi Amman Temple'), findsNothing);
@@ -238,7 +238,7 @@ void main() {
     await tester.tap(find.byKey(const Key('filter-empty-clear')));
     await tester.pump();
 
-    expect(find.text('No temples match these filters.'), findsNothing);
+    expect(find.text('No places match these filters.'), findsNothing);
     expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
     expect(find.text('Vaikom Mahadeva Temple'), findsOneWidget);
   });
@@ -255,7 +255,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(
-      find.text('No temples match these filters and "madurai".'),
+      find.text('No places match these filters and "madurai".'),
       findsOneWidget,
     );
     expect(find.textContaining('Seed'), findsNothing);
@@ -507,7 +507,7 @@ void main() {
             temples: many,
             selectedState: null,
             selectedDeity: null,
-            onChanged: (_, _, _) {},
+            onChanged: (_, _, _, _) {},
           ),
         ),
       ),
@@ -595,7 +595,7 @@ void main() {
                       selectedDeity: deity,
                       selectedDistrict: district,
                       districtOf: districtOf,
-                      onChanged: (nextState, nextDeity, nextDistrict) {
+                      onChanged: (nextState, nextDeity, nextDistrict, nextTradition) {
                         setState(() {
                           state = nextState;
                           deity = nextDeity;
@@ -729,7 +729,7 @@ void main() {
             temples: many,
             selectedState: null,
             selectedDeity: null,
-            onChanged: (_, _, _) {},
+            onChanged: (_, _, _, _) {},
           ),
         ),
       ),
@@ -805,7 +805,7 @@ void main() {
               selectedState: 'Tamil Nadu',
               selectedDeity: null,
               districtOf: districtOf,
-              onChanged: (_, _, _) {},
+              onChanged: (_, _, _, _) {},
             ),
           ),
         ),
@@ -888,7 +888,7 @@ void main() {
                 selectedDeity: 'Shiva',
                 selectedDistrict: 'Madurai',
                 districtOf: districtOf,
-                onChanged: (_, _, _) {},
+                onChanged: (_, _, _, _) {},
               ),
             ),
           ),
@@ -941,7 +941,7 @@ void main() {
                       selectedDeity: deity,
                       selectedDistrict: district,
                       districtOf: districtOf,
-                      onChanged: (nextState, nextDeity, nextDistrict) {
+                      onChanged: (nextState, nextDeity, nextDistrict, nextTradition) {
                         setState(() {
                           state = nextState;
                           deity = nextDeity;
@@ -1001,7 +1001,7 @@ void main() {
       MaterialApp(
         home: TempleListScreen(
           temples: const [],
-          title: 'All Temples',
+          title: 'All places',
           templesFuture: completer.future,
           districtFilter: 'Sirohi',
         ),
@@ -1178,7 +1178,7 @@ void main() {
             selectedState: null,
             selectedDeity: null,
             districtOf: districtOf,
-            onChanged: (_, _, _) {},
+            onChanged: (_, _, _, _) {},
           ),
         ),
       ),
@@ -1340,7 +1340,7 @@ void main() {
     // Home browse and drawer All Temples both open this screen, then the
     // user applies Tamil Nadu and a query that matches nothing.
     await openEntry(
-      title: 'All Temples',
+      title: 'All places',
       initialQuery: 'zzzqqq',
       stateFilter: 'Tamil Nadu',
     );

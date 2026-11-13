@@ -131,7 +131,7 @@ void main() {
           );
           if (shows && url == null) {
             expect(
-              find.text('Timings may have changed. Confirm with the temple.'),
+              find.text('Timings may have changed. Confirm with the place.'),
               findsOneWidget,
             );
           }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:temple_app/widgets/cover_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/widgets/place_type_icon.dart';
 import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/services/client_cache.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
@@ -13,16 +14,19 @@ import 'package:temple_app/widgets/temple_image_placeholder.dart';
 /// Uses the loaded temple list length — never a hardcoded 150/180.
 String homeDirectoryCountLabel(int templeCount) {
   if (templeCount <= 0) {
-    return 'No temples loaded yet';
+    return 'No places loaded yet';
   }
-  return '$templeCount temples across India';
+  if (templeCount == 1) return '1 place across India';
+  return '$templeCount places across India';
 }
 
 /// Drawer About blurb with a live directory size.
 String drawerAboutDirectoryBlurb(int templeCount) {
-  final lead = templeCount > 0
-      ? 'Explore $templeCount famous temples across '
-      : 'Explore famous temples across ';
+  final lead = switch (templeCount) {
+    <= 0 => 'Explore famous places across ',
+    1 => 'Explore 1 famous place across ',
+    _ => 'Explore $templeCount famous places across ',
+  };
   return '$lead'
       'Tamil Nadu, Kerala, Karnataka, '
       'Andhra Pradesh, Telangana, Gujarat, Odisha, Uttar Pradesh, '
@@ -34,11 +38,17 @@ String drawerAboutDirectoryBlurb(int templeCount) {
 
 /// One mosaic cell's cover, resolved the same way as a browse card.
 class _MosaicCover {
-  const _MosaicCover({required this.url, this.fallbackUrl, this.caption});
+  const _MosaicCover({
+    required this.url,
+    this.fallbackUrl,
+    this.caption,
+    this.kind,
+  });
 
   final String url;
   final String? fallbackUrl;
   final String? caption;
+  final PlaceTypeKind? kind;
 }
 
 /// Covers for the home mosaic. Each temple contributes [verifiedCoverUrl]
@@ -55,6 +65,7 @@ List<_MosaicCover> _mosaicCoversFor(Iterable<Temple> temples) {
         url: url,
         fallbackUrl: storedFullCoverUrl(temple, url),
         caption: caption,
+        kind: placeTypeKindOf(temple),
       ),
     );
   }
@@ -214,7 +225,7 @@ class _MosaicTile extends StatelessWidget {
               memCacheWidth: decode.width,
               memCacheHeight: decode.height,
               fadeInDuration: const Duration(milliseconds: 400),
-              placeholder: const MosaicTilePlaceholder(),
+              placeholder: MosaicTilePlaceholder(kind: cover.kind),
               error: const TempleImagePlaceholder(expand: true),
             ),
             if (cover.caption != null)
@@ -299,7 +310,7 @@ class _MosaicCopy extends StatelessWidget {
           ),
         ),
         Text(
-          "India's Sacred Temples",
+          "India's Sacred Places",
           style: GoogleFonts.lora(
             fontSize: 28,
             fontWeight: FontWeight.w400,

@@ -113,6 +113,38 @@ void main() {
     );
   });
 
+  testWidgets('an approximate pin shows places copy and a ~x km label', (
+    tester,
+  ) async {
+    final location = FakeCoarseLocation(
+      permission: CoarsePermission.denied,
+      afterRequest: CoarsePermission.granted,
+      fix: const CoarseFix(latitude: 9.9195, longitude: 78.1193),
+    );
+    await _pumpNearMe(
+      tester,
+      location: location,
+      temples: [
+        _temple(
+          id: 'meenakshi',
+          name: 'Meenakshi Amman Temple',
+          state: 'Tamil Nadu',
+          city: 'Madurai',
+          lat: 9.9195,
+          lng: 78.1193,
+          pinPrecision: 'approx',
+          pinOrigin: 'osm',
+        ),
+      ],
+    );
+    await _continue(tester);
+    expect(find.text('Places near me'), findsOneWidget);
+    expect(find.text('Temples near me'), findsNothing);
+    expect(find.text(NearMeCopy.nearestHeading), findsOneWidget);
+    expect(find.text('~0.0 km'), findsOneWidget);
+    expect(find.text('0.0 km'), findsNothing);
+  });
+
   testWidgets('a denial offers a state or city sort and can retry', (
     tester,
   ) async {
@@ -516,6 +548,8 @@ Temple _temple({
   required String city,
   required double lat,
   required double lng,
+  String? pinPrecision,
+  String? pinOrigin,
 }) {
   return Temple(
     id: id,
@@ -531,6 +565,8 @@ Temple _temple({
     specialities: const [],
     latitude: lat,
     longitude: lng,
+    pinPrecision: pinPrecision,
+    pinOrigin: pinOrigin,
   );
 }
 

@@ -268,7 +268,7 @@ void main() {
     expect(PolicyConfig.currentVersion, 3);
     expect(
       NearMeCopy.rationaleBody,
-      'Used once on your phone to sort temples by distance. Never stored or sent.',
+      'Used once on your phone to sort places by distance. Never stored or sent.',
     );
   });
 

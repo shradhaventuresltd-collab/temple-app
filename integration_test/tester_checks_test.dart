@@ -361,10 +361,12 @@ Future<bool> _waitUntil(
 }
 
 /// Home is ready for a launch screenshot only when Browse N is on screen.
-/// The loading spinner (`Loading temples…`) is not that screen.
+/// The loading spinner (`Loading places…`) is not that screen.
 bool _directoryReady(WidgetTester tester) {
-  if (tester.any(find.textContaining('Loading temples'))) return false;
-  if (tester.any(find.text('Preparing the directory. This usually takes a moment.'))) {
+  if (tester.any(find.textContaining('Loading places'))) return false;
+  if (tester.any(
+    find.text('Preparing the directory. This usually takes a moment.'),
+  )) {
     return false;
   }
   if (_browseCount(_browseLabel(tester)) != _expectedTemples) return false;
@@ -479,7 +481,7 @@ String _allText(WidgetTester tester) {
 }
 
 String? _browseLabel(WidgetTester tester) {
-  final match = RegExp(r'Browse \d+ Temples?');
+  final match = RegExp(r'Browse \d+ places?');
   for (final widget in tester.widgetList<Text>(find.byType(Text))) {
     final data = widget.data ?? widget.textSpan?.toPlainText() ?? '';
     final found = match.firstMatch(data);
@@ -490,7 +492,7 @@ String? _browseLabel(WidgetTester tester) {
 
 int? _browseCount(String? label) {
   if (label == null) return null;
-  final match = RegExp(r'Browse (\d+) Temples?').firstMatch(label);
+  final match = RegExp(r'Browse (\d+) places?').firstMatch(label);
   if (match == null) return null;
   return int.tryParse(match.group(1)!);
 }
@@ -502,12 +504,12 @@ String _screenHint(WidgetTester tester) {
     'Something went wrong',
     'No Firebase App',
     '[core/no-app]',
-    'Could not load temples.',
+    'Could not load places.',
     'Retry',
     'Photo pending',
-    'Loading temples',
+    'Loading places',
     "You're offline",
-    'No temples available yet.',
+    'No places available yet.',
     'Showing the offline sample.',
   ];
   final text = _allText(tester);
@@ -528,11 +530,7 @@ Future<void> _acceptPhase(WidgetTester tester) async {
   );
   await _shot(tester, '01-accept-before');
   if (!gate || !_gateVisible(tester)) {
-    _result(
-      1,
-      false,
-      'terms gate was not showing; ${_screenHint(tester)}',
-    );
+    _result(1, false, 'terms gate was not showing; ${_screenHint(tester)}');
     return;
   }
 
@@ -547,16 +545,16 @@ Future<void> _acceptPhase(WidgetTester tester) async {
     tester,
     '01-accept-after',
     () => _directoryReady(tester),
-    waitingFor: 'Browse $_expectedTemples Temples',
+    waitingFor: 'Browse $_expectedTemples places',
     timeout: const Duration(seconds: 45),
   );
   _result(
     1,
     left && browse,
     browse
-        ? 'one tap left the gate; Browse $_expectedTemples Temples was on screen'
-        : 'Browse $_expectedTemples Temples was not on screen after the tap; '
-            '${_screenHint(tester)}',
+        ? 'one tap left the gate; Browse $_expectedTemples places was on screen'
+        : 'Browse $_expectedTemples places was not on screen after the tap; '
+              '${_screenHint(tester)}',
   );
 }
 
@@ -573,7 +571,7 @@ Future<void> _homeLaunch(
         _maintenanceVisible(tester) ||
         _updateBlock(tester) != null ||
         _firebaseOnScreen(tester) ||
-        tester.any(find.text('Could not load temples.')) ||
+        tester.any(find.text('Could not load places.')) ||
         tester.any(find.text('Retry')),
     timeout: const Duration(seconds: 45),
   );
@@ -605,7 +603,7 @@ Future<void> _homeLaunch(
       tester,
       shotName,
       () => _directoryReady(tester),
-      waitingFor: 'Browse $_expectedTemples Temples',
+      waitingFor: 'Browse $_expectedTemples places',
       timeout: const Duration(seconds: 15),
     );
   }
@@ -769,7 +767,7 @@ Future<void> _longNameCheck(WidgetTester tester) async {
     4,
     shot && found.lines == 2,
     '"${found.name}" wraps to ${found.lines} lines'
-        '${shot ? '' : '; screenshot missed the wrapped name'}',
+    '${shot ? '' : '; screenshot missed the wrapped name'}',
   );
   await _typeQuery(tester, '');
 }
@@ -913,7 +911,9 @@ Future<void> _searchChecks(WidgetTester tester) async {
       waitingFor: '$query result count',
       timeout: const Duration(seconds: 8),
     );
-    counts.add('$query=${count ?? 'none'} top3=$label shot=${shot ? 'yes' : 'no'}');
+    counts.add(
+      '$query=${count ?? 'none'} top3=$label shot=${shot ? 'yes' : 'no'}',
+    );
     _logLine('SEARCH $query COUNT ${count ?? 'none'} top3=$label');
     if (count == null || !shot) pass = false;
   }
@@ -937,10 +937,12 @@ bool _isTiruchendur(Temple temple, int? count) {
 
 bool _isTirupatiVenkateswara(Temple temple) {
   final blob = '${temple.name} ${temple.city} ${temple.state}'.toLowerCase();
-  final deity = blob.contains('venkateswara') ||
+  final deity =
+      blob.contains('venkateswara') ||
       blob.contains('venkateshwara') ||
       blob.contains('balaji');
-  final place = blob.contains('tirupati') ||
+  final place =
+      blob.contains('tirupati') ||
       blob.contains('tirumala') ||
       blob.contains('tirupathi');
   return deity && place;
@@ -971,14 +973,14 @@ String? _topTempleName(WidgetTester tester) {
 }
 
 int? _resultCount(WidgetTester tester) {
-  final exact = RegExp(r'^(\d+) temples?$');
+  final exact = RegExp(r'^(\d+) places?$');
   for (final widget in tester.widgetList<Text>(find.byType(Text))) {
     final data = (widget.data ?? widget.textSpan?.toPlainText() ?? '').trim();
     final match = exact.firstMatch(data);
     if (match != null) return int.tryParse(match.group(1)!);
   }
   final text = _allText(tester);
-  if (text.contains('No temples match')) return 0;
+  if (text.contains('No places match')) return 0;
   return null;
 }
 
@@ -1082,12 +1084,11 @@ Future<void> _janakiAndDirections(WidgetTester tester) async {
   final directionsShot = await _captureWhen(
     tester,
     '08-get-directions',
-    () =>
-        find
-            .byKey(const Key('get-directions-button'))
-            .hitTestable()
-            .evaluate()
-            .isNotEmpty,
+    () => find
+        .byKey(const Key('get-directions-button'))
+        .hitTestable()
+        .evaluate()
+        .isNotEmpty,
     waitingFor: 'Get Directions',
     timeout: const Duration(seconds: 8),
   );
@@ -1101,10 +1102,9 @@ Future<void> _janakiAndDirections(WidgetTester tester) async {
     '08-maps-intent',
     () {
       final life = tester.binding.lifecycleState;
-      final snack = tester.any(
-        find.textContaining("Couldn't open directions"),
-      );
-      final left = life == AppLifecycleState.inactive ||
+      final snack = tester.any(find.textContaining("Couldn't open directions"));
+      final left =
+          life == AppLifecycleState.inactive ||
           life == AppLifecycleState.paused ||
           life == AppLifecycleState.hidden;
       return left || snack;
@@ -1115,18 +1115,17 @@ Future<void> _janakiAndDirections(WidgetTester tester) async {
     adb: true,
   );
   final life = tester.binding.lifecycleState;
-  final snack = tester.any(
-    find.textContaining("Couldn't open directions"),
-  );
-  final left = life == AppLifecycleState.inactive ||
+  final snack = tester.any(find.textContaining("Couldn't open directions"));
+  final left =
+      life == AppLifecycleState.inactive ||
       life == AppLifecycleState.paused ||
       life == AppLifecycleState.hidden;
   _result(
     8,
     directionsShot && mapsShot && left && !snack,
     'Get Directions visible; lifecycle=$life; '
-        'snackbar=${snack ? 'yes' : 'no'}; '
-        'maps-shot=${mapsShot ? 'yes' : 'no'}',
+    'snackbar=${snack ? 'yes' : 'no'}; '
+    'maps-shot=${mapsShot ? 'yes' : 'no'}',
   );
 }
 
@@ -1239,7 +1238,8 @@ bool _isAnjengo(Temple temple) {
 bool _isAkshardham(Temple temple) {
   final id = temple.id.toLowerCase();
   final name = temple.name.toLowerCase();
-  final place = '${temple.city} ${temple.state} ${temple.location}'.toLowerCase();
+  final place = '${temple.city} ${temple.state} ${temple.location}'
+      .toLowerCase();
   if (name.contains('delhi') || place.contains('delhi')) return false;
   if (id == 'akshardham-temple') return true;
   if (!name.contains('akshardham')) return false;
@@ -1328,7 +1328,8 @@ Future<void> _picsumCheck(WidgetTester tester) async {
     shot: '10-akshardham',
   );
   await _typeQuery(tester, '');
-  final pass = published != null &&
+  final pass =
+      published != null &&
       stored == null &&
       visibleBad.isEmpty &&
       _photoNotePasses(anjengo) &&
@@ -1340,7 +1341,7 @@ Future<void> _picsumCheck(WidgetTester tester) async {
     10,
     pass,
     '$directory; visible-placeholder=${visibleBad.isEmpty ? 'none' : visibleBad.first}; '
-        '$anjengo; $akshardham',
+    '$anjengo; $akshardham',
   );
 }
 
@@ -1364,15 +1365,17 @@ Future<void> _resumeCheck(WidgetTester tester) async {
       '11-resume',
       () {
         final text = _allText(tester);
-        final empty = text.contains('No temples to browse') ||
-            text.contains('Loading temples') ||
-            text.contains('Could not load temples');
+        final empty =
+            text.contains('No places to browse') ||
+            text.contains('Loading places') ||
+            text.contains('Could not load places');
         return beforeName != null &&
             _topTempleName(tester) == beforeName &&
             find.byType(TempleBrowseCard).evaluate().isNotEmpty &&
             !empty;
       },
-      waitingFor: 'browse list still showing ${beforeName ?? 'the same temple'}',
+      waitingFor:
+          'browse list still showing ${beforeName ?? 'the same temple'}',
       timeout: const Duration(seconds: 12),
     );
     final afterName = _topTempleName(tester);
@@ -1380,10 +1383,12 @@ Future<void> _resumeCheck(WidgetTester tester) async {
     final afterPublished = TempleService.published?.length;
     final afterCount = afterPublished ?? afterCards;
     final text = _allText(tester);
-    final empty = text.contains('No temples to browse') ||
-        text.contains('Loading temples') ||
-        text.contains('Could not load temples');
-    final pass = shot &&
+    final empty =
+        text.contains('No places to browse') ||
+        text.contains('Loading places') ||
+        text.contains('Could not load places');
+    final pass =
+        shot &&
         beforeCount > 0 &&
         afterCount > 0 &&
         beforeCount == afterCount &&
@@ -1396,10 +1401,10 @@ Future<void> _resumeCheck(WidgetTester tester) async {
       11,
       pass,
       'before=$beforeCount after=$afterCount '
-          'cards=$beforeCards->$afterCards '
-          'top=${beforeName ?? 'none'}->${afterName ?? 'none'} '
-          'empty=${empty ? 'yes' : 'no'} '
-          'shot=${shot ? 'yes' : 'no'}',
+      'cards=$beforeCards->$afterCards '
+      'top=${beforeName ?? 'none'}->${afterName ?? 'none'} '
+      'empty=${empty ? 'yes' : 'no'} '
+      'shot=${shot ? 'yes' : 'no'}',
     );
   } catch (e) {
     await _captureWhen(
@@ -1430,9 +1435,9 @@ Future<void> _killSwitchPhase(WidgetTester tester) async {
     12,
     shot && maintenance && message && !home,
     'maintenance=${maintenance ? 'yes' : 'no'}; '
-        'message=${message ? 'yes' : 'no'}; '
-        'home=${home ? 'yes' : 'no'}; '
-        'shot=${shot ? 'yes' : 'no'}; ${_screenHint(tester)}',
+    'message=${message ? 'yes' : 'no'}; '
+    'home=${home ? 'yes' : 'no'}; '
+    'shot=${shot ? 'yes' : 'no'}; ${_screenHint(tester)}',
   );
 }
 
@@ -1463,7 +1468,8 @@ Future<void> _forceUpdatePhase(WidgetTester tester) async {
     hold: const Duration(seconds: 3),
   );
   final update = _updateBlock(tester);
-  final hard = update == 'force-update-screen' ||
+  final hard =
+      update == 'force-update-screen' ||
       update == 'force-update-button' ||
       update == 'Update required' ||
       update == 'Update on Play Store';
@@ -1472,7 +1478,7 @@ Future<void> _forceUpdatePhase(WidgetTester tester) async {
     13,
     shot && hard && !home,
     'update=${update ?? 'none'}; home=${home ? 'yes' : 'no'}; '
-        'shot=${shot ? 'yes' : 'no'}; ${_screenHint(tester)}',
+    'shot=${shot ? 'yes' : 'no'}; ${_screenHint(tester)}',
   );
 }
 
@@ -1504,9 +1510,9 @@ Future<void> _airplanePhase(WidgetTester tester) async {
     () =>
         !_maintenanceVisible(tester) &&
         (_browseLabel(tester) != null ||
-            tester.any(find.text('Could not load temples.')) ||
+            tester.any(find.text('Could not load places.')) ||
             tester.any(find.text('Retry')) ||
-            tester.any(find.text('No temples available yet.')) ||
+            tester.any(find.text('No places available yet.')) ||
             tester.any(find.text("You're offline")) ||
             _allText(tester).contains('Showing the offline sample.')),
     waitingFor: 'offline home or Retry',
@@ -1514,14 +1520,14 @@ Future<void> _airplanePhase(WidgetTester tester) async {
   );
   final maintenance = _maintenanceVisible(tester);
   final retry = tester.any(find.text('Retry'));
-  final error = tester.any(find.text('Could not load temples.'));
+  final error = tester.any(find.text('Could not load places.'));
   _result(
     6,
     shot && !maintenance,
     'maintenance=${maintenance ? 'yes' : 'no'}; '
-        'connectivity=$link; '
-        'showed ${_screenHint(tester)}; '
-        'no-cache error=${error && retry ? 'yes' : 'no'}; '
-        'shot=${shot ? 'yes' : 'no'}',
+    'connectivity=$link; '
+    'showed ${_screenHint(tester)}; '
+    'no-cache error=${error && retry ? 'yes' : 'no'}; '
+    'shot=${shot ? 'yes' : 'no'}',
   );
 }

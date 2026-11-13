@@ -36,7 +36,7 @@ Future<void> _pumpFailed(
     MaterialApp(
       home: TempleListScreen(
         temples: const [],
-        title: 'All Temples',
+        title: 'All places',
         // ~845: opened with loadFailed. ~881: templesFuture errored.
         loadFailed: !viaFuture,
         templesFuture: viaFuture ? open.future : null,
@@ -48,7 +48,7 @@ Future<void> _pumpFailed(
   if (viaFuture) open.completeError(StateError('offline'));
   await tester.pump();
   await tester.pump();
-  expect(find.text('Could not load temples'), findsOneWidget);
+  expect(find.text('Could not load places'), findsOneWidget);
   expect(find.byType(DirectoryFilterBar), findsNothing);
 }
 
@@ -75,7 +75,7 @@ void main() {
       await tester.pump();
       await tester.pump();
       expect(loads, 1);
-      expect(find.text('Could not load temples'), findsNothing);
+      expect(find.text('Could not load places'), findsNothing);
       expect(find.text('Vaikom Mahadeva Temple'), findsWidgets);
       expect(find.byType(DirectoryFilterBar), findsOneWidget);
     });
@@ -119,7 +119,7 @@ void main() {
     await tester.pump();
     await tester.pump();
     expect(find.byKey(const Key('temple-list-retry-failed')), findsOneWidget);
-    expect(find.text('Could not load temples'), findsOneWidget);
+    expect(find.text('Could not load places'), findsOneWidget);
     await tester.tap(_retry);
     await tester.pump();
     expect(loads, 2);

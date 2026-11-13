@@ -13,7 +13,7 @@
 # retries other finger heights, then gives up on its 20s cap (PICKER_GIVEUP_S). This flow fails
 # the step instead of scrolling again.
 reach_browse || { fail_step browse "no list"; return 0; }
-count() { ui_dump; ui_find --text-regex '^[0-9]+ temples?$' && echo "${UI_TEXT%% *}"; }
+count() { ui_dump; ui_find --text-regex '^[0-9]+ places?$' && echo "${UI_TEXT%% *}"; }
 
 # Scroll the chip into view, open the sheet, and walk the picker.
 # A miss hits select_labeled's cap and fails $step.
@@ -60,7 +60,7 @@ pick_labeled filter-chip-state '^Tamil Nadu' STATE state-change && state_ok=1
 if [[ "$district_ok" -eq 1 && "$state_ok" -eq 1 ]]; then
   ui_dump
   ui_find --text-regex '^(Thrissur|Ernakulam|Thiruvananthapuram)$' && fail_step stale-district "Kerala district chip survives state=Tamil Nadu" || pass_step stale-district
-  ui_find --text-contains "No temples" && fail_step tn-shiva-empty "0 results for TN+Shiva (stale district?)" || pass_step tn-shiva-empty
+  ui_find --text-contains "No places" && fail_step tn-shiva-empty "0 results for TN+Shiva (stale district?)" || pass_step tn-shiva-empty
   # Filter, open a temple, come back. The chips must still be the ones applied.
   if ui_dump && ui_find --resource-id temple-browse-card; then
     ui_tap
@@ -82,7 +82,7 @@ fi
 # search + filters. Empty-state Clear filters (not the chip-row Clear, which
 # used to sit past the edge of the chip scroller).
 ui_find --resource-id temple-list-search-field && ui_tap && ui_type "zzzqqq" && adb_shell_capped 8 input keyevent 66; sleep 2
-ui_dump; ui_find --text-contains "No temples" && pass_step empty-state-shown || fail_step empty-state-shown "no empty state for nonsense query+filters"
+ui_dump; ui_find --text-contains "No places" && pass_step empty-state-shown || fail_step empty-state-shown "no empty state for nonsense query+filters"
 if ui_dump && ui_find --resource-id filter-empty-clear; then
   ui_tap
   sleep 1

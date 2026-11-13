@@ -55,16 +55,16 @@ void main() {
 
     expect(find.text('Temple Directory'), findsOneWidget);
     expect(find.text('Discover'), findsOneWidget);
-    expect(find.text('1 temples across India'), findsOneWidget);
+    expect(find.text('1 place across India'), findsOneWidget);
     expect(find.byKey(const Key('home-browse-temples')), findsOneWidget);
-    expect(find.text('Browse 1 Temple'), findsOneWidget);
+    expect(find.text('Browse 1 place'), findsOneWidget);
 
     await tester.ensureVisible(find.byKey(const Key('home-browse-temples')));
     await tester.tap(find.byKey(const Key('home-browse-temples')));
     await tester.pumpAndSettle();
 
     expect(find.byType(TempleListScreen), findsOneWidget);
-    expect(find.text('All Temples'), findsOneWidget);
+    expect(find.text('All places'), findsOneWidget);
     expect(find.text('Meenakshi Amman Temple'), findsOneWidget);
   });
 
@@ -111,7 +111,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Temple Directory'), findsOneWidget);
-    expect(find.text('No temples available yet.'), findsOneWidget);
+    expect(find.text('No places available yet.'), findsOneWidget);
     expect(find.text('Retry'), findsOneWidget);
   });
 
@@ -132,7 +132,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('Temple Directory'), findsOneWidget);
-    expect(find.text('Loading temples…'), findsOneWidget);
+    expect(find.text('Loading places…'), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
     completer.complete([sampleTemple()]);
@@ -153,7 +153,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Could not load temples.'), findsOneWidget);
+    expect(find.text('Could not load places.'), findsOneWidget);
     expect(find.text('Retry'), findsOneWidget);
   });
 
@@ -438,7 +438,7 @@ void main() {
     await tester.tap(
       find.descendant(
         of: find.byType(Drawer),
-        matching: find.text('All Temples'),
+        matching: find.text('All places'),
       ),
     );
     await tester.pumpAndSettle();

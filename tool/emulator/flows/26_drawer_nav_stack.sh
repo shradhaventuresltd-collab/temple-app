@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Flow 26 (bughunter). Drawer stacking: list -> drawer All Temples repeated
+# Flow 26 (bughunter). Drawer stacking: list -> drawer All places repeated
 # pushes duplicate lists (back count grows); double-tap drawer items; back from
 # Home with drawer open closes drawer not app; drawer search submit twice.
 reach_browse || { fail_step browse "no list"; return 0; }
 for i in 1 2 3; do
   ui_dump && ui_find --content-desc "Open navigation menu" && ui_tap; sleep 1
-  ui_wait_scrolled 10 --text-regex '^All Temples' && {
+  ui_wait_scrolled 10 --text-regex '^All places' && {
     adb_shell_capped 8 input tap "$UI_CX" "$UI_CY" || echo "drawer-nav: tap timed out" >&2
     adb_shell_capped 8 input tap "$UI_CX" "$UI_CY" || echo "drawer-nav: tap timed out" >&2
   }

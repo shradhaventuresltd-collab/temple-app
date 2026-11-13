@@ -71,18 +71,18 @@ enter_home_browse() {
 }
 enter_drawer_all() {
   fresh_home || return 1; open_drawer || return 1
-  ui_wait_scrolled 15 --text-regex '^All Temples' || return 1
+  ui_wait_scrolled 15 --text-regex '^All places' || return 1
   ui_tap; wait_browse_ready
 }
 # Filters inside the drawer itself (the "District from drawer" bar).
 # The drawer sheet filters "the temples already loaded": opened before the
-# list loads it offers "Any state 0" and "Show 0 temples" (run 41373837994,
+# list loads it offers "Any state 0" and "Show 0 places" (run 41373837994,
 # 30 drawer_bar-state-select, first cell after boot). Wait for a non-zero
-# "All Temples" count first. The FILTERS row sits at ~75% of the height,
+# "All places" count first. The FILTERS row sits at ~75% of the height,
 # below the 70% chip band of the list screens: CHIP_MAX_TOP_PCT=95.
 enter_drawer_bar() {
   fresh_home || return 1; open_drawer || return 1
-  ui_wait 30 --content-desc-regex '^All Temples\s+[1-9][0-9]*$' || return 1
+  ui_wait 30 --content-desc-regex '^All places\s+[1-9][0-9]*$' || return 1
   CHIP_MAX_TOP_PCT=95
   ui_wait_scrolled 15 --text-regex '^FILTERS$'
 }
@@ -95,7 +95,7 @@ enter_search() {
 # Near me has no DirectoryFilterBar. The caller records NOT RUN (status 2).
 enter_near_me() {
   fresh_home || return 1
-  ui_wait_scrolled 15 --text-contains "Temples near me" || return 1
+  ui_wait_scrolled 15 --text-contains "Places near me" || return 1
   ui_tap; sleep 3
   if ui_dump && ui_find --resource-id filter-chip-state; then
     return 0
@@ -265,7 +265,7 @@ probe_others() {
 
 # One 1140s budget died at cell 47, still inside the first half of this
 # matrix, so the 3+ step sequences never started. Part a is home + drawer
-# All Temples. Part b is the drawer bar, Search, near me, and the sequences.
+# All places. Part b is the drawer bar, Search, near me, and the sequences.
 # Run 41373837994: part a reached cell 32 of 90 and part b cell 24 at the
 # 600s cap. plan.sh now runs one entry x one chip per flow:
 # FILTER_MATRIX_PART=<entry>:<chip> (e.g. drawer_bar:state), or "seqs".

@@ -188,7 +188,7 @@ void main() {
   ) async {
     await _size(tester);
     await _pumpBar(tester, temples: temples, districtOf: districtOf);
-    expect(find.text('3 temples'), findsOneWidget);
+    expect(find.text('3 places'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('filter-chip-district')));
     await tester.pumpAndSettle();
@@ -201,7 +201,7 @@ void main() {
     await tester.tap(find.byKey(const Key('filter-sheet-close')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('filter-sheet')), findsNothing);
-    expect(find.text('3 temples'), findsOneWidget);
+    expect(find.text('3 places'), findsOneWidget);
     expect(find.byKey(const Key('filter-chip-district-clear')), findsNothing);
     expect(find.text('State'), findsWidgets);
   });
@@ -210,7 +210,7 @@ void main() {
     await _size(tester);
     await _pumpBar(tester, temples: temples, initialState: 'Goa');
     expect(find.byKey(const Key('filter-match-count')), findsOneWidget);
-    expect(find.text('0 temples'), findsOneWidget);
+    expect(find.text('0 places'), findsOneWidget);
   });
 
   testWidgets('district Retry mid-load stays on one sheet', (tester) async {
@@ -271,13 +271,13 @@ void main() {
                         builder: (context) => Scaffold(
                           body: Column(
                             children: [
-                              const Text('All Temples'),
+                              const Text('All places'),
                               DirectoryFilterBar(
                                 temples: temples,
                                 selectedState: null,
                                 selectedDeity: null,
                                 prepareDistricts: () => gate.future,
-                                onChanged: (_, _, _) {},
+                                onChanged: (_, _, _, _) {},
                               ),
                             ],
                           ),
@@ -285,16 +285,16 @@ void main() {
                       ),
                     );
                   },
-                  child: const Text('Open All Temples'),
+                  child: const Text('Open All places'),
                 );
               },
             ),
           ),
         ),
       );
-      await tester.tap(find.text('Open All Temples'));
+      await tester.tap(find.text('Open All places'));
       await tester.pumpAndSettle();
-      expect(find.text('All Temples'), findsOneWidget);
+      expect(find.text('All places'), findsOneWidget);
       expect(_canPop(tester), isTrue);
 
       await tester.tap(find.byKey(const Key('filter-chip-district')));
@@ -313,7 +313,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.byKey(const Key('filter-sheet')), findsNothing);
-      expect(find.text('All Temples'), findsOneWidget);
+      expect(find.text('All places'), findsOneWidget);
       expect(_canPop(tester), isTrue);
 
       await tester.tap(find.byKey(const Key('filter-chip-deity')));
@@ -346,7 +346,7 @@ void main() {
                   selectedDeity: deity,
                   selectedDistrict: district,
                   prepareDistricts: () => gate.future,
-                  onChanged: (nextState, nextDeity, nextDistrict) {
+                  onChanged: (nextState, nextDeity, nextDistrict, nextTradition) {
                     setState(() {
                       state = nextState;
                       deity = nextDeity;
@@ -503,7 +503,7 @@ Future<void> _pumpBar(
               selectedDistrict: district,
               districtOf: prepareDistricts == null ? districtOf : null,
               prepareDistricts: prepareDistricts,
-              onChanged: (nextState, nextDeity, nextDistrict) {
+              onChanged: (nextState, nextDeity, nextDistrict, nextTradition) {
                 setState(() {
                   state = nextState;
                   deity = nextDeity;
@@ -546,7 +546,7 @@ Future<void> _openEntry(
       await tester.tap(
         find.descendant(
           of: find.byType(Drawer),
-          matching: find.text('All Temples'),
+          matching: find.text('All places'),
         ),
       );
       await tester.pumpAndSettle();

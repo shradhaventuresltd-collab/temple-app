@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Flow 16. Home -> "Browse N temples" -> the filter chips on that list.
-# The drawer "All Temples" entry is a different path and is not used here.
+# Flow 16. Home -> "Browse N places" -> the filter chips on that list.
+# The drawer "All places" entry is a different path and is not used here.
 launch_app
 if ! accept_policy_if_shown; then
   fail_step launch "policy gate or home did not appear"
@@ -16,7 +16,7 @@ open_home_browse() {
   local i width height
   read -r width height < <(ui_screen_size) || return 1
   # Home may already have been flung past the button. Return to the top,
-  # then move down until "Browse N temples" is on screen.
+  # then move down until "Browse N places" is on screen.
   for i in $(seq 1 6); do
     adb_shell_capped 8 input swipe \
       $((width / 2)) $((height * 32 / 100)) \
@@ -27,7 +27,7 @@ open_home_browse() {
     sleep 0.2
   done
   for i in $(seq 1 12); do
-    if ui_dump && { ui_find --resource-id home-browse-temples || ui_find --text-regex '^Browse .+[Tt]emples?$'; }; then
+    if ui_dump && { ui_find --resource-id home-browse-temples || ui_find --text-regex '^Browse .+[Pp]laces?$'; }; then
       if (( UI_CY > 48 && UI_CY < height - 48 )); then
         ui_tap
         sleep 1
@@ -62,7 +62,7 @@ scroll_chip_bar() {
 }
 
 if ! open_home_browse; then
-  fail_step browse-from-home "Browse temples was not on the home screen"
+  fail_step browse-from-home "Browse places was not on the home screen"
   return 0
 fi
 pass_step browse-from-home

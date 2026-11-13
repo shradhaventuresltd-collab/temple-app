@@ -39,7 +39,7 @@ void main() {
     expect(find.byKey(kDressHeading), findsOneWidget);
     expect(find.text('Dress code'), findsOneWidget);
     expect(find.text(kDressRule), findsOneWidget);
-    expect(find.text('Source: temple website'), findsOneWidget);
+    expect(find.text('Official temple website'), findsOneWidget);
     expect(find.byKey(kDressChip), findsNothing);
     expect(find.byKey(kDressLink), findsNothing);
     expect(find.text(UnverifiedSourceNotice.title), findsNothing);
@@ -68,7 +68,7 @@ void main() {
     expect(find.byKey(kDressLink), findsOneWidget);
     expect(find.text('View source'), findsOneWidget);
     expect(find.text(kDressRule), findsOneWidget);
-    expect(find.text('Source: secondary source'), findsOneWidget);
+    expect(find.text('example.org'), findsOneWidget);
     // Notice sits between the title and the body (mockup 06).
     final title = t.getTopLeft(find.byKey(kDressHeading)).dy;
     final chip = t.getTopLeft(find.byKey(kDressChip)).dy;
@@ -77,18 +77,21 @@ void main() {
   });
 
   testWidgets('source footer: official, secondary, none, unknown', (t) async {
-    const cases = {
-      'official': 'Source: temple website',
-      'secondary': 'Source: secondary source',
-    };
-    for (final e in cases.entries) {
-      await pumpDetail(t, dressTemple(type: e.key));
-      expect(find.text(e.value), findsOneWidget, reason: e.key);
-    }
+    await pumpDetail(t, dressTemple(type: 'official'));
+    expect(find.text('Official temple website'), findsOneWidget);
+    expect(find.textContaining('Source:'), findsWidgets);
+    await pumpDetail(t, dressTemple(type: 'secondary'));
+    expect(find.text('example.org'), findsOneWidget);
+    expect(find.text('Source: secondary source'), findsNothing);
+    expect(find.text('Source: temple website'), findsNothing);
     for (final v in [null, 'Official', 'blog']) {
       await pumpDetail(t, dressTemple(type: v));
-      expect(find.byKey(kDressSource), findsNothing, reason: '$v');
+      expect(find.byKey(kDressSource), findsOneWidget, reason: '$v');
+      expect(find.text('example.org'), findsOneWidget, reason: '$v');
     }
+    await pumpDetail(t, dressTemple(type: 'official', url: null));
+    expect(find.text('Compiled from public sources'), findsOneWidget);
+    expect(find.text('Official temple website'), findsNothing);
   });
 
   testWidgets('card sits directly after the timings card', (t) async {
@@ -118,9 +121,9 @@ void main() {
     expect(body.style!.fontSize, 14);
     expect(body.style!.fontWeight, FontWeight.w500);
     expect(body.style!.height, 1.5);
-    final footer = t.widget<Text>(find.byKey(kDressSource));
-    expect(footer.style!.fontSize, 11.5);
-    expect(footer.style!.color, DetailUxTokens.light.muted);
+    final footerStyle = t.widget<DefaultTextStyle>(find.byKey(kDressSource));
+    expect(footerStyle.style.fontSize, 11.5);
+    expect(footerStyle.style.color, DetailUxTokens.light.muted);
   });
 
   testWidgets('long text: 6 lines, Show more, Show less', (t) async {

@@ -6,6 +6,7 @@ import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/screens/temple_detail_screen.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
+import 'package:temple_app/utils/tradition_synonyms.dart';
 import 'package:temple_app/widgets/temple_browse_card.dart';
 import 'package:flutter/material.dart';
 
@@ -962,6 +963,82 @@ void main() {
       expect(hindu.tradition, isNull);
       expect(hindu.toFirestoreData().containsKey('tradition'), isFalse);
       expect(templeTraditionField('hindu'), isNull);
+    },
+  );
+
+  test(
+    'index sikh and document field jain resolve to jain in honesty and the directory',
+    () {
+      final temple = _draft(
+        name: 'Harmandir Sahib',
+        deity: 'Guru Granth Sahib',
+        description: 'A listed shrine.',
+        tradition: 'jain',
+        indexTradition: 'sikh',
+        timings: '',
+      );
+      final honesty = DetailHonesty.of(temple);
+      expect(honesty.tradition, SiteTradition.jain);
+      expect(honesty.traditionLabel, 'Jain');
+      expect(resolvedSiteTradition(temple), SiteTradition.jain);
+      expect(templeTraditionKey(temple), 'jain');
+
+      // Index rows always set a flag, including unspecified; that must not
+      // skip the document field or the deity fallback.
+      final unspecifiedIndex = _draft(
+        name: 'Dilwara Temples',
+        deity: 'Shiva',
+        description: 'A listed shrine.',
+        tradition: 'jain',
+        indexTradition: 'unspecified',
+        timings: '',
+      );
+      expect(DetailHonesty.of(unspecifiedIndex).tradition, SiteTradition.jain);
+      expect(templeTraditionKey(unspecifiedIndex), 'jain');
+
+      final deityFallback = _draft(
+        deity: 'Jain Tirthankaras',
+        description: 'A listed shrine.',
+        indexTradition: 'unspecified',
+        timings: '',
+      );
+      expect(DetailHonesty.of(deityFallback).tradition, SiteTradition.jain);
+      expect(templeTraditionKey(deityFallback), 'jain');
+    },
+  );
+
+  testWidgets(
+    'detail shows Jain, not Sikh, when the document field disagrees with the index',
+    (tester) async {
+      final temple = _draft(
+        name: 'Harmandir Sahib',
+        deity: 'Guru Granth Sahib',
+        description: 'A listed shrine.',
+        tradition: 'jain',
+        indexTradition: 'sikh',
+        timings: '6:00 AM–8:00 PM daily.',
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: TempleDetailBody(temple: temple)),
+        ),
+      );
+      await tester.pump();
+      expect(find.byKey(const Key('detail-tradition-chip')), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('detail-tradition-chip')),
+          matching: find.text('Jain'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('detail-tradition-chip')),
+          matching: find.text('Sikh'),
+        ),
+        findsNothing,
+      );
     },
   );
 

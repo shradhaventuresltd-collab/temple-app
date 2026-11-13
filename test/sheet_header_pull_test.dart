@@ -37,7 +37,7 @@ Future<void> _open(WidgetTester tester) async {
           selectedDeity: null,
           selectedDistrict: null,
           districtOf: (t) => t.city,
-          onChanged: (_, _, _) {},
+          onChanged: (_, _, _, _) {},
         ),
       ),
     ),

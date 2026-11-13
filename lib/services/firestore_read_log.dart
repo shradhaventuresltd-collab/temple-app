@@ -42,12 +42,12 @@ class FirestoreReadLog {
     final parts = <String>[];
     if (offlineSample) {
       final where = sampleStates.isEmpty
-          ? 'temples'
-          : 'temples in ${sampleStates.join(', ')}';
+          ? 'places'
+          : 'places in ${sampleStates.join(', ')}';
       parts.add('Could not load $where. Showing the offline sample.');
     }
     if (unavailableShards.isNotEmpty) {
-      parts.add('Could not load temples in ${unavailableShards.join(', ')}.');
+      parts.add('Could not load places in ${unavailableShards.join(', ')}.');
     }
     if (parts.isEmpty) return null;
     return parts.join(' ');

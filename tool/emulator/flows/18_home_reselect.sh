@@ -15,7 +15,7 @@ collage_top_visible() {
 launch_app; accept_policy_if_shown || { fail_step home "home did not appear"; return 0; }
 wait_for_home || { fail_step home "home did not appear"; return 0; }
 pass_step home
-# Home first shows "Loading temples..." and only then the collage. Run
+# Home first shows "Loading places..." and only then the collage. Run
 # 41373837994 flung during the loader (screenshot 01_home), the collage was
 # then laid out at the top, and "scrolled" failed. Fling only once the
 # collage is on screen.
@@ -42,7 +42,7 @@ if open_browse && wait_browse_ready; then
   collage_top_visible && pass_step list-home-icon-top || fail_step list-home-icon-top "returned Home mid-page"
 fi
 # C: double tap the Home tile must not pop past Home / exit.
-# The All Temples search flings this list. Put Home back on screen before
+# The All places search flings this list. Put Home back on screen before
 # the wait, or the && skips both taps.
 ui_dump && ui_find --content-desc "Open navigation menu" && ui_tap && sleep 1
 scroll_drawer_top || true

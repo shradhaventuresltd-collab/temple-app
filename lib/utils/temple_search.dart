@@ -1,8 +1,52 @@
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/utils/deity_synonyms.dart';
+import 'package:temple_app/utils/tradition_synonyms.dart';
 
 /// How long a typed query waits before the temple grid refreshes.
 const Duration templeSearchDebounce = Duration(milliseconds: 300);
+
+/// Parsed search query, folded once and reused across a directory walk.
+class PreparedTempleQuery {
+  const PreparedTempleQuery._({
+    required this.isEmpty,
+    required this.isShort,
+    required this.needle,
+    required this.words,
+  });
+
+  final bool isEmpty;
+  final bool isShort;
+  final String needle;
+  final List<String> words;
+
+  static const empty = PreparedTempleQuery._(
+    isEmpty: true,
+    isShort: false,
+    needle: '',
+    words: <String>[],
+  );
+
+  /// Folds and splits [query] once. Use with [templeMatchesPrepared].
+  factory PreparedTempleQuery.parse(String query) {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return empty;
+    if (_isShortQuery(query)) {
+      return PreparedTempleQuery._(
+        isEmpty: false,
+        isShort: true,
+        needle: trimmed.toLowerCase(),
+        words: const <String>[],
+      );
+    }
+    final words = _queryWords(query);
+    return PreparedTempleQuery._(
+      isEmpty: words.isEmpty,
+      isShort: false,
+      needle: '',
+      words: words,
+    );
+  }
+}
 
 /// Case-insensitive match of [query] against public directory text.
 ///
@@ -25,14 +69,18 @@ const Duration templeSearchDebounce = Duration(milliseconds: 300);
 /// whole tokens. A deity name of 5 characters or fewer, and the word `linga`,
 /// do not match inside a longer word.
 bool templeMatchesQuery(Temple temple, String query) {
-  if (query.trim().isEmpty) return true;
+  return templeMatchesPrepared(temple, PreparedTempleQuery.parse(query));
+}
+
+/// Same match as [templeMatchesQuery] when the query was already parsed.
+bool templeMatchesPrepared(Temple temple, PreparedTempleQuery query) {
+  if (query.isEmpty) return true;
   final indexed = _indexFor(temple);
-  if (_isShortQuery(query)) {
-    return indexed.plain.contains(query.trim().toLowerCase());
+  if (query.isShort) {
+    return indexed.plain.contains(query.needle);
   }
-  final words = _queryWords(query);
-  if (words.isEmpty) return false;
-  return _scoreTemple(indexed, words, 0) != null;
+  if (query.words.isEmpty) return false;
+  return _scoreTemple(indexed, query.words, 0) != null;
 }
 
 /// Temples that match [state], [deity], and [query] together.
@@ -58,17 +106,18 @@ List<Temple> filterTemples(
     ];
   }
 
-  if (_isShortQuery(query)) {
-    final needle = query.trim().toLowerCase();
+  final prepared = PreparedTempleQuery.parse(query);
+  if (prepared.isEmpty) return const [];
+  if (prepared.isShort) {
     return [
       for (final temple in temples)
         if (_passesChips(temple, state, deity) &&
-            _indexFor(temple).plain.contains(needle))
+            _indexFor(temple).plain.contains(prepared.needle))
           temple,
     ];
   }
 
-  final words = _queryWords(query);
+  final words = prepared.words;
   if (words.isEmpty) return const [];
 
   final hits = <_Score>[];
@@ -186,6 +235,10 @@ const Set<String> _genericNameTokens = {
   'swami',
   'sri',
   'shri',
+  'gurdwara',
+  'gurudwara',
+  'derasar',
+  'basadi',
 };
 
 const int _kindExact = 0;
@@ -302,6 +355,51 @@ String foldTempleSearchText(String value) {
     text = next;
   }
   return text;
+}
+
+/// Diacritic strip plus [foldTempleSearchText], for synonym lookup only.
+String foldTraditionSynonym(String text) {
+  return foldTempleSearchText(stripTraditionDiacritics(text));
+}
+
+final Map<String, String> _traditionExpandLookup = {
+  for (final group in traditionSynonymGroups)
+    if (group.mode == TraditionSynonymMode.expand)
+      for (final form in group.forms)
+        foldTraditionSynonym(form): group.tradition,
+  for (final name in ['sikh', 'jain', 'buddhist'])
+    foldTraditionSynonym(name): name,
+};
+
+/// Tradition an expand synonym [word] maps to, or null.
+///
+/// Words shorter than 3 characters (after folding) do not expand.
+String? traditionExpandKey(String word) {
+  final lookup = foldTraditionSynonym(word);
+  if (lookup.length < 3) return null;
+  return _traditionExpandLookup[lookup];
+}
+
+/// True when the joined query is an expand phrase for [tradition].
+bool traditionExpandPhraseMatches(List<String> words, String? tradition) {
+  if (tradition == null || words.length < 2) return false;
+  final joined = foldTraditionSynonym(words.join(' '));
+  for (final group in traditionSynonymGroups) {
+    if (group.mode != TraditionSynonymMode.expand) continue;
+    if (group.tradition != tradition) continue;
+    for (final form in group.forms) {
+      if (form.contains(' ') && foldTraditionSynonym(form) == joined) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/// True when [word] is the Jain name-only form *basti*.
+bool isNameOnlyBasti(String word) {
+  final lookup = foldTraditionSynonym(word);
+  return lookup == 'basti' || lookup == 'bastis';
 }
 
 bool _passesChips(Temple temple, String? state, String? deity) {
@@ -543,6 +641,21 @@ _Score? _scoreTemple(_TempleIndex indexed, List<String> words, int index) {
       }
     }
   }
+  if (best == null &&
+      traditionExpandPhraseMatches(words, traditionSearchKey(indexed.temple))) {
+    best = _Score(
+      temple: indexed.temple,
+      boost: boost,
+      literalWords: 0,
+      tier: 0,
+      field: 1,
+      origin: 1,
+      kind: _kindExact,
+      distance: 0,
+      fuzzy: false,
+      index: index,
+    );
+  }
   if (words.length >= 2) {
     final joined = _directHit(words.join(), indexed);
     if (joined != null) {
@@ -617,13 +730,22 @@ int _literalCount(List<String> words, _TempleIndex indexed) {
 }
 
 _WordHit? _hitForWord(String word, _TempleIndex indexed) {
+  if (isNameOnlyBasti(word)) {
+    if (traditionSearchKey(indexed.temple) != 'jain') return null;
+    return _directHit('basti', indexed) ?? _directHit('bastis', indexed);
+  }
   final direct = _directHit(word, indexed);
   final synonym = _synonyms.word(word);
-  if (synonym == null) return direct;
-  final viaGroup = _matchSynonym(synonym, indexed);
-  if (viaGroup == null) return direct;
-  if (direct == null) return viaGroup;
-  return _prefer(direct, viaGroup);
+  final viaGroup = synonym == null ? null : _matchSynonym(synonym, indexed);
+  final tradition = traditionExpandKey(word);
+  final viaTradition =
+      tradition != null && traditionSearchKey(indexed.temple) == tradition
+      ? const _WordHit(0, 1, 1, _kindExact, 0, false)
+      : null;
+  var best = direct;
+  if (viaGroup != null) best = _prefer(best, viaGroup);
+  if (viaTradition != null) best = _prefer(best, viaTradition);
+  return best;
 }
 
 _WordHit? _directHit(String word, _TempleIndex indexed) {

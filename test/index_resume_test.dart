@@ -104,7 +104,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Browse 2 Temples'), findsOneWidget);
+      expect(find.text('Browse 2 places'), findsOneWidget);
       expect(harness.fake.serverCount('meta/temple_index'), 1);
 
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
@@ -123,8 +123,8 @@ void main() {
       expect(harness.fake.serverCount('meta/temple_index'), 2);
       expect(harness.fake.serverCount('temple_index/bihar'), 0);
       expect(harness.fake.serverCount('temple_index/kerala'), 0);
-      expect(find.text('Loading temples…'), findsNothing);
-      expect(find.text('Browse 2 Temples'), findsOneWidget);
+      expect(find.text('Loading places…'), findsNothing);
+      expect(find.text('Browse 2 places'), findsOneWidget);
     },
   );
 
@@ -155,8 +155,8 @@ void main() {
     // loadDirectory waits one turn before the meta read, then holds.
     await tester.pump(Duration.zero);
 
-    expect(find.text('Loading temples…'), findsNothing);
-    expect(find.text('Browse 2 Temples'), findsOneWidget);
+    expect(find.text('Loading places…'), findsNothing);
+    expect(find.text('Browse 2 places'), findsOneWidget);
     expect(harness.fake.serverCount('meta/temple_index'), 2);
 
     harness.fake.holdNextMeta!.complete();
@@ -165,7 +165,7 @@ void main() {
     expect(harness.fake.serverCount('meta/temple_index'), 2);
     expect(harness.fake.serverCount('temple_index/bihar'), 1);
     expect(harness.fake.serverCount('temple_index/kerala'), 0);
-    expect(find.text('Loading temples…'), findsNothing);
+    expect(find.text('Loading places…'), findsNothing);
 
     await tester.ensureVisible(find.byKey(const Key('home-browse-temples')));
     await tester.tap(find.byKey(const Key('home-browse-temples')));
@@ -289,7 +289,7 @@ void main() {
     expect(service.loadDirectoryCalls, afterOpen + 1);
     expect(service.refreshGets, 0);
     expect(_collectionScans(harness.fake), 0);
-    expect(find.text('Browse 2 Temples'), findsOneWidget);
+    expect(find.text('Browse 2 places'), findsOneWidget);
   });
 
   testWidgets(

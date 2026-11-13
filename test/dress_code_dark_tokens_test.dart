@@ -100,7 +100,7 @@ void main() {
       expect((card.border! as Border).top.color, tokens.divider);
       expect(t.widget<Text>(find.byKey(kDressBody)).style!.color, tokens.text);
       expect(
-        t.widget<Text>(find.byKey(kDressSource)).style!.color,
+        t.widget<DefaultTextStyle>(find.byKey(kDressSource)).style.color,
         tokens.muted,
       );
     });
@@ -119,7 +119,7 @@ void main() {
                   id: 'dress-code',
                   subject: 'Dress code',
                   lead: 'Rules may have changed.',
-                  noLinkText: 'Confirm with the temple.',
+                  noLinkText: 'Confirm with the place.',
                   sourceUri: Uri.parse('https://x.org'),
                 ),
                 const SizedBox(height: 8),
@@ -127,7 +127,7 @@ void main() {
                   id: 'dress-code-b',
                   subject: 'Dress code',
                   lead: 'Rules may have changed.',
-                  noLinkText: 'Confirm with the temple.',
+                  noLinkText: 'Confirm with the place.',
                 ),
               ],
             ),
@@ -154,7 +154,7 @@ void main() {
                   id: 'dress-code',
                   subject: 'Dress code',
                   lead: 'Rules may have changed.',
-                  noLinkText: 'Confirm with the temple.',
+                  noLinkText: 'Confirm with the place.',
                   sourceUri: Uri.parse('https://x.org'),
                 ),
                 const SizedBox(height: 8),
@@ -162,7 +162,7 @@ void main() {
                   id: 'dress-code-b',
                   subject: 'Dress code',
                   lead: 'Rules may have changed.',
-                  noLinkText: 'Confirm with the temple.',
+                  noLinkText: 'Confirm with the place.',
                 ),
               ],
             ),

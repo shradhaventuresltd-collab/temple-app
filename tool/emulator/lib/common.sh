@@ -686,7 +686,7 @@ scroll_drawer_until() {
   return 1
 }
 
-# Pull the drawer list back to its top. A failed All Temples search flings
+# Pull the drawer list back to its top. A failed All places search flings
 # this list until Home is off screen; the next Home tap then times out.
 scroll_drawer_top() {
   local i width height x
@@ -881,10 +881,10 @@ clean_install() {
   install_apk
 }
 
-FILTER_SHEET_TITLE_RX='^(Filters|State|District|Deity|City|Sort from state)$'
+FILTER_SHEET_TITLE_RX='^(Filters|State|District|Deity|City|Sort from state|Tradition)$'
 # Titles that are also idle chip labels. A content-desc of "State" is the
 # chip, not proof the sheet is open (run 42675181050 bar dump).
-FILTER_SHEET_TITLE_ID_RX='^filter-sheet-title-(state|district|deity|city|filters|sort-from-state)$'
+FILTER_SHEET_TITLE_ID_RX='^filter-sheet-title-(state|district|deity|city|filters|sort-from-state|tradition)$'
 
 sheet_open() {
   ui_dump || return 1
@@ -904,8 +904,8 @@ sheet_open() {
   if ui_find --content-desc-regex '^(Filters|City|Sort from state)$'; then
     return 0
   fi
-  ui_find --content-desc-regex '^Show [0-9]+ temples?$' \
-    || ui_find --text-regex '^Show [0-9]+ temples?$'
+  ui_find --content-desc-regex '^Show [0-9]+ places?$' \
+    || ui_find --text-regex '^Show [0-9]+ places?$'
 }
 
 # Wait until the filter sheet is up. [timeout] seconds is required.
@@ -943,7 +943,7 @@ dismiss_blockers() {
     sleep 1
     return 0
   fi
-  if ui_find --text-regex "$FILTER_SHEET_TITLE_RX" || ui_find --content-desc-regex "$FILTER_SHEET_TITLE_RX" || ui_find --text-regex '^Show [0-9]+ temples?$'; then
+  if ui_find --text-regex "$FILTER_SHEET_TITLE_RX" || ui_find --content-desc-regex "$FILTER_SHEET_TITLE_RX" || ui_find --text-regex '^Show [0-9]+ places?$'; then
     ui_back
     sleep 1
     return 0
@@ -982,7 +982,7 @@ push_emulator_geo() {
   adb shell settings put secure location_mode 3 >/dev/null 2>&1 || true
   # adb emu geo fix is longitude, latitude, altitude, satellites (Madurai).
   # A fix with no satellites is dropped on the API 30 image, and Temples
-  # near me stays on "Finding temples". The first fix after boot is often
+  # near me stays on "Finding places". The first fix after boot is often
   # ignored, so send it more than once.
   for _i in 1 2 3; do
     adb emu geo fix 78.1193 9.9195 0 8 >/dev/null 2>&1 || true
@@ -1109,30 +1109,30 @@ open_browse() {
       ui_tap
       return 0
     fi
-    if ui_dump && ui_find --text-regex '^Browse .*Temples?$'; then
+    if ui_dump && ui_find --text-regex '^Browse .*Places?$'; then
       ui_tap
       return 0
     fi
     ui_fling up || true
     sleep 1
   done
-  # Fall back to the drawer entry. The All Temples tile's content-desc is
-  # "All Temples\n<count>", which flattens to "All Temples 992". A trailing
+  # Fall back to the drawer entry. The All places tile's content-desc is
+  # "All places\n<count>", which flattens to "All places 992". A trailing
   # $ never matches that node. Home and Licences have no trailing count, so
   # their $ anchors stay. Option chips are one text ("Shiva  12"); pickers
   # allow that suffix. Trigger chips (State, All districts, Deity) and
-  # "Show N temples" / "Browse N Temples" are a single line, so their $ stays.
+  # "Show N places" / "Browse N places" are a single line, so their $ stays.
   # A miss used to fling until Home left the tree. The next '^Home$' wait
   # then timed out and the && skipped both taps (flow 18's double-tap).
   if ui_dump && ui_find --content-desc "Open navigation menu"; then
     ui_tap
     sleep 1
-    if scroll_drawer_until --text-regex '^All Temples'; then
+    if scroll_drawer_until --text-regex '^All places'; then
       ui_tap
       return 0
     fi
     scroll_drawer_top || true
-    if ui_dump && ui_find --text-regex '^All Temples'; then
+    if ui_dump && ui_find --text-regex '^All places'; then
       ui_tap
       return 0
     fi
@@ -1148,12 +1148,12 @@ wait_browse_ready() {
   local start="$SECONDS"
   while (( SECONDS - start < 120 )); do
     ui_dump || true
-    if ui_find --text-contains "Could not load temples"; then
+    if ui_find --text-contains "Could not load places"; then
       echo "directory failed to load"
       return 1
     fi
     if ui_find --resource-id filter-chip-state || ui_find --text-regex '^State$'; then
-      if ! ui_find --text-contains "Loading temples"; then
+      if ! ui_find --text-contains "Loading places"; then
         return 0
       fi
     fi
@@ -1278,7 +1278,7 @@ wait_network_validated() {
 
 # recover_browse [GRACE_S] [RETAP_S]: after the network came back, tap
 # "Try again" and give the reload GRACE_S (60) seconds, tapping it again
-# every RETAP_S (15) seconds while "Could not load temples" is still shown.
+# every RETAP_S (15) seconds while "Could not load places" is still shown.
 # Unlike wait_browse_ready, the error page is not final until the grace ends.
 # Sets RECOVER_BROWSE_MSG (call it directly, not in $(...), so the caller
 # sees it).
@@ -1287,13 +1287,13 @@ recover_browse() {
   while (( SECONDS - start < grace )); do
     ui_dump || { sleep 2; continue; }
     if ui_find --resource-id filter-chip-state || ui_find --text-regex '^State$'; then
-      if ! ui_find --text-contains "Loading temples" && ! ui_find --text-contains "Could not load temples"; then
+      if ! ui_find --text-contains "Loading places" && ! ui_find --text-contains "Could not load places"; then
         RECOVER_BROWSE_MSG="browse recovered after $((SECONDS - start))s (${taps} Try again taps)"
         echo "$RECOVER_BROWSE_MSG"
         return 0
       fi
     fi
-    if ui_find --text-contains "Could not load temples" || ui_find --text-regex '^(Retry|Try again)$'; then
+    if ui_find --text-contains "Could not load places" || ui_find --text-regex '^(Retry|Try again)$'; then
       if (( SECONDS - last_tap >= retap )) && ui_find --text-regex '^(Retry|Try again)$'; then
         ui_tap
         taps=$((taps + 1))
@@ -1477,7 +1477,7 @@ chip_scroll_dir() {
   [[ "$want" == filter-chip-* && -s "${DUMP:-}" ]] || return 0
   python3 - "$DUMP" "$want" <<'PY'
 import re, sys
-order = ["filter-chip-state", "filter-chip-district", "filter-chip-city", "filter-chip-deity"]
+order = ["filter-chip-state", "filter-chip-district", "filter-chip-city", "filter-chip-deity", "filter-chip-tradition"]
 want = sys.argv[2]
 if want not in order:
     sys.exit(0)
@@ -1635,11 +1635,12 @@ ensure_list_head() {
 filter_chips_idle() {
   local id want label
   ui_dump || return 1
-  for id in filter-chip-state filter-chip-district filter-chip-deity; do
+  for id in filter-chip-state filter-chip-district filter-chip-deity filter-chip-tradition; do
     case "$id" in
       filter-chip-state) want="State" ;;
       filter-chip-district) want="District" ;;
       filter-chip-deity) want="Deity" ;;
+      filter-chip-tradition) want="Tradition" ;;
     esac
     ui_find --resource-id "$id" || return 1
     label="$(chip_label "$UI_TEXT")"
@@ -1647,7 +1648,8 @@ filter_chips_idle() {
   done
   if ui_find --content-desc "Clear state filter" \
     || ui_find --content-desc "Clear district filter" \
-    || ui_find --content-desc "Clear deity filter"; then
+    || ui_find --content-desc "Clear deity filter" \
+    || ui_find --content-desc "Clear tradition filter"; then
     return 1
   fi
   return 0
@@ -2240,7 +2242,7 @@ select_labeled() {
       max_top=$((height * 84 / 100))
       if { [[ -n "$id_rx" ]] && ui_find --resource-id-regex "$id_rx" --min-top "$min_top" --max-top "$max_top" --prefer upper; } \
         || { ui_find --resource-id-regex "$opt_rx" --text-regex "$regex" --min-top "$min_top" --max-top "$max_top" --prefer upper \
-        && [[ ! "$UI_TEXT" =~ ^Show[[:space:]]+[0-9]+[[:space:]]+temples?$ ]]; }; then
+        && [[ ! "$UI_TEXT" =~ ^Show[[:space:]]+[0-9]+[[:space:]]+places?$ ]]; }; then
         if stable_option_tap "$regex" "$opt_rx"; then
           return 0
         fi
@@ -2248,7 +2250,7 @@ select_labeled() {
         continue
       fi
       if ui_find --resource-id-regex "$opt_rx" --text-regex "$regex" --min-top "$max_top" --prefer upper \
-        && [[ ! "$UI_TEXT" =~ ^Show[[:space:]]+[0-9]+[[:space:]]+temples?$ ]]; then
+        && [[ ! "$UI_TEXT" =~ ^Show[[:space:]]+[0-9]+[[:space:]]+places?$ ]]; then
         ui_sheet_swipe up || {
           echo "select_labeled: swipe failed while looking for '${regex}'" >&2
           return 1
@@ -2334,6 +2336,8 @@ apply_sheet() {
     title_id=district
   elif ui_find --resource-id filter-sheet-title-deity; then
     title_id=deity
+  elif ui_find --resource-id filter-sheet-title-tradition; then
+    title_id=tradition
   fi
   for attempt in 1 2; do
     # Choose-a-state-first opens the District sheet itself. A second tap
@@ -2343,12 +2347,12 @@ apply_sheet() {
     fi
     # The result button is pinned to the bottom of the sheet. Prefer that
     # node so a higher label is not tapped and the sheet left open.
-    if ! ui_wait 8 --text-regex '^Show [0-9]+ temples?$' --prefer lower; then
-      echo "apply_sheet: Show N temples was not found" >&2
+    if ! ui_wait 8 --text-regex '^Show [0-9]+ places?$' --prefer lower; then
+      echo "apply_sheet: Show N places was not found" >&2
       return 1
     fi
     if (( UI_CY < height * 68 / 100 )); then
-      echo "apply_sheet: Show N temples was not in the bottom band" >&2
+      echo "apply_sheet: Show N places was not in the bottom band" >&2
       return 1
     fi
     ui_tap

@@ -42,7 +42,7 @@ void main() {
     await tester.pump();
     await tester.tap(kerala);
     await tester.pump();
-    expect(find.text('Show 1 temple'), findsOneWidget);
+    expect(find.text('Show 1 place'), findsOneWidget);
     await applyFilterSheet(tester);
     expect(find.text('Vaikom Mahadeva Temple'), findsOneWidget);
     expect(find.text('Meenakshi Amman Temple'), findsNothing);

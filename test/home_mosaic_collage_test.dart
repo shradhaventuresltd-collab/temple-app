@@ -40,24 +40,29 @@ void main() {
   });
 
   test('homeDirectoryCountLabel stays dynamic and honest when empty', () {
-    expect(homeDirectoryCountLabel(0), 'No temples loaded yet');
-    expect(homeDirectoryCountLabel(150), '150 temples across India');
-    expect(homeDirectoryCountLabel(180), '180 temples across India');
-    expect(homeDirectoryCountLabel(181), '181 temples across India');
+    expect(homeDirectoryCountLabel(0), 'No places loaded yet');
+    expect(homeDirectoryCountLabel(1), '1 place across India');
+    expect(homeDirectoryCountLabel(150), '150 places across India');
+    expect(homeDirectoryCountLabel(180), '180 places across India');
+    expect(homeDirectoryCountLabel(181), '181 places across India');
   });
 
   test('drawerAboutDirectoryBlurb never hardcodes 150 or 180', () {
     final for180 = drawerAboutDirectoryBlurb(180);
-    expect(for180, startsWith('Explore 180 famous temples across '));
+    expect(for180, startsWith('Explore 180 famous places across '));
+    expect(
+      drawerAboutDirectoryBlurb(1),
+      startsWith('Explore 1 famous place across '),
+    );
     expect(for180, isNot(contains('Explore 150 ')));
 
     final for200 = drawerAboutDirectoryBlurb(200);
-    expect(for200, startsWith('Explore 200 famous temples across '));
+    expect(for200, startsWith('Explore 200 famous places across '));
     expect(for200, isNot(contains('Explore 180 ')));
     expect(for200, isNot(contains('Explore 150 ')));
 
     final empty = drawerAboutDirectoryBlurb(0);
-    expect(empty, startsWith('Explore famous temples across '));
+    expect(empty, startsWith('Explore famous places across '));
     expect(empty, isNot(contains(RegExp(r'Explore \d+ famous'))));
   });
 
@@ -76,7 +81,7 @@ void main() {
     expect(find.text('Photo pending'), findsNothing);
     expect(find.byType(CachedNetworkImage), findsWidgets);
     expect(
-      find.text('${sampleTemples.length} temples across India'),
+      find.text('${sampleTemples.length} places across India'),
       findsOneWidget,
     );
     expect(find.textContaining('150 temples'), findsNothing);
@@ -136,7 +141,7 @@ void main() {
 
     expect(find.byType(TempleImagePlaceholder), findsNothing);
     expect(find.byType(CachedNetworkImage), findsWidgets);
-    expect(find.text('3 temples across India'), findsOneWidget);
+    expect(find.text('3 places across India'), findsOneWidget);
 
     final images = tester
         .widgetList<CachedNetworkImage>(find.byType(CachedNetworkImage))
@@ -166,8 +171,8 @@ void main() {
       ),
     );
 
-    expect(find.text('No temples loaded yet'), findsOneWidget);
-    expect(find.textContaining('temples across India'), findsNothing);
+    expect(find.text('No places loaded yet'), findsOneWidget);
+    expect(find.textContaining('places across India'), findsNothing);
     expect(find.byType(TempleImagePlaceholder), findsOneWidget);
   });
 

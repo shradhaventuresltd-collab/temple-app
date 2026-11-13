@@ -15,7 +15,7 @@ enter_home_button() { reach_browse; }
 enter_drawer_all() {
   launch_app; accept_policy_if_shown || return 1; wait_for_home || return 1
   open_drawer || return 1
-  ui_wait_scrolled 15 --text-regex '^All Temples' || return 1
+  ui_wait_scrolled 15 --text-regex '^All places' || return 1
   ui_tap; wait_browse_ready
 }
 
@@ -32,7 +32,7 @@ enter_drawer_search() {
 enter_list_drawer_all() {
   enter_home_button || return 1
   open_drawer || return 1
-  ui_wait_scrolled 15 --text-regex '^All Temples' || return 1
+  ui_wait_scrolled 15 --text-regex '^All places' || return 1
   ui_tap; wait_browse_ready
 }
 

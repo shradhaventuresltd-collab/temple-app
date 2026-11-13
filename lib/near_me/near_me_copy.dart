@@ -1,18 +1,18 @@
 import 'package:temple_app/l10n/pin_precision_strings.dart';
 
-/// User-facing copy for Temples near me.
+/// User-facing copy for Places near me.
 ///
 /// Every string a person can read for this feature lives here so wording
 /// can be reviewed on its own.
 abstract final class NearMeCopy {
-  static const title = 'Temples near me';
+  static const title = 'Places near me';
   static const rationaleTitle = 'Sort by distance';
   static const rationaleBody =
-      'Used once on your phone to sort temples by distance. Never stored or sent.';
+      'Used once on your phone to sort places by distance. Never stored or sent.';
   static const continueLabel = 'Continue';
   static const notNow = 'Not now';
-  static const locating = 'Finding temples near you…';
-  static const nearestHeading = 'Nearest temples';
+  static const locating = 'Finding places near you…';
+  static const nearestHeading = 'Nearest places';
   static const lastKnownNote = 'Using last known location';
   static const deniedBody =
       'Location is off for this app. Pick a state or city and the list is sorted from there.';
@@ -35,7 +35,11 @@ abstract final class NearMeCopy {
   static const anyDistrict = 'Any district';
   static const noMapPoints = 'None of these listings have a map point.';
   static const noAnchorMatch =
-      'None of the temples in that place have a map point.';
+      'None of the listings in that area have a map point.';
+
+  /// Empty list after a tradition chip is applied, not a missing map point.
+  static String noTraditionMatch(String label) =>
+      'No $label places in that area.';
   static const kilometres = 'km';
 
   static String sortedFrom(String place) => 'Sorted from $place';

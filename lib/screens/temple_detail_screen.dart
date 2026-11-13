@@ -1309,7 +1309,7 @@ class TimingsUnverifiedChip extends StatelessWidget {
       id: 'timings',
       subject: 'Timings',
       lead: 'Timings may have changed.',
-      noLinkText: 'Timings may have changed. Confirm with the temple.',
+      noLinkText: 'Timings may have changed. Confirm with the place.',
       sourceUri: sourceUri,
     );
   }

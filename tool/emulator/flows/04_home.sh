@@ -19,16 +19,16 @@ else
   fail_step heritage "Temple Heritage of India was not shown"
 fi
 
-if ui_wait_scrolled 20 --text-regex 'Browse .+Temple'; then
+if ui_wait_scrolled 20 --text-regex 'Browse .+Place'; then
   pass_step browse-button
 else
-  fail_step browse-button "Browse temples button was not shown"
+  fail_step browse-button "Browse places button was not shown"
 fi
 
-if ui_wait_scrolled 15 --text-contains "Temples near me"; then
+if ui_wait_scrolled 15 --text-contains "Places near me"; then
   pass_step near-me
 else
-  fail_step near-me "Temples near me was not shown"
+  fail_step near-me "Places near me was not shown"
 fi
 
 fling=0
