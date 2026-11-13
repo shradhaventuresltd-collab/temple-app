@@ -17,7 +17,9 @@
  * story is the sourced description (2–4 sentences).
  * address is the trimmed research address, or `${city}, ${state}` when
  * that field is missing or whitespace-only. It is at most 500 UTF-16
- * code units (firestore.rules). Only review.status "approved" is seeded.
+ * code units (firestore.rules). Optional tradition is written when it is
+ * exactly jain, buddhist, or sikh, and omitted for a Hindu listing.
+ * Only review.status "approved" is seeded.
  * Image fields are never written.
  * --apply pre-checks every state before the first commit: temple ids are
  * absent, meta/temple_index and each target shard are read, and existing
@@ -121,6 +123,7 @@ function parseArgs(argv) {
  * are never part of the payload. timings_note is never written. timings null
  * stays null. story is the description. address is the trimmed research
  * address, or `${city}, ${state}` when it is missing or whitespace-only.
+ * tradition is included only when it is jain, buddhist, or sikh.
  * An existing document is always refused.
  * @param {object} temple normalised batch temple
  * @param {object | null} live existing Firestore document, or null to create
@@ -131,7 +134,7 @@ export function firestoreWritePayload(temple, live) {
       `${temple.id} already exists and will not be overwritten or renamed.`,
     );
   }
-  return {
+  const payload = {
     id: temple.id,
     name: temple.name,
     state: temple.state,
@@ -145,6 +148,8 @@ export function firestoreWritePayload(temple, live) {
     story: temple.story ?? "",
     address: writeAddress(temple),
   };
+  if (temple.tradition) payload.tradition = temple.tradition;
+  return payload;
 }
 
 function writeAddress(temple) {

@@ -5,10 +5,13 @@
  * Schema of record: the state-expansion README (Hybrid C).
  * Seeded fields match sampleTemples: name, city, state, deity, latitude,
  * longitude, timings, description, specialities, plus story and location
- * (stored as address). An optional research `address` (trimmed, max 500
- * UTF-16 code units, matching firestore.rules string.size()) is stored
- * as that address; if it is missing or whitespace-only, the seeder stores
- * `${city}, ${state}`. Research-only keys are ignored by Seed and keep the
+ * (stored as address). An optional research `tradition` is stored when it
+ * is exactly jain, buddhist, or sikh (firestore.rules); omit it for a
+ * Hindu listing. deity remains required even for those traditions. An
+ * optional research `address` (trimmed, max 500 UTF-16 code units,
+ * matching firestore.rules string.size()) is stored as that address; if
+ * it is missing or whitespace-only, the seeder stores `${city}, ${state}`.
+ * Research-only keys are ignored by Seed and keep the
  * README names: slug, sources, timings_note, dedupe, review, photo_pack,
  * and the batch keys added and shortfall_note.
  * When timings is null, the seeded timings value is null. timings_note is
@@ -27,6 +30,9 @@ export const MAX_TEMPLES_PER_BATCH = 100;
 export const DUPLICATE_DISTANCE_KM = 1;
 /** firestore.rules address cap. JS string.length is UTF-16 code units. */
 export const ADDRESS_MAX_UTF16 = 500;
+/** firestore.rules optionalTradition. Absent means a Hindu listing. */
+export const TRADITION_VALUES = Object.freeze(["jain", "buddhist", "sikh"]);
+export const TRADITION_VALUE_SET = new Set(TRADITION_VALUES);
 /** Overlap warnings only when a point is this close to a box edge. */
 export const BORDER_MARGIN_DEGREES = 0.3;
 
@@ -104,6 +110,7 @@ const TEMPLE_KEYS = [
   "city",
   "state",
   "deity",
+  "tradition",
   "latitude",
   "longitude",
   "timings",
@@ -265,6 +272,7 @@ export function validateStateBatch(batch, existing = []) {
 
     requireString(raw.city, `${label}.city`, errors);
     requireString(raw.deity, `${label}.deity`, errors);
+    const tradition = readOptionalTradition(raw, label, errors);
     const address = readOptionalAddress(raw, label, errors);
     const description = requireString(raw.description, `${label}.description`, errors);
     if (description) {
@@ -367,7 +375,7 @@ export function validateStateBatch(batch, existing = []) {
       return;
     }
 
-    temples.push({
+    const seeded = {
       id,
       name,
       state: templeState,
@@ -383,7 +391,9 @@ export function validateStateBatch(batch, existing = []) {
       latitude,
       longitude,
       photos: [],
-    });
+    };
+    if (tradition) seeded.tradition = tradition;
+    temples.push(seeded);
   });
 
   const nameOwners = new Map();
@@ -439,7 +449,7 @@ export function validateStateBatch(batch, existing = []) {
   for (const temple of temples) {
     const prior = existingById.get(temple.id);
     if (!prior) {
-      summary.new.push({ id: temple.id, name: temple.name, address: temple.location });
+      summary.new.push({ id: temple.id, name: temple.name, address: temple.location, tradition: temple.tradition });
       continue;
     }
     const locked = new Set([
@@ -839,7 +849,27 @@ function collectUrls(value, urls) {
  * @param {string[]} errors
  * @returns {string | null}
  */
+export function readOptionalTradition(raw, label, errors) {
+  if (!Object.prototype.hasOwnProperty.call(raw, "tradition") || raw.tradition == null) {
+    return null;
+  }
+  if (typeof raw.tradition !== "string") {
+    errors.push(`${label}.tradition must be a string.`);
+    return null;
+  }
+  const tradition = raw.tradition.trim();
+  if (tradition === "") return null;
+  if (!TRADITION_VALUE_SET.has(tradition)) {
+    errors.push(
+      `${label}.tradition must be jain, buddhist, or sikh (omit it for a Hindu listing).`,
+    );
+    return null;
+  }
+  return tradition;
+}
+
 export function readOptionalAddress(raw, label, errors) {
+
   if (!Object.prototype.hasOwnProperty.call(raw, "address") || raw.address == null) {
     return null;
   }
@@ -979,7 +1009,15 @@ function fail(errors) {
   };
 }
 
+function formatNewRow(row) {
+  const parts = [`  new ${row.id}`];
+  if (row.address) parts.push(`address: ${row.address}`);
+  if (row.tradition) parts.push(`tradition: ${row.tradition}`);
+  return parts.length === 1 ? parts[0] : `${parts[0]} ${parts.slice(1).join(" ")}`;
+}
+
 export function formatSummary(summary) {
+
   const skipped = summary.skipped ?? [];
   const lines = [
     `new: ${summary.new.length}`,
@@ -989,7 +1027,7 @@ export function formatSummary(summary) {
   ];
   for (const row of summary.new) {
     lines.push(
-      row.address ? `  new ${row.id} address: ${row.address}` : `  new ${row.id}`,
+      formatNewRow(row),
     );
   }
   for (const row of summary.changed) {

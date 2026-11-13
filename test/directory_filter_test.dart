@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/models/temple.dart';
+import 'package:temple_app/utils/deity_groups.dart';
 import 'package:temple_app/utils/directory_filters.dart';
 import 'package:temple_app/widgets/app_drawer.dart';
 import 'package:temple_app/widgets/directory_filter_bar.dart';
@@ -18,6 +19,8 @@ void main() {
     required String state,
     required String city,
     required String deity,
+    String? tradition,
+    String? indexTradition,
   }) {
     return Temple(
       name: name,
@@ -32,6 +35,8 @@ void main() {
       specialities: const [],
       latitude: 0,
       longitude: 0,
+      tradition: tradition,
+      indexTradition: indexTradition,
     );
   }
 
@@ -372,6 +377,106 @@ void main() {
     expect(
       find.text(
         'Jain sites are labelled by their own tradition, not Hindu darshan.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  test(
+    'a stored Sikh or Jain tradition labels a deity with no tradition words',
+    () {
+      final listed = [
+        temple(
+          name: 'Harmandir Sahib',
+          state: 'Punjab',
+          city: 'Amritsar',
+          deity: 'Guru Granth Sahib',
+          tradition: 'sikh',
+        ),
+        temple(
+          name: 'Dilwara Temples',
+          state: 'Rajasthan',
+          city: 'Mount Abu',
+          deity: 'Rishabhanatha',
+          tradition: 'jain',
+        ),
+        temple(
+          name: 'Meenakshi Amman Temple',
+          state: 'Tamil Nadu',
+          city: 'Madurai',
+          deity: 'Devi',
+        ),
+      ];
+      expect(listedDeityTraditionLabel('Guru Granth Sahib'), isNull);
+      expect(listedTempleTraditionLabel(listed[0]), 'Sikh');
+      expect(listedTempleTraditionLabel(listed[1]), 'Jain');
+      expect(listedTempleTraditionLabel(listed[2]), isNull);
+      expect(
+        directoryDeityChipLabel(
+          'Guru Granth Sahib',
+          tradition: listedTempleTraditionLabel(listed[0]),
+        ),
+        'Guru Granth Sahib · Sikh',
+      );
+      expect(
+        directoryDeityFilterNote(
+          listed.map((temple) => temple.deity),
+          traditionLabels: listed
+              .map(listedTempleTraditionLabel)
+              .whereType<String>(),
+        ),
+        'Jain and Sikh sites are labelled by their own tradition, not Hindu darshan.',
+      );
+      final groups = groupDeityNames(
+        listed.map((temple) => temple.deity),
+        traditionOf: traditionOfLoadedTemples(listed),
+      );
+      final byLabel = {
+        for (final group in groups) group.label: group.tradition,
+      };
+      expect(byLabel['Guru Granth Sahib'], 'Sikh');
+      expect(byLabel['Rishabhanatha'], 'Jain');
+      expect(byLabel['Devi'], isNull);
+      expect(
+        directoryMatchingTemples(
+          listed,
+          deity: 'Guru Granth Sahib',
+        ).single.name,
+        'Harmandir Sahib',
+      );
+      expect(
+        directoryMatchingTemples(listed, deity: 'Rishabhanatha').single.name,
+        'Dilwara Temples',
+      );
+    },
+  );
+
+  testWidgets('a gurdwara with stored tradition shows a Sikh deity badge', (
+    tester,
+  ) async {
+    final listed = [
+      temple(
+        name: 'Harmandir Sahib',
+        state: 'Punjab',
+        city: 'Amritsar',
+        deity: 'Guru Granth Sahib',
+        tradition: 'sikh',
+      ),
+    ];
+    await pumpList(
+      tester,
+      directory: listed,
+      initialDeity: 'Guru Granth Sahib',
+    );
+    expect(find.text('Harmandir Sahib'), findsOneWidget);
+    expect(find.textContaining('Guru Granth Sahib · Sikh'), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('filter-chip-deity')));
+    await tester.tap(find.byKey(const Key('filter-chip-deity')));
+    await tester.pumpAndSettle();
+    expect(find.text('Sikh'), findsWidgets);
+    expect(
+      find.text(
+        'Sikh sites are labelled by their own tradition, not Hindu darshan.',
       ),
       findsOneWidget,
     );
@@ -1142,8 +1247,14 @@ void main() {
     expect(clear.hitTestable(), findsOneWidget);
     // 320dp used to scroll the deity chip off the row (run 42699042193,
     // flow 21). Clear and every chip stay on screen.
-    expect(find.byKey(const Key('filter-chip-deity')).hitTestable(), findsOneWidget);
-    expect(find.byKey(const Key('filter-chip-state')).hitTestable(), findsOneWidget);
+    expect(
+      find.byKey(const Key('filter-chip-deity')).hitTestable(),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('filter-chip-state')).hitTestable(),
+      findsOneWidget,
+    );
 
     await tester.tap(clear);
     await tester.pump();

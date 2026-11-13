@@ -38,11 +38,43 @@ String? listedDeityTraditionLabel(String deity) {
   };
 }
 
+/// Display label from a stored or indexed tradition field, then the deity text.
+String? listedTempleTraditionLabel(Temple temple) {
+  final stored = templeTraditionLabel(
+    temple.tradition ?? temple.indexTradition,
+  );
+  return stored ?? listedDeityTraditionLabel(temple.deity);
+}
+
+/// Jain, Buddhist, or Sikh for an exact `jain` / `buddhist` / `sikh` value.
+String? templeTraditionLabel(String? value) {
+  return switch (value) {
+    'jain' => 'Jain',
+    'buddhist' => 'Buddhist',
+    'sikh' => 'Sikh',
+    _ => null,
+  };
+}
+
+/// Lookup used when grouping loaded temples, so a stored tradition labels
+/// a deity such as "Guru Granth Sahib" even when the text has no Sikh words.
+DeityTraditionOf traditionOfLoadedTemples(Iterable<Temple> temples) {
+  final byKey = <String, String>{};
+  for (final temple in temples) {
+    final label = listedTempleTraditionLabel(temple);
+    if (label == null) continue;
+    final key = deityGroupKey(temple.deity);
+    if (key.isEmpty) continue;
+    byKey[key] ??= label;
+  }
+  return (name) => byKey[deityGroupKey(name)];
+}
+
 /// Chip text for a selected deity, with a tradition suffix when one applies.
-String directoryDeityChipLabel(String deity) {
-  final tradition = listedDeityTraditionLabel(deity);
-  if (tradition == null) return deity;
-  return '$deity · $tradition';
+String directoryDeityChipLabel(String deity, {String? tradition}) {
+  final label = tradition ?? listedDeityTraditionLabel(deity);
+  if (label == null) return deity;
+  return '$deity · $label';
 }
 
 /// Subtitle for the Deity sheet.
@@ -50,11 +82,17 @@ String directoryDeityChipLabel(String deity) {
 /// With no Jain, Buddhist, or Sikh name this is "N deities". Otherwise it
 /// names those traditions, for example "Jain and Buddhist sites are labelled
 /// by their own tradition, not Hindu darshan."
-String directoryDeityFilterNote(Iterable<String> deities, {int? count}) {
+String directoryDeityFilterNote(
+  Iterable<String> deities, {
+  int? count,
+  Iterable<String> traditionLabels = const [],
+}) {
   const order = ['Jain', 'Buddhist', 'Sikh'];
+  final extra = traditionLabels.toSet();
   final present = [
     for (final label in order)
-      if (deities.any((deity) => listedDeityTraditionLabel(deity) == label))
+      if (extra.contains(label) ||
+          deities.any((deity) => listedDeityTraditionLabel(deity) == label))
         label,
   ];
   if (present.isEmpty) {

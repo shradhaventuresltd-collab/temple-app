@@ -299,60 +299,65 @@ class _DirectoryFilterBarState extends State<DirectoryFilterBar> {
           spacing: 8,
           runSpacing: 8,
           children: [
-                KeyedSubtree(
-                  key: _stateChip,
-                  child: _TriggerChip(
-                    chipKey: const Key('filter-chip-state'),
-                    semanticsId: 'filter-chip-state',
-                    clearKey: const Key('filter-chip-state-clear'),
-                    icon: Icons.place_outlined,
-                    label: selectedState ?? 'State',
-                    selected: selectedState != null,
-                    openTooltip: 'Choose a state',
-                    clearTooltip: 'Clear state filter',
-                    onOpen: () => _openSheet(DirectoryFilterSection.state),
-                    onClear: () => widget.onChanged(null, selectedDeity, null),
-                  ),
-                ),
-                KeyedSubtree(
-                  key: _districtChip,
-                  child: _TriggerChip(
-                    chipKey: const Key('filter-chip-district'),
-                    semanticsId: 'filter-chip-district',
-                    clearKey: const Key('filter-chip-district-clear'),
-                    icon: Icons.account_balance_outlined,
-                    label: selectedDistrict == null || selectedDistrict.isEmpty
-                        ? 'District'
-                        : selectedDistrict,
-                    selected:
-                        selectedDistrict != null && selectedDistrict.isNotEmpty,
-                    openTooltip: _districtNeedsState
-                        ? 'Choose a state first'
-                        : 'Choose a district',
-                    clearTooltip: 'Clear district filter',
-                    onOpen: () => _openSheet(DirectoryFilterSection.district),
-                    onClear: () =>
-                        widget.onChanged(selectedState, selectedDeity, null),
-                  ),
-                ),
-                KeyedSubtree(
-                  key: _deityChip,
-                  child: _TriggerChip(
-                    chipKey: const Key('filter-chip-deity'),
-                    semanticsId: 'filter-chip-deity',
-                    clearKey: const Key('filter-chip-deity-clear'),
-                    icon: Icons.auto_awesome_outlined,
-                    label: selectedDeity == null
-                        ? 'Deity'
-                        : directoryDeityChipLabel(selectedDeity),
-                    selected: selectedDeity != null,
-                    openTooltip: 'Choose a deity',
-                    clearTooltip: 'Clear deity filter',
-                    onOpen: () => _openSheet(DirectoryFilterSection.deity),
-                    onClear: () =>
-                        widget.onChanged(selectedState, null, selectedDistrict),
-                  ),
-                ),
+            KeyedSubtree(
+              key: _stateChip,
+              child: _TriggerChip(
+                chipKey: const Key('filter-chip-state'),
+                semanticsId: 'filter-chip-state',
+                clearKey: const Key('filter-chip-state-clear'),
+                icon: Icons.place_outlined,
+                label: selectedState ?? 'State',
+                selected: selectedState != null,
+                openTooltip: 'Choose a state',
+                clearTooltip: 'Clear state filter',
+                onOpen: () => _openSheet(DirectoryFilterSection.state),
+                onClear: () => widget.onChanged(null, selectedDeity, null),
+              ),
+            ),
+            KeyedSubtree(
+              key: _districtChip,
+              child: _TriggerChip(
+                chipKey: const Key('filter-chip-district'),
+                semanticsId: 'filter-chip-district',
+                clearKey: const Key('filter-chip-district-clear'),
+                icon: Icons.account_balance_outlined,
+                label: selectedDistrict == null || selectedDistrict.isEmpty
+                    ? 'District'
+                    : selectedDistrict,
+                selected:
+                    selectedDistrict != null && selectedDistrict.isNotEmpty,
+                openTooltip: _districtNeedsState
+                    ? 'Choose a state first'
+                    : 'Choose a district',
+                clearTooltip: 'Clear district filter',
+                onOpen: () => _openSheet(DirectoryFilterSection.district),
+                onClear: () =>
+                    widget.onChanged(selectedState, selectedDeity, null),
+              ),
+            ),
+            KeyedSubtree(
+              key: _deityChip,
+              child: _TriggerChip(
+                chipKey: const Key('filter-chip-deity'),
+                semanticsId: 'filter-chip-deity',
+                clearKey: const Key('filter-chip-deity-clear'),
+                icon: Icons.auto_awesome_outlined,
+                label: selectedDeity == null
+                    ? 'Deity'
+                    : directoryDeityChipLabel(
+                        selectedDeity,
+                        tradition: traditionOfLoadedTemples(widget.temples)(
+                          selectedDeity,
+                        ),
+                      ),
+                selected: selectedDeity != null,
+                openTooltip: 'Choose a deity',
+                clearTooltip: 'Clear deity filter',
+                onOpen: () => _openSheet(DirectoryFilterSection.deity),
+                onClear: () =>
+                    widget.onChanged(selectedState, null, selectedDistrict),
+              ),
+            ),
           ],
         ),
         Padding(
@@ -646,9 +651,9 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
           FilterSheetJump(
             id: 'filter-region-jump-$id',
             label:
-                indiaStateSectionTitle(
-                  id == 'east' ? 'east' : id,
-                ).substring(0, 1).toUpperCase() +
+                indiaStateSectionTitle(id == 'east' ? 'east' : id)
+                    .substring(0, 1)
+                    .toUpperCase() +
                 indiaStateSectionTitle(id).substring(1).toLowerCase(),
             sectionId: sections.any((section) => section.id == id)
                 ? id
@@ -783,7 +788,10 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
     final id = identityHashCode(widget.temples);
     final cached = _deityGroups;
     if (cached != null && _deityGroupsId == id) return cached;
-    final next = groupDeityNames(directoryDeitiesFrom(widget.temples));
+    final next = groupDeityNames(
+      directoryDeitiesFrom(widget.temples),
+      traditionOf: traditionOfLoadedTemples(widget.temples),
+    );
     _deityGroups = next;
     _deityGroupsId = id;
     return next;
@@ -860,10 +868,14 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
       for (final label in ['Jain', 'Buddhist', 'Sikh'])
         if (visible.any((group) => group.tradition == label)) label,
     ];
-    final note = directoryDeityFilterNote([
-      for (final group in visible) group.label,
-      ...[for (final group in visible) ...group.variants],
-    ], count: visible.length);
+    final note = directoryDeityFilterNote(
+      [
+        for (final group in visible) group.label,
+        ...[for (final group in visible) ...group.variants],
+      ],
+      count: visible.length,
+      traditionLabels: traditions,
+    );
     return FilterSheetScaffold(
       title: 'Deity',
       sectionKey: const Key('filter-section-deity'),

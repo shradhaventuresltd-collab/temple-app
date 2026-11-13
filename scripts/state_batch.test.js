@@ -23,6 +23,7 @@ import {
   resolveTempleAddress,
   validateStateBatch,
 } from "./state_batch.js";
+import { entryFromTemple } from "./temple_index.js";
 import { loadSampleTemples, mergeTemplesIntoSource, parseSampleTemples } from "./temple_seed.js";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
@@ -240,7 +241,109 @@ const List<Temple> sampleTemples = [
   assert.match(readFileSync(sample, "utf8"), /sampleTemples = \[\s*\];/);
 });
 
+test("optional tradition is jain, buddhist, or sikh, written through, and omitted for Hindu listings", () => {
+  const hindu = validateStateBatch(batch([temple()]), []);
+  assert.equal(hindu.ok, true, hindu.errors.join("\n"));
+  assert.equal(Object.hasOwn(hindu.temples[0], "tradition"), false);
+  assert.equal(Object.hasOwn(firestoreWritePayload(hindu.temples[0], null), "tradition"), false);
+
+  const blank = validateStateBatch(batch([temple({ tradition: "   " })]), []);
+  assert.equal(blank.ok, true, blank.errors.join("\n"));
+  assert.equal(Object.hasOwn(blank.temples[0], "tradition"), false);
+
+  for (const tradition of ["jain", "buddhist", "sikh"]) {
+    const result = validateStateBatch(batch([temple({ tradition })]), []);
+    assert.equal(result.ok, true, `${tradition}: ${result.errors.join("\n")}`);
+    assert.equal(result.temples[0].tradition, tradition);
+    const payload = firestoreWritePayload(result.temples[0], null);
+    assert.equal(payload.tradition, tradition);
+    assert.match(formatSummary(result.summary), new RegExp(`tradition: ${tradition}`));
+  }
+
+  const gurdwara = validateStateBatch(
+    batch([
+      temple({
+        slug: "harmandir-sahib",
+        name: "Harmandir Sahib",
+        deity: "Guru Granth Sahib",
+        tradition: "sikh",
+        description:
+          "Harmandir Sahib is the principal Sikh gurdwara in Amritsar. Pilgrims visit the sanctum around the clock.",
+      }),
+    ]),
+    [],
+  );
+  assert.equal(gurdwara.ok, true, gurdwara.errors.join("\n"));
+  const gurdwaraPayload = firestoreWritePayload(gurdwara.temples[0], null);
+  assert.equal(gurdwaraPayload.tradition, "sikh");
+  assert.equal(gurdwaraPayload.deity, "Guru Granth Sahib");
+  assert.equal(entryFromTemple({ ...gurdwaraPayload, id: "harmandir-sahib" }).tradition, "sikh");
+
+  const derasar = validateStateBatch(
+    batch([
+      temple({
+        slug: "dilwara-temples",
+        name: "Dilwara Temples",
+        deity: "Rishabhanatha",
+        tradition: "jain",
+        description:
+          "The Dilwara Temples are a Jain derasar complex at Mount Abu. Marble carving covers the sanctum halls.",
+      }),
+    ]),
+    [],
+  );
+  assert.equal(derasar.ok, true, derasar.errors.join("\n"));
+  assert.equal(firestoreWritePayload(derasar.temples[0], null).tradition, "jain");
+  assert.equal(
+    entryFromTemple({ ...firestoreWritePayload(derasar.temples[0], null), id: "dilwara-temples" }).tradition,
+    "jain",
+  );
+
+  for (const tradition of ["hindu", "Jain", "Sikh", "unspecified", "Buddhist "]) {
+    const result = validateStateBatch(batch([temple({ tradition })]), []);
+    assert.equal(result.ok, false, tradition);
+    assert.ok(
+      result.errors.some((error) => error.includes("tradition must be jain, buddhist, or sikh")),
+      `${tradition}: ${result.errors.join("\n")}`,
+    );
+  }
+
+  const notString = validateStateBatch(batch([temple({ tradition: 1 })]), []);
+  assert.equal(notString.ok, false);
+  assert.ok(notString.errors.some((error) => error.includes("tradition must be a string")));
+
+  const noDeity = temple({ tradition: "sikh" });
+  delete noDeity.deity;
+  const missingDeity = validateStateBatch(batch([noDeity]), []);
+  assert.equal(missingDeity.ok, false);
+  assert.ok(
+    missingDeity.errors.some((error) => error.includes("deity")),
+    missingDeity.errors.join("\n"),
+  );
+
+  const dir = mkdtempSync(join(tmpdir(), "state-batch-tradition-"));
+  const sample = join(dir, "sample.dart");
+  writeFileSync(
+    sample,
+    `import 'package:temple_app/models/temple.dart';
+
+const List<Temple> sampleTemples = [
+];
+`,
+  );
+  const seeded = mergeTemplesIntoSource(
+    readFileSync(sample, "utf8"),
+    gurdwara.temples,
+  );
+  assert.match(seeded, /deity: 'Guru Granth Sahib',/);
+  assert.match(seeded, /tradition: 'sikh',/);
+  const parsed = parseSampleTemples(seeded);
+  assert.equal(parsed[0].temple.tradition, "sikh");
+  assert.equal(parsed[0].temple.deity, "Guru Granth Sahib");
+});
+
 test("validator rejects placeholder image URLs and ignores sources and Stockholm", () => {
+
   const urls = [
     "https://picsum.photos/seed/example/800/600",
     "https://placehold.co/800x600",

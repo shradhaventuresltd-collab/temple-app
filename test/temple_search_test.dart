@@ -13,6 +13,8 @@ void main() {
     String location = 'Temple Street',
     String description = '',
     String story = '',
+    String? tradition,
+    String? indexTradition,
   }) {
     return Temple(
       id: id,
@@ -28,6 +30,8 @@ void main() {
       specialities: const [],
       latitude: 0,
       longitude: 0,
+      tradition: tradition,
+      indexTradition: indexTradition,
     );
   }
 
@@ -551,4 +555,64 @@ void main() {
       'Vaitheeswaran Koil',
     );
   });
+
+  test(
+    'stored tradition tokens match a gurdwara or derasar by sikh or jain',
+    () {
+      final gurdwara = temple(
+        name: 'Harmandir Sahib',
+        state: 'Punjab',
+        city: 'Amritsar',
+        deity: 'Guru Granth Sahib',
+        location: 'Amritsar, Punjab',
+        tradition: 'sikh',
+      );
+      final derasar = temple(
+        name: 'Dilwara Temples',
+        state: 'Rajasthan',
+        city: 'Mount Abu',
+        deity: 'Rishabhanatha',
+        location: 'Mount Abu, Rajasthan',
+        tradition: 'jain',
+      );
+      final hindu = temple(
+        name: 'Meenakshi Amman Temple',
+        deity: 'Devi',
+        description: 'A Sikh neighbour is mentioned only in passing.',
+      );
+      final indexed = temple(
+        name: 'Hemis Monastery',
+        state: 'Ladakh',
+        city: 'Hemis',
+        deity: 'Maitreya',
+        location: 'Hemis, Ladakh',
+        indexTradition: 'buddhist',
+      );
+      final listed = [gurdwara, derasar, hindu, indexed];
+
+      expect(
+        filterTemples(listed, query: 'sikh').single.name,
+        'Harmandir Sahib',
+      );
+      expect(templeMatchesQuery(gurdwara, 'sikh'), isTrue);
+      expect(
+        filterTemples(listed, query: 'jain').single.name,
+        'Dilwara Temples',
+      );
+      expect(
+        filterTemples(listed, query: 'buddhist').single.name,
+        'Hemis Monastery',
+      );
+      expect(
+        filterTemples(listed, query: 'sikh').map((t) => t.name),
+        isNot(contains('Meenakshi Amman Temple')),
+      );
+      expect(templeMatchesQuery(hindu, 'sikh'), isFalse);
+      expect(templeMatchesQuery(gurdwara, 'gurdwara'), isFalse);
+      expect(
+        filterTemples(listed, query: 'granth').single.name,
+        'Harmandir Sahib',
+      );
+    },
+  );
 }

@@ -64,12 +64,19 @@ class DeityGroup {
   }
 }
 
+/// Optional lookup from a listed deity string to Jain, Buddhist, or Sikh.
+typedef DeityTraditionOf = String? Function(String name);
+
 /// Groups [names] into one [DeityGroup] per main deity.
 ///
 /// The label prefers a spelling that already looks like a name ('Shiva'
 /// over 'SHIVA' or 'shiva'). When the data only has a parenthetical form,
-/// the label is that base. Groups are sorted by label.
-List<DeityGroup> groupDeityNames(Iterable<String> names) {
+/// the label is that base. Groups are sorted by label. [traditionOf]
+/// supplies a stored or indexed tradition when the deity text has none.
+List<DeityGroup> groupDeityNames(
+  Iterable<String> names, {
+  DeityTraditionOf? traditionOf,
+}) {
   final order = <String>[];
   final variants = <String, List<String>>{};
   final bases = <String, Map<String, _BaseVote>>{};
@@ -92,11 +99,22 @@ List<DeityGroup> groupDeityNames(Iterable<String> names) {
     final label = _chooseLabel(key, bases[key] ?? const {});
     final seen = variants[key] ?? const <String>[];
     String? tradition;
-    for (final variant in seen) {
-      tradition = _traditionLabel(deityGroupBase(variant));
-      if (tradition != null) break;
-      tradition = _traditionLabel(variant);
-      if (tradition != null) break;
+    if (traditionOf != null) {
+      tradition = traditionOf(label);
+      if (tradition == null) {
+        for (final variant in seen) {
+          tradition = traditionOf(variant);
+          if (tradition != null) break;
+        }
+      }
+    }
+    if (tradition == null) {
+      for (final variant in seen) {
+        tradition = _traditionLabel(deityGroupBase(variant));
+        if (tradition != null) break;
+        tradition = _traditionLabel(variant);
+        if (tradition != null) break;
+      }
     }
     groups.add(
       DeityGroup(
