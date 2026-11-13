@@ -245,8 +245,14 @@ const directoryTitleBuddhistPlaces = 'Buddhist places';
 /// Title when the only constraint is a selected tradition.
 String directoryTraditionPlacesTitle(String key) {
   final trimmed = key.trim();
-  if (trimmed.isEmpty || trimmed == 'all') return directoryTitleAllPlaces;
-  return '${directoryTraditionChipLabel(trimmed)} places';
+  return switch (trimmed) {
+    '' || 'all' => directoryTitleAllPlaces,
+    'hindu' => directoryTitleHinduPlaces,
+    'sikh' => directoryTitleSikhPlaces,
+    'jain' => directoryTitleJainPlaces,
+    'buddhist' => directoryTitleBuddhistPlaces,
+    _ => directoryTitleAllPlaces,
+  };
 }
 
 /// App-bar title for a browse list constrained by these chips.

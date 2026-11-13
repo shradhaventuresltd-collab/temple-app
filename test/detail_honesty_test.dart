@@ -6,6 +6,7 @@ import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/screens/temple_detail_screen.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
+import 'package:temple_app/utils/tradition_synonyms.dart';
 import 'package:temple_app/widgets/temple_browse_card.dart';
 import 'package:flutter/material.dart';
 
@@ -980,6 +981,29 @@ void main() {
       expect(honesty.tradition, SiteTradition.jain);
       expect(honesty.traditionLabel, 'Jain');
       expect(resolvedSiteTradition(temple), SiteTradition.jain);
+      expect(templeTraditionKey(temple), 'jain');
+
+      // Index rows always set a flag, including unspecified; that must not
+      // skip the document field or the deity fallback.
+      final unspecifiedIndex = _draft(
+        name: 'Dilwara Temples',
+        deity: 'Shiva',
+        description: 'A listed shrine.',
+        tradition: 'jain',
+        indexTradition: 'unspecified',
+        timings: '',
+      );
+      expect(DetailHonesty.of(unspecifiedIndex).tradition, SiteTradition.jain);
+      expect(templeTraditionKey(unspecifiedIndex), 'jain');
+
+      final deityFallback = _draft(
+        deity: 'Jain Tirthankaras',
+        description: 'A listed shrine.',
+        indexTradition: 'unspecified',
+        timings: '',
+      );
+      expect(DetailHonesty.of(deityFallback).tradition, SiteTradition.jain);
+      expect(templeTraditionKey(deityFallback), 'jain');
     },
   );
 

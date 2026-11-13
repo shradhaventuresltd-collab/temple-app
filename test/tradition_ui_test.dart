@@ -108,6 +108,26 @@ void main() {
     expect(directoryBrowseTitle(tradition: 'jain'), directoryTitleJainPlaces);
     expect(directoryBrowseTitle(tradition: 'hindu'), directoryTitleHinduPlaces);
     expect(
+      directoryTraditionPlacesTitle('sikh'),
+      same(directoryTitleSikhPlaces),
+    );
+    expect(
+      directoryTraditionPlacesTitle('jain'),
+      same(directoryTitleJainPlaces),
+    );
+    expect(
+      directoryTraditionPlacesTitle('hindu'),
+      same(directoryTitleHinduPlaces),
+    );
+    expect(
+      directoryTraditionPlacesTitle('buddhist'),
+      same(directoryTitleBuddhistPlaces),
+    );
+    expect(
+      directoryTraditionPlacesTitle('all'),
+      same(directoryTitleAllPlaces),
+    );
+    expect(
       directoryBrowseTitle(tradition: 'buddhist'),
       directoryTitleBuddhistPlaces,
     );

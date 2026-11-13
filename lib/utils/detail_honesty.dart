@@ -1,5 +1,6 @@
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/models/temple_photo.dart';
+import 'package:temple_app/utils/tradition_synonyms.dart';
 import 'package:temple_app/utils/wikimedia_gallery.dart';
 
 /// How the detail screen should talk about a place, using only existing text.
@@ -35,7 +36,12 @@ class DetailHonesty {
 
   factory DetailHonesty.of(Temple temple) {
     final corpus = _corpus(temple);
-    final tradition = resolvedSiteTradition(temple);
+    final tradition = switch (templeTraditionKey(temple)) {
+      'jain' => SiteTradition.jain,
+      'buddhist' => SiteTradition.buddhist,
+      'sikh' => SiteTradition.sikh,
+      _ => SiteTradition.unspecified,
+    };
     final framing = temple.indexFraming != null
         ? _framingFromIndex(temple.indexFraming!)
         : _framing(temple, corpus, tradition);
@@ -758,8 +764,8 @@ bool _festivalPujaTitle(String text, int pujaStart) {
 ///
 /// Name, description, story, and specialities are not read. A neighboring
 /// "Jain temple", or a word such as Chaturbhuji, does not add a chip.
-/// [resolvedSiteTradition] uses the document [Temple.tradition] field, then
-/// [Temple.indexTradition], then this fallback.
+/// Resolution is field → index → deity → Hindu. This fallback is the deity
+/// step. [DetailHonesty.of] goes through [templeTraditionKey].
 abstract final class _DeityTraditionPatterns {
   static final jain = RegExp(r'\b(jain|tirthankaras?)\b');
   static final buddhist = RegExp(r'\b(buddha|buddhist)\b');
