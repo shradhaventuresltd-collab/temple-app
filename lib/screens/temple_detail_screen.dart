@@ -7,6 +7,8 @@ import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/screens/home_scroll.dart';
 import 'package:temple_app/services/app_analytics.dart';
 import 'package:temple_app/services/client_cache.dart';
+import 'package:temple_app/services/review_prompt.dart';
+import 'package:temple_app/services/temple_share.dart';
 import 'package:temple_app/widgets/offline_banner.dart';
 import 'package:temple_app/widgets/dress_code_card.dart';
 import 'package:temple_app/widgets/unverified_source_notice.dart';
@@ -16,6 +18,7 @@ import 'package:temple_app/services/temple_service.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
 import 'package:temple_app/widgets/app_drawer.dart';
 import 'package:temple_app/widgets/temple_image_placeholder.dart';
+import 'package:temple_app/widgets/temple_share_button.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 const Color _saffron = Color(0xFFFF8F00);
@@ -194,9 +197,18 @@ class TempleDetailBody extends StatefulWidget {
     super.key,
     required this.temple,
     this.fromCache = false,
+    this.sharer,
+    this.reviewPrompter,
   });
 
   final Temple temple;
+
+  /// Share sheet. Null uses [TempleSharer.instance]. Tests pass a fake.
+  final TempleSharer? sharer;
+
+  /// Review prompt after Get Directions. Null uses
+  /// [ReviewPrompter.instance]. Tests pass a fake.
+  final ReviewPrompter? reviewPrompter;
 
   /// True when [temple] was read from the local cache after the server read
   /// failed. The page says it may be out of date.
@@ -288,6 +300,10 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final visible = state == AppLifecycleState.resumed;
+    if (visible && _reviewOnResume) {
+      _reviewOnResume = false;
+      unawaited(_reviewPrompter.onPositiveMoment(ReviewTrigger.directions));
+    }
     if (visible == _appVisible) return;
     _appVisible = visible;
     _startAutoAdvance();
@@ -376,6 +392,31 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
 
   var _openingDirections = false;
 
+  /// Maps opened. The review ask waits until the user is back in the app,
+  /// because Play shows nothing over another app.
+  var _reviewOnResume = false;
+
+  ReviewPrompter get _reviewPrompter =>
+      widget.reviewPrompter ?? ReviewPrompter.instance;
+
+  var _sharing = false;
+
+  /// System share sheet with name, town and state, and the Play link.
+  /// A second tap while the sheet is opening is ignored. Errors are logged
+  /// and nothing is shown.
+  Future<void> _shareTemple() async {
+    if (_sharing) return;
+    _sharing = true;
+    try {
+      final sharer = widget.sharer ?? TempleSharer.instance;
+      await sharer.shareText(templeShareText(temple), subject: temple.name);
+    } catch (e, st) {
+      debugPrint('Share failed: $e\n$st');
+    } finally {
+      _sharing = false;
+    }
+  }
+
   Future<void> _openGoogleMaps() async {
     if (_openingDirections) return;
     _openingDirections = true;
@@ -393,7 +434,9 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
         return;
       }
       final opened = await _tryOpenMaps(url);
-      if (!opened && mounted) {
+      if (opened) {
+        _reviewOnResume = true;
+      } else if (mounted) {
         _showDirectionsUnavailable();
       }
     } finally {
@@ -543,16 +586,25 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
                       ),
                     ),
 
-                    // Home button — top right
+                    // Share + Home buttons — top right
                     Positioned(
                       top: topPadding + 8,
                       right: hasMultiple ? 100 : 16,
-                      child: _CircleIconButton(
-                        icon: Icons.home_rounded,
-                        onTap: () {
-                          Navigator.popUntil(context, (route) => route.isFirst);
-                          unawaited(HomeScroll.animateToTop());
-                        },
+                      child: Row(
+                        children: [
+                          TempleShareButton(onPressed: _shareTemple),
+                          const SizedBox(width: 8),
+                          _CircleIconButton(
+                            icon: Icons.home_rounded,
+                            onTap: () {
+                              Navigator.popUntil(
+                                context,
+                                (route) => route.isFirst,
+                              );
+                              unawaited(HomeScroll.animateToTop());
+                            },
+                          ),
+                        ],
                       ),
                     ),
 

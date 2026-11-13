@@ -28,6 +28,7 @@ import 'package:temple_app/services/installed_build.dart';
 import 'package:temple_app/services/offline_link.dart';
 import 'package:temple_app/services/policy_acceptance_store.dart';
 import 'package:temple_app/services/policy_link_launcher.dart';
+import 'package:temple_app/services/review_prompt.dart';
 import 'package:temple_app/services/temple_service.dart';
 import 'package:temple_app/services/update_nudge_store.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -143,6 +144,7 @@ class TempleDirectoryApp extends StatefulWidget {
     this.launchStoreUrl,
     this.demoAppIdSuffix,
     this.directory,
+    this.reviewPrompter,
   });
 
   /// Defaults to shared preferences. Tests pass an in-memory store.
@@ -190,6 +192,10 @@ class TempleDirectoryApp extends StatefulWidget {
   /// Shared directory. Resume calls [TempleService.loadDirectory] on it.
   /// Tests that pass [templesLoader] do not use it.
   final TempleService? directory;
+
+  /// Counts the launch and may ask for a Play review on the third one.
+  /// Null uses [ReviewPrompter.instance]. Tests pass a fake.
+  final ReviewPrompter? reviewPrompter;
 
   @override
   State<TempleDirectoryApp> createState() => _TempleDirectoryAppState();
@@ -378,6 +384,10 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
     });
     _logStartupScreen();
     _startAdsIfAllowed();
+    // Not awaited, never throws: the review ask must not hold Home.
+    unawaited(
+      (widget.reviewPrompter ?? ReviewPrompter.instance).onSessionStart(),
+    );
   }
 
   String get _playPackage => playStorePackageName(
