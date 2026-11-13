@@ -2,12 +2,15 @@ name: ios-build
 
 # macOS minutes bill at 10x; do not dispatch without Sanu's OK.
 # Manual only. No push, pull_request, or schedule trigger.
+# Checkout uses the ref this workflow was dispatched on.
 
 on:
   workflow_dispatch:
 
 permissions:
   contents: read
+  # Cache save and failure logs. contents stays read-only.
+  actions: write
 
 jobs:
   ios:
@@ -21,17 +24,64 @@ jobs:
           flutter-version: '3.47.7'
           cache: true
 
+      - name: cache CocoaPods
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/Library/Caches/CocoaPods
+            ~/.cocoapods
+          key: cocoapods-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+          restore-keys: cocoapods-${{ runner.os }}-
+
+      - name: toolchain versions
+        run: |
+          flutter doctor -v
+          xcodebuild -version
+          pod --version
+
       - name: flutter pub get
         run: flutter pub get
+
+      # Not the webview_flutter_wkwebview fix. That pod is a local Flutter
+      # plugin, not a trunk spec. This only refreshes Google and Firebase specs.
+      # A trunk failure must not skip the build.
+      - name: pod repo update
+        continue-on-error: true
+        run: pod repo update
 
       # Flutter installs pods. Do not call CocoaPods directly.
       # --no-codesign: this step still targets a device build, and a runner
       # with no Apple development certificate exits before pod install.
       - name: pod install via flutter
-        run: flutter build ios --config-only --no-codesign
+        id: pods
+        run: |
+          set -o pipefail
+          mkdir -p build
+          flutter build ios --config-only --no-codesign 2>&1 | tee build/ios-pod-install.log
 
       - name: debug device build
-        run: flutter build ios --no-codesign --debug
+        id: device
+        run: |
+          set -o pipefail
+          mkdir -p build
+          flutter build ios --no-codesign --debug 2>&1 | tee build/ios-device.log
 
+      # Still compile for the simulator when the unsigned device build fails.
       - name: simulator build
-        run: flutter build ios --simulator
+        if: ${{ always() && steps.pods.outcome == 'success' }}
+        run: |
+          set -o pipefail
+          mkdir -p build
+          flutter build ios --simulator 2>&1 | tee build/ios-simulator.log
+
+      - name: upload pod and build logs
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ios-build-logs
+          if-no-files-found: warn
+          path: |
+            ios/Podfile.lock
+            build/ios-pod-install.log
+            build/ios-device.log
+            build/ios-simulator.log
