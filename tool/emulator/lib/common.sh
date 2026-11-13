@@ -853,8 +853,10 @@ clear_app_data() {
 #   animations (runner disables them at boot)           -> scales back to 0
 #   notification shade / dialogs                        -> collapse, HOME
 # pm clear (clear_app_data) then wipes the app's prefs, databases, caches.
-# Not reset: clipboard and locale. No flow sets them, and API 30 has no
-# shell command to clear the clipboard. Each call is capped.
+# Not reset: clipboard. API 30 has no shell command to clear it.
+# Locale is pinned to English by pin_harness_locale_en after pm clear or a
+# fresh install, so flow text matchers stay on the English copy. Each call
+# is capped.
 reset_device_state() {
   network_on || true
   adb_shell_capped 8 cmd connectivity airplane-mode disable >/dev/null 2>&1 || true
@@ -879,6 +881,24 @@ reset_device_state() {
 clean_install() {
   adb uninstall "$PKG" >/dev/null 2>&1 || true
   install_apk
+}
+
+# Seed shared_preferences app_locale=en before the first launch. Flow
+# matchers look for English. The debug APK accepts run-as; a release
+# install refuses it and this returns without changing the device.
+# API 30 has no live locale command, so the preference is the pin.
+pin_harness_locale_en() {
+  [[ -n "${PKG:-}" ]] || return 0
+  local b64
+  b64="$(printf '%s\n' \
+    '<?xml version="1.0" encoding="utf-8" standalone="yes" ?>' \
+    '<map>' \
+    '    <string name="flutter.app_locale">en</string>' \
+    '</map>' | base64 -w 0)"
+  adb_shell_capped 8 run-as "$PKG" mkdir -p shared_prefs >/dev/null 2>&1 || return 0
+  adb_shell_capped 8 run-as "$PKG" sh -c \
+    "printf '%s' '${b64}' | base64 -d > shared_prefs/FlutterSharedPreferences.xml" \
+    >/dev/null 2>&1 || true
 }
 
 FILTER_SHEET_TITLE_RX='^(Filters|State|District|Deity|City|Sort from state|Tradition)$'

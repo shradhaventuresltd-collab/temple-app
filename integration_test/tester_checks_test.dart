@@ -43,6 +43,10 @@ void main() {
   testWidgets('tester checks', (tester) async {
     final phase = _readPhase();
     _logLine('PHASE $phase');
+    // Flows match English copy. A device locale must not change the UI.
+    tester.platformDispatcher.localesTestValue = const <Locale>[
+      Locale('en', 'US'),
+    ];
     try {
       if (phase == 'kill-switch') {
         app.integrationTestConfigOverride = const AppConfig(

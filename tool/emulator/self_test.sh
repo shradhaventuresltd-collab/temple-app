@@ -2495,6 +2495,30 @@ chmod +x "$reuse_bin/adb"
 )
 rm -rf "$reuse_dir" "$reuse_bin"
 
+# Locale pin writes flutter.app_locale=en through run-as after install/clear.
+pin_dir="$(mktemp -d)"
+pin_bin="$(mktemp -d)"
+cat > "$pin_bin/adb" << 'STUB'
+#!/bin/bash
+printf '%s\n' "$*" >> "${STUB_ADB_LOG:?}"
+exit 0
+STUB
+chmod +x "$pin_bin/adb"
+(
+  set -euo pipefail
+  export STUB_ADB_LOG="$pin_dir/adb.log"
+  export PATH="$pin_bin:$PATH"
+  export EMULATOR_FLOW=04-home
+  export EMULATOR_ARTIFACTS="$pin_dir"
+  export EMULATOR_PACKAGE=com.shradhaventures.temple
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  pin_harness_locale_en
+  grep -q 'run-as com.shradhaventures.temple mkdir -p shared_prefs' "$STUB_ADB_LOG"
+  grep -q 'flutter.app_locale' <<<"$(grep 'base64 -d' "$STUB_ADB_LOG" | sed -n "s/.*printf '%s' '\\([^']*\\)'.*/\\1/p" | base64 -d)"
+)
+rm -rf "$pin_dir" "$pin_bin"
+
 # ui_fling directions, without a device. Run 40658283240 sent "left" and
 # "right" as vertical swipes, so flow 24 never paged the gallery.
 fling_log="$(mktemp)"
