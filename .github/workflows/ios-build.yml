@@ -25,8 +25,10 @@ jobs:
         run: flutter pub get
 
       # Flutter installs pods. Do not call CocoaPods directly.
+      # --no-codesign: this step still targets a device build, and a runner
+      # with no Apple development certificate exits before pod install.
       - name: pod install via flutter
-        run: flutter build ios --config-only
+        run: flutter build ios --config-only --no-codesign
 
       - name: debug device build
         run: flutter build ios --no-codesign --debug
