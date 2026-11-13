@@ -114,7 +114,7 @@ void main() {
     expect(workflow, contains('timeout-minutes: 30'));
     expect(workflow, contains("flutter-version: '3.47.7'"));
     expect(workflow, contains('flutter pub get'));
-    expect(workflow, contains('flutter build ios --config-only'));
+    expect(workflow, contains('flutter build ios --config-only --no-codesign'));
     expect(workflow, contains('flutter build ios --no-codesign --debug'));
     expect(workflow, contains('flutter build ios --simulator'));
   });

@@ -15,7 +15,7 @@ This is the same Flutter app as the Android build. `ios/` is the iPhone runner. 
 
 ## Build without a Mac
 
-[`.github/workflows/ios-build.yml`](../.github/workflows/ios-build.yml) is `workflow_dispatch` only. It does not run on push, pull request, or a schedule. macOS minutes bill at 10x; do not dispatch without Sanu's OK. The job times out after 30 minutes. It checks out the repo, installs Flutter 3.47.7, runs `flutter pub get`, installs pods through `flutter build ios --config-only`, then runs `flutter build ios --no-codesign --debug` and `flutter build ios --simulator`.
+[`.github/workflows/ios-build.yml`](../.github/workflows/ios-build.yml) is `workflow_dispatch` only. It does not run on push, pull request, or a schedule. macOS minutes bill at 10x; do not dispatch without Sanu's OK. The job times out after 30 minutes. It checks out the repo, installs Flutter 3.47.7, runs `flutter pub get`, installs pods through `flutter build ios --config-only --no-codesign`, then runs `flutter build ios --no-codesign --debug` and `flutter build ios --simulator`.
 
 Ubuntu CI (`analyze-test`) now includes `ios/**` in its path filters. That job stays on `ubuntu-latest` and does not build the iOS app.
 
