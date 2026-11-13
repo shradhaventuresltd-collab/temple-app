@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -5,12 +6,17 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   test('Podfile platform matches the Xcode deployment target', () {
     final podfile = File('ios/Podfile').readAsStringSync();
-    expect(podfile, contains("platform :ios, '13.0'"));
-    expect(podfile, isNot(contains("# platform :ios, '13.0'")));
+    expect(podfile, contains("platform :ios, '15.0'"));
+    expect(podfile, contains("flutter_install_all_ios_pods"));
+    expect(
+      podfile,
+      contains("config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'"),
+    );
     final project = File(
       'ios/Runner.xcodeproj/project.pbxproj',
     ).readAsStringSync();
-    expect(project, contains('IPHONEOS_DEPLOYMENT_TARGET = 13.0;'));
+    expect(project, contains('IPHONEOS_DEPLOYMENT_TARGET = 15.0;'));
+    expect(project, isNot(contains('IPHONEOS_DEPLOYMENT_TARGET = 13.0;')));
   });
 
   test('analyze-test path filters include ios and stay on ubuntu', () {
@@ -101,6 +107,27 @@ void main() {
     final pubspec = File('pubspec.yaml').readAsStringSync();
     expect(pubspec, contains('enable-swift-package-manager: false'));
     expect(pubspec, contains('google_mobile_ads:'));
+
+    // Written by flutter pub get. On a Mac with Xcode this is what stops
+    // Flutter from installing webview_flutter_wkwebview as a Swift package
+    // and then omitting its darwin/ podspec from the Podfile.
+    final plugins = File('.flutter-plugins-dependencies');
+    expect(plugins.existsSync(), isTrue);
+    final decoded =
+        jsonDecode(plugins.readAsStringSync()) as Map<String, dynamic>;
+    final spm =
+        decoded['swift_package_manager_enabled'] as Map<String, dynamic>;
+    expect(spm['ios'], isFalse);
+    final iosPlugins =
+        (decoded['plugins'] as Map<String, dynamic>)['ios'] as List<dynamic>;
+    final webview = iosPlugins.cast<Map<String, dynamic>>().singleWhere(
+      (plugin) => plugin['name'] == 'webview_flutter_wkwebview',
+    );
+    expect(webview['shared_darwin_source'], isTrue);
+    expect(
+      iosPlugins.cast<Map<String, dynamic>>().map((plugin) => plugin['name']),
+      contains('google_mobile_ads'),
+    );
   });
 
   test('ios-build is manual, on macOS, and is not dispatched here', () {
@@ -123,8 +150,15 @@ void main() {
     expect(workflow, contains('timeout-minutes: 30'));
     expect(workflow, contains("flutter-version: '3.47.7'"));
     expect(workflow, contains('flutter pub get'));
+    expect(workflow, contains('flutter doctor -v'));
+    expect(workflow, contains('xcodebuild -version'));
+    expect(workflow, contains('pod --version'));
+    expect(workflow, contains('pod repo update'));
     expect(workflow, contains('flutter build ios --config-only --no-codesign'));
     expect(workflow, contains('flutter build ios --no-codesign --debug'));
     expect(workflow, contains('flutter build ios --simulator'));
+    expect(workflow, contains("steps.pods.outcome == 'success'"));
+    expect(workflow, contains('ios/Podfile.lock'));
+    expect(workflow, contains('timeout-minutes: 30'));
   });
 }

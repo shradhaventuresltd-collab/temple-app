@@ -1,5 +1,8 @@
 # Matches IPHONEOS_DEPLOYMENT_TARGET in Runner.xcodeproj.
-platform :ios, '13.0'
+# Plugin podspecs in this lockfile stop at iOS 13. Flutter 3.47's
+# generated Flutter pod requires 15.0, and the tool rewrites 13 or 14
+# up to 15.0 before pod install.
+platform :ios, '15.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -39,5 +42,10 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+    target.build_configurations.each do |config|
+      # Same floor as the Xcode project. flutter_additional_ios_build_settings
+      # drops a pod target below 15 so it inherits; set it explicitly.
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+    end
   end
 end
