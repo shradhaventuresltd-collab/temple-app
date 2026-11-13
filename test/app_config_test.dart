@@ -3,8 +3,10 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:temple_app/services/app_config.dart';
+import 'package:temple_app/services/app_update.dart';
 import 'package:temple_app/services/firebase_ready.dart';
 import 'package:temple_app/services/firebase_remote_config_gateway.dart';
+import 'package:temple_app/services/store_platform.dart';
 
 void main() {
   test('in-app defaults match the tester-build contract', () {
@@ -13,6 +15,8 @@ void main() {
       'maintenance_message': '',
       'min_supported_build': 1,
       'recommended_build': 1,
+      'min_supported_build_ios': 1,
+      'recommended_build_ios': 1,
       'content_version': 0,
       'ff_ads_enabled': true,
       'ff_new_filters': false,
@@ -172,6 +176,94 @@ void main() {
     expect(config.snapshot.killSwitch, isTrue);
     expect(config.snapshot.maintenanceMessage, 'Servers are paused');
     expect(client.fetchCalls, 0);
+  });
+
+  test(
+    'a raised Android min does not block iOS build 7 when the iOS key is unset',
+    () async {
+      final client = _FakeRemoteConfig()
+        ..activated = {
+          RemoteConfigKeys.minSupportedBuild: 20,
+          RemoteConfigKeys.recommendedBuild: 20,
+        };
+      final ios = AppConfigController(
+        client: client,
+        storePlatform: StorePlatform.ios,
+      );
+      await ios.activateCachedOrDefaults();
+      expect(ios.snapshot.minSupportedBuild, 1);
+      expect(ios.snapshot.recommendedBuild, 1);
+      expect(
+        updateRequirement(
+          buildNumber: 7,
+          minSupportedBuild: ios.snapshot.minSupportedBuild,
+          recommendedBuild: ios.snapshot.recommendedBuild,
+        ),
+        UpdateRequirement.none,
+      );
+
+      client.fetched = {
+        RemoteConfigKeys.minSupportedBuild: 20,
+        RemoteConfigKeys.recommendedBuild: 20,
+      };
+      await ios.fetchAndActivateInBackground();
+      expect(ios.snapshot.minSupportedBuild, 1);
+      expect(
+        updateRequirement(
+          buildNumber: 7,
+          minSupportedBuild: ios.snapshot.minSupportedBuild,
+          recommendedBuild: ios.snapshot.recommendedBuild,
+        ),
+        UpdateRequirement.none,
+      );
+    },
+  );
+
+  test('an iOS min of 10 blocks iOS build 7', () async {
+    final client = _FakeRemoteConfig()
+      ..activated = {
+        RemoteConfigKeys.minSupportedBuild: 1,
+        RemoteConfigKeys.minSupportedBuildIos: 10,
+      };
+    final ios = AppConfigController(
+      client: client,
+      storePlatform: StorePlatform.ios,
+    );
+    await ios.activateCachedOrDefaults();
+    expect(ios.snapshot.minSupportedBuild, 10);
+    expect(
+      updateRequirement(
+        buildNumber: 7,
+        minSupportedBuild: ios.snapshot.minSupportedBuild,
+        recommendedBuild: ios.snapshot.recommendedBuild,
+      ),
+      UpdateRequirement.hard,
+    );
+  });
+
+  test('Android build floors ignore the iOS keys', () async {
+    final client = _FakeRemoteConfig()
+      ..activated = {
+        RemoteConfigKeys.minSupportedBuild: 20,
+        RemoteConfigKeys.recommendedBuild: 8,
+        RemoteConfigKeys.minSupportedBuildIos: 1,
+        RemoteConfigKeys.recommendedBuildIos: 1,
+      };
+    final android = AppConfigController(
+      client: client,
+      storePlatform: StorePlatform.android,
+    );
+    await android.activateCachedOrDefaults();
+    expect(android.snapshot.minSupportedBuild, 20);
+    expect(android.snapshot.recommendedBuild, 8);
+    expect(
+      updateRequirement(
+        buildNumber: 7,
+        minSupportedBuild: android.snapshot.minSupportedBuild,
+        recommendedBuild: android.snapshot.recommendedBuild,
+      ),
+      UpdateRequirement.hard,
+    );
   });
 
   test('no client never calls the plugin and stays on defaults', () async {

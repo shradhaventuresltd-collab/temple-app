@@ -1,3 +1,4 @@
+import 'package:temple_app/services/store_platform.dart';
 import 'package:temple_app/services/update_nudge_store.dart';
 
 /// Play listing for the Android app. The `.demo` suffix is the distribution
@@ -13,11 +14,68 @@ Uri playStoreMarketUri(String packageName) =>
 Uri playStoreHttpsUri(String packageName) =>
     Uri.parse('https://play.google.com/store/apps/details?id=$packageName');
 
-/// `market://` first. Https is the fallback when the store app cannot open.
-Future<bool> openPlayStoreListing({
+/// PLACEHOLDER. Not an Apple ID. No App Store Connect or TestFlight
+/// record uses this value.
+///
+/// Sanu replaces [kAppStoreId] with the numeric App Store id. Until then
+/// [appStoreIdIsSet] is false and iOS does not open a store URL.
+const String kAppStoreIdPlaceholder = 'APP_STORE_ID';
+
+/// Numeric App Store id, or [kAppStoreIdPlaceholder] while the listing
+/// does not exist.
+const String kAppStoreId = kAppStoreIdPlaceholder;
+
+bool appStoreIdIsSet(String appStoreId) {
+  final value = appStoreId.trim();
+  if (value.isEmpty || value == kAppStoreIdPlaceholder) return false;
+  return RegExp(r'^\d+$').hasMatch(value);
+}
+
+Uri appStoreItmsUri(String appStoreId) =>
+    Uri.parse('itms-apps://apps.apple.com/app/id$appStoreId');
+
+Uri appStoreHttpsUri(String appStoreId) =>
+    Uri.parse('https://apps.apple.com/app/id$appStoreId');
+
+/// Update copy is not in an arb catalog. The force-update screen, the
+/// soft nudge, and Home show these strings.
+String storeListingName(StorePlatform platform) =>
+    platform == StorePlatform.ios ? 'App Store' : 'Play Store';
+
+String forceUpdateBody(StorePlatform platform) =>
+    'This version of Temple Directory India is no longer supported. '
+    'Install the latest version from the ${storeListingName(platform)} to continue.';
+
+String forceUpdateButtonLabel(StorePlatform platform) =>
+    'Update on ${storeListingName(platform)}';
+
+String forceUpdateOpenFailed(StorePlatform platform) =>
+    'Could not open the ${storeListingName(platform)}.';
+
+String softUpdateMessage(StorePlatform platform) =>
+    'A newer version is ready on the ${storeListingName(platform)}.';
+
+/// Android: `market://` then the https Play URL.
+///
+/// iOS: `itms-apps://` then the https App Store URL. An unset
+/// [appStoreId] returns false and does not open Play.
+Future<bool> openStoreListing({
+  required StorePlatform platform,
   required String packageName,
   required Future<bool> Function(Uri url) launch,
+  String appStoreId = kAppStoreId,
 }) async {
+  if (platform == StorePlatform.ios) {
+    if (!appStoreIdIsSet(appStoreId)) return false;
+    try {
+      if (await launch(appStoreItmsUri(appStoreId))) return true;
+    } catch (_) {}
+    try {
+      return await launch(appStoreHttpsUri(appStoreId));
+    } catch (_) {
+      return false;
+    }
+  }
   try {
     if (await launch(playStoreMarketUri(packageName))) return true;
   } catch (_) {}

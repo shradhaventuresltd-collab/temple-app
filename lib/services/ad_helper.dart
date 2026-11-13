@@ -6,15 +6,14 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:temple_app/config/build_flags.dart';
 import 'package:temple_app/services/ad_consent.dart';
 import 'package:temple_app/services/ad_unit_ids.dart';
+import 'package:temple_app/services/store_platform.dart';
 
 /// AdMob unit ids and the UMP-then-initialize startup path.
 ///
-/// iOS App Tracking Transparency (`NSUserTrackingUsageDescription` and the
-/// ATT prompt) is not part of this Android release path. The iOS runner is
-/// the Flutter scaffold plus an AdMob app id; ATT stays a follow-up if an
-/// iOS build is actually shipped. The shared Dart UMP flow still runs on
-/// iOS, and `GADDelayAppMeasurementInit` keeps measurement from starting
-/// before [initializeAds].
+/// There is no ATT prompt and no `NSUserTrackingUsageDescription`. iOS ad
+/// requests are non-personalized. The shared Dart UMP flow still runs, and
+/// `GADDelayAppMeasurementInit` keeps measurement from starting before
+/// [initializeAds].
 class AdHelper {
   AdHelper._();
 
@@ -35,7 +34,10 @@ class AdHelper {
   static bool get shouldRequestAds => consentAllowsAdRequest(consentMode);
 
   /// Consent-aware request for the current [consentMode].
-  static AdRequest get adRequest => adRequestForMode(consentMode);
+  ///
+  /// iOS always sets `nonPersonalizedAds`. Android follows [consentMode].
+  static AdRequest get adRequest =>
+      adRequestFor(mode: consentMode, platform: currentStorePlatform());
 
   /// UMP, then `MobileAds.initialize`.
   ///

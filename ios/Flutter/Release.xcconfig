@@ -1,2 +1,7 @@
 #include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"
 #include "Generated.xcconfig"
+
+// Info.plist GADApplicationIdentifier is $(GAD_APP_ID).
+// Production iOS app id. Profile includes this file, so it uses the same id.
+// Debug.xcconfig uses Google's public iOS test app id.
+GAD_APP_ID = ca-app-pub-7782159535499045~2293663404

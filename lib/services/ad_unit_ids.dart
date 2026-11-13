@@ -7,12 +7,19 @@
 // same define is visible to Gradle. Keep those two strings in sync with
 // [kGoogleTestAppId] and [kProductionAndroidAppId].
 //
-// iOS keeps the production GADApplicationIdentifier in ios/Runner/Info.plist.
-// Unit ids on iOS still follow [bannerAdUnitIdFor] and
-// [interstitialAdUnitIdFor].
+// iOS GADApplicationIdentifier is $(GAD_APP_ID) in Info.plist.
+// Debug.xcconfig sets [kGoogleTestIosAppId]. Release.xcconfig sets
+// [kProductionIosAppId]. There is no iOS demo xcconfig. Unit ids on iOS
+// still follow [bannerAdUnitIdFor] and [interstitialAdUnitIdFor].
 
 const String kGoogleTestAppId = 'ca-app-pub-3940256099942544~3347511713';
 const String kProductionAndroidAppId = 'ca-app-pub-7782159535499045~4640625144';
+
+/// Google's public iOS sample GAD app id (not the Android sample id).
+const String kGoogleTestIosAppId = 'ca-app-pub-3940256099942544~1458002511';
+
+/// Production iOS GAD app id. Release.xcconfig must keep this string.
+const String kProductionIosAppId = 'ca-app-pub-7782159535499045~2293663404';
 
 const String kGoogleTestBannerAndroid =
     'ca-app-pub-3940256099942544/6300978111';

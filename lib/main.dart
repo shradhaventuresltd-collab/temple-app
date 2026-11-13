@@ -28,6 +28,7 @@ import 'package:temple_app/services/installed_build.dart';
 import 'package:temple_app/services/offline_link.dart';
 import 'package:temple_app/services/policy_acceptance_store.dart';
 import 'package:temple_app/services/policy_link_launcher.dart';
+import 'package:temple_app/services/store_platform.dart';
 import 'package:temple_app/services/temple_service.dart';
 import 'package:temple_app/services/update_nudge_store.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -93,13 +94,18 @@ Future<void> main() async {
     }
   }
   final override = integrationTestConfigOverride;
+  final storePlatform = currentStorePlatform();
   final AppConfigController appConfig;
   if (override != null) {
-    appConfig = AppConfigController(initial: override);
+    appConfig = AppConfigController(
+      initial: override,
+      storePlatform: storePlatform,
+    );
   } else {
     appConfig = AppConfigController(
       client: remoteConfigClientIfReady(firebaseReady: firebaseReady),
       minimumFetchInterval: kRemoteConfigMinimumFetchInterval,
+      storePlatform: storePlatform,
     );
   }
   TempleService.readsBlocked = () => appConfig.snapshot.killSwitch;
@@ -113,6 +119,7 @@ Future<void> main() async {
       firebaseReady: firebaseReady,
       appConfig: appConfig,
       installedBuildNumber: installedBuild,
+      storePlatform: storePlatform,
     ),
   );
 }
@@ -143,6 +150,7 @@ class TempleDirectoryApp extends StatefulWidget {
     this.launchStoreUrl,
     this.demoAppIdSuffix,
     this.directory,
+    this.storePlatform = StorePlatform.android,
   });
 
   /// Defaults to shared preferences. Tests pass an in-memory store.
@@ -181,7 +189,7 @@ class TempleDirectoryApp extends StatefulWidget {
   /// Soft-nudge day. Tests pass an in-memory store.
   final UpdateNudgeStore? nudgeStore;
 
-  /// Opens a Play Store uri. Defaults to an external application launch.
+  /// Opens a store listing uri. Defaults to an external application launch.
   final Future<bool> Function(Uri url)? launchStoreUrl;
 
   /// Defaults to [kDemoAppIdSuffix]. Tests pass true for the `.demo` id.
@@ -190,6 +198,10 @@ class TempleDirectoryApp extends StatefulWidget {
   /// Shared directory. Resume calls [TempleService.loadDirectory] on it.
   /// Tests that pass [templesLoader] do not use it.
   final TempleService? directory;
+
+  /// Android opens Play. iOS opens the App Store. [main] passes
+  /// [currentStorePlatform]. Tests leave the Android default.
+  final StorePlatform storePlatform;
 
   @override
   State<TempleDirectoryApp> createState() => _TempleDirectoryAppState();
@@ -214,7 +226,9 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
   void initState() {
     super.initState();
     _ownsConfig = widget.appConfig == null;
-    _config = widget.appConfig ?? AppConfigController();
+    _config =
+        widget.appConfig ??
+        AppConfigController(storePlatform: widget.storePlatform);
     TempleService.readsBlocked = () => _config.snapshot.killSwitch;
     _config.addListener(_onConfig);
     _directory = widget.directory ?? TempleService(now: widget.now);
@@ -456,6 +470,7 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
           packageName: _playPackage,
           launch: _launchStore,
           onExit: _exitApp,
+          storePlatform: widget.storePlatform,
         );
       case _StartupPhase.home:
         return HomeScreen(
@@ -470,10 +485,12 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
           maintenanceMessage: _config.snapshot.maintenanceMessage,
           offerSoftUpdate: _offerSoftUpdate,
           nudgeStore: widget.nudgeStore,
-          openPlayStore: () => openPlayStoreListing(
+          openStoreListing: () => openStoreListing(
+            platform: widget.storePlatform,
             packageName: _playPackage,
             launch: _launchStore,
           ),
+          storePlatform: widget.storePlatform,
         );
     }
   }

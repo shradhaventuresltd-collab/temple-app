@@ -1,2 +1,7 @@
 #include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"
 #include "Generated.xcconfig"
+
+// Info.plist GADApplicationIdentifier is $(GAD_APP_ID).
+// Google's public iOS test app id. There is no iOS demo xcconfig;
+// DEMO_BUILD only switches the Android Gradle placeholder.
+GAD_APP_ID = ca-app-pub-3940256099942544~1458002511
