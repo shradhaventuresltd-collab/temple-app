@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/utils/directory_filters.dart';
 
@@ -32,12 +33,13 @@ PlaceTypeKind placeTypeKindForKey(String? key) {
 }
 
 /// Spoken label for the type icon.
-String placeTypeIconLabel(PlaceTypeKind kind) {
+String placeTypeIconLabel(PlaceTypeKind kind, {AppLocalizations? l10n}) {
+  final strings = l10n ?? L10nLookup.english;
   return switch (kind) {
-    PlaceTypeKind.sikhGurdwara => 'Gurdwara',
-    PlaceTypeKind.jainDerasar => 'Derasar',
-    PlaceTypeKind.buddhist => 'Buddhist temple',
-    PlaceTypeKind.hindu => 'Temple',
+    PlaceTypeKind.sikhGurdwara => strings.placeTypeGurdwaraLabel,
+    PlaceTypeKind.jainDerasar => strings.placeTypeDerasarLabel,
+    PlaceTypeKind.buddhist => strings.placeTypeBuddhistTempleLabel,
+    PlaceTypeKind.hindu => strings.placeTypeTempleLabel,
   };
 }
 
@@ -109,7 +111,7 @@ class PlaceTypeIcon extends StatelessWidget {
     };
     return Semantics(
       identifier: 'place-type-icon',
-      label: placeTypeIconLabel(resolved),
+      label: placeTypeIconLabel(resolved, l10n: context.l10n),
       image: true,
       child: child,
     );

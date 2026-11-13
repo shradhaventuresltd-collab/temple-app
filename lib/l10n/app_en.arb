@@ -1415,5 +1415,49 @@
   "filterStateWestBengal": "West Bengal",
   "@filterStateWestBengal": {
     "description": "Display name for the canonical state West Bengal. Filters keep the English value."
+  },
+  "drawerLanguageTitle": "Language",
+  "@drawerLanguageTitle": {
+    "description": "Drawer row that opens the language picker."
+  },
+  "drawerLanguageSystemDefault": "System default",
+  "@drawerLanguageSystemDefault": {
+    "description": "Language picker row that follows the device locale."
+  },
+  "languageEndonymEn": "English",
+  "@languageEndonymEn": {
+    "description": "English endonym, shown in every locale."
+  },
+  "languageEndonymHi": "हिन्दी",
+  "@languageEndonymHi": {
+    "description": "Hindi endonym."
+  },
+  "languageEndonymKn": "ಕನ್ನಡ",
+  "@languageEndonymKn": {
+    "description": "Kannada endonym."
+  },
+  "languageEndonymMl": "മലയാളം",
+  "@languageEndonymMl": {
+    "description": "Malayalam endonym."
+  },
+  "languageEndonymTa": "தமிழ்",
+  "@languageEndonymTa": {
+    "description": "Tamil endonym."
+  },
+  "languageEndonymTe": "తెలుగు",
+  "@languageEndonymTe": {
+    "description": "Telugu endonym."
+  },
+  "languageEndonymMr": "मराठी",
+  "@languageEndonymMr": {
+    "description": "Marathi endonym."
+  },
+  "languageEndonymBn": "বাংলা",
+  "@languageEndonymBn": {
+    "description": "Bengali endonym."
+  },
+  "languageEndonymOr": "ଓଡ଼ିଆ",
+  "@languageEndonymOr": {
+    "description": "Odia endonym."
   }
 }

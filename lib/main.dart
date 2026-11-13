@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/bundled_fonts.dart';
 import 'package:temple_app/l10n/app_locale.dart';
+import 'package:temple_app/l10n/indic_fonts.dart';
+import 'package:temple_app/l10n/locale_controller.dart';
 import 'package:temple_app/config/build_flags.dart';
 import 'package:temple_app/config/emulator_app_test.dart';
 import 'package:temple_app/config/policy_config.dart';
@@ -146,6 +148,7 @@ class TempleDirectoryApp extends StatefulWidget {
     this.demoAppIdSuffix,
     this.directory,
     this.reviewPrompter,
+    this.localeController,
   });
 
   /// Defaults to shared preferences. Tests pass an in-memory store.
@@ -198,6 +201,9 @@ class TempleDirectoryApp extends StatefulWidget {
   /// Null uses [ReviewPrompter.instance]. Tests pass a fake.
   final ReviewPrompter? reviewPrompter;
 
+  /// Language picker. Tests pass a controller with an in-memory store.
+  final AppLocaleController? localeController;
+
   @override
   State<TempleDirectoryApp> createState() => _TempleDirectoryAppState();
 }
@@ -219,6 +225,8 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
   Completer<bool>? _softUpdateDecision;
   final AnalyticsNavigatorObserver _analyticsObserver =
       AnalyticsNavigatorObserver();
+  late final AppLocaleController _locales;
+  late final bool _ownsLocales;
   String? _loggedStartupScreen;
 
   @override
@@ -239,11 +247,22 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
       _firebaseReady = AppBootstrap.initializeFirebase();
     }
     _store = widget.acceptanceStore ?? SharedPreferencesPolicyAcceptanceStore();
+    _ownsLocales = widget.localeController == null;
+    _locales = widget.localeController ?? AppLocaleController();
+    _locales.addListener(_onLocale);
+    unawaited(_locales.load());
     unawaited(_loadAcceptance());
+  }
+
+  void _onLocale() {
+    if (!mounted) return;
+    setState(() {});
   }
 
   @override
   void dispose() {
+    _locales.removeListener(_onLocale);
+    if (_ownsLocales) _locales.dispose();
     _config.removeListener(_onConfig);
     TempleService.readsBlocked = () => false;
     if (_ownsConfig) _config.dispose();
@@ -509,26 +528,30 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
     const saffron = Color(0xFFFF8F00);
     const gold = Color(0xFFFFD54F);
 
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      navigatorObservers: [_analyticsObserver],
-      onGenerateTitle: (context) => context.l10n.appTitle,
-      // l10n-allow: task-switcher fallback before a locale is resolved.
-      title: 'Temple Directory India',
-      localeResolutionCallback: AppLocale.resolve,
-      localizationsDelegates: AppLocale.localizationsDelegates,
-      supportedLocales: AppLocale.supportedLocales,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: saffron,
-          primary: saffron,
-          secondary: gold,
+    return AppLocaleScope(
+      controller: _locales,
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        navigatorObservers: [_analyticsObserver],
+        onGenerateTitle: (context) => context.l10n.appTitle,
+        // l10n-allow: task-switcher fallback before a locale is resolved.
+        title: 'Temple Directory India',
+        locale: _locales.override,
+        localeResolutionCallback: AppLocale.resolve,
+        localizationsDelegates: AppLocale.localizationsDelegates,
+        supportedLocales: AppLocale.supportedLocales,
+        theme: ThemeData(
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: saffron,
+            primary: saffron,
+            secondary: gold,
+          ),
+          textTheme: withIndicFallback(GoogleFonts.poppinsTextTheme()),
+          scaffoldBackgroundColor: const Color(0xFFFFFBF2),
         ),
-        textTheme: GoogleFonts.poppinsTextTheme(),
-        scaffoldBackgroundColor: const Color(0xFFFFFBF2),
+        home: _body(),
       ),
-      home: _body(),
     );
   }
 }

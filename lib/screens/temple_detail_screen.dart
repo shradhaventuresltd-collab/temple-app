@@ -690,7 +690,10 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            '${_currentPage + 1} / ${gallery.length}',
+                            context.l10n.templeDetailGalleryPositionLabel(
+                              _currentPage + 1,
+                              gallery.length,
+                            ),
                             style: GoogleFonts.poppins(
                               color: Colors.white,
                               fontSize: 13,
@@ -934,8 +937,10 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
                         _InfoCard(
                           title: context.l10n.templeDetailCoordinatesTitle,
                           icon: Icons.explore_rounded,
-                          content:
-                              '${temple.latitude!.toStringAsFixed(4)}° N, ${temple.longitude!.toStringAsFixed(4)}° E',
+                          content: context.l10n.templeDetailCoordinatesValue(
+                            temple.latitude!.toStringAsFixed(4),
+                            temple.longitude!.toStringAsFixed(4),
+                          ),
                         ),
                       ],
 

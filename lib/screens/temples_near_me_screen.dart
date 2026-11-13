@@ -385,7 +385,9 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
             ? PlaceTypeIcon.forKey(traditionKey: _tradition, size: 16)
             : const TraditionArchIcon(size: 16),
         label: Text(
-          selected ? directoryTraditionChipLabel(_tradition!) : 'Tradition',
+          selected
+              ? directoryTraditionChipLabel(_tradition!, l10n: context.l10n)
+              : context.l10n.filterChipTraditionLabel,
         ),
         onPressed: _pickTradition,
       ),
@@ -715,7 +717,7 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
       for (final group in groupStatesByRegion(states))
         FilterSheetSection(
           id: group.id,
-          title: group.title,
+          title: indiaStateSectionTitleOf(context.l10n, group.id),
           total: group.states.fold<int>(
             0,
             (sum, state) =>
@@ -725,11 +727,14 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
             for (final state in group.states)
               FilterSheetOption(
                 id: 'near-me-state-option-$state',
-                label: state,
+                label: stateDisplayLabel(context.l10n, state),
+                searchText: state,
                 count: _count((temple) => temple.state.trim() == state),
                 value: state,
                 selected: _session.anchorState == state,
-                badge: indiaStateIsUnionTerritory(state) ? 'UT' : null,
+                badge: indiaStateIsUnionTerritory(state)
+                    ? context.l10n.filterSheetUnionTerritoryBadge
+                    : null,
               ),
           ],
         ),

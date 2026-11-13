@@ -299,5 +299,16 @@
   "filterStateTripura": "திரிபுரா",
   "filterStateUttarPradesh": "உத்தரப் பிரதேசம்",
   "filterStateUttarakhand": "உத்தரகாண்ட்",
-  "filterStateWestBengal": "மேற்கு வங்கம்"
+  "filterStateWestBengal": "மேற்கு வங்கம்",
+  "drawerLanguageTitle": "மொழி",
+  "drawerLanguageSystemDefault": "கணினி இயல்பு",
+  "languageEndonymEn": "English",
+  "languageEndonymHi": "हिन्दी",
+  "languageEndonymKn": "ಕನ್ನಡ",
+  "languageEndonymMl": "മലയാളം",
+  "languageEndonymTa": "தமிழ்",
+  "languageEndonymTe": "తెలుగు",
+  "languageEndonymMr": "मराठी",
+  "languageEndonymBn": "বাংলা",
+  "languageEndonymOr": "ଓଡ଼ିଆ"
 }
