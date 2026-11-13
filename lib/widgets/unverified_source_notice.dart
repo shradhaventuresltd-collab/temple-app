@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -85,9 +86,10 @@ class UnverifiedSourceNotice extends StatefulWidget {
   final String noLinkText;
   final Uri? sourceUri;
 
-  static const title = 'Unverified, check before visiting';
-  static const linkText = 'View source';
-  static const launchFailedText = "Couldn't open the source link.";
+  static String get title => L10nLookup.english.templeDetailUnverifiedTitle;
+  static String get linkText => L10nLookup.english.templeDetailViewSourceLabel;
+  static String get launchFailedText =>
+      L10nLookup.english.templeDetailSourceLinkFailedMessage;
 
   @override
   State<UnverifiedSourceNotice> createState() => _UnverifiedSourceNoticeState();
@@ -112,8 +114,8 @@ class _UnverifiedSourceNoticeState extends State<UnverifiedSourceNotice> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          const SnackBar(
-            content: Text(UnverifiedSourceNotice.launchFailedText),
+          SnackBar(
+            content: Text(context.l10n.templeDetailSourceLinkFailedMessage),
           ),
         );
     }
@@ -129,9 +131,11 @@ class _UnverifiedSourceNoticeState extends State<UnverifiedSourceNotice> {
     );
     final hasLink = widget.sourceUri != null;
     final subject = widget.subject;
-    final label = hasLink
-        ? '$subject unverified. Check before visiting. View source, opens browser.'
-        : '$subject unverified. Check before visiting. ${widget.noLinkText}';
+    final linkSpoken = context.l10n.templeDetailViewSourceSemantics;
+    final label = context.l10n.templeDetailUnverifiedSemantics(
+      subject,
+      hasLink ? '$linkSpoken.' : widget.noLinkText,
+    );
     final chipId = '${widget.id}-unverified-chip';
     final linkId = '${widget.id}-source-link';
 
@@ -164,7 +168,7 @@ class _UnverifiedSourceNoticeState extends State<UnverifiedSourceNotice> {
                 children: [
                   ExcludeSemantics(
                     child: Text(
-                      UnverifiedSourceNotice.title,
+                      context.l10n.templeDetailUnverifiedTitle,
                       style: base.copyWith(fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -183,7 +187,7 @@ class _UnverifiedSourceNoticeState extends State<UnverifiedSourceNotice> {
                           identifier: linkId,
                           button: true,
                           link: true,
-                          label: 'View source, opens browser',
+                          label: linkSpoken,
                           onTap: _openSource,
                           excludeSemantics: true,
                           child: InkWell(
@@ -199,7 +203,7 @@ class _UnverifiedSourceNoticeState extends State<UnverifiedSourceNotice> {
                                 children: [
                                   Flexible(
                                     child: Text(
-                                      UnverifiedSourceNotice.linkText,
+                                      context.l10n.templeDetailViewSourceLabel,
                                       style: base.copyWith(
                                         color: tokens.accent,
                                         fontWeight: FontWeight.w600,

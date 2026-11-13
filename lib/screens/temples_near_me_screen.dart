@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:temple_app/l10n/app_locale.dart';
+import 'package:temple_app/l10n/display_labels.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/district/district_boundary.dart';
 import 'package:temple_app/district/district_lookup.dart';
@@ -127,7 +129,7 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
         foregroundColor: Colors.white,
         elevation: 0,
         title: Text(
-          NearMeCopy.title,
+          NearMeCopy.titleOf(context.l10n),
           style: GoogleFonts.lora(
             fontSize: 20,
             fontWeight: FontWeight.w700,
@@ -144,9 +146,9 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
       case NearMePhase.rationale:
         return const SizedBox.shrink();
       case NearMePhase.locating:
-        return _status(NearMeCopy.locating);
+        return _status(NearMeCopy.locatingOf(context.l10n));
       case NearMePhase.sorted:
-        return _results(heading: NearMeCopy.nearestHeading);
+        return _results(heading: NearMeCopy.nearestHeadingOf(context.l10n));
       case NearMePhase.denied:
       case NearMePhase.deniedForever:
       case NearMePhase.serviceOff:
@@ -214,20 +216,20 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
         const SizedBox(height: 8),
         _placeButton(
           key: const Key('near-me-state'),
-          label: _session.anchorState ?? NearMeCopy.chooseState,
+          label: _session.anchorState ?? NearMeCopy.chooseStateOf(context.l10n),
           onPressed: _chooseState,
         ),
         const SizedBox(height: 8),
         _placeButton(
           key: const Key('near-me-city'),
-          label: _session.anchorCity ?? NearMeCopy.chooseCity,
+          label: _session.anchorCity ?? NearMeCopy.chooseCityOf(context.l10n),
           onPressed: _session.anchorState == null ? null : _chooseCity,
         ),
         if (_showDistrictPicker()) ...[
           const SizedBox(height: 8),
           _placeButton(
             key: const Key('near-me-district'),
-            label: _session.anchorDistrict ?? NearMeCopy.chooseDistrict,
+            label: _session.anchorDistrict ?? NearMeCopy.chooseDistrictOf(context.l10n),
             onPressed: _chooseDistrict,
           ),
         ],
@@ -239,12 +241,12 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
 
   String _fallbackMessage() {
     return switch (_session.phase) {
-      NearMePhase.denied => NearMeCopy.deniedBody,
-      NearMePhase.deniedForever => NearMeCopy.deniedForeverBody,
-      NearMePhase.serviceOff => NearMeCopy.serviceOffBody,
-      NearMePhase.timedOut => NearMeCopy.timedOutBody,
-      NearMePhase.declined => NearMeCopy.declinedBody,
-      _ => NearMeCopy.declinedBody,
+      NearMePhase.denied => NearMeCopy.deniedBodyOf(context.l10n),
+      NearMePhase.deniedForever => NearMeCopy.deniedForeverBodyOf(context.l10n),
+      NearMePhase.serviceOff => NearMeCopy.serviceOffBodyOf(context.l10n),
+      NearMePhase.timedOut => NearMeCopy.timedOutBodyOf(context.l10n),
+      NearMePhase.declined => NearMeCopy.declinedBodyOf(context.l10n),
+      _ => NearMeCopy.declinedBodyOf(context.l10n),
     };
   }
 
@@ -253,26 +255,26 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
       NearMePhase.denied => [
         _actionButton(
           key: const Key('near-me-enable-location'),
-          label: NearMeCopy.enableLocation,
+          label: NearMeCopy.enableLocationOf(context.l10n),
           onPressed: () => unawaited(_session.enableLocation()),
         ),
       ],
       NearMePhase.deniedForever => [
         _actionButton(
           key: const Key('near-me-open-settings'),
-          label: NearMeCopy.openSettings,
+          label: NearMeCopy.openSettingsOf(context.l10n),
           onPressed: () => unawaited(_session.openAppSettings()),
         ),
       ],
       NearMePhase.serviceOff => [
         _actionButton(
           key: const Key('near-me-retry'),
-          label: NearMeCopy.retry,
+          label: NearMeCopy.retryOf(context.l10n),
           onPressed: () => unawaited(_session.retry()),
         ),
         _actionButton(
           key: const Key('near-me-open-location-settings'),
-          label: NearMeCopy.openLocationSettings,
+          label: NearMeCopy.openLocationSettingsOf(context.l10n),
           filled: false,
           onPressed: () => unawaited(_session.openLocationSettings()),
         ),
@@ -280,14 +282,14 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
       NearMePhase.timedOut => [
         _actionButton(
           key: const Key('near-me-retry'),
-          label: NearMeCopy.retry,
+          label: NearMeCopy.retryOf(context.l10n),
           onPressed: () => unawaited(_session.retry()),
         ),
       ],
       NearMePhase.declined => [
         _actionButton(
           key: const Key('near-me-use-location'),
-          label: NearMeCopy.useLocation,
+          label: NearMeCopy.useLocationOf(context.l10n),
           onPressed: () => unawaited(_showRationale()),
         ),
       ],
@@ -306,12 +308,12 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
     if (label == null) return const SizedBox.shrink();
     if (_session.rows.isEmpty) {
       return Text(
-        NearMeCopy.noAnchorMatch,
+        NearMeCopy.noAnchorMatchOf(context.l10n),
         key: const Key('near-me-empty'),
         style: GoogleFonts.poppins(fontSize: 13, color: Colors.brown.shade600),
       );
     }
-    return _results(heading: NearMeCopy.sortedFrom(label), shrinkWrap: true);
+    return _results(heading: NearMeCopy.sortedFrom(label, l10n: context.l10n), shrinkWrap: true);
   }
 
   void _syncRowCache() {
@@ -405,7 +407,7 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
       if (!shrinkWrap && _session.usingLastKnown) ...[
         const SizedBox(height: 8),
         Text(
-          NearMeCopy.lastKnownNote,
+          NearMeCopy.lastKnownNoteOf(context.l10n),
           key: const Key('near-me-last-known'),
           style: GoogleFonts.poppins(
             fontSize: 13.5,
@@ -417,7 +419,7 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
         const SizedBox(height: 8),
         _actionButton(
           key: const Key('near-me-retry'),
-          label: NearMeCopy.retry,
+          label: NearMeCopy.retryOf(context.l10n),
           onPressed: () => unawaited(_session.retry()),
         ),
       ],
@@ -430,9 +432,10 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
         Text(
           _tradition != null && _tradition!.isNotEmpty
               ? NearMeCopy.noTraditionMatch(
-                  directoryTraditionChipLabel(_tradition!),
+                  _tradition!,
+                  l10n: context.l10n,
                 )
-              : NearMeCopy.noMapPoints,
+              : NearMeCopy.noMapPointsOf(context.l10n),
           key: const Key('near-me-empty'),
           style: GoogleFonts.poppins(
             fontSize: 13,
@@ -483,6 +486,7 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
         NearMeCopy.distanceLabel(
           row.distanceKm,
           approximate: row.temple.hasApproximatePin,
+          l10n: context.l10n,
         ),
         key: Key('near-me-km-$id'),
         style: GoogleFonts.poppins(
@@ -562,11 +566,11 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
   Future<void> _chooseState() async {
     final states = nearbyStates(widget.temples);
     final picked = await _pickPlace(
-      title: 'Sort from state',
+      title: context.l10n.nearMeSortFromStateTitle,
       sectionKey: const Key('filter-section-state'),
-      searchHint: 'Search state',
+      searchHint: context.l10n.filterSheetSearchStateHint,
       subtitle: Text(
-        'Tap a state to sort places by distance from it',
+        context.l10n.nearMeSortFromStateHint,
         style: GoogleFonts.poppins(
           fontSize: 13,
           color: FilterSheetColors.of(context).muted,
@@ -587,11 +591,11 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
     if (state == null) return;
     final cities = nearbyCities(widget.temples, state: state);
     final picked = await _pickPlace(
-      title: 'City',
+      title: context.l10n.nearMeCityTitle,
       sectionKey: const Key('near-me-city-sheet'),
-      searchHint: 'Search city',
+      searchHint: context.l10n.nearMeSearchCityHint,
       subtitle: Text(
-        'In $state',
+        context.l10n.nearMeInPlaceLabel(stateDisplayLabel(context.l10n, state)),
         style: GoogleFonts.poppins(
           fontSize: 13,
           color: FilterSheetColors.of(context).muted,
@@ -599,7 +603,7 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
       ),
       any: FilterSheetOption(
         id: 'near-me-city-option-any',
-        label: NearMeCopy.anyCity,
+        label: NearMeCopy.anyCityOf(context.l10n),
         count: _count((temple) => temple.state.trim() == state),
         value: '',
         selected: _session.anchorCity == null,
@@ -646,13 +650,15 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
       districtOf: lookup,
     );
     final picked = await _pickPlace(
-      title: 'District',
+      title: context.l10n.nearMeDistrictTitle,
       sectionKey: const Key('filter-section-district'),
-      searchHint: 'Search district',
+      searchHint: context.l10n.nearMeSearchDistrictHint,
       subtitle: state == null
           ? null
           : Text(
-              'In $state',
+              context.l10n.nearMeInPlaceLabel(
+                stateDisplayLabel(context.l10n, state),
+              ),
               style: GoogleFonts.poppins(
                 fontSize: 13,
                 color: FilterSheetColors.of(context).muted,
@@ -660,7 +666,7 @@ class _TemplesNearMeScreenState extends State<TemplesNearMeScreen>
             ),
       any: FilterSheetOption(
         id: 'near-me-district-option-any',
-        label: NearMeCopy.anyDistrict,
+        label: NearMeCopy.anyDistrictOf(context.l10n),
         count: _count(
           (temple) => state == null || temple.state.trim() == state,
         ),
@@ -795,7 +801,7 @@ class _RationaleSheet extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            NearMeCopy.rationaleTitle,
+            NearMeCopy.rationaleTitleOf(context.l10n),
             style: GoogleFonts.lora(
               fontSize: 22,
               fontWeight: FontWeight.w700,
@@ -804,7 +810,7 @@ class _RationaleSheet extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            NearMeCopy.rationaleBody,
+            NearMeCopy.rationaleBodyOf(context.l10n),
             key: const Key('near-me-rationale'),
             style: GoogleFonts.poppins(
               fontSize: 14,
@@ -822,12 +828,12 @@ class _RationaleSheet extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 12),
               textStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
             ),
-            child: const Text(NearMeCopy.continueLabel),
+            child: Text(NearMeCopy.continueLabelOf(context.l10n)),
           ),
           TextButton(
             key: const Key('near-me-not-now'),
             onPressed: () => Navigator.pop(context, false),
-            child: const Text(NearMeCopy.notNow),
+            child: Text(NearMeCopy.notNowOf(context.l10n)),
           ),
         ],
       ),

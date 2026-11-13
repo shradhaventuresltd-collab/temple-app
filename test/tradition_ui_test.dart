@@ -103,34 +103,16 @@ void main() {
     expect(directoryBrowseTitle(), 'All places');
     expect(directoryBrowseTitle(tradition: null), 'All places');
     expect(directoryBrowseTitle(tradition: ''), 'All places');
-    expect(directoryBrowseTitle(tradition: 'all'), directoryTitleAllPlaces);
-    expect(directoryBrowseTitle(tradition: 'sikh'), directoryTitleSikhPlaces);
-    expect(directoryBrowseTitle(tradition: 'jain'), directoryTitleJainPlaces);
-    expect(directoryBrowseTitle(tradition: 'hindu'), directoryTitleHinduPlaces);
-    expect(
-      directoryTraditionPlacesTitle('sikh'),
-      same(directoryTitleSikhPlaces),
-    );
-    expect(
-      directoryTraditionPlacesTitle('jain'),
-      same(directoryTitleJainPlaces),
-    );
-    expect(
-      directoryTraditionPlacesTitle('hindu'),
-      same(directoryTitleHinduPlaces),
-    );
-    expect(
-      directoryTraditionPlacesTitle('buddhist'),
-      same(directoryTitleBuddhistPlaces),
-    );
-    expect(
-      directoryTraditionPlacesTitle('all'),
-      same(directoryTitleAllPlaces),
-    );
-    expect(
-      directoryBrowseTitle(tradition: 'buddhist'),
-      directoryTitleBuddhistPlaces,
-    );
+    expect(directoryBrowseTitle(tradition: 'all'), 'All places');
+    expect(directoryBrowseTitle(tradition: 'sikh'), 'Sikh places');
+    expect(directoryBrowseTitle(tradition: 'jain'), 'Jain places');
+    expect(directoryBrowseTitle(tradition: 'hindu'), 'Hindu places');
+    expect(directoryTraditionPlacesTitle('sikh'), 'Sikh places');
+    expect(directoryTraditionPlacesTitle('jain'), 'Jain places');
+    expect(directoryTraditionPlacesTitle('hindu'), 'Hindu places');
+    expect(directoryTraditionPlacesTitle('buddhist'), 'Buddhist places');
+    expect(directoryTraditionPlacesTitle('all'), 'All places');
+    expect(directoryBrowseTitle(tradition: 'buddhist'), 'Buddhist places');
     expect(directoryBrowseTitle(tradition: 'sikh', state: 'Punjab'), 'Punjab');
     expect(
       directoryBrowseTitle(tradition: 'jain', deity: 'Rishabhanatha'),

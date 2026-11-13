@@ -1,3 +1,4 @@
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/models/temple.dart';
 
 /// Label used only when [Temple.dressCodeSourceType] is `official` and a
@@ -102,12 +103,13 @@ class PlaceSourceFooterLayout {
 
   /// Full visible line, e.g. `Source: en.wikipedia.org` or
   /// `Sources: en.wikipedia.org, openstreetmap.org +1 more`.
-  String get text {
-    if (visible.isEmpty) return compiledFromPublicSources;
+  String textOf(AppLocalizations l10n) {
+    if (visible.isEmpty) return l10n.placeSourceCompiledMessage;
     final names = visible.map((source) => source.label).join(', ');
-    final more = moreCount > 0 ? ' +$moreCount more' : '';
-    return '$prefix$names$more';
+    return l10n.placeSourceFooterLabel(moreCount, visible.length, names);
   }
+
+  String get text => textOf(L10nLookup.english);
 }
 
 /// Lays out [sources] for the footer: 0 / 1 / 2–3 / 4+ with at most
@@ -115,6 +117,7 @@ class PlaceSourceFooterLayout {
 PlaceSourceFooterLayout placeSourceFooterLayout(
   Iterable<PlaceSource> sources, {
   int visibleLimit = placeSourceFooterVisibleLimit,
+  AppLocalizations? l10n,
 }) {
   final list = sources.toList();
   if (list.isEmpty) {
@@ -124,9 +127,10 @@ PlaceSourceFooterLayout placeSourceFooterLayout(
       remaining: [],
     );
   }
+  final strings = l10n ?? L10nLookup.english;
   if (list.length == 1) {
     return PlaceSourceFooterLayout(
-      prefix: 'Source: ',
+      prefix: strings.placeSourceSinglePrefix,
       visible: list,
       remaining: const [],
     );
@@ -136,7 +140,7 @@ PlaceSourceFooterLayout placeSourceFooterLayout(
       ? list.sublist(visibleLimit)
       : const <PlaceSource>[];
   return PlaceSourceFooterLayout(
-    prefix: 'Sources: ',
+    prefix: strings.placeSourceManyPrefix,
     visible: visible,
     remaining: remaining,
   );
