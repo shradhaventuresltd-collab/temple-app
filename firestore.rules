@@ -36,6 +36,11 @@ service cloud.firestore {
     //     Both are null, or both are numbers. One set and one null is rejected.
     //   - tradition: optional string, exactly jain, buddhist, or sikh.
     //     Absent means a Hindu listing. Null and any other string are rejected.
+    //   - pinPrecision: optional string, exactly approx.
+    //     Absent means an exact pin. Null and any other string are rejected.
+    //   - pinOrigin: optional string, exactly osm, wikidata, wikipedia,
+    //     official, google_maps, village_centroid, or manual.
+    //     Required on the same write when pinPrecision is approx.
     //   - createdAt: timestamp (optional, immutable after creation)
     //
     // Access: Public read (this is a public temple directory).
@@ -49,7 +54,9 @@ service cloud.firestore {
     //       on the w.wiki/GHai steps, with 480px rewritten to 500px, else
     //       the full URL; max 500),
     //       lat, lng (null when missing, never 0,0), updatedAt, v,
-    //       tradition, living, framing.
+    //       tradition, living, framing, and pinPrecision (only 'approx',
+    //       omitted when the pin is exact). pinOrigin stays on the
+    //       temple document (detail-only).
     //       altNames, published, and hidden are copied only when the temple
     //       document already has that field.
     //     Descriptions, timings, and photos are not stored.
@@ -112,6 +119,39 @@ service cloud.firestore {
         data.tradition == 'jain' ||
         data.tradition == 'buddhist' ||
         data.tradition == 'sikh';
+    }
+
+    // Present only as approx. Absent is an exact pin.
+    function optionalPinPrecision(data) {
+      return !('pinPrecision' in data) || data.pinPrecision == 'approx';
+    }
+
+    function optionalPinOrigin(data) {
+      return !('pinOrigin' in data) ||
+        data.pinOrigin == 'osm' ||
+        data.pinOrigin == 'wikidata' ||
+        data.pinOrigin == 'wikipedia' ||
+        data.pinOrigin == 'official' ||
+        data.pinOrigin == 'google_maps' ||
+        data.pinOrigin == 'village_centroid' ||
+        data.pinOrigin == 'manual';
+    }
+
+    // approx requires origin and a listed coordinate pair on this write.
+    function optionalPinFields(data) {
+      return optionalPinPrecision(data) &&
+        optionalPinOrigin(data) &&
+        (
+          !('pinPrecision' in data) ||
+          data.pinPrecision != 'approx' ||
+          (
+            'pinOrigin' in data &&
+            'latitude' in data &&
+            data.latitude != null &&
+            'longitude' in data &&
+            data.longitude != null
+          )
+        );
     }
 
     // Null timings are the honest unpublished state. A string still has to
@@ -288,7 +328,7 @@ service cloud.firestore {
         'id', 'name', 'state', 'city', 'deity', 'imageUrl',
         'description', 'story', 'address', 'location', 'timings',
         'specialities', 'images', 'photos', 'latitude', 'longitude',
-        'createdAt', 'tradition'
+        'createdAt', 'tradition', 'pinPrecision', 'pinOrigin'
       ];
 
       return hasRequiredFields(requiredFields) &&
@@ -299,6 +339,7 @@ service cloud.firestore {
         validStringLength('city', 1, 100) &&
         validStringLength('deity', 1, 100) &&
         optionalTradition(data) &&
+        optionalPinFields(data) &&
         data.imageUrl is string && data.imageUrl.size() <= 2000 &&
         !placeholderHost(data.imageUrl) &&
         validStringLength('description', 1, 10000) &&
@@ -349,7 +390,7 @@ service cloud.firestore {
         'id', 'name', 'state', 'city', 'deity', 'imageUrl',
         'description', 'story', 'address', 'location', 'timings',
         'specialities', 'images', 'photos', 'latitude', 'longitude',
-        'createdAt', 'tradition',
+        'createdAt', 'tradition', 'pinPrecision', 'pinOrigin',
         'dressCode', 'dressCodeSourceUrl', 'dressCodeSourceType',
         'dressCodeVerified', 'timingsVerified', 'timingsSourceUrl',
         'timingsSourceType'
@@ -362,6 +403,7 @@ service cloud.firestore {
         optionalStringLength('city', 1, 100) &&
         optionalStringLength('deity', 1, 100) &&
         optionalTradition(data) &&
+        optionalPinFields(data) &&
         optionalStringLength('imageUrl', 0, 2000) &&
         (!('imageUrl' in data) || !placeholderHost(data.imageUrl)) &&
         optionalStringLength('description', 1, 10000) &&

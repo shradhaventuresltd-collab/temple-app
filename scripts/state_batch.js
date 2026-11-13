@@ -8,6 +8,11 @@
  * (stored as address). An optional research `tradition` is stored when it
  * is exactly jain, buddhist, or sikh (firestore.rules); omit it for a
  * Hindu listing. deity remains required even for those traditions. An
+ * optional research `pin_precision` of exactly `approx` is stored as
+ * `pinPrecision`; omit it, or set `exact`, for an exact pin. An
+ * optional research `pin_origin` (osm, wikidata, wikipedia, official,
+ * google_maps, village_centroid, or manual) is stored as `pinOrigin` and is required
+ * when `pin_precision` is approx. An
  * optional research `address` (trimmed, max 500 UTF-16 code units,
  * matching firestore.rules string.size()) is stored as that address; if
  * it is missing or whitespace-only, the seeder stores `${city}, ${state}`.
@@ -33,6 +38,19 @@ export const ADDRESS_MAX_UTF16 = 500;
 /** firestore.rules optionalTradition. Absent means a Hindu listing. */
 export const TRADITION_VALUES = Object.freeze(["jain", "buddhist", "sikh"]);
 export const TRADITION_VALUE_SET = new Set(TRADITION_VALUES);
+/** firestore.rules optionalPinPrecision. Absent or "exact" means an exact pin. */
+export const PIN_PRECISION_APPROX = "approx";
+/** firestore.rules optionalPinOrigin. */
+export const PIN_ORIGIN_VALUES = Object.freeze([
+  "osm",
+  "wikidata",
+  "wikipedia",
+  "official",
+  "google_maps",
+  "village_centroid",
+  "manual",
+]);
+export const PIN_ORIGIN_VALUE_SET = new Set(PIN_ORIGIN_VALUES);
 /** Overlap warnings only when a point is this close to a box edge. */
 export const BORDER_MARGIN_DEGREES = 0.3;
 
@@ -122,6 +140,8 @@ const TEMPLE_KEYS = [
   "review",
   "dedupe",
   "address",
+  "pin_precision",
+  "pin_origin",
 ];
 
 const FORBIDDEN = [
@@ -273,6 +293,7 @@ export function validateStateBatch(batch, existing = []) {
     requireString(raw.city, `${label}.city`, errors);
     requireString(raw.deity, `${label}.deity`, errors);
     const tradition = readOptionalTradition(raw, label, errors);
+    const pin = readOptionalPinFields(raw, label, errors);
     const address = readOptionalAddress(raw, label, errors);
     const description = requireString(raw.description, `${label}.description`, errors);
     if (description) {
@@ -393,6 +414,8 @@ export function validateStateBatch(batch, existing = []) {
       photos: [],
     };
     if (tradition) seeded.tradition = tradition;
+    if (pin.pinPrecision) seeded.pinPrecision = pin.pinPrecision;
+    if (pin.pinOrigin) seeded.pinOrigin = pin.pinOrigin;
     temples.push(seeded);
   });
 
@@ -449,7 +472,7 @@ export function validateStateBatch(batch, existing = []) {
   for (const temple of temples) {
     const prior = existingById.get(temple.id);
     if (!prior) {
-      summary.new.push({ id: temple.id, name: temple.name, address: temple.location, tradition: temple.tradition });
+      summary.new.push({ id: temple.id, name: temple.name, address: temple.location, tradition: temple.tradition, pinPrecision: temple.pinPrecision, pinOrigin: temple.pinOrigin });
       continue;
     }
     const locked = new Set([
@@ -868,6 +891,58 @@ export function readOptionalTradition(raw, label, errors) {
   return tradition;
 }
 
+/**
+ * Optional pin_precision / pin_origin. pin_precision is stored only as
+ * approx; exact and blank are omitted. pin_origin is required when the
+ * pin is approx.
+ * @param {object} raw
+ * @param {string} label
+ * @param {string[]} errors
+ * @returns {{pinPrecision: string | null, pinOrigin: string | null}}
+ */
+export function readOptionalPinFields(raw, label, errors) {
+  let pinPrecision = null;
+  if (Object.prototype.hasOwnProperty.call(raw, "pin_precision") && raw.pin_precision != null) {
+    if (typeof raw.pin_precision !== "string") {
+      errors.push(`${label}.pin_precision must be a string.`);
+    } else {
+      const value = raw.pin_precision.trim();
+      if (value === "" || value === "exact") {
+        pinPrecision = null;
+      } else if (value === PIN_PRECISION_APPROX) {
+        pinPrecision = PIN_PRECISION_APPROX;
+      } else {
+        errors.push(
+          `${label}.pin_precision must be exact or approx (omit it for an exact pin).`,
+        );
+      }
+    }
+  }
+  let pinOrigin = null;
+  if (Object.prototype.hasOwnProperty.call(raw, "pin_origin") && raw.pin_origin != null) {
+    if (typeof raw.pin_origin !== "string") {
+      errors.push(`${label}.pin_origin must be a string.`);
+    } else {
+      const value = raw.pin_origin.trim();
+      if (value === "") {
+        pinOrigin = null;
+      } else if (!PIN_ORIGIN_VALUE_SET.has(value)) {
+        errors.push(
+          `${label}.pin_origin must be osm, wikidata, wikipedia, official, google_maps, village_centroid, or manual.`,
+        );
+      } else {
+        pinOrigin = value;
+      }
+    }
+  }
+  if (pinPrecision === PIN_PRECISION_APPROX && !pinOrigin) {
+    errors.push(
+      `${label}.pin_precision=approx requires pin_origin (osm|wikidata|wikipedia|official|google_maps|village_centroid|manual).`,
+    );
+  }
+  return { pinPrecision, pinOrigin };
+}
+
 export function readOptionalAddress(raw, label, errors) {
 
   if (!Object.prototype.hasOwnProperty.call(raw, "address") || raw.address == null) {
@@ -1013,6 +1088,8 @@ function formatNewRow(row) {
   const parts = [`  new ${row.id}`];
   if (row.address) parts.push(`address: ${row.address}`);
   if (row.tradition) parts.push(`tradition: ${row.tradition}`);
+  if (row.pinPrecision) parts.push(`pinPrecision: ${row.pinPrecision}`);
+  if (row.pinOrigin) parts.push(`pinOrigin: ${row.pinOrigin}`);
   return parts.length === 1 ? parts[0] : `${parts[0]} ${parts.slice(1).join(" ")}`;
 }
 

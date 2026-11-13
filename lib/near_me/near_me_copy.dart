@@ -1,3 +1,5 @@
+import 'package:temple_app/l10n/pin_precision_strings.dart';
+
 /// User-facing copy for Temples near me.
 ///
 /// Every string a person can read for this feature lives here so wording
@@ -39,11 +41,14 @@ abstract final class NearMeCopy {
   static String sortedFrom(String place) => 'Sorted from $place';
 
   /// Short distance for a row. Under 10 km keeps one decimal.
-  static String distanceLabel(double kilometres) {
+  static String distanceLabel(double kilometres, {bool approximate = false}) {
     if (!kilometres.isFinite || kilometres < 0) return '';
     final number = kilometres < 10
         ? kilometres.toStringAsFixed(1)
         : kilometres.round().toString();
+    if (approximate) {
+      return PinPrecisionStrings.approximateDistanceKm(number);
+    }
     return '$number ${NearMeCopy.kilometres}';
   }
 }

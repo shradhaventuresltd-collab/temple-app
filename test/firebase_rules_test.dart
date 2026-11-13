@@ -54,6 +54,12 @@ void main() {
     expect(firestoreRules, contains('coordinatesArePaired(data)'));
     expect(firestoreRules, contains('function coordinatesOkOnUpdate(data)'));
     expect(firestoreRules, contains('coordinatesOkOnUpdate(data)'));
+    expect(firestoreRules, contains('function optionalPinFields(data)'));
+    expect(firestoreRules, contains("data.pinPrecision == 'approx'"));
+    expect(firestoreRules, contains("'pinPrecision', 'pinOrigin'"));
+    expect(firestoreRules, contains("data.pinOrigin == 'village_centroid'"));
+    expect(firestoreRules, contains("data.pinOrigin == 'wikipedia'"));
+    expect(firestoreRules, contains('optionalPinFields(data)'));
     expect(firestoreRules, contains("'thumbUrl'"));
     expect(firestoreRules, contains('photoUrlOk(photo.thumbUrl)'));
     expect(firestoreRules, contains("'galleryUrl'"));

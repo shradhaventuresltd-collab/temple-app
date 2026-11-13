@@ -124,6 +124,8 @@ function parseArgs(argv) {
  * stays null. story is the description. address is the trimmed research
  * address, or `${city}, ${state}` when it is missing or whitespace-only.
  * tradition is included only when it is jain, buddhist, or sikh.
+ * pinPrecision and pinOrigin are included only when set (approx pin,
+ * with origin required in that case).
  * An existing document is always refused.
  * @param {object} temple normalised batch temple
  * @param {object | null} live existing Firestore document, or null to create
@@ -149,6 +151,8 @@ export function firestoreWritePayload(temple, live) {
     address: writeAddress(temple),
   };
   if (temple.tradition) payload.tradition = temple.tradition;
+  if (temple.pinPrecision) payload.pinPrecision = temple.pinPrecision;
+  if (temple.pinOrigin) payload.pinOrigin = temple.pinOrigin;
   return payload;
 }
 
