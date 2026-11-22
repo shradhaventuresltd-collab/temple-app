@@ -3556,6 +3556,71 @@ grep -q 'COMBINED_DISTRICT_PICK:-^Alappuzha' "$f06" && grep -q 'state_chip_is "$
 grep -q 'filter-chip-tradition) continue' "$f06" || { echo "flow 06: tradition chip is not an unknown extra chip" >&2; exit 1; }
 grep -q 'share_x="$UI_CX"' tool/emulator/flows/32_share_entry_points.sh &&
   grep -q 'UI_CX="$share_x"' tool/emulator/flows/32_share_entry_points.sh || { echo "flow 32: WhatsApp probe must not wipe the share-button tap point" >&2; exit 1; }
+grep -q 'ui_wait_scrolled 45 --until-timeout --text-contains "How to Reach"' "$f06" || { echo "flow 06b: How to Reach must poll between flings until its step timeout" >&2; exit 1; }
+# Flow 32: ui_find clears UI_CX. The tap after a missed WhatsApp probe must
+# still use the coordinates seek_share_button found. Bounded; no device.
+o32="$(timeout 20 bash -c '
+set -euo pipefail
+fn="$(mktemp)"
+awk "/^share_once_and_back\\(\\)/,/^}/" tool/emulator/flows/32_share_entry_points.sh > "$fn"
+UI_CX=37 UI_CY=356
+PKG=com.example
+ui_find() { UI_CX=""; UI_CY=""; return 1; }
+adb_shell_capped() { shift; printf "CMD:%s\n" "$*"; }
+pass_step() { :; }
+fail_step() { return 0; }
+seek_share_button() { return 0; }
+logcat_window_start() { return 0; }
+sleep() { :; }
+ui_dump() { return 0; }
+step_shot() { :; }
+chooser_shown() { return 1; }
+logcat_window_read() { echo ""; return 0; }
+count_chooser_starts() { echo 0; }
+ui_back() { :; }
+ui_wait() { return 0; }
+back_until_detail() { return 0; }
+# shellcheck disable=SC1090
+source "$fn"
+share_once_and_back browse 1
+' )" || { echo "flow 32 dry-run failed: $o32" >&2; exit 1; }
+grep -qx 'CMD:input tap 37 356' <<<"$o32" || { echo "flow 32: empty tap after WhatsApp probe: $o32" >&2; exit 1; }
+# Real ui_wait_scrolled. Default still stops at 8 flings. --until-timeout
+# re-dumps between flings and finds a heading that appears on the 9th fling.
+# sleep ticks SECONDS so the step timeout is bounded without a real wait.
+# shellcheck disable=SC2016
+o06="$(timeout 20 bash -c '
+set -euo pipefail
+export EMULATOR_FLOW=06b-scroll EMULATOR_ARTIFACTS="${TMPDIR:-/tmp}/f06scroll-$$" EMULATOR_PACKAGE=com.example
+mkdir -p "$EMULATOR_ARTIFACTS"
+# shellcheck disable=SC1091
+source tool/emulator/lib/common.sh
+looks=0
+fling_calls=0
+ui_dump() { looks=$((looks + 1)); : > "$DUMP"; return 0; }
+ui_find() { (( looks >= 10 )); }
+ui_fling() { fling_calls=$((fling_calls + 1)); }
+sleep() { SECONDS=$((SECONDS + 1)); }
+ui_wait_scrolled 45 --until-timeout --text-contains "How to Reach"
+echo "found fling_calls=$fling_calls looks=$looks"
+' )" || { echo "flow 06b scroll-poll dry-run failed: $o06" >&2; exit 1; }
+[[ "$o06" == "found fling_calls=9 looks=10" ]] || { echo "flow 06b: scroll-poll did not find How to Reach on the 9th fling: $o06" >&2; exit 1; }
+# shellcheck disable=SC2016
+o06d="$(timeout 20 bash -c '
+set -euo pipefail
+export EMULATOR_FLOW=06b-scroll-default EMULATOR_ARTIFACTS="${TMPDIR:-/tmp}/f06scroll-d-$$" EMULATOR_PACKAGE=com.example
+mkdir -p "$EMULATOR_ARTIFACTS"
+# shellcheck disable=SC1091
+source tool/emulator/lib/common.sh
+ui_dump() { : > "$DUMP"; return 0; }
+ui_find() { return 1; }
+fling_calls=0
+ui_fling() { fling_calls=$((fling_calls + 1)); }
+sleep() { SECONDS=$((SECONDS + 1)); }
+ui_wait_scrolled 20 --text-contains "How to Reach" || true
+echo "fling_calls=$fling_calls"
+' )" || { echo "flow 06b default-cap dry-run failed: $o06d" >&2; exit 1; }
+[[ "$o06d" == "fling_calls=8" ]] || { echo "ui_wait_scrolled default must still stop at 8 flings: $o06d" >&2; exit 1; }
 grep -q ': "${_section}"' tool/emulator/lib/common.sh && { echo "select_labeled must use its section" >&2; exit 1; }
 [[ "$(bash -c 'source tool/emulator/plan.sh; plan_cap_s 26-drawer-nav-stack; plan_cap_s 06b-filters-combined; plan_cap_s 06a1-filters-single; plan_need_s full 12')" == $'300\n600\n400\n1979' ]] || { echo "plan: 26=300, 06b=600, 06a1=400, shard 12 = 1979s" >&2; exit 1; }
 # 6-8. Replays of run 41391038302 (testdata/run41391038302/replay_*.sh):

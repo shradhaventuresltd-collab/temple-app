@@ -509,16 +509,25 @@ ui_fling() {
 }
 
 # Dump and search, flinging up between tries. Coordinates stay derived from wm size.
+# Every try re-dumps before it decides to fling. The default stops flinging
+# after 8 and only re-dumps until the timeout, which is what existing callers
+# rely on. `--until-timeout` keeps flinging on each miss until the heading is
+# found or the timeout is spent.
 ui_wait_scrolled() {
   local timeout="$1"
   shift
+  local until_timeout=0
+  if [[ "${1:-}" == "--until-timeout" ]]; then
+    until_timeout=1
+    shift
+  fi
   local start="$SECONDS"
   local flings=0
   while (( SECONDS - start < timeout )); do
     if ui_dump && ui_find "$@"; then
       return 0
     fi
-    if (( flings < 8 )); then
+    if (( until_timeout )) || (( flings < 8 )); then
       ui_fling up || true
       flings=$((flings + 1))
     fi
