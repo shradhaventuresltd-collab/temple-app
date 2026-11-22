@@ -3553,6 +3553,9 @@ grep -q '"06a1-filters-single|tool/emulator/flows/06_filters.sh|single:1|16|400"
 f06=tool/emulator/flows/06_filters.sh
 grep -q "select_labeled '^(?!All districts)" "$f06" && { echo "flow 06: no name-less lookahead district pick" >&2; exit 1; }
 grep -q 'COMBINED_DISTRICT_PICK:-^Alappuzha' "$f06" && grep -q 'state_chip_is "$COMBINED_STATE"' "$f06" || { echo "flow 06: real district (Alappuzha) and the state-chip check" >&2; exit 1; }
+grep -q 'filter-chip-tradition) continue' "$f06" || { echo "flow 06: tradition chip is not an unknown extra chip" >&2; exit 1; }
+grep -q 'share_x="$UI_CX"' tool/emulator/flows/32_share_entry_points.sh &&
+  grep -q 'UI_CX="$share_x"' tool/emulator/flows/32_share_entry_points.sh || { echo "flow 32: WhatsApp probe must not wipe the share-button tap point" >&2; exit 1; }
 grep -q ': "${_section}"' tool/emulator/lib/common.sh && { echo "select_labeled must use its section" >&2; exit 1; }
 [[ "$(bash -c 'source tool/emulator/plan.sh; plan_cap_s 26-drawer-nav-stack; plan_cap_s 06b-filters-combined; plan_cap_s 06a1-filters-single; plan_need_s full 12')" == $'300\n600\n400\n1979' ]] || { echo "plan: 26=300, 06b=600, 06a1=400, shard 12 = 1979s" >&2; exit 1; }
 # 6-8. Replays of run 41391038302 (testdata/run41391038302/replay_*.sh):

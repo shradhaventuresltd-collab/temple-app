@@ -244,7 +244,7 @@ ui_dump || true
 while read -r chip_id; do
   [[ -z "$chip_id" ]] && continue
   case "$chip_id" in
-    filter-chip-state|filter-chip-deity|filter-chip-district|filter-chip-city) continue ;;
+    filter-chip-state|filter-chip-deity|filter-chip-district|filter-chip-city|filter-chip-tradition) continue ;;
   esac
   opener_unknown() { open_by_id "$chip_id"; }
   exercise_filter "$chip_id" '^(?!Any |All ).+[0-9]+$' "" opener_unknown "$chip_id"
