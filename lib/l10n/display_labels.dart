@@ -48,9 +48,9 @@ String stateDisplayLabel(AppLocalizations l10n, String canonical) {
 
 /// Display name for a district. Districts are an open catalog, so the
 /// canonical English name is shown until a reviewed label exists.
-String districtDisplayLabel(AppLocalizations l10n, String canonical) {
+String districtDisplayLabel(AppLocalizations _, String canonical) {
   // District names are an open catalog, so the canonical spelling is shown.
-  return l10n.localeName.isEmpty ? canonical : canonical;
+  return canonical;
 }
 
 /// Tradition chip word. [key] stays `hindu`, `jain`, `buddhist`, or `sikh`.

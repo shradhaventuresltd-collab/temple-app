@@ -10,9 +10,8 @@ export 'package:temple_app/l10n/app_localizations.dart';
 /// Every ARB is generated. A non-English file carries
 /// `@@x-needs-translation` while its copy is a machine draft. The draft is
 /// still offered: Odia ships in full, and choosing a language must change
-/// the UI. [localesReady] is the gate that drops a locale whose ARB is only
-/// an English stub. This release's drafts are real translations, so the
-/// gate keeps them when the caller passes an empty flag set.
+/// the UI. This release's drafts are real translations, so every supported
+/// language is offered.
 abstract final class AppLocale {
   /// Generated bundles, English first.
   static const List<Locale> generatedLocales =
@@ -40,19 +39,6 @@ abstract final class AppLocale {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ];
-
-  /// Locales from [generated] whose language is not in [needsTranslation].
-  ///
-  /// Order follows [generated].
-  static List<Locale> localesReady(
-    Iterable<Locale> generated,
-    Set<String> needsTranslation,
-  ) {
-    return [
-      for (final Locale locale in generated)
-        if (!needsTranslation.contains(locale.languageCode)) locale,
-    ];
-  }
 
   static Locale resolve(Locale? locale, Iterable<Locale> supported) {
     if (locale != null) {

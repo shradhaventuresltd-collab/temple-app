@@ -285,11 +285,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           context,
           namedAnalyticsRoute<void>(
             name: AnalyticsScreens.templeList,
-            builder: (_) =>
-                TempleListScreen(
-                  temples: allTemples,
-                  title: context.l10n.directoryTitleAllPlaces,
-                ),
+            builder: (_) => TempleListScreen(
+              temples: allTemples,
+              title: context.l10n.directoryTitleAllPlaces,
+            ),
           ),
         );
       },
@@ -444,7 +443,7 @@ class _HomeAdminOverflowState extends State<_HomeAdminOverflow> {
   Widget build(BuildContext context) {
     return IconButton(
       key: const Key('home-admin-menu'),
-      tooltip: 'More',
+      tooltip: 'More', // l10n-allow: admin chrome
       onPressed: _toggle,
       icon: const Icon(Icons.more_vert),
     );
@@ -532,7 +531,10 @@ class _HomeErrorBody extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            TextButton(onPressed: onRetry, child: Text(context.l10n.commonRetryButton)),
+            TextButton(
+              onPressed: onRetry,
+              child: Text(context.l10n.commonRetryButton),
+            ),
           ],
         ),
       ),
@@ -577,7 +579,10 @@ class _HomeEmptyBody extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            TextButton(onPressed: onRetry, child: Text(context.l10n.commonRetryButton)),
+            TextButton(
+              onPressed: onRetry,
+              child: Text(context.l10n.commonRetryButton),
+            ),
           ],
         ),
       ),

@@ -108,10 +108,6 @@ abstract final class NearMeCopy {
       _copy(l10n).nearMeNoAnchorMatchMessage;
   static String get noAnchorMatch => noAnchorMatchOf(null);
 
-  static String kilometresOf(AppLocalizations? l10n) =>
-      _copy(l10n).nearMeDistanceLabel('whole', 0, 1).replaceAll('1', '').trim();
-  static String get kilometres => 'km';
-
   /// Empty list after a tradition chip is applied, not a missing map point.
   ///
   /// [label] is the English chip word (`Sikh`) or the stored key (`sikh`).
@@ -119,7 +115,7 @@ abstract final class NearMeCopy {
     final key = switch (label) {
       'Sikh' || 'sikh' => 'sikh', // l10n-allow: canonical tradition key
       'Jain' || 'jain' => 'jain', // l10n-allow: canonical tradition key
-      'Buddhist' || 'buddhist' => 'buddhist', // l10n-allow: canonical tradition key
+      'Buddhist' || 'buddhist' => 'buddhist', // l10n-allow
       'Hindu' || 'hindu' => 'hindu', // l10n-allow: canonical tradition key
       _ => 'other',
     };

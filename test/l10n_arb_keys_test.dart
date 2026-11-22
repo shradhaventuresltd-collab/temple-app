@@ -15,6 +15,9 @@ const _sameInEveryLanguage = {
   'licencesCcByLinkLabel',
   'templeBrowsePlaceLabel',
   'templeDetailGalleryPositionLabel',
+  // The product name stays in Latin in every locale.
+  'appTitle',
+  'appNameShort',
 };
 
 void main() {
@@ -108,8 +111,9 @@ void main() {
   });
 
   test('untranslated strings are reported and do not fail CI', () {
-    final english = jsonDecode(File('lib/l10n/app_en.arb').readAsStringSync())
-        as Map<String, dynamic>;
+    final english =
+        jsonDecode(File('lib/l10n/app_en.arb').readAsStringSync())
+            as Map<String, dynamic>;
     final same = <String>[];
     for (final code in _localeCodes) {
       final arb =
@@ -204,7 +208,10 @@ String _withoutLineComment(String line) {
 
 List<String> _stringBodies(String code) {
   final bodies = <String>[];
-  final pattern = RegExp("'[^']*'|" '"[^"]*"');
+  final pattern = RegExp(
+    "'[^']*'|"
+    '"[^"]*"',
+  );
   for (final match in pattern.allMatches(code)) {
     final raw = match.group(0)!;
     bodies.add(raw.substring(1, raw.length - 1));

@@ -19,7 +19,8 @@ class ForceUpdateScreen extends StatefulWidget {
   final VoidCallback? onExit;
 
   static String get title => L10nLookup.english.forceUpdateTitle;
-  static String get body => L10nLookup.english.forceUpdateBody;
+  static String get body =>
+      L10nLookup.english.forceUpdateBody(L10nLookup.english.appTitle);
   static String get buttonLabel => L10nLookup.english.forceUpdateButton;
 
   @override
@@ -83,7 +84,7 @@ class _ForceUpdateScreenState extends State<ForceUpdateScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  context.l10n.forceUpdateBody,
+                  context.l10n.forceUpdateBody(context.l10n.appTitle),
                   style: GoogleFonts.poppins(
                     fontSize: 16,
                     height: 1.45,

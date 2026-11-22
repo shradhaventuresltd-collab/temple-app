@@ -15,8 +15,8 @@ class MaintenanceScreen extends StatelessWidget {
   final VoidCallback? onExit;
 
   static String get title => L10nLookup.english.maintenanceTitle;
-  static String get fallbackMessage =>
-      L10nLookup.english.maintenanceFallbackMessage;
+  static String get fallbackMessage => L10nLookup.english
+      .maintenanceFallbackMessage(L10nLookup.english.appNameShort);
 
   static const Color saffron = Color(0xFFFF8F00);
   static const Color cream = Color(0xFFFFFBF2);
@@ -34,7 +34,7 @@ class MaintenanceScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final body = message.trim().isEmpty
-        ? context.l10n.maintenanceFallbackMessage
+        ? context.l10n.maintenanceFallbackMessage(context.l10n.appNameShort)
         : message.trim();
     return PopScope(
       canPop: false,

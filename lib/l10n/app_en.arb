@@ -1075,77 +1075,18 @@
   "@templeDetailTimingsProvisionalMessage": {
     "description": "Caveat when published hours are thin."
   },
-  "policyGateAcceptButton": "Accept & continue",
-  "@policyGateAcceptButton": {
-    "description": "Accept button on the terms gate."
-  },
-  "policyGateAcceptHint": "Agrees to the Terms of Service and Privacy Policy",
-  "@policyGateAcceptHint": {
-    "description": "Spoken hint for the accept button."
-  },
-  "policyGateTermsLabel": "Terms of Service",
-  "@policyGateTermsLabel": {
-    "description": "Link label for the terms of service."
-  },
-  "policyGateUpdateTermsLabel": "Terms",
-  "@policyGateUpdateTermsLabel": {
-    "description": "Shorter terms link after a policy update."
-  },
-  "policyGatePrivacyLabel": "Privacy Policy",
-  "@policyGatePrivacyLabel": {
-    "description": "Link label for the privacy policy."
-  },
-  "policyGateLinkHint": "Opens in the app",
-  "@policyGateLinkHint": {
-    "description": "Spoken hint that a policy link opens in the app."
-  },
-  "policyGateFirstLaunchTitle": "Before you begin",
-  "@policyGateFirstLaunchTitle": {
-    "description": "Title the first time terms are shown."
-  },
-  "policyGateFirstLaunchBody": "To use the app, please review and accept our {terms} and {privacy}.",
-  "@policyGateFirstLaunchBody": {
-    "description": "First-launch terms sentence. {terms} and {privacy} are the link labels.",
-    "placeholders": {
-      "terms": {
-        "type": "String"
-      },
-      "privacy": {
-        "type": "String"
-      }
-    }
-  },
-  "policyGateUpdateTitle": "We've updated our terms",
-  "@policyGateUpdateTitle": {
-    "description": "Title after the terms change."
-  },
-  "policyGateUpdateBody": "Please review and accept the updated {terms} and {privacy} to continue.",
-  "@policyGateUpdateBody": {
-    "description": "Updated-terms sentence. {terms} and {privacy} are the link labels.",
-    "placeholders": {
-      "terms": {
-        "type": "String"
-      },
-      "privacy": {
-        "type": "String"
-      }
-    }
-  },
-  "policyGateSaveFailedMessage": "Could not save your acceptance on this device. Please try again.",
-  "@policyGateSaveFailedMessage": {
-    "description": "Snack bar when acceptance cannot be stored."
-  },
-  "policyGateLinkFailedMessage": "Could not open that link.",
-  "@policyGateLinkFailedMessage": {
-    "description": "Snack bar when a policy link does not open."
-  },
   "forceUpdateTitle": "Update required",
   "@forceUpdateTitle": {
     "description": "Title of the required-update screen."
   },
-  "forceUpdateBody": "This version of Temple Directory India is no longer supported. Install the latest version from the Play Store to continue.",
+  "forceUpdateBody": "This version of {appName} is no longer supported. Install the latest version from the Play Store to continue.",
   "@forceUpdateBody": {
-    "description": "Body of the required-update screen."
+    "description": "Body of the required-update screen. {appName} is the Latin app title.",
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      }
+    }
   },
   "forceUpdateButton": "Update on Play Store",
   "@forceUpdateButton": {
@@ -1159,9 +1100,14 @@
   "@maintenanceTitle": {
     "description": "Title of the maintenance screen."
   },
-  "maintenanceFallbackMessage": "Temple Directory is temporarily unavailable. Please try again later.",
+  "maintenanceFallbackMessage": "{appName} is temporarily unavailable. Please try again later.",
   "@maintenanceFallbackMessage": {
-    "description": "Shown when Remote Config has no maintenance message."
+    "description": "Shown when Remote Config has no maintenance message. {appName} is the short Latin name.",
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      }
+    }
   },
   "softUpdateMessage": "A newer version is ready on the Play Store.",
   "@softUpdateMessage": {
@@ -1459,5 +1405,9 @@
   "languageEndonymOr": "ଓଡ଼ିଆ",
   "@languageEndonymOr": {
     "description": "Odia endonym."
+  },
+  "templeDetailShareUnavailable": "Couldn't open sharing on this device.",
+  "@templeDetailShareUnavailable": {
+    "description": "Snack bar when the system share sheet cannot be opened."
   }
 }

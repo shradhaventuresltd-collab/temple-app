@@ -13,7 +13,6 @@ import 'package:temple_app/widgets/offline_banner.dart';
 import 'package:temple_app/widgets/dress_code_card.dart';
 import 'package:temple_app/widgets/unverified_source_notice.dart';
 import 'package:temple_app/l10n/app_locale.dart';
-import 'package:temple_app/l10n/share_strings.dart';
 import 'package:temple_app/models/temple_photo.dart';
 import 'package:temple_app/services/temple_service.dart';
 import 'package:temple_app/utils/detail_honesty.dart';
@@ -484,7 +483,7 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
         SnackBar(
           key: const Key('detail-share-unavailable'),
           content: Text(
-            ShareStrings.templeDetailShareUnavailable,
+            context.l10n.templeDetailShareUnavailable,
             style: GoogleFonts.poppins(),
           ),
           backgroundColor: Colors.red.shade700,
@@ -880,7 +879,9 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
                       if (temple.deity.trim().isNotEmpty) ...[
                         const SizedBox(height: 6),
                         Text(
-                          context.l10n.templeDetailListedFocusLabel(temple.deity),
+                          context.l10n.templeDetailListedFocusLabel(
+                            temple.deity,
+                          ),
                           key: const Key('detail-listed-focus'),
                           style: GoogleFonts.poppins(
                             fontSize: 13,
@@ -992,7 +993,9 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
                               Semantics(
                                 identifier: 'detail-approximate-location',
                                 child: Text(
-                                  context.l10n.templeDetailApproximateLocationLabel,
+                                  context
+                                      .l10n
+                                      .templeDetailApproximateLocationLabel,
                                   key: const Key('detail-approximate-location'),
                                   style: GoogleFonts.poppins(
                                     fontSize: 13,
@@ -1017,7 +1020,9 @@ class _TempleDetailBodyState extends State<TempleDetailBody>
                                       color: Colors.white,
                                     ),
                                     label: Text(
-                                      context.l10n.templeDetailGetDirectionsButton,
+                                      context
+                                          .l10n
+                                          .templeDetailGetDirectionsButton,
                                       style: GoogleFonts.poppins(
                                         color: Colors.white,
                                         fontWeight: FontWeight.w600,
