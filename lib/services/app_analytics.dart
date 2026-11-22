@@ -145,6 +145,24 @@ class AppAnalytics {
     return _logTemple('get_directions', templeId);
   }
 
+  /// A share launch from the detail page. temple_id only.
+  Future<void> logSharePlace(String templeId) {
+    return _logTemple('share_place', templeId);
+  }
+
+  static const Set<String> reviewTriggers = {'session3', 'directions', 'save'};
+
+  /// Play In-App Review was asked. Trigger only, from [reviewTriggers].
+  Future<void> logReviewRequested(String trigger) {
+    if (!reviewTriggers.contains(trigger)) return Future<void>.value();
+    return _guard(
+      () => client.logEvent(
+        name: 'review_requested',
+        parameters: {'trigger': trigger},
+      ),
+    );
+  }
+
   /// Feature open. No parameters.
   Future<void> logTemplesNearMe() {
     return _guard(() => client.logEvent(name: 'temples_near_me'));

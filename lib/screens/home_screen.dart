@@ -37,6 +37,7 @@ class HomeScreen extends StatefulWidget {
     this.adminToolsEnabled,
     this.maintenanceMessage = '',
     this.offerSoftUpdate = false,
+    this.onSoftUpdateDecided,
     this.nudgeStore,
     this.templeService,
     this.refreshTemples,
@@ -64,6 +65,10 @@ class HomeScreen extends StatefulWidget {
 
   /// True when this build is below `recommended_build` and above the minimum.
   final bool offerSoftUpdate;
+
+  /// Called once per Home open when [offerSoftUpdate] is true, with whether
+  /// the banner is shown. The review prompt waits on it.
+  final ValueChanged<bool>? onSoftUpdateDecided;
 
   /// Day the nudge was last shown. Null uses shared preferences.
   final UpdateNudgeStore? nudgeStore;
@@ -149,12 +154,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (!widget.offerSoftUpdate) return;
     final store = widget.nudgeStore ?? SharedPreferencesUpdateNudgeStore();
     final now = widget.now?.call() ?? DateTime.now();
+    var shown = false;
     try {
       final show = await _nudge.claim(store, now);
       if (!mounted || !show) return;
       setState(() => _showSoftUpdate = true);
+      shown = true;
     } catch (e, st) {
       debugPrint('Soft update nudge skipped: $e\n$st');
+    } finally {
+      widget.onSoftUpdateDecided?.call(shown);
     }
   }
 

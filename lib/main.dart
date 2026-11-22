@@ -28,6 +28,7 @@ import 'package:temple_app/services/installed_build.dart';
 import 'package:temple_app/services/offline_link.dart';
 import 'package:temple_app/services/policy_acceptance_store.dart';
 import 'package:temple_app/services/policy_link_launcher.dart';
+import 'package:temple_app/services/review_prompt.dart';
 import 'package:temple_app/services/temple_service.dart';
 import 'package:temple_app/services/update_nudge_store.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -143,6 +144,7 @@ class TempleDirectoryApp extends StatefulWidget {
     this.launchStoreUrl,
     this.demoAppIdSuffix,
     this.directory,
+    this.reviewPrompter,
   });
 
   /// Defaults to shared preferences. Tests pass an in-memory store.
@@ -191,6 +193,10 @@ class TempleDirectoryApp extends StatefulWidget {
   /// Tests that pass [templesLoader] do not use it.
   final TempleService? directory;
 
+  /// Counts the launch and may ask for a Play review on the third one.
+  /// Null uses [ReviewPrompter.instance]. Tests pass a fake.
+  final ReviewPrompter? reviewPrompter;
+
   @override
   State<TempleDirectoryApp> createState() => _TempleDirectoryAppState();
 }
@@ -206,6 +212,10 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
   bool _adsStarted = false;
   int? _buildNumber;
   bool _offerSoftUpdate = false;
+
+  /// Completed by Home with whether the soft-update banner showed on this
+  /// open. Null when no banner is offered.
+  Completer<bool>? _softUpdateDecision;
   final AnalyticsNavigatorObserver _analyticsObserver =
       AnalyticsNavigatorObserver();
   String? _loggedStartupScreen;
@@ -372,12 +382,26 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
       _logStartupScreen();
       return;
     }
+    final soft = requirement == UpdateRequirement.soft;
+    final decision = soft ? (_softUpdateDecision ??= Completer<bool>()) : null;
     setState(() {
-      _offerSoftUpdate = requirement == UpdateRequirement.soft;
+      _offerSoftUpdate = soft;
       _phase = _StartupPhase.home;
     });
     _logStartupScreen();
     _startAdsIfAllowed();
+    // Not awaited, never throws: the review ask must not hold Home. With a
+    // soft-update banner on this open, the session ask waits for the next.
+    unawaited(
+      (widget.reviewPrompter ?? ReviewPrompter.instance).onSessionStart(
+        softUpdateShown: decision?.future,
+      ),
+    );
+  }
+
+  void _onSoftUpdateDecided(bool shown) {
+    final decision = _softUpdateDecision;
+    if (decision != null && !decision.isCompleted) decision.complete(shown);
   }
 
   String get _playPackage => playStorePackageName(
@@ -469,6 +493,7 @@ class _TempleDirectoryAppState extends State<TempleDirectoryApp> {
           adminToolsEnabled: widget.adminToolsEnabled,
           maintenanceMessage: _config.snapshot.maintenanceMessage,
           offerSoftUpdate: _offerSoftUpdate,
+          onSoftUpdateDecided: _onSoftUpdateDecided,
           nudgeStore: widget.nudgeStore,
           openPlayStore: () => openPlayStoreListing(
             packageName: _playPackage,

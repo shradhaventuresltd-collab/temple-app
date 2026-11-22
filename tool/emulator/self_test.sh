@@ -779,7 +779,7 @@ for pth in "warm $e2e_warm" "retry $e2e_retry" "cold $e2e_cold" "cold_retry $e2e
 done
 (( e2e_retry <= 2640 )) || { echo "boot-retry end-to-end ${e2e_retry}s > 2640s (44.0 min)" >&2; exit 1; }
 echo "end-to-end worst (s): warm ${e2e_warm}, retry ${e2e_retry}, cold ${e2e_cold}, cold+retry ${e2e_cretry}, warm-up refused ${e2e_refused}, refused+retry ${e2e_rretry}, create failed+retry ${e2e_cfretry}; max shard ${e2e_max}"
-[[ "$e2e_warm $e2e_retry $e2e_cold $e2e_cretry $e2e_refused $e2e_rretry $e2e_cfretry $e2e_max" == "2483 2599 2533 2649 2523 2639 2675 2129" ]] || { echo "end-to-end table changed: $e2e_warm $e2e_retry $e2e_cold $e2e_cretry $e2e_refused $e2e_rretry $e2e_cfretry $e2e_max (update PR body)" >&2; exit 1; }
+[[ "$e2e_warm $e2e_retry $e2e_cold $e2e_cretry $e2e_refused $e2e_rretry $e2e_cfretry $e2e_max" == "2498 2614 2548 2664 2538 2654 2690 2144" ]] || { echo "end-to-end table changed: $e2e_warm $e2e_retry $e2e_cold $e2e_cretry $e2e_refused $e2e_rretry $e2e_cfretry $e2e_max (update PR body)" >&2; exit 1; }
 # Per-flow caps are not lowered to fit (Sanu): FLOW_CAP_S 600, 26/08 at 300.
 [[ "$(bash -c 'source tool/emulator/plan.sh; echo "$FLOW_CAP_S $(plan_cap_s 26-drawer-nav-stack) $(plan_cap_s 08-list-detail)"')" == "600 300 300" ]] || { echo "per-flow cap changed" >&2; exit 1; }
 # Round 4.4.4 (Satyavrat A): the model's create/warm-up terms follow the workflow.
@@ -918,6 +918,7 @@ flows=(
   30s5-filter-matrix-seq5
   30d-near-me
   31-filter-chain
+  32-share-entry-points
 )
 for flow in "${flows[@]}"; do
   if ! grep -q "\"${flow}|" tool/emulator/plan.sh; then
@@ -1697,14 +1698,14 @@ fi
 # as "FAIL missing").
 unstarted_n="$(grep -c '^NOT RUN [^:]*: did not start$' "${summary_dir}/results.txt")"
 skipped_n="$(grep -c '^SKIPPED ' "${summary_dir}/results.txt")"
-if [[ "$unstarted_n" -ne 61 || "$skipped_n" -ne 3 ]] ||
+if [[ "$unstarted_n" -ne 62 || "$skipped_n" -ne 3 ]] ||
    ! grep -q '^SKIPPED 30d-near-me: ' "${summary_dir}/results.txt" ||
    grep -q '^FAIL ' "${summary_dir}/results.txt" ||
    ! grep -q '^SKIPPED 11-near-me: ' "${summary_dir}/results.txt" ||
    ! grep -q '^SKIPPED 23-near-me-settings-roundtrip: ' "${summary_dir}/results.txt" ||
-   ! grep -q '0 failed, 0 expected failures, 0 unexpected passes, 61 not run, 3 skipped' "${summary_dir}/fail.out" ||
+   ! grep -q '0 failed, 0 expected failures, 0 unexpected passes, 62 not run, 3 skipped' "${summary_dir}/fail.out" ||
    ! grep -q 'did not start' "${summary_dir}/fail.out"; then
-  echo "unstarted flows: 61 NOT RUN, 3 SKIPPED (11, 23, 30d), no FAIL, job not green" >&2
+  echo "unstarted flows: 62 NOT RUN, 3 SKIPPED (11, 23, 30d), no FAIL, job not green" >&2
   cat "${summary_dir}/fail.out" >&2
   exit 1
 fi
@@ -1747,8 +1748,8 @@ if ! EMULATOR_ARTIFACTS="$not_run_dir" EMULATOR_RESOLVE_OUTCOME=failure \
   exit 1
 fi
 not_run="$(grep -c '^NOT RUN ' "${not_run_dir}/results.txt")"
-if [[ "$not_run" -ne 61 ]] || [[ "$(grep -c '^SKIPPED ' "${not_run_dir}/results.txt")" -ne 3 ]]; then
-  echo "expected 61 NOT RUN and 3 SKIPPED lines, found ${not_run} NOT RUN" >&2
+if [[ "$not_run" -ne 62 ]] || [[ "$(grep -c '^SKIPPED ' "${not_run_dir}/results.txt")" -ne 3 ]]; then
+  echo "expected 62 NOT RUN and 3 SKIPPED lines, found ${not_run} NOT RUN" >&2
   exit 1
 fi
 if grep -q '^FAIL ' "${not_run_dir}/results.txt"; then
@@ -3653,7 +3654,7 @@ grep -q '^SNAPCFG full-1 SNAPSHOT_CONFIG mismatch' "$r43/art431c/results.txt" &&
 grep -q '^::warning::emulator full shard 1: snapshot boot, but the AVD config differs from the snapshot: SNAPSHOT_CONFIG mismatch: disk.dataPartition.size' "$r43/art431c.out" ||
   { echo "run_shard: mismatch on a snapshot boot prints ::warning:: (round 4.3.3): $(cat "$r43/art431c.out")" >&2; exit 1; }
 # (a)/(3): worst case counts the outer kill-after; avd-warmup runs beside build.
-[[ "$(plan_need_s full 12)" == 2089 && "$(plan_need_s full 15)" == 1829 && "$(plan_need_s full 11)" == 2129 && "$(plan_need_s full 10)" == 2129 && "$(plan_need_s full 1)" == 2129 ]] || { echo "plan_need_s: shard 12 2089s (06a1 06a2 06b 31), 15 1829s, shards 1/10/11 2129s" >&2; exit 1; }
+[[ "$(plan_need_s full 12)" == 2089 && "$(plan_need_s full 15)" == 2144 && "$(plan_need_s full 11)" == 2129 && "$(plan_need_s full 10)" == 2129 && "$(plan_need_s full 1)" == 2129 ]] || { echo "plan_need_s: shard 12 2089s (06a1 06a2 06b 31), 15 2144s (26 24 30s3 10 32), shards 1/10/11 2129s" >&2; exit 1; }
 grep -q 'timeout --kill-after="$FLOW_OUTER_KILL_S"' tool/emulator/run_shard.sh || { echo "run_shard outer kill-after must be FLOW_OUTER_KILL_S" >&2; exit 1; }
 awk '/^  avd-warmup:/ { w = 1 } w && /needs:/ { print; exit }' "$workflow" | grep -qx '    needs: \[gate\]' || { echo "avd-warmup must need only the gate (parallel with build)" >&2; exit 1; }
 #R43_MORE

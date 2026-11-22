@@ -54,7 +54,7 @@ class DeityGroup {
   /// Original spellings that fell into this group, in first-seen order.
   final List<String> variants;
 
-  /// Jain, Buddhist, or Sikh when a variant carries that label.
+  /// Jain, Buddhist, or Sikh when every variant carries that label.
   final String? tradition;
 
   /// Text the sheet search compares, including parenthetical variants.
@@ -108,14 +108,9 @@ List<DeityGroup> groupDeityNames(
         }
       }
     }
-    if (tradition == null) {
-      for (final variant in seen) {
-        tradition = _traditionLabel(deityGroupBase(variant));
-        if (tradition != null) break;
-        tradition = _traditionLabel(variant);
-        if (tradition != null) break;
-      }
-    }
+    // Text fallback: every spelling in the group has to name the same
+    // tradition. "Shiva" plus "Shiva, Vishnu and Tirthankaras" is not Jain.
+    tradition ??= _sharedTraditionLabel(seen);
     groups.add(
       DeityGroup(
         key: key,
@@ -177,6 +172,17 @@ String _titleCase(String lower) {
 class _BaseVote {
   int count = 0;
   bool exact = false;
+}
+
+String? _sharedTraditionLabel(List<String> variants) {
+  String? shared;
+  for (final variant in variants) {
+    final label = _traditionLabel(variant);
+    if (label == null) return null;
+    if (shared != null && shared != label) return null;
+    shared = label;
+  }
+  return shared;
 }
 
 String? _traditionLabel(String deity) {
