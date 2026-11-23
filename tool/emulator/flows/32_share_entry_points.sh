@@ -59,11 +59,14 @@ share_once_and_back() {
       fail_step "$where-single-chooser" "${taps} tap(s) started the chooser ${starts:-0} times (want 1)"
     fi
   fi
-  # Cancel the chooser: back lands on the same detail page, no SnackBar.
-  ui_back
-  sleep 1
-  if ui_wait 8 --resource-id detail-share-button --package-contains "$PKG" ||
-     back_until_detail 3; then
+  # Cancel the chooser only while it is still up. The second tap of a
+  # double-tap dismisses it, and another back then pops the detail route
+  # (strict-full 45119529493: the failure dump was the launcher).
+  if chooser_shown; then
+    ui_back
+    sleep 1
+  fi
+  if ui_wait 12 --resource-id detail-share-button --package-contains "$PKG"; then
     ui_dump || true
     if ui_find --text-contains "open sharing"; then
       fail_step "$where-back" "cancelled chooser showed the share-failed SnackBar"

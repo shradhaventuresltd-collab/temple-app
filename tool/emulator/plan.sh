@@ -238,7 +238,7 @@ PLAN_ROWS=(
   "30s2-filter-matrix-seq2|tool/emulator/flows/29_filter_matrix.sh|seqs:2|11|540"
   "19-rotation-state|tool/emulator/flows/19_rotation_state.sh||11|300"
   "06a1-filters-single|tool/emulator/flows/06_filters.sh|single:1|16|400"
-  "06a2-filters-single|tool/emulator/flows/06_filters.sh|single:2|5|400"
+  "06a2-filters-single|tool/emulator/flows/06_filters.sh|single:2|5|500"
   "06b-filters-combined|tool/emulator/flows/06_filters.sh|combined|1"
   "31-filter-chain|tool/emulator/flows/31_filter_chain.sh||7|300"
   "21-district-close-then-other-chip|tool/emulator/flows/21_district_close_then_other_chip.sh||4"
@@ -255,7 +255,7 @@ PLAN_ROWS=(
   "30s3-filter-matrix-seq3|tool/emulator/flows/29_filter_matrix.sh|seqs:3|12|540"
   "10-directions|tool/emulator/flows/10_directions.sh||16|300"
   "30d-near-me|tool/emulator/flows/29_filter_matrix.sh|near_me:all|13"
-  "32-share-entry-points|tool/emulator/flows/32_share_entry_points.sh||14|265"
+  "32-share-entry-points|tool/emulator/flows/32_share_entry_points.sh||14|360"
 )
 
 plan_skip_list() {

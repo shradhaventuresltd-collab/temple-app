@@ -3547,7 +3547,7 @@ o="$( ( export EMULATOR_FLOW=x EMULATOR_ARTIFACTS="$r43/r5m"
   ui_dump; ui_find --resource-id filter-option-state-Bihar; stable_option_tap '^Bihar( +[0-9]+)?$' '^filter-option-state-' ) 2>&1)" && { echo "stable_option_tap: moved row must not be tapped: $o" >&2; exit 1; }
 grep -q TAPPED <<<"$o" && { echo "stable_option_tap tapped a moving row" >&2; exit 1; }
 grep -q '"06a1-filters-single|tool/emulator/flows/06_filters.sh|single:1|16|400"' tool/emulator/plan.sh &&
-  grep -q '"06a2-filters-single|tool/emulator/flows/06_filters.sh|single:2|5|400"' tool/emulator/plan.sh &&
+  grep -q '"06a2-filters-single|tool/emulator/flows/06_filters.sh|single:2|5|500"' tool/emulator/plan.sh &&
   grep -q '"06b-filters-combined|tool/emulator/flows/06_filters.sh|combined|1"' tool/emulator/plan.sh &&
   ! grep -q '"06-filters|' tool/emulator/plan.sh || { echo "plan.sh: 06 split into 06a single / 06b combined" >&2; exit 1; }
 f06=tool/emulator/flows/06_filters.sh
@@ -3585,6 +3585,33 @@ source "$fn"
 share_once_and_back browse 1
 ' )" || { echo "flow 32 dry-run failed: $o32" >&2; exit 1; }
 grep -qx 'CMD:input tap 37 356' <<<"$o32" || { echo "flow 32: empty tap after WhatsApp probe: $o32" >&2; exit 1; }
+# Double-tap can dismiss the chooser. A back is sent only while the chooser
+# is still the top package, and never the Maps back_until_detail loop.
+o32b="$(timeout 20 bash -c '
+set -euo pipefail
+fn="$(mktemp)"
+awk "/^share_once_and_back\\(\\)/,/^}/" tool/emulator/flows/32_share_entry_points.sh > "$fn"
+UI_CX=10 UI_CY=20 PKG=com.example
+ui_find() { return 0; }
+adb_shell_capped() { return 0; }
+pass_step() { :; }
+fail_step() { echo "FAIL $1"; return 0; }
+seek_share_button() { return 0; }
+logcat_window_start() { return 0; }
+sleep() { :; }
+ui_dump() { return 0; }
+step_shot() { :; }
+chooser_shown() { return 1; }
+logcat_window_read() { echo start; return 0; }
+count_chooser_starts() { echo 1; }
+backs=0; ui_back() { backs=$((backs + 1)); }
+ui_wait() { return 0; }
+# shellcheck disable=SC1090
+source "$fn"
+share_once_and_back browse-double 2 >/dev/null
+echo "backs=$backs"
+' )" || { echo "flow 32 back-skip dry-run failed: $o32b" >&2; exit 1; }
+[[ "$o32b" == "backs=0" ]] || { echo "flow 32: back after a dismissed chooser: $o32b" >&2; exit 1; }
 # Real ui_wait_scrolled. Default still stops at 8 flings. --until-timeout
 # re-dumps between flings and finds a heading that appears on the 9th fling.
 # sleep ticks SECONDS so the step timeout is bounded without a real wait.
@@ -3746,7 +3773,7 @@ grep -q '^SNAPCFG full-1 SNAPSHOT_CONFIG mismatch' "$r43/art431c/results.txt" &&
 grep -q '^::warning::emulator full shard 1: snapshot boot, but the AVD config differs from the snapshot: SNAPSHOT_CONFIG mismatch: disk.dataPartition.size' "$r43/art431c.out" ||
   { echo "run_shard: mismatch on a snapshot boot prints ::warning:: (round 4.3.3): $(cat "$r43/art431c.out")" >&2; exit 1; }
 # (a)/(3): worst case counts the outer kill-after; avd-warmup runs beside build.
-[[ "$(plan_need_s full 12)" == 1979 && "$(plan_need_s full 15)" == 1999 && "$(plan_need_s full 11)" == 2129 && "$(plan_need_s full 10)" == 1979 && "$(plan_need_s full 1)" == 2009 && "$(plan_need_s full 14)" == 1994 ]] || { echo "plan_need_s mismatch after 16-shard rebalance" >&2; exit 1; }
+[[ "$(plan_need_s full 12)" == 1979 && "$(plan_need_s full 15)" == 1999 && "$(plan_need_s full 11)" == 2129 && "$(plan_need_s full 10)" == 1979 && "$(plan_need_s full 1)" == 2009 && "$(plan_need_s full 14)" == 2089 && "$(plan_need_s full 5)" == 1829 ]] || { echo "plan_need_s mismatch after 16-shard rebalance" >&2; exit 1; }
 grep -q 'timeout --kill-after="$FLOW_OUTER_KILL_S"' tool/emulator/run_shard.sh || { echo "run_shard outer kill-after must be FLOW_OUTER_KILL_S" >&2; exit 1; }
 awk '/^  avd-warmup:/ { w = 1 } w && /needs:/ { print; exit }' "$workflow" | grep -qx '    needs: \[gate\]' || { echo "avd-warmup must need only the gate (parallel with build)" >&2; exit 1; }
 #R43_MORE
