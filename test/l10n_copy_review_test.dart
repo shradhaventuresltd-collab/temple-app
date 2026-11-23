@@ -165,6 +165,25 @@ void main() {
     }
   });
 
+  test('Bengali tradition keys say পরম্পরা, not ঐতিহ্য', () {
+    final bn = _read('bn');
+    const heritage = 'ঐতিহ্য';
+    const parampara = 'পরম্পরা';
+    final traditionKeys = [
+      for (final key in bn.keys)
+        if (!key.startsWith('@') && key.contains('Tradition')) key,
+    ];
+    expect(traditionKeys, isNotEmpty);
+    for (final key in traditionKeys) {
+      expect(bn[key], isNot(contains(heritage)), reason: key);
+    }
+    expect(bn['filterSheetAnyTraditionLabel'], 'যেকোনো $parampara');
+    expect(bn['filterChipChooseTraditionTooltip'], 'একটি পরম্পরা বেছে নিন');
+    expect(bn['filterChipClearTraditionTooltip'], 'পরম্পরা ফিল্টার মুছুন');
+    expect(bn['filterSheetChangeTraditionButton'], 'পরম্পরা বদলান');
+    expect(bn['filterSheetSearchTraditionHint'], 'পরম্পরা খুঁজুন');
+  });
+
   test('each non-English value stays in its own script', () {
     final offenders = <String>[];
     for (final code in _locales) {

@@ -161,12 +161,9 @@ class TempleBrowseCard extends StatelessWidget {
                           builder: (context, constraints) {
                             final traditionKey = listedTempleTraditionLabel(temple);
                             final traditionLabel = switch (traditionKey) {
-                              'Jain' => // l10n-allow: canonical tradition key
-                                strings.traditionJain,
-                              'Buddhist' => // l10n-allow: canonical tradition key
-                                strings.traditionBuddhist,
-                              'Sikh' => // l10n-allow: canonical tradition key
-                                strings.traditionSikh,
+                              'jain' => strings.traditionJain,
+                              'buddhist' => strings.traditionBuddhist,
+                              'sikh' => strings.traditionSikh,
                               _ => null,
                             };
                             Widget chip(

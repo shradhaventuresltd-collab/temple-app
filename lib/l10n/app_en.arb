@@ -338,31 +338,31 @@
       }
     }
   },
-  "directoryDeityNoteJain": "Jain sites are labelled by their own tradition, not Hindu darshan.",
+  "directoryDeityNoteJain": "Jain sites are labelled by their own tradition, not as Hindu temples.",
   "@directoryDeityNoteJain": {
     "description": "Deity sheet note when only Jain names are labelled."
   },
-  "directoryDeityNoteBuddhist": "Buddhist sites are labelled by their own tradition, not Hindu darshan.",
+  "directoryDeityNoteBuddhist": "Buddhist sites are labelled by their own tradition, not as Hindu temples.",
   "@directoryDeityNoteBuddhist": {
     "description": "Deity sheet note when only Buddhist names are labelled."
   },
-  "directoryDeityNoteSikh": "Sikh sites are labelled by their own tradition, not Hindu darshan.",
+  "directoryDeityNoteSikh": "Sikh sites are labelled by their own tradition, not as Hindu temples.",
   "@directoryDeityNoteSikh": {
     "description": "Deity sheet note when only Sikh names are labelled."
   },
-  "directoryDeityNoteJainAndBuddhist": "Jain and Buddhist sites are labelled by their own tradition, not Hindu darshan.",
+  "directoryDeityNoteJainAndBuddhist": "Jain and Buddhist sites are labelled by their own tradition, not as Hindu temples.",
   "@directoryDeityNoteJainAndBuddhist": {
     "description": "Deity sheet note for Jain and Buddhist names."
   },
-  "directoryDeityNoteJainAndSikh": "Jain and Sikh sites are labelled by their own tradition, not Hindu darshan.",
+  "directoryDeityNoteJainAndSikh": "Jain and Sikh sites are labelled by their own tradition, not as Hindu temples.",
   "@directoryDeityNoteJainAndSikh": {
     "description": "Deity sheet note for Jain and Sikh names."
   },
-  "directoryDeityNoteBuddhistAndSikh": "Buddhist and Sikh sites are labelled by their own tradition, not Hindu darshan.",
+  "directoryDeityNoteBuddhistAndSikh": "Buddhist and Sikh sites are labelled by their own tradition, not as Hindu temples.",
   "@directoryDeityNoteBuddhistAndSikh": {
     "description": "Deity sheet note for Buddhist and Sikh names."
   },
-  "directoryDeityNoteJainBuddhistAndSikh": "Jain, Buddhist and Sikh sites are labelled by their own tradition, not Hindu darshan.",
+  "directoryDeityNoteJainBuddhistAndSikh": "Jain, Buddhist and Sikh sites are labelled by their own tradition, not as Hindu temples.",
   "@directoryDeityNoteJainBuddhistAndSikh": {
     "description": "Deity sheet note for Jain, Buddhist, and Sikh names."
   },

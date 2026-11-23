@@ -36,9 +36,9 @@ List<String> directoryDeitiesFrom(Iterable<Temple> temples) {
 /// Jain, Buddhist, and Sikh strings stay labeled as those traditions.
 String? listedDeityTraditionLabel(String deity) {
   return switch (traditionFromDeityText(deity)) {
-    SiteTradition.jain => 'Jain',
-    SiteTradition.buddhist => 'Buddhist',
-    SiteTradition.sikh => 'Sikh',
+    SiteTradition.jain => 'jain',
+    SiteTradition.buddhist => 'buddhist',
+    SiteTradition.sikh => 'sikh',
     SiteTradition.unspecified => null,
   };
 }
@@ -46,19 +46,19 @@ String? listedDeityTraditionLabel(String deity) {
 /// Display label from a stored or indexed tradition field, then the deity text.
 String? listedTempleTraditionLabel(Temple temple) {
   return switch (directoryTraditionKey(temple)) {
-    'jain' => 'Jain',
-    'buddhist' => 'Buddhist',
-    'sikh' => 'Sikh',
+    'jain' => 'jain',
+    'buddhist' => 'buddhist',
+    'sikh' => 'sikh',
     _ => null,
   };
 }
 
-/// Jain, Buddhist, or Sikh for an exact `jain` / `buddhist` / `sikh` value.
+/// Canonical `jain` / `buddhist` / `sikh`, or null. Display words come from l10n.
 String? templeTraditionLabel(String? value) {
   return switch (value) {
-    'jain' => 'Jain',
-    'buddhist' => 'Buddhist',
-    'sikh' => 'Sikh',
+    'jain' => 'jain',
+    'buddhist' => 'buddhist',
+    'sikh' => 'sikh',
     _ => null,
   };
 }
@@ -130,16 +130,11 @@ String directoryDeityChipLabel(
   String? tradition,
   AppLocalizations? l10n,
 }) {
-  final label = tradition ?? listedDeityTraditionLabel(deity);
-  if (label == null) return deity;
-  final key = switch (label) {
-    'Jain' => 'jain',
-    'Buddhist' => 'buddhist',
-    'Sikh' => 'sikh',
-    'Hindu' => 'hindu',
-    _ => null,
-  };
+  final key = tradition ?? listedDeityTraditionLabel(deity);
   if (key == null) return deity;
+  if (key != 'jain' && key != 'buddhist' && key != 'sikh' && key != 'hindu') {
+    return deity;
+  }
   return _copy(l10n).directoryDeityWithTradition(deity, key);
 }
 
@@ -147,14 +142,14 @@ String directoryDeityChipLabel(
 ///
 /// With no Jain, Buddhist, or Sikh name this is "N deities". Otherwise it
 /// names those traditions, for example "Jain and Buddhist sites are labelled
-/// by their own tradition, not Hindu darshan."
+/// by their own tradition, not as Hindu temples."
 String directoryDeityFilterNote(
   Iterable<String> deities, {
   int? count,
   Iterable<String> traditionLabels = const [],
   AppLocalizations? l10n,
 }) {
-  const order = ['Jain', 'Buddhist', 'Sikh'];
+  const order = ['jain', 'buddhist', 'sikh'];
   final extra = traditionLabels.toSet();
   final present = [
     for (final label in order)
@@ -168,12 +163,12 @@ String directoryDeityFilterNote(
     return strings.directoryDeityCountLabel(total);
   }
   return switch (present.join('|')) {
-    'Jain' => strings.directoryDeityNoteJain,
-    'Buddhist' => strings.directoryDeityNoteBuddhist,
-    'Sikh' => strings.directoryDeityNoteSikh,
-    'Jain|Buddhist' => strings.directoryDeityNoteJainAndBuddhist,
-    'Jain|Sikh' => strings.directoryDeityNoteJainAndSikh,
-    'Buddhist|Sikh' => strings.directoryDeityNoteBuddhistAndSikh,
+    'jain' => strings.directoryDeityNoteJain,
+    'buddhist' => strings.directoryDeityNoteBuddhist,
+    'sikh' => strings.directoryDeityNoteSikh,
+    'jain|buddhist' => strings.directoryDeityNoteJainAndBuddhist,
+    'jain|sikh' => strings.directoryDeityNoteJainAndSikh,
+    'buddhist|sikh' => strings.directoryDeityNoteBuddhistAndSikh,
     _ => strings.directoryDeityNoteJainBuddhistAndSikh,
   };
 }

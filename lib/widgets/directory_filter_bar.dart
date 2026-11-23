@@ -977,7 +977,9 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
         count: census.deityCount(group.label),
         value: group.label,
         selected: _deity == group.label,
-        badge: group.tradition,
+        badge: group.tradition == null
+            ? null
+            : traditionDisplayLabel(context.l10n, group.tradition!),
         searchText: group.searchText,
       );
     }
@@ -1031,8 +1033,8 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
       );
     }
     final traditions = [
-      for (final label in ['Jain', 'Buddhist', 'Sikh']) // l10n-allow: canonical tradition keys
-        if (visible.any((group) => group.tradition == label)) label,
+      for (final key in ['jain', 'buddhist', 'sikh'])
+        if (visible.any((group) => group.tradition == key)) key,
     ];
     final note = directoryDeityFilterNote(
       [
@@ -1123,7 +1125,7 @@ class _DirectoryFilterSheetState extends State<_DirectoryFilterSheet> {
     ];
     final extraLabels = [
       for (final key in present)
-        if (key != directoryTraditionHindu) directoryTraditionChipLabel(key),
+        if (key != directoryTraditionHindu) key,
     ];
     final note = extraLabels.isEmpty
         ? directoryPlaceCountLabel(census.anyTradition, l10n: context.l10n)
