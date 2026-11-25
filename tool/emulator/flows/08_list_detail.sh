@@ -28,10 +28,10 @@ local_name="$UI_TEXT"
 ui_tap
 pass_step open-card
 
-if ui_wait_scrolled 20 --text-contains "Listed focus"; then
+if ui_wait_scrolled 20 --text-contains "Dedicated"; then
   pass_step listed-focus
 else
-  fail_step listed-focus "Listed focus was not on the detail page"
+  fail_step listed-focus "Dedicated was not on the detail page"
 fi
 
 if ui_wait_scrolled 20 --text-contains "How to Reach"; then

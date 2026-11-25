@@ -862,7 +862,7 @@
       }
     }
   },
-  "templeDetailListedFocusLabel": "Listed focus: {deity}",
+  "templeDetailListedFocusLabel": "Dedicated: {deity}",
   "@templeDetailListedFocusLabel": {
     "description": "Line under the framing note. The deity name is not translated.",
     "placeholders": {
