@@ -187,9 +187,9 @@ String? _sharedTraditionLabel(List<String> variants) {
 
 String? _traditionLabel(String deity) {
   return switch (traditionFromDeityText(deity)) {
-    SiteTradition.jain => 'Jain',
-    SiteTradition.buddhist => 'Buddhist',
-    SiteTradition.sikh => 'Sikh',
+    SiteTradition.jain => 'jain',
+    SiteTradition.buddhist => 'buddhist',
+    SiteTradition.sikh => 'sikh',
     SiteTradition.unspecified => null,
   };
 }

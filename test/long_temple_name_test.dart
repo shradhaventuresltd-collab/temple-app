@@ -121,8 +121,8 @@ void main() {
         );
         _expectShown(
           tester,
-          find.text('Listed focus: ${temple.deity}'),
-          'Listed focus: ${temple.deity}',
+          find.text('Dedicated: ${temple.deity}'),
+          'Dedicated: ${temple.deity}',
         );
         expect(
           tester

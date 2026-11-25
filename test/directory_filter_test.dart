@@ -108,17 +108,17 @@ void main() {
       'Shiva',
     ]);
     expect(directoryDeitiesFrom(withGoa), contains('Buddha'));
-    expect(listedDeityTraditionLabel('Jain Tirthankaras'), 'Jain');
-    expect(listedDeityTraditionLabel('Buddha'), 'Buddhist');
+    expect(listedDeityTraditionLabel('Jain Tirthankaras'), 'jain');
+    expect(listedDeityTraditionLabel('Buddha'), 'buddhist');
     expect(listedDeityTraditionLabel('Shiva'), isNull);
     expect(directoryDeityChipLabel('Buddha'), 'Buddha · Buddhist');
     expect(
       directoryDeityFilterNote(directoryDeitiesFrom(temples)),
-      'Jain sites are labelled by their own tradition, not Hindu darshan.',
+      'Jain sites are labelled by their own tradition, not as Hindu temples.',
     );
     expect(
       directoryDeityFilterNote(directoryDeitiesFrom(withGoa)),
-      'Jain and Buddhist sites are labelled by their own tradition, not Hindu darshan.',
+      'Jain and Buddhist sites are labelled by their own tradition, not as Hindu temples.',
     );
     expect(directoryDeityFilterNote(const ['Shiva'], count: 4), '4 deities');
     expect(
@@ -376,7 +376,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       find.text(
-        'Jain sites are labelled by their own tradition, not Hindu darshan.',
+        'Jain sites are labelled by their own tradition, not as Hindu temples.',
       ),
       findsOneWidget,
     );
@@ -408,8 +408,8 @@ void main() {
         ),
       ];
       expect(listedDeityTraditionLabel('Guru Granth Sahib'), isNull);
-      expect(listedTempleTraditionLabel(listed[0]), 'Sikh');
-      expect(listedTempleTraditionLabel(listed[1]), 'Jain');
+      expect(listedTempleTraditionLabel(listed[0]), 'sikh');
+      expect(listedTempleTraditionLabel(listed[1]), 'jain');
       expect(listedTempleTraditionLabel(listed[2]), isNull);
       expect(
         directoryDeityChipLabel(
@@ -425,7 +425,7 @@ void main() {
               .map(listedTempleTraditionLabel)
               .whereType<String>(),
         ),
-        'Jain and Sikh sites are labelled by their own tradition, not Hindu darshan.',
+        'Jain and Sikh sites are labelled by their own tradition, not as Hindu temples.',
       );
       final groups = groupDeityNames(
         listed.map((temple) => temple.deity),
@@ -434,8 +434,8 @@ void main() {
       final byLabel = {
         for (final group in groups) group.label: group.tradition,
       };
-      expect(byLabel['Guru Granth Sahib'], 'Sikh');
-      expect(byLabel['Rishabhanatha'], 'Jain');
+      expect(byLabel['Guru Granth Sahib'], 'sikh');
+      expect(byLabel['Rishabhanatha'], 'jain');
       expect(byLabel['Devi'], isNull);
       expect(
         directoryMatchingTemples(
@@ -476,7 +476,7 @@ void main() {
     expect(find.text('Sikh'), findsWidgets);
     expect(
       find.text(
-        'Sikh sites are labelled by their own tradition, not Hindu darshan.',
+        'Sikh sites are labelled by their own tradition, not as Hindu temples.',
       ),
       findsOneWidget,
     );

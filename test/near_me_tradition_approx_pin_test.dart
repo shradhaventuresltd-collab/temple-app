@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:temple_app/l10n/pin_precision_strings.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/models/temple.dart';
 import 'package:temple_app/near_me/coarse_location.dart';
 import 'package:temple_app/near_me/near_me_copy.dart';
@@ -136,7 +136,9 @@ void main() {
       expect(after, isNot('~0.0 km'));
       expect(
         after,
-        startsWith(PinPrecisionStrings.approximateDistanceKm('')[0]),
+        startsWith(
+          L10nLookup.english.nearMeApproximateDistanceLabel('whole', 0, 1)[0],
+        ),
       );
 
       // Places copy, not temples.

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:temple_app/widgets/filter_sheet_theme.dart';
 
 export 'package:temple_app/widgets/filter_sheet_theme.dart';
@@ -27,7 +28,7 @@ class FilterSheetScaffold extends StatefulWidget {
     required this.title,
     required this.sectionKey,
     this.subtitle,
-    this.searchHint = 'Search',
+    this.searchHint,
     this.forceSearch = false,
     this.jumps = const [],
     this.any,
@@ -41,7 +42,7 @@ class FilterSheetScaffold extends StatefulWidget {
     this.loading = false,
     this.loadingKey = const Key('filter-sheet-loading'),
     this.error = false,
-    this.errorMessage = 'Something went wrong',
+    this.errorMessage,
     this.onRetry,
     this.scrollToId,
   });
@@ -51,7 +52,7 @@ class FilterSheetScaffold extends StatefulWidget {
   /// `filter-section-state`, `filter-section-district`, or `filter-section-deity`.
   final Key sectionKey;
   final Widget? subtitle;
-  final String searchHint;
+  final String? searchHint;
 
   /// Search is also shown when the sheet has more than 15 rows.
   final bool forceSearch;
@@ -67,7 +68,7 @@ class FilterSheetScaffold extends StatefulWidget {
   final bool loading;
   final Key loadingKey;
   final bool error;
-  final String errorMessage;
+  final String? errorMessage;
   final VoidCallback? onRetry;
 
   /// Option id scrolled into view when the sheet opens or finishes loading.
@@ -345,7 +346,7 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
                               ),
                               IconButton(
                                 key: const Key('filter-sheet-close'),
-                                tooltip: 'Close filters',
+                                tooltip: context.l10n.filterSheetCloseTooltip,
                                 onPressed: () => Navigator.pop(context),
                                 icon: Icon(
                                   Icons.close_rounded,
@@ -434,7 +435,9 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
                         if (widget.mode == FilterSheetMode.apply)
                           _Footer(
                             colors: colors,
-                            resultLabel: widget.resultLabel ?? 'Show places',
+                            resultLabel:
+                                widget.resultLabel ??
+                                context.l10n.filterSheetShowPlacesFallback,
                             clearEnabled: widget.clearEnabled,
                             onClear: widget.onClear,
                             onApply: widget.onApply,
@@ -473,7 +476,7 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
           style: GoogleFonts.poppins(fontSize: 14, color: colors.label),
           decoration: InputDecoration(
             isDense: true,
-            hintText: widget.searchHint,
+            hintText: widget.searchHint ?? context.l10n.filterSheetSearchHint,
             hintStyle: GoogleFonts.poppins(color: colors.muted),
             prefixIcon: Icon(Icons.search_rounded, color: colors.muted),
             filled: true,
@@ -539,7 +542,9 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
           ...leading,
           Expanded(
             child: _ErrorBody(
-              message: widget.errorMessage,
+              message:
+                  widget.errorMessage ??
+                  context.l10n.commonSomethingWentWrongMessage,
               onRetry: widget.onRetry,
               colors: colors,
             ),
@@ -559,7 +564,7 @@ class _FilterSheetScaffoldState extends State<FilterSheetScaffold> {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
             child: Text(
-              'No match for \u2018$query\u2019',
+              context.l10n.filterSheetNoMatchMessage(query),
               key: const Key('filter-sheet-no-match'),
             ),
           ),
@@ -733,7 +738,7 @@ class _Footer extends StatelessWidget {
           shape: const StadiumBorder(),
           textStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
-        child: const Text('Clear'),
+        child: Text(context.l10n.commonClearButton),
       ),
     );
     final apply = FilledButton(
@@ -929,7 +934,7 @@ class _Skeleton extends StatelessWidget {
     final id = key is ValueKey<String> ? key.value : null;
     return Semantics(
       identifier: id,
-      label: 'Loading districts',
+      label: context.l10n.filterSheetLoadingDistrictsLabel,
       child: ListView(
         key: loadingKey,
         children: [
@@ -988,7 +993,7 @@ class _ErrorBody extends StatelessWidget {
                   key: const Key('filter-district-retry'),
                   onPressed: onRetry,
                   child: Text(
-                    'Try again',
+                    context.l10n.commonTryAgainButton,
                     style: GoogleFonts.poppins(
                       fontWeight: FontWeight.w700,
                       color: colors.accentText,

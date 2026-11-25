@@ -779,7 +779,7 @@ for pth in "warm $e2e_warm" "retry $e2e_retry" "cold $e2e_cold" "cold_retry $e2e
 done
 (( e2e_retry <= 2640 )) || { echo "boot-retry end-to-end ${e2e_retry}s > 2640s (44.0 min)" >&2; exit 1; }
 echo "end-to-end worst (s): warm ${e2e_warm}, retry ${e2e_retry}, cold ${e2e_cold}, cold+retry ${e2e_cretry}, warm-up refused ${e2e_refused}, refused+retry ${e2e_rretry}, create failed+retry ${e2e_cfretry}; max shard ${e2e_max}"
-[[ "$e2e_warm $e2e_retry $e2e_cold $e2e_cretry $e2e_refused $e2e_rretry $e2e_cfretry $e2e_max" == "2498 2614 2548 2664 2538 2654 2690 2144" ]] || { echo "end-to-end table changed: $e2e_warm $e2e_retry $e2e_cold $e2e_cretry $e2e_refused $e2e_rretry $e2e_cfretry $e2e_max (update PR body)" >&2; exit 1; }
+[[ "$e2e_warm $e2e_retry $e2e_cold $e2e_cretry $e2e_refused $e2e_rretry $e2e_cfretry $e2e_max" == "2483 2599 2533 2649 2523 2639 2675 2129" ]] || { echo "end-to-end table changed: $e2e_warm $e2e_retry $e2e_cold $e2e_cretry $e2e_refused $e2e_rretry $e2e_cfretry $e2e_max (update PR body)" >&2; exit 1; }
 # Per-flow caps are not lowered to fit (Sanu): FLOW_CAP_S 600, 26/08 at 300.
 [[ "$(bash -c 'source tool/emulator/plan.sh; echo "$FLOW_CAP_S $(plan_cap_s 26-drawer-nav-stack) $(plan_cap_s 08-list-detail)"')" == "600 300 300" ]] || { echo "per-flow cap changed" >&2; exit 1; }
 # Round 4.4.4 (Satyavrat A): the model's create/warm-up terms follow the workflow.
@@ -2496,6 +2496,30 @@ chmod +x "$reuse_bin/adb"
 )
 rm -rf "$reuse_dir" "$reuse_bin"
 
+# Locale pin writes flutter.app_locale=en through run-as after install/clear.
+pin_dir="$(mktemp -d)"
+pin_bin="$(mktemp -d)"
+cat > "$pin_bin/adb" << 'STUB'
+#!/bin/bash
+printf '%s\n' "$*" >> "${STUB_ADB_LOG:?}"
+exit 0
+STUB
+chmod +x "$pin_bin/adb"
+(
+  set -euo pipefail
+  export STUB_ADB_LOG="$pin_dir/adb.log"
+  export PATH="$pin_bin:$PATH"
+  export EMULATOR_FLOW=04-home
+  export EMULATOR_ARTIFACTS="$pin_dir"
+  export EMULATOR_PACKAGE=com.shradhaventures.temple
+  # shellcheck disable=SC1091
+  source tool/emulator/lib/common.sh
+  pin_harness_locale_en
+  grep -q 'run-as com.shradhaventures.temple mkdir -p shared_prefs' "$STUB_ADB_LOG"
+  grep -q 'flutter.app_locale' <<<"$(grep 'base64 -d' "$STUB_ADB_LOG" | sed -n "s/.*printf '%s' '\\([^']*\\)'.*/\\1/p" | base64 -d)"
+)
+rm -rf "$pin_dir" "$pin_bin"
+
 # ui_fling directions, without a device. Run 40658283240 sent "left" and
 # "right" as vertical swipes, so flow 24 never paged the gallery.
 fling_log="$(mktemp)"
@@ -2865,7 +2889,7 @@ done
 rc=0; g="$(EMULATOR_GATE_MODE=strict EMULATOR_SHARD_RESULTS="${ms}/shards" EMULATOR_ARTIFACTS="$ms" GITHUB_STEP_SUMMARY=/dev/null \
   bash tool/emulator/release_gate.sh full "$gate_sha" build 2>&1)" || rc=$?
 if [[ "$rc" != 1 || "$g" != *"4 NOT RUN (no result: 30g1-filter-matrix-search-deity 30g2-filter-matrix-search-deity 30s2-filter-matrix-seq2 19-rotation-state)"* ||
-      "$g" != *"missing shard artifacts: 11 (need 15)"* ]]; then
+      "$g" != *"missing shard artifacts: 11 (need 16)"* ]]; then
   echo "strict gate must refuse a run with shard 11 missing (4 silent NOT RUN + missing artifact): rc=${rc} ${g}" >&2; exit 1
 fi
 # Artifact present but its flows silent (e.g. results.txt from a dead shard):
@@ -2887,7 +2911,7 @@ if EMULATOR_GATE_MODE=strict EMULATOR_SHARD_RESULTS="${ms}/shards" EMULATOR_ARTI
 rm -rf "${ms}/shards"; gate_clean_results "$ms" 15
 rc=0; g="$(EMULATOR_GATE_MODE=strict EMULATOR_SHARD_RESULTS="${ms}/shards" EMULATOR_ARTIFACTS="$ms" GITHUB_STEP_SUMMARY=/dev/null \
   bash tool/emulator/release_gate.sh full "$gate_sha" build 2>&1)" || rc=$?
-[[ "$rc" == 1 && "$g" == *"missing shard artifacts: 15 (need 15)"* ]] || { echo "gate: a run with 14 artifacts (no shard 15) must refuse: rc=${rc} ${g}" >&2; exit 1; }
+[[ "$rc" == 1 && "$g" == *"missing shard artifacts: 15 (need 16)"* ]] || { echo "gate: a run with 14 artifacts (no shard 15) must refuse: rc=${rc} ${g}" >&2; exit 1; }
 rm -rf "$ms"
 echo "release gate negative: missing shard 11 refused (round 4.3)"
 [[ "${#planned_lines[@]}" -ge 3 ]] || { echo "plan.sh DEFAULT_SKIP_FLOWS should hold 11, 23, 30d" >&2; exit 1; }
@@ -3522,15 +3546,110 @@ o="$( ( export EMULATOR_FLOW=x EMULATOR_ARTIFACTS="$r43/r5m"
   ui_tap() { echo TAPPED; }
   ui_dump; ui_find --resource-id filter-option-state-Bihar; stable_option_tap '^Bihar( +[0-9]+)?$' '^filter-option-state-' ) 2>&1)" && { echo "stable_option_tap: moved row must not be tapped: $o" >&2; exit 1; }
 grep -q TAPPED <<<"$o" && { echo "stable_option_tap tapped a moving row" >&2; exit 1; }
-grep -q '"06a1-filters-single|tool/emulator/flows/06_filters.sh|single:1|12|400"' tool/emulator/plan.sh &&
-  grep -q '"06a2-filters-single|tool/emulator/flows/06_filters.sh|single:2|12|400"' tool/emulator/plan.sh &&
-  grep -q '"06b-filters-combined|tool/emulator/flows/06_filters.sh|combined|12"' tool/emulator/plan.sh &&
+grep -q '"06a1-filters-single|tool/emulator/flows/06_filters.sh|single:1|16|400"' tool/emulator/plan.sh &&
+  grep -q '"06a2-filters-single|tool/emulator/flows/06_filters.sh|single:2|5|500"' tool/emulator/plan.sh &&
+  grep -q '"06b-filters-combined|tool/emulator/flows/06_filters.sh|combined|1"' tool/emulator/plan.sh &&
   ! grep -q '"06-filters|' tool/emulator/plan.sh || { echo "plan.sh: 06 split into 06a single / 06b combined" >&2; exit 1; }
 f06=tool/emulator/flows/06_filters.sh
 grep -q "select_labeled '^(?!All districts)" "$f06" && { echo "flow 06: no name-less lookahead district pick" >&2; exit 1; }
 grep -q 'COMBINED_DISTRICT_PICK:-^Alappuzha' "$f06" && grep -q 'state_chip_is "$COMBINED_STATE"' "$f06" || { echo "flow 06: real district (Alappuzha) and the state-chip check" >&2; exit 1; }
+grep -q 'filter-chip-tradition) continue' "$f06" || { echo "flow 06: tradition chip is not an unknown extra chip" >&2; exit 1; }
+grep -q 'share_x="$UI_CX"' tool/emulator/flows/32_share_entry_points.sh &&
+  grep -q 'UI_CX="$share_x"' tool/emulator/flows/32_share_entry_points.sh || { echo "flow 32: WhatsApp probe must not wipe the share-button tap point" >&2; exit 1; }
+grep -q 'ui_wait_scrolled 45 --until-timeout --text-contains "How to Reach"' "$f06" || { echo "flow 06b: How to Reach must poll between flings until its step timeout" >&2; exit 1; }
+# Flow 32: ui_find clears UI_CX. The tap after a missed WhatsApp probe must
+# still use the coordinates seek_share_button found. Bounded; no device.
+o32="$(timeout 20 bash -c '
+set -euo pipefail
+fn="$(mktemp)"
+awk "/^share_once_and_back\\(\\)/,/^}/" tool/emulator/flows/32_share_entry_points.sh > "$fn"
+UI_CX=37 UI_CY=356
+PKG=com.example
+ui_find() { UI_CX=""; UI_CY=""; return 1; }
+adb_shell_capped() { shift; printf "CMD:%s\n" "$*"; }
+pass_step() { :; }
+fail_step() { return 0; }
+seek_share_button() { return 0; }
+logcat_window_start() { return 0; }
+sleep() { :; }
+ui_dump() { return 0; }
+step_shot() { :; }
+chooser_shown() { return 1; }
+logcat_window_read() { echo ""; return 0; }
+count_chooser_starts() { echo 0; }
+ui_back() { :; }
+ui_wait() { return 0; }
+back_until_detail() { return 0; }
+# shellcheck disable=SC1090
+source "$fn"
+share_once_and_back browse 1
+' )" || { echo "flow 32 dry-run failed: $o32" >&2; exit 1; }
+grep -qx 'CMD:input tap 37 356' <<<"$o32" || { echo "flow 32: empty tap after WhatsApp probe: $o32" >&2; exit 1; }
+# Double-tap can dismiss the chooser. A back is sent only while the chooser
+# is still the top package, and never the Maps back_until_detail loop.
+o32b="$(timeout 20 bash -c '
+set -euo pipefail
+fn="$(mktemp)"
+awk "/^share_once_and_back\\(\\)/,/^}/" tool/emulator/flows/32_share_entry_points.sh > "$fn"
+UI_CX=10 UI_CY=20 PKG=com.example
+ui_find() { return 0; }
+adb_shell_capped() { return 0; }
+pass_step() { :; }
+fail_step() { echo "FAIL $1"; return 0; }
+seek_share_button() { return 0; }
+logcat_window_start() { return 0; }
+sleep() { :; }
+ui_dump() { return 0; }
+step_shot() { :; }
+chooser_shown() { return 1; }
+logcat_window_read() { echo start; return 0; }
+count_chooser_starts() { echo 1; }
+backs=0; ui_back() { backs=$((backs + 1)); }
+ui_wait() { return 0; }
+# shellcheck disable=SC1090
+source "$fn"
+share_once_and_back browse-double 2 >/dev/null
+echo "backs=$backs"
+' )" || { echo "flow 32 back-skip dry-run failed: $o32b" >&2; exit 1; }
+[[ "$o32b" == "backs=0" ]] || { echo "flow 32: back after a dismissed chooser: $o32b" >&2; exit 1; }
+# Real ui_wait_scrolled. Default still stops at 8 flings. --until-timeout
+# re-dumps between flings and finds a heading that appears on the 9th fling.
+# sleep ticks SECONDS so the step timeout is bounded without a real wait.
+# shellcheck disable=SC2016
+o06="$(timeout 20 bash -c '
+set -euo pipefail
+export EMULATOR_FLOW=06b-scroll EMULATOR_ARTIFACTS="${TMPDIR:-/tmp}/f06scroll-$$" EMULATOR_PACKAGE=com.example
+mkdir -p "$EMULATOR_ARTIFACTS"
+# shellcheck disable=SC1091
+source tool/emulator/lib/common.sh
+looks=0
+fling_calls=0
+ui_dump() { looks=$((looks + 1)); : > "$DUMP"; return 0; }
+ui_find() { (( looks >= 10 )); }
+ui_fling() { fling_calls=$((fling_calls + 1)); }
+sleep() { SECONDS=$((SECONDS + 1)); }
+ui_wait_scrolled 45 --until-timeout --text-contains "How to Reach"
+echo "found fling_calls=$fling_calls looks=$looks"
+' )" || { echo "flow 06b scroll-poll dry-run failed: $o06" >&2; exit 1; }
+[[ "$o06" == "found fling_calls=9 looks=10" ]] || { echo "flow 06b: scroll-poll did not find How to Reach on the 9th fling: $o06" >&2; exit 1; }
+# shellcheck disable=SC2016
+o06d="$(timeout 20 bash -c '
+set -euo pipefail
+export EMULATOR_FLOW=06b-scroll-default EMULATOR_ARTIFACTS="${TMPDIR:-/tmp}/f06scroll-d-$$" EMULATOR_PACKAGE=com.example
+mkdir -p "$EMULATOR_ARTIFACTS"
+# shellcheck disable=SC1091
+source tool/emulator/lib/common.sh
+ui_dump() { : > "$DUMP"; return 0; }
+ui_find() { return 1; }
+fling_calls=0
+ui_fling() { fling_calls=$((fling_calls + 1)); }
+sleep() { SECONDS=$((SECONDS + 1)); }
+ui_wait_scrolled 20 --text-contains "How to Reach" || true
+echo "fling_calls=$fling_calls"
+' )" || { echo "flow 06b default-cap dry-run failed: $o06d" >&2; exit 1; }
+[[ "$o06d" == "fling_calls=8" ]] || { echo "ui_wait_scrolled default must still stop at 8 flings: $o06d" >&2; exit 1; }
 grep -q ': "${_section}"' tool/emulator/lib/common.sh && { echo "select_labeled must use its section" >&2; exit 1; }
-[[ "$(bash -c 'source tool/emulator/plan.sh; plan_cap_s 26-drawer-nav-stack; plan_cap_s 06b-filters-combined; plan_cap_s 06a1-filters-single; plan_need_s full 12')" == $'300\n600\n400\n2089' ]] || { echo "plan: 26=300, 06b=600, 06a1=400, shard 12 = 2089s" >&2; exit 1; }
+[[ "$(bash -c 'source tool/emulator/plan.sh; plan_cap_s 26-drawer-nav-stack; plan_cap_s 06b-filters-combined; plan_cap_s 06a1-filters-single; plan_need_s full 12')" == $'300\n600\n400\n1979' ]] || { echo "plan: 26=300, 06b=600, 06a1=400, shard 12 = 1979s" >&2; exit 1; }
 # 6-8. Replays of run 41391038302 (testdata/run41391038302/replay_*.sh):
 # 27 waits for validation, re-taps Try again, flaps only after recover; 17c
 # clears "temple" before typing; 24 sends one fling and compares.
@@ -3654,7 +3773,7 @@ grep -q '^SNAPCFG full-1 SNAPSHOT_CONFIG mismatch' "$r43/art431c/results.txt" &&
 grep -q '^::warning::emulator full shard 1: snapshot boot, but the AVD config differs from the snapshot: SNAPSHOT_CONFIG mismatch: disk.dataPartition.size' "$r43/art431c.out" ||
   { echo "run_shard: mismatch on a snapshot boot prints ::warning:: (round 4.3.3): $(cat "$r43/art431c.out")" >&2; exit 1; }
 # (a)/(3): worst case counts the outer kill-after; avd-warmup runs beside build.
-[[ "$(plan_need_s full 12)" == 2089 && "$(plan_need_s full 15)" == 2144 && "$(plan_need_s full 11)" == 2129 && "$(plan_need_s full 10)" == 2129 && "$(plan_need_s full 1)" == 2129 ]] || { echo "plan_need_s: shard 12 2089s (06a1 06a2 06b 31), 15 2144s (26 24 30s3 10 32), shards 1/10/11 2129s" >&2; exit 1; }
+[[ "$(plan_need_s full 12)" == 1979 && "$(plan_need_s full 15)" == 1999 && "$(plan_need_s full 11)" == 2129 && "$(plan_need_s full 10)" == 1979 && "$(plan_need_s full 1)" == 2009 && "$(plan_need_s full 14)" == 2089 && "$(plan_need_s full 5)" == 1829 ]] || { echo "plan_need_s mismatch after 16-shard rebalance" >&2; exit 1; }
 grep -q 'timeout --kill-after="$FLOW_OUTER_KILL_S"' tool/emulator/run_shard.sh || { echo "run_shard outer kill-after must be FLOW_OUTER_KILL_S" >&2; exit 1; }
 awk '/^  avd-warmup:/ { w = 1 } w && /needs:/ { print; exit }' "$workflow" | grep -qx '    needs: \[gate\]' || { echo "avd-warmup must need only the gate (parallel with build)" >&2; exit 1; }
 #R43_MORE
@@ -4173,7 +4292,7 @@ fna() { ui_dump; if none_applied_ok; then echo OK; else echo "$FILTER_KEPT_WHY";
 ms="$(mktemp -d)"; gate_clean_results "$ms"
 sed -i '/^BOOT /d' "${ms}/shards/emulator-app-test-5/results.txt"
 rc=0; g="$(EMULATOR_GATE_MODE=strict EMULATOR_SHARD_RESULTS="${ms}/shards" EMULATOR_ARTIFACTS="$ms" GITHUB_STEP_SUMMARY=/dev/null bash tool/emulator/release_gate.sh full "$gate_sha" build 2>&1)" || rc=$?
-[[ "$rc" == 1 && "$g" == *"missing shard artifacts: 5 (need 15); no BOOT line (emulator died before run_shard.sh): 5"* ]] || { echo "4.4.2 gate: shard 5 without BOOT refused with the reason: rc=${rc} ${g}" >&2; exit 1; }
+[[ "$rc" == 1 && "$g" == *"missing shard artifacts: 5 (need 16); no BOOT line (emulator died before run_shard.sh): 5"* ]] || { echo "4.4.2 gate: shard 5 without BOOT refused with the reason: rc=${rc} ${g}" >&2; exit 1; }
 rm -rf "$ms"
 # fixture_scan nits: =/&#61;, (?!REDACTED\b), %40, advertising id, hyphenated IMEI, Luhn.
 for bad in 'gclid&#61;Cj0KCQiAfake12' 'gclid%3DREDACTEDx12345' 'a%40b.co' 'advertising_id: 38400000-8cf0-11bd-b23e-10b96e40000d' 'IMEI 35-693803-564380-9' '35-693803-564380-9' '490154203237518'; do

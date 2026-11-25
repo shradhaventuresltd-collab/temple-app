@@ -244,7 +244,7 @@ ui_dump || true
 while read -r chip_id; do
   [[ -z "$chip_id" ]] && continue
   case "$chip_id" in
-    filter-chip-state|filter-chip-deity|filter-chip-district|filter-chip-city) continue ;;
+    filter-chip-state|filter-chip-deity|filter-chip-district|filter-chip-city|filter-chip-tradition) continue ;;
   esac
   opener_unknown() { open_by_id "$chip_id"; }
   exercise_filter "$chip_id" '^(?!Any |All ).+[0-9]+$' "" opener_unknown "$chip_id"
@@ -391,7 +391,10 @@ fi
 
 if ui_wait_scrolled 20 --resource-id temple-browse-card --text-contains "Temple"; then
   ui_tap
-  if ui_wait_scrolled 20 --text-contains "How to Reach"; then
+  # A cold detail open can leave How to Reach one fling past the 8-fling
+  # default. Keep dumping between flings until the heading is on screen.
+  # 45s stays inside this flow's 600s cap (the rest of 06b is well under it).
+  if ui_wait_scrolled 45 --until-timeout --text-contains "How to Reach"; then
     pass_step detail-open
     ui_back
     sleep 2

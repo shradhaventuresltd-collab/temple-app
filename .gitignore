@@ -25,6 +25,11 @@ migrate_working_dir/
 # is commented out by default.
 #.vscode/
 
+# flutter gen-l10n output. `flutter pub get` regenerates these when
+# `flutter: generate` is set. Do not commit them.
+/lib/l10n/app_localizations.dart
+/lib/l10n/app_localizations_*.dart
+
 # Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id

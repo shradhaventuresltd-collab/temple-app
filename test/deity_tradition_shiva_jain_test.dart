@@ -132,7 +132,7 @@ void main() {
       );
       final byLabel = {for (final g in groups) g.label: g.tradition};
       expect(byLabel['Shiva'], isNull);
-      expect(byLabel['Rishabhanatha'], 'Jain');
+      expect(byLabel['Rishabhanatha'], 'jain');
       expect(
         directoryDeityChipLabel('Shiva', tradition: byLabel['Shiva']),
         'Shiva',
@@ -151,13 +151,13 @@ void main() {
 
     test('a group whose every listing is Jain keeps the Jain label', () {
       final listed = [dilwara, ranakpur];
-      expect(traditionOfLoadedTemples(listed)('Rishabhanatha'), 'Jain');
+      expect(traditionOfLoadedTemples(listed)('Rishabhanatha'), 'jain');
       expect(
         groupDeityNames(
           directoryDeitiesFrom(listed),
           traditionOf: traditionOfLoadedTemples(listed),
         ).single.tradition,
-        'Jain',
+        'jain',
       );
     });
 
@@ -174,7 +174,7 @@ void main() {
           'Parshvanatha (Jain Tirthankara)',
           'Parshvanatha — Jain',
         ]).single.tradition,
-        'Jain',
+        'jain',
       );
     });
   });

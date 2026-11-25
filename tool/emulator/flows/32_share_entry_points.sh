@@ -25,14 +25,21 @@ seek_share_button() {
 
 # $1 step prefix, $2 taps (1 or 2). Leaves the app on detail on success.
 share_once_and_back() {
-  local where="$1" taps="$2" window starts
+  local where="$1" taps="$2" window starts share_x share_y
   seek_share_button || { fail_step "$where-seek" "Share not found on detail"; return 1; }
+  # ui_find clears UI_CX/UI_CY before searching. The WhatsApp label probe
+  # must not discard the coordinates seek_share_button just found, or
+  # `input tap` is run with no arguments.
+  share_x="$UI_CX"
+  share_y="$UI_CY"
   if ui_find --content-desc-regex '^Share on WhatsApp' &&
      ! adb_shell_capped 8 pm path com.whatsapp >/dev/null 2>&1; then
     fail_step "$where-label" "label says WhatsApp but WhatsApp is not installed"
   else
     pass_step "$where-label"
   fi
+  UI_CX="$share_x"
+  UI_CY="$share_y"
   logcat_window_start "share-$where" || echo "share: TempleEmuMark marker not written" >&2
   adb_shell_capped 8 input tap "$UI_CX" "$UI_CY"
   if (( taps > 1 )); then
@@ -52,11 +59,14 @@ share_once_and_back() {
       fail_step "$where-single-chooser" "${taps} tap(s) started the chooser ${starts:-0} times (want 1)"
     fi
   fi
-  # Cancel the chooser: back lands on the same detail page, no SnackBar.
-  ui_back
-  sleep 1
-  if ui_wait 8 --resource-id detail-share-button --package-contains "$PKG" ||
-     back_until_detail 3; then
+  # Cancel the chooser only while it is still up. The second tap of a
+  # double-tap dismisses it, and another back then pops the detail route
+  # (strict-full 45119529493: the failure dump was the launcher).
+  if chooser_shown; then
+    ui_back
+    sleep 1
+  fi
+  if ui_wait 12 --resource-id detail-share-button --package-contains "$PKG"; then
     ui_dump || true
     if ui_find --text-contains "open sharing"; then
       fail_step "$where-back" "cancelled chooser showed the share-failed SnackBar"

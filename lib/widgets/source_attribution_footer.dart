@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:temple_app/l10n/app_locale.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:temple_app/utils/place_sources.dart';
 import 'package:temple_app/widgets/unverified_source_notice.dart';
@@ -42,8 +43,8 @@ class _SourceAttributionFooterState extends State<SourceAttributionFooter> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          const SnackBar(
-            content: Text(UnverifiedSourceNotice.launchFailedText),
+          SnackBar(
+            content: Text(context.l10n.templeDetailSourceLinkFailedMessage),
           ),
         );
     }
@@ -80,7 +81,10 @@ class _SourceAttributionFooterState extends State<SourceAttributionFooter> {
   @override
   Widget build(BuildContext context) {
     final tokens = DetailUxTokens.of(context);
-    final layout = placeSourceFooterLayout(widget.sources);
+    final layout = placeSourceFooterLayout(
+      widget.sources,
+      l10n: context.l10n,
+    );
     final chrome = GoogleFonts.poppins(
       fontSize: 11.5,
       height: 1.4,
@@ -96,7 +100,7 @@ class _SourceAttributionFooterState extends State<SourceAttributionFooter> {
       key: widget.footerKey,
       style: chrome,
       child: layout.visible.isEmpty
-          ? Text(compiledFromPublicSources, style: chrome)
+          ? Text(context.l10n.placeSourceCompiledMessage, style: chrome)
           : Wrap(
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
@@ -104,7 +108,9 @@ class _SourceAttributionFooterState extends State<SourceAttributionFooter> {
                 for (var i = 0; i < layout.visible.length; i++) ...[
                   if (i > 0) Text(', ', style: chrome),
                   _SourceTap(
-                    label: layout.visible[i].label,
+                    label: layout.visible[i].label == officialTempleWebsiteLabel
+                        ? context.l10n.placeSourceOfficialWebsiteLabel
+                        : layout.visible[i].label,
                     style: link,
                     onTap: () => _open(layout.visible[i].uri),
                     linkKey: Key('detail-dress-code-source-link-$i'),
@@ -113,7 +119,7 @@ class _SourceAttributionFooterState extends State<SourceAttributionFooter> {
                 if (layout.moreCount > 0) ...[
                   Text(' ', style: chrome),
                   _SourceTap(
-                    label: '+${layout.moreCount} more',
+                    label: context.l10n.placeSourceMoreLabel(layout.moreCount),
                     style: chrome,
                     onTap: () => _openRemaining(layout),
                     linkKey: const Key('detail-dress-code-source-more'),

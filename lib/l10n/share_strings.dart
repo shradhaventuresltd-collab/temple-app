@@ -1,9 +1,7 @@
 /// Copy for sharing a place from the detail screen (Ux SHARE-SPEC.md).
 ///
-/// Main does not yet ship generated l10n (the i18n work is on a separate
-/// branch). These names are the future ARB keys and the values are the
-/// English strings, following `pin_precision_strings.dart`, so the ARB pass
-/// can swap these lookups for `AppLocalizations` without renaming.
+/// These stay English on purpose. Only the share-unavailable snackbar is
+/// in the ARBs. The button label, tooltip, and share text are a later pass.
 abstract final class ShareStrings {
   /// l10n key: [templeDetailShareButtonLabel]
   ///

@@ -25,25 +25,10 @@ void main() {
   });
 
   test('app name strings in §2.2 stay Temple Directory', () {
-    const sources = [
-      'lib/main.dart',
-      'lib/release_error_widget.dart',
-      'lib/screens/policy_acceptance_gate.dart',
-      'lib/screens/force_update_screen.dart',
-      'lib/screens/home_screen.dart',
-      'lib/widgets/app_drawer.dart',
-      'lib/screens/maintenance_screen.dart',
-    ];
-    for (final path in sources) {
-      final text = File(path).readAsStringSync();
-      expect(text.contains('Temple Directory'), isTrue, reason: path);
-    }
-    expect(
-      File(
-        'lib/main.dart',
-      ).readAsStringSync().contains('Temple Directory India'),
-      isTrue,
-    );
+    final english = File('lib/l10n/app_en.arb').readAsStringSync();
+    expect(english.contains('Temple Directory India'), isTrue);
+    expect(english.contains('Temple Directory'), isTrue);
+    expect(english.contains('Temple Directory of India'), isFalse);
   });
 
   test('admin CMS strings in §2.4 stay temple-worded', () {
@@ -70,9 +55,9 @@ void main() {
   });
 
   test('§2.1 browse and filter copy uses places, not temples', () {
-    expect(directoryBrowseTitle(), directoryTitleAllPlaces);
-    expect(directoryBrowseTitle(tradition: 'sikh'), directoryTitleSikhPlaces);
-    expect(directoryBrowseTitle(tradition: ''), directoryTitleAllPlaces);
+    expect(directoryBrowseTitle(), 'All places');
+    expect(directoryBrowseTitle(tradition: 'sikh'), 'Sikh places');
+    expect(directoryBrowseTitle(tradition: ''), 'All places');
     expect(
       directoryBrowseTitle(tradition: 'jain', state: 'Rajasthan'),
       'Rajasthan',
@@ -89,18 +74,9 @@ void main() {
   });
 
   test('§2.1 shard load error uses places', () {
-    expect(
-      File(
-        'lib/services/firestore_read_log.dart',
-      ).readAsStringSync().contains("Could not load places in"),
-      isTrue,
-    );
-    expect(
-      File(
-        'lib/services/firestore_read_log.dart',
-      ).readAsStringSync().contains("Could not load temples in"),
-      isFalse,
-    );
+    final english = File('lib/l10n/app_en.arb').readAsStringSync();
+    expect(english.contains('Could not load places in {states}'), isTrue);
+    expect(english.contains('Could not load temples in'), isFalse);
   });
 
   test('§2.1 Near me and offline copy', () {

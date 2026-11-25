@@ -13,7 +13,7 @@ ui_tap
 if ! ui_wait_scrolled 25 --text-contains "How to Reach" &&
    ! ui_wait_scrolled 10 --resource-id detail-dress-code &&
    ! ui_wait_scrolled 10 --resource-id get-directions-button &&
-   ! ui_wait_scrolled 10 --text-contains "Listed focus"; then
+   ! ui_wait_scrolled 10 --text-contains "Dedicated"; then
   fail_step directions "detail did not open after tapping a temple card"
   return 0
 fi
