@@ -122,6 +122,7 @@ void main() {
       if (key.startsWith('templeDetailTimings')) return true;
       if (key == 'templeDetailVisitingHoursTitle') return true;
       if (key == 'templeDetailHeritageVisitLabel') return true;
+      if (key.startsWith('directoryDeityNote')) return true;
       return key.startsWith('templeDetailFraming') &&
           (key.contains('Monument') || key.contains('Neutral'));
     });
